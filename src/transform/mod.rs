@@ -2,14 +2,17 @@ use std::path::PathBuf;
 
 use indexmap::IndexMap;
 use swc_core::{
-    common::{comments::Comments, FileName},
+    common::{
+        comments::{Comment, CommentKind, Comments},
+        FileName,
+    },
     ecma::{
-        ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, Prop},
+        ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, Module, Prop},
         utils::member_expr,
     },
 };
 
-use crate::shared::{enums::ModuleCycle, utils::extract_filename_from_path};
+use crate::shared::{enums::ModuleCycle, structures::MetaData, utils::extract_filename_from_path};
 
 mod css_map;
 mod fold;
@@ -25,6 +28,7 @@ where
     pub class_name_map: IndexMap<Prop, Prop>,
     file_name: String,
     props_declaration: Option<Id>,
+    pub css_output: Vec<MetaData>,
 }
 
 impl<C> ModuleTransformVisitor<C>
@@ -40,6 +44,7 @@ where
             class_name_map: IndexMap::new(),
             file_name: extract_filename_from_path(file_name),
             props_declaration: Option::None,
+            css_output: vec![],
         }
     }
 
@@ -52,6 +57,7 @@ where
             class_name_map: IndexMap::new(),
             file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
+            css_output: vec![],
         }
     }
 

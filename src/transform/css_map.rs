@@ -1,4 +1,5 @@
 use std::collections::hash_map::DefaultHasher;
+use std::fs::Metadata;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
@@ -8,7 +9,10 @@ use swc_core::{
     common::comments::Comments,
     ecma::ast::{CallExpr, Callee, Expr, Lit, MemberProp, Prop, PropOrSpread},
 };
+use convert_case::{Case, Casing};
 
+
+use crate::shared::structures::{MetaData, StyleWithDirections};
 use crate::shared::utils::{
     object_expression_factory, prop_or_spread_string_creator, string_to_expression,
 };
@@ -21,9 +25,9 @@ fn calculate_hash<T: Hash>(t: &T) -> String {
 
     let mut result = format!("{:x}", hash);
 
-    result.truncate(8);
+    result.truncate(7);
 
-    result
+    format!("x{}", result)
 }
 
 impl<C> ModuleTransformVisitor<C>
@@ -42,7 +46,6 @@ where
                                 }
                             }
                             "props" => {
-                                println!("props expr {:#?}", ex);
                                 return Option::Some(Expr::Ident(Ident::new(
                                     "_stylex$props".into(),
                                     DUMMY_SP,
@@ -141,11 +144,22 @@ where
                                     Lit::Str(str) => {
                                         let css_property_value = str.value.clone();
                                         let css_style = format!(
-                                            "{{ {}: {}; }}",
-                                            css_property, css_property_value
+                                            "{{{}:{}}}",
+                                            css_property.to_string().to_case(Case::Kebab), css_property_value
                                         );
 
                                         let css_class_hash = calculate_hash(&css_style);
+
+                                        let metadata = MetaData(
+                                            css_class_hash.clone(),
+                                            StyleWithDirections {
+                                                ltr: format!(".{}{}", css_class_hash, css_style),
+                                                rtl: Option::None,
+                                            },
+                                            3000,
+                                        );
+
+                                        self.css_output.push(metadata);
 
                                         *css_class_has_map
                                             .entry("className".to_string())

@@ -41,6 +41,9 @@ where
                         ImportSpecifier::Default(import_specifier) => {
                             self.declaration = Some(import_specifier.local.to_id());
                         }
+                        ImportSpecifier::Namespace(import_specifier) => {
+                            self.declaration = Some(import_specifier.local.to_id());
+                        }
                         _ => panic!("Must be default import"),
                     };
                 }
@@ -61,6 +64,21 @@ where
 
         if self.declaration.is_some() {
             self.cycle = ModuleCycle::Cleaning;
+
+            let module = module.fold_children_with(self);
+
+            self.comments.add_leading_comments(
+                module.span.lo,
+                vec![Comment {
+                    kind: CommentKind::Block,
+                    text: format!(
+                        "__stylex_metadata_start__{}__stylex_metadata_end__",
+                        serde_json::to_string(&self.css_output).unwrap()
+                    )
+                    .into(),
+                    span: module.span,
+                }],
+            );
 
             module.fold_children_with(self)
         } else {
@@ -93,8 +111,16 @@ where
                             let specifier = import.specifiers.first();
 
                             if let Some(spec) = specifier {
-                                if let ImportSpecifier::Default(_) = spec {
-                                    return false;
+                                match spec {
+                                    ImportSpecifier::Namespace(_) => {
+                                        return false;
+                                    }
+                                    ImportSpecifier::Named(_) => {
+                                        return true;
+                                    }
+                                    ImportSpecifier::Default(_) => {
+                                        return false;
+                                    }
                                 }
                             }
                         }

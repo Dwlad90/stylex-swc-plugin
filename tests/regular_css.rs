@@ -1,15 +1,12 @@
 use stylex_swc_plugin::ModuleTransformVisitor;
-use swc_core::{
-    ecma::{
-        parser::{Syntax, TsConfig},
-        transforms::testing::test,
-    },
-    plugin::proxies::PluginCommentsProxy,
+use swc_core::ecma::{
+    parser::{Syntax, TsConfig},
+    transforms::testing::test,
 };
 
 test!(
     Default::default(),
-    |_| { ModuleTransformVisitor::new_test(PluginCommentsProxy) },
+    |tr| { ModuleTransformVisitor::new_test(tr.comments.clone()) },
     transform_simple_css_class,
     r#"
       import s from "@stylexjs/stylex";
@@ -30,7 +27,7 @@ test!(
 
 test!(
     Default::default(),
-    |_| { ModuleTransformVisitor::new_test(PluginCommentsProxy) },
+    |tr| { ModuleTransformVisitor::new_test(tr.comments.clone()) },
     transform_multiple_simple_css_classes,
     r#"
     import s from "@stylexjs/stylex";
@@ -66,7 +63,7 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |_| { ModuleTransformVisitor::new_test(PluginCommentsProxy) },
+    |tr| { ModuleTransformVisitor::new_test(tr.comments.clone()) },
     transform_multiple_simple_css_classes_and_inject_to_react_component,
     r#"
     import s from "@stylexjs/stylex";

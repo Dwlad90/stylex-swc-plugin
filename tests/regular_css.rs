@@ -20,7 +20,7 @@ test!(
     "#,
     r#"
       const _stylex$props = {
-        className: "page__c.base b0d669ae 57b485a9"
+        className: "page__c.base x9b88efe xdaaef87"
       };
     "#
 );
@@ -53,7 +53,7 @@ test!(
   "#,
     r#"
     const _stylex$props = {
-      className: "page__c.base b0d669ae 57b485a9 page__c.test 49381fc6 10be0f0e page__c.wrapper b0d669ae 49381fc6 page__c.container f3732245 10be0f0e",
+      className: "page__c.base x9b88efe xdaaef87 page__c.test x39a4b12 xc3d638e page__c.wrapper x9b88efe x39a4b12 page__c.container xefba2c9 xc3d638e",
     };
   "#
 );
@@ -99,7 +99,7 @@ test!(
   "#,
     r#"
     const _stylex$props = {
-      className: "page__c.base b0d669ae 57b485a9 page__c.test 49381fc6 10be0f0e page__c.wrapper b0d669ae 49381fc6 page__c.container f3732245 10be0f0e",
+      className: "page__c.base x9b88efe xdaaef87 page__c.test x39a4b12 xc3d638e page__c.wrapper x9b88efe x39a4b12 page__c.container xefba2c9 xc3d638e",
     };
 
     export default function Home() {

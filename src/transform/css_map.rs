@@ -1,19 +1,18 @@
 use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-use chrono::format;
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::Str;
-use swc_core::ecma::utils::{ExprExt, ExprFactory, StringType};
+use swc_core::ecma::ast::Ident;
 use swc_core::{
     common::comments::Comments,
-    ecma::ast::{CallExpr, Callee, Expr, Id, Lit, MemberProp, Prop, PropOrSpread},
+    ecma::ast::{CallExpr, Callee, Expr, Lit, MemberProp, Prop, PropOrSpread},
 };
 
-use crate::shared::utils::{object_expression_factory, prop_or_spread_string_creator};
-use crate::{shared::enums::ModuleCycle, transform::css_map, ModuleTransformVisitor};
+use crate::shared::utils::{
+    object_expression_factory, prop_or_spread_string_creator, string_to_expression,
+};
+use crate::ModuleTransformVisitor;
 
 fn calculate_hash<T: Hash>(t: &T) -> String {
     let mut s = DefaultHasher::new();
@@ -36,71 +35,21 @@ where
             if let Expr::Member(member) = callee.as_ref() {
                 match member.prop.clone() {
                     MemberProp::Ident(ident) => {
-                        if ident.sym.eq("create") {
-                            let mut props: Vec<PropOrSpread> = vec![];
-                            let mut css_class_has_map: IndexMap<String, String> = IndexMap::new();
-
-                            let decl_name = self
-                                .props_declaration
-                                .clone()
-                                .unwrap_or_default()
-                                .0
-                                .to_string();
-
-                            print!(
-                                " self.props_declaration: {:#?} , decl_name: {:#?} \n\n",
-                                self.props_declaration, decl_name
-                            );
-
-                            for arg in ex.args.iter() {
-                                match &arg.spread {
-                                    Some(_) => todo!(),
-                                    None => match &arg.expr.as_ref() {
-                                        Expr::Object(object) => {
-                                            for prop in &object.props {
-                                                match &prop {
-                                                    PropOrSpread::Prop(prop) => {
-                                                        match &prop.as_ref() {
-                                                            Prop::Shorthand(_) => todo!(),
-                                                            Prop::KeyValue(key_value) => {
-                                                                self.process_css_key_value(
-                                                                    key_value,
-                                                                    &mut css_class_has_map,
-                                                                    &decl_name,
-                                                                );
-                                                            }
-                                                            _ => panic!(),
-                                                        }
-                                                    }
-                                                    PropOrSpread::Spread(_) => todo!(),
-                                                };
-                                            }
-
-                                            println!(
-                                                "css_class_has_map ended: {:#?} \n\n",
-                                                css_class_has_map
-                                            );
-
-                                            println!("file_name: {:#?} \n\n", self.file_name);
-
-                                            for (key, value) in css_class_has_map.iter() {
-                                                let value = (*value).clone();
-
-                                                // println!("key: {:#?} \n\n", key);
-                                                // println!("value: {:#?} \n\n", value);
-
-                                                props.push(prop_or_spread_string_creator(
-                                                    &format!("{}", key),
-                                                    value.clone().trim_end().to_string(),
-                                                ));
-                                            }
-                                        }
-                                        _ => {}
-                                    },
+                        match format!("{}", ident.sym).as_str() {
+                            "create" => {
+                                if let Some(value) = self.proccess_create_call(ex) {
+                                    return value;
                                 }
-                                return object_expression_factory(props);
                             }
-                        }
+                            "props" => {
+                                println!("props expr {:#?}", ex);
+                                return Option::Some(Expr::Ident(Ident::new(
+                                    "_stylex$props".into(),
+                                    DUMMY_SP,
+                                )));
+                            }
+                            _ => {}
+                        };
                     }
                     _ => {}
                 }
@@ -108,6 +57,55 @@ where
         }
 
         return Option::None;
+    }
+
+    fn proccess_create_call(&mut self, ex: &CallExpr) -> Option<Option<Expr>> {
+        let mut props: Vec<PropOrSpread> = vec![];
+        let mut css_class_has_map: IndexMap<String, String> = IndexMap::new();
+        let decl_name = self
+            .props_declaration
+            .clone()
+            .unwrap_or_default()
+            .0
+            .to_string();
+
+        for arg in ex.args.iter() {
+            match &arg.spread {
+                Some(_) => todo!(),
+                None => match &arg.expr.as_ref() {
+                    Expr::Object(object) => {
+                        for prop in &object.props {
+                            match &prop {
+                                PropOrSpread::Prop(prop) => match &prop.as_ref() {
+                                    Prop::Shorthand(_) => todo!(),
+                                    Prop::KeyValue(key_value) => {
+                                        self.process_css_key_value(
+                                            key_value,
+                                            &mut css_class_has_map,
+                                            &decl_name,
+                                        );
+                                    }
+                                    _ => panic!(),
+                                },
+                                PropOrSpread::Spread(_) => todo!(),
+                            };
+                        }
+
+                        for (key, value) in css_class_has_map.iter() {
+                            let value = (*value).clone();
+
+                            props.push(prop_or_spread_string_creator(
+                                &format!("{}", key),
+                                value.clone().trim_end().to_string(),
+                            ));
+                        }
+                    }
+                    _ => {}
+                },
+            }
+            return Some(object_expression_factory(props));
+        }
+        None
     }
 
     fn process_css_key_value(
@@ -149,22 +147,10 @@ where
 
                                         let css_class_hash = calculate_hash(&css_style);
 
-                                        println!(
-                                            "css_class_has_map_before: {:#?}, css_class_hash: {:#?} \n\n",
-                                            css_class_has_map,
-                                            css_class_hash
-                                        );
-
                                         *css_class_has_map
                                             .entry("className".to_string())
                                             .or_default() +=
                                             format!("{} ", css_class_hash.clone()).as_str();
-
-                                        println!(
-                                            "css_class_has_map_after: {:#?}, css_class_hash: {:#?} \n\n",
-                                            css_class_has_map,
-                                            css_class_hash
-                                        );
                                     }
                                     _ => panic!(),
                                 }

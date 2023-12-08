@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use swc_core::{
     common::{comments::Comments, FileName},
     ecma::{
-        ast::{CallExpr, Callee, Expr, Id, MemberProp, Prop, Ident},
+        ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, Prop},
         utils::member_expr,
     },
 };
@@ -24,7 +24,7 @@ where
     pub package_name: String,
     pub class_name_map: IndexMap<Prop, Prop>,
     file_name: String,
-    props_declaration: Option<Id>
+    props_declaration: Option<Id>,
 }
 
 impl<C> ModuleTransformVisitor<C>
@@ -55,7 +55,7 @@ where
         }
     }
 
-    pub fn process_declaration(&mut self, expr: &CallExpr) -> Option<Id> {
+    pub fn process_declaration(&mut self, expr: &CallExpr) -> Option<(Id, String)> {
         match &mut expr.callee.clone() {
             Callee::Expr(callee) => match callee.as_ref() {
                 Expr::Member(member) => match member.obj.as_ref() {
@@ -64,35 +64,24 @@ where
 
                         if self.declaration.is_some() {
                             if self.declaration.clone().unwrap().eq(&ident_id) {
-                                return Option::Some(ident_id.clone());
+                                match member.prop.clone() {
+                                    MemberProp::Ident(ident) => {
+                                        return Option::Some((
+                                            ident_id.clone(),
+                                            format!("{}", ident.sym),
+                                        ));
+                                    }
+                                    _ => {}
+                                }
                             }
                         }
-
-                        Option::None
                     }
-                    _ => Option::None,
+                    _ => {}
                 },
-                // Expr::Ident(ident) => {
-                //     let ident_id = &ident.to_id();
-
-                //     println!("process_declaration, ident_id: {:#?}", ident_id);
-                //     println!(
-                //         "process_declaration, self.declaration: {:#?}",
-                //         self.declaration
-                //     );
-                //     if self.declaration.is_some() {
-                //         if self.declaration.clone().unwrap().eq(&ident_id) {
-                //             return Option::Some(ident_id.clone());
-                //         }
-                //     }
-
-                //     Option::None
-                // }
-                _ => Option::None,
+                _ => {}
             },
-            _ => Option::None,
+            _ => {}
         }
+        Option::None
     }
-
-
 }

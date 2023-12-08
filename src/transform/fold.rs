@@ -128,11 +128,15 @@ where
         if &var_declarator.init.is_some() == &true {
             match &*var_declarator.init.clone().unwrap() {
                 Expr::Call(call) => {
-                    let declaration = self.process_declaration(&call);
+                    let declaration_tuple = self.process_declaration(&call);
 
-                    match &declaration {
+                    match &declaration_tuple {
                         Some(declaration) => {
-                            if declaration.eq(&self.declaration.clone().unwrap()) {
+                            let (declaration, member) = declaration;
+
+                            if declaration.eq(&self.declaration.clone().unwrap())
+                                && member == "create"
+                            {
                                 self.props_declaration =
                                     var_declarator.name.as_ident().map(|ident| ident.to_id());
 
@@ -152,13 +156,6 @@ where
                 _ => {}
             }
         }
-        // println!(
-        //     "var_declarator_id: {:#?}, stylex_var_declarator: {:#?}",
-        //     var_declarator_id, stylex_var_declarator
-        // );
-        // if var_declarator_id.eq(&stylex_var_declarator) {
-        //     println!("var_declarator_id: {:#?}", var_declarator_id);
-        // }
 
         // Call the fold_children_with method on the VarDecl struct
         var_declarator.fold_children_with(self)
@@ -191,27 +188,4 @@ where
 
         expr.fold_children_with(self)
     }
-
-    // fn fold_module(&mut self, module: Module) -> Module {
-    //     // println!("ModuleTransformVisitor::fold_module, module: {:#?}", module);
-    //     // println!("ModuleTransformVisitor::fold_module, module");
-    //     self.comments.add_leading_comments(
-    //         module.span.lo,
-    //         vec![
-    //             Comment {
-    //                 kind: CommentKind::Block,
-    //                 text: "__style11_start__\".AAA{color:blue},.BBB{color:pink}\"__style11_end__"
-    //                     .into(),
-    //                 span: module.span,
-    //             },
-    //             Comment {
-    //                 kind: CommentKind::Block,
-    //                 text: "test1".into(),
-    //                 span: module.span,
-    //             },
-    //         ],
-    //     );
-
-    //     module.fold_children_with(self)
-    // }
 }

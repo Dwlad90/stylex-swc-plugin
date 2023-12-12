@@ -1,3 +1,4 @@
+use radix_fmt::radix;
 use swc_core::{
     common::{FileName, DUMMY_SP},
     ecma::ast::{Expr, Ident, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread},
@@ -32,4 +33,8 @@ pub fn extract_filename_from_path(path: FileName) -> String {
         FileName::Real(path_buf) => path_buf.file_stem().unwrap().to_str().unwrap().to_string(),
         _ => panic!("Not a real file name"),
     }
+}
+
+pub fn hash_css(value: &str) -> String {
+    radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }

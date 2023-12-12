@@ -2,6 +2,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::fs::Metadata;
 use std::hash::{Hash, Hasher};
 
+use convert_case::{Case, Casing};
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::Ident;
@@ -9,26 +10,12 @@ use swc_core::{
     common::comments::Comments,
     ecma::ast::{CallExpr, Callee, Expr, Lit, MemberProp, Prop, PropOrSpread},
 };
-use convert_case::{Case, Casing};
-
 
 use crate::shared::structures::{MetaData, StyleWithDirections};
 use crate::shared::utils::{
-    object_expression_factory, prop_or_spread_string_creator, string_to_expression,
+    hash_css, object_expression_factory, prop_or_spread_string_creator, string_to_expression,
 };
 use crate::ModuleTransformVisitor;
-
-fn calculate_hash<T: Hash>(t: &T) -> String {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    let hash = s.finish();
-
-    let mut result = format!("{:x}", hash);
-
-    result.truncate(7);
-
-    format!("x{}", result)
-}
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -142,18 +129,32 @@ where
 
                                 match &css_property_value {
                                     Lit::Str(str) => {
+                                        let css_property_key =
+                                            css_property.to_string().to_case(Case::Kebab);
+
                                         let css_property_value = str.value.clone();
+
                                         let css_style = format!(
                                             "{{{}:{}}}",
-                                            css_property.to_string().to_case(Case::Kebab), css_property_value
+                                            css_property_key, css_property_value
                                         );
 
-                                        let css_class_hash = calculate_hash(&css_style);
+                                        let value_to_hash = format!(
+                                            "<>{}{}{}",
+                                            css_property_key,
+                                            css_property_value,
+                                            "null" //pseudoHashString
+                                        );
+
+                                        let class_name_hashed = format!(
+                                            "x{}",
+                                            hash_css(value_to_hash.as_str())
+                                        );
 
                                         let metadata = MetaData(
-                                            css_class_hash.clone(),
+                                            class_name_hashed.clone(),
                                             StyleWithDirections {
-                                                ltr: format!(".{}{}", css_class_hash, css_style),
+                                                ltr: format!(".{}{}", class_name_hashed, css_style),
                                                 rtl: Option::None,
                                             },
                                             3000,
@@ -164,7 +165,7 @@ where
                                         *css_class_has_map
                                             .entry("className".to_string())
                                             .or_default() +=
-                                            format!("{} ", css_class_hash.clone()).as_str();
+                                            format!("{} ", class_name_hashed.clone()).as_str();
                                     }
                                     _ => panic!(),
                                 }

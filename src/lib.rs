@@ -19,10 +19,11 @@ use swc_core::{
 
 #[plugin_transform]
 pub fn process_transform(program: Program, metadata: TransformPluginProgramMetadata) -> Program {
-    let file_name: FileName = match metadata.get_context(&TransformPluginMetadataContextKind::Filename) {
-        Some(s) => FileName::Real(s.into()),
-        None => FileName::Anon,
-    };
+    let file_name: FileName =
+        match metadata.get_context(&TransformPluginMetadataContextKind::Filename) {
+            Some(s) => FileName::Real(s.into()),
+            None => FileName::Anon,
+        };
 
     let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
         ModuleTransformVisitor::new(PluginCommentsProxy, file_name);

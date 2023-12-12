@@ -13,14 +13,14 @@ test!(
 
       const c = s.create({
         base: {
-          color: "red",
-          borderColor: "blue",
+          backgroundColor: 'red',
+          color: 'blue',
         },
       });
     "#,
     r#"
       const _stylex$props = {
-        className: "page__c.base x9b88efe xdaaef87"
+        className: "page__c.base xrkmrrc xju2f9n"
       };
     "#
 );
@@ -53,7 +53,7 @@ test!(
   "#,
     r#"
     const _stylex$props = {
-      className: "page__c.base x9b88efe xdaaef87 page__c.test x39a4b12 xc3d638e page__c.wrapper x9b88efe x39a4b12 page__c.container xefba2c9 xc3d638e",
+      className: "page__c.base x1e2nbdu x1118g2m page__c.test x15hxx75 x7z7khe page__c.wrapper x1e2nbdu x15hxx75 page__c.container x16ydxro x7z7khe",
     };
   "#
 );
@@ -99,7 +99,7 @@ test!(
   "#,
     r#"
     const _stylex$props = {
-      className: "page__c.base x9b88efe xdaaef87 page__c.test x39a4b12 xc3d638e page__c.wrapper x9b88efe x39a4b12 page__c.container xefba2c9 xc3d638e",
+      className: "page__c.base x1e2nbdu x1118g2m page__c.test x15hxx75 x7z7khe page__c.wrapper x1e2nbdu x15hxx75 page__c.container x16ydxro x7z7khe",
     };
 
     export default function Home() {

@@ -25,7 +25,7 @@ fn fixture(input: PathBuf) {
 
             chain!(
                 resolver(unresolved_mark, top_level_mark, false),
-                ModuleTransformVisitor::new_test(tr.comments.clone())
+                ModuleTransformVisitor::new_test(PluginCommentsProxy) // ModuleTransformVisitor::new_test(tr.comments.clone())
             )
         },
         &input,

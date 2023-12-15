@@ -82,7 +82,6 @@ where
                     Option::None;
 
                 for module_item in module_items.clone().into_iter() {
-                    println!("module_item: {:?} \n\n\n", module_item);
                     match &module_item {
                         ModuleItem::ModuleDecl(import_decl) => match &import_decl {
                             ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
@@ -101,6 +100,19 @@ where
                                 }
                                 _ => {}
                             },
+                            ModuleDecl::ExportDefaultExpr(export_default_expr) => {
+                                match export_default_expr.expr.as_ref() {
+                                    Expr::Object(_) => {
+                                        if self.props_declaration.is_none() {
+                                            styles_item_target_idx = Option::Some(styles_item_idx);
+                                            injected_styles_export = Option::Some(
+                                            InjectedStylesDeclarationType::NamedPropertyOrDefaultExport,
+                                        );
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
                             _ => {}
                         },
                         ModuleItem::Stmt(stmt) => match &stmt {
@@ -113,7 +125,7 @@ where
                                         if decl_name.eq(&var_declarator_name) {
                                             styles_item_target_idx = Option::Some(styles_item_idx);
                                             injected_styles_export = Option::Some(
-                                                InjectedStylesDeclarationType::NamedPropertyExport,
+                                                InjectedStylesDeclarationType::NamedPropertyOrDefaultExport,
                                             );
                                             break;
                                         }
@@ -171,7 +183,7 @@ where
 
                                         module_items_middle_vec.push(module);
                                     }
-                                    InjectedStylesDeclarationType::NamedPropertyExport => {
+                                    InjectedStylesDeclarationType::NamedPropertyOrDefaultExport => {
                                         let inject_import_stmt = ModuleItem::ModuleDecl(
                                             ModuleDecl::Import(ImportDecl {
                                                 span: DUMMY_SP,

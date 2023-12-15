@@ -126,6 +126,34 @@ test!(
     "#
 );
 
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    default_export,
+    r#"
+        import stylex from '@stylexjs/stylex';
+        export default (stylex.create({
+            foo: {
+                color: 'red'
+            },
+        }));
+    "#,
+    r#"
+        import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        import stylex from '@stylexjs/stylex';
+        _inject(".x1e2nbdu{color:red}", 3000);
+        export default {
+            foo: {
+                color: "x1e2nbdu",
+                $$css: true
+            }
+        };
+    "#
+);
+
 #[test]
 #[should_panic(expected = "Must be default import")]
 fn throw_when_named_import() {

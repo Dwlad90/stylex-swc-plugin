@@ -1,3 +1,4 @@
+mod fold_export_default_expr;
 mod fold_expr;
 mod fold_import_decl;
 mod fold_module;
@@ -7,8 +8,8 @@ mod fold_var_declarator;
 use swc_core::{
     common::comments::Comments,
     ecma::{
-        ast::{Expr, ImportDecl, Module, ModuleItem, VarDeclarator},
-        visit::{noop_fold_type, Fold},
+        ast::{ExportAll, ExportDefaultExpr, Expr, ImportDecl, Module, ModuleItem, VarDeclarator},
+        visit::{noop_fold_type, Fold, FoldWith},
     },
 };
 
@@ -38,5 +39,12 @@ where
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         self.fold_expr_impl(expr)
+    }
+
+    fn fold_export_default_expr(
+        &mut self,
+        export_default_expr: ExportDefaultExpr,
+    ) -> ExportDefaultExpr {
+        self.fold_export_default_expr_impl(export_default_expr)
     }
 }

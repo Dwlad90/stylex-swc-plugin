@@ -78,24 +78,22 @@ where
         }
     }
 
-    pub(crate) fn process_declaration(&mut self, expr: &CallExpr) -> Option<(Id, String)> {
-        match &mut expr.callee.clone() {
+    pub(crate) fn process_declaration(&mut self, call_expr: &CallExpr) -> Option<(Id, String)> {
+        match &mut call_expr.callee.clone() {
             Callee::Expr(callee) => match callee.as_ref() {
                 Expr::Member(member) => match member.obj.as_ref() {
                     Expr::Ident(ident) => {
-                        let ident_id = &ident.to_id();
+                        let ident_id = ident.to_id();
 
-                        if self.declaration.is_some() {
-                            if self.declaration.clone().unwrap().eq(&ident_id) {
-                                match member.prop.clone() {
-                                    MemberProp::Ident(ident) => {
-                                        return Option::Some((
-                                            ident_id.clone(),
-                                            format!("{}", ident.sym),
-                                        ));
-                                    }
-                                    _ => {}
+                        if self.declaration.clone().unwrap_or_default().eq(&ident_id) {
+                            match member.prop.clone() {
+                                MemberProp::Ident(ident) => {
+                                    return Option::Some((
+                                        ident_id.clone(),
+                                        format!("{}", ident.sym),
+                                    ));
                                 }
+                                _ => {}
                             }
                         }
                     }

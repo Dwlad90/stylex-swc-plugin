@@ -6,7 +6,7 @@ use swc_core::ecma::{
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test(tr.comments.clone()) },
+    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
     transform_simple_css_class,
     r#"
       import s from "@stylexjs/stylex";
@@ -19,7 +19,9 @@ test!(
       });
     "#,
     r#"
-      const _stylex$props = {
+    import s from "@stylexjs/stylex";
+
+    const _stylex$props = {
         className: "page__c.base xrkmrrc xju2f9n"
       };
     "#
@@ -27,7 +29,7 @@ test!(
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test(tr.comments.clone()) },
+    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
     transform_multiple_simple_css_classes,
     r#"
     import s from "@stylexjs/stylex";
@@ -52,6 +54,8 @@ test!(
     });
   "#,
     r#"
+    import s from "@stylexjs/stylex";
+
     const _stylex$props = {
       className: "page__c.base x1e2nbdu x1118g2m page__c.test x15hxx75 x7z7khe page__c.wrapper x1e2nbdu x15hxx75 page__c.container x16ydxro x7z7khe",
     };
@@ -63,7 +67,7 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| { ModuleTransformVisitor::new_test(tr.comments.clone()) },
+    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
     transform_multiple_simple_css_classes_and_inject_to_react_component,
     r#"
     import s from "@stylexjs/stylex";
@@ -98,6 +102,8 @@ test!(
     }
   "#,
     r#"
+    import s from "@stylexjs/stylex";
+
     const _stylex$props = {
       className: "page__c.base x1e2nbdu x1118g2m page__c.test x15hxx75 x7z7khe page__c.wrapper x1e2nbdu x15hxx75 page__c.container x16ydxro x7z7khe",
     };

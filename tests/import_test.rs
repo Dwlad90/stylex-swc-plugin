@@ -9,14 +9,67 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test(tr.comments.clone()),
+    |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
     ignores_valid_imports,
     r#"
         import stylex from '@stylexjs/stylex';
         import {foo, bar} from 'other';
     "#,
     r#"
+        import stylex from '@stylexjs/stylex';
         import {foo, bar} from 'other';
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+    ignores_valid_requires,
+    r#"
+        const stylex = require('@stylexjs/stylex');
+        const {foo, bar} = require('other');
+    "#,
+    r#"
+        const stylex = require('@stylexjs/stylex');
+        const {foo, bar} = require('other');
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    named_declaration_export,
+    r#"
+        import stylex from '@stylexjs/stylex';
+        export const styles = stylex.create({
+        foo: {
+            color: 'red'
+        },
+        bar: {
+            color: 'blue'
+        },
+        });
+    "#,
+    r#"
+        import stylex from '@stylexjs/stylex';
+        stylex.inject(".x1e2nbdu{color:red}", 3000);
+        stylex.inject(".xju2f9n{color:blue}", 3000);
+        export const styles = {
+        foo: {
+            color: "x1e2nbdu",
+            $$css: true
+        },
+        bar: {
+            color: "xju2f9n",
+            $$css: true
+        }
+        };
     "#
 );
 
@@ -28,7 +81,7 @@ fn throw_when_named_import() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test(tr.comments.clone()),
+        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
         r#"
             import { foo } from "@stylexjs/stylex";
 

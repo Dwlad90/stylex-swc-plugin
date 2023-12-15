@@ -3,6 +3,7 @@ pub(crate) mod shared {
     pub(crate) mod enums;
     pub(crate) mod structures;
     pub(crate) mod utils;
+    pub(crate) mod consts;
 }
 
 use std::collections::HashMap;

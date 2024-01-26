@@ -1,0 +1,129 @@
+use std::any::Any;
+use std::fmt::Debug;
+
+use serde::{Deserialize, Serialize};
+
+use crate::shared::utils::{common::type_of, css::convert_style_to_class_name};
+
+use super::{
+    included_style::IncludedStyle, injectable_style::InjectableStyle, null_pre_rule::NullPreRule,
+    pre_rule_set::PreRuleSet,
+};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct StyleWithDirections {
+    pub(crate) rtl: Option<String>,
+    pub(crate) ltr: String,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum Styles {
+    IncludedStyle(IncludedStyle),
+    InjectableStyle(InjectableStyle),
+    // Add more types as needed
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComputedStyle(
+    pub(crate) Option<String>,
+    pub(crate) Option<InjectableStyle>,
+);
+
+#[derive(Debug, Clone)]
+pub(crate) enum CompiledResult {
+    IncludedStyle(IncludedStyle),
+    ComputedStyles(Vec<ComputedStyle>),
+    // Add more types as needed
+}
+
+impl CompiledResult {
+    pub(crate) fn as_included_style(&self) -> Option<&IncludedStyle> {
+        match self {
+            CompiledResult::IncludedStyle(included_style) => Some(included_style),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
+        match self {
+            CompiledResult::ComputedStyles(computed_styles) => Some(computed_styles),
+            _ => None,
+        }
+    }
+}
+
+pub(crate) trait PreRule: Debug {
+    fn get_value(&self) -> Option<String>;
+    fn compiled(&mut self, prefix: &str) -> CompiledResult;
+    fn equals(&self, other: &dyn PreRule) -> bool;
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) enum PreRules {
+    PreRuleSet(PreRuleSet),
+    StylesPreRule(StylesPreRule),
+    NullPreRule(NullPreRule),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct StylesPreRule {
+    property: String,
+    value: String,
+    pseudos: Vec<String>,
+    at_rules: Vec<String>,
+}
+
+impl StylesPreRule {
+    pub(crate) fn new(
+        property: String,
+        value: String,
+        pseudos: Vec<String>,
+        at_rules: Vec<String>,
+    ) -> Self {
+        StylesPreRule {
+            property: property.clone(),
+            value,
+            pseudos: if property.as_str().starts_with(":") {
+                let mut extended_pseudos = vec![property.clone()];
+                extended_pseudos.extend(pseudos);
+                extended_pseudos
+            } else {
+                pseudos
+            },
+            at_rules: if property.as_str().starts_with("@") {
+                let mut extender_at_rules = vec![property];
+                extender_at_rules.extend(at_rules);
+                extender_at_rules
+            } else {
+                at_rules
+            },
+        }
+    }
+}
+
+impl PreRule for StylesPreRule {
+    fn get_value(&self) -> Option<String> {
+        Option::Some(self.value.clone())
+    }
+    fn compiled(&mut self, prefix: &str) -> CompiledResult {
+        println!("!!!!__ self: {:#?}", self);
+        let (_, class_name, rule) = convert_style_to_class_name(
+            (
+                self.property.as_str(),
+                &vec![&PreRules::StylesPreRule(self.clone())],
+            ),
+            &mut self.pseudos,
+            &mut self.at_rules,
+            prefix,
+        );
+
+        CompiledResult::ComputedStyles(vec![ComputedStyle(
+            Option::Some(class_name),
+            Option::Some(rule),
+        )])
+    }
+
+    fn equals(&self, other: &dyn PreRule) -> bool {
+        type_of(other) == type_of(self)
+    }
+}

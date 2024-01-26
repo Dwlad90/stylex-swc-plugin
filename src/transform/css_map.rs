@@ -1,17 +1,18 @@
-use convert_case::{Case, Casing};
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::Ident;
+use swc_core::ecma::ast::{Ident, KeyValueProp};
 use swc_core::{
     common::comments::Comments,
     ecma::ast::{CallExpr, Callee, Expr, MemberProp, Prop, PropOrSpread},
 };
 
-use crate::shared::structures::{MetaData, StyleWithDirections};
-use crate::shared::utils::{
-    get_key_str, get_string_val_from_lit, hash_css, object_expression_factory,
-    prop_or_spread_string_creator, push_css_anchor_prop, string_to_expression,
+use crate::shared::constants;
+use crate::shared::structures::meta_data::MetaData;
+use crate::shared::utils::common::{
+    object_expression_factory, prop_or_spread_string_creator, push_css_anchor_prop,
+    string_to_expression,
 };
+use crate::shared::utils::validators::validate_and_return_namespace;
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -91,9 +92,9 @@ where
                             match &prop {
                                 PropOrSpread::Prop(prop) => match &prop.as_ref() {
                                     Prop::Shorthand(_) => todo!(),
-                                    Prop::KeyValue(key_value) => {
+                                    Prop::KeyValue(namespace) => {
                                         self.process_css_key_value(
-                                            key_value,
+                                            namespace,
                                             &mut css_class_has_map,
                                             &decl_name,
                                         );
@@ -113,7 +114,7 @@ where
                             ));
                         }
                     }
-                    _ => {}
+                    _ => panic!("{}", constants::common::ILLEGAL_NAMESPACE_VALUE),
                 },
             }
             return object_expression_factory(props);
@@ -133,45 +134,56 @@ where
                             match &mut prop {
                                 PropOrSpread::Prop(prop) => match &mut prop.as_mut() {
                                     Prop::Shorthand(_) => todo!(),
-                                    Prop::KeyValue(key_value) => match key_value.value.as_mut() {
-                                        Expr::Object(object) => {
-                                            for mut target_prop in &mut object.props {
-                                                match &mut target_prop {
-                                                    PropOrSpread::Spread(_) => todo!(),
-                                                    PropOrSpread::Prop(prop) => {
-                                                        match &mut prop.as_mut(){
-                                                            Prop::KeyValue(target_key_value) => {
-                                                                let css_property = get_key_str(target_key_value);
+                                    Prop::KeyValue(namespace) => {
+                                        let namespace_name =
+                                            validate_and_return_namespace(namespace);
 
-                                                                let css_property_value =
-                                                                    get_string_val_from_lit(target_key_value.value.as_lit().unwrap());
+                                        let namespace_name = format!("{}", namespace_name);
 
-                                                                let (css_style, class_name_hashed) =
-                                                                    get_hached_class_name(css_property, css_property_value);
+                                        match namespace.value.as_mut() {
+                                            Expr::Object(object) => {
+                                                for mut target_prop in &mut object.props {
+                                                    match &mut target_prop {
+                                                        PropOrSpread::Spread(_) => todo!(),
+                                                        PropOrSpread::Prop(prop) => {
+                                                            match &mut prop.as_mut(){
+                                                                Prop::KeyValue(target_key_value) => {
+                                                                    let stylex_set = MetaData::fabric(
+                                                                        namespace_name.as_str(),
+                                                                        target_key_value,
+                                                                        self.config.class_name_prefix.as_str(),
+                                                                        &self.declarations,
+                                                                        &mut self.var_decl_count_map);
 
-                                                                *target_key_value.value = string_to_expression(class_name_hashed.clone()).unwrap();
+                                                                    let injected_styles_map = stylex_set.1;
+                                                                    println!("!!!!__1111 injected_styles_map: {:#?}", injected_styles_map);
 
-                                                                let metadata = MetaData(
-                                                                    class_name_hashed.clone(),
-                                                                    StyleWithDirections {
-                                                                        ltr: format!(".{}{}", class_name_hashed, css_style),
-                                                                        rtl: Option::None,
-                                                                    },
-                                                                    3000,
-                                                                );
+                                                                    let metadatas = MetaData::from_injected_styles_map(injected_styles_map);
+                                                                    println!("!!!!__1111 metadatas: {:#?}", metadatas);
 
-                                                                self.css_output.push(metadata);
-                                                            },
-                                                            _=> todo!("transform_create_call_to_style: KeyValueProp")
+                                                                    for metadata in metadatas {
+                                                                        *target_key_value.value = string_to_expression(metadata.get_class_name().to_string()).unwrap();
+
+
+                                                                        self.push_to_css_output(metadata);
+                                                                    }
+                                                                },
+                                                                _=> todo!("transform_create_call_to_style: KeyValueProp")
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
 
-                                            push_css_anchor_prop(object);
+                                                push_css_anchor_prop(object);
+                                            }
+                                            _ => {
+                                                panic!(
+                                                    "{}",
+                                                    constants::common::ILLEGAL_NAMESPACE_VALUE
+                                                )
+                                            }
                                         }
-                                        _ => todo!("transform_create_call_to_style: KeyValueProp"),
-                                    },
+                                    }
                                     _ => panic!(),
                                 },
                                 PropOrSpread::Spread(_) => todo!(),
@@ -190,20 +202,20 @@ where
 
     fn process_css_key_value(
         &mut self,
-        key_value: &swc_core::ecma::ast::KeyValueProp,
+        namespace: &KeyValueProp,
         css_class_has_map: &mut IndexMap<String, String>,
         decl_name: &String,
     ) {
-        let key = key_value.key.clone();
-        let class_name = &*key.as_ident().unwrap().sym.clone();
+        let namespace_name = validate_and_return_namespace(namespace);
 
-        let class_name = format!("{}", class_name);
+        let namespace_name = format!("{}", namespace_name);
 
         *css_class_has_map
             .entry("className".to_string())
-            .or_default() += format!("{}__{}.{} ", self.file_name, decl_name, class_name).as_str();
+            .or_default() +=
+            format!("{}__{}.{} ", self.file_name, decl_name, namespace_name).as_str();
 
-        let value = key_value.value.clone();
+        let value = namespace.value.clone();
 
         match value.as_ref() {
             Expr::Object(css_object) => {
@@ -212,29 +224,36 @@ where
                         PropOrSpread::Prop(prop) => match prop.as_ref() {
                             Prop::Shorthand(_) => todo!(),
                             Prop::KeyValue(key_value) => {
-                                let css_property = get_key_str(key_value);
-
-                                let css_property_value =
-                                    get_string_val_from_lit(key_value.value.as_lit().unwrap());
-
-                                let (css_style, class_name_hashed) =
-                                    get_hached_class_name(css_property, css_property_value);
-
-                                let metadata = MetaData(
-                                    class_name_hashed.clone(),
-                                    StyleWithDirections {
-                                        ltr: format!(".{}{}", class_name_hashed, css_style),
-                                        rtl: Option::None,
-                                    },
-                                    3000,
+                                let stylex_set = MetaData::fabric(
+                                    namespace_name.as_str(),
+                                    key_value,
+                                    self.config.class_name_prefix.as_str(),
+                                    &self.declarations,
+                                    &mut self.var_decl_count_map,
                                 );
 
-                                self.css_output.push(metadata);
+                                println!("!!!!__2 stylex_set: {:#?}", stylex_set);
 
-                                *css_class_has_map
-                                    .entry("className".to_string())
-                                    .or_default() +=
-                                    format!("{} ", class_name_hashed.clone()).as_str();
+                                let injected_styles_map = stylex_set.1;
+
+                                println!(
+                                    "!!!!__222 injected_styles_map: {:#?}",
+                                    injected_styles_map
+                                );
+
+                                let metadatas =
+                                    MetaData::from_injected_styles_map(injected_styles_map);
+
+                                println!("!!!!__2222 metadatas: {:#?}", metadatas);
+
+                                for metadata in metadatas {
+                                    self.push_to_css_output(metadata.clone());
+
+                                    *css_class_has_map
+                                        .entry("className".to_string())
+                                        .or_default() +=
+                                        format!("{} ", metadata.get_class_name()).as_str();
+                                }
                             }
                             _ => panic!(),
                         },
@@ -242,7 +261,7 @@ where
                     };
                 }
             }
-            _ => {}
+            _ => panic!("{}", constants::common::ILLEGAL_NAMESPACE_VALUE),
         }
     }
 
@@ -255,20 +274,4 @@ where
             .to_string();
         decl_name
     }
-}
-
-fn get_hached_class_name(css_property: String, css_property_value: String) -> (String, String) {
-    let css_property_key = css_property.to_string().to_case(Case::Kebab);
-
-    let css_style = format!("{{{}:{}}}", css_property_key, css_property_value);
-
-    let value_to_hash = format!(
-        "<>{}{}{}",
-        css_property_key,
-        css_property_value,
-        "null" //pseudoHashString
-    );
-
-    let class_name_hashed = format!("x{}", hash_css(value_to_hash.as_str()));
-    (css_style, class_name_hashed)
 }

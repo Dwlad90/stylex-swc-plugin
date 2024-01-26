@@ -17,13 +17,6 @@ test!(
           color: 'blue',
         },
       });
-    "#,
-    r#"
-    import s from "@stylexjs/stylex";
-
-    const _stylex$props = {
-        className: "page__c.base xrkmrrc xju2f9n"
-      };
     "#
 );
 
@@ -52,13 +45,6 @@ test!(
         padding: "10px",
       }
     });
-  "#,
-    r#"
-    import s from "@stylexjs/stylex";
-
-    const _stylex$props = {
-      className: "page__c.base x1e2nbdu x1118g2m page__c.test x15hxx75 x7z7khe page__c.wrapper x1e2nbdu x15hxx75 page__c.container x16ydxro x7z7khe",
-    };
   "#
 );
 
@@ -99,21 +85,6 @@ test!(
           Main
         </main>
       );
-    }
-  "#,
-    r#"
-    import s from "@stylexjs/stylex";
-
-    const _stylex$props = {
-      className: "page__c.base x1e2nbdu x1118g2m page__c.test x15hxx75 x7z7khe page__c.wrapper x1e2nbdu x15hxx75 page__c.container x16ydxro x7z7khe",
-    };
-
-    export default function Home() {
-      const { className, style } = _stylex$props;
-
-      return <main className={className} style={style}>
-          Main
-        </main>;
     }
   "#
 );

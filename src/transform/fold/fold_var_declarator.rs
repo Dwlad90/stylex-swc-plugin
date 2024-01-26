@@ -6,7 +6,7 @@ use swc_core::{
     },
 };
 
-use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
+use crate::{shared::{enums::ModuleCycle, utils::common::increase_ident_count}, ModuleTransformVisitor};
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -41,7 +41,12 @@ where
                                             self.props_declaration = var_declarator
                                                 .name
                                                 .as_ident()
-                                                .map(|ident| ident.to_id());
+                                                .map(|ident| {
+
+                                                    increase_ident_count(&mut self.var_decl_count_map, &ident);
+
+                                                    ident.to_id()
+                                                });
                                         } else {
                                             if !self.config.runtime_injection {
                                                 var_declarator.name = Pat::Ident(BindingIdent {

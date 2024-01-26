@@ -11,10 +11,9 @@ use swc_core::{
 
 use crate::{
     shared::{
-        consts::DEFAULT_INJECT_PATH,
+        constants::common::DEFAULT_INJECT_PATH,
         enums::{InjectedStylesDeclarationType, ModuleCycle},
-        structures::MetaData,
-        utils::{
+        utils::common::{
             expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
             get_pat_as_string,
         },
@@ -147,90 +146,79 @@ where
                         let mut module_items_middle_vec: Vec<ModuleItem> = vec![];
                         let mut module_item_pre_start_vec: Vec<ModuleItem> = vec![];
 
-                        for MetaData(_, styles, priority) in &self.css_output {
-                            let stylex_inject_args = vec![
-                                expr_or_spread_string_expression_creator(styles.ltr.clone()),
-                                expr_or_spread_number_expression_creator(priority.clone().into()),
-                            ];
+                        let stylex = Expr::Ident(Ident::new("stylex".into(), DUMMY_SP));
 
-                            let stylex = Expr::Ident(Ident::new("stylex".into(), DUMMY_SP));
-                            let inject_src = "inject";
+                        match &injected_styles_export {
+                            Some(injected_styles_export) => {
+                                add_inject_import_expression(
+                                    injected_styles_export,
+                                    &mut module_item_pre_start_vec,
+                                );
 
-                            match &injected_styles_export {
-                                Some(injected_styles_export) => match &injected_styles_export {
-                                    InjectedStylesDeclarationType::NamedDeclarationExport => {
-                                        let stylex_member = Expr::Member(MemberExpr {
-                                            span: DUMMY_SP,
-                                            obj: Box::new(stylex),
-                                            prop: MemberProp::Ident(Ident {
-                                                optional: false,
+                                for metadata in &self.css_output {
+                                    let priority = &metadata.get_priority();
+                                    let css = &metadata.get_css();
+
+                                    let stylex_inject_args = vec![
+                                        expr_or_spread_string_expression_creator(css.clone()),
+                                        expr_or_spread_number_expression_creator(f64::from(
+                                            **priority,
+                                        )),
+                                    ];
+                                    match &injected_styles_export {
+                                        InjectedStylesDeclarationType::NamedDeclarationExport => {
+                                            let stylex_member = Expr::Member(MemberExpr {
                                                 span: DUMMY_SP,
-                                                sym: inject_src.into(),
-                                            }),
-                                        });
-
-                                        let stylex_call_expr = CallExpr {
-                                            span: DUMMY_SP,
-                                            type_args: Option::None,
-                                            callee: Callee::Expr(Box::new(stylex_member.clone())),
-                                            args: stylex_inject_args,
-                                        };
-
-                                        let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-                                            span: DUMMY_SP,
-                                            expr: Box::new(Expr::Call(stylex_call_expr)),
-                                        }));
-
-                                        module_items_middle_vec.push(module);
-                                    }
-                                    InjectedStylesDeclarationType::NamedPropertyOrDefaultExport => {
-                                        let inject_import_stmt = ModuleItem::ModuleDecl(
-                                            ModuleDecl::Import(ImportDecl {
-                                                span: DUMMY_SP,
-                                                specifiers: vec![ImportSpecifier::Default(
-                                                    ImportDefaultSpecifier {
-                                                        span: DUMMY_SP,
-                                                        local: Ident::new(
-                                                            format!("_{}", inject_src).into(),
-                                                            DUMMY_SP,
-                                                        ),
-                                                    },
-                                                )],
-                                                src: Box::new(Str {
+                                                obj: Box::new(stylex.clone()),
+                                                prop: MemberProp::Ident(Ident {
+                                                    optional: false,
                                                     span: DUMMY_SP,
-                                                    raw: Option::None,
-                                                    value: DEFAULT_INJECT_PATH.into(),
+                                                    sym: "inject".into(),
                                                 }),
-                                                type_only: false,
-                                                asserts: Option::None,
-                                            }),
-                                        );
-                                        let _inject = Expr::Ident(Ident::new(
-                                            format!("_{}", inject_src).into(),
-                                            DUMMY_SP,
-                                        ));
+                                            });
 
-                                        let stylex_call_expr = CallExpr {
-                                            span: DUMMY_SP,
-                                            type_args: Option::None,
-                                            callee: Callee::Expr(Box::new(_inject.clone())),
-                                            args: stylex_inject_args,
-                                        };
+                                            let stylex_call_expr = CallExpr {
+                                                span: DUMMY_SP,
+                                                type_args: Option::None,
+                                                callee: Callee::Expr(Box::new(stylex_member.clone())),
+                                                args: stylex_inject_args,
+                                            };
 
-                                        let stylex_call = Expr::Call(stylex_call_expr);
+                                            let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+                                                span: DUMMY_SP,
+                                                expr: Box::new(Expr::Call(stylex_call_expr)),
+                                            }));
 
-                                        let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-                                            span: DUMMY_SP,
-                                            expr: Box::new(stylex_call),
-                                        }));
+                                            module_items_middle_vec.push(module);
+                                        }
+                                        InjectedStylesDeclarationType::NamedPropertyOrDefaultExport => {
 
-                                        module_items_middle_vec.push(module);
 
-                                        module_item_pre_start_vec.push(inject_import_stmt)
+                                            let _inject = Expr::Ident(Ident::new(
+                                                format!("_{}", "inject").into(),
+                                                DUMMY_SP,
+                                            ));
+
+                                            let stylex_call_expr = CallExpr {
+                                                span: DUMMY_SP,
+                                                type_args: Option::None,
+                                                callee: Callee::Expr(Box::new(_inject.clone())),
+                                                args: stylex_inject_args,
+                                            };
+
+                                            let stylex_call = Expr::Call(stylex_call_expr);
+
+                                            let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+                                                span: DUMMY_SP,
+                                                expr: Box::new(stylex_call),
+                                            }));
+
+                                            module_items_middle_vec.push(module);
+                                        }
                                     }
-                                },
-                                None => {}
+                                }
                             }
+                            None => {}
                         }
                         let mut module_items: Vec<ModuleItem> = vec![];
 
@@ -254,8 +242,31 @@ where
                 // This is optional, but it's required if you don't want extra `;` in output.
                 module_items.retain(|s| !matches!(s, ModuleItem::Stmt(Stmt::Empty(..))));
 
-                module_items.fold_children_with(self)
+                module_items
             }
         }
+    }
+}
+
+fn add_inject_import_expression(
+    injected_styles_export: &InjectedStylesDeclarationType,
+    module_item_pre_start_vec: &mut Vec<ModuleItem>,
+) {
+    if injected_styles_export == &InjectedStylesDeclarationType::NamedPropertyOrDefaultExport {
+        let inject_import_stmt = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+            span: DUMMY_SP,
+            specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
+                span: DUMMY_SP,
+                local: Ident::new("_inject".into(), DUMMY_SP),
+            })],
+            src: Box::new(Str {
+                span: DUMMY_SP,
+                raw: Option::None,
+                value: DEFAULT_INJECT_PATH.into(),
+            }),
+            type_only: false,
+            with: Option::None,
+        }));
+        module_item_pre_start_vec.push(inject_import_stmt);
     }
 }

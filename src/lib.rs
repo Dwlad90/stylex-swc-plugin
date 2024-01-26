@@ -1,9 +1,20 @@
 pub(crate) mod transform;
-pub(crate) mod shared {
+pub mod shared {
     pub(crate) mod enums;
     pub(crate) mod structures;
     pub(crate) mod utils;
-    pub(crate) mod consts;
+    pub(crate) mod constants {
+        pub(crate) mod aliases;
+        pub(crate) mod common;
+        pub(crate) mod long_hand_logical;
+        pub(crate) mod long_hand_physical;
+        pub(crate) mod priorities;
+        pub(crate) mod shorthands;
+        pub(crate) mod shorthands_of_longhands;
+        pub(crate) mod shorthands_of_shorthands;
+        pub(crate) mod unitless_number_properties;
+        pub(crate) mod number_properties;
+    }
 }
 
 use std::collections::HashMap;

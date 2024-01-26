@@ -14,10 +14,12 @@ test!(
     r#"
         import stylex from '@stylexjs/stylex';
         import {foo, bar} from 'other';
-    "#,
-    r#"
-        import stylex from '@stylexjs/stylex';
-        import {foo, bar} from 'other';
+
+        export default stylex.create({
+            foo: {
+                color: 'red'
+            },
+        });
     "#
 );
 
@@ -31,10 +33,12 @@ test!(
     r#"
         const stylex = require('@stylexjs/stylex');
         const {foo, bar} = require('other');
-    "#,
-    r#"
-        const stylex = require('@stylexjs/stylex');
-        const {foo, bar} = require('other');
+
+        export default stylex.create({
+            foo: {
+                color: 'red'
+            },
+        });
     "#
 );
 
@@ -48,28 +52,13 @@ test!(
     r#"
         import stylex from '@stylexjs/stylex';
         export const styles = stylex.create({
-        foo: {
-            color: 'red'
-        },
-        bar: {
-            color: 'blue'
-        },
+            foo: {
+                color: 'red'
+            },
+            bar: {
+                color: 'blue'
+            },
         });
-    "#,
-    r#"
-        import stylex from '@stylexjs/stylex';
-        stylex.inject(".x1e2nbdu{color:red}", 3000);
-        stylex.inject(".xju2f9n{color:blue}", 3000);
-        export const styles = {
-        foo: {
-            color: "x1e2nbdu",
-            $$css: true
-        },
-        bar: {
-            color: "xju2f9n",
-            $$css: true
-        }
-        };
     "#
 );
 
@@ -80,13 +69,6 @@ test!(
     }),
     |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
     does_nothing_when_stylex_not_imported,
-    r#"
-        export const styles = stylex.create({
-            foo: {
-                color: 'red'
-            },
-        });
-    "#,
     r#"
         export const styles = stylex.create({
             foo: {
@@ -111,18 +93,6 @@ test!(
             },
         });
         export {styles}
-    "#,
-    r#"
-        import _inject from "@stylexjs/stylex/lib/stylex-inject";
-        import stylex from '@stylexjs/stylex';
-        _inject(".x1e2nbdu{color:red}", 3000);
-        const styles = {
-        foo: {
-            color: "x1e2nbdu",
-            $$css: true
-        }
-        };
-        export { styles };
     "#
 );
 
@@ -135,22 +105,66 @@ test!(
     default_export,
     r#"
         import stylex from '@stylexjs/stylex';
+        export default stylex.create({
+            foo: {
+                color: 'red'
+            },
+        });
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    default_export_with_parenthesis,
+    r#"
+        import stylex from '@stylexjs/stylex';
         export default (stylex.create({
             foo: {
                 color: 'red'
             },
         }));
-    "#,
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    module_export,
     r#"
-        import _inject from "@stylexjs/stylex/lib/stylex-inject";
         import stylex from '@stylexjs/stylex';
-        _inject(".x1e2nbdu{color:red}", 3000);
-        export default {
+        const styles = stylex.create({
             foo: {
-                color: "x1e2nbdu",
-                $$css: true
+                color: 'red'
+            },
+        });
+        module.export = styles;
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    transform_import_aliases,
+    r#"
+        import foobar from '@stylexjs/stylex';
+        const styles = foobar.create({
+            default: {
+                backgroundColor: 'red',
+                color: 'blue',
+                padding: 5
             }
-        };
+        });
+        styles;
     "#
 );
 

@@ -3,7 +3,10 @@ use swc_core::{
     ecma::{ast::Module, visit::FoldWith},
 };
 
-use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
+use crate::{
+    shared::{enums::ModuleCycle, utils::validators::validate_style_x_create},
+    ModuleTransformVisitor,
+};
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -12,7 +15,9 @@ where
     pub(crate) fn fold_module_impl(&mut self, module: Module) -> Module {
         let module = module.clone().fold_children_with(self);
 
-        if self.declaration.is_some() {
+        if let Some(declaration) = self.declaration.clone() {
+            validate_style_x_create(&module, &declaration);
+
             self.cycle = ModuleCycle::Processing;
             let module = module.clone().fold_children_with(self);
 

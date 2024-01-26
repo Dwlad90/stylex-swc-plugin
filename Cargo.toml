@@ -21,15 +21,33 @@ strip = "symbols"
 
 [dependencies]
 serde = "1"
-swc_core = { version = "0.81.8", features = [
+swc_core = { version = "0.87.7", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
+  # "swc_ecma_parser",
+  # "ecma_ast",
+
+  # "allocator_node",
+  # "ecma_codegen",
+  # "ecma_ast_serde",
+  # "common_concurrent",
+  # "bundler",
+  # "ecma_loader",
+  # "ecma_transforms",
+  # "ecma_visit",
+  "css_codegen",
+  "css_visit",
+  "base_node",
+  "css_parser",
+  "css_ast",
+  # "base_concurrent",
 ] }
+# swc_css_parser = {version = "0.150.20"}
 serde_json = "1.0.107"
 regex = "1.10.2"
 snailquote = "0.3.1"
-indexmap = "2.0.2"
+indexmap = "2.1.0"
 getrandom = { version = "0.2.10", features = ["js"] }
 rand = { version = "0.8.5" }
 chrono = { version = "0.4.31" }
@@ -37,9 +55,12 @@ derive_more = { version = "0.99.17" }
 convert_case = { version = "0.6.0" }
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }
+phf = { version = "0.11.2", features = ["macros"] }
+once_cell = { version = "1.19.0" }
+colored = { version = "2.1.0" }
 
 [dev-dependencies]
-swc_core = { version = "0.81.8", features = [
+swc_core = { version = "0.87.7", features = [
   "testing_transform",
   "ecma_parser",
 ] }

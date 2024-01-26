@@ -1,12 +1,16 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use swc_core::{
     common::{comments::Comments, FileName},
-    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp},
+    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
 };
 
 use crate::{
-    shared::{enums::ModuleCycle, structures::MetaData, utils::extract_filename_from_path},
+    shared::{
+        enums::ModuleCycle,
+        structures::meta_data::MetaData,
+        utils::common::{extract_filename_from_path, increase_ident_count},
+    },
     StylexConfig, StylexConfigParams,
 };
 
@@ -25,6 +29,8 @@ where
     props_declaration: Option<Id>,
     css_output: Vec<MetaData>,
     config: StylexConfig,
+    declarations: Vec<VarDeclarator>,
+    var_decl_count_map: HashMap<Id, i8>,
 }
 
 impl<C> ModuleTransformVisitor<C>
@@ -41,6 +47,8 @@ where
             props_declaration: Option::None,
             css_output: vec![],
             config: config.into(),
+            declarations: vec![],
+            var_decl_count_map: HashMap::new(),
         }
     }
 
@@ -54,6 +62,8 @@ where
             props_declaration: Option::None,
             css_output: vec![],
             config: config.unwrap_or(StylexConfigParams::default()).into(),
+            declarations: vec![],
+            var_decl_count_map: HashMap::new(),
         }
     }
     pub fn new_test_styles(comments: C, config: Option<StylexConfigParams>) -> Self {
@@ -75,6 +85,8 @@ where
                     config
                 }
             },
+            declarations: vec![],
+            var_decl_count_map: HashMap::new(),
         }
     }
 
@@ -88,6 +100,8 @@ where
                         if self.declaration.clone().unwrap_or_default().eq(&ident_id) {
                             match member.prop.clone() {
                                 MemberProp::Ident(ident) => {
+                                    increase_ident_count(&mut self.var_decl_count_map, &ident);
+
                                     return Option::Some((
                                         ident_id.clone(),
                                         format!("{}", ident.sym),
@@ -104,5 +118,43 @@ where
             _ => {}
         }
         Option::None
+    }
+
+    pub(crate) fn transform_call_expression(&mut self, expr: &mut Expr) -> Option<Expr> {
+        match expr {
+            Expr::Call(ex) => {
+                let declaration = self.process_declaration(&ex);
+
+                if declaration.is_some() {
+                    let value = if self.config.runtime_injection {
+                        self.transform_call_expression_to_styles_expr(&ex)
+                    } else {
+                        self.transform_call_expression_to_css_map_expr(&ex)
+                    };
+
+                    match value {
+                        Some(value) => {
+                            return Some(value);
+                        }
+                        None => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+        None
+    }
+
+    pub(crate) fn push_to_css_output(&mut self, metadata: MetaData) {
+        println!("!!!!__ push_to_css_output: {:?}", metadata);
+        if self
+            .css_output
+            .iter()
+            .any(|x| x.get_class_name() == metadata.get_class_name())
+        {
+            return;
+        }
+
+        self.css_output.push(metadata);
     }
 }

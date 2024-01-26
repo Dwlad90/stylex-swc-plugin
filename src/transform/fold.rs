@@ -1,15 +1,21 @@
 mod fold_export_default_expr;
 mod fold_expr;
+mod fold_ident;
 mod fold_import_decl;
 mod fold_module;
 mod fold_module_items;
+mod fold_stmt;
+mod fold_stmts;
 mod fold_var_declarator;
+mod fold_var_declarators;
 
 use swc_core::{
     common::comments::Comments,
     ecma::{
-        ast::{ExportAll, ExportDefaultExpr, Expr, ImportDecl, Module, ModuleItem, VarDeclarator},
-        visit::{noop_fold_type, Fold, FoldWith},
+        ast::{
+            ExportDefaultExpr, Expr, Ident, ImportDecl, Module, ModuleItem, Stmt, VarDeclarator,
+        },
+        visit::{noop_fold_type, Fold},
     },
 };
 
@@ -33,8 +39,20 @@ where
         self.fold_import_decl_impl(import_decl)
     }
 
+    fn fold_var_declarators(&mut self, var_declarators: Vec<VarDeclarator>) -> Vec<VarDeclarator> {
+        self.fold_var_declarators_impl(var_declarators)
+    }
+
     fn fold_var_declarator(&mut self, var_declarator: VarDeclarator) -> VarDeclarator {
         self.fold_var_declarator_impl(var_declarator)
+    }
+
+    fn fold_stmts(&mut self, stmts: Vec<Stmt>) -> Vec<Stmt> {
+        self.fold_stmts_impl(stmts)
+    }
+
+    fn fold_stmt(&mut self, stmt: Stmt) -> Stmt {
+        self.fold_stmt_impl(stmt)
     }
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
@@ -46,5 +64,9 @@ where
         export_default_expr: ExportDefaultExpr,
     ) -> ExportDefaultExpr {
         self.fold_export_default_expr_impl(export_default_expr)
+    }
+
+    fn fold_ident(&mut self, ident: Ident) -> Ident {
+        self.fold_ident_impl(ident)
     }
 }

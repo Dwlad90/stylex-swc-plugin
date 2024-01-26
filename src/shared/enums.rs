@@ -12,6 +12,7 @@ pub(crate) enum ModuleCycle {
     InjectClassName,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum InjectedStylesDeclarationType {
     NamedDeclarationExport,
     NamedPropertyOrDefaultExport,

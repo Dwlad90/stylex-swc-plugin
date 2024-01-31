@@ -1790,9 +1790,11 @@ dependencies = [
  "chrono",
  "colored",
  "convert_case 0.6.0",
+ "dashmap",
  "derive_more",
  "getrandom",
  "indexmap",
+ "lazy_static",
  "murmur2",
  "once_cell",
  "phf",
@@ -1914,9 +1916,9 @@ dependencies = [
 
 [[package]]
 name = "swc_common"
-version = "0.33.12"
+version = "0.33.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b3ae36feceded27f0178dc9dabb49399830847ffb7f866af01798844de8f973"
+checksum = "3792c10fa5d3e93a705b31f13fdea4a6e68c3c20d4351e84ed1741b7864399cd"
 dependencies = [
  "ahash 0.8.6",
  "anyhow",

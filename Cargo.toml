@@ -44,9 +44,11 @@ swc_core = { version = "0.87.7", features = [
   # "base_concurrent",
 ] }
 # swc_css_parser = {version = "0.150.20"}
+lazy_static = "1.4.0"
 serde_json = "1.0.107"
 regex = "1.10.2"
 snailquote = "0.3.1"
+dashmap = "5.5.3"
 indexmap = "2.1.0"
 getrandom = { version = "0.2.10", features = ["js"] }
 rand = { version = "0.8.5" }

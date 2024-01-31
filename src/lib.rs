@@ -4,12 +4,11 @@ pub mod shared {
     pub(crate) mod structures;
     pub(crate) mod utils;
     pub(crate) mod constants {
-        pub(crate) mod aliases;
         pub(crate) mod common;
         pub(crate) mod long_hand_logical;
         pub(crate) mod long_hand_physical;
         pub(crate) mod priorities;
-        pub(crate) mod shorthands;
+        pub(crate) mod application_order;
         pub(crate) mod shorthands_of_longhands;
         pub(crate) mod shorthands_of_shorthands;
         pub(crate) mod unitless_number_properties;
@@ -53,6 +52,7 @@ impl Default for StylexConfigParams {
 }
 #[derive(Deserialize, Clone, Debug)]
 pub struct StylexConfig {
+    pub style_resolution: Option<String>,
     pub use_rem_for_font_size: bool,
     pub runtime_injection: bool,
     pub class_name_prefix: String,
@@ -62,6 +62,7 @@ pub struct StylexConfig {
 impl Default for StylexConfig {
     fn default() -> Self {
         StylexConfig {
+            style_resolution: Option::Some("application-order".to_string()),
             use_rem_for_font_size: false,
             runtime_injection: false,
             class_name_prefix: "x".to_string(),
@@ -73,6 +74,7 @@ impl Default for StylexConfig {
 impl From<StylexConfigParams> for StylexConfig {
     fn from(config: StylexConfigParams) -> Self {
         StylexConfig {
+            style_resolution: Option::Some("application-order".to_string()),
             use_rem_for_font_size: config.use_rem_for_font_size.unwrap_or(false),
             runtime_injection: config.runtime_injection.unwrap_or(false),
             class_name_prefix: config.class_name_prefix.unwrap_or("x".to_string()),

@@ -7,5 +7,5 @@ use super::pre_rule::{PreRule, PreRules};
 #[derive(Debug, Clone)]
 pub(crate) struct Pair {
     pub(crate) key: String,
-    pub(crate) value: PreRules,
+    pub(crate) value: String,
 }

@@ -186,3 +186,24 @@ fn throw_when_named_import() {
         false,
     )
 }
+
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    can_import_with_a_different_name,
+    r#"
+        import foobar from '@stylexjs/stylex';
+        const styles = foobar.create({
+            default: {
+                backgroundColor: 'red',
+                color: 'blue',
+                padding: 5
+            }
+        });
+        styles;
+    "#
+);

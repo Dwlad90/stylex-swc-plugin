@@ -18,7 +18,7 @@ impl PreRule for NullPreRule {
         None
     }
     fn compiled(&mut self, prefix: &str) -> CompiledResult {
-        return CompiledResult::ComputedStyles(vec![]);
+        return CompiledResult::Null(Option::None);
     }
     fn equals(&self, other: &dyn PreRule) -> bool {
         false

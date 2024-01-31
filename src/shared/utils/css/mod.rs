@@ -1,4 +1,6 @@
+pub(crate) mod css;
 pub(crate) mod normalizers;
+pub(crate) mod stylex;
 pub(crate) mod tests;
 pub(crate) mod validators;
 
@@ -15,7 +17,11 @@ use crate::{
             unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
         },
         structures::{
+            application_order::ApplicationOrder,
             injectable_style::InjectableStyle,
+            null_pre_rule::NullPreRule,
+            order::Order,
+            order_pair::OrderPair,
             pair::Pair,
             pre_rule::{self, PreRule, PreRules, StylesPreRule},
             pre_rule_set::PreRuleSet,
@@ -45,6 +51,7 @@ use swc_core::{
 };
 
 use self::{
+    css::{generate_ltr, generate_rtl},
     normalizers::{base::base_normalizer, convert_font_size_to_rem::convert_font_size_to_rem},
     validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
@@ -98,6 +105,8 @@ pub(crate) fn convert_style_to_class_name(
                 let transformed_css = get_css_propty_value_to_transform(css_property, value);
                 css_styles.push(format!("{}:{}", css_property_key, transformed_css));
 
+                println!("!!!!__ transformed_css: {:?}", transformed_css);
+
                 transformed_css
             })
             .collect::<Vec<String>>()
@@ -128,6 +137,11 @@ pub(crate) fn convert_style_to_class_name(
         let css_property_value = get_css_propty_value_to_transform(css_property, first_item);
         let css_style = format!("{{{}:{}}}", css_property_key, css_property_value);
 
+        println!(
+            "\n\n!!!!__ css_property_value: {:?}, css_style: {:?} \n\n",
+            css_property_value, css_style
+        );
+
         (css_property_value.clone(), css_style)
     };
 
@@ -141,30 +155,33 @@ pub(crate) fn convert_style_to_class_name(
     let css_rules = generate_rule(
         class_name_hashed.as_str(),
         css_property_key.as_str(),
-        css_property_values,
+        &vec![css_property_value],
         pseudos,
         at_rules,
     );
 
-    println!("\n\n!!css_rules {:?} \n\n\n", css_rules);
+    println!(
+        "\n\n!!css_style {:?}, class_name_hashed {:?}, css_rules {:?} \n\n\n",
+        css_style, class_name_hashed, css_rules
+    );
     (css_style, class_name_hashed, css_rules)
 }
 
-pub(crate) fn generate_ltr(pair: Pair) -> Pair {
-    eprintln!(
-        "{}",
-        Colorize::yellow("!!!! generate_ltr not implemented yet !!!!")
-    );
-    pair
-}
+// pub(crate) fn generate_ltr(pair: Pair) -> Pair {
+//     eprintln!(
+//         "{}",
+//         Colorize::yellow("!!!! generate_ltr not implemented yet !!!!")
+//     );
+//     pair
+// }
 
-pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
-    eprintln!(
-        "{}",
-        Colorize::yellow("!!!! generate_rtl not implemented yet !!!!")
-    );
-    Option::None
-}
+// pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
+//     eprintln!(
+//         "{}",
+//         Colorize::yellow("!!!! generate_rtl not implemented yet !!!!")
+//     );
+//     Option::None
+// }
 const THUMB_VARIANTS: [&str; 3] = [
     "::-webkit-slider-thumb",
     "::-moz-range-thumb",
@@ -211,16 +228,18 @@ pub(crate) fn generate_css_rule(
 pub(crate) fn generate_rule(
     class_name: &str,
     key: &str,
-    values: &Vec<&PreRules>,
+    values: &Vec<String>,
     pseudos: &mut Vec<String>,
     at_rules: &mut Vec<String>,
 ) -> InjectableStyle {
     let mut pairs: Vec<Pair> = vec![];
 
+    println!("!!!!!!!key: {:?}, values: {:?}", key, values);
+
     for value in values {
         pairs.push(Pair {
             key: key.to_string(),
-            value: (*value).clone(), // Clone value
+            value: value.clone(), // Clone value
         });
     }
 
@@ -238,29 +257,13 @@ pub(crate) fn generate_rule(
 
     let ltr_decls = ltr_pairs
         .iter()
-        .map(|pair| {
-            let value = match &pair.value {
-                PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
-                PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
-                PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
-            };
-
-            format!("{}:{}", pair.key, value.unwrap())
-        })
+        .map(|pair| format!("{}:{}", pair.key, pair.value))
         .collect::<Vec<String>>()
         .join(";");
 
     let rtl_decls = rtl_pairs
         .iter()
-        .map(|pair| {
-            let value = match &pair.value {
-                PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
-                PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
-                PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
-            };
-
-            format!("{}:{}", pair.key, value.unwrap())
-        })
+        .map(|pair| format!("{}:{}", pair.key, pair.value))
         .collect::<Vec<String>>()
         .join(";");
 
@@ -270,6 +273,8 @@ pub(crate) fn generate_rule(
     } else {
         Option::Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
     };
+
+    println!("!!ltr_rule: {:?}, rtl_rule: {:?}", ltr_rule, rtl_rule);
 
     let priority = get_priority(key)
         + pseudos.iter().map(|p| get_priority(p)).sum::<u16>()
@@ -354,6 +359,7 @@ pub(crate) fn flatten_raw_style_object(
     var_dec_count_map: &mut HashMap<Id, i8>,
     pseudos: &mut Vec<String>,
     at_rules: &mut Vec<String>,
+    options: &StylexConfig,
 ) -> IndexMap<String, PreRules> {
     let key = get_key_str(property);
 
@@ -362,6 +368,17 @@ pub(crate) fn flatten_raw_style_object(
         key[4..key.len() - 1].to_string()
     } else {
         key.clone()
+    };
+
+    let style_resulution = if options.style_resolution.is_some() {
+        options.style_resolution.clone().unwrap()
+    } else {
+        "application-order".to_string()
+    };
+
+    let expansion_fn = match style_resulution.as_str() {
+        "application-order" => ApplicationOrder::get_expansion_fn(css_property_key.as_str()),
+        _ => todo!(),
     };
 
     let mut pre_rules: IndexMap<String, PreRules> = IndexMap::new();
@@ -389,14 +406,40 @@ pub(crate) fn flatten_raw_style_object(
                 })
         }
         Expr::Lit(property_lit) => {
-            let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-                css_property_key.clone(),
-                get_string_val_from_lit(property_lit),
-                pseudos.clone(),
-                at_rules.clone(),
-            ));
+            let value = get_string_val_from_lit(property_lit);
 
-            pre_rules.insert(css_property_key, pre_rule);
+            let a = css_property_key.clone();
+            let a = a.as_ref();
+
+            let b = value.clone();
+
+            let b = b.as_str();
+            let b = Option::Some(b);
+
+            let pairs = if expansion_fn.clone().is_some() {
+                expansion_fn.unwrap()(Option::Some(value.as_str()))
+            } else {
+                vec![OrderPair(a, b).clone()]
+            };
+
+            println!("!!expansion pairs: {:?}", pairs.clone());
+
+            for pair in pairs.iter() {
+                let property = pair.0.to_string();
+
+                if let Some(pair_value) = pair.1 {
+                    let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
+                        property.clone(),
+                        pair_value.to_string(),
+                        pseudos.clone(),
+                        at_rules.clone(),
+                    ));
+
+                    pre_rules.insert(property, pre_rule);
+                } else {
+                    pre_rules.insert(property, PreRules::NullPreRule(NullPreRule::new()));
+                }
+            }
         }
         Expr::Tpl(tpl) => {
             let handled_tpl = handle_tpl_to_expression(tpl, declarations, var_dec_count_map);
@@ -431,6 +474,7 @@ pub(crate) fn flatten_raw_style_object(
                         var_dec_count_map,
                         pseudos,
                         at_rules,
+                        options,
                     );
 
                     println!("!!before_updated_flattened: {:?}", flattened);
@@ -447,8 +491,14 @@ pub(crate) fn flatten_raw_style_object(
             let mut k = property.clone();
             k.value = Box::new(number_to_expression(result as f64).unwrap());
 
-            let flattened =
-                flatten_raw_style_object(&k, declarations, var_dec_count_map, pseudos, at_rules);
+            let flattened = flatten_raw_style_object(
+                &k,
+                declarations,
+                var_dec_count_map,
+                pseudos,
+                at_rules,
+                options,
+            );
 
             pre_rules.extend(flattened)
         }
@@ -496,6 +546,7 @@ pub(crate) fn flatten_raw_style_object(
                             var_dec_count_map,
                             pseudos,
                             at_rules,
+                            options,
                         );
 
                         println!("!!pairs: {:#?}", pairs);
@@ -687,3 +738,5 @@ pub(crate) fn stringify(node: &Stylesheet) -> String {
 
     buf
 }
+
+// fn get_expanded_keys(stylex_config: &StylexConfig) -> Vec<String> {}

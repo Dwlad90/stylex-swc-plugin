@@ -25,15 +25,15 @@ pub(crate) enum Styles {
 
 #[derive(Debug, Clone)]
 pub(crate) struct ComputedStyle(
-    pub(crate) Option<String>,
-    pub(crate) Option<InjectableStyle>,
+    pub(crate) String,
+    pub(crate) InjectableStyle,
 );
 
 #[derive(Debug, Clone)]
 pub(crate) enum CompiledResult {
+    Null(Option<()>),
     IncludedStyle(IncludedStyle),
     ComputedStyles(Vec<ComputedStyle>),
-    // Add more types as needed
 }
 
 impl CompiledResult {
@@ -99,12 +99,22 @@ impl StylesPreRule {
             },
         }
     }
+    pub(crate) fn get_property(&self) -> Option<String> {
+        Option::Some(self.property.clone())
+    }
+    pub(crate) fn get_pseudos(&self) -> Option<Vec<String>> {
+        Option::Some(self.pseudos.clone())
+    }
+    pub(crate) fn get_at_rules(&self) -> Option<Vec<String>> {
+        Option::Some(self.at_rules.clone())
+    }
 }
 
 impl PreRule for StylesPreRule {
     fn get_value(&self) -> Option<String> {
         Option::Some(self.value.clone())
     }
+
     fn compiled(&mut self, prefix: &str) -> CompiledResult {
         println!("!!!!__ self: {:#?}", self);
         let (_, class_name, rule) = convert_style_to_class_name(
@@ -118,8 +128,8 @@ impl PreRule for StylesPreRule {
         );
 
         CompiledResult::ComputedStyles(vec![ComputedStyle(
-            Option::Some(class_name),
-            Option::Some(rule),
+            class_name,
+            rule,
         )])
     }
 

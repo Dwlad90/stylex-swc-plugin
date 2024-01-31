@@ -2,8 +2,9 @@ use swc_core::{
     common::{comments::Comments, DUMMY_SP},
     ecma::{
         ast::{
-            CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
-            ImportSpecifier, MemberExpr, MemberProp, ModuleDecl, ModuleItem, Stmt, Str,
+            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl,
+            ImportDefaultSpecifier, ImportSpecifier, MemberExpr, MemberProp, ModuleDecl,
+            ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
         },
         visit::FoldWith,
     },
@@ -13,6 +14,7 @@ use crate::{
     shared::{
         constants::common::DEFAULT_INJECT_PATH,
         enums::{InjectedStylesDeclarationType, ModuleCycle},
+        structures::uid_generator::{self, UidGenerator},
         utils::common::{
             expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
             get_pat_as_string,
@@ -79,6 +81,13 @@ where
 
                 let mut injected_styles_export: Option<InjectedStylesDeclarationType> =
                     Option::None;
+
+                let prefix = "inject";
+
+                let uid_generator_inject = UidGenerator::new(prefix);
+
+                let inject_module_ident = uid_generator_inject.generate_ident();
+                let inject_var_ident = uid_generator_inject.generate_ident();
 
                 for module_item in module_items.clone().into_iter() {
                     match &module_item {
@@ -153,6 +162,14 @@ where
                                 add_inject_import_expression(
                                     injected_styles_export,
                                     &mut module_item_pre_start_vec,
+                                    &inject_module_ident,
+                                );
+
+                                add_inject_var_decl_expression(
+                                    injected_styles_export,
+                                    &mut module_item_pre_start_vec,
+                                    &inject_var_ident,
+                                    &inject_module_ident,
                                 );
 
                                 for metadata in &self.css_output {
@@ -165,16 +182,14 @@ where
                                             **priority,
                                         )),
                                     ];
+
                                     match &injected_styles_export {
                                         InjectedStylesDeclarationType::NamedDeclarationExport => {
+
                                             let stylex_member = Expr::Member(MemberExpr {
                                                 span: DUMMY_SP,
                                                 obj: Box::new(stylex.clone()),
-                                                prop: MemberProp::Ident(Ident {
-                                                    optional: false,
-                                                    span: DUMMY_SP,
-                                                    sym: "inject".into(),
-                                                }),
+                                                prop: MemberProp::Ident(inject_var_ident.clone()),
                                             });
 
                                             let stylex_call_expr = CallExpr {
@@ -194,10 +209,7 @@ where
                                         InjectedStylesDeclarationType::NamedPropertyOrDefaultExport => {
 
 
-                                            let _inject = Expr::Ident(Ident::new(
-                                                format!("_{}", "inject").into(),
-                                                DUMMY_SP,
-                                            ));
+                                            let _inject = Expr::Ident(inject_var_ident.clone());
 
                                             let stylex_call_expr = CallExpr {
                                                 span: DUMMY_SP,
@@ -251,13 +263,14 @@ where
 fn add_inject_import_expression(
     injected_styles_export: &InjectedStylesDeclarationType,
     module_item_pre_start_vec: &mut Vec<ModuleItem>,
+    ident: &Ident,
 ) {
     if injected_styles_export == &InjectedStylesDeclarationType::NamedPropertyOrDefaultExport {
         let inject_import_stmt = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
             span: DUMMY_SP,
             specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
                 span: DUMMY_SP,
-                local: Ident::new("_inject".into(), DUMMY_SP),
+                local: ident.clone(),
             })],
             src: Box::new(Str {
                 span: DUMMY_SP,
@@ -267,6 +280,31 @@ fn add_inject_import_expression(
             type_only: false,
             with: Option::None,
         }));
+        module_item_pre_start_vec.push(inject_import_stmt);
+    }
+}
+
+fn add_inject_var_decl_expression(
+    injected_styles_export: &InjectedStylesDeclarationType,
+    module_item_pre_start_vec: &mut Vec<ModuleItem>,
+    decl_ident: &Ident,
+    value_ident: &Ident,
+) {
+    if injected_styles_export == &InjectedStylesDeclarationType::NamedPropertyOrDefaultExport {
+        let inject_import_stmt = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+            declare: false,
+            decls: vec![VarDeclarator {
+                definite: true,
+                span: DUMMY_SP,
+                name: Pat::Ident(BindingIdent {
+                    id: decl_ident.clone(),
+                    type_ann: None,
+                }),
+                init: Option::Some(Box::new(Expr::Ident(value_ident.clone()))),
+            }],
+            kind: VarDeclKind::Var,
+            span: DUMMY_SP,
+        }))));
         module_item_pre_start_vec.push(inject_import_stmt);
     }
 }

@@ -1,3 +1,8 @@
+use super::structures::{
+    application_order::ApplicationOrder, property_specificity::PropertySpecificity,
+    shorthands_of_shorthands::ShorthandsOfShorthands,
+};
+
 // Represents the current state of a plugin for a file.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum ModuleCycle {
@@ -17,3 +22,11 @@ pub(crate) enum InjectedStylesDeclarationType {
     NamedDeclarationExport,
     NamedPropertyOrDefaultExport,
 }
+
+// pub(crate) enum EXPANSIONS {
+//     ApplicationOrder(ApplicationOrder),
+//     PropertySpecificity(PropertySpecificity),
+// ShorthandsOfShorthands(ShorthandsOfShorthands),
+//     // "property-specificity" => ApplicationOrder,
+//     // "shorthands-of-shorthands" => ApplicationOrder,
+// }

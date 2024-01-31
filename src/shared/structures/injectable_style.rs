@@ -12,3 +12,13 @@ pub(crate) struct InjectableStyle {
     pub(crate) ltr: String,
     pub(crate) rtl: Option<String>,
 }
+
+impl From<InjectableStyle> for InjectableStyleBase {
+    fn from(style: InjectableStyle) -> Self {
+        // Assuming InjectableStyleBase and InjectableStyle have similar fields
+        InjectableStyleBase {
+            ltr: style.ltr,
+            rtl: style.rtl,
+        }
+    }
+}

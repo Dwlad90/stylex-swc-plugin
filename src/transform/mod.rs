@@ -1,14 +1,18 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use swc_core::{
-    common::{comments::Comments, FileName},
-    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
+    common::{comments::Comments, FileName, Mark, DUMMY_SP},
+    ecma::ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, VarDeclarator},
 };
 
 use crate::{
     shared::{
         enums::ModuleCycle,
-        structures::meta_data::MetaData,
+        structures::{meta_data::MetaData, uid_generator::UidGenerator},
         utils::common::{extract_filename_from_path, increase_ident_count},
     },
     StylexConfig, StylexConfigParams,
@@ -146,7 +150,6 @@ where
     }
 
     pub(crate) fn push_to_css_output(&mut self, metadata: MetaData) {
-        println!("!!!!__ push_to_css_output: {:?}", metadata);
         if self
             .css_output
             .iter()
@@ -155,6 +158,17 @@ where
             return;
         }
 
+        println!("!!!!__ metadata: {:#?}", metadata);
+
         self.css_output.push(metadata);
     }
 }
+
+// static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+// fn generate_unique_identifier(name: &str) -> Ident {
+//     let mark = Mark::fresh(Mark::root());
+//     let count = COUNTER.fetch_add(1, Ordering::SeqCst);
+//     let unique_name = format!("_{}_{}", name, count);
+//     Ident::new(unique_name.into(), DUMMY_SP.apply_mark(mark))
+// }

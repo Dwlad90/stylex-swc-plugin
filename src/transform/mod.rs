@@ -97,6 +97,15 @@ where
     pub(crate) fn process_declaration(&mut self, call_expr: &CallExpr) -> Option<(Id, String)> {
         match &mut call_expr.callee.clone() {
             Callee::Expr(callee) => match callee.as_ref() {
+                Expr::Ident(ident) => {
+                    let ident_id = ident.to_id();
+
+                    if self.declaration.clone().unwrap_or_default().eq(&ident_id) {
+                        increase_ident_count(&mut self.var_decl_count_map, &ident);
+
+                        return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
+                    }
+                }
                 Expr::Member(member) => match member.obj.as_ref() {
                     Expr::Ident(ident) => {
                         let ident_id = ident.to_id();
@@ -128,7 +137,6 @@ where
         match expr {
             Expr::Call(ex) => {
                 let declaration = self.process_declaration(&ex);
-
                 if declaration.is_some() {
                     let value = if self.config.runtime_injection {
                         self.transform_call_expression_to_styles_expr(&ex)

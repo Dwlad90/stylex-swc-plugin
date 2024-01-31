@@ -1,7 +1,8 @@
 use colored::Colorize;
 use serde::de::value;
 use swc_core::ecma::ast::{
-    Callee, Decl, Expr, Id, KeyValueProp, Module, ModuleDecl, ModuleItem, PropName, Stmt,
+    Callee, Decl, Expr, Id, ImportSpecifier, KeyValueProp, Module, ModuleDecl, ModuleItem,
+    PropName, Stmt,
 };
 
 use crate::shared::constants;
@@ -73,23 +74,12 @@ pub(crate) fn validate_style_x_create_call_expression(
     match expr {
         Expr::Call(call) => match &call.callee {
             Callee::Expr(expr) => match expr.as_ref() {
+                Expr::Ident(ident) => {
+                    validate_style_x_create_indent(declaration, ident, has_assignment, call);
+                }
                 Expr::Member(member) => match member.obj.as_ref() {
                     Expr::Ident(ident) => {
-                        if declaration.clone().eq(&ident.to_id()) && !*has_assignment {
-                            assert!(
-                                &call.args.len() == &1,
-                                "{}",
-                                constants::common::ILLEGAL_ARGUMENT_LENGTH
-                            );
-
-                            let first_args = &call.args[0];
-
-                            match first_args.expr.as_ref() {
-                                Expr::Object(_) => {}
-                                _ => panic!("{}", constants::common::NON_OBJECT_FOR_STYLEX_CALL),
-                            }
-                            *has_assignment = true;
-                        }
+                        validate_style_x_create_indent(declaration, ident, has_assignment, call);
                     }
                     _ => {}
                 },
@@ -98,6 +88,29 @@ pub(crate) fn validate_style_x_create_call_expression(
             _ => {}
         },
         _ => {}
+    }
+}
+
+fn validate_style_x_create_indent(
+    declaration: &(swc_core::atoms::Atom, swc_core::common::SyntaxContext),
+    ident: &swc_core::ecma::ast::Ident,
+    has_assignment: &mut bool,
+    call: &swc_core::ecma::ast::CallExpr,
+) {
+    if declaration.clone().eq(&ident.to_id()) && !*has_assignment {
+        assert!(
+            &call.args.len() == &1,
+            "{}",
+            constants::common::ILLEGAL_ARGUMENT_LENGTH
+        );
+
+        let first_args = &call.args[0];
+
+        match first_args.expr.as_ref() {
+            Expr::Object(_) => {}
+            _ => panic!("{}", constants::common::NON_OBJECT_FOR_STYLEX_CALL),
+        }
+        *has_assignment = true;
     }
 }
 

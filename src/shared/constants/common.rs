@@ -13,6 +13,8 @@ pub(crate) static NON_OBJECT_FOR_STYLEX_CALL:&str =  "stylex.create() can only a
 #[allow(dead_code)]
 pub(crate) static UNKNOWN_PROP_KEY:&str =  "Unknown property key";
 #[allow(dead_code)]
+pub(crate) static MUST_BE_DEFAULT_IMPORT:&str =  "Must be default import";
+#[allow(dead_code)]
 pub(crate) static INVALID_PSEUDO:&str =  "Invalid pseudo selector, not on the whitelist.";
 #[allow(dead_code)]
 pub(crate) static INVALID_PSEUDO_OR_AT_RULE:&str =  "Invalid pseudo or at-rule.";

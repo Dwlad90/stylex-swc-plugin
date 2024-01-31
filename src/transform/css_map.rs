@@ -56,29 +56,41 @@ where
         ex: &CallExpr,
     ) -> Option<Expr> {
         if let Callee::Expr(callee) = &ex.callee {
-            if let Expr::Member(member) = callee.as_ref() {
-                match member.prop.clone() {
+            match callee.as_ref() {
+                Expr::Member(member) => match member.prop.clone() {
                     MemberProp::Ident(ident) => {
-                        match format!("{}", ident.sym).as_str() {
-                            "create" => {
-                                if let Some(value) =
-                                    self.transform_create_call_to_style(ex, &self.config.clone())
-                                {
-                                    return Option::Some(value);
-                                }
-                            }
-                            "props" => {
-                                todo!("target_call_expression_to_styles_expr: props")
-                            }
-                            _ => {}
-                        };
+                        if let Some(value) = self.ident_to_styles_expr(ident, ex) {
+                            return value;
+                        }
                     }
                     _ => {}
+                },
+                Expr::Ident(ident) => {
+                    if let Some(value) = self.ident_to_styles_expr(ident.clone(), ex) {
+                        return value;
+                    }
                 }
+                _ => {}
             }
         }
 
         return Option::None;
+    }
+
+    fn ident_to_styles_expr(&mut self, ident: Ident, ex: &CallExpr) -> Option<Option<Expr>> {
+        match format!("{}", ident.sym).as_str() {
+            "create" => {
+                println!("!!!!__ ex: {:#?}", ex);
+                if let Some(value) = self.transform_create_call_to_style(ex, &self.config.clone()) {
+                    return Some(Option::Some(value));
+                }
+            }
+            "props" => {
+                todo!("target_call_expression_to_styles_expr: props")
+            }
+            _ => {}
+        };
+        None
     }
 
     fn proccess_create_css_call(&mut self, ex: &CallExpr) -> Option<Expr> {
@@ -130,6 +142,8 @@ where
         ex: &CallExpr,
         options: &StylexConfig,
     ) -> Option<Expr> {
+        println!("!!!!__ ex: {:#?}", ex);
+
         for arg in ex.args.iter() {
             match &arg.spread {
                 Some(_) => todo!(),

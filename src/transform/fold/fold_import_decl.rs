@@ -6,13 +6,16 @@ use swc_core::{
     },
 };
 
-use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
+use crate::{
+    shared::{constants, enums::ModuleCycle},
+    ModuleTransformVisitor,
+};
 
 impl<C> ModuleTransformVisitor<C>
 where
     C: Comments,
 {
-    pub(crate)  fn fold_import_decl_impl(&mut self, import_decl: ImportDecl) -> ImportDecl {
+    pub(crate) fn fold_import_decl_impl(&mut self, import_decl: ImportDecl) -> ImportDecl {
         if self.cycle == ModuleCycle::Skip {
             return import_decl;
         }
@@ -34,7 +37,16 @@ where
                         ImportSpecifier::Namespace(import_specifier) => {
                             self.declaration = Some(import_specifier.local.to_id());
                         }
-                        _ => panic!("Must be default import"),
+                        ImportSpecifier::Named(import_specifier) => {
+                            match import_specifier.local.sym.as_str() {
+                                "create" => {
+                                    self.declaration = Some(import_specifier.local.to_id());
+                                }
+                                _ => {
+                                    panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
+                                }
+                            };
+                        }
                     };
                 }
             }

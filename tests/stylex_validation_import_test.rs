@@ -207,3 +207,46 @@ test!(
         styles;
     "#
 );
+
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    can_import_wildcard,
+    r#"
+        import * as foobar from '@stylexjs/stylex';
+
+        const styles = foobar.create({
+        default: {
+                backgroundColor: 'red',
+                color: 'blue',
+                padding: 5
+            }
+        });
+        styles;
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    can_import_just_create,
+    r#"
+        import {create} from '@stylexjs/stylex';
+
+        const styles = create({
+            default: {
+                    backgroundColor: 'red',
+                    color: 'blue',
+                    padding: 5
+                }
+            });
+        styles;
+    "#
+);

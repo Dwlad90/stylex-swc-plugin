@@ -17,7 +17,7 @@ use crate::{
         structures::uid_generator::{self, UidGenerator},
         utils::common::{
             expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
-            get_pat_as_string,
+            get_pat_as_string, increase_ident_count,
         },
     },
     ModuleTransformVisitor,
@@ -65,6 +65,19 @@ where
                             ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
                                 Decl::Var(var_decl) => {
                                     for var_declarator in &var_decl.decls {
+                                        if let Option::Some(ident) =
+                                            match &var_declarator.name.clone() {
+                                                Pat::Ident(ident) => Option::Some(ident),
+                                                _ => Option::None,
+                                            }
+                                        {
+                                            // HACK: Prevent removing named export variables
+                                            increase_ident_count(
+                                                &mut self.var_decl_count_map,
+                                                &ident,
+                                            );
+                                        }
+
                                         let decl_name = self.get_props_desclaration_as_string();
                                         let var_declarator_name =
                                             get_pat_as_string(&var_declarator.name);
@@ -101,7 +114,10 @@ where
                                         let var_declarator_name = get_pat_as_string(&decl.name);
 
                                         println!("!!!decl_name: {:?}", decl_name);
-                                        println!("!!!var_declarator_name: {:?}", var_declarator_name);
+                                        println!(
+                                            "!!!var_declarator_name: {:?}",
+                                            var_declarator_name
+                                        );
 
                                         if decl_name.eq(&var_declarator_name) {
                                             styles_item_target_idx = Option::Some(styles_item_idx);

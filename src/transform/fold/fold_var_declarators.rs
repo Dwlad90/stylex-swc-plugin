@@ -42,6 +42,10 @@ where
 
                                 let is_used = count > &0;
 
+                                println!("decl_id: {:?}", decl_id);
+                                println!("count: {:?}", count);
+                                println!("is_used: {:?}", is_used);
+
                                 return is_used;
                             }
                         }

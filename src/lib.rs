@@ -4,15 +4,15 @@ pub mod shared {
     pub(crate) mod structures;
     pub(crate) mod utils;
     pub(crate) mod constants {
+        pub(crate) mod application_order;
         pub(crate) mod common;
         pub(crate) mod long_hand_logical;
         pub(crate) mod long_hand_physical;
+        pub(crate) mod number_properties;
         pub(crate) mod priorities;
-        pub(crate) mod application_order;
         pub(crate) mod shorthands_of_longhands;
         pub(crate) mod shorthands_of_shorthands;
         pub(crate) mod unitless_number_properties;
-        pub(crate) mod number_properties;
     }
 }
 
@@ -38,6 +38,7 @@ pub struct StylexConfigParams {
     pub runtime_injection: Option<bool>,
     pub class_name_prefix: Option<String>,
     pub defined_stylex_css_variables: Option<HashMap<String, String>>,
+    pub import_sources: Option<Vec<String>>,
 }
 
 impl Default for StylexConfigParams {
@@ -47,6 +48,7 @@ impl Default for StylexConfigParams {
             runtime_injection: Option::Some(false),
             class_name_prefix: Option::Some("x".to_string()),
             defined_stylex_css_variables: Option::Some(HashMap::new()),
+            import_sources: Option::None,
         }
     }
 }
@@ -57,6 +59,7 @@ pub struct StylexConfig {
     pub runtime_injection: bool,
     pub class_name_prefix: String,
     pub defined_stylex_css_variables: HashMap<String, String>,
+    pub import_sources: Option<Vec<String>>,
 }
 
 impl Default for StylexConfig {
@@ -67,6 +70,7 @@ impl Default for StylexConfig {
             runtime_injection: false,
             class_name_prefix: "x".to_string(),
             defined_stylex_css_variables: HashMap::new(),
+            import_sources: Option::None,
         }
     }
 }
@@ -81,6 +85,7 @@ impl From<StylexConfigParams> for StylexConfig {
             defined_stylex_css_variables: config
                 .defined_stylex_css_variables
                 .unwrap_or(HashMap::new()),
+            import_sources: config.import_sources,
         }
     }
 }

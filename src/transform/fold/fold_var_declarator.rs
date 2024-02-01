@@ -47,10 +47,10 @@ where
                                     if self.cycle == ModuleCycle::Initializing {
                                         self.props_declaration =
                                             var_declarator.name.as_ident().map(|ident| {
-                                                increase_ident_count(
-                                                    &mut self.var_decl_count_map,
-                                                    &ident,
-                                                );
+                                                // increase_ident_count(
+                                                //     &mut self.var_decl_count_map,
+                                                //     &ident,
+                                                // );
 
                                                 ident.to_id()
                                             });

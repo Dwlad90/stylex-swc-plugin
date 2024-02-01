@@ -28,7 +28,7 @@ where
     comments: C,
     declaration: Option<Id>,
     cycle: ModuleCycle,
-    package_name: String,
+    stylex_imports: Vec<String>,
     file_name: String,
     props_declaration: Option<Id>,
     css_output: Vec<MetaData>,
@@ -42,11 +42,13 @@ where
     C: Comments,
 {
     pub(crate) fn new(comments: C, file_name: FileName, config: StylexConfigParams) -> Self {
+        let stylex_imports = fill_stylex_imports(&Option::Some(config.clone()));
+
         ModuleTransformVisitor {
             comments,
             declaration: Option::None,
             cycle: ModuleCycle::Initializing,
-            package_name: "@stylexjs/stylex".to_string(),
+            stylex_imports,
             file_name: extract_filename_from_path(file_name),
             props_declaration: Option::None,
             css_output: vec![],
@@ -57,11 +59,13 @@ where
     }
 
     pub fn new_test_classname(comments: C, config: Option<StylexConfigParams>) -> Self {
+        let stylex_imports = fill_stylex_imports(&config);
+
         ModuleTransformVisitor {
             comments,
             declaration: Option::None,
             cycle: ModuleCycle::Initializing,
-            package_name: "@stylexjs/stylex".to_string(),
+            stylex_imports,
             file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
             css_output: vec![],
@@ -71,11 +75,13 @@ where
         }
     }
     pub fn new_test_styles(comments: C, config: Option<StylexConfigParams>) -> Self {
+        let stylex_imports = fill_stylex_imports(&config);
+
         ModuleTransformVisitor {
             comments,
             declaration: Option::None,
             cycle: ModuleCycle::Initializing,
-            package_name: "@stylexjs/stylex".to_string(),
+            stylex_imports,
             file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
             css_output: vec![],
@@ -170,6 +176,18 @@ where
 
         self.css_output.push(metadata);
     }
+}
+
+fn fill_stylex_imports(config: &Option<StylexConfigParams>) -> Vec<String> {
+    let mut stylex_imports = vec!["stylex".to_string(), "@stylexjs/stylex".to_string()];
+
+    if let Some(stylex_imports_extends) = match config {
+        Some(ref config) => config.import_sources.clone(),
+        None => Option::None,
+    } {
+        stylex_imports.extend(stylex_imports_extends)
+    }
+    stylex_imports
 }
 
 // static COUNTER: AtomicUsize = AtomicUsize::new(0);

@@ -7,7 +7,7 @@ use swc_core::{
 };
 
 use crate::{
-    shared::{constants, enums::ModuleCycle},
+    shared::{constants, enums::ModuleCycle, utils::common::increase_ident_count},
     ModuleTransformVisitor,
 };
 
@@ -28,7 +28,9 @@ where
             let src = &import_decl.src;
             let declaration = &src.value;
 
-            if declaration.eq(self.package_name.as_str()) {
+            println!("!!!!self.stylex_imports!!!: {:?}", self.stylex_imports);
+
+            if self.stylex_imports.contains(&declaration.to_string()) {
                 for specifier in &import_decl.specifiers {
                     match &specifier {
                         ImportSpecifier::Default(import_specifier) => {

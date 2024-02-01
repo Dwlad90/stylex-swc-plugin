@@ -33,6 +33,7 @@ fn fixture(input: PathBuf) {
                         runtime_injection: Option::Some(false),
                         class_name_prefix: Option::Some("x".to_string()),
                         defined_stylex_css_variables: Option::None,
+                        import_sources: Option::None,
                     })
                 ) // ModuleTransformVisitor::new_test(tr.comments.clone())
             )

@@ -78,6 +78,11 @@ where
     }
 
     fn ident_to_styles_expr(&mut self, ident: Ident, ex: &CallExpr) -> Option<Option<Expr>> {
+        if self.declaration.clone().unwrap().eq(&ident.to_id()) {
+            if let Some(value) = self.transform_create_call_to_style(ex, &self.config.clone()) {
+                return Some(Option::Some(value));
+            }
+        }
         match format!("{}", ident.sym).as_str() {
             "create" => {
                 println!("!!!!__ ex: {:#?}", ex);

@@ -6,7 +6,10 @@ use swc_core::{
     },
 };
 
-use crate::{shared::{enums::ModuleCycle, utils::common::increase_ident_count}, ModuleTransformVisitor};
+use crate::{
+    shared::{enums::ModuleCycle, utils::common::increase_ident_count},
+    ModuleTransformVisitor,
+};
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -34,33 +37,35 @@ where
                         Some(declaration) => {
                             let (declaration, member) = declaration;
 
+                            println!("!!!!!declaration: {:?}", declaration);
+                            println!("!!!!!self.declaration: {:?}", self.declaration);
+                            println!("!!!!!member: {:?}", member);
                             if declaration.eq(&self.declaration.clone().unwrap()) {
-                                match member.as_str() {
-                                    "create" => {
-                                        if self.cycle == ModuleCycle::Initializing {
-                                            self.props_declaration = var_declarator
-                                                .name
-                                                .as_ident()
-                                                .map(|ident| {
+                                let declaration_string = self.declaration.clone().unwrap().0.to_string();
 
-                                                    increase_ident_count(&mut self.var_decl_count_map, &ident);
+                                if member.as_str() == "create" || member.as_str() == declaration_string {
+                                    if self.cycle == ModuleCycle::Initializing {
+                                        self.props_declaration =
+                                            var_declarator.name.as_ident().map(|ident| {
+                                                increase_ident_count(
+                                                    &mut self.var_decl_count_map,
+                                                    &ident,
+                                                );
 
-                                                    ident.to_id()
-                                                });
-                                        } else {
-                                            if !self.config.runtime_injection {
-                                                var_declarator.name = Pat::Ident(BindingIdent {
-                                                    id: Ident {
-                                                        span: DUMMY_SP,
-                                                        optional: false,
-                                                        sym: "_stylex$props".into(),
-                                                    },
-                                                    type_ann: None,
-                                                })
-                                            }
+                                                ident.to_id()
+                                            });
+                                    } else {
+                                        if !self.config.runtime_injection {
+                                            var_declarator.name = Pat::Ident(BindingIdent {
+                                                id: Ident {
+                                                    span: DUMMY_SP,
+                                                    optional: false,
+                                                    sym: "_stylex$props".into(),
+                                                },
+                                                type_ann: None,
+                                            })
                                         }
                                     }
-                                    _ => {}
                                 }
                             }
                         }

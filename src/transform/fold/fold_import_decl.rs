@@ -1,7 +1,7 @@
 use swc_core::{
     common::comments::Comments,
     ecma::{
-        ast::{ImportDecl, ImportSpecifier},
+        ast::{ImportDecl, ImportSpecifier, ModuleExportName},
         visit::FoldWith,
     },
 };
@@ -38,14 +38,30 @@ where
                             self.declaration = Some(import_specifier.local.to_id());
                         }
                         ImportSpecifier::Named(import_specifier) => {
-                            match import_specifier.local.sym.as_str() {
-                                "create" => {
-                                    self.declaration = Some(import_specifier.local.to_id());
+                            match &import_specifier.imported {
+                                Some(imported) => match imported {
+                                    ModuleExportName::Ident(ident) => {
+                                        if ident.sym.as_str() == "create" {
+                                            self.declaration = Some(import_specifier.local.to_id());
+                                        } else {
+                                            panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
+                                        }
+                                    }
+                                    ModuleExportName::Str(_) => {
+                                        panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
+                                    }
+                                },
+                                None => {
+                                    match import_specifier.local.sym.as_str() {
+                                        "create" => {
+                                            self.declaration = Some(import_specifier.local.to_id());
+                                        }
+                                        _ => {
+                                            panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
+                                        }
+                                    };
                                 }
-                                _ => {
-                                    panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
-                                }
-                            };
+                            }
                         }
                     };
                 }

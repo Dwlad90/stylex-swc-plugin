@@ -724,7 +724,7 @@ pub(crate) fn get_number_suffix(css_property: &str) -> String {
     result.to_string()
 }
 
-fn get_value_from_ident(ident: &Ident) -> String {
+pub(crate) fn get_value_from_ident(ident: &Ident) -> String {
     ident.value.to_string()
 }
 

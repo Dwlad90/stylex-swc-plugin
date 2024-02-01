@@ -39,36 +39,6 @@ where
                     return module_items;
                 }
 
-                // module_items.retain(|module_item| {
-                //     if let ModuleItem::ModuleDecl(import_decl) = module_item {
-                //         if let ModuleDecl::Import(import) = import_decl {
-                //             let src_value = import.src.value.to_string();
-
-                //             if self.package_name.as_str() != &src_value {
-                //                 return true;
-                //             }
-
-                //             let specifier = import.specifiers.first();
-
-                //             if let Some(spec) = specifier {
-                //                 match spec {
-                //                     ImportSpecifier::Namespace(_) => {
-                //                         return false;
-                //                     }
-                //                     ImportSpecifier::Named(_) => {
-                //                         return true;
-                //                     }
-                //                     ImportSpecifier::Default(_) => {
-                //                         return false;
-                //                     }
-                //                 }
-                //             }
-                //         }
-                //     }
-
-                //     true
-                // });
-
                 // TODO: Inject comment to css extraction
 
                 module_items
@@ -130,6 +100,9 @@ where
                                         let decl_name = self.get_props_desclaration_as_string();
                                         let var_declarator_name = get_pat_as_string(&decl.name);
 
+                                        println!("!!!decl_name: {:?}", decl_name);
+                                        println!("!!!var_declarator_name: {:?}", var_declarator_name);
+
                                         if decl_name.eq(&var_declarator_name) {
                                             styles_item_target_idx = Option::Some(styles_item_idx);
                                             injected_styles_export = Option::Some(
@@ -141,7 +114,9 @@ where
                                 }
                                 _ => {}
                             },
-                            _ => {}
+                            _ => {
+                                println!("!!!!stmt: {:?}", stmt);
+                            }
                         },
                     }
 

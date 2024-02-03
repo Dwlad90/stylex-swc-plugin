@@ -1,7 +1,7 @@
 pub(crate) mod transform;
 pub mod shared {
     pub(crate) mod enums;
-    pub(crate) mod structures;
+    pub mod structures;
     pub(crate) mod utils;
     pub(crate) mod constants {
         pub(crate) mod application_order;
@@ -19,6 +19,7 @@ pub mod shared {
 use std::collections::HashMap;
 
 use serde::Deserialize;
+use shared::structures::named_import_source::ImportSources;
 pub use transform::ModuleTransformVisitor;
 
 use swc_core::{
@@ -38,7 +39,7 @@ pub struct StylexConfigParams {
     pub runtime_injection: Option<bool>,
     pub class_name_prefix: Option<String>,
     pub defined_stylex_css_variables: Option<HashMap<String, String>>,
-    pub import_sources: Option<Vec<String>>,
+    pub import_sources: Option<Vec<ImportSources>>,
 }
 
 impl Default for StylexConfigParams {
@@ -59,7 +60,7 @@ pub struct StylexConfig {
     pub runtime_injection: bool,
     pub class_name_prefix: String,
     pub defined_stylex_css_variables: HashMap<String, String>,
-    pub import_sources: Option<Vec<String>>,
+    pub import_sources: Option<Vec<ImportSources>>,
 }
 
 impl Default for StylexConfig {

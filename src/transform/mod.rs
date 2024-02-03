@@ -12,7 +12,9 @@ use swc_core::{
 use crate::{
     shared::{
         enums::ModuleCycle,
-        structures::{meta_data::MetaData, uid_generator::UidGenerator},
+        structures::{
+            meta_data::MetaData, named_import_source::ImportSources, uid_generator::UidGenerator,
+        },
         utils::common::{extract_filename_from_path, increase_ident_count},
     },
     StylexConfig, StylexConfigParams,
@@ -28,7 +30,7 @@ where
     comments: C,
     declaration: Option<Id>,
     cycle: ModuleCycle,
-    stylex_imports: Vec<String>,
+    stylex_imports: Vec<ImportSources>,
     file_name: String,
     props_declaration: Option<Id>,
     css_output: Vec<MetaData>,
@@ -178,8 +180,11 @@ where
     }
 }
 
-fn fill_stylex_imports(config: &Option<StylexConfigParams>) -> Vec<String> {
-    let mut stylex_imports = vec!["stylex".to_string(), "@stylexjs/stylex".to_string()];
+fn fill_stylex_imports(config: &Option<StylexConfigParams>) -> Vec<ImportSources> {
+    let mut stylex_imports = vec![
+        ImportSources::Regular("stylex".to_string()),
+        ImportSources::Regular("@stylexjs/stylex".to_string()),
+    ];
 
     if let Some(stylex_imports_extends) = match config {
         Some(ref config) => config.import_sources.clone(),

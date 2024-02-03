@@ -7,7 +7,12 @@ use swc_core::{
 };
 
 use crate::{
-    shared::{constants, enums::ModuleCycle, utils::common::increase_ident_count},
+    shared::{
+        constants,
+        enums::ModuleCycle,
+        structures::named_import_source::{ImportSources, NamedImportSource},
+        utils::common::increase_ident_count,
+    },
     ModuleTransformVisitor,
 };
 
@@ -30,7 +35,10 @@ where
 
             println!("!!!!self.stylex_imports!!!: {:?}", self.stylex_imports);
 
-            if self.stylex_imports.contains(&declaration.to_string()) {
+            if self.stylex_imports.iter().any(|import| match import {
+                ImportSources::Regular(regular) => regular.eq(&declaration.to_string()),
+                ImportSources::Named(named) => named.from.eq(&declaration.to_string()),
+            }) {
                 for specifier in &import_decl.specifiers {
                     match &specifier {
                         ImportSpecifier::Default(import_specifier) => {
@@ -40,6 +48,7 @@ where
                             self.declaration = Some(import_specifier.local.to_id());
                         }
                         ImportSpecifier::Named(import_specifier) => {
+                            println!("!!!!import_specifier: {:?}", import_specifier);
                             match &import_specifier.imported {
                                 Some(imported) => match imported {
                                     ModuleExportName::Ident(ident) => {
@@ -54,14 +63,49 @@ where
                                     }
                                 },
                                 None => {
-                                    match import_specifier.local.sym.as_str() {
-                                        "create" => {
+                                    let named_custom_imports = self
+                                        .stylex_imports
+                                        .clone()
+                                        .into_iter()
+                                        .filter(|import| import.is_named_export())
+                                        .map(|import| match import {
+                                            ImportSources::Named(named) => named,
+                                            _ => panic!("Not named import"),
+                                        })
+                                        .collect::<Vec<NamedImportSource>>();
+
+                                    let mut found_custom_import = false;
+
+                                    if named_custom_imports.len() > 0 {
+                                        let named_import = named_custom_imports
+                                            .iter()
+                                            .find(|import| import.from.eq(&declaration.to_string()))
+                                            .unwrap();
+
+                                        if named_import
+                                            .r#as
+                                            .eq(&import_specifier.local.sym.as_str())
+                                        {
                                             self.declaration = Some(import_specifier.local.to_id());
                                         }
-                                        _ => {
-                                            panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
-                                        }
-                                    };
+
+                                        found_custom_import = true;
+                                    }
+
+                                    if !found_custom_import {
+                                        match import_specifier.local.sym.as_str() {
+                                            "create" => {
+                                                self.declaration =
+                                                    Some(import_specifier.local.to_id());
+                                            }
+                                            _ => {
+                                                panic!(
+                                                    "{}",
+                                                    constants::common::MUST_BE_DEFAULT_IMPORT
+                                                )
+                                            }
+                                        };
+                                    }
                                 }
                             }
                         }

@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 
-use stylex_swc_plugin::{ModuleTransformVisitor, StylexConfigParams};
+use stylex_swc_plugin::{
+    shared::structures::{
+        named_import_source::RuntimeInjection, stylex_options::StyleXOptionsParams,
+    },
+    ModuleTransformVisitor,
+};
 use swc_core::{
     common::{chain, Mark},
     ecma::{
@@ -28,12 +33,18 @@ fn fixture(input: PathBuf) {
                 resolver(unresolved_mark, top_level_mark, false),
                 ModuleTransformVisitor::new_test_classname(
                     PluginCommentsProxy,
-                    Option::Some(StylexConfigParams {
+                    Option::Some(StyleXOptionsParams {
                         use_rem_for_font_size: Option::None,
-                        runtime_injection: Option::Some(false),
+                        runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
                         class_name_prefix: Option::Some("x".to_string()),
                         defined_stylex_css_variables: Option::None,
                         import_sources: Option::None,
+                        dev: Option::Some(false),
+                        test: Option::Some(true),
+                        treeshake_compensation: Option::None,
+                        gen_conditional_classes: Option::Some(false),
+                        aliases: Option::None,
+                        unstable_module_resolution: Option::None,
                     })
                 ) // ModuleTransformVisitor::new_test(tr.comments.clone())
             )

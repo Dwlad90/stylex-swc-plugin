@@ -1,7 +1,10 @@
 use colored::Style;
 use stylex_swc_plugin::{
-    shared::structures::named_import_source::{ImportSources, NamedImportSource},
-    ModuleTransformVisitor, StylexConfigParams,
+    shared::structures::{
+        named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
+        stylex_options::StyleXOptionsParams,
+    },
+    ModuleTransformVisitor,
 };
 use swc_core::ecma::{
     parser::{Syntax, TsConfig},
@@ -14,10 +17,10 @@ test!(
         ..Default::default()
     }),
     |tr| {
-        let mut config = StylexConfigParams::default();
+        let mut config = StyleXOptionsParams::default();
 
         config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
-        config.runtime_injection = Some(true);
+        config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
         ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
     },
@@ -40,10 +43,10 @@ test!(
         ..Default::default()
     }),
     |tr| {
-        let mut config = StylexConfigParams::default();
+        let mut config = StyleXOptionsParams::default();
 
         config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
-        config.runtime_injection = Some(true);
+        config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
         ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
     },
@@ -66,14 +69,14 @@ test!(
         ..Default::default()
     }),
     |tr| {
-        let mut config = StylexConfigParams::default();
+        let mut config = StyleXOptionsParams::default();
         //{ from: 'react-strict-dom', as: 'css' }
 
         config.import_sources = Option::Some(vec![ImportSources::Named(NamedImportSource {
             from: "react-strict-dom".to_string(),
             r#as: "css".to_string(),
         })]);
-        config.runtime_injection = Some(true);
+        config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
         ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
     },
@@ -90,21 +93,20 @@ test!(
     "#
 );
 
-
 test!(
     Syntax::Typescript(TsConfig {
         tsx: true,
         ..Default::default()
     }),
     |tr| {
-        let mut config = StylexConfigParams::default();
+        let mut config = StyleXOptionsParams::default();
         //{ from: 'react-strict-dom', as: 'css' }
 
         config.import_sources = Option::Some(vec![ImportSources::Named(NamedImportSource {
             from: "react-strict-dom".to_string(),
             r#as: "css".to_string(),
         })]);
-        config.runtime_injection = Some(true);
+        config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
         ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
     },

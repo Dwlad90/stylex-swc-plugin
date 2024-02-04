@@ -1,5 +1,3 @@
-#[allow(dead_code)]
-pub(crate) static DEFAULT_INJECT_PATH: &str = "@stylexjs/stylex/lib/stylex-inject";
 pub(crate) static ILLEGAL_ARGUMENT_LENGTH:&str =  "stylex() should have 1 argument.";
 #[allow(dead_code)]
 pub(crate) static NON_STATIC_VALUE:&str =  "Only static values are allowed inside of a stylex.create() call.";
@@ -52,3 +50,4 @@ pub(crate) static NO_PROJECT_ROOT_DIRECTORY:&str =  "The project root directory 
 pub(crate) static NON_EXPORT_NAMED_DECLARATION:&str =  "The return value of stylex.defineVars() must be bound to a named export.";
 #[allow(dead_code)]
 pub(crate) static ANONYMOUS_THEME:&str =  "stylex.createTheme() must be bound to a named constant.";
+pub(crate) static ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS:&str =  "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.";

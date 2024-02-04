@@ -13,11 +13,15 @@ use crate::{
     shared::{
         enums::ModuleCycle,
         structures::{
-            meta_data::MetaData, named_import_source::ImportSources, uid_generator::UidGenerator,
+            meta_data::MetaData,
+            named_import_source::{ImportSources, RuntimeInjection},
+            state_manager::StateManager,
+            stylex_options::StyleXOptions,
+            uid_generator::UidGenerator,
         },
         utils::common::{extract_filename_from_path, increase_ident_count},
     },
-    StylexConfig, StylexConfigParams,
+    StyleXOptionsParams,
 };
 
 mod css_map;
@@ -34,7 +38,7 @@ where
     file_name: String,
     props_declaration: Option<Id>,
     css_output: Vec<MetaData>,
-    config: StylexConfig,
+    pub(crate) state: StateManager,
     declarations: Vec<VarDeclarator>,
     var_decl_count_map: HashMap<Id, i8>,
 }
@@ -43,8 +47,10 @@ impl<C> ModuleTransformVisitor<C>
 where
     C: Comments,
 {
-    pub(crate) fn new(comments: C, file_name: FileName, config: StylexConfigParams) -> Self {
+    pub(crate) fn new(comments: C, file_name: FileName, config: StyleXOptionsParams) -> Self {
         let stylex_imports = fill_stylex_imports(&Option::Some(config.clone()));
+
+        let state = StateManager::new(config.into());
 
         ModuleTransformVisitor {
             comments,
@@ -54,14 +60,15 @@ where
             file_name: extract_filename_from_path(file_name),
             props_declaration: Option::None,
             css_output: vec![],
-            config: config.into(),
+            state,
             declarations: vec![],
             var_decl_count_map: HashMap::new(),
         }
     }
 
-    pub fn new_test_classname(comments: C, config: Option<StylexConfigParams>) -> Self {
+    pub fn new_test_classname(comments: C, config: Option<StyleXOptionsParams>) -> Self {
         let stylex_imports = fill_stylex_imports(&config);
+        let state = StateManager::new(config.unwrap_or(StyleXOptionsParams::default()).into());
 
         ModuleTransformVisitor {
             comments,
@@ -71,13 +78,24 @@ where
             file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
             css_output: vec![],
-            config: config.unwrap_or(StylexConfigParams::default()).into(),
+            state,
             declarations: vec![],
             var_decl_count_map: HashMap::new(),
         }
     }
-    pub fn new_test_styles(comments: C, config: Option<StylexConfigParams>) -> Self {
+    pub fn new_test_styles(comments: C, config: Option<StyleXOptionsParams>) -> Self {
         let stylex_imports = fill_stylex_imports(&config);
+
+        let state = match &config {
+            Some(config) => StateManager::new(config.clone().into()),
+            None => {
+                let mut config = StyleXOptions::default();
+
+                config.runtime_injection = RuntimeInjection::Boolean(true);
+
+                StateManager::new(config.into())
+            }
+        };
 
         ModuleTransformVisitor {
             comments,
@@ -87,16 +105,7 @@ where
             file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
             css_output: vec![],
-            config: match &config {
-                Some(config) => config.clone().into(),
-                None => {
-                    let mut config = StylexConfig::default();
-
-                    config.runtime_injection = true;
-
-                    config
-                }
-            },
+            state,
             declarations: vec![],
             var_decl_count_map: HashMap::new(),
         }
@@ -146,7 +155,7 @@ where
             Expr::Call(ex) => {
                 let declaration = self.process_declaration(&ex);
                 if declaration.is_some() {
-                    let value = if self.config.runtime_injection {
+                    let value = if !self.state.options.runtime_injection.is_none() {
                         self.transform_call_expression_to_styles_expr(&ex)
                     } else {
                         self.transform_call_expression_to_css_map_expr(&ex)
@@ -180,7 +189,7 @@ where
     }
 }
 
-fn fill_stylex_imports(config: &Option<StylexConfigParams>) -> Vec<ImportSources> {
+fn fill_stylex_imports(config: &Option<StyleXOptionsParams>) -> Vec<ImportSources> {
     let mut stylex_imports = vec![
         ImportSources::Regular("stylex".to_string()),
         ImportSources::Regular("@stylexjs/stylex".to_string()),

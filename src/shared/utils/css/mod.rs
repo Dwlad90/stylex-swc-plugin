@@ -7,28 +7,18 @@ pub(crate) mod validators;
 use core::panic;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    shared::{
-        constants::{
-            self, common::ILLEGAL_PROP_ARRAY_VALUE, long_hand_logical::LONG_HAND_LOGICAL,
-            long_hand_physical::LONG_HAND_PHYSICAL, number_properties::NUMBER_PROPERTY_SUFFIXIES,
-            priorities::PRIORITIES, shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
-            shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
-            unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
-        },
-        structures::{
-            application_order::ApplicationOrder,
-            injectable_style::InjectableStyle,
-            null_pre_rule::NullPreRule,
-            order::Order,
-            order_pair::OrderPair,
-            pair::Pair,
-            pre_rule::{self, PreRule, PreRules, StylesPreRule},
-            pre_rule_set::PreRuleSet,
-        },
-        utils::common::{expr_tpl_to_string, get_key_str, handle_tpl_to_expression, hash_css},
+use crate::shared::{
+    constants::{
+        self, long_hand_logical::LONG_HAND_LOGICAL, long_hand_physical::LONG_HAND_PHYSICAL,
+        messages::ILLEGAL_PROP_ARRAY_VALUE, number_properties::NUMBER_PROPERTY_SUFFIXIES,
+        priorities::PRIORITIES, shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
+        shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
+        unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
     },
-    StylexConfig,
+    structures::{
+        application_order::ApplicationOrder, injectable_style::InjectableStyle, null_pre_rule::NullPreRule, order::Order, order_pair::OrderPair, pair::Pair, pre_rule::{self, PreRule, PreRules, StylesPreRule}, pre_rule_set::PreRuleSet, stylex_options::{StyleResolution, StyleXOptions}, stylex_state_options::StyleXStateOptions
+    },
+    utils::common::{expr_tpl_to_string, get_key_str, handle_tpl_to_expression, hash_css},
 };
 use colored::Colorize;
 use convert_case::{Case, Casing};
@@ -359,7 +349,7 @@ pub(crate) fn flatten_raw_style_object(
     var_dec_count_map: &mut HashMap<Id, i8>,
     pseudos: &mut Vec<String>,
     at_rules: &mut Vec<String>,
-    options: &StylexConfig,
+    options: &StyleXStateOptions,
 ) -> IndexMap<String, PreRules> {
     let key = get_key_str(property);
 
@@ -370,14 +360,13 @@ pub(crate) fn flatten_raw_style_object(
         key.clone()
     };
 
-    let style_resulution = if options.style_resolution.is_some() {
-        options.style_resolution.clone().unwrap()
-    } else {
-        "application-order".to_string()
-    };
+    // let style_resulution = if options.style_resolution.is_some() {
+    //     options.style_resolution.clone()
 
-    let expansion_fn = match style_resulution.as_str() {
-        "application-order" => ApplicationOrder::get_expansion_fn(css_property_key.as_str()),
+    let expansion_fn = match &options.style_resolution {
+        StyleResolution::ApplicationOrder => {
+            ApplicationOrder::get_expansion_fn(css_property_key.as_str())
+        }
         _ => todo!(),
     };
 
@@ -482,7 +471,7 @@ pub(crate) fn flatten_raw_style_object(
 
                     pre_rules.extend(flattened);
                 }
-                None => panic!("{}", constants::common::NON_STATIC_VALUE),
+                None => panic!("{}", constants::messages::NON_STATIC_VALUE),
             }
         }
         Expr::Bin(bin) => {
@@ -502,7 +491,7 @@ pub(crate) fn flatten_raw_style_object(
 
             pre_rules.extend(flattened)
         }
-        Expr::Call(_) => panic!("{}", constants::common::NON_STATIC_VALUE),
+        Expr::Call(_) => panic!("{}", constants::messages::NON_STATIC_VALUE),
         Expr::Object(obj) => {
             if obj.props.is_empty() {
                 println!("!!obj.props.is_empty(): {:?}", pre_rules);
@@ -569,9 +558,9 @@ pub(crate) fn flatten_raw_style_object(
                             }
                         }
                     }
-                    _ => panic!("{}", constants::common::NON_STATIC_VALUE),
+                    _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
                 },
-                _ => panic!("{}", constants::common::NON_STATIC_VALUE),
+                _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
             });
             for (property, obj) in equivalent_pairs.iter() {
                 let sorted_keys: Vec<&String> = obj.keys().collect();
@@ -587,7 +576,7 @@ pub(crate) fn flatten_raw_style_object(
                 pre_rules.insert(property.clone(), PreRuleSet::create(rules));
             }
         }
-        _ => panic!("{}", constants::common::ILLEGAL_PROP_VALUE),
+        _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
     };
 
     pre_rules
@@ -599,7 +588,7 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp) {
     assert!(
         (inner_key.starts_with(":") || inner_key.starts_with("@") || inner_key == "default"),
         "{}",
-        constants::common::INVALID_PSEUDO_OR_AT_RULE,
+        constants::messages::INVALID_PSEUDO_OR_AT_RULE,
     );
 }
 
@@ -626,7 +615,7 @@ pub(crate) fn transform_css_property_value_to_str(
     }
 
     let result =
-        normalize_css_property_value(css_property, value.as_ref(), &StylexConfig::default());
+        normalize_css_property_value(css_property, value.as_ref(), &StyleXOptions::default());
 
     result
 }
@@ -654,7 +643,7 @@ pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
 pub(crate) fn normalize_css_property_value(
     css_property: &str,
     css_property_value: &str,
-    options: &StylexConfig,
+    options: &StyleXOptions,
 ) -> String {
     let css_rule = if css_property.starts_with(":") {
         format!("{0} {1}", css_property, css_property_value)
@@ -739,4 +728,4 @@ pub(crate) fn stringify(node: &Stylesheet) -> String {
     buf
 }
 
-// fn get_expanded_keys(stylex_config: &StylexConfig) -> Vec<String> {}
+// fn get_expanded_keys(stylex_config: &StyleXOptions) -> Vec<String> {}

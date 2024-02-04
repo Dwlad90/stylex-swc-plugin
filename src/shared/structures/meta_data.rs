@@ -6,7 +6,7 @@ use swc_core::ecma::ast::{BinaryOp, Expr, Id, KeyValueProp, VarDeclarator};
 
 use crate::shared::{
     constants::{
-        self, common::ILLEGAL_PROP_ARRAY_VALUE, long_hand_logical::LONG_HAND_LOGICAL,
+        self, messages::ILLEGAL_PROP_ARRAY_VALUE, long_hand_logical::LONG_HAND_LOGICAL,
         long_hand_physical::LONG_HAND_PHYSICAL, priorities::PRIORITIES,
         shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
         shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,

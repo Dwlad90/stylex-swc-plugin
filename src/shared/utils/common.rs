@@ -14,7 +14,7 @@ use swc_core::{
 
 use crate::shared::constants::{
     self,
-    common::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE},
+    messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE},
 };
 
 pub(crate) fn object_expression_factory(props: Vec<PropOrSpread>) -> Option<Expr> {
@@ -372,12 +372,12 @@ pub fn expr_tpl_to_string(
 
                             let a = match &var_decl_expr {
                                 Expr::Lit(lit) => get_string_val_from_lit(&lit),
-                                _ => panic!("{}", constants::common::ILLEGAL_PROP_VALUE),
+                                _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
                             };
 
                             tpl_str.push_str(a.as_str());
                         }
-                        None => panic!("{}", constants::common::NON_STATIC_VALUE),
+                        None => panic!("{}", constants::messages::NON_STATIC_VALUE),
                     }
                 }
                 Expr::Bin(bin) => tpl_str.push_str(

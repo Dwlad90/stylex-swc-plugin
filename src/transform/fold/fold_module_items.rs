@@ -12,7 +12,7 @@ use swc_core::{
 
 use crate::{
     shared::{
-        constants::common::DEFAULT_INJECT_PATH,
+        constants::constants::DEFAULT_INJECT_PATH,
         enums::{InjectedStylesDeclarationType, ModuleCycle},
         structures::uid_generator::{self, UidGenerator},
         utils::common::{

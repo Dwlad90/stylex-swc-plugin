@@ -8,13 +8,15 @@ use swc_core::{
 
 use crate::shared::constants;
 use crate::shared::structures::meta_data::MetaData;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::stylex_options::StyleXOptions;
 use crate::shared::utils::common::{
     object_expression_factory, prop_or_spread_expression_creator, prop_or_spread_string_creator,
     push_css_anchor_prop, string_to_expression,
 };
 use crate::shared::utils::css::stylex::stylex_create;
 use crate::shared::utils::validators::validate_and_return_namespace;
-use crate::{ModuleTransformVisitor, StylexConfig};
+use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -79,14 +81,14 @@ where
 
     fn ident_to_styles_expr(&mut self, ident: Ident, ex: &CallExpr) -> Option<Option<Expr>> {
         if self.declaration.clone().unwrap().eq(&ident.to_id()) {
-            if let Some(value) = self.transform_create_call_to_style(ex, &self.config.clone()) {
+            if let Some(value) = self.transform_create_call_to_style(ex, &self.state.clone()) {
                 return Some(Option::Some(value));
             }
         }
         match format!("{}", ident.sym).as_str() {
             "create" => {
                 println!("!!!!__ ex: {:#?}", ex);
-                if let Some(value) = self.transform_create_call_to_style(ex, &self.config.clone()) {
+                if let Some(value) = self.transform_create_call_to_style(ex, &self.state.clone()) {
                     return Some(Option::Some(value));
                 }
             }
@@ -134,7 +136,7 @@ where
                             ));
                         }
                     }
-                    _ => panic!("{}", constants::common::ILLEGAL_NAMESPACE_VALUE),
+                    _ => panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE),
                 },
             }
             return object_expression_factory(props);
@@ -145,14 +147,16 @@ where
     fn transform_create_call_to_style(
         &mut self,
         ex: &CallExpr,
-        options: &StylexConfig,
+        state: &StateManager,
     ) -> Option<Expr> {
         println!("!!!!__ ex: {:#?}", ex);
+        //HERE
+        let first_arg = ex.args.get(0);
 
-        for arg in ex.args.iter() {
-            match &arg.spread {
+        match first_arg {
+            Some(first_arg) => match &first_arg.spread {
                 Some(_) => todo!(),
-                None => match &arg.expr.as_ref() {
+                None => match &first_arg.expr.as_ref() {
                     Expr::Object(object) => {
                         let mut style_object = object.clone();
                         let mut resolved_namespaces: IndexMap<
@@ -177,45 +181,45 @@ where
                                                         PropOrSpread::Spread(_) => todo!(),
                                                         PropOrSpread::Prop(prop) => {
                                                             match &mut prop.as_mut(){
-                                                                Prop::KeyValue(target_key_value) => {
-                                                                    let stylex_set = stylex_create(
-                                                                        namespace_name.as_str(),
-                                                                        target_key_value,
-                                                                        self.config.class_name_prefix.as_str(),
-                                                                        &self.declarations,
-                                                                        &mut self.var_decl_count_map,
-                                                                        options
-                                                                    );
+                                                                    Prop::KeyValue(target_key_value) => {
+                                                                        let stylex_set = stylex_create(
+                                                                            namespace_name.as_str(),
+                                                                            target_key_value,
+                                                                            self.state.options.class_name_prefix.as_str(),
+                                                                            &self.declarations,
+                                                                            &mut self.var_decl_count_map,
+                                                                            &state.options
+                                                                        );
 
-                                                                    // resolved_namespaces.extend(stylex_set.0.clone());
+                                                                        // resolved_namespaces.extend(stylex_set.0.clone());
 
-                                                                    stylex_set.0.clone()
-                                                                        .into_iter()
-                                                                        .for_each( |(namespace, properties)| {
-                                                                               resolved_namespaces.entry(namespace).or_default().extend(properties);
-                                                                        });
-                                                                    println!("!!!!__1111  resolved_namespaces_before: {:#?}", resolved_namespaces);
-
-
-                                                                    let injected_styles_map = stylex_set.1;
-                                                                    println!("!!!!__1111 injected_styles_map: {:#?}, resolved_namespaces: {:#?}", injected_styles_map, resolved_namespaces);
-
-                                                                    let metadatas = MetaData::convert_from_injected_styles_map(injected_styles_map);
-                                                                    println!("!!!!__1111 metadatas: {:#?}", metadatas);
-
-                                                                    println!("!!!!__1111 target_key_value: {:#?}", target_key_value);
-                                                                    for metadata in metadatas {
-                                                                        // *target_key_value.value = string_to_expression(metadata.get_class_name().to_string()).unwrap();
+                                                                        stylex_set.0.clone()
+                                                                            .into_iter()
+                                                                            .for_each( |(namespace, properties)| {
+                                                                                   resolved_namespaces.entry(namespace).or_default().extend(properties);
+                                                                            });
+                                                                        println!("!!!!__1111  resolved_namespaces_before: {:#?}", resolved_namespaces);
 
 
-                                                                        self.push_to_css_output(metadata);
-                                                                    }
+                                                                        let injected_styles_map = stylex_set.1;
+                                                                        println!("!!!!__1111 injected_styles_map: {:#?}, resolved_namespaces: {:#?}", injected_styles_map, resolved_namespaces);
+
+                                                                        let metadatas = MetaData::convert_from_injected_styles_map(injected_styles_map);
+                                                                        println!("!!!!__1111 metadatas: {:#?}", metadatas);
+
+                                                                        println!("!!!!__1111 target_key_value: {:#?}", target_key_value);
+                                                                        for metadata in metadatas {
+                                                                            // *target_key_value.value = string_to_expression(metadata.get_class_name().to_string()).unwrap();
+
+
+                                                                            self.push_to_css_output(metadata);
+                                                                        }
 
 
 
-                                                                },
-                                                                _=> todo!("transform_create_call_to_style: KeyValueProp")
-                                                            }
+                                                                    },
+                                                                    _=> todo!("transform_create_call_to_style: KeyValueProp")
+                                                                }
                                                         }
                                                     }
                                                 }
@@ -227,29 +231,29 @@ where
                                                 );
 
                                                 resolved_namespaces.clone()
-                                                                    .into_iter()
-                                                                    .for_each(|(namespace, properties)| {
-                                                                        if namespace.eq(&namespace_name){
+                                                                        .into_iter()
+                                                                        .for_each(|(namespace, properties)| {
+                                                                            if namespace.eq(&namespace_name){
 
-                                                                        println!("!!!!__1111 namespace: {:#?}, properties: {:#?}", namespace, properties);
-                                                                        properties.into_iter().for_each(|(key, value)| {
-                                                                            println!("!!!!__1111 namespace: key {:#?}, value: {:#?}", key, value);
+                                                                            println!("!!!!__1111 namespace: {:#?}, properties: {:#?}", namespace, properties);
+                                                                            properties.into_iter().for_each(|(key, value)| {
+                                                                                println!("!!!!__1111 namespace: key {:#?}, value: {:#?}", key, value);
 
-                                                                            if let Some(value) = value {
-                                                                                let new_key_values = prop_or_spread_string_creator(key, value);
+                                                                                if let Some(value) = value {
+                                                                                    let new_key_values = prop_or_spread_string_creator(key, value);
 
-                                                                                new_props.push(new_key_values);
+                                                                                    new_props.push(new_key_values);
 
-                                                                            } else  {
-                                                                                let new_key_values = prop_or_spread_expression_creator(key, Expr::Lit(Lit::Null(Null { span: DUMMY_SP })));
+                                                                                } else  {
+                                                                                    let new_key_values = prop_or_spread_expression_creator(key, Expr::Lit(Lit::Null(Null { span: DUMMY_SP })));
 
-                                                                                new_props.push(new_key_values);
+                                                                                    new_props.push(new_key_values);
 
-                                                                            }
-                                                                        })
-                                                                    }
+                                                                                }
+                                                                            })
+                                                                        }
 
-                                                                    });
+                                                                        });
 
                                                 object.props = new_props;
 
@@ -258,7 +262,7 @@ where
                                             _ => {
                                                 panic!(
                                                     "{}",
-                                                    constants::common::ILLEGAL_NAMESPACE_VALUE
+                                                    constants::messages::ILLEGAL_NAMESPACE_VALUE
                                                 )
                                             }
                                         }
@@ -271,12 +275,11 @@ where
 
                         return Option::Some(Expr::Object(style_object));
                     }
-                    _ => {}
+                    _ => Option::None,
                 },
-            }
+            },
+            None => Option::None,
         }
-
-        None
     }
 
     fn process_css_key_value(
@@ -306,10 +309,10 @@ where
                                 let stylex_set = stylex_create(
                                     namespace_name.as_str(),
                                     key_value,
-                                    self.config.class_name_prefix.as_str(),
+                                    self.state.options.class_name_prefix.as_str(),
                                     &self.declarations,
                                     &mut self.var_decl_count_map,
-                                    &self.config,
+                                    &self.state.options,
                                 );
 
                                 println!("!!!!__2 stylex_set: {:#?}", stylex_set);
@@ -341,7 +344,7 @@ where
                     };
                 }
             }
-            _ => panic!("{}", constants::common::ILLEGAL_NAMESPACE_VALUE),
+            _ => panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE),
         }
     }
 

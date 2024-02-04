@@ -6,13 +6,10 @@ use swc_core::ecma::ast::{Id, KeyValueProp, VarDeclarator};
 use crate::{
     shared::{
         structures::{
-            injectable_style::{InjectableStyle, InjectableStyleBase},
-            meta_data::MetaData,
-            pre_rule::{CompiledResult, PreRule, PreRules},
+            injectable_style::{InjectableStyle, InjectableStyleBase}, meta_data::MetaData, pre_rule::{CompiledResult, PreRule, PreRules}, stylex_options::StyleXOptions, stylex_state_options::StyleXStateOptions
         },
         utils::{css::flatten_raw_style_object, validators::validate_and_return_property},
     },
-    StylexConfig,
 };
 
 pub(crate) fn stylex_create(
@@ -21,7 +18,7 @@ pub(crate) fn stylex_create(
     prefix: &str,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
-    opttions: &StylexConfig,
+    options: &StyleXStateOptions,
 ) -> (
     IndexMap<String, IndexMap<String, Option<String>>>,
     IndexMap<String, InjectableStyle>,
@@ -43,7 +40,7 @@ pub(crate) fn stylex_create(
         var_dec_count_map,
         &mut pseudos,
         &mut at_rules,
-        opttions,
+        options,
     );
     println!("!!!!__ flattened_namespace: {:#?}", flattened_namespace);
 
@@ -158,4 +155,8 @@ pub(crate) fn stylex_create(
     //     },
     //     priority: MetaData::set_priority(&css_property),
     // }
+}
+
+pub(crate) fn evaluate_style_x_create_arg(){
+
 }

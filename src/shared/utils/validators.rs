@@ -62,7 +62,7 @@ pub(crate) fn validate_style_x_create(module: &Module, declaration: &Id) {
     assert!(
         has_assignment,
         "{}",
-        constants::common::UNBOUND_STYLEX_CALL_VALUE
+        constants::messages::UNBOUND_STYLEX_CALL_VALUE
     );
 }
 
@@ -101,14 +101,14 @@ fn validate_style_x_create_indent(
         assert!(
             &call.args.len() == &1,
             "{}",
-            constants::common::ILLEGAL_ARGUMENT_LENGTH
+            constants::messages::ILLEGAL_ARGUMENT_LENGTH
         );
 
         let first_args = &call.args[0];
 
         match first_args.expr.as_ref() {
             Expr::Object(_) => {}
-            _ => panic!("{}", constants::common::NON_OBJECT_FOR_STYLEX_CALL),
+            _ => panic!("{}", constants::messages::NON_OBJECT_FOR_STYLEX_CALL),
         }
         *has_assignment = true;
     }
@@ -126,12 +126,12 @@ pub(crate) fn validate_and_return_namespace(namespace: &KeyValueProp) -> String 
         PropName::Str(key) => {
             if !(key.value.starts_with("@") || key.value.starts_with(":") || key.value == "default")
             {
-                panic!("{}", constants::common::INVALID_PSEUDO_OR_AT_RULE)
+                panic!("{}", constants::messages::INVALID_PSEUDO_OR_AT_RULE)
             }
 
             key.value.to_string()
         }
-        _ => panic!("{}", constants::common::NON_STATIC_VALUE),
+        _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
     };
 
     class_name
@@ -154,7 +154,7 @@ pub(crate) fn validate_and_return_property(property: &KeyValueProp) -> String {
 
             key.value.to_string()
         }
-        _ => panic!("{}", constants::common::NON_STATIC_VALUE),
+        _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
     };
 
     class_name

@@ -55,11 +55,11 @@ where
                                         if ident.sym.as_str() == "create" {
                                             self.declaration = Some(import_specifier.local.to_id());
                                         } else {
-                                            panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
+                                            panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
                                         }
                                     }
                                     ModuleExportName::Str(_) => {
-                                        panic!("{}", constants::common::MUST_BE_DEFAULT_IMPORT)
+                                        panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
                                     }
                                 },
                                 None => {
@@ -101,7 +101,7 @@ where
                                             _ => {
                                                 panic!(
                                                     "{}",
-                                                    constants::common::MUST_BE_DEFAULT_IMPORT
+                                                    constants::messages::MUST_BE_DEFAULT_IMPORT
                                                 )
                                             }
                                         };

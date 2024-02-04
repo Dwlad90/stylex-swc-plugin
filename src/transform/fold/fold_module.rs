@@ -21,7 +21,7 @@ where
             self.cycle = ModuleCycle::Processing;
             let module = module.clone().fold_children_with(self);
 
-            let module = if self.config.runtime_injection == true {
+            let module = if self.state.options.runtime_injection.is_some() {
                 self.cycle = ModuleCycle::InjectStyles;
 
                 let module = module.clone().fold_children_with(self);

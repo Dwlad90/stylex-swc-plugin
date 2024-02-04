@@ -29,7 +29,6 @@ where
 
         if &var_declarator.init.is_some() == &true {
             match &*var_declarator.init.clone().unwrap() {
-                //HERE
                 Expr::Call(call) => {
                     let declaration_tuple = self.process_declaration(&call);
 
@@ -41,9 +40,12 @@ where
                             println!("!!!!!self.declaration: {:?}", self.declaration);
                             println!("!!!!!member: {:?}", member);
                             if declaration.eq(&self.declaration.clone().unwrap()) {
-                                let declaration_string = self.declaration.clone().unwrap().0.to_string();
+                                let declaration_string =
+                                    self.declaration.clone().unwrap().0.to_string();
 
-                                if member.as_str() == "create" || member.as_str() == declaration_string {
+                                if member.as_str() == "create"
+                                    || member.as_str() == declaration_string
+                                {
                                     if self.cycle == ModuleCycle::Initializing {
                                         self.props_declaration =
                                             var_declarator.name.as_ident().map(|ident| {
@@ -55,7 +57,12 @@ where
                                                 ident.to_id()
                                             });
                                     } else {
-                                        if !self.config.runtime_injection {
+                                        if self
+                                            .state
+                                            .options
+                                            .runtime_injection
+                                            .is_none()
+                                        {
                                             var_declarator.name = Pat::Ident(BindingIdent {
                                                 id: Ident {
                                                     span: DUMMY_SP,

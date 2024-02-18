@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::PathBuf,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -32,9 +32,8 @@ where
     C: Comments,
 {
     comments: C,
-    declaration: Option<Id>,
+    // declaration: Option<Id>,
     cycle: ModuleCycle,
-    stylex_imports: Vec<ImportSources>,
     file_name: String,
     props_declaration: Option<Id>,
     css_output: Vec<MetaData>,
@@ -50,13 +49,13 @@ where
     pub(crate) fn new(comments: C, file_name: FileName, config: StyleXOptionsParams) -> Self {
         let stylex_imports = fill_stylex_imports(&Option::Some(config.clone()));
 
-        let state = StateManager::new(config.into());
+        let mut state = StateManager::new(config.into());
+
+        state.stylex_import = stylex_imports;
 
         ModuleTransformVisitor {
             comments,
-            declaration: Option::None,
             cycle: ModuleCycle::Initializing,
-            stylex_imports,
             file_name: extract_filename_from_path(file_name),
             props_declaration: Option::None,
             css_output: vec![],
@@ -68,13 +67,13 @@ where
 
     pub fn new_test_classname(comments: C, config: Option<StyleXOptionsParams>) -> Self {
         let stylex_imports = fill_stylex_imports(&config);
-        let state = StateManager::new(config.unwrap_or(StyleXOptionsParams::default()).into());
+        let mut state = StateManager::new(config.unwrap_or(StyleXOptionsParams::default()).into());
+
+        state.stylex_import = stylex_imports;
 
         ModuleTransformVisitor {
             comments,
-            declaration: Option::None,
             cycle: ModuleCycle::Initializing,
-            stylex_imports,
             file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
             css_output: vec![],
@@ -86,7 +85,7 @@ where
     pub fn new_test_styles(comments: C, config: Option<StyleXOptionsParams>) -> Self {
         let stylex_imports = fill_stylex_imports(&config);
 
-        let state = match &config {
+        let mut state = match &config {
             Some(config) => StateManager::new(config.clone().into()),
             None => {
                 let mut config = StyleXOptions::default();
@@ -97,11 +96,11 @@ where
             }
         };
 
+        state.stylex_import = stylex_imports;
+
         ModuleTransformVisitor {
             comments,
-            declaration: Option::None,
             cycle: ModuleCycle::Initializing,
-            stylex_imports,
             file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
             css_output: vec![],
@@ -117,7 +116,7 @@ where
                 Expr::Ident(ident) => {
                     let ident_id = ident.to_id();
 
-                    if self.declaration.clone().unwrap_or_default().eq(&ident_id) {
+                    if self.state.stylex_create_import.contains(&ident_id) {
                         increase_ident_count(&mut self.var_decl_count_map, &ident);
 
                         return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
@@ -127,7 +126,7 @@ where
                     Expr::Ident(ident) => {
                         let ident_id = ident.to_id();
 
-                        if self.declaration.clone().unwrap_or_default().eq(&ident_id) {
+                        if self.state.stylex_create_import.contains(&ident_id) {
                             match member.prop.clone() {
                                 MemberProp::Ident(ident) => {
                                     increase_ident_count(&mut self.var_decl_count_map, &ident);
@@ -155,11 +154,11 @@ where
             Expr::Call(ex) => {
                 let declaration = self.process_declaration(&ex);
                 if declaration.is_some() {
-                    let value = if !self.state.options.runtime_injection.is_none() {
-                        self.transform_call_expression_to_styles_expr(&ex)
-                    } else {
-                        self.transform_call_expression_to_css_map_expr(&ex)
-                    };
+                    let value = self.transform_call_expression_to_styles_expr(&ex);
+                    // let value = if self.state.options.runtime_injection.is_some() {
+                    // } else {
+                    //     self.transform_call_expression_to_css_map_expr(&ex)
+                    // };
 
                     match value {
                         Some(value) => {
@@ -189,11 +188,11 @@ where
     }
 }
 
-fn fill_stylex_imports(config: &Option<StyleXOptionsParams>) -> Vec<ImportSources> {
-    let mut stylex_imports = vec![
-        ImportSources::Regular("stylex".to_string()),
-        ImportSources::Regular("@stylexjs/stylex".to_string()),
-    ];
+fn fill_stylex_imports(config: &Option<StyleXOptionsParams>) -> HashSet<ImportSources> {
+    let mut stylex_imports = HashSet::new();
+
+    stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
+    stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));
 
     if let Some(stylex_imports_extends) = match config {
         Some(ref config) => config.import_sources.clone(),

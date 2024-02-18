@@ -36,12 +36,14 @@ where
                         Some(declaration) => {
                             let (declaration, member) = declaration;
 
-                            println!("!!!!!declaration: {:?}", declaration);
-                            println!("!!!!!self.declaration: {:?}", self.declaration);
-                            println!("!!!!!member: {:?}", member);
-                            if declaration.eq(&self.declaration.clone().unwrap()) {
-                                let declaration_string =
-                                    self.declaration.clone().unwrap().0.to_string();
+                            if self.state.stylex_create_import.contains(&declaration) {
+                                let declaration_string = self
+                                    .state
+                                    .stylex_create_import
+                                    .get(&declaration)
+                                    .unwrap()
+                                    .0
+                                    .to_string();
 
                                 if member.as_str() == "create"
                                     || member.as_str() == declaration_string
@@ -57,12 +59,7 @@ where
                                                 ident.to_id()
                                             });
                                     } else {
-                                        if self
-                                            .state
-                                            .options
-                                            .runtime_injection
-                                            .is_none()
-                                        {
+                                        if self.state.options.runtime_injection.is_none() {
                                             var_declarator.name = Pat::Ident(BindingIdent {
                                                 id: Ident {
                                                     span: DUMMY_SP,

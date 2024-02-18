@@ -1,12 +1,12 @@
 use serde::Deserialize;
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NamedImportSource {
     pub r#as: String,
     pub from: String,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ImportSources {
     Regular(String),
     Named(NamedImportSource),

@@ -15,7 +15,9 @@ where
     pub(crate) fn fold_module_impl(&mut self, module: Module) -> Module {
         let module = module.clone().fold_children_with(self);
 
-        if let Some(declaration) = self.declaration.clone() {
+        let first_import = self.state.stylex_create_import.iter().next();
+
+        if let Some(declaration) = &first_import {
             validate_style_x_create(&module, &declaration);
 
             self.cycle = ModuleCycle::Processing;

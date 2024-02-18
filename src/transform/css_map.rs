@@ -1,3 +1,7 @@
+use core::panic;
+use std::collections::{HashMap, HashSet};
+
+use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Ident, KeyValueProp, Lit, Null};
@@ -6,16 +10,20 @@ use swc_core::{
     ecma::ast::{CallExpr, Callee, Expr, MemberProp, Prop, PropOrSpread},
 };
 
-use crate::shared::constants;
+use crate::shared::constants::{self, messages};
+use crate::shared::structures::evaluate_result::EvaluateResultValue;
+use crate::shared::structures::functions::{Function, FunctionConfig, FunctionMap, Functions};
+use crate::shared::structures::injectable_style::InjectableStyle;
 use crate::shared::structures::meta_data::MetaData;
+use crate::shared::structures::named_import_source::ImportSources;
 use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::stylex_options::StyleXOptions;
+use crate::shared::structures::stylex_state_options::StyleXStateOptions;
 use crate::shared::utils::common::{
     object_expression_factory, prop_or_spread_expression_creator, prop_or_spread_string_creator,
     push_css_anchor_prop, string_to_expression,
 };
-use crate::shared::utils::css::stylex::stylex_create;
-use crate::shared::utils::validators::validate_and_return_namespace;
+use crate::shared::utils::css::stylex::{evaluate_style_x_create_arg, stylex_create};
+use crate::shared::utils::validators::validate_namespace;
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -61,14 +69,14 @@ where
             match callee.as_ref() {
                 Expr::Member(member) => match member.prop.clone() {
                     MemberProp::Ident(ident) => {
-                        if let Some(value) = self.ident_to_styles_expr(ident, ex) {
+                        if let Some(value) = self.transform_styles_ident_create(ident, ex) {
                             return value;
                         }
                     }
                     _ => {}
                 },
                 Expr::Ident(ident) => {
-                    if let Some(value) = self.ident_to_styles_expr(ident.clone(), ex) {
+                    if let Some(value) = self.transform_styles_ident_create(ident.clone(), ex) {
                         return value;
                     }
                 }
@@ -79,21 +87,27 @@ where
         return Option::None;
     }
 
-    fn ident_to_styles_expr(&mut self, ident: Ident, ex: &CallExpr) -> Option<Option<Expr>> {
-        if self.declaration.clone().unwrap().eq(&ident.to_id()) {
-            if let Some(value) = self.transform_create_call_to_style(ex, &self.state.clone()) {
+    fn transform_styles_ident_create(
+        &mut self,
+        ident: Ident,
+        ex: &CallExpr,
+    ) -> Option<Option<Expr>> {
+        if self.state.stylex_create_import.contains(&ident.to_id()) {
+            if let Some(value) = self.transform_styles_create(ex, &mut self.state.clone()) {
                 return Some(Option::Some(value));
             }
         }
         match format!("{}", ident.sym).as_str() {
             "create" => {
-                println!("!!!!__ ex: {:#?}", ex);
-                if let Some(value) = self.transform_create_call_to_style(ex, &self.state.clone()) {
+                if let Some(value) = self.transform_styles_create(ex, &mut self.state.clone()) {
                     return Some(Option::Some(value));
                 }
             }
             "props" => {
-                todo!("target_call_expression_to_styles_expr: props")
+                return Option::Some(Option::Some(Expr::Ident(Ident::new(
+                    "_stylex$props".into(),
+                    DUMMY_SP,
+                ))));
             }
             _ => {}
         };
@@ -144,142 +158,177 @@ where
         None
     }
 
-    fn transform_create_call_to_style(
-        &mut self,
-        ex: &CallExpr,
-        state: &StateManager,
-    ) -> Option<Expr> {
-        println!("!!!!__ ex: {:#?}", ex);
-        //HERE
+    fn transform_styles_create(&mut self, ex: &CallExpr, state: &mut StateManager) -> Option<Expr> {
         let first_arg = ex.args.get(0);
 
-        match first_arg {
-            Some(first_arg) => match &first_arg.spread {
-                Some(_) => todo!(),
-                None => match &first_arg.expr.as_ref() {
-                    Expr::Object(object) => {
-                        let mut style_object = object.clone();
+        state.in_style_x_create = true;
+
+        let result = match first_arg {
+            Some(first_arg) => {
+                match &first_arg.spread {
+                    Some(_) => todo!(),
+                    None => {
                         let mut resolved_namespaces: IndexMap<
                             String,
                             IndexMap<String, Option<String>>,
                         > = IndexMap::new();
 
-                        for mut prop in &mut style_object.props {
-                            match &mut prop {
-                                PropOrSpread::Prop(prop) => match &mut prop.as_mut() {
-                                    Prop::Shorthand(_) => todo!(),
-                                    Prop::KeyValue(namespace) => {
-                                        let namespace_name =
-                                            validate_and_return_namespace(namespace);
+                        let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
 
-                                        let namespace_name = format!("{}", namespace_name);
+                        let mut identifiers: HashMap<String, FunctionConfig> = HashMap::new();
+                        let mut member_expressions: HashMap<ImportSources, Functions> =
+                            HashMap::new();
 
-                                        match namespace.value.as_mut() {
-                                            Expr::Object(object) => {
-                                                for mut target_prop in &mut object.props {
-                                                    match &mut target_prop {
-                                                        PropOrSpread::Spread(_) => todo!(),
-                                                        PropOrSpread::Prop(prop) => {
-                                                            match &mut prop.as_mut(){
-                                                                    Prop::KeyValue(target_key_value) => {
-                                                                        let stylex_set = stylex_create(
-                                                                            namespace_name.as_str(),
-                                                                            target_key_value,
-                                                                            self.state.options.class_name_prefix.as_str(),
-                                                                            &self.declarations,
-                                                                            &mut self.var_decl_count_map,
-                                                                            &state.options
-                                                                        );
-
-                                                                        // resolved_namespaces.extend(stylex_set.0.clone());
-
-                                                                        stylex_set.0.clone()
-                                                                            .into_iter()
-                                                                            .for_each( |(namespace, properties)| {
-                                                                                   resolved_namespaces.entry(namespace).or_default().extend(properties);
-                                                                            });
-                                                                        println!("!!!!__1111  resolved_namespaces_before: {:#?}", resolved_namespaces);
-
-
-                                                                        let injected_styles_map = stylex_set.1;
-                                                                        println!("!!!!__1111 injected_styles_map: {:#?}, resolved_namespaces: {:#?}", injected_styles_map, resolved_namespaces);
-
-                                                                        let metadatas = MetaData::convert_from_injected_styles_map(injected_styles_map);
-                                                                        println!("!!!!__1111 metadatas: {:#?}", metadatas);
-
-                                                                        println!("!!!!__1111 target_key_value: {:#?}", target_key_value);
-                                                                        for metadata in metadatas {
-                                                                            // *target_key_value.value = string_to_expression(metadata.get_class_name().to_string()).unwrap();
-
-
-                                                                            self.push_to_css_output(metadata);
-                                                                        }
-
-
-
-                                                                    },
-                                                                    _=> todo!("transform_create_call_to_style: KeyValueProp")
-                                                                }
-                                                        }
-                                                    }
-                                                }
-
-                                                let mut new_props: Vec<PropOrSpread> = vec![];
-                                                println!(
-                                                    "!!!!__1111  resolved_namespaces: {:#?}",
-                                                    resolved_namespaces
-                                                );
-
-                                                resolved_namespaces.clone()
-                                                                        .into_iter()
-                                                                        .for_each(|(namespace, properties)| {
-                                                                            if namespace.eq(&namespace_name){
-
-                                                                            println!("!!!!__1111 namespace: {:#?}, properties: {:#?}", namespace, properties);
-                                                                            properties.into_iter().for_each(|(key, value)| {
-                                                                                println!("!!!!__1111 namespace: key {:#?}, value: {:#?}", key, value);
-
-                                                                                if let Some(value) = value {
-                                                                                    let new_key_values = prop_or_spread_string_creator(key, value);
-
-                                                                                    new_props.push(new_key_values);
-
-                                                                                } else  {
-                                                                                    let new_key_values = prop_or_spread_expression_creator(key, Expr::Lit(Lit::Null(Null { span: DUMMY_SP })));
-
-                                                                                    new_props.push(new_key_values);
-
-                                                                                }
-                                                                            })
-                                                                        }
-
-                                                                        });
-
-                                                object.props = new_props;
-
-                                                push_css_anchor_prop(object);
-                                            }
-                                            _ => {
-                                                panic!(
-                                                    "{}",
-                                                    constants::messages::ILLEGAL_NAMESPACE_VALUE
-                                                )
-                                            }
-                                        }
-                                    }
-                                    _ => panic!(),
+                        for name in &state.stylex_include_import {
+                            identifiers.insert(
+                                name.clone(),
+                                FunctionConfig {
+                                    fn_ptr: Function::StylexInclude(|| {
+                                        panic!("StylexInclude not implemented")
+                                    }),
+                                    takes_path: true,
                                 },
-                                PropOrSpread::Spread(_) => todo!(),
-                            };
+                            );
                         }
 
-                        return Option::Some(Expr::Object(style_object));
+                        for name in &state.stylex_first_that_works_import {
+                            identifiers.insert(
+                                name.clone(),
+                                FunctionConfig {
+                                    fn_ptr: Function::StylexFirstThatWorks(|| {
+                                        panic!("StylexFirstThatWorks not implemented")
+                                    }),
+                                    takes_path: false,
+                                },
+                            );
+                        }
+
+                        for name in &state.stylex_keyframes_import {
+                            identifiers.insert(
+                                name.clone(),
+                                FunctionConfig {
+                                    fn_ptr: Function::Keyframes(|| {
+                                        panic!("Keyframes not implemented")
+                                    }),
+                                    takes_path: false,
+                                },
+                            );
+                        }
+
+                        for name in &state.stylex_import {
+                            let functions = Functions {
+                                include: FunctionConfig {
+                                    fn_ptr: Function::StylexInclude(|| {
+                                        panic!("StylexInclude not implemented")
+                                    }),
+                                    takes_path: true,
+                                },
+                                first_that_works: FunctionConfig {
+                                    fn_ptr: Function::StylexFirstThatWorks(|| {
+                                        panic!("StylexFirstThatWorks not implemented")
+                                    }),
+                                    takes_path: false,
+                                },
+                                keyframes: FunctionConfig {
+                                    fn_ptr: Function::Keyframes(|| {
+                                        panic!("Keyframes not implemented")
+                                    }),
+                                    takes_path: false,
+                                },
+                            };
+
+                            member_expressions.insert(name.clone(), functions);
+                        }
+
+                        let function_map: FunctionMap = FunctionMap {
+                            identifiers,
+                            member_expressions,
+                        };
+
+                        let evaluated_arg =
+                            evaluate_style_x_create_arg(&first_arg.expr, &state, &function_map);
+
+                        let value = match evaluated_arg.value {
+                            Some(value) => value,
+                            None => {
+                                panic!("{}", constants::messages::NON_STATIC_VALUE)
+                            }
+                        };
+
+                        assert!(evaluated_arg.confident, "{}", messages::NON_STATIC_VALUE);
+
+                        let stylex_set = stylex_create(
+                            &value,
+                            self.state.options.class_name_prefix.as_str(),
+                            &self.declarations,
+                            &mut self.var_decl_count_map,
+                            &state.options,
+                        );
+
+                        stylex_set
+                            .0
+                            .clone()
+                            .into_iter()
+                            .for_each(|(namespace, properties)| {
+                                resolved_namespaces
+                                    .entry(namespace)
+                                    .or_default()
+                                    .extend(properties);
+                            });
+
+                        let injected_styles_map = stylex_set.1;
+
+                        let metadatas =
+                            MetaData::convert_from_injected_styles_map(injected_styles_map);
+
+                        for metadata in metadatas {
+                            // *target_key_value.value = string_to_expression(metadata.get_class_name().to_string()).unwrap();
+
+                            self.push_to_css_output(metadata);
+                        }
+
+                        let mut new_props: Vec<PropOrSpread> = vec![];
+
+                        resolved_namespaces.clone().into_iter().for_each(
+                            |(namespace, properties)| {
+                                let mut new_inner_props: Vec<PropOrSpread> = vec![];
+
+                                properties.into_iter().for_each(|(key, value)| {
+                                    if let Some(value) = value {
+                                        let new_key_values =
+                                            prop_or_spread_string_creator(key, value);
+
+                                        new_inner_props.push(new_key_values);
+                                    } else {
+                                        let new_key_values = prop_or_spread_expression_creator(
+                                            key,
+                                            Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),
+                                        );
+
+                                        new_inner_props.push(new_key_values);
+                                    }
+                                });
+                                push_css_anchor_prop(&mut new_inner_props);
+
+                                let object = object_expression_factory(new_inner_props).unwrap();
+
+                                new_props
+                                    .push(prop_or_spread_expression_creator(namespace, object));
+                            },
+                        );
+
+                        let object = object_expression_factory(new_props).unwrap();
+
+                        Option::Some(object)
                     }
-                    _ => Option::None,
-                },
-            },
+                }
+            }
             None => Option::None,
-        }
+        };
+
+        state.in_style_x_create = false;
+
+        result
     }
 
     fn process_css_key_value(
@@ -288,7 +337,9 @@ where
         css_class_has_map: &mut IndexMap<String, String>,
         decl_name: &String,
     ) {
-        let namespace_name = validate_and_return_namespace(namespace);
+        validate_namespace(&vec![namespace.clone()]);
+
+        let namespace_name = "blah_replace_with_real_code".to_string();
 
         let namespace_name = format!("{}", namespace_name);
 
@@ -307,8 +358,7 @@ where
                             Prop::Shorthand(_) => todo!(),
                             Prop::KeyValue(key_value) => {
                                 let stylex_set = stylex_create(
-                                    namespace_name.as_str(),
-                                    key_value,
+                                    &EvaluateResultValue::Map(IndexMap::new()),
                                     self.state.options.class_name_prefix.as_str(),
                                     &self.declarations,
                                     &mut self.var_decl_count_map,
@@ -344,7 +394,13 @@ where
                     };
                 }
             }
-            _ => panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE),
+            Expr::Arrow(_) => {
+                todo!();
+            }
+            _ => {
+                println!("!!!!__ value: {:#?}", value);
+                panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE)
+            }
         }
     }
 

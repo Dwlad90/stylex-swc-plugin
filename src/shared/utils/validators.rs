@@ -1,11 +1,12 @@
 use colored::Colorize;
-use serde::de::value;
-use swc_core::ecma::ast::{
-    Callee, Decl, Expr, Id, ImportSpecifier, KeyValueProp, Module, ModuleDecl, ModuleItem,
-    PropName, Stmt,
+use swc_core::{
+    css::ast::Namespace,
+    ecma::ast::{
+        Callee, Decl, Expr, Id, KeyValueProp, Module, ModuleDecl, ModuleItem, Pat, PropName, Stmt,
+    },
 };
 
-use crate::shared::constants;
+use crate::shared::{constants, structures::evaluate_result::EvaluateResultValue};
 
 pub(crate) fn validate_style_x_create(module: &Module, declaration: &Id) {
     let mut has_assignment = false;
@@ -114,27 +115,29 @@ fn validate_style_x_create_indent(
     }
 }
 
-pub(crate) fn validate_and_return_namespace(namespace: &KeyValueProp) -> String {
-    let key = namespace.key.clone();
+pub(crate) fn validate_namespace(namespaces: &Vec<KeyValueProp>) {
+    for namespace in namespaces.iter() {
+        let key = namespace.key.clone();
 
-    let class_name = match &key {
-        PropName::Ident(key) => {
-            let key = format!("{}", key.sym);
+        let class_name = match &key {
+            PropName::Ident(key) => {
+                let key = format!("{}", key.sym);
 
-            key
-        }
-        PropName::Str(key) => {
-            if !(key.value.starts_with("@") || key.value.starts_with(":") || key.value == "default")
-            {
-                panic!("{}", constants::messages::INVALID_PSEUDO_OR_AT_RULE)
+                key
             }
+            PropName::Str(key) => {
+                if !(key.value.starts_with("@")
+                    || key.value.starts_with(":")
+                    || key.value == "default")
+                {
+                    panic!("{}", constants::messages::INVALID_PSEUDO_OR_AT_RULE)
+                }
 
-            key.value.to_string()
-        }
-        _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
-    };
-
-    class_name
+                key.value.to_string()
+            }
+            _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
+        };
+    }
 }
 
 pub(crate) fn validate_and_return_property(property: &KeyValueProp) -> String {
@@ -158,4 +161,13 @@ pub(crate) fn validate_and_return_property(property: &KeyValueProp) -> String {
     };
 
     class_name
+}
+
+pub(crate) fn validate_dynamic_style_params(params: &Vec<Pat>) {
+    if params.iter().any(|param| !param.is_ident()) {
+        panic!(
+            "{}",
+            constants::messages::ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS
+        );
+    }
 }

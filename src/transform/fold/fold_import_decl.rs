@@ -33,19 +33,21 @@ where
             let src = &import_decl.src;
             let declaration = &src.value;
 
-            println!("!!!!self.stylex_imports!!!: {:?}", self.stylex_imports);
-
-            if self.stylex_imports.iter().any(|import| match import {
+            if self.state.stylex_import.iter().any(|import| match import {
                 ImportSources::Regular(regular) => regular.eq(&declaration.to_string()),
                 ImportSources::Named(named) => named.from.eq(&declaration.to_string()),
             }) {
                 for specifier in &import_decl.specifiers {
                     match &specifier {
                         ImportSpecifier::Default(import_specifier) => {
-                            self.declaration = Some(import_specifier.local.to_id());
+                            self.state
+                                .stylex_create_import
+                                .insert(import_specifier.local.to_id());
                         }
                         ImportSpecifier::Namespace(import_specifier) => {
-                            self.declaration = Some(import_specifier.local.to_id());
+                            self.state
+                                .stylex_create_import
+                                .insert(import_specifier.local.to_id());
                         }
                         ImportSpecifier::Named(import_specifier) => {
                             println!("!!!!import_specifier: {:?}", import_specifier);
@@ -53,9 +55,14 @@ where
                                 Some(imported) => match imported {
                                     ModuleExportName::Ident(ident) => {
                                         if ident.sym.as_str() == "create" {
-                                            self.declaration = Some(import_specifier.local.to_id());
+                                            self.state
+                                                .stylex_create_import
+                                                .insert(import_specifier.local.to_id());
                                         } else {
-                                            panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
+                                            panic!(
+                                                "{}",
+                                                constants::messages::MUST_BE_DEFAULT_IMPORT
+                                            )
                                         }
                                     }
                                     ModuleExportName::Str(_) => {
@@ -64,7 +71,8 @@ where
                                 },
                                 None => {
                                     let named_custom_imports = self
-                                        .stylex_imports
+                                        .state
+                                        .stylex_import
                                         .clone()
                                         .into_iter()
                                         .filter(|import| import.is_named_export())
@@ -86,7 +94,9 @@ where
                                             .r#as
                                             .eq(&import_specifier.local.sym.as_str())
                                         {
-                                            self.declaration = Some(import_specifier.local.to_id());
+                                            self.state
+                                                .stylex_create_import
+                                                .insert(import_specifier.local.to_id());
                                         }
 
                                         found_custom_import = true;
@@ -95,8 +105,9 @@ where
                                     if !found_custom_import {
                                         match import_specifier.local.sym.as_str() {
                                             "create" => {
-                                                self.declaration =
-                                                    Some(import_specifier.local.to_id());
+                                                self.state
+                                                    .stylex_create_import
+                                                    .insert(import_specifier.local.to_id());
                                             }
                                             _ => {
                                                 panic!(
@@ -113,7 +124,7 @@ where
                 }
             }
 
-            if self.declaration.is_none() {
+            if self.state.stylex_create_import.len() == 0 {
                 import_decl
             } else {
                 import_decl.fold_children_with(self)

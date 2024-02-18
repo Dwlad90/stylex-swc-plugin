@@ -33,7 +33,7 @@ where
             ModuleCycle::Initializing => {
                 let module_items = module_items.fold_children_with(self);
 
-                if self.declaration.is_none() {
+                if self.state.stylex_create_import.len() == 0 {
                     self.cycle = ModuleCycle::Skip;
 
                     return module_items;

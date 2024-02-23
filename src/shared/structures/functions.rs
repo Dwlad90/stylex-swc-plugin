@@ -4,14 +4,11 @@ use swc_core::ecma::ast::Expr;
 
 use super::named_import_source::ImportSources;
 
-type FunctionType = fn(Vec<Expr>) -> Expr;
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
-pub enum Function {
-    StylexInclude(fn() -> ()),        // replace `()` with the actual types
-    StylexFirstThatWorks(fn() -> ()), // replace `()` with the actual types
-    Keyframes(fn() -> ()),            // replace `()` with the actual types
-    Misc(fn() -> ()),                 // replace `()` with the actual types
+pub enum FunctionType {
+    ArrayArgs(fn(Vec<Expr>) -> Expr),
+    OneArg(fn(Expr) -> Expr),
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]

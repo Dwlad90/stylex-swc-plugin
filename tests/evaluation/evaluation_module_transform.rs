@@ -72,7 +72,7 @@ impl Fold for EvaluationModuleTransformVisitor {
 
         match evaluate_result.value {
             Some(value) => match value {
-                EvaluateResultValue::Expr(expr) => expr.clone().fold_children_with(self),
+                EvaluateResultValue::Expr(expr) => expr.clone(),//.fold_children_with(self),
                 EvaluateResultValue::Vec(vec) => Expr::Array(ArrayLit {
                     span: DUMMY_SP,
                     elems: vec

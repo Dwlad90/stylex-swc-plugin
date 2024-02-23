@@ -35,7 +35,7 @@ use crate::shared::{
     },
     structures::{
         evaluate_result::{EvaluateResult, EvaluateResultValue},
-        functions::{FunctionConfig, FunctionMap, Functions},
+        functions::{FunctionConfig, FunctionMap, FunctionType, Functions},
         injectable_style::InjectableStyle,
         named_import_source::ImportSources,
         pre_rule::{CompiledResult, PreRule, PreRules},
@@ -773,14 +773,22 @@ fn _evaluate(
                             cached_arg.unwrap().as_expr().cloned()
                         })
                         .collect();
+                    println!("!!!!__ args: {:#?}", args);
 
                     if !state.confident {
                         return Option::None;
                     }
 
-                    let func_result = (func.fn_ptr)(args);
-
-                    return Option::Some(EvaluateResultValue::Expr(func_result));
+                    match func.fn_ptr {
+                        FunctionType::ArrayArgs(func) => {
+                            let func_result = (func)(args);
+                            return Option::Some(EvaluateResultValue::Expr(func_result));
+                        }
+                        FunctionType::OneArg(func) => {
+                            let func_result = (func)(args.get(0).unwrap().clone());
+                            return Option::Some(EvaluateResultValue::Expr(func_result));
+                        }
+                    }
                 }
             }
 
@@ -794,6 +802,7 @@ fn _evaluate(
             return Option::None;
         }
         _ => {
+            println!("!!!!__ path_not_implemented: {:#?}", path);
             panic!("Not implemented yet, return something");
         }
     };

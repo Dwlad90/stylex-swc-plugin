@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use stylex_swc_plugin::shared::structures::{
-    functions::{FunctionConfig, FunctionMap},
+    functions::{FunctionConfig, FunctionMap, FunctionType},
     named_import_source::ImportSources,
 };
 use swc_core::{
     common::DUMMY_SP,
     ecma::{
-        ast::{ArrayLit, Expr, ExprOrSpread},
+        ast::{ArrayLit, Expr, ExprOrSpread, Ident, Lit, NewExpr, Str},
         parser::{Syntax, TsConfig},
         transforms::testing::test,
     },
@@ -146,7 +146,7 @@ fn evaluates_customs_functions() {
             let mut identifiers = HashMap::new();
 
             let make_array = FunctionConfig {
-                fn_ptr: |args| {
+                fn_ptr: FunctionType::ArrayArgs(|args| {
                     let mut reversed = args;
                     reversed.reverse();
                     Expr::Array(ArrayLit {
@@ -161,7 +161,7 @@ fn evaluates_customs_functions() {
                             })
                             .collect(),
                     })
-                },
+                }),
                 takes_path: false,
             };
 
@@ -188,6 +188,52 @@ fn evaluates_customs_functions() {
         r#"
             [3, 2, 1];
             [3, 2, 1];
+        "#,
+        false,
+    )
+}
+
+#[test]
+fn evaluates_custom_functions_that_return_non_static_values() {
+    swc_core::ecma::transforms::testing::test_transform(
+        Syntax::Typescript(TsConfig {
+            tsx: true,
+            ..Default::default()
+        }),
+        |_| {
+            let mut identifiers = HashMap::new();
+
+            let make_class = FunctionConfig {
+                fn_ptr: FunctionType::OneArg(|arg: Expr| {
+                    let new_expr = NewExpr {
+                        span: DUMMY_SP,
+                        callee: Box::new(Expr::Ident(Ident::new("MyClass".into(), DUMMY_SP))),
+                        args: Some(vec![ExprOrSpread {
+                            spread: None,
+                            expr: Box::new(arg),
+                        }]),
+                        type_args: None,
+                    };
+
+                    Expr::New(new_expr)
+                }),
+                takes_path: false,
+            };
+
+            identifiers.insert("makeClass".to_string(), make_class);
+
+            EvaluationModuleTransformVisitor {
+                functions: FunctionMap {
+                    identifiers,
+                    member_expressions: HashMap::new(),
+                },
+            }
+        },
+        r#"
+            const x = makeClass("Hello");
+        "#,
+        r#"
+            new MyClass("Hello")
         "#,
         false,
     )

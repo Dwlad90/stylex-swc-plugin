@@ -11,7 +11,7 @@ use swc_core::{
 
 use crate::shared::constants;
 use crate::shared::structures::evaluate_result::EvaluateResultValue;
-use crate::shared::structures::functions::{FunctionConfig, FunctionMap, Functions};
+use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType, Functions};
 use crate::shared::structures::injectable_style::InjectableStyle;
 use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
@@ -183,7 +183,9 @@ where
                             identifiers.insert(
                                 name.clone(),
                                 FunctionConfig {
-                                    fn_ptr: |args| panic!("StylexInclude not implemented"),
+                                    fn_ptr: FunctionType::OneArg(|arg| {
+                                        panic!("StyleInclude not implemented")
+                                    }),
                                     takes_path: true,
                                 },
                             );
@@ -193,7 +195,9 @@ where
                             identifiers.insert(
                                 name.clone(),
                                 FunctionConfig {
-                                    fn_ptr: |args| panic!("StylexFirstThatWorks not implemented"),
+                                    fn_ptr: FunctionType::OneArg(|arg| {
+                                        panic!("FirstThatWorks not implemented")
+                                    }),
                                     takes_path: false,
                                 },
                             );
@@ -203,7 +207,9 @@ where
                             identifiers.insert(
                                 name.clone(),
                                 FunctionConfig {
-                                    fn_ptr: |a| panic!("Keyframes not implemented"),
+                                    fn_ptr: FunctionType::OneArg(|arg| {
+                                        panic!("Keyframes not implemented")
+                                    }),
                                     takes_path: false,
                                 },
                             );

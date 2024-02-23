@@ -39,7 +39,7 @@ pub struct StateManager {
     pub(crate) options: StyleXStateOptions, // Assuming StyleXStateOptions is a struct in your code
 }
 impl StateManager {
-    pub(crate) fn new(stylex_options: StyleXOptions) -> Self {
+    pub fn new(stylex_options: StyleXOptions) -> Self {
         let options: StyleXStateOptions = StyleXStateOptions::from(stylex_options);
         Self {
             // _state: state,

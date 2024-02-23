@@ -1,12 +1,11 @@
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
-    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use swc_core::{
-    common::{comments::Comments, FileName, Mark, DUMMY_SP},
-    ecma::ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, VarDeclarator},
+    common::{comments::Comments, FileName},
+    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
 };
 
 use crate::{
@@ -17,7 +16,6 @@ use crate::{
             named_import_source::{ImportSources, RuntimeInjection},
             state_manager::StateManager,
             stylex_options::StyleXOptions,
-            uid_generator::UidGenerator,
         },
         utils::common::{extract_filename_from_path, increase_ident_count},
     },
@@ -181,8 +179,6 @@ where
         {
             return;
         }
-
-        println!("!!!!__ metadata: {:#?}", metadata);
 
         self.css_output.push(metadata);
     }

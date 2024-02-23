@@ -1,31 +1,34 @@
 use std::collections::HashMap;
 
-use serde::Deserialize;
+use swc_core::ecma::ast::Expr;
 
 use super::named_import_source::ImportSources;
 
+type FunctionType = fn(Vec<Expr>) -> Expr;
+
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
-pub(crate) enum Function {
+pub enum Function {
     StylexInclude(fn() -> ()),        // replace `()` with the actual types
     StylexFirstThatWorks(fn() -> ()), // replace `()` with the actual types
     Keyframes(fn() -> ()),            // replace `()` with the actual types
+    Misc(fn() -> ()),                 // replace `()` with the actual types
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
-pub(crate) struct FunctionConfig {
-    pub(crate) fn_ptr: Function,
-    pub(crate) takes_path: bool,
+pub struct FunctionConfig {
+    pub fn_ptr: FunctionType,
+    pub takes_path: bool,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
-pub(crate) struct Functions {
+pub struct Functions {
     pub(crate) include: FunctionConfig,
     pub(crate) first_that_works: FunctionConfig,
     pub(crate) keyframes: FunctionConfig,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub(crate) struct FunctionMap {
-    pub(crate) identifiers: HashMap<String, FunctionConfig>,
-    pub(crate) member_expressions: HashMap<ImportSources, Functions>,
+pub struct FunctionMap {
+    pub identifiers: HashMap<String, FunctionConfig>,
+    pub member_expressions: HashMap<ImportSources, HashMap<String, FunctionConfig>>,
 }

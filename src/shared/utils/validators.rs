@@ -1,12 +1,9 @@
 use colored::Colorize;
-use swc_core::{
-    css::ast::Namespace,
-    ecma::ast::{
-        Callee, Decl, Expr, Id, KeyValueProp, Module, ModuleDecl, ModuleItem, Pat, PropName, Stmt,
-    },
+use swc_core::ecma::ast::{
+    Callee, Decl, Expr, Id, KeyValueProp, Module, ModuleDecl, ModuleItem, Pat, PropName, Stmt,
 };
 
-use crate::shared::{constants, structures::evaluate_result::EvaluateResultValue};
+use crate::shared::constants;
 
 pub(crate) fn validate_style_x_create(module: &Module, declaration: &Id) {
     let mut has_assignment = false;

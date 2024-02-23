@@ -1,7 +1,6 @@
 use core::panic;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Ident, KeyValueProp, Lit, Null};
@@ -10,17 +9,16 @@ use swc_core::{
     ecma::ast::{CallExpr, Callee, Expr, MemberProp, Prop, PropOrSpread},
 };
 
-use crate::shared::constants::{self, messages};
+use crate::shared::constants;
 use crate::shared::structures::evaluate_result::EvaluateResultValue;
-use crate::shared::structures::functions::{Function, FunctionConfig, FunctionMap, Functions};
+use crate::shared::structures::functions::{FunctionConfig, FunctionMap, Functions};
 use crate::shared::structures::injectable_style::InjectableStyle;
 use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
 use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::stylex_state_options::StyleXStateOptions;
 use crate::shared::utils::common::{
     object_expression_factory, prop_or_spread_expression_creator, prop_or_spread_string_creator,
-    push_css_anchor_prop, string_to_expression,
+    push_css_anchor_prop,
 };
 use crate::shared::utils::css::stylex::{evaluate_style_x_create_arg, stylex_create};
 use crate::shared::utils::validators::validate_namespace;
@@ -176,16 +174,16 @@ where
                         let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
 
                         let mut identifiers: HashMap<String, FunctionConfig> = HashMap::new();
-                        let mut member_expressions: HashMap<ImportSources, Functions> =
-                            HashMap::new();
+                        let mut member_expressions: HashMap<
+                            ImportSources,
+                            HashMap<String, FunctionConfig>,
+                        > = HashMap::new();
 
                         for name in &state.stylex_include_import {
                             identifiers.insert(
                                 name.clone(),
                                 FunctionConfig {
-                                    fn_ptr: Function::StylexInclude(|| {
-                                        panic!("StylexInclude not implemented")
-                                    }),
+                                    fn_ptr: |args| panic!("StylexInclude not implemented"),
                                     takes_path: true,
                                 },
                             );
@@ -195,9 +193,7 @@ where
                             identifiers.insert(
                                 name.clone(),
                                 FunctionConfig {
-                                    fn_ptr: Function::StylexFirstThatWorks(|| {
-                                        panic!("StylexFirstThatWorks not implemented")
-                                    }),
+                                    fn_ptr: |args| panic!("StylexFirstThatWorks not implemented"),
                                     takes_path: false,
                                 },
                             );
@@ -207,37 +203,14 @@ where
                             identifiers.insert(
                                 name.clone(),
                                 FunctionConfig {
-                                    fn_ptr: Function::Keyframes(|| {
-                                        panic!("Keyframes not implemented")
-                                    }),
+                                    fn_ptr: |a| panic!("Keyframes not implemented"),
                                     takes_path: false,
                                 },
                             );
                         }
 
                         for name in &state.stylex_import {
-                            let functions = Functions {
-                                include: FunctionConfig {
-                                    fn_ptr: Function::StylexInclude(|| {
-                                        panic!("StylexInclude not implemented")
-                                    }),
-                                    takes_path: true,
-                                },
-                                first_that_works: FunctionConfig {
-                                    fn_ptr: Function::StylexFirstThatWorks(|| {
-                                        panic!("StylexFirstThatWorks not implemented")
-                                    }),
-                                    takes_path: false,
-                                },
-                                keyframes: FunctionConfig {
-                                    fn_ptr: Function::Keyframes(|| {
-                                        panic!("Keyframes not implemented")
-                                    }),
-                                    takes_path: false,
-                                },
-                            };
-
-                            member_expressions.insert(name.clone(), functions);
+                            member_expressions.insert(name.clone(), HashMap::new());
                         }
 
                         let function_map: FunctionMap = FunctionMap {
@@ -245,8 +218,13 @@ where
                             member_expressions,
                         };
 
-                        let evaluated_arg =
-                            evaluate_style_x_create_arg(&first_arg.expr, &state, &function_map);
+                        let evaluated_arg = evaluate_style_x_create_arg(
+                            &first_arg.expr,
+                            &state,
+                            &function_map,
+                            &self.declarations,
+                            &mut self.var_decl_count_map,
+                        );
 
                         let value = match evaluated_arg.value {
                             Some(value) => value,
@@ -255,7 +233,11 @@ where
                             }
                         };
 
-                        assert!(evaluated_arg.confident, "{}", messages::NON_STATIC_VALUE);
+                        assert!(
+                            evaluated_arg.confident,
+                            "{}",
+                            constants::messages::NON_STATIC_VALUE
+                        );
 
                         let stylex_set = stylex_create(
                             &value,
@@ -365,19 +347,10 @@ where
                                     &self.state.options,
                                 );
 
-                                println!("!!!!__2 stylex_set: {:#?}", stylex_set);
-
                                 let injected_styles_map = stylex_set.1;
-
-                                println!(
-                                    "!!!!__222 injected_styles_map: {:#?}",
-                                    injected_styles_map
-                                );
 
                                 let metadatas =
                                     MetaData::convert_from_injected_styles_map(injected_styles_map);
-
-                                println!("!!!!__2222 metadatas: {:#?}", metadatas);
 
                                 for metadata in metadatas {
                                     self.push_to_css_output(metadata.clone());
@@ -398,7 +371,6 @@ where
                 todo!();
             }
             _ => {
-                println!("!!!!__ value: {:#?}", value);
                 panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE)
             }
         }

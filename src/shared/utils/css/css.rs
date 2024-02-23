@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::shared::structures::{
-    pair::Pair,
-    pre_rule::{PreRule, PreRules, StylesPreRule},
-};
+use crate::shared::structures::{pair::Pair, pre_rule::PreRules};
 
 fn logical_to_physical(input: &str) -> &str {
     match input {

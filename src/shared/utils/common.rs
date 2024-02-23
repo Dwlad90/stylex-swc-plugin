@@ -1,9 +1,8 @@
 use std::{
-    any::{type_name, Any},
-    collections::HashMap,
+    any::type_name,
+    collections::{HashMap, HashSet},
 };
 
-use indexmap::IndexMap;
 use radix_fmt::radix;
 use swc_core::{
     common::{FileName, Span, DUMMY_SP},
@@ -16,15 +15,14 @@ use swc_core::{
     },
 };
 
-use crate::shared::constants::{
-    self,
-    messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE},
-};
+use crate::shared::constants::{self, messages::ILLEGAL_PROP_VALUE};
+
+use super::css::stylex::{evaluate_cached, State};
 
 struct SpanReplacer;
 
 impl Fold for SpanReplacer {
-    fn fold_span(&mut self, n: Span) -> Span {
+    fn fold_span(&mut self, _: Span) -> Span {
         DUMMY_SP
     }
 }
@@ -202,7 +200,7 @@ pub fn get_var_decl_by_ident<'a>(
     get_var_decl_from(declarations, ident)
 }
 
-fn get_var_decl_from<'a>(
+pub(crate) fn get_var_decl_from<'a>(
     declarations: &'a Vec<VarDeclarator>,
     ident: &'a Ident,
 ) -> Option<&'a VarDeclarator> {
@@ -237,14 +235,18 @@ pub fn unbox<T>(value: Box<T>) -> T {
 
 pub fn expr_to_num(
     expr_num: &Expr,
+    state: &mut State,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> f32 {
     match &expr_num {
-        Expr::Ident(ident) => ident_to_number(&ident, declarations, var_dec_count_map),
+        Expr::Ident(ident) => ident_to_number(&ident, state, declarations, var_dec_count_map),
         Expr::Lit(lit) => lit_to_num(&lit),
-        Expr::Unary(unary) => unari_to_num(&unary, declarations, var_dec_count_map),
-        Expr::Bin(lit) => binary_expr_to_num(&lit, declarations, var_dec_count_map),
+        Expr::Unary(unary) => unari_to_num(&unary, state, declarations, var_dec_count_map),
+        Expr::Bin(lit) => match binary_expr_to_num(&lit, state, declarations, var_dec_count_map) {
+            Some(result) => result,
+            None => panic!("Binary expression is not a number"),
+        },
         _ => panic!("Expression in not a number {:?}", expr_num),
     }
 }
@@ -286,6 +288,7 @@ pub fn expr_to_str(
 
 pub fn unari_to_num(
     unary_expr: &UnaryExpr,
+    state: &mut State,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> f32 {
@@ -293,46 +296,278 @@ pub fn unari_to_num(
     let op = unary_expr.op;
 
     match &op {
-        UnaryOp::Minus => expr_to_num(arg, declarations, var_dec_count_map) * -1.0,
-        UnaryOp::Plus => expr_to_num(arg, declarations, var_dec_count_map),
+        UnaryOp::Minus => expr_to_num(arg, state, declarations, var_dec_count_map) * -1.0,
+        UnaryOp::Plus => expr_to_num(arg, state, declarations, var_dec_count_map),
         _ => panic!("Union operation '{}' is invalid", op),
     }
 }
 
 pub fn binary_expr_to_num(
     binary_expr: &BinExpr,
+    state: &mut State,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
-) -> f32 {
+) -> Option<f32> {
     let binary_expr = binary_expr.clone();
 
     let op = binary_expr.op;
     let left = binary_expr.left.as_ref();
     let right = binary_expr.right.as_ref();
 
-    match &op {
+    let result = match &op {
         BinaryOp::Add => {
-            expr_to_num(left, declarations, var_dec_count_map)
-                + expr_to_num(right, declarations, var_dec_count_map)
+            expr_to_num(left, state, declarations, var_dec_count_map)
+                + expr_to_num(right, state, declarations, var_dec_count_map)
         }
         BinaryOp::Sub => {
-            expr_to_num(left, declarations, var_dec_count_map)
-                - expr_to_num(right, declarations, var_dec_count_map)
+            expr_to_num(left, state, declarations, var_dec_count_map)
+                - expr_to_num(right, state, declarations, var_dec_count_map)
         }
         BinaryOp::Mul => {
-            expr_to_num(left, declarations, var_dec_count_map)
-                * expr_to_num(right, declarations, var_dec_count_map)
+            expr_to_num(left, state, declarations, var_dec_count_map)
+                * expr_to_num(right, state, declarations, var_dec_count_map)
         }
         BinaryOp::Div => {
-            expr_to_num(left, declarations, var_dec_count_map)
-                / expr_to_num(right, declarations, var_dec_count_map)
+            expr_to_num(left, state, declarations, var_dec_count_map)
+                / expr_to_num(right, state, declarations, var_dec_count_map)
         }
-        _ => panic!("Operator '{}' is not supported", op),
-    }
+        BinaryOp::Mod => {
+            expr_to_num(left, state, declarations, var_dec_count_map)
+                % expr_to_num(right, state, declarations, var_dec_count_map)
+        }
+        BinaryOp::Exp => expr_to_num(left, state, declarations, var_dec_count_map)
+            .powf(expr_to_num(right, state, declarations, var_dec_count_map)),
+        BinaryOp::RShift => {
+            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
+                >> expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+                as f32
+        }
+        BinaryOp::LShift => {
+            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
+                << expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+                as f32
+        }
+        BinaryOp::BitAnd => {
+            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
+                & expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+                as f32
+        }
+        BinaryOp::BitOr => {
+            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
+                | expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+                as f32
+        }
+        BinaryOp::BitXor => {
+            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
+                ^ expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+                as f32
+        }
+        BinaryOp::In => {
+            if expr_to_num(right, state, declarations, var_dec_count_map) == 0.0 {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::InstanceOf => {
+            if expr_to_num(right, state, declarations, var_dec_count_map) == 0.0 {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::EqEq => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                == expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::NotEq => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                != expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::EqEqEq => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                == expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::NotEqEq => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                != expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::Lt => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                < expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::LtEq => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                <= expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::Gt => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                > expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinaryOp::GtEq => {
+            if expr_to_num(left, state, declarations, var_dec_count_map)
+                >= expr_to_num(right, state, declarations, var_dec_count_map)
+            {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        // #region Logical
+        BinaryOp::LogicalOr => {
+            let mut was_confident = state.confident;
+            let mut left_confident = state.confident;
+            let mut right_confident = state.confident;
+
+            let result = evaluate_cached(left, state, declarations, var_dec_count_map);
+
+            let left = result.unwrap();
+            let left = left.as_expr().unwrap();
+
+            left_confident = state.confident;
+
+            state.confident = was_confident;
+
+            let result = evaluate_cached(right, state, declarations, var_dec_count_map);
+
+            let right = result.unwrap();
+            let right = right.as_expr().unwrap();
+            right_confident = state.confident;
+
+            let left = expr_to_num(left, state, declarations, var_dec_count_map);
+            let right = expr_to_num(right, state, declarations, var_dec_count_map);
+
+            state.confident = left_confident && (left != 0.0 || right_confident);
+
+            if !state.confident {
+                return Option::None;
+            }
+
+            if left != 0.0 {
+                left
+            } else {
+                right
+            }
+        }
+        BinaryOp::LogicalAnd => {
+            let mut was_confident = state.confident;
+            let mut left_confident = state.confident;
+            let mut right_confident = state.confident;
+
+            let result = evaluate_cached(left, state, declarations, var_dec_count_map);
+
+            let left = result.unwrap();
+            let left = left.as_expr().unwrap();
+
+            left_confident = state.confident;
+
+            state.confident = was_confident;
+
+            let result = evaluate_cached(right, state, declarations, var_dec_count_map);
+
+            let right = result.unwrap();
+            let right = right.as_expr().unwrap();
+            right_confident = state.confident;
+
+            let left = expr_to_num(left, state, declarations, var_dec_count_map);
+            let right = expr_to_num(right, state, declarations, var_dec_count_map);
+
+            state.confident = left_confident && (left == 0.0 || right_confident);
+
+            if !state.confident {
+                return Option::None;
+            }
+
+            if left != 0.0 {
+                right
+            } else {
+                left
+            }
+        }
+        BinaryOp::NullishCoalescing => {
+            let mut was_confident = state.confident;
+            let mut left_confident = state.confident;
+            let mut right_confident = state.confident;
+
+            let result = evaluate_cached(left, state, declarations, var_dec_count_map);
+
+            let left = result.unwrap();
+            let left = left.as_expr().unwrap();
+
+            left_confident = state.confident;
+
+            state.confident = was_confident;
+
+            let result = evaluate_cached(right, state, declarations, var_dec_count_map);
+
+            let right = result.unwrap();
+            let right = right.as_expr().unwrap();
+            right_confident = state.confident;
+
+            let left = expr_to_num(left, state, declarations, var_dec_count_map);
+            let right = expr_to_num(right, state, declarations, var_dec_count_map);
+
+            state.confident = left_confident && !!(left == 0.0 || right_confident);
+
+            if !state.confident {
+                return Option::None;
+            }
+
+            if left == 0.0 {
+                right
+            } else {
+                left
+            }
+        }
+        // #endregion Logical
+        BinaryOp::ZeroFillRShift => {
+            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
+                >> expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+                as f32
+        }
+    };
+
+    Option::Some(result)
 }
 
 pub fn ident_to_number(
     ident: &Ident,
+    state: &mut State,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> f32 {
@@ -347,10 +582,13 @@ pub fn ident_to_number(
 
             match &var_decl_expr {
                 Expr::Bin(bin_expr) => {
-                    binary_expr_to_num(&bin_expr, declarations, var_dec_count_map)
+                    match binary_expr_to_num(&bin_expr, state, declarations, var_dec_count_map) {
+                        Some(result) => result,
+                        None => panic!("Binary expression is not a number"),
+                    }
                 }
                 Expr::Unary(unary_expr) => {
-                    unari_to_num(&unary_expr, declarations, var_dec_count_map)
+                    unari_to_num(&unary_expr, state, declarations, var_dec_count_map)
                 }
                 Expr::Lit(lit) => lit_to_num(&lit),
                 _ => panic!("Varable {:?} is not a number", var_decl_expr),
@@ -432,9 +670,14 @@ pub fn expr_tpl_to_string(
                     }
                 }
                 Expr::Bin(bin) => tpl_str.push_str(
-                    transform_bin_expr_to_number(bin, declarations, var_dec_count_map)
-                        .to_string()
-                        .as_str(),
+                    transform_bin_expr_to_number(
+                        bin,
+                        &mut State::default(),
+                        declarations,
+                        var_dec_count_map,
+                    )
+                    .to_string()
+                    .as_str(),
                 ),
                 Expr::Lit(lit) => tpl_str.push_str(&get_string_val_from_lit(&lit)),
                 _ => panic!("Value not suppported"), // Handle other expression types as needed
@@ -458,6 +701,7 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f32, right: f32) -> f32 {
 
 pub fn transform_bin_expr_to_number(
     bin: &BinExpr,
+    state: &mut State,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> f32 {
@@ -465,8 +709,8 @@ pub fn transform_bin_expr_to_number(
     let left = bin.left.as_ref();
     let right = bin.right.as_ref();
 
-    let left = expr_to_num(left, declarations, var_dec_count_map);
-    let right = expr_to_num(right, declarations, var_dec_count_map);
+    let left = expr_to_num(left, state, declarations, var_dec_count_map);
+    let right = expr_to_num(right, state, declarations, var_dec_count_map);
 
     let result = evaluate_bin_expr(op, left, right);
 
@@ -594,73 +838,145 @@ fn prop_name_eq(a: &PropName, b: &PropName) -> bool {
     }
 }
 
+// pub(crate) fn deep_merge_props(
+//     props1: &Vec<PropOrSpread>,
+//     props2: &Vec<PropOrSpread>,
+// ) -> ObjectLit {
+//     let mut props = vec![];
+
+//     for prop1 in props1 {
+//         if let PropOrSpread::Prop(prop1) = prop1 {
+//             if let Prop::KeyValue(kv1) = &**prop1 {
+//                 if let Some(PropOrSpread::Prop(prop2)) = props2.iter().find(|prop2| {
+//                     if let PropOrSpread::Prop(prop2) = prop2 {
+//                         if let Prop::KeyValue(kv2) = &**prop2 {
+//                             prop_name_eq(&kv1.key, &kv2.key)
+//                         } else {
+//                             false
+//                         }
+//                     } else {
+//                         false
+//                     }
+//                 }) {
+//                     if let Prop::KeyValue(kv2) = &**prop2 {
+//                         if let Expr::Object(obj1) = &*kv1.value {
+//                             if let Expr::Object(obj2) = &*kv2.value {
+//                                 props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
+//                                     KeyValueProp {
+//                                         key: kv1.key.clone(),
+//                                         value: Box::new(Expr::Object(deep_merge_props(
+//                                             props1, props2,
+//                                         ))),
+//                                     },
+//                                 ))));
+//                                 continue;
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//         props.push(prop1.clone());
+//     }
+
+//     for prop2 in props2 {
+//         if !props.iter().any(|prop1| {
+//             if let PropOrSpread::Prop(prop1) = prop1 {
+//                 if let Prop::KeyValue(kv1) = &**prop1 {
+//                     if let PropOrSpread::Prop(prop2) = prop2 {
+//                         if let Prop::KeyValue(kv2) = &**prop2 {
+//                             prop_name_eq(&kv1.key, &kv2.key)
+//                         } else {
+//                             false
+//                         }
+//                     } else {
+//                         false
+//                     }
+//                 } else {
+//                     false
+//                 }
+//             } else {
+//                 false
+//             }
+//         }) {
+//             props.push(prop2.clone());
+//         }
+//     }
+
+//     ObjectLit {
+//         span: DUMMY_SP, // replace with the appropriate span
+//         props,
+//     }
+// }
+
+pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
+    let mut set = HashSet::new();
+    let mut result = vec![];
+
+    for prop in props.into_iter().rev() {
+        let key = match &prop {
+            PropOrSpread::Prop(prop) => match prop.as_ref().clone() {
+                Prop::Shorthand(ident) => ident.sym.clone(),
+                Prop::KeyValue(kv) => match kv.clone().key {
+                    PropName::Ident(ident) => ident.sym.clone(),
+                    PropName::Str(str_) => str_.value.clone(),
+                    _ => continue,
+                },
+                _ => continue,
+            },
+            _ => continue,
+        };
+
+        if set.insert(key) {
+            result.push(prop);
+        }
+    }
+
+    result.reverse();
+
+    result
+}
+
 pub(crate) fn deep_merge_props(
-    props1: &Vec<PropOrSpread>,
-    props2: &Vec<PropOrSpread>,
-) -> ObjectLit {
-    let mut props = vec![];
-
-    for prop1 in props1 {
-        if let PropOrSpread::Prop(prop1) = prop1 {
-            if let Prop::KeyValue(kv1) = &**prop1 {
-                if let Some(PropOrSpread::Prop(prop2)) = props2.iter().find(|prop2| {
-                    if let PropOrSpread::Prop(prop2) = prop2 {
-                        if let Prop::KeyValue(kv2) = &**prop2 {
-                            prop_name_eq(&kv1.key, &kv2.key)
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                }) {
-                    if let Prop::KeyValue(kv2) = &**prop2 {
-                        if let Expr::Object(obj1) = &*kv1.value {
-                            if let Expr::Object(obj2) = &*kv2.value {
-                                props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
-                                    KeyValueProp {
-                                        key: kv1.key.clone(),
-                                        value: Box::new(Expr::Object(deep_merge_props(
-                                            props1, props2,
-                                        ))),
-                                    },
-                                ))));
-                                continue;
+    old_props: Vec<PropOrSpread>,
+    mut new_props: Vec<PropOrSpread>,
+) -> Vec<PropOrSpread> {
+    for prop in old_props {
+        match prop {
+            PropOrSpread::Prop(prop) => match *prop {
+                Prop::KeyValue(mut kv) => {
+                    if new_props.iter().any(|p| match p {
+                        PropOrSpread::Prop(p) => match **p {
+                            Prop::KeyValue(ref existing_kv) => {
+                                prop_name_eq(&kv.key, &existing_kv.key)
                             }
-                        }
-                    }
-                }
-            }
-        }
-        props.push(prop1.clone());
-    }
-
-    for prop2 in props2 {
-        if !props.iter().any(|prop1| {
-            if let PropOrSpread::Prop(prop1) = prop1 {
-                if let Prop::KeyValue(kv1) = &**prop1 {
-                    if let PropOrSpread::Prop(prop2) = prop2 {
-                        if let Prop::KeyValue(kv2) = &**prop2 {
-                            prop_name_eq(&kv1.key, &kv2.key)
-                        } else {
-                            false
+                            _ => false,
+                        },
+                        _ => false,
+                    }) {
+                        if let Expr::Object(ref mut obj1) = *kv.value {
+                            new_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
+                                KeyValueProp {
+                                    key: kv.key.clone(),
+                                    value: Box::new(Expr::Object(ObjectLit {
+                                        span: DUMMY_SP,
+                                        props: deep_merge_props(
+                                            obj1.props.clone(),
+                                            obj1.props.clone(),
+                                        ),
+                                    })),
+                                },
+                            ))));
                         }
                     } else {
-                        false
+                        new_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(kv))));
                     }
-                } else {
-                    false
                 }
-            } else {
-                false
-            }
-        }) {
-            props.push(prop2.clone());
+                _ => new_props.push(PropOrSpread::Prop(Box::new(*prop))),
+            },
+            _ => new_props.push(prop),
         }
     }
 
-    ObjectLit {
-        span: DUMMY_SP, // replace with the appropriate span
-        props,
-    }
+    remove_duplicates(new_props.into_iter().rev().collect())
 }

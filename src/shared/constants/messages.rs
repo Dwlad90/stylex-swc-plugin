@@ -51,3 +51,4 @@ pub(crate) static NON_EXPORT_NAMED_DECLARATION:&str =  "The return value of styl
 #[allow(dead_code)]
 pub(crate) static ANONYMOUS_THEME:&str =  "stylex.createTheme() must be bound to a named constant.";
 pub(crate) static ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS:&str =  "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.";
+pub(crate) static BUILT_IN_FUNCTION:&str =  "Evaluation built-in functions not supported";

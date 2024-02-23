@@ -116,7 +116,6 @@ impl PreRule for StylesPreRule {
     }
 
     fn compiled(&mut self, prefix: &str) -> CompiledResult {
-        println!("!!!!__ self: {:#?}", self);
         let (_, class_name, rule) = convert_style_to_class_name(
             (
                 self.property.as_str(),

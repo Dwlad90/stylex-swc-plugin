@@ -1,11 +1,11 @@
 pub(crate) mod css;
 pub(crate) mod normalizers;
-pub(crate) mod stylex;
+pub mod stylex;
 pub(crate) mod tests;
 pub(crate) mod validators;
 
 use core::panic;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use crate::shared::{
     constants::{
@@ -22,19 +22,17 @@ use crate::shared::{
         order::Order,
         order_pair::OrderPair,
         pair::Pair,
-        pre_rule::{self, PreRule, PreRules, StylesPreRule},
+        pre_rule::{PreRule, PreRules, StylesPreRule},
         pre_rule_set::PreRuleSet,
         stylex_options::{StyleResolution, StyleXOptions},
         stylex_state_options::StyleXStateOptions,
     },
     utils::common::{expr_tpl_to_string, get_key_str, handle_tpl_to_expression, hash_css},
 };
-use colored::Colorize;
 use convert_case::{Case, Casing};
 
 use indexmap::IndexMap;
 use regex::Regex;
-use serde::de::value;
 use swc_core::{
     // base::Compiler,
     common::{input::StringInput, source_map::Pos, BytePos, DUMMY_SP},
@@ -52,6 +50,7 @@ use swc_core::{
 use self::{
     css::{generate_ltr, generate_rtl},
     normalizers::{base::base_normalizer, convert_font_size_to_rem::convert_font_size_to_rem},
+    stylex::State,
     validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
 
@@ -99,12 +98,8 @@ pub(crate) fn convert_style_to_class_name(
                     PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
                 };
 
-                println!("!!!!__ value: {:?}", value);
-
                 let transformed_css = get_css_propty_value_to_transform(css_property, value);
                 css_styles.push(format!("{}:{}", css_property_key, transformed_css));
-
-                println!("!!!!__ transformed_css: {:?}", transformed_css);
 
                 transformed_css
             })
@@ -117,7 +112,6 @@ pub(crate) fn convert_style_to_class_name(
     } else {
         let first_item = match css_property_values.get(0) {
             Some(item) => {
-                println!("\n\n!!!!__ item: {:?}\n\n", item);
                 let value = match item {
                     PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
                     PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
@@ -128,18 +122,9 @@ pub(crate) fn convert_style_to_class_name(
             }
             None => Some("{}".to_string()),
         };
-        println!(
-            "\n\n!!!!__ first_item: {:?}, css_property_values: {:?} \n\n",
-            first_item, css_property_values
-        );
 
         let css_property_value = get_css_propty_value_to_transform(css_property, first_item);
         let css_style = format!("{{{}:{}}}", css_property_key, css_property_value);
-
-        println!(
-            "\n\n!!!!__ css_property_value: {:?}, css_style: {:?} \n\n",
-            css_property_value, css_style
-        );
 
         (css_property_value.clone(), css_style)
     };
@@ -159,10 +144,6 @@ pub(crate) fn convert_style_to_class_name(
         at_rules,
     );
 
-    println!(
-        "\n\n!!css_style {:?}, class_name_hashed {:?}, css_rules {:?} \n\n\n",
-        css_style, class_name_hashed, css_rules
-    );
     (css_style, class_name_hashed, css_rules)
 }
 
@@ -233,8 +214,6 @@ pub(crate) fn generate_rule(
 ) -> InjectableStyle {
     let mut pairs: Vec<Pair> = vec![];
 
-    println!("!!!!!!!key: {:?}, values: {:?}", key, values);
-
     for value in values {
         pairs.push(Pair {
             key: key.to_string(),
@@ -272,8 +251,6 @@ pub(crate) fn generate_rule(
     } else {
         Option::Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
     };
-
-    println!("!!ltr_rule: {:?}, rtl_rule: {:?}", ltr_rule, rtl_rule);
 
     let priority = get_priority(key)
         + pseudos.iter().map(|p| get_priority(p)).sum::<u16>()
@@ -484,7 +461,12 @@ pub(crate) fn flatten_raw_style_object(
                 }
             }
             Expr::Bin(bin) => {
-                let result = transform_bin_expr_to_number(bin, declarations, var_dec_count_map);
+                let result = transform_bin_expr_to_number(
+                    bin,
+                    &mut State::default(),
+                    declarations,
+                    var_dec_count_map,
+                );
 
                 let mut k = property.clone();
                 k.value = Box::new(number_to_expression(result as f64).unwrap());
@@ -512,8 +494,6 @@ pub(crate) fn flatten_raw_style_object(
                 obj.props.iter().for_each(|prop| match prop {
                     PropOrSpread::Prop(prop) => match prop.as_ref() {
                         Prop::KeyValue(key_value) => {
-                            println!("!!!!!css_property_key: {:?}", css_property_key);
-
                             let mut inner_key_value: KeyValueProp = key_value.clone();
                             validate_conditional_styles(&inner_key_value);
 
@@ -538,7 +518,7 @@ pub(crate) fn flatten_raw_style_object(
                                 condition, inner_key_value.key
                             );
 
-                            let mut pairs = flatten_raw_style_object(
+                            let pairs = flatten_raw_style_object(
                                 &vec![inner_key_value],
                                 declarations,
                                 var_dec_count_map,

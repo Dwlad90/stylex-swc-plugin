@@ -6,10 +6,7 @@ use swc_core::{
     },
 };
 
-use crate::{
-    shared::{enums::ModuleCycle, utils::common::increase_ident_count},
-    ModuleTransformVisitor,
-};
+use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
 
 impl<C> ModuleTransformVisitor<C>
 where

@@ -14,7 +14,7 @@ use crate::{
     shared::{
         constants::constants::DEFAULT_INJECT_PATH,
         enums::{InjectedStylesDeclarationType, ModuleCycle},
-        structures::uid_generator::{self, UidGenerator},
+        structures::uid_generator::UidGenerator,
         utils::common::{
             expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
             get_pat_as_string, increase_ident_count,
@@ -113,12 +113,6 @@ where
                                         let decl_name = self.get_props_desclaration_as_string();
                                         let var_declarator_name = get_pat_as_string(&decl.name);
 
-                                        println!("!!!decl_name: {:?}", decl_name);
-                                        println!(
-                                            "!!!var_declarator_name: {:?}",
-                                            var_declarator_name
-                                        );
-
                                         if decl_name.eq(&var_declarator_name) {
                                             styles_item_target_idx = Option::Some(styles_item_idx);
                                             injected_styles_export = Option::Some(
@@ -130,9 +124,7 @@ where
                                 }
                                 _ => {}
                             },
-                            _ => {
-                                println!("!!!!stmt: {:?}", stmt);
-                            }
+                            _ => {}
                         },
                     }
 

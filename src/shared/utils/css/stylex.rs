@@ -1,14 +1,15 @@
+use core::panic;
 // use sha2::{Digest, Sha256};
-use std::{collections::HashMap, hash::Hash, rc::Weak};
+use std::collections::HashMap;
 
 use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::{
-    common::{util::take::Take, Span, DUMMY_SP},
+    common::{Span, DUMMY_SP},
     ecma::{
         ast::{
-            Expr, Id, Ident, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread, Str,
-            VarDeclarator,
+            Callee, Expr, Id, Ident, KeyValueProp, Lit, MemberProp, ObjectLit, Prop, PropName,
+            PropOrSpread, Str, VarDeclarator,
         },
         utils::ExprExt,
         visit::{Fold, FoldWith},
@@ -28,23 +29,27 @@ fn replace_spans(expr: &mut Expr) -> Expr {
 }
 
 use crate::shared::{
+    constants::{
+        self,
+        constants::{INVALID_METHODS, VALID_CALLEES},
+    },
     structures::{
         evaluate_result::{EvaluateResult, EvaluateResultValue},
-        functions::{FunctionMap, Functions},
-        injectable_style::{InjectableStyle, InjectableStyleBase},
+        functions::{FunctionConfig, FunctionMap, Functions},
+        injectable_style::InjectableStyle,
+        named_import_source::ImportSources,
         pre_rule::{CompiledResult, PreRule, PreRules},
         state_manager::StateManager,
+        stylex_options::StyleXOptions,
         stylex_state_options::StyleXStateOptions,
     },
     utils::{
         common::{
-            deep_merge_props, expr_to_str, expr_tpl_to_string, get_key_str,
-            object_expression_factory,
+            binary_expr_to_num, deep_merge_props, expr_to_str, get_var_decl_by_ident,
+            get_var_decl_from, number_to_expression, remove_duplicates,
         },
         css::flatten_raw_style_object,
-        validators::{
-            validate_and_return_property, validate_dynamic_style_params, validate_namespace,
-        },
+        validators::{validate_dynamic_style_params, validate_namespace},
     },
 };
 
@@ -64,9 +69,6 @@ pub(crate) fn stylex_create(
 
     for (namespace_name, namespace) in namespaces.as_map().unwrap() {
         validate_namespace(&namespace);
-        println!("!!!!__ namespace: {:#?}", namespace);
-
-        // let css_property = get_key_str(property);
 
         let mut pseudos = vec![];
         let mut at_rules = vec![];
@@ -79,7 +81,6 @@ pub(crate) fn stylex_create(
             &mut at_rules,
             options,
         );
-        println!("!!!!__ flattened_namespace: {:#?}", flattened_namespace);
 
         let compiled_namespace_tuples = flattened_namespace
             .iter()
@@ -95,11 +96,6 @@ pub(crate) fn stylex_create(
                 }
             })
             .collect::<Vec<(String, CompiledResult)>>();
-
-        println!(
-            "!!!!__ compiled_namespace_tuples: {:#?}",
-            compiled_namespace_tuples
-        );
 
         let compiled_namespace = compiled_namespace_tuples
             .iter()
@@ -117,23 +113,13 @@ pub(crate) fn stylex_create(
             })
             .collect::<IndexMap<String, CompiledResult>>();
 
-        println!("!!!!__ compiled_namespace: {:#?}", compiled_namespace);
-
         let mut namespace_obj: IndexMap<String, Option<String>> = IndexMap::new();
         for key in compiled_namespace.keys() {
             let value = compiled_namespace.get(key).unwrap();
 
-            // ...
-
             if let Some(included_styles) = value.as_included_style() {
                 todo!("handle included style")
-                // namespace_obj.insert(key.clone(), Some(included_styles));
             } else if let Some(styles) = value.as_computed_styles() {
-                // let mut class_name_tuples = styles
-                //     .iter()
-                //     .map(|item| item)
-                //     .collect::<Vec<ComputedStyle>>();
-
                 let class_name_tuples = styles.clone();
 
                 let class_name = &class_name_tuples
@@ -141,19 +127,12 @@ pub(crate) fn stylex_create(
                     .map(|computed_style| {
                         let class_name = computed_style.0.clone();
 
-                        println!("!!!!__ class_name to join: {:#?}", class_name);
-
-                        return class_name;
+                        class_name
                     })
                     .collect::<Vec<String>>()
                     .join(" ");
 
                 namespace_obj.insert(key.clone(), Some(class_name.clone()));
-
-                println!(
-                    "!!!!__ class_name_tuples: {:#?}, namespace_obj: {:#?}",
-                    class_name_tuples, namespace_obj
-                );
 
                 for item in &class_name_tuples {
                     let class_name = item.0.clone();
@@ -163,7 +142,6 @@ pub(crate) fn stylex_create(
                     }
                 }
             } else {
-                println!("!!!!__ value: {:#?}", value);
                 namespace_obj.insert(key.clone(), Option::None);
             }
         }
@@ -172,32 +150,6 @@ pub(crate) fn stylex_create(
             expr_to_str(namespace_name, declarations, var_dec_count_map),
             namespace_obj,
         );
-        // let values: Vec<String> = flattened_namespace.values().map(|v| v.get_value().to_string()).collect();
-
-        // for vec in flattened_namespace.values() {
-        //     for pre_rule in vec {
-        //         values.push(pre_rule);
-        //     }
-        // }
-
-        // let (css_style, class_name_hashed, rules) = convert_style_to_class_name(
-        //     (&css_property, &values),
-        //     &mut pseudos,
-        //     &mut at_rules,
-        //     prefix,
-        // );
-
-        // println!("!!!!__ rules: {:?}", rules);
-
-        // MetaData {
-        //     class_name: class_name_hashed.clone(),
-        //     style: InjectableStyleBase {
-        //         // priority: Option::None, //MetaData::set_priority(&css_property),
-        //         rtl: None,
-        //         ltr: format!(".{}{}", class_name_hashed, css_style),
-        //     },
-        //     priority: MetaData::set_priority(&css_property),
-        // }
     }
 
     (resolved_namespaces, injected_styles_map)
@@ -210,19 +162,36 @@ pub(crate) struct SeenValue {
 }
 
 #[derive(Debug)]
-struct State {
-    confident: bool,
-    deopt_path: Option<Expr>,       // Assuming this is a string identifier
-    seen: HashMap<Expr, SeenValue>, // Assuming the values are strings
-    // added_imports: HashSet<String>,
-    functions: FunctionMap,
-    traversal_state: StateManager,
+pub(crate) struct State {
+    pub(crate) confident: bool,
+    pub(crate) deopt_path: Option<Expr>, // Assuming this is a string identifier
+    pub(crate) seen: HashMap<Expr, SeenValue>, // Assuming the values are strings
+    //pub(crate) added_imports: HashSet<String>,
+    pub(crate) functions: FunctionMap,
+    pub(crate) traversal_state: StateManager,
+}
+
+impl State {
+    pub(crate) fn default() -> Self {
+        State {
+            confident: true,
+            deopt_path: Option::None,
+            seen: HashMap::new(),
+            functions: FunctionMap {
+                identifiers: HashMap::new(),
+                member_expressions: HashMap::new(),
+            },
+            traversal_state: StateManager::new(StyleXOptions::default()),
+        }
+    }
 }
 
 pub(crate) fn evaluate_style_x_create_arg(
     path: &Expr,
     traversal_state: &StateManager,
     functions: &FunctionMap,
+    declarations: &Vec<VarDeclarator>,
+    var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> EvaluateResult {
     match path {
         Expr::Object(object) => {
@@ -239,8 +208,13 @@ pub(crate) fn evaluate_style_x_create_arg(
 
                         match prop.as_ref() {
                             Prop::KeyValue(key_value_prop) => {
-                                let key_result =
-                                    evaluate_obj_key(key_value_prop, traversal_state, functions);
+                                let key_result = evaluate_obj_key(
+                                    key_value_prop,
+                                    traversal_state,
+                                    functions,
+                                    declarations,
+                                    var_dec_count_map,
+                                );
 
                                 if !key_result.confident {
                                     return EvaluateResult {
@@ -250,7 +224,6 @@ pub(crate) fn evaluate_style_x_create_arg(
                                     };
                                 }
 
-                                print!("!!!!keykeykey {:#?}", key_result);
                                 let key = key_result.value.unwrap();
 
                                 let key = key.as_expr().unwrap();
@@ -264,16 +237,17 @@ pub(crate) fn evaluate_style_x_create_arg(
                                         validate_dynamic_style_params(&all_params);
                                     }
                                     _ => {
-                                        let val = evaluate(value_path, traversal_state, functions);
-                                        println!(
-                                            "!!!!__ val: {:#?}, value_path: {:#?}",
-                                            val, value_path
+                                        let val = evaluate(
+                                            value_path,
+                                            traversal_state,
+                                            functions,
+                                            declarations,
+                                            var_dec_count_map,
                                         );
+
                                         if !val.confident {
                                             return val;
                                         }
-
-                                        println!("!!!!__ val: {:#?}", val);
 
                                         let value_to_insert = match val.value.unwrap() {
                                             EvaluateResultValue::Expr(expr) => match expr {
@@ -312,20 +286,31 @@ pub(crate) fn evaluate_style_x_create_arg(
                                 }
                             }
                             _ => {
-                                return evaluate(path, traversal_state, functions);
+                                return evaluate(
+                                    path,
+                                    traversal_state,
+                                    functions,
+                                    declarations,
+                                    var_dec_count_map,
+                                );
                             }
                         }
                     }
                 }
             }
-            println!("!!!!__ value: {:#?}", value);
             EvaluateResult {
                 confident: true,
                 deopt: None,
                 value: Some(EvaluateResultValue::Map(value)),
             }
         }
-        _ => evaluate(path, traversal_state, functions),
+        _ => evaluate(
+            path,
+            traversal_state,
+            functions,
+            declarations,
+            var_dec_count_map,
+        ),
     }
 }
 
@@ -344,6 +329,8 @@ fn evaluate_obj_key(
     prop_kv: &KeyValueProp,
     traversal_state: &StateManager,
     functions: &FunctionMap,
+    declarations: &Vec<VarDeclarator>,
+    var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> EvaluateResult {
     let key_path = &prop_kv.key;
 
@@ -359,7 +346,13 @@ fn evaluate_obj_key(
         }
         PropName::Computed(computed) => {
             let computed_path = &computed.expr;
-            let computed_result = evaluate(computed_path, traversal_state, functions);
+            let computed_result = evaluate(
+                computed_path,
+                traversal_state,
+                functions,
+                declarations,
+                var_dec_count_map,
+            );
             if computed_result.confident {
                 key = match computed_result.value {
                     Some(EvaluateResultValue::Expr(value)) => value,
@@ -390,10 +383,12 @@ fn evaluate_obj_key(
         value: Option::Some(EvaluateResultValue::Expr(key.clone())),
     }
 }
-pub(crate) fn evaluate(
+pub fn evaluate(
     path: &Expr,
     traversal_state: &StateManager,
     fns: &FunctionMap,
+    declarations: &Vec<VarDeclarator>,
+    var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> EvaluateResult {
     let mut state = State {
         confident: true,
@@ -404,11 +399,8 @@ pub(crate) fn evaluate(
         traversal_state: traversal_state.clone(),
     };
 
-    let mut value = evaluate_cached(path, &mut state);
-    println!(
-        "!!!!__!!! value: {:#?}, path: {:#?} confident: {:#?}, deopt_path: {:#?}",
-        value, path, state.confident, state.deopt_path
-    );
+    let mut value = evaluate_cached(path, &mut state, declarations, var_dec_count_map);
+
     if !state.confident {
         value = Option::None;
     }
@@ -428,7 +420,13 @@ fn deopt(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
     Option::None
 }
-fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
+
+fn _evaluate(
+    path: &Expr,
+    state: &mut State,
+    declarations: &Vec<VarDeclarator>,
+    var_dec_count_map: &mut HashMap<Id, i8>,
+) -> Option<EvaluateResultValue> {
     if !state.confident {
         panic!("Should not be here");
         // return Option::None;
@@ -436,7 +434,14 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
     let result = match path {
         Expr::Arrow(_) => todo!("Arrow function not implemented yet"),
-        Expr::Ident(_) => todo!("Ident not implemented yet"),
+        Expr::Ident(ident) => {
+            let name = ident.sym.to_string();
+            if state.functions.identifiers.contains_key(&name) {
+                panic!("Not implemented yet");
+            }
+
+            Option::None
+        }
         Expr::TsAs(_) => todo!("TsAs not implemented yet"),
         Expr::TsSatisfies(_) => todo!("TsSatisfies not implemented yet"),
         Expr::Seq(_) => todo!("Seq not implemented yet"),
@@ -444,34 +449,57 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
         Expr::Tpl(_) => todo!("Tpl not implemented yet"),
         Expr::TaggedTpl(_) => todo!("TaggedTpl not implemented yet"),
         Expr::Cond(_) => todo!("Cond not implemented yet"),
-        Expr::Paren(_) => todo!("Paren not implemented yet"),
+        Expr::Paren(paren) => {
+            let result = evaluate_cached(&paren.expr, state, declarations, var_dec_count_map);
+
+            result
+        }
         Expr::Member(_) => todo!("Member not implemented yet"),
         Expr::Unary(_) => todo!("Unary not implemented yet"),
-        Expr::Array(_) => todo!("Array not implemented yet"),
+        Expr::Array(arr_path) => {
+            let elems = arr_path.elems.clone();
+
+            let mut arr: Vec<Option<EvaluateResultValue>> = vec![];
+
+            for elem in elems.iter().filter_map(|elem| elem.clone()) {
+                let elem_value = evaluate(
+                    &elem.expr,
+                    &state.traversal_state,
+                    &state.functions,
+                    declarations,
+                    var_dec_count_map,
+                );
+
+                if elem_value.confident {
+                    arr.push(elem_value.value);
+                } else {
+                    // elem_value.deopt.is_some() && deopt(&elem_value.deopt.unwrap(), state);
+                    return Option::None;
+                }
+            }
+
+            Option::Some(EvaluateResultValue::Vec(arr))
+        }
         Expr::Object(obj_path) => {
             let mut props = vec![];
 
             for prop in &obj_path.props {
                 match prop {
                     PropOrSpread::Spread(prop) => {
-                        todo!("Check if it's working");
+                        let spread_expression =
+                            evaluate_cached(&prop.expr, state, declarations, var_dec_count_map);
 
-                        let spread_expression = evaluate_cached(&prop.expr, state);
-
-                        if state.confident {
+                        if !state.confident {
                             return deopt(path, state);
                         }
-                        let merged_object = deep_merge_props(
-                            &props,
-                            &spread_expression
-                                .unwrap()
-                                .as_expr()
-                                .unwrap()
-                                .as_object()
-                                .unwrap()
-                                .props,
-                        );
-                        props = merged_object.props;
+
+                        let new_props = &spread_expression.unwrap();
+                        let new_props = new_props.as_expr().unwrap();
+                        let new_props = new_props.as_object().unwrap();
+
+                        let merged_object = deep_merge_props(props, new_props.props.clone());
+
+                        props = merged_object;
 
                         continue;
                     }
@@ -497,6 +525,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                                             &computed.expr,
                                             &state.traversal_state,
                                             &state.functions,
+                                            declarations,
+                                            var_dec_count_map,
                                         );
 
                                         if !evaluated_result.confident {
@@ -517,12 +547,12 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
                                 let value_path = path_key_value.value.clone();
 
-                                let value =
-                                    evaluate(&value_path, &state.traversal_state, &state.functions);
-
-                                println!(
-                                    "!!!!__ key: {:#?} value: {:#?}, value_path: {:#?}",
-                                    key, value, value_path
+                                let value = evaluate(
+                                    &value_path,
+                                    &state.traversal_state,
+                                    &state.functions,
+                                    declarations,
+                                    var_dec_count_map,
                                 );
 
                                 if !value.confident {
@@ -534,8 +564,21 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                                 }
 
                                 let value = value.value.unwrap();
+                                // props = deep_merge_props(
+                                //     props,
+                                //     vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(
+                                //         KeyValueProp {
+                                //             key: PropName::Ident(Ident {
+                                //                 sym: key.unwrap().into(),
+                                //                 span: DUMMY_SP,
+                                //                 optional: false,
+                                //             }),
+                                //             value: Box::new(value.as_expr().unwrap().clone()),
+                                //         },
+                                //     )))],
+                                // );
 
-                                let _ = &props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
+                                props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
                                     KeyValueProp {
                                         key: PropName::Ident(Ident {
                                             sym: key.unwrap().into(),
@@ -553,30 +596,273 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                 }
             }
 
+            println!("!!!!__ props: {:#?}", props);
+
             let obj = ObjectLit {
-                props: props.clone(),
+                props: remove_duplicates(props.clone()),
                 span: DUMMY_SP,
             };
 
             return Option::Some(EvaluateResultValue::Expr(Expr::Object(obj)));
         }
-        Expr::Bin(_) => todo!("Bin not implemented yet"),
-        Expr::Call(_) => todo!("Call not implemented yet"),
+        Expr::Bin(bin) => {
+            let result = match binary_expr_to_num(bin, state, declarations, var_dec_count_map) {
+                Some(num) => num as f64,
+                None => panic!("Not implemented yet"),
+            };
+            let result = number_to_expression(result).unwrap();
+
+            return Option::Some(EvaluateResultValue::Expr(result));
+        }
+        Expr::Call(call) => {
+            let callee = call.callee.clone();
+
+            let mut context: Option<HashMap<String, FunctionConfig>> = Option::None;
+            let mut func: Option<FunctionConfig> = Option::None;
+
+            if let Callee::Expr(callee_expr) = callee {
+                let callee_expr = callee_expr.as_ref();
+
+                if get_binding(callee_expr, &declarations).is_none() && is_valid_callee(callee_expr)
+                {
+                    panic!("{}", constants::messages::BUILT_IN_FUNCTION)
+                } else if let Expr::Ident(ident) = callee_expr {
+                    let name = ident.sym.to_string();
+                    if state.functions.identifiers.contains_key(&name) {
+                        func =
+                            Option::Some(state.functions.identifiers.get(&name).unwrap().clone());
+                    }
+                }
+
+                if let Expr::Member(member) = callee_expr {
+                    let obj = member.obj.as_ref();
+                    let prop = &member.prop;
+
+                    if obj.is_ident() {
+                        let obj_ident = obj.as_ident().unwrap();
+
+                        if prop.is_ident() {
+                            if is_valid_callee(obj) && !is_invalid_method(prop) {
+                                panic!("{}", constants::messages::BUILT_IN_FUNCTION)
+                            } else if obj.is_ident() && prop.is_ident() {
+                                let prop_ident = prop.as_ident().unwrap();
+
+                                let obj_name = obj_ident.sym.to_string();
+                                let prop_name = prop_ident.sym.to_string();
+
+                                if state
+                                    .functions
+                                    .member_expressions
+                                    .contains_key(&ImportSources::Regular(obj_name.clone()))
+                                {
+                                    let member_expr = state
+                                        .functions
+                                        .member_expressions
+                                        .get(&ImportSources::Regular(obj_name))
+                                        .unwrap();
+                                    let member_expr = member_expr.clone();
+
+                                    if member_expr.contains_key(&prop_name) {
+                                        context = Option::Some(member_expr.clone());
+                                        func = Option::Some(
+                                            member_expr.get(&prop_name).unwrap().clone(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Option::Some(prop_name) = is_string_prop(prop) {
+                            let obj_name = obj_ident.sym.to_string();
+
+                            if state
+                                .functions
+                                .member_expressions
+                                .contains_key(&ImportSources::Regular(obj_name.clone()))
+                            {
+                                let member_expr = state
+                                    .functions
+                                    .member_expressions
+                                    .get(&ImportSources::Regular(obj_name))
+                                    .unwrap();
+                                let member_expr = member_expr.clone();
+
+                                if member_expr.contains_key(&prop_name) {
+                                    context = Option::Some(member_expr.clone());
+                                    func =
+                                        Option::Some(member_expr.get(&prop_name).unwrap().clone());
+                                }
+                            }
+                        }
+                    }
+
+                    if obj.is_lit() {
+                        let obj_lit = obj.as_lit().unwrap();
+
+                        if prop.is_ident() {
+                            let prop_ident = prop.as_ident().unwrap();
+                            let prop_name = prop_ident.sym.to_string();
+
+                            match obj_lit {
+                                Lit::Str(_) => todo!("{}", constants::messages::BUILT_IN_FUNCTION),
+                                Lit::Bool(_) => todo!("{}", constants::messages::BUILT_IN_FUNCTION),
+                                _ => {}
+                            }
+                        }
+                    }
+
+                    let parsed_obj = evaluate(
+                        obj,
+                        &state.traversal_state,
+                        &state.functions,
+                        declarations,
+                        var_dec_count_map,
+                    );
+
+                    if parsed_obj.confident {
+                        if prop.is_ident() {
+                            let prop_ident = prop.as_ident().unwrap().clone();
+                            let prop_name = prop_ident.sym.to_string();
+
+                            let value = parsed_obj.value.unwrap();
+                            let map = value.as_map().unwrap();
+
+                            let result_fn = map.get(&Expr::Ident(prop_ident.clone()));
+
+                            func = match result_fn {
+                                Some(_) => panic!("Not implemented yet"),
+                                None => Option::None,
+                            };
+                        } else if let Option::Some(prop_name) = is_string_prop(prop) {
+                            let prop_name = prop_name.clone();
+                            let value = parsed_obj.value.unwrap();
+                            let map = value.as_map().unwrap();
+
+                            let result_fn = map.get(&Expr::Lit(Lit::Str(Str {
+                                value: prop_name.clone().into(),
+                                raw: Option::None,
+                                span: DUMMY_SP,
+                            })));
+
+                            func = match result_fn {
+                                Some(_) => panic!("Not implemented yet"),
+                                None => Option::None,
+                            };
+                        }
+                    }
+                }
+            }
+
+            if let Some(func) = func {
+                if func.takes_path {
+                    let args = call.args.clone();
+                    todo!("Function takes path not implemented yet")
+                } else {
+                    let args = call
+                        .args
+                        .clone()
+                        .into_iter()
+                        .filter_map(|arg| {
+                            let cached_arg =
+                                evaluate_cached(&arg.expr, state, declarations, var_dec_count_map);
+
+                            if cached_arg.is_none() {
+                                return Option::None;
+                            }
+
+                            cached_arg.unwrap().as_expr().cloned()
+                        })
+                        .collect();
+
+                    if !state.confident {
+                        return Option::None;
+                    }
+
+                    let func_result = (func.fn_ptr)(args);
+
+                    return Option::Some(EvaluateResultValue::Expr(func_result));
+                }
+            }
+
+            // let args = call
+            //     .args
+            //     .clone()
+            //     .into_iter()
+            //     .map(|a| a.expr.as_ref().clone())
+            //     .collect();
+            // let elems = (state.functions.identifiers.get("makeArray").unwrap().fn_ptr)(args);
+            return Option::None;
+        }
         _ => {
-            panic!("Not implemented yet, return somthing");
+            panic!("Not implemented yet, return something");
         }
     };
+
+    if result.is_none() && path.is_ident() {
+        let ident = path.as_ident().unwrap();
+        let binding = get_var_decl_by_ident(ident, declarations, var_dec_count_map);
+
+        match binding {
+            Some(_) => todo!("Binding not implemented yet"),
+            None => {
+                let name = ident.sym.to_string();
+
+                if name == "undefined" || name == "infinity" || name == "NaN" {
+                    return Option::Some(EvaluateResultValue::Expr(Expr::Ident(ident.clone())));
+                }
+            }
+        }
+    }
 
     if result.is_none() {
         deopt(path, state);
     }
 
-    println!("!!!!__ path: {:#?}, result: {:#?}", path, result);
-
     result
 }
 
-fn evaluate_cached(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
+fn get_binding(callee: &Expr, declarations: &Vec<VarDeclarator>) -> Option<VarDeclarator> {
+    match callee {
+        Expr::Ident(ident) => get_var_decl_from(&declarations, &ident).cloned(),
+        _ => Option::None,
+    }
+}
+
+fn is_valid_callee(callee: &Expr) -> bool {
+    match callee {
+        Expr::Ident(ident) => {
+            let name = ident.sym.to_string();
+            VALID_CALLEES.contains(name.as_str())
+        }
+        _ => false,
+    }
+}
+
+fn is_invalid_method(prop: &MemberProp) -> bool {
+    match prop {
+        MemberProp::Ident(ident_prop) => {
+            INVALID_METHODS.contains(ident_prop.sym.to_string().as_str())
+        }
+        _ => false,
+    }
+}
+
+fn is_string_prop(prop: &MemberProp) -> Option<String> {
+    match prop {
+        MemberProp::Computed(comp_prop) => match comp_prop.expr.as_ref() {
+            Expr::Lit(Lit::Str(str)) => Option::Some(str.value.to_string().clone()),
+            _ => Option::None,
+        },
+        _ => Option::None,
+    }
+}
+
+pub(crate) fn evaluate_cached(
+    path: &Expr,
+    state: &mut State,
+    declarations: &Vec<VarDeclarator>,
+    var_dec_count_map: &mut HashMap<Id, i8>,
+) -> Option<EvaluateResultValue> {
     // let seen = &mut state.seen;
 
     let existing = state.seen.get(&path);
@@ -597,7 +883,7 @@ fn evaluate_cached(path: &Expr, state: &mut State) -> Option<EvaluateResultValue
             };
             state.seen.insert(path.clone(), item);
 
-            let val = _evaluate(path, state);
+            let val = _evaluate(path, state, declarations, var_dec_count_map);
 
             if state.confident {
                 state.seen.insert(

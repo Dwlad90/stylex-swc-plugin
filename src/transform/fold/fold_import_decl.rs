@@ -11,7 +11,6 @@ use crate::{
         constants,
         enums::ModuleCycle,
         structures::named_import_source::{ImportSources, NamedImportSource},
-        utils::common::increase_ident_count,
     },
     ModuleTransformVisitor,
 };
@@ -50,7 +49,6 @@ where
                                 .insert(import_specifier.local.to_id());
                         }
                         ImportSpecifier::Named(import_specifier) => {
-                            println!("!!!!import_specifier: {:?}", import_specifier);
                             match &import_specifier.imported {
                                 Some(imported) => match imported {
                                     ModuleExportName::Ident(ident) => {

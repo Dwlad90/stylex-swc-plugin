@@ -55,26 +55,12 @@ impl PreRule for PreRuleSet {
                     PreRules::NullPreRule(null_pre_rule) => null_pre_rule.clone().compiled(prefix),
                 };
 
-                println!(
-                    "!!!!__ rule: {:#?}, compiled_rule: {:#?}",
-                    rule, compiled_rule
-                );
-
                 match compiled_rule {
                     CompiledResult::ComputedStyles(styles) => styles,
                     _ => vec![],
                 }
             })
-            // .filter(|style| style.is_some())
             .collect::<Vec<ComputedStyle>>();
-
-        println!("!!!!__ style_tuple: {:#?}", style_tuple);
-
-        // if style_tuple.is_empty() {
-        //     vec![]
-        // } else {
-        //     style_tuple
-        // }
 
         CompiledResult::ComputedStyles(style_tuple)
     }
@@ -86,19 +72,5 @@ impl PreRule for PreRuleSet {
             PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
             PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
         }
-        // self.rules
-        //     .iter()
-        //     .map(|rule| {
-        //         let value = match &rule {
-        //             PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
-        //             PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
-        //             PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
-        //         };
-
-        //         value.unwrap()
-        //     })
-        //     .collect::<Vec<_>>()
-        //     .join(" ")
-        //     .into()
     }
 }

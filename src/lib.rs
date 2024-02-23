@@ -1,15 +1,12 @@
 pub(crate) mod transform;
 pub mod shared {
+    pub(crate) mod constants;
     pub(crate) mod enums;
     pub mod structures;
-    pub(crate) mod utils;
-    pub(crate) mod constants;
+    pub mod utils;
 }
 
-use std::collections::HashMap;
-
-use serde::Deserialize;
-use shared::structures::{named_import_source::ImportSources, stylex_options::StyleXOptionsParams};
+use shared::structures::stylex_options::StyleXOptionsParams;
 pub use transform::ModuleTransformVisitor;
 
 use swc_core::{

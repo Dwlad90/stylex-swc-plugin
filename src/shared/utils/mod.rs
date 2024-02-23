@@ -1,3 +1,3 @@
 pub(crate) mod common;
-pub(crate) mod css;
+pub mod css;
 pub(crate) mod validators;

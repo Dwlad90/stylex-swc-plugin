@@ -8,16 +8,20 @@ use swc_core::{
     common::{FileName, Span, DUMMY_SP},
     ecma::{
         ast::{
-            BinExpr, BinaryOp, Bool, Expr, ExprOrSpread, Id, Ident, KeyValueProp, Lit, Number,
-            ObjectLit, Pat, Prop, PropName, PropOrSpread, Tpl, UnaryExpr, UnaryOp, VarDeclarator,
+            BinExpr, BinaryOp, BindingIdent, Bool, Expr, ExprOrSpread, Id, Ident, KeyValueProp,
+            Lit, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Tpl, UnaryExpr, UnaryOp,
+            VarDeclarator,
         },
         visit::{Fold, FoldWith},
     },
 };
 
-use crate::shared::constants::{self, messages::ILLEGAL_PROP_VALUE};
+use crate::shared::{
+    constants::{self, messages::ILLEGAL_PROP_VALUE},
+    structures::functions::{FunctionMap, FunctionType},
+};
 
-use super::css::stylex::{evaluate_cached, State};
+use super::css::stylex::{evaluate, evaluate_cached, State};
 
 struct SpanReplacer;
 
@@ -31,12 +35,7 @@ fn replace_spans(expr: &mut Expr) -> Expr {
     expr.clone().fold_children_with(&mut SpanReplacer)
 }
 
-pub(crate) fn object_expression_factory(props: Vec<PropOrSpread>) -> Option<Expr> {
-    Some(Expr::Object(ObjectLit {
-        span: DUMMY_SP,
-        props,
-    }))
-}
+
 
 pub(crate) fn prop_or_spread_expression_creator(key: String, value: Expr) -> PropOrSpread {
     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
@@ -194,10 +193,45 @@ pub fn get_var_decl_by_ident<'a>(
     ident: &'a Ident,
     declarations: &'a Vec<VarDeclarator>,
     var_dec_count_map: &'a mut HashMap<Id, i8>,
-) -> Option<&'a VarDeclarator> {
+    functions: &'a FunctionMap,
+) -> Option<VarDeclarator> {
     reduce_ident_count(var_dec_count_map, &ident);
+    match get_var_decl_from(declarations, ident) {
+        Some(var_decl) => Some(var_decl.clone()),
+        None => {
+            let func = functions.identifiers.get(&ident.sym.to_string());
 
-    get_var_decl_from(declarations, ident)
+            match func {
+                Some(func) => {
+                    let func = func.clone();
+
+                    match func.fn_ptr {
+                        FunctionType::Mapper(func) => {
+                            let arg = Expr::Ident(ident.clone());
+                            let result = func();
+
+                            println!("!!!!! ident: {:?}, result: {:?}", ident, result);
+
+                            let var_decl = VarDeclarator {
+                                span: DUMMY_SP,
+                                name: Pat::Ident(BindingIdent {
+                                    id: ident.clone(),
+                                    type_ann: Option::None,
+                                }),
+                                init: Option::Some(Box::new(result)), // Clone the result
+                                definite: false,
+                            };
+
+                            let var_declarator = var_decl.clone();
+                            Option::Some(var_declarator)
+                        }
+                        _ => panic!("Function type not supported"),
+                    }
+                }
+                None => Option::None,
+            }
+        }
+    }
 }
 
 pub(crate) fn get_var_decl_from<'a>(
@@ -209,7 +243,7 @@ pub(crate) fn get_var_decl_from<'a>(
             return binding_indent.sym == ident.sym;
         }
 
-        return false;
+        false
     })
 }
 
@@ -255,8 +289,9 @@ fn ident_to_string(
     ident: &Ident,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
+    functions: &FunctionMap,
 ) -> String {
-    let var_decl = get_var_decl_by_ident(&ident, declarations, var_dec_count_map);
+    let var_decl = get_var_decl_by_ident(&ident, declarations, var_dec_count_map, functions);
 
     println!("var_decl: {:?}, ident: {:?}", var_decl, ident);
 
@@ -266,7 +301,9 @@ fn ident_to_string(
 
             match &var_decl_expr {
                 Expr::Lit(lit) => get_string_val_from_lit(&lit),
-                Expr::Ident(ident) => ident_to_string(ident, declarations, var_dec_count_map),
+                Expr::Ident(ident) => {
+                    ident_to_string(ident, declarations, var_dec_count_map, functions)
+                }
                 _ => panic!("{}", ILLEGAL_PROP_VALUE),
             }
         }
@@ -278,9 +315,10 @@ pub fn expr_to_str(
     expr_string: &Expr,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
+    functions: &FunctionMap,
 ) -> String {
     match &expr_string {
-        Expr::Ident(ident) => ident_to_string(&ident, declarations, var_dec_count_map),
+        Expr::Ident(ident) => ident_to_string(&ident, declarations, var_dec_count_map, functions),
         Expr::Lit(lit) => get_string_val_from_lit(&lit),
         _ => panic!("Expression in not a string {:?}", expr_string),
     }
@@ -311,74 +349,143 @@ pub fn binary_expr_to_num(
     let binary_expr = binary_expr.clone();
 
     let op = binary_expr.op;
-    let left = binary_expr.left.as_ref();
-    let right = binary_expr.right.as_ref();
+    let Some(left) = evaluate_cached(
+        &*binary_expr.left,
+        state,
+        declarations,
+        var_dec_count_map,
+    ) else {
+        panic!("Left expression is not a number")
+    };
+
+    let Some(right) = evaluate_cached(
+        &*binary_expr.right,
+        state,
+        declarations,
+        var_dec_count_map,
+    ) else {
+        panic!("Left expression is not a number")
+    };
 
     let result = match &op {
         BinaryOp::Add => {
-            expr_to_num(left, state, declarations, var_dec_count_map)
-                + expr_to_num(right, state, declarations, var_dec_count_map)
+            expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) + expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
         }
         BinaryOp::Sub => {
-            expr_to_num(left, state, declarations, var_dec_count_map)
-                - expr_to_num(right, state, declarations, var_dec_count_map)
+            expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) - expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
         }
         BinaryOp::Mul => {
-            expr_to_num(left, state, declarations, var_dec_count_map)
-                * expr_to_num(right, state, declarations, var_dec_count_map)
+            expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) * expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
         }
         BinaryOp::Div => {
-            expr_to_num(left, state, declarations, var_dec_count_map)
-                / expr_to_num(right, state, declarations, var_dec_count_map)
+            expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) / expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
         }
         BinaryOp::Mod => {
-            expr_to_num(left, state, declarations, var_dec_count_map)
-                % expr_to_num(right, state, declarations, var_dec_count_map)
+            expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) % expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
         }
-        BinaryOp::Exp => expr_to_num(left, state, declarations, var_dec_count_map)
-            .powf(expr_to_num(right, state, declarations, var_dec_count_map)),
+        BinaryOp::Exp => expr_to_num(
+            left.as_expr()?,
+            state,
+            declarations,
+            var_dec_count_map,
+        )
+        .powf(expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)),
         BinaryOp::RShift => {
-            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
-                >> expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+            ((expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) as i32)
+                >> expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) as i32)
                 as f32
         }
         BinaryOp::LShift => {
-            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
-                << expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+            ((expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) as i32)
+                << expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) as i32)
                 as f32
         }
         BinaryOp::BitAnd => {
-            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
-                & expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+            ((expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) as i32)
+                & expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) as i32)
                 as f32
         }
         BinaryOp::BitOr => {
-            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
-                | expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+            ((expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) as i32)
+                | expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) as i32)
                 as f32
         }
         BinaryOp::BitXor => {
-            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
-                ^ expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+            ((expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) as i32)
+                ^ expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) as i32)
                 as f32
         }
         BinaryOp::In => {
-            if expr_to_num(right, state, declarations, var_dec_count_map) == 0.0 {
+            if expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) == 0.0 {
                 1.0
             } else {
                 0.0
             }
         }
         BinaryOp::InstanceOf => {
-            if expr_to_num(right, state, declarations, var_dec_count_map) == 0.0 {
+            if expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) == 0.0 {
                 1.0
             } else {
                 0.0
             }
         }
         BinaryOp::EqEq => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                == expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) == expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -386,8 +493,12 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::NotEq => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                != expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) != expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -395,8 +506,12 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::EqEqEq => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                == expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) == expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -404,8 +519,12 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::NotEqEq => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                != expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) != expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -413,8 +532,12 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::Lt => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                < expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) < expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -422,8 +545,12 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::LtEq => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                <= expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) <= expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -431,8 +558,12 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::Gt => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                > expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) > expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -440,8 +571,12 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::GtEq => {
-            if expr_to_num(left, state, declarations, var_dec_count_map)
-                >= expr_to_num(right, state, declarations, var_dec_count_map)
+            if expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) >= expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map)
             {
                 1.0
             } else {
@@ -450,11 +585,13 @@ pub fn binary_expr_to_num(
         }
         // #region Logical
         BinaryOp::LogicalOr => {
+            println!("!!!!__ state.confident33333: {:#?}", state.confident);
+
             let mut was_confident = state.confident;
             let mut left_confident = state.confident;
             let mut right_confident = state.confident;
 
-            let result = evaluate_cached(left, state, declarations, var_dec_count_map);
+            let result = evaluate_cached(left.as_expr()?, state, declarations, var_dec_count_map);
 
             let left = result.unwrap();
             let left = left.as_expr().unwrap();
@@ -463,16 +600,22 @@ pub fn binary_expr_to_num(
 
             state.confident = was_confident;
 
-            let result = evaluate_cached(right, state, declarations, var_dec_count_map);
+            let result = evaluate_cached(right.as_expr()?, state, declarations, var_dec_count_map);
 
             let right = result.unwrap();
             let right = right.as_expr().unwrap();
             right_confident = state.confident;
 
-            let left = expr_to_num(left, state, declarations, var_dec_count_map);
+            let left = expr_to_num(
+                left,
+                state,
+                declarations,
+                var_dec_count_map,
+            );
             let right = expr_to_num(right, state, declarations, var_dec_count_map);
 
             state.confident = left_confident && (left != 0.0 || right_confident);
+            println!("!!!!__ state.confident44444: {:#?}", state.confident);
 
             if !state.confident {
                 return Option::None;
@@ -489,7 +632,7 @@ pub fn binary_expr_to_num(
             let mut left_confident = state.confident;
             let mut right_confident = state.confident;
 
-            let result = evaluate_cached(left, state, declarations, var_dec_count_map);
+            let result = evaluate_cached(left.as_expr()?, state, declarations, var_dec_count_map);
 
             let left = result.unwrap();
             let left = left.as_expr().unwrap();
@@ -498,13 +641,18 @@ pub fn binary_expr_to_num(
 
             state.confident = was_confident;
 
-            let result = evaluate_cached(right, state, declarations, var_dec_count_map);
+            let result = evaluate_cached(right.as_expr()?, state, declarations, var_dec_count_map);
 
             let right = result.unwrap();
             let right = right.as_expr().unwrap();
             right_confident = state.confident;
 
-            let left = expr_to_num(left, state, declarations, var_dec_count_map);
+            let left = expr_to_num(
+                left,
+                state,
+                declarations,
+                var_dec_count_map,
+            );
             let right = expr_to_num(right, state, declarations, var_dec_count_map);
 
             state.confident = left_confident && (left == 0.0 || right_confident);
@@ -524,7 +672,7 @@ pub fn binary_expr_to_num(
             let mut left_confident = state.confident;
             let mut right_confident = state.confident;
 
-            let result = evaluate_cached(left, state, declarations, var_dec_count_map);
+            let result = evaluate_cached(left.as_expr()?, state, declarations, var_dec_count_map);
 
             let left = result.unwrap();
             let left = left.as_expr().unwrap();
@@ -533,13 +681,18 @@ pub fn binary_expr_to_num(
 
             state.confident = was_confident;
 
-            let result = evaluate_cached(right, state, declarations, var_dec_count_map);
+            let result = evaluate_cached(right.as_expr()?, state, declarations, var_dec_count_map);
 
             let right = result.unwrap();
             let right = right.as_expr().unwrap();
             right_confident = state.confident;
 
-            let left = expr_to_num(left, state, declarations, var_dec_count_map);
+            let left = expr_to_num(
+                left,
+                state,
+                declarations,
+                var_dec_count_map,
+            );
             let right = expr_to_num(right, state, declarations, var_dec_count_map);
 
             state.confident = left_confident && !!(left == 0.0 || right_confident);
@@ -556,8 +709,13 @@ pub fn binary_expr_to_num(
         }
         // #endregion Logical
         BinaryOp::ZeroFillRShift => {
-            ((expr_to_num(left, state, declarations, var_dec_count_map) as i32)
-                >> expr_to_num(right, state, declarations, var_dec_count_map) as i32)
+            ((expr_to_num(
+                left.as_expr()?,
+                state,
+                declarations,
+                var_dec_count_map,
+            ) as i32)
+                >> expr_to_num(right.as_expr()?, state, declarations, var_dec_count_map) as i32)
                 as f32
         }
     };
@@ -572,7 +730,12 @@ pub fn ident_to_number(
     var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> f32 {
     // 1. Get the variable declaration
-    let var_decl = get_var_decl_by_ident(&ident, declarations, var_dec_count_map);
+    let var_decl = get_var_decl_by_ident(&ident, declarations, var_dec_count_map, &state.functions);
+
+    println!(
+        "var_decl: {:?}, state.confident: {}",
+        var_decl, state.confident
+    );
 
     // 2. Check if it is a variable
     match &var_decl {
@@ -600,8 +763,24 @@ pub fn ident_to_number(
 
 pub fn lit_to_num(lit_num: &Lit) -> f32 {
     match &lit_num {
+        Lit::Bool(Bool { value, .. }) => {
+            if value == &true {
+                1.0
+            } else {
+                0.0
+            }
+        }
         Lit::Num(num) => num.value as f32,
-        _ => panic!("Value in not a number"),
+        Lit::Str(str) => {
+            let Result::Ok(num) = str.value.parse::<f32>() else {
+                panic!("Value in not a number");
+            };
+
+            num
+        }
+        _ => {
+            panic!("Value in not a number");
+        }
     }
 }
 
@@ -609,6 +788,7 @@ pub fn handle_tpl_to_expression(
     tpl: &swc_core::ecma::ast::Tpl,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
+    functions: &FunctionMap,
 ) -> Expr {
     // Clone the template, so we can work on it
     let mut tpl = tpl.clone();
@@ -618,7 +798,8 @@ pub fn handle_tpl_to_expression(
         // Check if the expression is an identifier
         if let Expr::Ident(ident) = expr.as_ref() {
             // Find the variable declaration for this identifier in the AST
-            let var_decl = get_var_decl_by_ident(&ident, declarations, var_dec_count_map);
+            let var_decl =
+                get_var_decl_by_ident(&ident, declarations, var_dec_count_map, functions);
 
             // If a variable declaration was found
             match &var_decl {
@@ -644,6 +825,7 @@ pub fn expr_tpl_to_string(
     tpl: &Tpl,
     declarations: &Vec<VarDeclarator>,
     var_dec_count_map: &mut HashMap<Id, i8>,
+    functions: &FunctionMap,
 ) -> String {
     let mut tpl_str = String::new();
 
@@ -653,11 +835,12 @@ pub fn expr_tpl_to_string(
         if i < tpl.exprs.len() {
             match &tpl.exprs[i].as_ref() {
                 Expr::Ident(ident) => {
-                    let ident = get_var_decl_by_ident(ident, declarations, var_dec_count_map);
+                    let ident =
+                        get_var_decl_by_ident(ident, declarations, var_dec_count_map, functions);
 
                     match ident {
                         Some(var_decl) => {
-                            let var_decl_expr = get_expr_from_var_decl(var_decl);
+                            let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
                             let a = match &var_decl_expr {
                                 Expr::Lit(lit) => get_string_val_from_lit(&lit),
@@ -706,11 +889,30 @@ pub fn transform_bin_expr_to_number(
     var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> f32 {
     let op = bin.op;
-    let left = bin.left.as_ref();
-    let right = bin.right.as_ref();
+    let Some(left) = evaluate_cached(
+        &*bin.left,
+        state,
+        declarations,
+        var_dec_count_map,
+    ) else {
+        panic!("Left expression is not a number")
+    };
 
-    let left = expr_to_num(left, state, declarations, var_dec_count_map);
-    let right = expr_to_num(right, state, declarations, var_dec_count_map);
+    let Some(right) = evaluate_cached(
+        &*bin.right,
+        state,
+        declarations,
+        var_dec_count_map,
+    ) else {
+        panic!("Left expression is not a number")
+    };
+    let left = expr_to_num(
+        left.as_expr().unwrap(),
+        state,
+        declarations,
+        var_dec_count_map,
+    );
+    let right = expr_to_num(right.as_expr().unwrap(), state, declarations, var_dec_count_map);
 
     let result = evaluate_bin_expr(op, left, right);
 

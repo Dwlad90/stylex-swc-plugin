@@ -7,7 +7,10 @@ use stylex_swc_plugin::shared::structures::{
 use swc_core::{
     common::DUMMY_SP,
     ecma::{
-        ast::{ArrayLit, Expr, ExprOrSpread, Ident, Lit, NewExpr, Str},
+        ast::{
+            ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop,
+            PropName, PropOrSpread, Str,
+        },
         parser::{Syntax, TsConfig},
         transforms::testing::test,
     },
@@ -179,6 +182,7 @@ fn evaluates_customs_functions() {
                     identifiers,
                     member_expressions,
                 },
+                declarations: vec![],
             }
         },
         r#"
@@ -227,13 +231,114 @@ fn evaluates_custom_functions_that_return_non_static_values() {
                     identifiers,
                     member_expressions: HashMap::new(),
                 },
+                declarations: vec![],
             }
         },
         r#"
             const x = makeClass("Hello");
         "#,
         r#"
-            new MyClass("Hello")
+            new MyClass("Hello");
+        "#,
+        false,
+    )
+}
+
+#[test]
+fn evaluates_custom_functions_used_as_spread_values() {
+    swc_core::ecma::transforms::testing::test_transform(
+        Syntax::Typescript(TsConfig {
+            tsx: true,
+            ..Default::default()
+        }),
+        |_| {
+            let mut identifiers = HashMap::new();
+
+            let make_obj = FunctionConfig {
+                fn_ptr: FunctionType::OneArg(|arg: Expr| {
+                    let object_lit = ObjectLit {
+                        span: DUMMY_SP,
+                        props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                            key: PropName::Ident(Ident::new("spreadValue".into(), DUMMY_SP)),
+                            value: Box::new(arg),
+                        })))],
+                    };
+
+                    Expr::Object(object_lit)
+                }),
+                takes_path: false,
+            };
+
+            identifiers.insert("makeObj".to_string(), make_obj);
+
+            EvaluationModuleTransformVisitor {
+                functions: FunctionMap {
+                    identifiers,
+                    member_expressions: HashMap::new(),
+                },
+                declarations: vec![],
+            }
+        },
+        r#"
+            const x = {name: "Name", ...makeObj("Hello"), age: 30};
+        "#,
+        r#"
+        ({ name: "Name", spreadValue: "Hello", age: 30 });
+        "#,
+        false,
+    )
+}
+
+#[test]
+fn evaluates_custom_functions_that_take_paths() {
+    swc_core::ecma::transforms::testing::test_transform(
+        Syntax::Typescript(TsConfig {
+            tsx: true,
+            ..Default::default()
+        }),
+        |_| {
+            let mut identifiers = HashMap::new();
+
+            let get_node = FunctionConfig {
+                fn_ptr: FunctionType::OneArg(|arg: Expr| {
+                    let object_lit = ObjectLit {
+                        span: DUMMY_SP,
+                        props: vec![
+                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                key: PropName::Ident(Ident::new("type".into(), DUMMY_SP)),
+                                value: Box::new(Expr::Lit(Lit::Str(Str {
+                                    span: DUMMY_SP,
+                                    value: "StringLiteral".into(),
+                                    raw: Option::None,
+                                }))),
+                            }))),
+                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                                key: PropName::Ident(Ident::new("value".into(), DUMMY_SP)),
+                                value: Box::new(arg),
+                            }))),
+                        ],
+                    };
+
+                    Expr::Object(object_lit)
+                }),
+                takes_path: true,
+            };
+
+            identifiers.insert("getNode".to_string(), get_node);
+
+            EvaluationModuleTransformVisitor {
+                functions: FunctionMap {
+                    identifiers,
+                    member_expressions: HashMap::new(),
+                },
+                declarations: vec![],
+            }
+        },
+        r#"
+            const x = getNode("Hello");
+        "#,
+        r#"
+            ({ type: "StringLiteral", value: "Hello" });
         "#,
         false,
     )

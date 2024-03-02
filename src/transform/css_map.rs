@@ -17,9 +17,9 @@ use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::common::{
-    object_expression_factory, prop_or_spread_expression_creator, prop_or_spread_string_creator,
-    push_css_anchor_prop,
+    prop_or_spread_expression_creator, prop_or_spread_string_creator, push_css_anchor_prop,
 };
+use crate::shared::utils::css::factories::object_expression_factory;
 use crate::shared::utils::css::stylex::{evaluate_style_x_create_arg, stylex_create};
 use crate::shared::utils::validators::validate_namespace;
 use crate::ModuleTransformVisitor;
@@ -251,6 +251,7 @@ where
                             &self.declarations,
                             &mut self.var_decl_count_map,
                             &state.options,
+                            &function_map,
                         );
 
                         stylex_set
@@ -351,6 +352,10 @@ where
                                     &self.declarations,
                                     &mut self.var_decl_count_map,
                                     &self.state.options,
+                                    &FunctionMap {
+                                        identifiers: HashMap::new(),
+                                        member_expressions: HashMap::new(),
+                                    },
                                 );
 
                                 let injected_styles_map = stylex_set.1;

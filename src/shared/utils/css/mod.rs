@@ -1,4 +1,6 @@
 pub(crate) mod css;
+pub(crate) mod factories;
+pub(crate) mod js;
 pub(crate) mod normalizers;
 pub mod stylex;
 pub(crate) mod tests;
@@ -17,6 +19,7 @@ use crate::shared::{
     },
     structures::{
         application_order::ApplicationOrder,
+        functions::FunctionMap,
         injectable_style::InjectableStyle,
         null_pre_rule::NullPreRule,
         order::Order,
@@ -336,6 +339,7 @@ pub(crate) fn flatten_raw_style_object(
     pseudos: &mut Vec<String>,
     at_rules: &mut Vec<String>,
     options: &StyleXStateOptions,
+    functions: &FunctionMap,
 ) -> IndexMap<String, PreRules> {
     let mut flattened: IndexMap<String, PreRules> = IndexMap::new();
     for property in style.iter() {
@@ -417,11 +421,13 @@ pub(crate) fn flatten_raw_style_object(
                 }
             }
             Expr::Tpl(tpl) => {
-                let handled_tpl = handle_tpl_to_expression(tpl, declarations, var_dec_count_map);
+                let handled_tpl =
+                    handle_tpl_to_expression(tpl, declarations, var_dec_count_map, functions);
                 let result = expr_tpl_to_string(
                     handled_tpl.as_tpl().unwrap(),
                     declarations,
                     var_dec_count_map,
+                    functions,
                 );
 
                 let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
@@ -434,11 +440,12 @@ pub(crate) fn flatten_raw_style_object(
                 flattened.insert(css_property_key, pre_rule);
             }
             Expr::Ident(ident) => {
-                let ident = get_var_decl_by_ident(ident, declarations, var_dec_count_map);
+                let ident =
+                    get_var_decl_by_ident(ident, declarations, var_dec_count_map, functions);
 
                 match ident {
                     Some(var_decl) => {
-                        let var_decl_expr = get_expr_from_var_decl(var_decl);
+                        let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
                         let mut k = property.clone();
                         k.value = Box::new(var_decl_expr);
@@ -450,6 +457,7 @@ pub(crate) fn flatten_raw_style_object(
                             pseudos,
                             at_rules,
                             options,
+                            functions,
                         );
 
                         println!("!!before_updated_flattened: {:?}", flattened);
@@ -478,6 +486,7 @@ pub(crate) fn flatten_raw_style_object(
                     pseudos,
                     at_rules,
                     options,
+                    functions,
                 );
 
                 flattened.extend(inner_flattened)
@@ -525,6 +534,7 @@ pub(crate) fn flatten_raw_style_object(
                                 pseudos,
                                 at_rules,
                                 options,
+                                functions,
                             );
 
                             println!("!!pairs: {:#?}", pairs);

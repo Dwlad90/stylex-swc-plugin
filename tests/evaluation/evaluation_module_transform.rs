@@ -10,12 +10,16 @@ use stylex_swc_plugin::shared::{
 use swc_core::{
     common::DUMMY_SP,
     ecma::{
-        ast::{ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Stmt},
+        ast::{
+            ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Ident, Lit, Number, Pat, Stmt,
+            VarDeclarator,
+        },
         visit::{Fold, FoldWith},
     },
 };
 pub(crate) struct EvaluationModuleTransformVisitor {
     pub(crate) functions: FunctionMap,
+    pub(crate) declarations: Vec<VarDeclarator>,
 }
 
 impl Default for EvaluationModuleTransformVisitor {
@@ -25,11 +29,26 @@ impl Default for EvaluationModuleTransformVisitor {
                 identifiers: HashMap::new(),
                 member_expressions: HashMap::new(),
             },
+            declarations: vec![],
         }
     }
 }
 
 impl Fold for EvaluationModuleTransformVisitor {
+    fn fold_var_declarators(&mut self, var_declarators: Vec<VarDeclarator>) -> Vec<VarDeclarator> {
+        var_declarators.iter().for_each(|decl| {
+            if let Pat::Ident(_) = &decl.name {
+                let var = decl.clone();
+
+                if !self.declarations.contains(&var) {
+                    self.declarations.push(var);
+                }
+            }
+        });
+
+        var_declarators.fold_children_with(self)
+    }
+
     fn fold_stmt(&mut self, stmt: Stmt) -> Stmt {
         let stmt = match &stmt {
             Stmt::Decl(decl) => match decl {
@@ -58,6 +77,7 @@ impl Fold for EvaluationModuleTransformVisitor {
     }
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
+        println!("!!!!!expr: {:?}", expr);
         let evaluate_result = evaluate(
             &expr,
             &StateManager::new(StyleXOptions::default()),
@@ -65,14 +85,11 @@ impl Fold for EvaluationModuleTransformVisitor {
             &vec![],
             &mut HashMap::new(),
         );
-        println!(
-            "!!!!!expr {:?}, evaluate_result: {:?}",
-            expr, evaluate_result
-        );
+        println!("!!!!!evaluate_result: {:?}", evaluate_result);
 
         match evaluate_result.value {
             Some(value) => match value {
-                EvaluateResultValue::Expr(expr) => expr.clone(),//.fold_children_with(self),
+                EvaluateResultValue::Expr(expr) => expr.clone(), //.fold_children_with(self),
                 EvaluateResultValue::Vec(vec) => Expr::Array(ArrayLit {
                     span: DUMMY_SP,
                     elems: vec
@@ -89,6 +106,18 @@ impl Fold for EvaluationModuleTransformVisitor {
                         })
                         .collect(),
                 }),
+                EvaluateResultValue::Callback(func) => func(vec![
+                    Option::Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
+                        span: DUMMY_SP,
+                        value: 2.0,
+                        raw: Option::None,
+                    })))),
+                    Option::Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
+                        span: DUMMY_SP,
+                        value: 7.0,
+                        raw: Option::None,
+                    })))),
+                ]),
                 _ => panic!("Failed to evaluate expression"),
             },
             None => panic!("Failed to evaluate expression"),

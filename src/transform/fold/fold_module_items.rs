@@ -2,9 +2,7 @@ use swc_core::{
     common::{comments::Comments, DUMMY_SP},
     ecma::{
         ast::{
-            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl,
-            ImportDefaultSpecifier, ImportSpecifier, MemberExpr, MemberProp, ModuleDecl,
-            ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier, ImportPhase, ImportSpecifier, MemberExpr, MemberProp, ModuleDecl, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator
         },
         visit::FoldWith,
     },
@@ -262,6 +260,7 @@ fn add_inject_import_expression(
             }),
             type_only: false,
             with: Option::None,
+            phase: ImportPhase::Evaluation,
         }));
         module_item_pre_start_vec.push(inject_import_stmt);
     }

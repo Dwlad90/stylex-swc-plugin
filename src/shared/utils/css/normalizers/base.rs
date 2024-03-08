@@ -1,9 +1,12 @@
-use swc_core::css::{
-    ast::{
-        ComponentValue, Declaration, DeclarationName, DimensionToken, Ident, ListOfComponentValues,
-        Stylesheet, Token,
+use swc_core::{
+    common::DUMMY_SP,
+    css::{
+        ast::{
+            ComponentValue, Declaration, DeclarationName, Dimension, DimensionToken, Ident,
+            ListOfComponentValues, Number, SimpleBlock, Stylesheet, Token,
+        },
+        visit::{Fold, FoldWith},
     },
-    visit::{Fold, FoldWith},
 };
 
 #[cfg(test)]
@@ -14,7 +17,7 @@ use swc_core::css::codegen::{
 
 use crate::shared::utils::common::dashify;
 #[cfg(test)]
-use crate::shared::utils::css::swc_parse_css;
+use crate::shared::utils::css::{stringify, swc_parse_css};
 
 struct CssFolder;
 
@@ -23,81 +26,214 @@ impl Fold for CssFolder {
         &mut self,
         mut list: ListOfComponentValues,
     ) -> ListOfComponentValues {
-        list.children = whitespace_normalizer(&list.children);
-
         list.fold_children_with(self)
     }
-    fn fold_declaration(&mut self, declaration: Declaration) -> Declaration {
-        let declaration = kebab_case_normalizer(declaration);
 
-        declaration
+    // fn fold_simple_block(&mut self, mut simple_block: SimpleBlock) -> SimpleBlock {
+    //     simple_block.value = whitespace_normalizer(&mut simple_block.value);
+
+    //     simple_block.fold_children_with(self)
+    // }
+
+    fn fold_declaration(&mut self, mut declaration: Declaration) -> Declaration {
+        let mut declaration = kebab_case_normalizer(&mut declaration).clone();
+
+        // NOTE: Whitespace normalizer working out of the box with minify
+        // let declaration = whitespace_normalizer(&mut declaration).clone();
+
+        declaration.fold_children_with(self)
     }
-    fn fold_token(&mut self, token: Token) -> Token {
-        match token {
-            Token::Dimension(mut dimension) => {
-                let mut dimension = timing_normalizer(&mut dimension).clone();
-                let mut dimension = zero_demention_normalizer(&mut dimension).clone();
-                let dimension = leading_zero_normalizer(&mut dimension);
+    fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
+        let mut dimension = timing_normalizer(&mut dimension).clone();
+        let dimension = zero_demention_normalizer(&mut dimension).clone();
 
-                Token::Dimension(dimension.clone())
+        dimension.clone()
+    }
+
+    // NOTE: Leding zero normalizer working out of the box with minify
+    // fn fold_number(&mut self, mut number: Number) -> Number {
+    //     leading_zero_normalizer(&mut number);
+
+    //     number
+    // }
+}
+
+fn whitespace_normalizer(declaration: &mut Declaration) -> &mut Declaration {
+    let mut index = 0;
+
+    declaration.value = declaration
+        .value
+        .clone()
+        .into_iter()
+        .filter(|child| {
+            let result = match child {
+                ComponentValue::PreservedToken(preserved_token) => match &preserved_token.token {
+                    Token::WhiteSpace { value: _ } => {
+                        let prev_item = declaration.value.get(index - 1);
+
+                        if let Some(ComponentValue::PreservedToken(prev_token)) = prev_item {
+                            return match &prev_token.token {
+                                Token::Comma => false,
+                                _ => true,
+                            };
+                        }
+
+                        true
+                    }
+                    _ => true,
+                },
+                _ => true,
+            };
+
+            index += 1;
+            result
+        })
+        .collect();
+
+    declaration
+}
+
+fn timing_normalizer(dimension: &mut Dimension) -> &mut Dimension {
+    match dimension {
+        Dimension::Time(time) => {
+            if !time.unit.eq("ms") || time.value.value < 10.0 {
+                return dimension;
             }
-            _ => token,
+
+            time.value = Number {
+                value: time.value.value / 1000.0,
+                raw: Option::None,
+                span: DUMMY_SP,
+            };
+
+            time.unit = Ident {
+                span: DUMMY_SP,
+                value: "s".into(),
+                raw: Option::None,
+            };
+
+            dimension
+        }
+        _ => dimension,
+    }
+}
+
+fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
+    match dimension {
+        Dimension::Length(length) => {
+            if length.value.value != 0.0 {
+                return dimension;
+            }
+
+            length.value = get_zero_demansion_value();
+            length.unit = get_zero_demansion_unit();
+
+            dbg!(&dimension);
+
+            dimension
+        }
+        Dimension::Angle(angle) => {
+            if angle.value.value != 0.0 {
+                return dimension;
+            }
+
+            angle.value = get_zero_demansion_value();
+
+            angle.unit = Ident {
+                span: DUMMY_SP,
+                value: "deg".into(),
+                raw: Option::None,
+            };
+
+            dimension
+        }
+        Dimension::Time(time) => {
+            if time.value.value != 0.0 {
+                return dimension;
+            }
+
+            time.value = get_zero_demansion_value();
+
+            time.unit = Ident {
+                span: DUMMY_SP,
+                value: "s".into(),
+                raw: Option::None,
+            };
+
+            dimension
+        }
+        Dimension::Frequency(frequency) => {
+            if frequency.value.value != 0.0 {
+                return dimension;
+            }
+
+            frequency.value = get_zero_demansion_value();
+            frequency.unit = get_zero_demansion_unit();
+
+            dimension
+        }
+        Dimension::Resolution(resolution) => {
+            if resolution.value.value != 0.0 {
+                return dimension;
+            }
+
+            resolution.value = get_zero_demansion_value();
+            resolution.unit = get_zero_demansion_unit();
+
+            dimension
+        }
+        Dimension::Flex(flex) => {
+            if flex.value.value != 0.0 {
+                return dimension;
+            }
+
+            flex.value = get_zero_demansion_value();
+            flex.unit = get_zero_demansion_unit();
+
+            dimension
+        }
+        Dimension::UnknownDimension(unknown) => {
+            if unknown.value.value != 0.0 {
+                return dimension;
+            }
+
+            unknown.value = get_zero_demansion_value();
+            unknown.unit = get_zero_demansion_unit();
+
+            dimension
         }
     }
 }
 
-fn whitespace_normalizer(components: &Vec<ComponentValue>) -> Vec<ComponentValue> {
-    components
-        .clone()
-        .into_iter()
-        .filter(|child| match child {
-            ComponentValue::PreservedToken(preserved_token) => match &preserved_token.token {
-                Token::WhiteSpace { value: _ } => false,
-                _ => true,
-            },
-            _ => true,
-        })
-        .collect()
+fn get_zero_demansion_value() -> Number {
+    Number {
+        value: 0.0,
+        raw: Option::None,
+        span: DUMMY_SP,
+    }
 }
 
-fn timing_normalizer(dimension: &mut Box<DimensionToken>) -> &Box<DimensionToken> {
-    if !dimension.unit.eq("ms") || dimension.value < 10.0 {
-        return dimension;
+fn get_zero_demansion_unit() -> Ident {
+    Ident {
+        value: "".into(),
+        raw: Option::None,
+        span: DUMMY_SP,
     }
-    dimension.value = dimension.value / 1000.0;
-    dimension.unit = "s".into();
-
-    dimension
 }
 
-fn zero_demention_normalizer(dimension: &mut Box<DimensionToken>) -> &Box<DimensionToken> {
-    if dimension.value != 0.0 {
-        return dimension;
+fn leading_zero_normalizer(number: &mut Number) -> &mut Number {
+    if number.value < 1.0 && number.value >= 0.0 {
+        if let Some(raw) = &number.raw {
+            number.raw = Option::Some(raw.replace("0.", ".").into());
+            dbg!(&number);
+        }
     }
 
-    let angles = vec!["deg", "grad", "turn", "rad"];
-    let timings = vec!["ms", "s"];
-
-    dimension.value = 0.0;
-
-    if angles.contains(&dimension.unit.to_string().as_str()) {
-        dimension.unit = "deg".into();
-    } else if timings.contains(&dimension.unit.to_string().as_str()) {
-        dimension.unit = "s".into();
-    }
-
-    dimension
+    number
 }
 
-fn leading_zero_normalizer(dimension: &mut Box<DimensionToken>) -> &Box<DimensionToken> {
-    if dimension.value < 1.0 && dimension.value >= 0.0 {
-        dimension.raw_value = dimension.raw_value.replace("0.", ".").into();
-    }
-
-    dimension
-}
-
-fn kebab_case_normalizer(mut declaration: Declaration) -> Declaration {
+fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
+    // dbg!(&declaration);
     match &declaration.name {
         DeclarationName::Ident(ident) => {
             if !ident.value.eq("transitionProperty") && !ident.value.eq("willChange") {
@@ -109,6 +245,7 @@ fn kebab_case_normalizer(mut declaration: Declaration) -> Declaration {
 
     declaration.value = declaration
         .value
+        .clone()
         .into_iter()
         .map(|value| match value {
             ComponentValue::Ident(ident) => {
@@ -128,33 +265,62 @@ fn kebab_case_normalizer(mut declaration: Declaration) -> Declaration {
     //    declaration.raw_value = dashify(declaration.raw_value.as_str()).into();
     // };
 
+    // dbg!(&declaration);
+
     declaration
 }
 
 pub(crate) fn base_normalizer(ast: Stylesheet) -> Stylesheet {
+    dbg!(&ast);
     let mut folder = CssFolder;
-
-    ast.fold_children_with(&mut folder)
+    ast.fold_with(&mut folder)
 }
 
 #[test]
 fn should_normalize() {
     assert_eq!(
         stringify(&base_normalizer(
-            swc_parse_css("opacity, margin-top").0.unwrap(),
+            swc_parse_css("* {{ transitionProperty: opacity, margin-top; }}")
+                .0
+                .unwrap(),
         )),
-        "opacity,margin-top"
+        "*{{transitionproperty:opacity,margin-top}}"
+    );
+
+    assert_eq!(
+        stringify(&base_normalizer(
+            swc_parse_css("* {{ boxShadow: 0px 2px 4px var(--shadow-1); }}")
+                .0
+                .unwrap(),
+        )),
+        "*{{boxshadow:0 2px 4px var(--shadow-1)}}"
+    );
+
+    assert_eq!(
+        stringify(&base_normalizer(
+            swc_parse_css("* {{ opacity: 0.5; }}").0.unwrap(),
+        )),
+        "*{{opacity:.5}}"
+    );
+
+    assert_eq!(
+        stringify(&base_normalizer(
+            swc_parse_css("* {{ transitionDuration: 500ms; }}")
+                .0
+                .unwrap(),
+        )),
+        "*{{transitionduration:.5s}}"
     );
 }
 
-/// Stringifies the [`Stylesheet`]
-#[cfg(test)]
-pub fn stringify(node: &Stylesheet) -> String {
-    let mut buf = String::new();
-    let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
-    let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
+// /// Stringifies the [`Stylesheet`]
+// #[cfg(test)]
+// pub fn stringify(node: &Stylesheet) -> String {
+//     let mut buf = String::new();
+//     let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
+//     let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
 
-    let _ = codegen.emit(&node);
+//     let _ = codegen.emit(&node);
 
-    buf
-}
+//     buf
+// }

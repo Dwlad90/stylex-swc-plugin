@@ -366,3 +366,20 @@ test!(
         });
     "#
 );
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    transforms_complex_property_values_containing_custom_properties_variables,
+    r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            default: {
+                boxShadow: '0px 2px 4px var(--shadow-1)',
+            }
+        });
+    "#
+);

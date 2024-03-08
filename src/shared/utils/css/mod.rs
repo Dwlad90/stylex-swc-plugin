@@ -10,9 +10,13 @@ use std::collections::HashMap;
 
 use crate::shared::{
     constants::{
-        self, long_hand_logical::LONG_HAND_LOGICAL, long_hand_physical::LONG_HAND_PHYSICAL,
-        messages::ILLEGAL_PROP_ARRAY_VALUE, number_properties::NUMBER_PROPERTY_SUFFIXIES,
-        priorities::PRIORITIES, shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
+        self,
+        long_hand_logical::LONG_HAND_LOGICAL,
+        long_hand_physical::LONG_HAND_PHYSICAL,
+        messages::ILLEGAL_PROP_ARRAY_VALUE,
+        number_properties::NUMBER_PROPERTY_SUFFIXIES,
+        priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
+        shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
         shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
         unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
     },
@@ -152,6 +156,7 @@ pub(crate) fn convert_style_to_class_name(
 
     // let css_style = "".to_string();
 
+    dbg!(&raw_value);
     let value = match raw_value {
         PreRuleValue::String(value) => PreRuleValue::String(transform_value(key, value)),
         PreRuleValue::Vec(vec) => PreRuleValue::Vec(
@@ -310,6 +315,13 @@ pub(crate) fn generate_rule(
         + pseudos.iter().map(|p| get_priority(p)).sum::<u16>()
         + at_rules.iter().map(|a| get_priority(a)).sum::<u16>();
 
+    dbg!(
+        get_priority(key),
+        &pseudos,
+        pseudos.iter().map(|p| get_priority(p)).sum::<u16>(),
+        at_rules.iter().map(|a| get_priority(a)).sum::<u16>()
+    );
+
     InjectableStyle {
         priority: Option::Some(priority),
         rtl: rtl_rule,
@@ -323,22 +335,24 @@ pub(crate) fn get_priority(key: &str) -> u16 {
     };
 
     if key.starts_with("@supports") {
-        return 30;
+        return **AT_RULE_PRIORITIES
+            .get("@supports")
+            .expect("No priority found");
     };
 
     if key.starts_with("@media") {
-        return 200;
+        return **AT_RULE_PRIORITIES.get("@media").expect("No priority found");
     };
 
     if key.starts_with("@container") {
-        return 300;
+        return **AT_RULE_PRIORITIES
+            .get("@container")
+            .expect("No priority found");
     };
 
     if key.starts_with("::") {
-        return 5000;
+        return PSEUDO_ELEMENT_PRIORITY;
     };
-
-    let default_value = &3000;
 
     if key.starts_with(":") {
         let prop: &str = if key.starts_with(':') && key.contains("(") {
@@ -349,7 +363,7 @@ pub(crate) fn get_priority(key: &str) -> u16 {
             key
         };
 
-        return **PRIORITIES.get(prop).unwrap_or(&default_value);
+        return **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40);
     };
 
     if LONG_HAND_PHYSICAL.contains(key) {
@@ -357,7 +371,7 @@ pub(crate) fn get_priority(key: &str) -> u16 {
     }
 
     if LONG_HAND_LOGICAL.contains(key) {
-        return *default_value;
+        return 3000;
     }
 
     if SHORTHANDS_OF_LONGHANDS.contains(key) {
@@ -434,7 +448,7 @@ pub(crate) fn normalize_css_property_value(
     let css_rule = if css_property.starts_with(":") {
         format!("{0} {1}", css_property, css_property_value)
     } else {
-        format!("* {{ {0}: {1}; }}", css_property, css_property_value)
+        format!("* {{ {0}: {1} }}", css_property, css_property_value)
     };
 
     let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
@@ -449,6 +463,7 @@ pub(crate) fn normalize_css_property_value(
     let ast_normalized = match parsed_css {
         Ok(ast) => {
             let (parsed_css_property_value, _) = swc_parse_css(&css_rule.as_str());
+            dbg!(&css_rule, &parsed_css_property_value);
 
             let validators: Vec<Validator> = vec![
                 unprefixed_custom_properties_validator,
@@ -474,32 +489,51 @@ pub(crate) fn normalize_css_property_value(
                 parsed_ast = normalizer(parsed_ast);
             }
 
-            let mut rules = vec![];
+            // let mut rules = vec![];
 
-            for rule in parsed_ast.clone().rules {
-                match rule {
-                    Rule::QualifiedRule(rule) => match rule.as_ref().block.value.get(0).unwrap() {
-                        ComponentValue::Declaration(declaration) => {
-                            let rule =
-                                Rule::ListOfComponentValues(Box::new(ListOfComponentValues {
-                                    span: DUMMY_SP,
-                                    children: declaration.clone().value,
-                                }));
+            // for rule in parsed_ast.clone().rules {
+            //     dbg!(rule.clone());
+            //     match rule {
+            //         Rule::QualifiedRule(rule) => match rule.as_ref().block.value.get(0).unwrap() {
+            //             ComponentValue::Declaration(declaration) => {
+            //                 let rule =
+            //                     Rule::ListOfComponentValues(Box::new(ListOfComponentValues {
+            //                         span: declaration.span,
+            //                         children: declaration.clone().value,
+            //                     }));
 
-                            rules.push(rule);
-                        }
-                        _ => {}
-                    },
-                    _ => {}
-                }
-            }
+            //                 rules.push(rule);
+            //             }
+            //             _ => {}
+            //         },
+            //         _ => {}
+            //     }
+            // }
 
-            let ast_to_stringify = Stylesheet {
-                span: DUMMY_SP,
-                rules,
-            };
+            // dbg!(&parsed_ast, &rules);
 
-            let result = stringify(&ast_to_stringify);
+            // let ast_to_stringify = Stylesheet {
+            //     span: parsed_ast.span,
+            //     rules,
+            // };
+
+            // let result = stringify(&ast_to_stringify);
+            let result = stringify(&parsed_ast);
+
+            dbg!(&result);
+
+            let rule_regex = Regex::new(r".*:(.*?)}").unwrap();
+
+            let result = rule_regex
+                .captures(result.as_str())
+                .unwrap()
+                .get(1)
+                .unwrap()
+                .as_str()
+                .to_string();
+
+            dbg!(&result);
+
             result
         }
         Err(err) => {
@@ -531,10 +565,10 @@ pub(crate) fn get_value_from_ident(ident: &Ident) -> String {
 }
 
 /// Stringifies the [`Stylesheet`]
-pub(crate) fn stringify(node: &Stylesheet) -> String {
+pub fn stringify(node: &Stylesheet) -> String {
     let mut buf = String::new();
     let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
-    let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: false });
+    let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
 
     let _ = codegen.emit(&node);
 

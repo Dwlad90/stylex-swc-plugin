@@ -8,7 +8,7 @@ const _stylex$props = {
         alignItems: "x6s0dn4",
         justifyContent: "x1qughib",
         minHeight: "xg6iff7",
-        padding: "xoji6qd",
+        padding: "x1mqkegk",
         paddingInline: null,
         paddingStart: null,
         paddingLeft: null,

@@ -1,29 +1,9 @@
-use std::collections::{HashMap, HashSet};
-
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use swc_core::ecma::ast::{BinaryOp, Expr, Id, KeyValueProp, VarDeclarator};
 
-use crate::shared::{
-    constants::{
-        self, messages::ILLEGAL_PROP_ARRAY_VALUE, long_hand_logical::LONG_HAND_LOGICAL,
-        long_hand_physical::LONG_HAND_PHYSICAL, priorities::PRIORITIES,
-        shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
-        shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
-    },
-    structures::{
-        included_style::IncludedStyle,
-        injectable_style::{self, InjectableStyle},
-        pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules, Styles},
-    },
-    utils::{
-        common::get_key_str,
-        css::{convert_style_to_class_name, get_priority},
-        validators::validate_and_return_property,
-    },
-};
+use crate::shared::{structures::injectable_style::InjectableStyle, utils::css::get_priority};
 
-use super::{injectable_style::InjectableStyleBase, pair::Pair};
+use super::injectable_style::InjectableStyleBase;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 

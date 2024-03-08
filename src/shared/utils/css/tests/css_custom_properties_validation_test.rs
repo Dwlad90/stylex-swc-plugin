@@ -25,5 +25,15 @@ mod css_tests {
             transform_value("transitionProperty", "opacity, margin-top"),
             "opacity,margin-top"
         );
+
+        assert_eq!(
+            transform_value("transitionProperty", "opacity, marginTop"),
+            "opacity,margin-top"
+        );
+
+        assert_eq!(
+            transform_value("boxShadow", "0px 2px 4px var(--shadow-1)"),
+            "0 2px 4px var(--shadow-1)"
+        );
     }
 }

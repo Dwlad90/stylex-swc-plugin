@@ -1,6 +1,6 @@
 use phf::phf_map;
 
-pub(crate) static PRIORITIES: phf::Map<&'static str, &'static u16> = phf_map! {
+pub(crate) static PSEUDO_CLASS_PRIORITIES: phf::Map<&'static str, &'static u16> = phf_map! {
   ":is" => &40,
   ":where" => &40,
   ":not" => &40,
@@ -62,3 +62,11 @@ pub(crate) static PRIORITIES: phf::Map<&'static str, &'static u16> = phf_map! {
   ":focusVisible" => &160,
   ":active" => &170,
 };
+
+pub(crate) static AT_RULE_PRIORITIES: phf::Map<&'static str, &'static u16> = phf_map! {
+  "@supports" => &30,
+  "@media" => &200,
+  "@container" => &300,
+};
+
+pub(crate) static PSEUDO_ELEMENT_PRIORITY: u16 = 5000;

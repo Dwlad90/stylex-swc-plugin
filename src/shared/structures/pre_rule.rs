@@ -2,12 +2,13 @@ use std::any::Any;
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
+use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::{common::type_of, css::convert_style_to_class_name};
 
 use super::{
     included_style::IncludedStyle, injectable_style::InjectableStyle, null_pre_rule::NullPreRule,
-    pre_rule_set::PreRuleSet,
+    pre_included_styles_rule::PreIncludedStylesRule, pre_rule_set::PreRuleSet,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -24,10 +25,14 @@ pub(crate) enum Styles {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ComputedStyle(
-    pub(crate) String,
-    pub(crate) InjectableStyle,
-);
+pub(crate) enum PreRuleValue {
+    Expr(Expr),
+    String(String),
+    Vec(Vec<String>),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ComputedStyle(pub(crate) String, pub(crate) InjectableStyle);
 
 #[derive(Debug, Clone)]
 pub(crate) enum CompiledResult {
@@ -53,22 +58,23 @@ impl CompiledResult {
 }
 
 pub(crate) trait PreRule: Debug {
-    fn get_value(&self) -> Option<String>;
+    fn get_value(&self) -> Option<PreRuleValue>;
     fn compiled(&mut self, prefix: &str) -> CompiledResult;
     fn equals(&self, other: &dyn PreRule) -> bool;
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum PreRules {
+    PreIncludedStylesRule(PreIncludedStylesRule),
     PreRuleSet(PreRuleSet),
     StylesPreRule(StylesPreRule),
     NullPreRule(NullPreRule),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug,  Clone)]
 pub(crate) struct StylesPreRule {
     property: String,
-    value: String,
+    value: PreRuleValue,
     pseudos: Vec<String>,
     at_rules: Vec<String>,
 }
@@ -76,10 +82,12 @@ pub(crate) struct StylesPreRule {
 impl StylesPreRule {
     pub(crate) fn new(
         property: String,
-        value: String,
+        value: PreRuleValue,
         pseudos: Vec<String>,
         at_rules: Vec<String>,
     ) -> Self {
+        dbg!(&property, &value, &pseudos, &at_rules);
+
         StylesPreRule {
             property: property.clone(),
             value,
@@ -111,25 +119,19 @@ impl StylesPreRule {
 }
 
 impl PreRule for StylesPreRule {
-    fn get_value(&self) -> Option<String> {
+    fn get_value(&self) -> Option<PreRuleValue> {
         Option::Some(self.value.clone())
     }
 
     fn compiled(&mut self, prefix: &str) -> CompiledResult {
         let (_, class_name, rule) = convert_style_to_class_name(
-            (
-                self.property.as_str(),
-                &vec![&PreRules::StylesPreRule(self.clone())],
-            ),
+            (self.property.as_str(), &self.value),
             &mut self.pseudos,
             &mut self.at_rules,
             prefix,
         );
 
-        CompiledResult::ComputedStyles(vec![ComputedStyle(
-            class_name,
-            rule,
-        )])
+        CompiledResult::ComputedStyles(vec![ComputedStyle(class_name, rule)])
     }
 
     fn equals(&self, other: &dyn PreRule) -> bool {

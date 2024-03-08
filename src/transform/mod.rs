@@ -1,3 +1,4 @@
+use core::panic;
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
@@ -22,7 +23,7 @@ use crate::{
     StyleXOptionsParams,
 };
 
-mod css_map;
+mod transform_stylex_create;
 mod fold;
 
 pub struct ModuleTransformVisitor<C>
@@ -64,6 +65,7 @@ where
     }
 
     pub fn new_test_classname(comments: C, config: Option<StyleXOptionsParams>) -> Self {
+        panic!("new_test_classname");
         let stylex_imports = fill_stylex_imports(&config);
         let mut state = StateManager::new(config.unwrap_or(StyleXOptionsParams::default()).into());
 
@@ -89,12 +91,14 @@ where
                 let mut config = StyleXOptions::default();
 
                 config.runtime_injection = RuntimeInjection::Boolean(true);
+                config.treeshake_compensation = Option::Some(true);
 
                 StateManager::new(config.into())
             }
         };
 
-        state.stylex_import = stylex_imports;
+        // state.stylex_import = stylex_imports.clone();
+        state.options.import_sources = stylex_imports.into_iter().collect();
 
         ModuleTransformVisitor {
             comments,
@@ -109,12 +113,16 @@ where
     }
 
     pub(crate) fn process_declaration(&mut self, call_expr: &CallExpr) -> Option<(Id, String)> {
+        let stylex_imports = self.state.stylex_import_stringified();
+
         match &mut call_expr.callee.clone() {
             Callee::Expr(callee) => match callee.as_ref() {
                 Expr::Ident(ident) => {
                     let ident_id = ident.to_id();
 
-                    if self.state.stylex_create_import.contains(&ident_id) {
+                    if stylex_imports.contains(&ident.sym.to_string())
+                        || self.state.stylex_create_import.contains(&ident.to_id())
+                    {
                         increase_ident_count(&mut self.var_decl_count_map, &ident);
 
                         return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
@@ -124,7 +132,9 @@ where
                     Expr::Ident(ident) => {
                         let ident_id = ident.to_id();
 
-                        if self.state.stylex_create_import.contains(&ident_id) {
+                        if stylex_imports.contains(&ident.sym.to_string())
+                            || self.state.stylex_create_import.contains(&ident.to_id())
+                        {
                             match member.prop.clone() {
                                 MemberProp::Ident(ident) => {
                                     increase_ident_count(&mut self.var_decl_count_map, &ident);
@@ -151,6 +161,9 @@ where
         match expr {
             Expr::Call(ex) => {
                 let declaration = self.process_declaration(&ex);
+
+                println!("!!!declaration: {:?}\n\n", declaration);
+
                 if declaration.is_some() {
                     let value = self.transform_call_expression_to_styles_expr(&ex);
                     // let value = if self.state.options.runtime_injection.is_some() {

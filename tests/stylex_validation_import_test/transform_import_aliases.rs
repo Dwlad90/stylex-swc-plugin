@@ -32,7 +32,7 @@ fn throw_when_named_import() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import { foo } from "@stylexjs/stylex";
 

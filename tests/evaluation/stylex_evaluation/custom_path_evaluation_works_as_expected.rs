@@ -8,7 +8,7 @@ use swc_core::{
     common::DUMMY_SP,
     ecma::{
         ast::{
-            ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop,
+            ArrayLit, Expr, ExprOrSpread, Id, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop,
             PropName, PropOrSpread, Str,
         },
         parser::{Syntax, TsConfig},
@@ -168,7 +168,7 @@ fn evaluates_customs_functions() {
                 takes_path: false,
             };
 
-            identifiers.insert("makeArray".to_string(), make_array);
+            identifiers.insert(Ident::from("makeArray").to_id(), make_array);
 
             let mut member_expressions = HashMap::new();
 
@@ -224,7 +224,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
                 takes_path: false,
             };
 
-            identifiers.insert("makeClass".to_string(), make_class);
+            identifiers.insert(Ident::from("makeClass").to_id(), make_class);
 
             EvaluationModuleTransformVisitor {
                 functions: FunctionMap {
@@ -269,7 +269,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
                 takes_path: false,
             };
 
-            identifiers.insert("makeObj".to_string(), make_obj);
+            identifiers.insert(Ident::from("makeObj").to_id(), make_obj);
 
             EvaluationModuleTransformVisitor {
                 functions: FunctionMap {
@@ -324,7 +324,7 @@ fn evaluates_custom_functions_that_take_paths() {
                 takes_path: true,
             };
 
-            identifiers.insert("getNode".to_string(), get_node);
+            identifiers.insert(Ident::from("getNode").to_id(), get_node);
 
             EvaluationModuleTransformVisitor {
                 functions: FunctionMap {

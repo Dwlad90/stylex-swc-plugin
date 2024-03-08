@@ -1,5 +1,6 @@
 pub(crate) mod application_order;
 pub mod evaluate_result;
+pub(crate) mod flat_compiled_styles;
 pub mod functions;
 pub(crate) mod included_style;
 pub(crate) mod injectable_style;
@@ -10,6 +11,7 @@ pub(crate) mod order;
 pub(crate) mod order_pair;
 pub(crate) mod pair;
 pub(crate) mod plugin_pass;
+pub(crate) mod pre_included_styles_rule;
 pub(crate) mod pre_rule;
 pub(crate) mod pre_rule_set;
 pub(crate) mod property_specificity;

@@ -1,10 +1,12 @@
 use std::{collections::HashMap, rc::Rc};
 
-use swc_core::ecma::ast::{ArrayLit, ArrowExpr, Expr};
+use swc_core::ecma::ast::{ArrayLit, ArrowExpr, Expr, Id};
 
-use crate::shared::utils::js::{ArrayJS, ObjectJS};
+use crate::shared::utils::js::enums::{ArrayJS, ObjectJS};
 
 use super::named_import_source::ImportSources;
+
+
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum CallbackType {
@@ -90,6 +92,6 @@ pub struct Functions {
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct FunctionMap {
-    pub identifiers: HashMap<String, FunctionConfig>,
-    pub member_expressions: HashMap<ImportSources, HashMap<String, FunctionConfig>>,
+    pub identifiers: HashMap<Id, FunctionConfig>,
+    pub member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>>,
 }

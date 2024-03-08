@@ -5,39 +5,6 @@ use swc_core::{
     ecma::ast::{ArrayLit, Expr, ExprOrSpread},
 };
 
-// pub(crate) fn evaluate_map2(
-//     args: &Vec<EvaluateResultValue>,
-//     context: &Option<Vec<Option<EvaluateResultValue>>>,
-// ) -> Option<EvaluateResultValue> {
-//     let cb = args.get(0)?.clone();
-
-//     let Some((cb, _)) = cb.as_callback() else {
-//         return Option::None;
-//     };
-
-//     let Some(args) = context else {
-//         return Option::None;
-//     };
-
-//     let func_result = args
-//         .iter()
-//         .map(|arg| (cb)(vec![arg.clone()]))
-//         .collect::<Vec<Expr>>();
-
-//     Option::Some(EvaluateResultValue::Expr(Expr::Array(ArrayLit {
-//         span: DUMMY_SP,
-//         elems: func_result
-//             .into_iter()
-//             .map(|expr| {
-//                 Some(ExprOrSpread {
-//                     spread: None,
-//                     expr: Box::new(expr),
-//                 })
-//             })
-//             .collect(),
-//     })))
-// }
-
 pub(crate) fn evaluate_map(
     funcs: &Vec<EvaluateResultValue>,
     args: &Vec<Option<EvaluateResultValue>>,

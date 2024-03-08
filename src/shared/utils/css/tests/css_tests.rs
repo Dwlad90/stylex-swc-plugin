@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod css_tests {
-    use crate::shared::utils::css::{get_number_suffix, transform_css_property_value_to_str};
+    use crate::shared::utils::css::{get_number_suffix, transform_value};
 
     #[test]
     fn should_transform_css_property_value() {
-        assert_eq!(transform_css_property_value_to_str("padding", "1"), "1px");
+        assert_eq!(transform_value("padding", "1"), "1px");
     }
 
     #[test]

@@ -10,9 +10,9 @@ use crate::shared::{
 use super::{
     injectable_style::InjectableStyle,
     null_pre_rule::NullPreRule,
-    pre_rule::{PreRule, PreRules, Styles},
+    pre_rule::{PreRule, PreRuleValue, PreRules, Styles},
 };
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct PreRuleSet {
     rules: Vec<PreRules>,
 }
@@ -53,6 +53,9 @@ impl PreRule for PreRuleSet {
                         styles_pre_rule.clone().compiled(prefix)
                     }
                     PreRules::NullPreRule(null_pre_rule) => null_pre_rule.clone().compiled(prefix),
+                    PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
+                        pre_included_tyles_rule.clone().compiled(prefix)
+                    }
                 };
 
                 match compiled_rule {
@@ -64,13 +67,16 @@ impl PreRule for PreRuleSet {
 
         CompiledResult::ComputedStyles(style_tuple)
     }
-    fn get_value(&self) -> Option<String> {
+    fn get_value(&self) -> Option<PreRuleValue> {
         let rule = self.rules.get(0).unwrap();
 
         match &rule {
             PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
             PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
             PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
+            PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
+                pre_included_tyles_rule.get_value()
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ use crate::shared::{
     },
     utils::{
         common::get_key_str,
-        css::{convert_style_to_class_name, flatten_raw_style_object, get_priority},
+        css::{convert_style_to_class_name, get_priority},
         validators::validate_and_return_property,
     },
 };

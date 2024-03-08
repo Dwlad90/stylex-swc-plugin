@@ -2,7 +2,9 @@ use swc_core::{
     common::{comments::Comments, DUMMY_SP},
     ecma::{
         ast::{
-            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier, ImportPhase, ImportSpecifier, MemberExpr, MemberProp, ModuleDecl, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator
+            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl,
+            ImportDefaultSpecifier, ImportPhase, ImportSpecifier, MemberExpr, MemberProp,
+            ModuleDecl, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
         },
         visit::FoldWith,
     },
@@ -80,6 +82,12 @@ where
                                         let var_declarator_name =
                                             get_pat_as_string(&var_declarator.name);
 
+                                        println!(
+                                            "!!!! decl_name: {:?}, var_declarator_name: {:?}, self
+                                            .props_declaration: {:?}",
+                                            decl_name, var_declarator_name, self.props_declaration
+                                        );
+
                                         if decl_name.eq(&var_declarator_name) {
                                             styles_item_target_idx = Option::Some(styles_item_idx);
                                             injected_styles_export = Option::Some(InjectedStylesDeclarationType::NamedDeclarationExport);
@@ -110,6 +118,12 @@ where
                                     for decl in &decl_var.decls {
                                         let decl_name = self.get_props_desclaration_as_string();
                                         let var_declarator_name = get_pat_as_string(&decl.name);
+
+                                        println!(
+                                            "!!!! decl_name: {:?}, var_declarator_name: {:?}, self
+                                        .props_declaration: {:?}",
+                                            decl_name, var_declarator_name, self.props_declaration
+                                        );
 
                                         if decl_name.eq(&var_declarator_name) {
                                             styles_item_target_idx = Option::Some(styles_item_idx);

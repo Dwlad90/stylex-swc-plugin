@@ -33,15 +33,20 @@ where
                         Some(declaration) => {
                             let (declaration, member) = declaration;
 
-                            if self.state.stylex_create_import.contains(&declaration) {
-                                let declaration_string = self
-                                    .state
-                                    .stylex_create_import
-                                    .get(&declaration)
-                                    .unwrap()
-                                    .0
-                                    .to_string();
+                            let stylex_imports = self.state.stylex_import_stringified();
 
+                            if let Some(declaration_string) = stylex_imports
+                                .into_iter()
+                                .find(|item| item == &declaration.0.to_string())
+                                .or_else(|| {
+                                    self.state
+                                        .stylex_create_import
+                                        .clone()
+                                        .into_iter()
+                                        .find(|decl| decl.eq(&declaration))
+                                        .and_then(|decl| Option::Some(decl.0.to_string()))
+                                })
+                            {
                                 if member.as_str() == "create"
                                     || member.as_str() == declaration_string
                                 {

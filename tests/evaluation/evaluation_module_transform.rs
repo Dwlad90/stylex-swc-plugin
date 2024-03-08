@@ -4,8 +4,7 @@ use stylex_swc_plugin::shared::{
     structures::{
         evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
         stylex_options::StyleXOptions,
-    },
-    utils::css::stylex::evaluate,
+    }, utils::css::stylex::evaluate::evaluate,
 };
 use swc_core::{
     common::DUMMY_SP,

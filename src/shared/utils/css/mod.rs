@@ -1,6 +1,5 @@
 pub(crate) mod css;
 pub(crate) mod factories;
-pub(crate) mod js;
 pub(crate) mod normalizers;
 pub mod stylex;
 pub(crate) mod tests;
@@ -25,12 +24,15 @@ use crate::shared::{
         order::Order,
         order_pair::OrderPair,
         pair::Pair,
-        pre_rule::{PreRule, PreRules, StylesPreRule},
+        pre_rule::{self, PreRule, PreRuleValue, PreRules, StylesPreRule},
         pre_rule_set::PreRuleSet,
         stylex_options::{StyleResolution, StyleXOptions},
         stylex_state_options::StyleXStateOptions,
     },
-    utils::common::{expr_tpl_to_string, get_key_str, handle_tpl_to_expression, hash_css},
+    utils::common::{
+        dashify, expr_tpl_to_string, get_key_str, get_key_values_from_object,
+        handle_tpl_to_expression, hash_css,
+    },
 };
 use convert_case::{Case, Casing};
 
@@ -40,20 +42,25 @@ use swc_core::{
     // base::Compiler,
     common::{input::StringInput, source_map::Pos, BytePos, DUMMY_SP},
     css::{
-        ast::{Ident, Stylesheet},
+        ast::{
+            ComponentValue, Dimension, DimensionToken, Ident, Length, ListOfComponentValues,
+            NumberType, QualifiedRulePrelude, Rule, Stylesheet, Token, TokenAndSpan,
+        },
         codegen::{
             writer::basic::{BasicCssWriter, BasicCssWriterConfig},
             CodeGenerator, CodegenConfig, Emit,
         },
         parser::{error::Error, parse_string_input, parser::ParserConfig},
     },
-    ecma::ast::{Expr, Id, KeyValueProp, Prop, PropName, PropOrSpread, Str, VarDeclarator},
+    ecma::{
+        ast::{Expr, Id, KeyValueProp, Prop, PropName, PropOrSpread, Str, VarDeclarator},
+        utils::ident,
+    },
 };
 
 use self::{
-    css::{generate_ltr, generate_rtl},
+    css::{flat_map_expanded_shorthands, generate_ltr, generate_rtl},
     normalizers::{base::base_normalizer, convert_font_size_to_rem::convert_font_size_to_rem},
-    stylex::State,
     validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
 
@@ -63,14 +70,21 @@ use super::common::{
 };
 
 pub(crate) fn convert_style_to_class_name(
-    obj_entry: (&str, &Vec<&PreRules>),
+    obj_entry: (&str, &PreRuleValue),
     pseudos: &mut Vec<String>,
     at_rules: &mut Vec<String>,
     prefix: &str,
 ) -> (String, String, InjectableStyle) {
-    let (css_property, css_property_values) = obj_entry;
+    let (key, raw_value) = obj_entry;
+    dbg!(obj_entry);
 
-    let css_property_key = css_property.to_string().to_case(Case::Kebab);
+    let dashed_key = if key.starts_with("--") {
+        key.to_string()
+    } else {
+        dashify(key).to_case(Case::Kebab)
+    };
+
+    dbg!(&dashed_key);
 
     let mut sorted_pseudos = pseudos.clone();
     sorted_pseudos.sort();
@@ -89,65 +103,95 @@ pub(crate) fn convert_style_to_class_name(
         modifier_hash_string
     };
 
-    let (css_property_value, css_style) = if css_property_values.len() > 1 {
-        let mut css_styles = vec![];
+    // let (css_property_value, css_style) = if css_property_values.len() > 1 {
+    //     let mut css_styles = vec![];
 
-        let css_property_value = css_property_values
-            .iter()
-            .map(|css_property_value| {
-                let value = match css_property_value {
-                    PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
-                    PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
-                    PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
-                };
+    //     let css_property_value = css_property_values
+    //         .iter()
+    //         .map(|css_property_value| {
+    //             let value = match css_property_value {
+    //                 PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
+    //                 PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
+    //                 PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
+    //             };
 
-                let transformed_css = get_css_propty_value_to_transform(css_property, value);
-                css_styles.push(format!("{}:{}", css_property_key, transformed_css));
+    //             dbg!(css_property.clone(), value.clone());
+    //             let transformed_css = get_css_propty_value_to_transform(css_property, value);
+    //             css_styles.push(format!("{}:{}", dashed_key, transformed_css));
 
-                transformed_css
-            })
-            .collect::<Vec<String>>()
-            .join(", ");
+    //             transformed_css
+    //         })
+    //         .collect::<Vec<String>>()
+    //         .join(", ");
 
-        let css_style = format!("{{{}}}", css_styles.join(";"));
+    //     let css_style = format!("{{{}}}", css_styles.join(";"));
 
-        (css_property_value.clone(), css_style)
-    } else {
-        let first_item = match css_property_values.get(0) {
-            Some(item) => {
-                let value = match item {
-                    PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
-                    PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
-                    PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
-                };
+    //     (css_property_value.clone(), css_style)
+    // } else {
+    //     let first_item = match css_property_values.get(0) {
+    //         Some(item) => {
+    //             let value = match item {
+    //                 PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
+    //                 PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
+    //                 PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
+    //             };
 
-                value
-            }
-            None => Some("{}".to_string()),
-        };
+    //             value
+    //         }
+    //         None => {
+    //             todo!("Check this out later...");
+    //             Some(PreRuleValue::String("{}".to_string()))
+    //         }
+    //     };
 
-        let css_property_value = get_css_propty_value_to_transform(css_property, first_item);
-        let css_style = format!("{{{}:{}}}", css_property_key, css_property_value);
+    //     let css_property_value = get_css_propty_value_to_transform(css_property, first_item);
+    //     let css_style = format!("{{{}:{}}}", dashed_key, css_property_value);
 
-        (css_property_value.clone(), css_style)
+    //     (css_property_value.clone(), css_style)
+    // };
+
+    // let css_style = "".to_string();
+
+    let value = match raw_value {
+        PreRuleValue::String(value) => PreRuleValue::String(transform_value(key, value)),
+        PreRuleValue::Vec(vec) => PreRuleValue::Vec(
+            vec.into_iter()
+                .map(|each_value| transform_value(key, each_value.as_str()))
+                .collect::<Vec<String>>(),
+        ),
+        PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
     };
 
-    let value_to_hash = format!(
+    dbg!(&value);
+
+    let string_to_hash = format!(
         "<>{}{}{}",
-        css_property_key, css_property_value, modifier_hash_string
+        dashed_key,
+        match value.clone() {
+            PreRuleValue::String(value) => value,
+            PreRuleValue::Vec(values) => values.join(", "),
+            PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+        },
+        modifier_hash_string
     );
 
-    let class_name_hashed = format!("{}{}", prefix, hash_css(value_to_hash.as_str()));
+    dbg!(&at_rule_hash_string, &pseudo_hash_string);
+    dbg!(&dashed_key, &value, &modifier_hash_string);
+    dbg!(string_to_hash.clone());
+
+    let class_name_hashed = format!("{}{}", prefix, hash_css(string_to_hash.as_str()));
 
     let css_rules = generate_rule(
         class_name_hashed.as_str(),
-        css_property_key.as_str(),
-        &vec![css_property_value],
+        dashed_key.as_str(),
+        &value,
         pseudos,
         at_rules,
     );
 
-    (css_style, class_name_hashed, css_rules)
+    dbg!(key, class_name_hashed.clone(), css_rules.clone(),);
+
+    (key.to_string(), class_name_hashed, css_rules)
 }
 
 // pub(crate) fn generate_ltr(pair: Pair) -> Pair {
@@ -211,17 +255,24 @@ pub(crate) fn generate_css_rule(
 pub(crate) fn generate_rule(
     class_name: &str,
     key: &str,
-    values: &Vec<String>,
+    values: &PreRuleValue,
     pseudos: &mut Vec<String>,
     at_rules: &mut Vec<String>,
 ) -> InjectableStyle {
     let mut pairs: Vec<Pair> = vec![];
 
-    for value in values {
-        pairs.push(Pair {
+    match values {
+        PreRuleValue::String(value) => pairs.push(Pair {
             key: key.to_string(),
-            value: value.clone(), // Clone value
-        });
+            value: value.clone(),
+        }),
+        PreRuleValue::Vec(values) => values.iter().for_each(|value| {
+            pairs.push(Pair {
+                key: key.to_string(),
+                value: value.clone(),
+            })
+        }),
+        PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
     }
 
     let ltr_pairs: Vec<Pair> = pairs
@@ -317,306 +368,41 @@ pub(crate) fn get_priority(key: &str) -> u16 {
         return 1000;
     }
 
-    return 3000;
+    3000
 }
 
-fn get_css_propty_value_to_transform(
-    css_property: &str,
-    css_property_value: Option<String>,
-) -> String {
-    let css_property_value = match css_property_value {
-        Some(value) => value,
-        None => panic!("css_property_values is empty"),
-    };
-
-    transform_css_property_value_to_str(&css_property, &css_property_value)
-}
-
-pub(crate) fn flatten_raw_style_object(
-    style: &Vec<KeyValueProp>,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
-    pseudos: &mut Vec<String>,
-    at_rules: &mut Vec<String>,
-    options: &StyleXStateOptions,
-    functions: &FunctionMap,
-) -> IndexMap<String, PreRules> {
-    let mut flattened: IndexMap<String, PreRules> = IndexMap::new();
-    for property in style.iter() {
-        let key = get_key_str(property);
-
-        let key_regex = Regex::new(r"var\(--[a-z0-9]+\)").unwrap();
-        let css_property_key = if key_regex.is_match(&key.clone()) {
-            key[4..key.len() - 1].to_string()
-        } else {
-            key.clone()
-        };
-
-        // let style_resulution = if options.style_resolution.is_some() {
-        //     options.style_resolution.clone()
-
-        let expansion_fn = match &options.style_resolution {
-            StyleResolution::ApplicationOrder => {
-                ApplicationOrder::get_expansion_fn(css_property_key.as_str())
-            }
-            _ => todo!(),
-        };
-
-        match property.value.as_ref() {
-            Expr::Array(property_array) => {
-                property_array
-                    .elems
-                    .iter()
-                    .for_each(|propery| match propery {
-                        Option::Some(property) => match property.expr.as_ref() {
-                            Expr::Lit(property_lit) => {
-                                let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-                                    css_property_key.clone(),
-                                    get_string_val_from_lit(property_lit),
-                                    pseudos.clone(),
-                                    at_rules.clone(),
-                                ));
-
-                                flattened.insert(css_property_key.clone(), pre_rule);
-                            }
-                            _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
-                        },
-                        _ => {}
-                    })
-            }
-            Expr::Lit(property_lit) => {
-                let value = get_string_val_from_lit(property_lit);
-
-                let a = css_property_key.clone();
-                let a = a.as_ref();
-
-                let b = value.clone();
-
-                let b = b.as_str();
-                let b = Option::Some(b);
-
-                let pairs = if expansion_fn.clone().is_some() {
-                    expansion_fn.unwrap()(Option::Some(value.as_str()))
-                } else {
-                    vec![OrderPair(a, b).clone()]
-                };
-
-                println!("!!expansion pairs: {:?}", pairs.clone());
-
-                for pair in pairs.iter() {
-                    let property = pair.0.to_string();
-
-                    if let Some(pair_value) = pair.1 {
-                        let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-                            property.clone(),
-                            pair_value.to_string(),
-                            pseudos.clone(),
-                            at_rules.clone(),
-                        ));
-
-                        flattened.insert(property, pre_rule);
-                    } else {
-                        flattened.insert(property, PreRules::NullPreRule(NullPreRule::new()));
-                    }
-                }
-            }
-            Expr::Tpl(tpl) => {
-                let handled_tpl =
-                    handle_tpl_to_expression(tpl, declarations, var_dec_count_map, functions);
-                let result = expr_tpl_to_string(
-                    handled_tpl.as_tpl().unwrap(),
-                    declarations,
-                    var_dec_count_map,
-                    functions,
-                );
-
-                let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-                    css_property_key.clone(),
-                    result,
-                    pseudos.clone(),
-                    at_rules.clone(),
-                ));
-
-                flattened.insert(css_property_key, pre_rule);
-            }
-            Expr::Ident(ident) => {
-                let ident =
-                    get_var_decl_by_ident(ident, declarations, var_dec_count_map, functions);
-
-                match ident {
-                    Some(var_decl) => {
-                        let var_decl_expr = get_expr_from_var_decl(&var_decl);
-
-                        let mut k = property.clone();
-                        k.value = Box::new(var_decl_expr);
-
-                        let inner_flattened = flatten_raw_style_object(
-                            &vec![k],
-                            declarations,
-                            var_dec_count_map,
-                            pseudos,
-                            at_rules,
-                            options,
-                            functions,
-                        );
-
-                        println!("!!before_updated_flattened: {:?}", flattened);
-                        // println!("!!updated_flattened: {:?}", updated_flattened);
-
-                        flattened.extend(inner_flattened);
-                    }
-                    None => panic!("{}", constants::messages::NON_STATIC_VALUE),
-                }
-            }
-            Expr::Bin(bin) => {
-                let result = transform_bin_expr_to_number(
-                    bin,
-                    &mut State::default(),
-                    declarations,
-                    var_dec_count_map,
-                );
-
-                let mut k = property.clone();
-                k.value = Box::new(number_to_expression(result as f64).unwrap());
-
-                let inner_flattened = flatten_raw_style_object(
-                    &vec![k],
-                    declarations,
-                    var_dec_count_map,
-                    pseudos,
-                    at_rules,
-                    options,
-                    functions,
-                );
-
-                flattened.extend(inner_flattened)
-            }
-            Expr::Call(_) => panic!("{}", constants::messages::NON_STATIC_VALUE),
-            Expr::Object(obj) => {
-                if obj.props.is_empty() {
-                    println!("!!obj.props.is_empty(): {:?}", flattened);
-                    return flattened;
-                }
-                let mut equivalent_pairs: IndexMap<String, IndexMap<String, PreRules>> =
-                    IndexMap::new();
-
-                obj.props.iter().for_each(|prop| match prop {
-                    PropOrSpread::Prop(prop) => match prop.as_ref() {
-                        Prop::KeyValue(key_value) => {
-                            let mut inner_key_value: KeyValueProp = key_value.clone();
-                            validate_conditional_styles(&inner_key_value);
-
-                            let condition = get_key_str(&inner_key_value);
-
-                            // inner_key_value.key = css_property_key.clo;
-
-                            if condition.starts_with(":") {
-                                pseudos.push(condition.clone());
-                            } else if condition.starts_with("@") {
-                                at_rules.push(condition.clone());
-                            }
-
-                            inner_key_value.key = PropName::Str(Str {
-                                span: DUMMY_SP,
-                                value: css_property_key.clone().into(),
-                                raw: Option::None,
-                            });
-
-                            println!(
-                                "!!condition: {:#?}, inner_key, {:#?}",
-                                condition, inner_key_value.key
-                            );
-
-                            let pairs = flatten_raw_style_object(
-                                &vec![inner_key_value],
-                                declarations,
-                                var_dec_count_map,
-                                pseudos,
-                                at_rules,
-                                options,
-                                functions,
-                            );
-
-                            println!("!!pairs: {:#?}", pairs);
-                            // equivalent_pairs.extend(pairs);
-                            // for (key, value) in pairs {
-                            //     equivalent_pairs.insert(key, value);
-                            // }
-                            for (property, pre_rule) in pairs {
-                                // if let Some(pre_rule) = pre_rule.downcast_ref::<PreIncludedStylesRule>() {
-                                //     // NOT POSSIBLE, but needed for Flow
-                                //     panic!("stylex.include can only be used at the top-level");
-                                // }
-                                if equivalent_pairs.get(&property).is_none() {
-                                    let mut inner_map = IndexMap::new();
-                                    inner_map.insert(condition.clone(), pre_rule);
-                                    equivalent_pairs.insert(property, inner_map);
-                                } else {
-                                    let inner_map = equivalent_pairs.get_mut(&property).unwrap();
-                                    inner_map.insert(condition.clone(), pre_rule);
-                                }
-                            }
-                        }
-                        _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
-                    },
-                    _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
-                });
-                for (property, obj) in equivalent_pairs.iter() {
-                    let sorted_keys: Vec<&String> = obj.keys().collect();
-                    // sorted_keys.sort(); // Uncomment this line if you want to sort the keys
-
-                    let mut rules: Vec<PreRules> = Vec::new();
-                    for condition in sorted_keys {
-                        rules.push(obj[condition].clone());
-                    }
-
-                    // If there are many conditions with `null` values, we will collapse them into a single `null` value.
-                    // `PreRuleSet::create` takes care of that for us.
-                    flattened.insert(property.clone(), PreRuleSet::create(rules));
-                }
-            }
-            _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
-        };
-    }
-
-    flattened
-}
-
-pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp) {
-    let inner_key = get_key_str(inner_key_value);
-
-    assert!(
-        (inner_key.starts_with(":") || inner_key.starts_with("@") || inner_key == "default"),
-        "{}",
-        constants::messages::INVALID_PSEUDO_OR_AT_RULE,
-    );
-}
-
-pub(crate) fn transform_css_property_value_to_str(
-    css_property: &str,
-    css_property_values: &str,
-) -> String {
-    let css_property_value = css_property_values.trim();
+pub(crate) fn transform_value(key: &str, value: &str) -> String {
+    let css_property_value = value.trim();
 
     let value = match &css_property_value.parse::<f64>() {
         Ok(value) => format!(
             "{0}{1}",
             ((value * 10000.0).round() / 10000.0),
-            get_number_suffix(css_property)
+            get_number_suffix(key)
         ),
         Err(_) => css_property_value.to_string(),
     };
 
-    if css_property == "content"
-        || css_property == "hyphenateCharacter"
-        || css_property == "hyphenate-character"
-    {
-        todo!()
+    if key == "content" || key == "hyphenateCharacter" || key == "hyphenate-character" {
+        let val = value.trim();
+        if Regex::new(r"^attr\([a-zA-Z0-9-]+\)$")
+            .unwrap()
+            .is_match(val)
+        {
+            return val.to_string();
+        }
+        if !(val.starts_with('"') && val.ends_with('"'))
+            && !(val.starts_with('\'') && val.ends_with('\''))
+        {
+            return format!("\"{}\"", val);
+        }
+
+        return val.to_string();
     }
 
-    let result =
-        normalize_css_property_value(css_property, value.as_ref(), &StyleXOptions::default());
+    let result = normalize_css_property_value(key, value.as_ref(), &StyleXOptions::default());
 
+    dbg!(result.clone());
     result
 }
 pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
@@ -652,6 +438,7 @@ pub(crate) fn normalize_css_property_value(
     };
 
     let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
+    dbg!(css_rule.clone(), css_property, css_property_value);
 
     if errors.len() > 0 {
         let error_message = errors.get(0).unwrap().message().to_string();
@@ -661,7 +448,7 @@ pub(crate) fn normalize_css_property_value(
 
     let ast_normalized = match parsed_css {
         Ok(ast) => {
-            let (parsed_css_property_value, _) = swc_parse_css(css_property_value);
+            let (parsed_css_property_value, _) = swc_parse_css(&css_rule.as_str());
 
             let validators: Vec<Validator> = vec![
                 unprefixed_custom_properties_validator,
@@ -687,7 +474,33 @@ pub(crate) fn normalize_css_property_value(
                 parsed_ast = normalizer(parsed_ast);
             }
 
-            stringify(&parsed_ast)
+            let mut rules = vec![];
+
+            for rule in parsed_ast.clone().rules {
+                match rule {
+                    Rule::QualifiedRule(rule) => match rule.as_ref().block.value.get(0).unwrap() {
+                        ComponentValue::Declaration(declaration) => {
+                            let rule =
+                                Rule::ListOfComponentValues(Box::new(ListOfComponentValues {
+                                    span: DUMMY_SP,
+                                    children: declaration.clone().value,
+                                }));
+
+                            rules.push(rule);
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                }
+            }
+
+            let ast_to_stringify = Stylesheet {
+                span: DUMMY_SP,
+                rules,
+            };
+
+            let result = stringify(&ast_to_stringify);
+            result
         }
         Err(err) => {
             panic!("{}", err.message())

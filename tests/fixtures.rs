@@ -31,7 +31,7 @@ fn fixture(input: PathBuf) {
 
             chain!(
                 resolver(unresolved_mark, top_level_mark, false),
-                ModuleTransformVisitor::new_test_classname(
+                ModuleTransformVisitor::new_test_styles(
                     PluginCommentsProxy,
                     Option::Some(StyleXOptionsParams {
                         use_rem_for_font_size: Option::None,
@@ -40,7 +40,7 @@ fn fixture(input: PathBuf) {
                         defined_stylex_css_variables: Option::None,
                         import_sources: Option::None,
                         dev: Option::Some(false),
-                        test: Option::Some(true),
+                        test: Option::Some(false),
                         treeshake_compensation: Option::None,
                         gen_conditional_classes: Option::Some(false),
                         aliases: Option::None,

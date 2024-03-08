@@ -1,7 +1,9 @@
+use core::panic;
+
 use swc_core::{
     common::comments::Comments,
     ecma::{
-        ast::{ImportDecl, ImportSpecifier, ModuleExportName},
+        ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier, ModuleExportName},
         visit::FoldWith,
     },
 };
@@ -32,89 +34,138 @@ where
             let src = &import_decl.src;
             let declaration = &src.value;
 
-            if self.state.stylex_import.iter().any(|import| match import {
-                ImportSources::Regular(regular) => regular.eq(&declaration.to_string()),
-                ImportSources::Named(named) => named.from.eq(&declaration.to_string()),
-            }) {
+            let import_sources = self.state.import_sources_stringified();
+
+            if import_sources.contains(&declaration.to_string()) {
+                let source_path = import_decl.src.value.to_string();
+
                 for specifier in &import_decl.specifiers {
                     match &specifier {
                         ImportSpecifier::Default(import_specifier) => {
-                            self.state
-                                .stylex_create_import
-                                .insert(import_specifier.local.to_id());
+                            if self.state.import_as(&import_decl.src.value).is_none() {
+                                let local_name = import_specifier.local.sym.to_string();
+
+                                println!("!!!! import_decl: {:?}", source_path);
+                                println!("!!!! import_specifier: {:?}", local_name);
+
+                                self.state.import_paths.insert(source_path.clone());
+
+                                self.state
+                                    .stylex_import
+                                    .insert(ImportSources::Regular(local_name));
+                            };
                         }
                         ImportSpecifier::Namespace(import_specifier) => {
-                            self.state
-                                .stylex_create_import
-                                .insert(import_specifier.local.to_id());
+                            if self.state.import_as(&import_decl.src.value).is_none() {
+                                let local_name = import_specifier.local.sym.to_string();
+
+                                self.state.import_paths.insert(source_path.clone());
+
+                                self.state
+                                    .stylex_import
+                                    .insert(ImportSources::Regular(local_name));
+                            }
                         }
                         ImportSpecifier::Named(import_specifier) => {
+                            let local_name = import_specifier.local.sym.to_string();
+
                             match &import_specifier.imported {
-                                Some(imported) => match imported {
-                                    ModuleExportName::Ident(ident) => {
-                                        if ident.sym.as_str() == "create" {
-                                            self.state
-                                                .stylex_create_import
-                                                .insert(import_specifier.local.to_id());
-                                        } else {
-                                            panic!(
-                                                "{}",
-                                                constants::messages::MUST_BE_DEFAULT_IMPORT
-                                            )
-                                        }
-                                    }
-                                    ModuleExportName::Str(_) => {
-                                        panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
-                                    }
-                                },
+                                Some(imported) => {
+                                    let imported_name = match imported {
+                                        ModuleExportName::Ident(ident) => ident.sym.to_string(),
+                                        ModuleExportName::Str(str) => str.value.to_string(),
+                                    };
+
+                                    self.fill_stylex_create_import(
+                                        &source_path,
+                                        imported_name,
+                                        &local_name,
+                                        import_specifier,
+                                    );
+
+                                    // panic!(
+                                    //     "!!!imported_name: {:?}, local_name: {:?}",
+                                    //     imported_name, local_name
+                                    // );
+
+                                    // match imported {
+                                    //     ModuleExportName::Ident(ident) => {
+                                    //         if ident.sym.as_str() == "create" {
+                                    //             self.state
+                                    //                 .stylex_create_import
+                                    //                 .insert(import_specifier.local.to_id());
+                                    //         } else {
+                                    //             panic!(
+                                    //                 "{}",
+                                    //                 constants::messages::MUST_BE_DEFAULT_IMPORT
+                                    //             )
+                                    //         }
+                                    //     }
+                                    //     ModuleExportName::Str(_) => {
+                                    //         panic!(
+                                    //             "{}",
+                                    //             constants::messages::MUST_BE_DEFAULT_IMPORT
+                                    //         )
+                                    //     }
+                                    // }
+                                }
                                 None => {
-                                    let named_custom_imports = self
-                                        .state
-                                        .stylex_import
-                                        .clone()
-                                        .into_iter()
-                                        .filter(|import| import.is_named_export())
-                                        .map(|import| match import {
-                                            ImportSources::Named(named) => named,
-                                            _ => panic!("Not named import"),
-                                        })
-                                        .collect::<Vec<NamedImportSource>>();
+                                    let imported_name = import_specifier.local.sym.to_string();
 
-                                    let mut found_custom_import = false;
+                                    self.fill_stylex_create_import(
+                                        &source_path,
+                                        imported_name,
+                                        &local_name,
+                                        import_specifier,
+                                    );
 
-                                    if named_custom_imports.len() > 0 {
-                                        let named_import = named_custom_imports
-                                            .iter()
-                                            .find(|import| import.from.eq(&declaration.to_string()))
-                                            .unwrap();
+                                    // let named_custom_imports = self
+                                    //     .state
+                                    //     .stylex_import
+                                    //     .clone()
+                                    //     .into_iter()
+                                    //     .filter(|import| import.is_named_export())
+                                    //     .map(|import| match import {
+                                    //         ImportSources::Named(named) => named,
+                                    //         _ => panic!("Not named import"),
+                                    //     })
+                                    //     .collect::<Vec<NamedImportSource>>();
 
-                                        if named_import
-                                            .r#as
-                                            .eq(&import_specifier.local.sym.as_str())
-                                        {
-                                            self.state
-                                                .stylex_create_import
-                                                .insert(import_specifier.local.to_id());
-                                        }
+                                    // let mut found_custom_import = false;
 
-                                        found_custom_import = true;
-                                    }
+                                    // if named_custom_imports.len() > 0 {
+                                    //     let named_import = named_custom_imports
+                                    //         .iter()
+                                    //         .find(|import| import.from.eq(&declaration.to_string()))
+                                    //         .unwrap();
 
-                                    if !found_custom_import {
-                                        match import_specifier.local.sym.as_str() {
-                                            "create" => {
-                                                self.state
-                                                    .stylex_create_import
-                                                    .insert(import_specifier.local.to_id());
-                                            }
-                                            _ => {
-                                                panic!(
-                                                    "{}",
-                                                    constants::messages::MUST_BE_DEFAULT_IMPORT
-                                                )
-                                            }
-                                        };
-                                    }
+                                    //     if named_import
+                                    //         .r#as
+                                    //         .eq(&import_specifier.local.sym.as_str())
+                                    //     {
+                                    //         self.state
+                                    //             .stylex_create_import
+                                    //             .insert(import_specifier.local.to_id());
+                                    //     }
+
+                                    //     found_custom_import = true;
+                                    // }
+
+                                    // if !found_custom_import {
+                                    //     match import_specifier.local.sym.as_str() {
+                                    //         "create" => {
+                                    //             self.state
+                                    //                 .stylex_create_import
+                                    //                 .insert(import_specifier.local.to_id());
+                                    //         }
+                                    //         _ => {
+                                    //             panic!(
+                                    //                 "{}",
+                                    //                 constants::messages::MUST_BE_DEFAULT_IMPORT
+                                    //             )
+                                    //         }
+                                    //     };
+                                    // }
                                 }
                             }
                         }
@@ -122,13 +173,71 @@ where
                 }
             }
 
-            if self.state.stylex_create_import.len() == 0 {
+            if self.state.import_paths.len() == 0 {
                 import_decl
             } else {
                 import_decl.fold_children_with(self)
             }
         } else {
             import_decl
+        }
+    }
+
+    fn fill_stylex_create_import(
+        &mut self,
+        source_path: &String,
+        imported_name: String,
+        local_name: &String,
+        import_specifier: &ImportNamedSpecifier,
+    ) {
+        if let Some(source_path) = self.state.import_as(source_path) {
+            if source_path.eq(&imported_name) {
+                self.state.import_paths.insert(source_path.clone());
+
+                self.state
+                    .stylex_import
+                    .insert(ImportSources::Regular(local_name.clone()));
+            }
+        }
+
+        if self.state.import_as(source_path).is_none() {
+            self.state.import_paths.insert(source_path.clone());
+
+            let local_name_ident = import_specifier.local.to_id();
+
+            match imported_name.as_str() {
+                "create" => {
+                    self.state.stylex_create_import.insert(local_name_ident);
+                }
+
+                "props" => {
+                    todo!("include");
+                }
+                "attrs" => {
+                    todo!("include");
+                }
+                "keyframes" => {
+                    todo!("include");
+                }
+                "include" => {
+                    self.state.stylex_include_import.insert(local_name_ident);
+                }
+                "firstThatWorks" => {
+                    todo!("include");
+                }
+                "defineVars" => {
+                    todo!("include");
+                }
+                "createTheme" => {
+                    todo!("include");
+                }
+                "types" => {
+                    todo!("include");
+                }
+                _ => {
+                    panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
+                }
+            }
         }
     }
 }

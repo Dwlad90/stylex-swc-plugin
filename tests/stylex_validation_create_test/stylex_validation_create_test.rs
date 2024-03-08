@@ -12,7 +12,7 @@ fn must_be_bound_to_a_variable() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -31,7 +31,7 @@ fn must_be_called_at_top_level() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -52,7 +52,7 @@ fn its_only_argument_must_be_a_single_object_non_object() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -71,7 +71,7 @@ fn its_only_argument_must_be_a_single_object_argument() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -90,7 +90,7 @@ fn its_only_argument_must_be_a_single_object_illegal_argument_length() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -103,7 +103,7 @@ fn its_only_argument_must_be_a_single_object_illegal_argument_length() {
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     its_only_argument_must_be_a_single_object_correct_argument_length,
     r#"
         import s from "@stylexjs/stylex";
@@ -124,7 +124,7 @@ fn namespace_values_must_be_an_object() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -145,7 +145,7 @@ fn namespace_keys_must_be_a_static_value() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -168,7 +168,7 @@ fn properties_must_be_a_static_value() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -185,7 +185,7 @@ fn properties_must_be_a_static_value() {
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     namespace_values_can_be_an_empty_object,
     r#"
         import s from "@stylexjs/stylex";
@@ -198,7 +198,7 @@ test!(
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     values_can_be_static_arrays_of_number_or_string_in_stylex_create,
     r#"
     import stylex from "@stylexjs/stylex";
@@ -228,7 +228,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -251,7 +251,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_illegal_pro
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -274,7 +274,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -297,7 +297,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -314,7 +314,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     values_can_reference_local_bindings_in_stylex_create,
     r#"
     import stylex from "@stylexjs/stylex";
@@ -335,7 +335,7 @@ test!(
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     values_can_be_pure_complex_expressions_in_stylex_create,
     r#"
     import stylex from "@stylexjs/stylex";
@@ -352,7 +352,7 @@ test!(
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     values_can_be_template_literal_expressions_in_stylex_create,
     r#"
     import stylex from "@stylexjs/stylex";
@@ -369,7 +369,7 @@ test!(
 
 // test!(
 //     Default::default(),
-//     |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+//     |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
 //     pseudo_classes_must_start_with_colon_character,
 //     r#"
 //     import stylex from "@stylexjs/stylex";
@@ -385,7 +385,7 @@ test!(
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     pseudo_classes_must_start_with_colon_character,
     r#"
     import stylex from "@stylexjs/stylex";
@@ -402,7 +402,7 @@ test!(
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     pseudo_classes_invalid_pseudo,
     r#"
         import stylex from "@stylexjs/stylex";
@@ -426,7 +426,7 @@ fn pseudo_classes_throw_invalid_pseudo() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None),
+        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
         r#"
             import stylex from "@stylexjs/stylex";
 
@@ -446,7 +446,7 @@ fn pseudo_classes_throw_invalid_pseudo() {
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_classname(tr.comments.clone(), Option::None) },
+    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
     pseudo_classes_cannot_be_nested,
     r#"
         import stylex from "@stylexjs/stylex";

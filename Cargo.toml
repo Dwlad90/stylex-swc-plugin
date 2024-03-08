@@ -25,6 +25,8 @@ swc_core = { version = "0.90.13", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
   # "swc_ecma_parser",
   # "ecma_ast",
 

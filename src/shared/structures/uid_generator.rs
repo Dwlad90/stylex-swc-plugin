@@ -32,8 +32,8 @@ impl UidGenerator {
     pub fn clear(&self) {
         self.COUNTERS.remove(&self.prefix);
     }
-    pub fn generate(&self) -> (String, Mark) {
-        let mark = Mark::fresh(Mark::root());
+    pub fn generate(&self) -> (String) {
+        // let mark = Mark::fresh(Mark::root());
         let counter = self.COUNTERS.get(&self.prefix).unwrap();
         let count = counter.fetch_add(1, Ordering::SeqCst);
         let unique_name = format!(
@@ -45,13 +45,13 @@ impl UidGenerator {
                 count.to_string()
             }
         );
-        (unique_name, mark)
+        (unique_name)
     }
 
     /// Generates a unique identifier.
     pub fn generate_ident(&self) -> Ident {
-        let (unique_name, mark) = self.generate();
+        let (unique_name) = self.generate();
 
-        Ident::new(unique_name.into(), DUMMY_SP.apply_mark(mark))
+        Ident::new(unique_name.into(), DUMMY_SP)
     }
 }

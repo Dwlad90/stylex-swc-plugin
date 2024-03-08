@@ -1,10 +1,5 @@
 pub(crate) mod transform;
-pub mod shared {
-    pub(crate) mod constants;
-    pub(crate) mod enums;
-    pub mod structures;
-    pub mod utils;
-}
+pub mod shared;
 
 use shared::structures::stylex_options::StyleXOptionsParams;
 pub use transform::ModuleTransformVisitor;

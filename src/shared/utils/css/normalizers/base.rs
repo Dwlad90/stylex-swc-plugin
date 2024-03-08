@@ -1,5 +1,8 @@
 use swc_core::css::{
-    ast::{ComponentValue, DimensionToken, ListOfComponentValues, Stylesheet, Token},
+    ast::{
+        ComponentValue, Declaration, DeclarationName, DimensionToken, Ident, ListOfComponentValues,
+        Stylesheet, Token,
+    },
     visit::{Fold, FoldWith},
 };
 
@@ -9,6 +12,7 @@ use swc_core::css::codegen::{
     CodeGenerator, CodegenConfig, Emit,
 };
 
+use crate::shared::utils::common::dashify;
 #[cfg(test)]
 use crate::shared::utils::css::swc_parse_css;
 
@@ -23,6 +27,11 @@ impl Fold for CssFolder {
 
         list.fold_children_with(self)
     }
+    fn fold_declaration(&mut self, declaration: Declaration) -> Declaration {
+        let declaration = kebab_case_normalizer(declaration);
+
+        declaration
+    }
     fn fold_token(&mut self, token: Token) -> Token {
         match token {
             Token::Dimension(mut dimension) => {
@@ -30,7 +39,7 @@ impl Fold for CssFolder {
                 let mut dimension = zero_demention_normalizer(&mut dimension).clone();
                 let dimension = leading_zero_normalizer(&mut dimension);
 
-                return Token::Dimension(dimension.clone());
+                Token::Dimension(dimension.clone())
             }
             _ => token,
         }
@@ -43,7 +52,7 @@ fn whitespace_normalizer(components: &Vec<ComponentValue>) -> Vec<ComponentValue
         .into_iter()
         .filter(|child| match child {
             ComponentValue::PreservedToken(preserved_token) => match &preserved_token.token {
-                swc_core::css::ast::Token::WhiteSpace { value: _ } => false,
+                Token::WhiteSpace { value: _ } => false,
                 _ => true,
             },
             _ => true,
@@ -88,6 +97,40 @@ fn leading_zero_normalizer(dimension: &mut Box<DimensionToken>) -> &Box<Dimensio
     dimension
 }
 
+fn kebab_case_normalizer(mut declaration: Declaration) -> Declaration {
+    match &declaration.name {
+        DeclarationName::Ident(ident) => {
+            if !ident.value.eq("transitionProperty") && !ident.value.eq("willChange") {
+                return declaration;
+            }
+        }
+        DeclarationName::DashedIdent(_) => return declaration,
+    }
+
+    declaration.value = declaration
+        .value
+        .into_iter()
+        .map(|value| match value {
+            ComponentValue::Ident(ident) => {
+                let ident = Ident {
+                    value: dashify(ident.value.as_str()).into(),
+                    raw: Option::None,
+                    span: ident.span,
+                };
+
+                ComponentValue::Ident(Box::new(ident))
+            }
+            _ => value,
+        })
+        .collect();
+
+    // if !declaration.value.starts_with("--") {
+    //    declaration.raw_value = dashify(declaration.raw_value.as_str()).into();
+    // };
+
+    declaration
+}
+
 pub(crate) fn base_normalizer(ast: Stylesheet) -> Stylesheet {
     let mut folder = CssFolder;
 
@@ -98,7 +141,7 @@ pub(crate) fn base_normalizer(ast: Stylesheet) -> Stylesheet {
 fn should_normalize() {
     assert_eq!(
         stringify(&base_normalizer(
-            swc_parse_css("opacity, margin-top").0.unwrap()
+            swc_parse_css("opacity, margin-top").0.unwrap(),
         )),
         "opacity,margin-top"
     );

@@ -26,7 +26,7 @@ const _stylex$props = {
     }
 };
 export default function Home() {
-    const { className, style } = _stylex$props;
+    const { className, style } = stylex.props(s.main, s.title);
     return <main className={className} style={style}>
 
       Main

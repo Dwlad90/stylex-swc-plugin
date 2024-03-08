@@ -14,7 +14,7 @@ where
             return expr;
         }
 
-        if self.cycle == ModuleCycle::Processing {
+        if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {
             if let Some(value) = self.transform_call_expression(&mut expr) {
                 return value;
             }

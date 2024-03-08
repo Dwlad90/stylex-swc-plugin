@@ -295,7 +295,6 @@ test!(
     "#
 );
 
-
 test!(
     Syntax::Typescript(TsConfig {
         tsx: true,
@@ -315,9 +314,6 @@ test!(
     "#
 );
 
-
-
-
 test!(
     Syntax::Typescript(TsConfig {
         tsx: true,
@@ -335,7 +331,6 @@ test!(
     "#
 );
 
-
 test!(
     Syntax::Typescript(TsConfig {
         tsx: true,
@@ -352,5 +347,22 @@ test!(
             }
         });
         stylex.props(styles.foo);
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    uses_stylex_first_that_works_correctly,
+    r#"
+        import stylex from 'stylex';
+        export const styles = stylex.create({
+            foo: {
+                position: stylex.firstThatWorks('sticky', 'fixed'),
+            }
+        });
     "#
 );

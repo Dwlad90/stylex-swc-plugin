@@ -23,8 +23,8 @@ use crate::{
     StyleXOptionsParams,
 };
 
-mod transform_stylex_create;
 mod fold;
+mod transform_stylex_fns;
 
 pub struct ModuleTransformVisitor<C>
 where
@@ -164,8 +164,8 @@ where
 
                 println!("!!!declaration: {:?}\n\n", declaration);
 
-                if declaration.is_some() {
-                    let value = self.transform_call_expression_to_styles_expr(&ex);
+                if let Some(_) = declaration {
+                    let value = self.transform_call_expression_to_stylex_expr(&ex);
                     // let value = if self.state.options.runtime_injection.is_some() {
                     // } else {
                     //     self.transform_call_expression_to_css_map_expr(&ex)

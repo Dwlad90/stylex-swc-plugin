@@ -18,7 +18,10 @@ where
         if !self.state.stylex_import.is_empty() || !self.state.import_paths.is_empty() {
             validate_style_x_create(&module, &self.state);
 
-            self.cycle = ModuleCycle::Processing;
+            self.cycle = ModuleCycle::TransformEnter;
+            let module = module.clone().fold_children_with(self);
+
+            self.cycle = ModuleCycle::TransformExit;
             let module = module.clone().fold_children_with(self);
 
             let module = if self.state.options.runtime_injection.is_some() {

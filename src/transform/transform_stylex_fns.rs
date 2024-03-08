@@ -1,6 +1,7 @@
 use core::panic;
 use std::collections::HashMap;
 
+use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Id, Ident, KeyValueProp, Lit, Null};
@@ -10,6 +11,7 @@ use swc_core::{
 };
 
 use crate::shared::constants;
+use crate::shared::enums::ModuleCycle;
 use crate::shared::structures::evaluate_result::EvaluateResultValue;
 use crate::shared::structures::flat_compiled_styles::{
     FlatCompiledStyles, FlatCompiledStylesValue,
@@ -25,6 +27,7 @@ use crate::shared::utils::common::{
 use crate::shared::utils::css::factories::object_expression_factory;
 use crate::shared::utils::css::stylex::evaluate_style_x_create_arg::evaluate_style_x_create_arg;
 use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
+use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
 use crate::shared::utils::js::stylex::stylex_include::stylex_include;
 use crate::shared::utils::stylex::js_to_expr::{
     convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
@@ -36,38 +39,38 @@ impl<C> ModuleTransformVisitor<C>
 where
     C: Comments,
 {
-    pub(crate) fn transform_call_expression_to_css_map_expr(
-        &mut self,
-        ex: &CallExpr,
-    ) -> Option<Expr> {
-        if let Callee::Expr(callee) = &ex.callee {
-            if let Expr::Member(member) = callee.as_ref() {
-                match member.prop.clone() {
-                    MemberProp::Ident(ident) => {
-                        match format!("{}", ident.sym).as_str() {
-                            "create" => {
-                                if let Some(value) = self.proccess_create_css_call(ex) {
-                                    return Option::Some(value);
-                                }
-                            }
-                            "props" => {
-                                return Option::Some(Expr::Ident(Ident::new(
-                                    "_stylex$props".into(),
-                                    DUMMY_SP,
-                                )));
-                            }
-                            _ => {}
-                        };
-                    }
-                    _ => {}
-                }
-            }
-        }
+    // pub(crate) fn transform_call_expression_to_css_map_expr(
+    //     &mut self,
+    //     ex: &CallExpr,
+    // ) -> Option<Expr> {
+    //     if let Callee::Expr(callee) = &ex.callee {
+    //         if let Expr::Member(member) = callee.as_ref() {
+    //             match member.prop.clone() {
+    //                 MemberProp::Ident(ident) => {
+    //                     match format!("{}", ident.sym).as_str() {
+    //                         "create" => {
+    //                             if let Some(value) = self.proccess_create_css_call(ex) {
+    //                                 return Option::Some(value);
+    //                             }
+    //                         }
+    //                         "props" => {
+    //                             return Option::Some(Expr::Ident(Ident::new(
+    //                                 "_stylex$props".into(),
+    //                                 DUMMY_SP,
+    //                             )));
+    //                         }
+    //                         _ => {}
+    //                     };
+    //                 }
+    //                 _ => {}
+    //             }
+    //         }
+    //     }
 
-        return Option::None;
-    }
+    //     return Option::None;
+    // }
 
-    pub(crate) fn transform_call_expression_to_styles_expr(
+    pub(crate) fn transform_call_expression_to_stylex_expr(
         &mut self,
         ex: &CallExpr,
     ) -> Option<Expr> {
@@ -90,7 +93,7 @@ where
             }
         }
 
-        return Option::None;
+        Option::None
     }
 
     fn transform_styles_ident_create(
@@ -98,25 +101,24 @@ where
         ident: Ident,
         ex: &CallExpr,
     ) -> Option<Option<Expr>> {
-        if self.state.stylex_create_import.contains(&ident.to_id()) {
-            if let Some(value) = self.transform_styles_create(ex, &mut self.state.clone()) {
-                return Some(Option::Some(value));
-            }
-        }
-        match format!("{}", ident.sym).as_str() {
-            "create" => {
+        if self.cycle == ModuleCycle::TransformEnter {
+            if self.state.stylex_create_import.contains(&ident.to_id()) {
                 if let Some(value) = self.transform_styles_create(ex, &mut self.state.clone()) {
                     return Some(Option::Some(value));
                 }
             }
-            "props" => {
-                return Option::Some(Option::Some(Expr::Ident(Ident::new(
-                    "_stylex$props".into(),
-                    DUMMY_SP,
-                ))));
+
+            if let Some(value) = self.transform_styles_create(ex, &mut self.state.clone()) {
+                return Some(Option::Some(value));
             }
-            _ => {}
-        };
+        }
+
+        if self.cycle == ModuleCycle::TransformExit {
+            eprintln!(
+                "{}",
+                Colorize::yellow("!!!! ModuleCycle::TransformExit !!!!")
+            );
+        }
 
         None
     }
@@ -245,9 +247,7 @@ where
                             };
 
                             let first_that_works_fn = FunctionConfig {
-                                fn_ptr: FunctionType::ArrayArgs(|arg| {
-                                    panic!("FirstThatWorks not implemented")
-                                }),
+                                fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
                                 takes_path: false,
                             };
 

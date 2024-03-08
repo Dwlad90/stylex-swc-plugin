@@ -20,7 +20,7 @@ where
             return export_default_expr;
         }
 
-        if self.cycle == ModuleCycle::Processing {
+        if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {
             match &mut export_default_expr.expr.as_mut() {
                 Expr::Paren(paren) => {
                     if let Some(value) = self.transform_call_expression(&mut paren.expr) {

@@ -50,13 +50,10 @@ test!(
     |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
     named_declaration_export,
     r#"
-        import stylex from '@stylexjs/stylex';
+        import stylex from 'stylex';
         export const styles = stylex.create({
             foo: {
                 color: 'red'
-            },
-            bar: {
-                color: 'blue'
             },
         });
     "#

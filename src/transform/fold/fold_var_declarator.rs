@@ -20,7 +20,10 @@ where
         // let var_declarator_id = var_declarator.clone().name.as_ident().unwrap().to_id();
         // let stylex_var_declarator = self.declaration.clone().unwrap();
 
-        if self.cycle != ModuleCycle::Initializing && self.cycle != ModuleCycle::Processing {
+        if self.cycle != ModuleCycle::Initializing
+            && self.cycle != ModuleCycle::TransformEnter
+            && self.cycle != ModuleCycle::TransformExit
+        {
             return var_declarator.fold_children_with(self);
         }
 

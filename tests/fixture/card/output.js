@@ -64,6 +64,6 @@ const _stylex$props = {
     }
 };
 export default function Card() {
-    const { className, style } = _stylex$props;
+    const { className, style } = s.props(s.main, s.title);
     return <article className={className} style={style}>Card</article>;
 }

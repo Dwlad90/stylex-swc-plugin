@@ -1,28 +1,8 @@
-use std::cell::RefCell;
-use std::io::Write;
-use std::{rc::Rc, sync::Arc};
-
 use stylex_swc_plugin::ModuleTransformVisitor;
-// use swc_ecma_codegen::{text_writer::JsWriter, Emitter};
-
-use swc_core::ecma::codegen::text_writer::JsWriter;
-use swc_core::ecma::codegen::Emitter;
-use swc_core::{
-    common::{
-        comments::Comments,
-        errors::{ColorConfig, Handler},
-        FileName, Globals, SourceMap,
-    },
-    ecma::{
-        ast::{EsVersion, Module},
-        parser::{lexer::Lexer, Parser, StringInput, Syntax, TsConfig},
-        transforms::testing::test,
-        visit::FoldWith,
-    },
-    plugin::proxies::PluginCommentsProxy,
+use swc_core::ecma::{
+    parser::{Syntax, TsConfig},
+    transforms::testing::test,
 };
-
-use crate::utils::transform::{parse_js, stringify_js};
 
 test!(
     Syntax::Typescript(TsConfig {

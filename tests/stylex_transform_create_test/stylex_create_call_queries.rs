@@ -10,21 +10,23 @@ test!(
         ..Default::default()
     }),
     |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
-    transforms_before_and_after,
+    transforms_media_queries,
     r#"
         import stylex from 'stylex';
         const styles = stylex.create({
-            foo: {
-                '::before': {
-                    color: 'red'
+            default: {
+                backgroundColor: 'red',
+                '@media (min-width: 1000px)': {
+                    backgroundColor: 'blue',
                 },
-                '::after': {
-                    color: 'blue'
+                '@media (min-width: 2000px)': {
+                    backgroundColor: 'purple',
                 },
             },
         });
     "#
 );
+
 
 test!(
     Syntax::Typescript(TsConfig {
@@ -32,32 +34,17 @@ test!(
         ..Default::default()
     }),
     |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
-    transforms_placeholder,
+    transforms_supports_queries,
     r#"
         import stylex from 'stylex';
         const styles = stylex.create({
-            foo: {
-                '::placeholder': {
-                    color: 'gray',
+            default: {
+                backgroundColor: 'red',
+                '@supports (hover: hover)': {
+                    backgroundColor: 'blue',
                 },
-            },
-        });
-    "#
-);
-
-test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
-    transforms_thumb,
-    r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            foo: {
-                '::thumb': {
-                    width: 16,
+                '@supports not (hover: hover)': {
+                    backgroundColor: 'purple',
                 },
             },
         });

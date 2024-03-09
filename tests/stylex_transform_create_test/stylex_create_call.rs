@@ -1,25 +1,7 @@
-use std::cell::RefCell;
-use std::io::Write;
-use std::{rc::Rc, sync::Arc};
-
 use stylex_swc_plugin::ModuleTransformVisitor;
-// use swc_ecma_codegen::{text_writer::JsWriter, Emitter};
-
-use swc_core::ecma::codegen::text_writer::JsWriter;
-use swc_core::ecma::codegen::Emitter;
-use swc_core::{
-    common::{
-        comments::Comments,
-        errors::{ColorConfig, Handler},
-        FileName, Globals, SourceMap,
-    },
-    ecma::{
-        ast::{EsVersion, Module},
-        parser::{lexer::Lexer, Parser, StringInput, Syntax, TsConfig},
-        transforms::testing::test,
-        visit::FoldWith,
-    },
-    plugin::proxies::PluginCommentsProxy,
+use swc_core::ecma::{
+    parser::{Syntax, TsConfig},
+    transforms::testing::test,
 };
 
 use crate::utils::transform::{parse_js, stringify_js};
@@ -379,6 +361,48 @@ test!(
         const styles = stylex.create({
             default: {
                 boxShadow: '0px 2px 4px var(--shadow-1)',
+            }
+        });
+    "#
+);
+
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    auto_expands_shorthands,
+    r#"
+        import stylex from 'stylex';
+        const borderRadius = 2;
+        const styles = stylex.create({
+            default: {
+                margin: 'calc((100% - 50px) * 0.5) 20px 0',
+            },
+            error: {
+                borderColor: 'red blue',
+                borderStyle: 'dashed',
+                borderWidth: '0 0 2px 0',
+            },
+            root: {
+                borderWidth: 1,
+                borderStyle: 'solid',
+                borderColor: 'var(--divider)',
+                borderRadius: borderRadius * 2,
+                borderBottomWidth: '5px',
+                borderBottomStyle: 'solid',
+                borderBottomColor: 'red',
+            },
+            short: {
+                padding: 'calc((100% - 50px) * 0.5) var(--rightpadding, 20px)',
+                paddingTop: 0,
+            },
+            valid: {
+                borderColor: 'green',
+                borderStyle: 'solid',
+                borderWidth: 1,
             }
         });
     "#

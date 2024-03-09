@@ -6,14 +6,12 @@ pub(crate) mod tests;
 pub(crate) mod validators;
 
 use core::panic;
-use std::collections::HashMap;
 
 use crate::shared::{
     constants::{
         self,
         long_hand_logical::LONG_HAND_LOGICAL,
         long_hand_physical::LONG_HAND_PHYSICAL,
-        messages::ILLEGAL_PROP_ARRAY_VALUE,
         number_properties::NUMBER_PROPERTY_SUFFIXIES,
         priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
         shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
@@ -21,56 +19,33 @@ use crate::shared::{
         unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
     },
     structures::{
-        application_order::ApplicationOrder,
-        functions::FunctionMap,
-        injectable_style::InjectableStyle,
-        null_pre_rule::NullPreRule,
-        order::Order,
-        order_pair::OrderPair,
-        pair::Pair,
-        pre_rule::{self, PreRule, PreRuleValue, PreRules, StylesPreRule},
-        pre_rule_set::PreRuleSet,
-        stylex_options::{StyleResolution, StyleXOptions},
-        stylex_state_options::StyleXStateOptions,
+        injectable_style::InjectableStyle, pair::Pair, pre_rule::PreRuleValue,
+        stylex_options::StyleXOptions,
     },
-    utils::common::{
-        dashify, expr_tpl_to_string, get_key_str, get_key_values_from_object,
-        handle_tpl_to_expression, hash_css,
+    utils::{
+        common::{dashify, hash_css},
+        css::normalizers::whitespace_normalizer::whitespace_normalizer,
     },
 };
 use convert_case::{Case, Casing};
 
-use indexmap::IndexMap;
 use regex::Regex;
 use swc_core::{
-    // base::Compiler,
-    common::{input::StringInput, source_map::Pos, BytePos, DUMMY_SP},
+    common::{input::StringInput, source_map::Pos, BytePos},
     css::{
-        ast::{
-            ComponentValue, Dimension, DimensionToken, Ident, Length, ListOfComponentValues,
-            NumberType, QualifiedRulePrelude, Rule, Stylesheet, Token, TokenAndSpan,
-        },
+        ast::{Ident, Stylesheet},
         codegen::{
             writer::basic::{BasicCssWriter, BasicCssWriterConfig},
             CodeGenerator, CodegenConfig, Emit,
         },
         parser::{error::Error, parse_string_input, parser::ParserConfig},
     },
-    ecma::{
-        ast::{Expr, Id, KeyValueProp, Prop, PropName, PropOrSpread, Str, VarDeclarator},
-        utils::ident,
-    },
 };
 
 use self::{
-    css::{flat_map_expanded_shorthands, generate_ltr, generate_rtl},
+    css::{generate_ltr, generate_rtl},
     normalizers::{base::base_normalizer, convert_font_size_to_rem::convert_font_size_to_rem},
     validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
-};
-
-use super::common::{
-    get_expr_from_var_decl, get_string_val_from_lit, get_var_decl_by_ident, number_to_expression,
-    transform_bin_expr_to_number,
 };
 
 pub(crate) fn convert_style_to_class_name(
@@ -522,15 +497,7 @@ pub(crate) fn normalize_css_property_value(
 
             dbg!(&result);
 
-            let rule_regex = Regex::new(r".*:(.*?)}").unwrap();
-
-            let result = rule_regex
-                .captures(result.as_str())
-                .unwrap()
-                .get(1)
-                .unwrap()
-                .as_str()
-                .to_string();
+            let result = whitespace_normalizer(result);
 
             dbg!(&result);
 
@@ -569,6 +536,7 @@ pub fn stringify(node: &Stylesheet) -> String {
     let mut buf = String::new();
     let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
     let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
+    // let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: false });
 
     let _ = codegen.emit(&node);
 

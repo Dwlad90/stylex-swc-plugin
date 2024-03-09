@@ -2,8 +2,9 @@ use swc_core::{
     common::DUMMY_SP,
     css::{
         ast::{
-            ComponentValue, Declaration, DeclarationName, Dimension, DimensionToken, Ident,
-            ListOfComponentValues, Number, SimpleBlock, Stylesheet, Token,
+            ComponentValue, Declaration, DeclarationName, Delimiter, DelimiterValue, Dimension,
+            DimensionToken, Function, Ident, ListOfComponentValues, Number, SimpleBlock,
+            Stylesheet, Token,
         },
         visit::{Fold, FoldWith},
     },
@@ -35,11 +36,17 @@ impl Fold for CssFolder {
     //     simple_block.fold_children_with(self)
     // }
 
+    // fn fold_token(&mut self,n:Token) -> Token {
+    //     dbg!(&n);
+
+    //     Token::LBrace
+    // }
+
     fn fold_declaration(&mut self, mut declaration: Declaration) -> Declaration {
         let mut declaration = kebab_case_normalizer(&mut declaration).clone();
 
         // NOTE: Whitespace normalizer working out of the box with minify
-        // let declaration = whitespace_normalizer(&mut declaration).clone();
+        // declaration.value = whitespace_normalizer(declaration.value);
 
         declaration.fold_children_with(self)
     }
@@ -50,6 +57,13 @@ impl Fold for CssFolder {
         dimension.clone()
     }
 
+    // NOTE: Whitespace normalizer working out of the box with minify
+    // fn fold_function(&mut self, mut function: Function) -> Function {
+    //     function.value = whitespace_normalizer(function.value);
+
+    //     function
+    // }
+
     // NOTE: Leding zero normalizer working out of the box with minify
     // fn fold_number(&mut self, mut number: Number) -> Number {
     //     leading_zero_normalizer(&mut number);
@@ -58,39 +72,55 @@ impl Fold for CssFolder {
     // }
 }
 
-fn whitespace_normalizer(declaration: &mut Declaration) -> &mut Declaration {
+fn whitespace_normalizer(values: Vec<ComponentValue>) -> Vec<ComponentValue> {
     let mut index = 0;
 
-    declaration.value = declaration
-        .value
-        .clone()
-        .into_iter()
-        .filter(|child| {
+    let values = values.clone();
+
+    let mut a = values
+        .iter()
+        .filter_map(|child| {
+            // dbg!(&child);
             let result = match child {
+                ComponentValue::Delimiter(delimiter) => {
+                    let mut delimiter = delimiter.clone();
+
+                    delimiter.value = DelimiterValue::Comma;
+
+                    dbg!(&delimiter.value, &child.as_delimiter().unwrap().value);
+
+                    // Some(ComponentValue::Delimiter(delimiter))
+                    // None
+
+                    Some(child.clone())
+                }
+                ComponentValue::Dimension(_) => Some(child.clone()),
                 ComponentValue::PreservedToken(preserved_token) => match &preserved_token.token {
                     Token::WhiteSpace { value: _ } => {
-                        let prev_item = declaration.value.get(index - 1);
+                        let prev_item = values.get(index - 1);
 
                         if let Some(ComponentValue::PreservedToken(prev_token)) = prev_item {
                             return match &prev_token.token {
-                                Token::Comma => false,
-                                _ => true,
+                                Token::Comma => None,
+                                _ => Some(child.clone()),
                             };
                         }
 
-                        true
+                        Some(child.clone())
                     }
-                    _ => true,
+                    _ => Some(child.clone()),
                 },
-                _ => true,
+                _ => Some(child.clone()),
             };
 
             index += 1;
             result
         })
-        .collect();
+        .collect::<Vec<ComponentValue>>();
 
-    declaration
+    a.reverse();
+
+    a
 }
 
 fn timing_normalizer(dimension: &mut Dimension) -> &mut Dimension {

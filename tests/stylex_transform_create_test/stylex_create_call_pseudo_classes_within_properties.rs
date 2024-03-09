@@ -35,10 +35,8 @@ test!(
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
-                ':invalpwdijad': {
-                backgroundColor: 'red',
-                color: 'blue',
-                },
+                backgroundColor: {':invalpwdijad': 'red'},
+                color: {':invalpwdijad': 'blue'},
             },
         });
     "#
@@ -55,18 +53,12 @@ test!(
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
-                ':hover': {
-                    color: 'blue',
+                color: {
+                    ':hover': 'blue',
+                    ':active':'red',
+                    ':focus': 'yellow',
+                    ':nth-child(2n)': 'purple',
                 },
-                ':active': {
-                    color: 'red',
-                },
-                ':focus': {
-                    color: 'yellow',
-                },
-                ':nth-child(2n)': {
-                    color: 'purple'
-                }
             },
         });
     "#
@@ -83,8 +75,8 @@ test!(
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
-                ':hover': {
-                    position: ['sticky', 'fixed'],
+                position: {
+                    ':hover': ['sticky', 'fixed'],
                 }
             },
         });

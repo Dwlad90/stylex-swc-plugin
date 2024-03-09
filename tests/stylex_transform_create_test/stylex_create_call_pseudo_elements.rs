@@ -30,14 +30,16 @@ test!(
         ..Default::default()
     }),
     |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
-    transforms_invalid_pseudo_class,
+    transforms_before_and_after,
     r#"
         import stylex from 'stylex';
         const styles = stylex.create({
-            default: {
-                ':invalpwdijad': {
-                backgroundColor: 'red',
-                color: 'blue',
+            foo: {
+                '::before': {
+                    color: 'red'
+                },
+                '::after': {
+                    color: 'blue'
                 },
             },
         });
@@ -50,23 +52,14 @@ test!(
         ..Default::default()
     }),
     |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
-    transforms_valid_pseudo_classes_in_order,
+    transforms_placeholder,
     r#"
         import stylex from 'stylex';
         const styles = stylex.create({
-            default: {
-                ':hover': {
-                    color: 'blue',
+            foo: {
+                '::placeholder': {
+                    color: 'gray',
                 },
-                ':active': {
-                    color: 'red',
-                },
-                ':focus': {
-                    color: 'yellow',
-                },
-                ':nth-child(2n)': {
-                    color: 'purple'
-                }
             },
         });
     "#
@@ -78,14 +71,14 @@ test!(
         ..Default::default()
     }),
     |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
-    transforms_pseudo_class_with_array_value_as_fallbacks,
+    transforms_thumb,
     r#"
         import stylex from 'stylex';
         const styles = stylex.create({
-            default: {
-                ':hover': {
-                    position: ['sticky', 'fixed'],
-                }
+            foo: {
+                '::thumb': {
+                    width: 16,
+                },
             },
         });
     "#

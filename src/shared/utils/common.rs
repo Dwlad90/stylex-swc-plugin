@@ -4,14 +4,13 @@ use std::{
 };
 
 use radix_fmt::radix;
-use regex::Regex;
 use swc_core::{
     common::{FileName, Span, DUMMY_SP},
     ecma::{
         ast::{
-            BinExpr, BinaryOp, BindingIdent, Bool, Expr, ExprOrSpread, Id, Ident, KeyValueProp,
-            Lit, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Tpl, UnaryExpr, UnaryOp,
-            VarDeclarator,
+            BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Id, Ident,
+            KeyValueProp, Lit, Module, ModuleDecl, ModuleItem, Number, ObjectLit, Pat, Prop,
+            PropName, PropOrSpread, Stmt, Tpl, UnaryExpr, UnaryOp, VarDeclarator,
         },
         visit::{Fold, FoldWith},
     },
@@ -19,11 +18,11 @@ use swc_core::{
 
 use crate::shared::{
     constants::{self, messages::ILLEGAL_PROP_VALUE},
+    regex::DASHIFY_REGEX,
     structures::functions::{FunctionMap, FunctionType},
 };
 
 use super::css::stylex::evaluate::{evaluate_cached, State};
-
 
 struct SpanReplacer;
 
@@ -244,6 +243,29 @@ pub(crate) fn get_var_decl_from<'a>(
         }
 
         false
+    })
+}
+
+pub(crate) fn get_var_decl_by_ident_or_member<'a>(
+    declarations: &'a Vec<VarDeclarator>,
+    ident: &'a Ident,
+) -> Option<&'a VarDeclarator> {
+    dbg!(&declarations);
+    declarations.iter().find(|var_declarator| {
+        if let Pat::Ident(binding_indent) = &var_declarator.name {
+            if binding_indent.sym == ident.sym {
+                return true;
+            }
+        }
+
+        var_declarator
+            .init
+            .as_ref()
+            .and_then(|init| init.as_call())
+            .and_then(|call| call.callee.as_expr())
+            .and_then(|callee| callee.as_member())
+            .and_then(|member| member.prop.as_ident())
+            .map_or(false, |member_ident| member_ident.sym == ident.sym)
     })
 }
 
@@ -569,7 +591,7 @@ pub fn binary_expr_to_num(
             }
         }
         BinaryOp::NullishCoalescing => {
-            let mut was_confident = state.confident;
+            let was_confident = state.confident;
             let mut left_confident = state.confident;
             let mut right_confident = state.confident;
 
@@ -809,107 +831,30 @@ pub(crate) fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
 }
 
-pub fn get_value_as_string_from_ident(
-    value_ident: &Ident,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
-) -> String {
-    reduce_ident_count(var_dec_count_map, &value_ident);
+// pub fn get_value_as_string_from_ident(
+//     value_ident: &Ident,
+//     declarations: &Vec<VarDeclarator>,
+//     var_dec_count_map: &mut HashMap<Id, i8>,
+// ) -> String {
+//     reduce_ident_count(var_dec_count_map, &value_ident);
 
-    let var_decl = get_var_decl_from(declarations, &value_ident);
+//     let var_decl = get_var_decl_from(declarations, &value_ident);
 
-    match &var_decl {
-        Some(var_decl) => {
-            let var_decl_expr = get_expr_from_var_decl(var_decl);
+//     match &var_decl {
+//         Some(var_decl) => {
+//             let var_decl_expr = get_expr_from_var_decl(var_decl);
 
-            match &var_decl_expr {
-                Expr::Lit(lit) => get_string_val_from_lit(lit),
-                Expr::Ident(ident) => {
-                    get_value_as_string_from_ident(ident, declarations, var_dec_count_map)
-                }
-                _ => panic!("Value type not supported"),
-            }
-        }
-        None => {
-            println!("value_ident: {:?}", value_ident);
-            panic!("Variable not declared")
-        }
-    }
-}
-
-// fn handle_merge_object_exp(arg: &ExprOrSpread, props_map: &mut IndexMap<String, Expr>) {
-//     match arg.expr.as_ref() {
-//         Expr::Object(obj) => handle_object_param(obj, props_map),
-//         Expr::Lit(lit) => handle_lit_param(lit),
-//         Expr::Ident(ident) => push_shorthand_ident_props(ident, props_map, true),
-//         _ => {
-//             panic!("Argument type not supported: {:?}", arg.expr)
-//         }
-//     }
-// }
-
-// fn handle_object_param(obj: &ObjectLit, props_map: &mut IndexMap<String, Expr>) {
-//     for prop in &obj.props {
-//         match &prop {
-//             PropOrSpread::Spread(spread) => self.handle_spread_prop(spread, props_map),
-//             PropOrSpread::Prop(prop) => self.handle_object_prop(prop, props_map),
-//         };
-//     }
-// }
-
-// fn handle_object_prop(prop: &Box<Prop>, props_map: &mut IndexMap<String, Expr>) {
-//     match prop.as_ref() {
-//         Prop::Shorthand(_) => todo!(),
-//         Prop::KeyValue(key_value) => {
-//             let key = self.get_new_key(key_value);
-
-//             match key_value.value.as_ref() {
-//                 Expr::Object(obj) => self.push_object_to_merge_props(obj, props_map, &key),
-//                 Expr::Ident(ident) => self.push_ident_to_merge_props(ident, props_map, &key),
-//                 Expr::Call(call) => push_call_expr_to_merge_props(call, props_map, &key),
-//                 Expr::Lit(lit) => self.push_lit_to_merge_props(lit, key_value, props_map, &key),
-//                 Expr::Array(arr) => self.push_array_to_merge_props(arr, props_map, &key),
-//                 Expr::Tpl(tpl) => self.push_tpl_to_merge_props(tpl, props_map, key),
-//                 _ => {
-//                     panic!("Type of value not recognized: {:?}", key_value.value)
+//             match &var_decl_expr {
+//                 Expr::Lit(lit) => get_string_val_from_lit(lit),
+//                 Expr::Ident(ident) => {
+//                     get_value_as_string_from_ident(ident, declarations, var_dec_count_map)
 //                 }
+//                 _ => panic!("Value type not supported"),
 //             }
 //         }
-//         _ => {}
-//     };
-// }
-
-// fn push_object_to_merge_props(
-//     obj: &ObjectLit,
-//     props_map: &mut IndexMap<String, Expr>,
-//     key: &String,
-// ) {
-//     let sub_props = process_and_merge_object_lit(obj);
-
-//     push_to_props_map(
-//         props_map,
-//         key.clone(),
-//         Box::new(object_expression_factory(sub_props).expect("Object expression factory failed")),
-//     );
-// }
-
-// fn push_ident_to_merge_props(ident: &Ident, props_map: &mut IndexMap<String, Expr>, key: &String) {
-//     let var_decl = get_var_decl_by_ident(&ident);
-
-//     if let Some(var_decl) = &var_decl {
-//         let var_decl_expr = get_expr_from_var_decl(var_decl);
-
-//         let props = match &var_decl_expr {
-//             Expr::Object(object) => object_to_value_expr_map(object, key),
-//             Expr::Ident(ident) => ident_to_value_expr_map(ident, Some(key.clone())),
-//             Expr::Lit(ident) => push_lit_to_props_expr_map(ident, Some(key.clone())),
-//             _ => {
-//                 todo!("Variable type not supported")
-//             }
-//         };
-
-//         for (key, value) in props {
-//             push_to_props_map(props_map, key, Box::new(value));
+//         None => {
+//             println!("value_ident: {:?}", value_ident);
+//             panic!("Variable not declared")
 //         }
 //     }
 // }
@@ -925,77 +870,6 @@ fn prop_name_eq(a: &PropName, b: &PropName) -> bool {
         _ => false,
     }
 }
-
-// pub(crate) fn deep_merge_props(
-//     props1: &Vec<PropOrSpread>,
-//     props2: &Vec<PropOrSpread>,
-// ) -> ObjectLit {
-//     let mut props = vec![];
-
-//     for prop1 in props1 {
-//         if let PropOrSpread::Prop(prop1) = prop1 {
-//             if let Prop::KeyValue(kv1) = &**prop1 {
-//                 if let Some(PropOrSpread::Prop(prop2)) = props2.iter().find(|prop2| {
-//                     if let PropOrSpread::Prop(prop2) = prop2 {
-//                         if let Prop::KeyValue(kv2) = &**prop2 {
-//                             prop_name_eq(&kv1.key, &kv2.key)
-//                         } else {
-//                             false
-//                         }
-//                     } else {
-//                         false
-//                     }
-//                 }) {
-//                     if let Prop::KeyValue(kv2) = &**prop2 {
-//                         if let Expr::Object(obj1) = &*kv1.value {
-//                             if let Expr::Object(obj2) = &*kv2.value {
-//                                 props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
-//                                     KeyValueProp {
-//                                         key: kv1.key.clone(),
-//                                         value: Box::new(Expr::Object(deep_merge_props(
-//                                             props1, props2,
-//                                         ))),
-//                                     },
-//                                 ))));
-//                                 continue;
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//         props.push(prop1.clone());
-//     }
-
-//     for prop2 in props2 {
-//         if !props.iter().any(|prop1| {
-//             if let PropOrSpread::Prop(prop1) = prop1 {
-//                 if let Prop::KeyValue(kv1) = &**prop1 {
-//                     if let PropOrSpread::Prop(prop2) = prop2 {
-//                         if let Prop::KeyValue(kv2) = &**prop2 {
-//                             prop_name_eq(&kv1.key, &kv2.key)
-//                         } else {
-//                             false
-//                         }
-//                     } else {
-//                         false
-//                     }
-//                 } else {
-//                     false
-//                 }
-//             } else {
-//                 false
-//             }
-//         }) {
-//             props.push(prop2.clone());
-//         }
-//     }
-
-//     ObjectLit {
-//         span: DUMMY_SP, // replace with the appropriate span
-//         props,
-//     }
-// }
 
 pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
     let mut set = HashSet::new();
@@ -1089,7 +963,38 @@ pub(crate) fn get_key_values_from_object(
 }
 
 pub(crate) fn dashify(s: &str) -> String {
-    let re = Regex::new(r"(^|[a-z])([A-Z])").unwrap();
-    let after = re.replace_all(s, "$1-$2");
+    let after = DASHIFY_REGEX.replace_all(s, "$1-$2");
     after.to_lowercase()
+}
+
+pub(crate) fn fill_top_level_expressions(
+    module: &Module,
+    top_level_expressions: &mut Vec<Box<Expr>>,
+) {
+    module.clone().body.iter().for_each(|item| match &item {
+        ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => {
+            if let Decl::Var(decl_var) = &export_decl.decl {
+                for decl in &decl_var.decls {
+                    if let Some(decl) = decl.init.as_ref() {
+                        top_level_expressions.push(decl.clone());
+                    }
+                }
+            }
+        }
+        ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_decl)) => {
+            if let Some(paren) = export_decl.expr.as_paren() {
+                top_level_expressions.push(paren.expr.clone());
+            } else {
+                top_level_expressions.push(export_decl.expr.clone());
+            }
+        }
+        ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) => {
+            for decl in &var.decls {
+                if let Some(decl) = decl.init.as_ref() {
+                    top_level_expressions.push(decl.clone());
+                }
+            }
+        }
+        _ => {}
+    });
 }

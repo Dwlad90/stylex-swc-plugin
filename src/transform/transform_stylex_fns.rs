@@ -32,7 +32,9 @@ use crate::shared::utils::js::stylex::stylex_include::stylex_include;
 use crate::shared::utils::stylex::js_to_expr::{
     convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
 };
-use crate::shared::utils::validators::validate_namespace;
+use crate::shared::utils::validators::{
+    is_create_call, validate_namespace, validate_style_x_create_indent,
+};
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -167,63 +169,27 @@ where
         None
     }
 
-    fn transform_styles_create(&mut self, ex: &CallExpr, state: &mut StateManager) -> Option<Expr> {
-        let first_arg = ex.args.get(0);
-
+    fn transform_styles_create(
+        &mut self,
+        call: &CallExpr,
+        state: &mut StateManager,
+    ) -> Option<Expr> {
         state.in_style_x_create = true;
-        let is_create_ident = ex
-            .callee
-            .as_expr()
-            .and_then(|expr| expr.as_ident())
-            .and_then(|ident| {
-                if state.stylex_create_import.contains(&ident.to_id()) {
-                    Option::Some(true)
-                } else {
-                    Option::None
-                }
-            })
-            .is_some();
-        let is_create_member = ex
-            .callee
-            .as_expr()
-            .and_then(|expr| expr.as_member())
-            .and_then(|member| {
-                if member.obj.is_ident()
-                    && member
-                        .prop
-                        .as_ident()
-                        .and_then(|ident| {
-                            println!(
-                                "!!!!&member.obj.as_ident()?.sym.to_string()!!!: {:?}",
-                                &member.obj.as_ident()?.sym.to_string()
-                            );
-                            if ident.sym.eq("create")
-                                && state
-                                    .stylex_import_stringified()
-                                    .contains(&member.obj.as_ident()?.sym.to_string())
-                            {
-                                Option::Some(true)
-                            } else {
-                                Option::None
-                            }
-                        })
-                        .is_some()
-                {
-                    Option::Some(true)
-                } else {
-                    Option::None
-                }
-            })
-            .is_some();
+        let is_create_call = is_create_call(call, state);
 
-        let is_create = is_create_ident || is_create_member;
+        let result = if is_create_call {
+            let mut has_assignment = false;
+            let mut is_create = false;
 
-        println!(
-            "\n\n!!!!!call: {:?}, is_create_ident: {}, is_create_member: {}\n\n\n",
-            ex, is_create_ident, is_create_member
-        );
+            validate_style_x_create_indent(
+                call,
+                &self.state,
+                &self.declarations,
+                &self.top_level_expressions,
+            );
 
-        let result = if is_create {
+            let first_arg = call.args.get(0);
+
             match first_arg {
                 Some(first_arg) => {
                     match &first_arg.spread {
@@ -350,7 +316,7 @@ where
                                     decl.init
                                         .as_ref()
                                         .unwrap()
-                                        .eq(&Box::new(Expr::Call(ex.clone())))
+                                        .eq(&Box::new(Expr::Call(call.clone())))
                                 });
 
                             if let Some(parent_var_decl) = &parent_var_decl {
@@ -435,7 +401,7 @@ where
                 None => Option::None,
             }
         } else {
-            Option::Some(Expr::Call(ex.clone()))
+            Option::Some(Expr::Call(call.clone()))
         };
 
         state.in_style_x_create = false;

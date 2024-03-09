@@ -6,7 +6,7 @@ use std::{
 
 use swc_core::{
     common::{comments::Comments, FileName},
-    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
+    ecma::ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, VarDeclarator},
 };
 
 use crate::{
@@ -38,6 +38,7 @@ where
     css_output: Vec<MetaData>,
     pub(crate) state: StateManager,
     declarations: Vec<VarDeclarator>,
+    top_level_expressions: Vec<Box<Expr>>,
     var_decl_count_map: HashMap<Id, i8>,
 }
 
@@ -60,6 +61,7 @@ where
             css_output: vec![],
             state,
             declarations: vec![],
+            top_level_expressions: vec![],
             var_decl_count_map: HashMap::new(),
         }
     }
@@ -79,6 +81,7 @@ where
             css_output: vec![],
             state,
             declarations: vec![],
+            top_level_expressions: vec![],
             var_decl_count_map: HashMap::new(),
         }
     }
@@ -107,6 +110,7 @@ where
             props_declaration: Option::None,
             css_output: vec![],
             state,
+            top_level_expressions: vec![],
             declarations: vec![],
             var_decl_count_map: HashMap::new(),
         }

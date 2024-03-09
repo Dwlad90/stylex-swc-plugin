@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use crate::{
-    shared::{enums::ModuleCycle, utils::validators::validate_style_x_create},
+    shared::{enums::ModuleCycle, utils::common::fill_top_level_expressions},
     ModuleTransformVisitor,
 };
 
@@ -16,7 +16,7 @@ where
         let module = module.clone().fold_children_with(self);
 
         if !self.state.stylex_import.is_empty() || !self.state.import_paths.is_empty() {
-            validate_style_x_create(&module, &self.state);
+            fill_top_level_expressions(&module, &mut self.top_level_expressions);
 
             self.cycle = ModuleCycle::TransformEnter;
             let module = module.clone().fold_children_with(self);

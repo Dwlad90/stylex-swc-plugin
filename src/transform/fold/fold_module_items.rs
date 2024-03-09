@@ -29,8 +29,31 @@ where
 {
     pub(crate) fn fold_module_items(&mut self, module_items: Vec<ModuleItem>) -> Vec<ModuleItem> {
         match self.cycle {
-            ModuleCycle::Skip => return module_items,
+            ModuleCycle::Skip => module_items,
             ModuleCycle::Initializing => {
+                module_items
+                    .iter()
+                    .for_each(|module_item| match module_item {
+                        ModuleItem::Stmt(stmp) => match stmp {
+                            Stmt::Decl(decl) => match decl {
+                                Decl::Var(var_decl) => {
+                                    var_decl.decls.iter().for_each(|decl| {
+                                        if let Pat::Ident(_) = &decl.name {
+                                            let var = decl.clone();
+
+                                            if !self.declarations.contains(&var) {
+                                                self.declarations.push(var);
+                                            }
+                                        }
+                                    });
+                                }
+                                _ => {}
+                            },
+                            _ => {}
+                        },
+                        _ => {}
+                    });
+
                 let module_items = module_items.fold_children_with(self);
 
                 if self.state.stylex_create_import.len() == 0 {

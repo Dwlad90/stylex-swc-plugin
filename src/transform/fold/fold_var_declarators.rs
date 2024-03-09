@@ -20,17 +20,7 @@ where
             ModuleCycle::Skip => {
                 return var_declarators;
             }
-            ModuleCycle::Initializing => {
-                var_declarators.iter().for_each(|decl| {
-                    if let Pat::Ident(_) = &decl.name {
-                        let var = decl.clone();
-
-                        if !self.declarations.contains(&var) {
-                            self.declarations.push(var);
-                        }
-                    }
-                });
-            }
+            // ModuleCycle::Initializing => {}
             ModuleCycle::Cleaning => {
                 var_declarators.retain(|decl| {
                     match &decl.name {

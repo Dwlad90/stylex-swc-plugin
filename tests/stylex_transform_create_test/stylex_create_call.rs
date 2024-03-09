@@ -366,7 +366,6 @@ test!(
     "#
 );
 
-
 test!(
     Syntax::Typescript(TsConfig {
         tsx: true,
@@ -405,5 +404,31 @@ test!(
                 borderWidth: 1,
             }
         });
+    "#
+);
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    last_property_wins_even_if_shorthand,
+    r#"
+        import stylex from 'stylex';
+        const borderRadius = 2;
+        const styles = stylex.create({
+            default: {
+                marginTop: 5,
+                marginEnd: 10,
+                marginBottom: 15,
+                marginStart: 20,
+            },
+            override: {
+                marginBottom: 100,
+                margin: 0,
+            }
+        });
+        stylex(styles.default, styles.override);
     "#
 );

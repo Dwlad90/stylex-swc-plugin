@@ -36,7 +36,7 @@ pub(crate) struct ComputedStyle(pub(crate) String, pub(crate) InjectableStyle);
 
 #[derive(Debug, Clone)]
 pub(crate) enum CompiledResult {
-    Null(Option<()>),
+    Null,
     IncludedStyle(IncludedStyle),
     ComputedStyles(Vec<ComputedStyle>),
 }

@@ -61,7 +61,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
                             value: Box::new(string_to_expression(value.clone()).unwrap()),
                         })))
                     }
-                    FlatCompiledStylesValue::Null(_) => {
+                    FlatCompiledStylesValue::Null => {
                         PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                             key: PropName::Ident(Ident::new(key.clone().into(), DUMMY_SP)),
                             value: Box::new(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))),

@@ -1,6 +1,6 @@
 use swc_core::ecma::ast::Expr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct IncludedStyle {
     expr: Expr,
 }

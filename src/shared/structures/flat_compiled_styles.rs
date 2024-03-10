@@ -4,10 +4,10 @@ use indexmap::IndexMap;
 use super::included_style::IncludedStyle;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum FlatCompiledStylesValue {
     String(String),
-    Null(Option<String>),
+    Null,
     IncludedStyle(IncludedStyle),
     Bool(bool),
 }

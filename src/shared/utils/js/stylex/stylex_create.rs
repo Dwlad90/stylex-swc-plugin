@@ -78,7 +78,7 @@ pub(crate) fn stylex_create_set(
                         CompiledResult::ComputedStyles(styles) => {
                             CompiledResult::ComputedStyles(styles.clone())
                         }
-                        CompiledResult::Null(null) => CompiledResult::Null(null.clone()),
+                        CompiledResult::Null => CompiledResult::Null,
                         CompiledResult::IncludedStyle(include_styles) => {
                             CompiledResult::IncludedStyle(include_styles.clone())
                         }
@@ -125,7 +125,7 @@ pub(crate) fn stylex_create_set(
                     }
                 }
             } else {
-                namespace_obj.insert(key.clone(), FlatCompiledStylesValue::Null(Option::None));
+                namespace_obj.insert(key.clone(), FlatCompiledStylesValue::Null);
             }
         }
 

@@ -16,3 +16,21 @@ test!(
       stylex();
     "#
 );
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    basic_stylex_call,
+    r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    stylex(styles.red);
+  "#
+);

@@ -24,7 +24,8 @@ use crate::{
 };
 
 mod fold;
-mod transform_stylex_fns;
+pub(crate) mod styleq;
+mod stylex;
 
 pub struct ModuleTransformVisitor<C>
 where

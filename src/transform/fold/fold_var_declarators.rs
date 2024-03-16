@@ -27,14 +27,12 @@ where
                         Pat::Ident(bind_ident) => {
                             let decl_id = &bind_ident.to_id();
 
-                            if self.var_decl_count_map.contains_key(&decl_id) {
-                                let count = self.var_decl_count_map.get(decl_id).unwrap();
+                            if self.state.var_decl_count_map.contains_key(&decl_id) {
+                                let count = self.state.var_decl_count_map.get(decl_id).unwrap();
 
                                 let is_used = count > &0;
 
-                                println!("decl_id: {:?}", decl_id);
-                                println!("count: {:?}", count);
-                                println!("is_used: {:?}", is_used);
+                                dbg!(&self.state.var_decl_count_map, &decl_id, &count, &is_used);
 
                                 return is_used;
                             }

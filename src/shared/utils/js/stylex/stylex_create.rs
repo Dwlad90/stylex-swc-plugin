@@ -10,6 +10,7 @@ use crate::shared::{
         functions::FunctionMap,
         injectable_style::InjectableStyle,
         pre_rule::{CompiledResult, PreRule, PreRules},
+        state_manager::StateManager,
         stylex_state_options::StyleXStateOptions,
     },
     utils::{
@@ -20,10 +21,7 @@ use crate::shared::{
 
 pub(crate) fn stylex_create_set(
     namespaces: &EvaluateResultValue,
-    prefix: &str,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
-    options: &StyleXStateOptions,
+    state: &mut StateManager,
     functions: &FunctionMap,
 ) -> (
     IndexMap<String, FlatCompiledStyles>,
@@ -38,17 +36,12 @@ pub(crate) fn stylex_create_set(
         let mut pseudos = vec![];
         let mut at_rules = vec![];
 
-        let flattened_namespace = flatten_raw_style_object(
-            namespace,
-            declarations,
-            var_dec_count_map,
-            &mut pseudos,
-            &mut at_rules,
-            options,
-            functions,
-        );
+        let flattened_namespace =
+            flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
 
         dbg!(&flattened_namespace);
+
+        let prefix = state.options.class_name_prefix.as_str();
 
         let compiled_namespace_tuples = flattened_namespace
             .iter()
@@ -129,8 +122,7 @@ pub(crate) fn stylex_create_set(
             }
         }
 
-        let resolved_namespace_name =
-            expr_to_str(namespace_name, declarations, var_dec_count_map, functions);
+        let resolved_namespace_name = expr_to_str(namespace_name, state, functions);
 
         namespace_obj.insert("$$css".to_string(), FlatCompiledStylesValue::Bool(true));
 

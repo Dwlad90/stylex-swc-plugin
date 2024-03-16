@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use swc_core::{
     common::comments::Comments,
     ecma::ast::{CallExpr, Callee, Expr},
@@ -5,11 +7,13 @@ use swc_core::{
 
 use crate::{
     shared::{
-        structures::named_import_source::ImportSources,
+        enums::NonNullProps,
+        structures::{functions::FunctionMap, named_import_source::ImportSources},
         utils::{
             common::reduce_ident_count,
             stylex::{
                 make_string_expression::make_string_expression,
+                member_expression::member_expression,
                 parse_nallable_style::{parse_nullable_style, ResolvedArg, StyleObject},
             },
         },
@@ -49,8 +53,11 @@ where
                             match arg.clone() {
                                 Expr::Member(member) => {
                                     let resolved = parse_nullable_style(arg, &self.state);
+                                    dbg!(&member, &resolved);
                                     match resolved {
                                         StyleObject::Other => {
+                                            dbg!(&arg);
+                                            panic!("Other");
                                             bail_out_index = Option::Some(current_index);
                                             bail_out = true;
                                         }
@@ -100,7 +107,7 @@ where
                         if bail_out {
                             let arguments_path = call.args.clone();
 
-                            let non_null_props: Vec<String> = vec![];
+                            let mut non_null_props: NonNullProps = NonNullProps::Vec(vec![]);
 
                             let mut index = -1;
 
@@ -112,9 +119,21 @@ where
                                 let arg = arg_path.expr.as_ref();
 
                                 if let Some(member) = arg.as_member() {
-                                    todo!("Member not implemented yet");
+                                    dbg!(&member);
+                                    member_expression(
+                                        member,
+                                        &mut index,
+                                        &mut bail_out_index,
+                                        &mut non_null_props,
+                                        &mut self.state,
+                                        &FunctionMap {
+                                            identifiers: HashMap::new(),
+                                            member_expressions: HashMap::new(),
+                                        },
+                                    );
                                 } else {
-                                    todo!("Not member not implemented yet");
+                                    dbg!(&arg);
+                                    // todo!("Not member not implemented yet");
                                 }
                             }
                         } else {
@@ -124,7 +143,7 @@ where
                             for arg in &resolved_args {
                                 match arg {
                                     ResolvedArg::StyleObject(_, ident) => {
-                                        reduce_ident_count(&mut self.var_decl_count_map, &ident);
+                                        reduce_ident_count(&mut self.state, &ident);
                                     }
                                     ResolvedArg::ConditionalStyle(_) => todo!("ConditionalStyle"),
                                 }

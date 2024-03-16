@@ -6,8 +6,6 @@ use crate::shared::utils::js::enums::{ArrayJS, ObjectJS};
 
 use super::named_import_source::ImportSources;
 
-
-
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum CallbackType {
     Array(ArrayJS),
@@ -94,4 +92,13 @@ pub struct Functions {
 pub struct FunctionMap {
     pub identifiers: HashMap<Id, FunctionConfig>,
     pub member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>>,
+}
+
+impl Default for FunctionMap {
+    fn default() -> Self {
+        Self {
+            identifiers: HashMap::new(),
+            member_expressions: HashMap::new(),
+        }
+    }
 }

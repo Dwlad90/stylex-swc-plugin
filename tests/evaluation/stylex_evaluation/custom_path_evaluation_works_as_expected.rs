@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use stylex_swc_plugin::shared::structures::{
     functions::{FunctionConfig, FunctionMap, FunctionType},
     named_import_source::ImportSources,
+    state_manager::StateManager,
+    stylex_options::StyleXOptions,
 };
 use swc_core::{
     common::DUMMY_SP,
@@ -183,6 +185,7 @@ fn evaluates_customs_functions() {
                     member_expressions,
                 },
                 declarations: vec![],
+                state: StateManager::new(StyleXOptions::default()),
             }
         },
         r#"
@@ -232,6 +235,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
                     member_expressions: HashMap::new(),
                 },
                 declarations: vec![],
+                state: StateManager::new(StyleXOptions::default()),
             }
         },
         r#"
@@ -277,6 +281,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
                     member_expressions: HashMap::new(),
                 },
                 declarations: vec![],
+                state: StateManager::new(StyleXOptions::default()),
             }
         },
         r#"
@@ -332,6 +337,7 @@ fn evaluates_custom_functions_that_take_paths() {
                     member_expressions: HashMap::new(),
                 },
                 declarations: vec![],
+                state: StateManager::new(StyleXOptions::default()),
             }
         },
         r#"

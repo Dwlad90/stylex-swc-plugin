@@ -41,8 +41,8 @@ where
                                         if let Pat::Ident(_) = &decl.name {
                                             let var = decl.clone();
 
-                                            if !self.declarations.contains(&var) {
-                                                self.declarations.push(var);
+                                            if !self.state.declarations.contains(&var) {
+                                                self.state.declarations.push(var);
                                             }
                                         }
                                     });
@@ -93,10 +93,7 @@ where
                                             }
                                         {
                                             // HACK: Prevent removing named export variables
-                                            increase_ident_count(
-                                                &mut self.var_decl_count_map,
-                                                &ident,
-                                            );
+                                            increase_ident_count(&mut self.state, &ident);
                                         }
 
                                         let decl_name = self.get_props_desclaration_as_string();

@@ -1,3 +1,5 @@
+use swc_core::ecma::ast::{Expr, Id};
+
 // Represents the current state of a plugin for a file.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum ModuleCycle {
@@ -18,3 +20,38 @@ pub(crate) enum InjectedStylesDeclarationType {
     NamedDeclarationExport,
     NamedPropertyOrDefaultExport,
 }
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub(crate) enum NonNullProp {
+    Id(Id),
+    True,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub(crate) enum NonNullProps {
+    Vec(Vec<Id>),
+    True,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub(crate) struct StyleVarsToKeep(
+    pub(crate) Id,
+    pub(crate) NonNullProp,
+    pub(crate) NonNullProps,
+);
+
+pub(crate) enum VarDeclAction {
+    Increase,
+    Reduce,
+    None,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub(crate) enum TopLevelExpressionKind {
+    NamedExport,
+    DefaultExport,
+    Stmt,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub(crate) struct TopLevelExpression(pub(crate) TopLevelExpressionKind, pub(crate) Box<Expr>);

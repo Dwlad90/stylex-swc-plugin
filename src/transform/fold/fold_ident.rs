@@ -15,7 +15,7 @@ where
         }
 
         if self.cycle == ModuleCycle::Initializing {
-            increase_ident_count(&mut self.var_decl_count_map, &ident);
+            increase_ident_count(&mut self.state, &ident);
         }
 
         ident

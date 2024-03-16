@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::option::Option;
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Id, VarDeclarator};
+use swc_core::ecma::ast::{Expr, Id, VarDeclarator};
+
+use crate::shared::enums::{StyleVarsToKeep, TopLevelExpression};
 
 use super::flat_compiled_styles::FlatCompiledStylesValue;
 use super::named_import_source::ImportSources;
@@ -27,13 +29,17 @@ pub struct StateManager {
     pub(crate) stylex_types_import: HashSet<Id>,
     pub(crate) inject_import_inserted: Option<String>, // Assuming this is a string identifier
 
+    pub(crate) declarations: Vec<VarDeclarator>,
+    pub(crate) top_level_expressions: Vec<TopLevelExpression>,
+    pub(crate) var_decl_count_map: HashMap<Id, i8>,
+
     // `stylex.create` calls
     pub(crate) style_map:
         HashMap<String, IndexMap<String, IndexMap<String, FlatCompiledStylesValue>>>, // Assuming CompiledNamespaces is a struct in your code
     pub(crate) style_vars: HashMap<String, VarDeclarator>, // Assuming NodePath is a struct in your code
 
     // results of `stylex.create` calls that should be kept
-    // pub(crate) style_vars_to_keep: HashSet<(String, bool, String, bool, Vec<String>)>,
+    pub(crate) style_vars_to_keep: HashSet<StyleVarsToKeep>,
 
     pub(crate) in_style_x_create: bool,
 
@@ -57,8 +63,13 @@ impl StateManager {
             stylex_types_import: HashSet::new(),
             inject_import_inserted: None,
             style_map: HashMap::new(),
-            // style_vars: HashMap::new(),
             style_vars: HashMap::new(),
+            style_vars_to_keep: HashSet::new(),
+
+            declarations: vec![],
+            top_level_expressions: vec![],
+            var_decl_count_map: HashMap::new(),
+
             in_style_x_create: false,
             options, // Assuming StyleXStateOptions has a new function
         }

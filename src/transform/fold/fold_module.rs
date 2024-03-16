@@ -16,7 +16,7 @@ where
         let module = module.clone().fold_children_with(self);
 
         if !self.state.stylex_import.is_empty() || !self.state.import_paths.is_empty() {
-            fill_top_level_expressions(&module, &mut self.top_level_expressions);
+            fill_top_level_expressions(&module, &mut self.state);
 
             self.cycle = ModuleCycle::TransformEnter;
             let module = module.clone().fold_children_with(self);

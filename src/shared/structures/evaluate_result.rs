@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use std::sync::Arc;
-use swc_core::ecma::ast::{Expr, Ident, KeyValueProp, Lit, ObjectLit};
+use swc_core::ecma::ast::{Expr, Ident, KeyValueProp, Lit, ObjectLit, Prop};
 
 use super::functions::{self, FunctionConfig};
 

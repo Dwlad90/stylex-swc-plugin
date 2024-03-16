@@ -20,10 +20,8 @@ use super::evaluate::{evaluate, evaluate_obj_key};
 
 pub(crate) fn evaluate_style_x_create_arg(
     path: &Expr,
-    traversal_state: &StateManager,
+    traversal_state: &mut StateManager,
     functions: &FunctionMap,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> EvaluateResult {
     match path {
         Expr::Object(object) => {
@@ -39,13 +37,8 @@ pub(crate) fn evaluate_style_x_create_arg(
 
                         match prop.as_ref() {
                             Prop::KeyValue(key_value_prop) => {
-                                let key_result = evaluate_obj_key(
-                                    key_value_prop,
-                                    traversal_state,
-                                    functions,
-                                    declarations,
-                                    var_dec_count_map,
-                                );
+                                let key_result =
+                                    evaluate_obj_key(key_value_prop, traversal_state, functions);
 
                                 if !key_result.confident {
                                     return EvaluateResult {
@@ -68,13 +61,7 @@ pub(crate) fn evaluate_style_x_create_arg(
                                         validate_dynamic_style_params(&all_params);
                                     }
                                     _ => {
-                                        let val = evaluate(
-                                            value_path,
-                                            traversal_state,
-                                            functions,
-                                            declarations,
-                                            var_dec_count_map,
-                                        );
+                                        let val = evaluate(value_path, traversal_state, functions);
 
                                         if !val.confident {
                                             return val;
@@ -128,13 +115,7 @@ pub(crate) fn evaluate_style_x_create_arg(
                                 }
                             }
                             _ => {
-                                return evaluate(
-                                    path,
-                                    traversal_state,
-                                    functions,
-                                    declarations,
-                                    var_dec_count_map,
-                                );
+                                return evaluate(path, traversal_state, functions);
                             }
                         }
                     }
@@ -148,13 +129,7 @@ pub(crate) fn evaluate_style_x_create_arg(
         }
         _ => {
             dbg!(path);
-            evaluate(
-                path,
-                traversal_state,
-                functions,
-                declarations,
-                var_dec_count_map,
-            )
+            evaluate(path, traversal_state, functions)
         }
     }
 }

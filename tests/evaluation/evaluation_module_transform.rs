@@ -4,13 +4,14 @@ use stylex_swc_plugin::shared::{
     structures::{
         evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
         stylex_options::StyleXOptions,
-    }, utils::css::stylex::evaluate::evaluate,
+    },
+    utils::css::stylex::evaluate::evaluate,
 };
 use swc_core::{
     common::DUMMY_SP,
     ecma::{
         ast::{
-            ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Ident, Lit, Number, Pat, Stmt,
+            ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Lit, Number, Pat, Stmt,
             VarDeclarator,
         },
         visit::{Fold, FoldWith},
@@ -19,6 +20,7 @@ use swc_core::{
 pub(crate) struct EvaluationModuleTransformVisitor {
     pub(crate) functions: FunctionMap,
     pub(crate) declarations: Vec<VarDeclarator>,
+    pub(crate) state: StateManager,
 }
 
 impl Default for EvaluationModuleTransformVisitor {
@@ -29,6 +31,7 @@ impl Default for EvaluationModuleTransformVisitor {
                 member_expressions: HashMap::new(),
             },
             declarations: vec![],
+            state: StateManager::new(StyleXOptions::default()),
         }
     }
 }
@@ -77,13 +80,7 @@ impl Fold for EvaluationModuleTransformVisitor {
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         println!("!!!!!expr: {:?}", expr);
-        let evaluate_result = evaluate(
-            &expr,
-            &StateManager::new(StyleXOptions::default()),
-            &self.functions,
-            &vec![],
-            &mut HashMap::new(),
-        );
+        let evaluate_result = evaluate(&expr, &mut self.state, &self.functions);
         println!("!!!!!evaluate_result: {:?}", evaluate_result);
 
         match evaluate_result.value {

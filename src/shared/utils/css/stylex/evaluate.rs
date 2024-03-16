@@ -32,22 +32,20 @@ use crate::shared::{
     constants::{
         self,
         constants::{INVALID_METHODS, VALID_CALLEES},
-    },
-    structures::{
+    }, enums::VarDeclAction, structures::{
         evaluate_result::{EvaluateResult, EvaluateResultValue},
         functions::{CallbackType, FunctionConfig, FunctionMap, FunctionType},
         injectable_style::InjectableStyle,
         named_import_source::ImportSources,
         pre_rule::{CompiledResult, PreRule, PreRules},
-        state_manager::StateManager,
+        state_manager::{self, StateManager},
         stylex_options::StyleXOptions,
         stylex_state_options::StyleXStateOptions,
-    },
-    utils::{
+    }, utils::{
         common::{
             binary_expr_to_num, deep_merge_props, expr_to_str, get_key_str,
             get_string_val_from_lit, get_var_decl_by_ident, get_var_decl_from,
-            number_to_expression, remove_duplicates, string_to_expression,
+            increase_ident_count, number_to_expression, remove_duplicates, string_to_expression,
         },
         css::factories::object_expression_factory,
         js::{
@@ -55,7 +53,7 @@ use crate::shared::{
             native_functions::{evaluate_filter, evaluate_map},
         },
         validators::{validate_dynamic_style_params, validate_namespace},
-    },
+    }
 };
 
 #[derive(Debug)]
@@ -87,6 +85,19 @@ impl State {
             traversal_state: StateManager::new(StyleXOptions::default()),
         }
     }
+
+    pub(crate) fn new(traversal_state: &StateManager) -> Self {
+        State {
+            confident: true,
+            deopt_path: Option::None,
+            seen: HashMap::new(),
+            functions: FunctionMap {
+                identifiers: HashMap::new(),
+                member_expressions: HashMap::new(),
+            },
+            traversal_state: traversal_state.clone(),
+        }
+    }
 }
 
 // enum KeyResult {
@@ -102,10 +113,8 @@ impl State {
 
 pub(crate) fn evaluate_obj_key(
     prop_kv: &KeyValueProp,
-    traversal_state: &StateManager,
+    state: &mut StateManager,
     functions: &FunctionMap,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> EvaluateResult {
     let key_path = &prop_kv.key;
 
@@ -121,13 +130,7 @@ pub(crate) fn evaluate_obj_key(
         }
         PropName::Computed(computed) => {
             let computed_path = &computed.expr;
-            let computed_result = evaluate(
-                computed_path,
-                traversal_state,
-                functions,
-                declarations,
-                var_dec_count_map,
-            );
+            let computed_result = evaluate(computed_path, state, functions);
             if computed_result.confident {
                 key = match computed_result.value {
                     Some(EvaluateResultValue::Expr(value)) => value,
@@ -152,18 +155,19 @@ pub(crate) fn evaluate_obj_key(
         }
     }
 
+    let key_expr =
+        string_to_expression(expr_to_str(&key, state, functions)).expect("Expected string value");
+
     EvaluateResult {
         confident: true,
         deopt: Option::None,
-        value: Option::Some(EvaluateResultValue::Expr(key.clone())),
+        value: Option::Some(EvaluateResultValue::Expr(key_expr)),
     }
 }
 pub fn evaluate(
     path: &Expr,
-    traversal_state: &StateManager,
+    traversal_state: &mut StateManager,
     fns: &FunctionMap,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> EvaluateResult {
     let mut state = State {
         confident: true,
@@ -174,11 +178,13 @@ pub fn evaluate(
         traversal_state: traversal_state.clone(),
     };
 
-    let mut value = evaluate_cached(path, &mut state, declarations, var_dec_count_map);
+    let mut value = evaluate_cached(path, &mut state);
 
     if !state.confident {
         value = Option::None;
     }
+
+    *traversal_state = state.traversal_state.clone();
 
     EvaluateResult {
         confident: state.confident,
@@ -205,12 +211,7 @@ fn deopt(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
 // }
 
-fn _evaluate(
-    path: &Expr,
-    state: &mut State,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
-) -> Option<EvaluateResultValue> {
+fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
     if !state.confident {
         panic!("Should not be here");
         // return Option::None;
@@ -243,12 +244,10 @@ fn _evaluate(
                              functions: HashMap<Id, FunctionConfig>,
                              ident_params: Vec<Id>,
                              body_expr: Expr,
-                             declarations: Vec<VarDeclarator>,
-                             var_dec_count_map: HashMap<Id, i8>,
                              traversal_state: StateManager| {
                                 move |cb_args: Vec<Option<EvaluateResultValue>>| {
                                     let mut functions = functions.clone();
-                                    let mut var_dec_count_map = var_dec_count_map.clone();
+
                                     let mut member_expressions: HashMap<
                                         ImportSources,
                                         HashMap<Id, FunctionConfig>,
@@ -286,13 +285,11 @@ fn _evaluate(
                                     // panic!("Check what's happening here, body_expr: {:#?} ident_params: {:#?}", body_expr, ident_params);
                                     let result = evaluate(
                                         &body_expr,
-                                        &traversal_state,
+                                        &mut traversal_state.clone(),
                                         &FunctionMap {
                                             identifiers: functions,
                                             member_expressions,
                                         },
-                                        &declarations,
-                                        &mut var_dec_count_map,
                                     );
 
                                     let value = result.value;
@@ -311,8 +308,6 @@ fn _evaluate(
                             functions,
                             ident_params,
                             *body_expr.clone(),
-                            declarations.clone(),
-                            var_dec_count_map.clone(),
                             state.traversal_state.clone(),
                         ));
 
@@ -330,10 +325,11 @@ fn _evaluate(
         Expr::Ident(ident) => {
             let ident_id = ident.to_id();
 
-            dbg!(&ident_id);
+            dbg!(&ident_id, &state.functions.identifiers);
 
             if state.functions.identifiers.contains_key(&ident_id) {
                 let func = state.functions.identifiers.get(&ident_id)?;
+                dbg!(&ident_id, &func);
 
                 let FunctionType::Mapper(func) = func.fn_ptr.clone() else {
                     panic!("Function not found");
@@ -348,14 +344,7 @@ fn _evaluate(
         Expr::TsSatisfies(_) => todo!("TsSatisfies not implemented yet"),
         Expr::Seq(_) => todo!("Seq not implemented yet"),
         Expr::Lit(lit_path) => Option::Some(EvaluateResultValue::Expr(Expr::Lit(lit_path.clone()))),
-        Expr::Tpl(tpl) => evaluate_quasis(
-            &Expr::Tpl(tpl.clone()),
-            &tpl.quasis,
-            false,
-            state,
-            declarations,
-            var_dec_count_map,
-        ),
+        Expr::Tpl(tpl) => evaluate_quasis(&Expr::Tpl(tpl.clone()), &tpl.quasis, false, state),
         Expr::TaggedTpl(tagged_tpl) => {
             todo!("TaggedTpl");
             evaluate_quasis(
@@ -363,21 +352,18 @@ fn _evaluate(
                 &tagged_tpl.tpl.quasis,
                 false,
                 state,
-                declarations,
-                var_dec_count_map,
             )
         }
         Expr::Cond(_) => todo!("Cond not implemented yet"),
         Expr::Paren(paren) => {
-            let result = evaluate_cached(&paren.expr, state, declarations, var_dec_count_map);
+            let result = evaluate_cached(&paren.expr, state);
 
             result
         }
         Expr::Member(member) => {
-            let Some(object) =
-                evaluate_cached(&*member.obj, state, declarations, var_dec_count_map)
-            else {
-                println!("!!!!__ member: {:#?}", member);
+            dbg!(&member.obj);
+            let Some(object) = evaluate_cached(&*member.obj, state) else {
+                dbg!(&member);
                 panic!("Object not found");
             };
 
@@ -389,9 +375,14 @@ fn _evaluate(
                 panic!("Function not found");
             };
 
-            let Some(ArrayLit { elems, .. }) = expr.as_array() else {
-                panic!("ArrayLit not found");
-            };
+            // let Some(ArrayLit { elems, .. }) = expr.as_array() else {
+            //     if let Some(object) = expr.as_object() {
+            //         return Some(EvaluateResultValue::Expr(Expr::Object(object.clone())));
+            //     } else {
+            //         dbg!(&expr);
+            //         todo!("Expression");
+            //     }
+            // };
 
             let prop_path = &member.prop;
 
@@ -400,8 +391,7 @@ fn _evaluate(
                     Option::Some(EvaluateResultValue::Expr(Expr::Ident(ident.clone())))
                 }
                 MemberProp::Computed(ComputedPropName { expr, .. }) => {
-                    let result =
-                        evaluate_cached(&*expr.clone(), state, declarations, var_dec_count_map);
+                    let result = evaluate_cached(&*expr.clone(), state);
 
                     if !state.confident {
                         return Option::None;
@@ -414,19 +404,54 @@ fn _evaluate(
                 }
             };
 
-            let Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number { value, .. })))) =
-                propery
-            else {
-                panic!("Member not found");
-            };
+            match expr {
+                Expr::Array(ArrayLit { elems, .. }) => {
+                    let Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
+                        value, ..
+                    })))) = propery
+                    else {
+                        panic!("Member not found");
+                    };
 
-            let propery = elems.get(value as usize)?.clone();
+                    let property = elems.get(value as usize)?.clone();
 
-            let Some(ExprOrSpread { expr, .. }) = propery else {
-                panic!("Member not found");
-            };
+                    let Some(ExprOrSpread { expr, .. }) = property else {
+                        panic!("Member not found");
+                    };
 
-            return Some(EvaluateResultValue::Expr(*expr));
+                    Some(EvaluateResultValue::Expr(*expr))
+                }
+                Expr::Object(ObjectLit { props, .. }) => {
+                    let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = propery else {
+                        panic!("Member not found");
+                    };
+
+                    let property = props
+                        .into_iter()
+                        .find(|prop| match prop {
+                            PropOrSpread::Spread(_) => {
+                                todo!("Spread not implemented yet");
+                            }
+                            PropOrSpread::Prop(prop) => match prop.as_ref() {
+                                Prop::KeyValue(key_value) => {
+                                    let key = get_key_str(key_value);
+
+                                    key == ident.sym.to_string()
+                                }
+                                _ => todo!("PropOrSpread"),
+                            },
+                        })?
+                        .clone();
+
+                    if let PropOrSpread::Prop(prop) = property {
+                        dbg!(&prop, ident);
+                        Some(EvaluateResultValue::Expr(*prop.key_value().unwrap().value))
+                    } else {
+                        panic!("Member not found");
+                    }
+                }
+                _ => todo!("Expression"),
+            }
         }
         Expr::Unary(_) => todo!("Unary not implemented yet"),
         Expr::Array(arr_path) => {
@@ -435,13 +460,7 @@ fn _evaluate(
             let mut arr: Vec<Option<EvaluateResultValue>> = vec![];
 
             for elem in elems.iter().filter_map(|elem| elem.clone()) {
-                let elem_value = evaluate(
-                    &elem.expr,
-                    &state.traversal_state,
-                    &state.functions,
-                    declarations,
-                    var_dec_count_map,
-                );
+                let elem_value = evaluate(&elem.expr, &mut state.traversal_state, &state.functions);
 
                 if elem_value.confident {
                     arr.push(elem_value.value);
@@ -459,8 +478,7 @@ fn _evaluate(
             for prop in &obj_path.props {
                 match prop {
                     PropOrSpread::Spread(prop) => {
-                        let spread_expression =
-                            evaluate_cached(&prop.expr, state, declarations, var_dec_count_map);
+                        let spread_expression = evaluate_cached(&prop.expr, state);
 
                         if !state.confident {
                             return deopt(path, state);
@@ -496,10 +514,8 @@ fn _evaluate(
                                     PropName::Computed(computed) => {
                                         let evaluated_result = evaluate(
                                             &computed.expr,
-                                            &state.traversal_state,
+                                            &mut state.traversal_state,
                                             &state.functions,
-                                            declarations,
-                                            var_dec_count_map,
                                         );
 
                                         if !evaluated_result.confident {
@@ -522,10 +538,8 @@ fn _evaluate(
 
                                 let value = evaluate(
                                     &value_path,
-                                    &state.traversal_state,
+                                    &mut state.traversal_state,
                                     &state.functions,
-                                    declarations,
-                                    var_dec_count_map,
                                 );
 
                                 if !value.confident {
@@ -643,7 +657,7 @@ fn _evaluate(
             return Option::Some(EvaluateResultValue::Expr(Expr::Object(obj)));
         }
         Expr::Bin(bin) => {
-            let result = match binary_expr_to_num(bin, state, declarations, var_dec_count_map) {
+            let result = match binary_expr_to_num(bin, state) {
                 Some(num) => num as f64,
                 None => panic!("Not implemented yet"),
             };
@@ -660,7 +674,8 @@ fn _evaluate(
             if let Callee::Expr(callee_expr) = callee {
                 let callee_expr = callee_expr.as_ref();
 
-                if get_binding(callee_expr, &declarations).is_none() && is_valid_callee(callee_expr)
+                if get_binding(callee_expr, &mut state.traversal_state).is_none()
+                    && is_valid_callee(callee_expr)
                 {
                     panic!("{}", constants::messages::BUILT_IN_FUNCTION)
                 } else if let Expr::Ident(ident) = callee_expr {
@@ -698,12 +713,7 @@ fn _evaluate(
                                             panic!("Spread not implemented yet")
                                         }
 
-                                        let cached_arg = evaluate_cached(
-                                            &*arg.expr,
-                                            state,
-                                            declarations,
-                                            var_dec_count_map,
-                                        );
+                                        let cached_arg = evaluate_cached(&*arg.expr, state);
 
                                         match method_name.as_ref() {
                                             "fromEntries" => {
@@ -1039,13 +1049,7 @@ fn _evaluate(
                         }
                     }
 
-                    let parsed_obj = evaluate(
-                        object,
-                        &state.traversal_state,
-                        &state.functions,
-                        declarations,
-                        var_dec_count_map,
-                    );
+                    let parsed_obj = evaluate(object, &mut state.traversal_state, &state.functions);
 
                     // println!("!!!!__ obj: {:#?}, parsed_obj: {:#?}", obj, parsed_obj);
 
@@ -1188,8 +1192,7 @@ fn _evaluate(
                         .clone()
                         .into_iter()
                         .filter_map(|arg| {
-                            let cached_arg =
-                                evaluate_cached(&arg.expr, state, declarations, var_dec_count_map);
+                            let cached_arg = evaluate_cached(&arg.expr, state);
 
                             println!("!!!!__ cached_arg: {:#?}, arg: {:#?}", cached_arg, arg);
                             cached_arg
@@ -1333,19 +1336,16 @@ fn _evaluate(
 
     if result.is_none() && path.is_ident() {
         let ident = path.as_ident().expect("Identifier not found");
+
         let binding =
-            get_var_decl_by_ident(ident, declarations, var_dec_count_map, &state.functions);
+            get_var_decl_by_ident(ident, &mut state.traversal_state, &state.functions, VarDeclAction::Reduce);
 
         match binding {
             Some(binding) => {
                 eprintln!("{}", Colorize::yellow("!!!! binding: {:#?} !!!!"));
+                dbg!(&binding);
 
-                return evaluate_cached(
-                    &*binding.init.expect("Binding nof found").clone(),
-                    state,
-                    declarations,
-                    var_dec_count_map,
-                );
+                return evaluate_cached(&*binding.init.expect("Binding nof found").clone(), state);
             }
             None => {
                 let name = ident.sym.to_string();
@@ -1364,9 +1364,9 @@ fn _evaluate(
     result
 }
 
-fn get_binding(callee: &Expr, declarations: &Vec<VarDeclarator>) -> Option<VarDeclarator> {
+fn get_binding(callee: &Expr, state: &mut StateManager) -> Option<VarDeclarator> {
     match callee {
-        Expr::Ident(ident) => get_var_decl_from(&declarations, &ident).cloned(),
+        Expr::Ident(ident) => get_var_decl_from(state, &ident).cloned(),
         _ => Option::None,
     }
 }
@@ -1419,8 +1419,6 @@ pub(crate) fn evaluate_quasis(
     quasis: &Vec<TplElement>,
     raw: bool,
     state: &mut State,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
 ) -> Option<EvaluateResultValue> {
     let mut str = "".to_string();
 
@@ -1451,9 +1449,9 @@ pub(crate) fn evaluate_quasis(
         i = i + 1;
 
         if let Some(expr) = expr {
-            let evalueated_expr = evaluate_cached(expr, state, declarations, var_dec_count_map);
+            let evaluated_expr = evaluate_cached(expr, state);
 
-            if let Some(expr) = evalueated_expr {
+            if let Some(expr) = evaluated_expr {
                 let expr = expr.as_expr().expect("Expression not found");
 
                 let lit = expr.as_lit().expect("Literal not found");
@@ -1472,12 +1470,7 @@ pub(crate) fn evaluate_quasis(
     Option::Some(EvaluateResultValue::Expr(string_to_expression(str)?))
 }
 
-pub(crate) fn evaluate_cached(
-    path: &Expr,
-    state: &mut State,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
-) -> Option<EvaluateResultValue> {
+pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
     // let seen = &mut state.seen;
 
     let existing = state.seen.get(&path);
@@ -1499,7 +1492,7 @@ pub(crate) fn evaluate_cached(
             };
             state.seen.insert(path.clone(), item);
 
-            let val = _evaluate(path, state, declarations, var_dec_count_map);
+            let val = _evaluate(path, state);
 
             if state.confident {
                 state.seen.insert(

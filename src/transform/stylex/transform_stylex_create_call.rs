@@ -11,7 +11,7 @@ use swc_core::{
 };
 
 use crate::shared::constants;
-use crate::shared::enums::ModuleCycle;
+use crate::shared::enums::{ModuleCycle, TopLevelExpression};
 use crate::shared::structures::evaluate_result::EvaluateResultValue;
 use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
@@ -165,12 +165,7 @@ where
         let is_create_call = is_create_call(call, &mut self.state);
 
         let result = if is_create_call {
-            validate_style_x_create_indent(
-                call,
-                &self.state,
-                &self.declarations,
-                &self.top_level_expressions,
-            );
+            validate_style_x_create_indent(call, &mut self.state);
 
             let first_arg = call.args.get(0);
 
@@ -246,10 +241,8 @@ where
 
                         let evaluated_arg = evaluate_style_x_create_arg(
                             &first_arg.expr,
-                            &self.state,
+                            &mut self.state,
                             &function_map,
-                            &self.declarations,
-                            &mut self.var_decl_count_map,
                         );
 
                         dbg!(&evaluated_arg);
@@ -267,14 +260,8 @@ where
                             constants::messages::NON_STATIC_VALUE
                         );
 
-                        let (compiled_styles, injected_styles_sans_keyframes) = stylex_create_set(
-                            &value,
-                            self.state.options.class_name_prefix.as_str(),
-                            &self.declarations,
-                            &mut self.var_decl_count_map,
-                            &self.state.options,
-                            &function_map,
-                        );
+                        let (compiled_styles, injected_styles_sans_keyframes) =
+                            stylex_create_set(&value, &mut self.state, &function_map);
 
                         compiled_styles
                             .clone()
@@ -291,12 +278,13 @@ where
 
                         let mut var_name: Option<String> = Option::None;
 
-                        let parent_var_decl = &self.declarations.clone().into_iter().find(|decl| {
-                            decl.init
-                                .as_ref()
-                                .unwrap()
-                                .eq(&Box::new(Expr::Call(call.clone())))
-                        });
+                        let parent_var_decl =
+                            &self.state.declarations.clone().into_iter().find(|decl| {
+                                decl.init
+                                    .as_ref()
+                                    .unwrap()
+                                    .eq(&Box::new(Expr::Call(call.clone())))
+                            });
 
                         if let Some(parent_var_decl) = &parent_var_decl {
                             if let Some(ident) = parent_var_decl.name.as_ident() {
@@ -333,6 +321,42 @@ where
                         for metadata in metadatas {
                             self.push_to_css_output(metadata);
                         }
+
+                        self.state.declarations.iter_mut().find_map(|decl| {
+                            if decl
+                                .init
+                                .as_ref()
+                                .unwrap()
+                                .eq(&Box::new(Expr::Call(call.clone())))
+                            {
+                                decl.init = Option::Some(Box::new(result_ast.clone()));
+                            }
+
+                            Option::Some(decl.clone())
+                        });
+
+                        self.state.style_vars.iter_mut().find_map(|(_, decl)| {
+                            if decl
+                                .init
+                                .as_ref()
+                                .unwrap()
+                                .eq(&Box::new(Expr::Call(call.clone())))
+                            {
+                                decl.init = Option::Some(Box::new(result_ast.clone()));
+                            }
+
+                            Option::Some(decl.clone())
+                        });
+
+                        self.state.top_level_expressions.iter_mut().find_map(
+                            |TopLevelExpression(_, decl)| {
+                                if decl.as_ref().eq(&Box::new(Expr::Call(call.clone()))) {
+                                    *decl = Box::new(result_ast.clone());
+                                }
+
+                                Option::Some(decl.clone())
+                            },
+                        );
 
                         Option::Some(result_ast)
                     }
@@ -376,14 +400,8 @@ where
                             Prop::KeyValue(key_value) => {
                                 let stylex_set = stylex_create_set(
                                     &EvaluateResultValue::Map(IndexMap::new()),
-                                    self.state.options.class_name_prefix.as_str(),
-                                    &self.declarations,
-                                    &mut self.var_decl_count_map,
-                                    &self.state.options,
-                                    &FunctionMap {
-                                        identifiers: HashMap::new(),
-                                        member_expressions: HashMap::new(),
-                                    },
+                                    &mut self.state,
+                                    &FunctionMap::default(),
                                 );
 
                                 let injected_styles_map = stylex_set.1;

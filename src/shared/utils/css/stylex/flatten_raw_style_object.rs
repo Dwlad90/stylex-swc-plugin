@@ -8,36 +8,32 @@ use swc_core::{
 };
 
 use crate::shared::{
-    constants,
-    regex::INCLUDED_IDENT_REGEX,
-    structures::{
+    constants, enums::VarDeclAction, regex::INCLUDED_IDENT_REGEX, structures::{
         functions::FunctionMap,
         null_pre_rule::NullPreRule,
         order_pair::OrderPair,
         pre_included_styles_rule::PreIncludedStylesRule,
         pre_rule::{PreRuleValue, PreRules, StylesPreRule},
         pre_rule_set::PreRuleSet,
+        state_manager::StateManager,
         stylex_state_options::StyleXStateOptions,
-    },
-    utils::{
+    }, utils::{
         common::{
             expr_tpl_to_string, get_expr_from_var_decl, get_key_str, get_key_values_from_object,
             get_string_val_from_lit, get_var_decl_by_ident, handle_tpl_to_expression,
             number_to_expression, transform_bin_expr_to_number,
         },
         css::css::flat_map_expanded_shorthands,
-    },
+    }
 };
 
 use super::evaluate::State;
 
 pub(crate) fn flatten_raw_style_object(
     style: &Vec<KeyValueProp>,
-    declarations: &Vec<VarDeclarator>,
-    var_dec_count_map: &mut HashMap<Id, i8>,
     pseudos: &mut Vec<String>,
     at_rules: &mut Vec<String>,
-    options: &StyleXStateOptions,
+    state: &mut StateManager,
     functions: &FunctionMap,
 ) -> IndexMap<String, PreRules> {
     let mut flattened: IndexMap<String, PreRules> = IndexMap::new();
@@ -75,7 +71,7 @@ pub(crate) fn flatten_raw_style_object(
                                         css_property_key.clone(),
                                         PreRuleValue::String(get_string_val_from_lit(property_lit)),
                                     ),
-                                    options,
+                                    &state.options,
                                 );
 
                                 for OrderPair(property, val) in pairs.iter() {
@@ -147,7 +143,7 @@ pub(crate) fn flatten_raw_style_object(
 
                     let pairs = flat_map_expanded_shorthands(
                         (css_property_key, PreRuleValue::String(value)),
-                        options,
+                        &state.options,
                     );
 
                     for OrderPair(property, pre_rule) in pairs.iter() {
@@ -171,14 +167,8 @@ pub(crate) fn flatten_raw_style_object(
                 }
             }
             Expr::Tpl(tpl) => {
-                let handled_tpl =
-                    handle_tpl_to_expression(tpl, declarations, var_dec_count_map, functions);
-                let result = expr_tpl_to_string(
-                    handled_tpl.as_tpl().unwrap(),
-                    declarations,
-                    var_dec_count_map,
-                    functions,
-                );
+                let handled_tpl = handle_tpl_to_expression(tpl, state, functions);
+                let result = expr_tpl_to_string(handled_tpl.as_tpl().unwrap(), state, functions);
 
                 let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
                     css_property_key.clone(),
@@ -190,8 +180,7 @@ pub(crate) fn flatten_raw_style_object(
                 flattened.insert(css_property_key, pre_rule);
             }
             Expr::Ident(ident) => {
-                let ident =
-                    get_var_decl_by_ident(ident, declarations, var_dec_count_map, functions);
+                let ident = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
 
                 match ident {
                     Some(var_decl) => {
@@ -200,15 +189,8 @@ pub(crate) fn flatten_raw_style_object(
                         let mut k = property.clone();
                         k.value = Box::new(var_decl_expr);
 
-                        let inner_flattened = flatten_raw_style_object(
-                            &vec![k],
-                            declarations,
-                            var_dec_count_map,
-                            pseudos,
-                            at_rules,
-                            options,
-                            functions,
-                        );
+                        let inner_flattened =
+                            flatten_raw_style_object(&vec![k], pseudos, at_rules, state, functions);
 
                         println!("!!before_updated_flattened: {:?}", flattened);
                         // println!("!!updated_flattened: {:?}", updated_flattened);
@@ -221,25 +203,13 @@ pub(crate) fn flatten_raw_style_object(
                 }
             }
             Expr::Bin(bin) => {
-                let result = transform_bin_expr_to_number(
-                    bin,
-                    &mut State::default(),
-                    declarations,
-                    var_dec_count_map,
-                );
+                let result = transform_bin_expr_to_number(bin, state);
 
                 let mut k = property.clone();
                 k.value = Box::new(number_to_expression(result as f64).unwrap());
 
-                let inner_flattened = flatten_raw_style_object(
-                    &vec![k],
-                    declarations,
-                    var_dec_count_map,
-                    pseudos,
-                    at_rules,
-                    options,
-                    functions,
-                );
+                let inner_flattened =
+                    flatten_raw_style_object(&vec![k], pseudos, at_rules, state, functions);
 
                 flattened.extend(inner_flattened)
             }
@@ -283,11 +253,9 @@ pub(crate) fn flatten_raw_style_object(
 
                                 let pairs = flatten_raw_style_object(
                                     &vec![inner_key_value],
-                                    declarations,
-                                    var_dec_count_map,
                                     &mut pseudos_to_pass_down,
                                     &mut at_rules_to_pass_down,
-                                    options,
+                                    state,
                                     functions,
                                 );
 
@@ -343,11 +311,9 @@ pub(crate) fn flatten_raw_style_object(
 
                     let pairs = flatten_raw_style_object(
                         &inner_key_value,
-                        declarations,
-                        var_dec_count_map,
                         &mut pseudos_to_pass_down,
                         &mut at_rules_to_pass_down,
-                        options,
+                        state,
                         functions,
                     );
 

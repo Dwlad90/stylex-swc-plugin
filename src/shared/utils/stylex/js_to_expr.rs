@@ -1,8 +1,9 @@
 use indexmap::IndexMap;
 use swc_core::{
-    common::DUMMY_SP,
+    common::{Span, DUMMY_SP},
     ecma::ast::{
         Bool, Expr, Ident, KeyValueProp, Lit, Null, Prop, PropName, PropOrSpread, SpreadElement,
+        Str,
     },
 };
 

@@ -6,18 +6,16 @@ use swc_core::{
 };
 
 use crate::shared::{
-    constants, regex::INCLUDED_IDENT_REGEX, structures::state_manager::StateManager,
+    constants,
+    enums::{TopLevelExpression, TopLevelExpressionKind},
+    regex::INCLUDED_IDENT_REGEX,
+    structures::state_manager::StateManager,
     utils::common::get_var_decl_by_ident_or_member,
 };
 
 use super::common::{get_key_str, get_key_values_from_object};
 
-pub(crate) fn validate_style_x_create_indent(
-    call: &CallExpr,
-    state: &StateManager,
-    declarations: &Vec<VarDeclarator>,
-    top_level_expressions: &Vec<Box<Expr>>,
-) {
+pub(crate) fn validate_style_x_create_indent(call: &CallExpr, state: &mut StateManager) {
     if !is_create_call(call, state) {
         return;
     }
@@ -25,8 +23,13 @@ pub(crate) fn validate_style_x_create_indent(
     let ident = Ident::new("create".into(), DUMMY_SP);
 
     assert!(
-        get_var_decl_by_ident_or_member(declarations, &ident).is_some()
-            || top_level_expressions.contains(&Box::new(Expr::Call(call.clone()))),
+        get_var_decl_by_ident_or_member(state, &ident).is_some()
+            || state
+                .top_level_expressions
+                .clone()
+                .into_iter()
+                .any(|TopLevelExpression(_, call_item)| call_item
+                    .eq(&Box::new(Expr::Call(call.clone())))),
         "{}",
         constants::messages::UNBOUND_STYLEX_CALL_VALUE
     );

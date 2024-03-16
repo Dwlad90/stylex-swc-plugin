@@ -25,7 +25,7 @@ use crate::{
 
 mod fold;
 pub(crate) mod styleq;
-mod stylex;
+pub(crate) mod stylex;
 
 pub struct ModuleTransformVisitor<C>
 where
@@ -38,9 +38,6 @@ where
     props_declaration: Option<Id>,
     css_output: Vec<MetaData>,
     pub(crate) state: StateManager,
-    declarations: Vec<VarDeclarator>,
-    top_level_expressions: Vec<Box<Expr>>,
-    var_decl_count_map: HashMap<Id, i8>,
 }
 
 impl<C> ModuleTransformVisitor<C>
@@ -61,9 +58,6 @@ where
             props_declaration: Option::None,
             css_output: vec![],
             state,
-            declarations: vec![],
-            top_level_expressions: vec![],
-            var_decl_count_map: HashMap::new(),
         }
     }
 
@@ -81,9 +75,6 @@ where
             props_declaration: Option::None,
             css_output: vec![],
             state,
-            declarations: vec![],
-            top_level_expressions: vec![],
-            var_decl_count_map: HashMap::new(),
         }
     }
     pub fn new_test_styles(comments: C, config: Option<StyleXOptionsParams>) -> Self {
@@ -111,9 +102,6 @@ where
             props_declaration: Option::None,
             css_output: vec![],
             state,
-            top_level_expressions: vec![],
-            declarations: vec![],
-            var_decl_count_map: HashMap::new(),
         }
     }
 
@@ -128,7 +116,7 @@ where
                     if stylex_imports.contains(&ident.sym.to_string())
                         || self.state.stylex_create_import.contains(&ident.to_id())
                     {
-                        increase_ident_count(&mut self.var_decl_count_map, &ident);
+                        increase_ident_count(&mut self.state, &ident);
 
                         return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
                     }
@@ -142,7 +130,7 @@ where
                         {
                             match member.prop.clone() {
                                 MemberProp::Ident(ident) => {
-                                    increase_ident_count(&mut self.var_decl_count_map, &ident);
+                                    increase_ident_count(&mut self.state, &ident);
 
                                     return Option::Some((
                                         ident_id.clone(),

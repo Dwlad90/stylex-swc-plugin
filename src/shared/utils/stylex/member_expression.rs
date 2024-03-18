@@ -78,6 +78,7 @@ pub(crate) fn member_expression(
     }
 
     if let NonNullProps::True = non_null_props {
+        dbg!(&obj_name, &prop_name, style_non_null_props);
         style_non_null_props = NonNullProps::True;
     } else {
         let evaluate_result = evaluate(&Expr::Member(member.clone()), &mut state, fns);
@@ -125,20 +126,20 @@ pub(crate) fn member_expression(
 
             dbg!(&style_non_null_props, &non_null_props, object, property);
         }
+    }
 
-        if let Some(obj_name) = obj_name {
-            increase_ident_count(state, object.as_ident().expect("Object not an ident"));
+    if let Some(obj_name) = obj_name {
+        increase_ident_count(state, object.as_ident().expect("Object not an ident"));
 
-            let style_var_to_keep = StyleVarsToKeep(
-                obj_name,
-                match prop_name {
-                    Some(prop_name) => NonNullProp::Id(prop_name.clone()),
-                    None => NonNullProp::True,
-                },
-                style_non_null_props,
-            );
-            state.style_vars_to_keep.insert(style_var_to_keep);
-            dbg!(&state.style_vars_to_keep);
-        }
+        let style_var_to_keep = StyleVarsToKeep(
+            obj_name,
+            match prop_name {
+                Some(prop_name) => NonNullProp::Id(prop_name.clone()),
+                None => NonNullProp::True,
+            },
+            style_non_null_props,
+        );
+        state.style_vars_to_keep.insert(style_var_to_keep);
+        dbg!(&state.style_vars_to_keep);
     }
 }

@@ -6,17 +6,17 @@ use crate::shared::{
     utils::common::get_string_val_from_lit,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) enum StyleObject {
     Style(IndexMap<String, FlatCompiledStylesValue>),
     Nullable,
     Other,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) enum ResolvedArg {
     StyleObject(StyleObject, Ident),
-    ConditionalStyle((Expr, StyleObject, StyleObject, Ident)),
+    ConditionalStyle(Box<Expr>, Option<StyleObject>, Option<StyleObject>, Ident),
 }
 
 pub(crate) fn parse_nullable_style(node: &Expr, state: &StateManager) -> StyleObject {

@@ -125,6 +125,10 @@ impl StateManager {
         self.options.dev
     }
 
+    pub(crate) fn gen_conditional_classes(&self) -> bool {
+        self.options.gen_conditional_classes
+    }
+
     // pub(crate) fn css_vars(&self) -> HashMap<String, String> {
     //     self.options.defined_stylex_css_variables.clone()
     // }

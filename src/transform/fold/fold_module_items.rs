@@ -3,8 +3,8 @@ use swc_core::{
     ecma::{
         ast::{
             BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl,
-            ImportDefaultSpecifier, ImportPhase, ImportSpecifier, MemberExpr, MemberProp,
-            ModuleDecl, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+            ImportDefaultSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleItem, Pat,
+            Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
         },
         visit::FoldWith,
     },
@@ -13,7 +13,7 @@ use swc_core::{
 use crate::{
     shared::{
         constants::constants::DEFAULT_INJECT_PATH,
-        enums::{InjectedStylesDeclarationType, ModuleCycle},
+        enums::ModuleCycle,
         structures::uid_generator::UidGenerator,
         utils::common::{
             expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,

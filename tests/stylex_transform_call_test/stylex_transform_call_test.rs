@@ -230,3 +230,176 @@ test!(
     stylex(styles.foo, somethingElse);
 "#
 );
+
+test!(
+  Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+  stylex_keeps_all_null_when_applied_after_unknown,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        padding: 5
+      },
+      bar: {
+        paddingBlock: 10,
+      },
+      baz: {
+        paddingTop: 7,
+      }
+    });
+    stylex(styles.foo);
+    stylex(styles.foo, styles.bar);
+    stylex(styles.bar, styles.foo);
+    stylex(styles.foo, styles.bar, styles.baz);
+    stylex(somethingElse, styles.foo);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+  stylex_call_keeps_only_the_nulls_that_are_needed,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        padding: 5
+      },
+      bar: {
+        paddingBlock: 10,
+      },
+      baz: {
+        paddingTop: 7,
+      }
+    });
+    stylex(styles.foo);
+    stylex(styles.foo, styles.bar);
+    stylex(styles.bar, styles.foo);
+    stylex(styles.foo, styles.bar, styles.baz);
+    stylex(styles.baz, styles.foo, somethingElse);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+  stylex_call_keeps_only_the_nulls_that_are_needed_second,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        padding: 5
+      },
+      bar: {
+        paddingBlock: 10,
+      },
+      baz: {
+        paddingTop: 7,
+      }
+    });
+    stylex(styles.foo);
+    stylex(styles.foo, styles.bar);
+    stylex(styles.bar, styles.foo);
+    stylex(styles.foo, styles.bar, styles.baz);
+    stylex(styles.bar, styles.foo, somethingElse);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+  stylex_call_using_styles_with_pseudo_selectors,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'red',
+        ':hover': {
+          color: 'blue',
+        }
+      }
+    });
+    stylex(styles.default);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+  stylex_call_using_styles_with_pseudo_selectors_within_property,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: {
+          default: 'red',
+          ':hover': 'blue',
+        }
+      }
+    });
+    stylex(styles.default);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+  stylex_call_using_styles_with_media_queries,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        backgroundColor: 'red',
+        '@media (min-width: 1000px)': {
+          backgroundColor: 'blue',
+        },
+        '@media (min-width: 2000px)': {
+          backgroundColor: 'purple',
+        },
+      },
+    });
+    stylex(styles.default);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+  stylex_call_using_styles_with_media_queries_within_property,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        backgroundColor: {
+          default:'red',
+          '@supports (hover: hover)': 'blue',
+          '@supports not (hover: hover)': 'purple',
+        },
+      },
+    });
+    stylex(styles.default);
+"#
+);
+

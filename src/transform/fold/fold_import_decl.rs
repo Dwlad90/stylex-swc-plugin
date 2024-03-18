@@ -9,11 +9,7 @@ use swc_core::{
 };
 
 use crate::{
-    shared::{
-        constants,
-        enums::ModuleCycle,
-        structures::named_import_source::{ImportSources, NamedImportSource},
-    },
+    shared::{constants, enums::ModuleCycle, structures::named_import_source::ImportSources},
     ModuleTransformVisitor,
 };
 

@@ -1,11 +1,8 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use indexmap::IndexMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-
-use lazy_static::lazy_static;
-use phf::phf_map;
 
 use crate::shared::{
     structures::flat_compiled_styles::{FlatCompiledStyles, FlatCompiledStylesValue},
@@ -14,7 +11,7 @@ use crate::shared::{
 
 pub(crate) struct StyleQResult {
     pub(crate) class_name: String,
-    pub(crate) inline_style: Option<FlatCompiledStyles>,
+    pub(crate) _inline_style: Option<FlatCompiledStyles>,
 }
 
 // pub(crate) static CACHE: phf::Map<&'static IndexMap<String, FlatCompiledStylesValue>, &'static str> = phf_map! {};
@@ -49,9 +46,17 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
     // Keep track of property commits to the className
     dbg!(&arguments);
 
-    let mut defined_properties: Vec<String> = vec![]; // The className and inline style to build up
-
     let mut class_name = "".to_string();
+
+    if arguments.is_empty() {
+        // Early return if there are no arguments
+        return StyleQResult {
+            class_name,
+            _inline_style: Option::None,
+        };
+    }
+
+    let mut defined_properties: Vec<String> = vec![]; // The className and inline style to build up
 
     let inline_style: Option<FlatCompiledStyles> = None;
 
@@ -68,13 +73,24 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
 
     while styles.len() > 0 {
         let possible_style = match styles.pop() {
-            Some(possible_style) => possible_style,
+            Some(possible_style) => match possible_style {
+                ResolvedArg::StyleObject(_, _) => possible_style,
+                ResolvedArg::ConditionalStyle(_, value, _, _) => {
+                    if value.is_some() {
+                        possible_style
+                    } else {
+                        continue;
+                    }
+                }
+            },
             None => continue,
         };
 
-        let style = possible_style.clone();
+        dbg!(&possible_style, &styles);
 
-        match style {
+        // let style = possible_style.clone();
+
+        match possible_style {
             ResolvedArg::StyleObject(style, _) => match style {
                 StyleObject::Style(style) => {
                     if let Some(FlatCompiledStylesValue::Bool(_)) = style.get(COMPILED_KEY) {
@@ -162,12 +178,12 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
                 StyleObject::Nullable => panic!("Nullable style object is not allowed in styleq"),
                 StyleObject::Other => panic!("Other style object is not allowed in styleq"),
             },
-            ResolvedArg::ConditionalStyle(_) => todo!("ConditionalStyle"),
+            ResolvedArg::ConditionalStyle(_, _, _, _) => todo!("ConditionalStyle"),
         };
     }
 
     StyleQResult {
         class_name,
-        inline_style,
+        _inline_style: inline_style,
     }
 }

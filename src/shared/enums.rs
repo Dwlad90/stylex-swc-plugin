@@ -55,3 +55,10 @@ pub(crate) enum TopLevelExpressionKind {
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct TopLevelExpression(pub(crate) TopLevelExpressionKind, pub(crate) Box<Expr>);
+
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub(crate) enum ConditionPermutationsValue {
+    Single(String),
+    Triple((String, String, String)),
+}

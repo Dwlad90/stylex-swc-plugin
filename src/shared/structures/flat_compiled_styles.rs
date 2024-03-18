@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use super::included_style::IncludedStyle;
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) enum FlatCompiledStylesValue {
     String(String),
     Null,

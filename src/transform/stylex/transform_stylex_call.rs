@@ -2,13 +2,18 @@ use std::collections::HashMap;
 
 use swc_core::{
     common::comments::Comments,
-    ecma::ast::{CallExpr, Callee, Expr},
+    ecma::{
+        ast::{BinExpr, BinaryOp, CallExpr, Callee, Expr, MemberExpr},
+        visit::{noop_fold_type, Fold, FoldWith},
+    },
 };
 
 use crate::{
     shared::{
         enums::NonNullProps,
-        structures::{functions::FunctionMap, named_import_source::ImportSources},
+        structures::{
+            functions::FunctionMap, named_import_source::ImportSources, state_manager::StateManager,
+        },
         utils::{
             common::reduce_ident_count,
             stylex::{
@@ -20,6 +25,33 @@ use crate::{
     },
     ModuleTransformVisitor,
 };
+
+struct MemberTransform {
+    pub(crate) index: i32,
+    pub(crate) bail_out_index: Option<i32>,
+    pub(crate) non_null_props: NonNullProps,
+    pub(crate) state: StateManager,
+}
+
+impl Fold for MemberTransform {
+    noop_fold_type!();
+
+    fn fold_member_expr(&mut self, member: MemberExpr) -> MemberExpr {
+        member_expression(
+            &member,
+            &mut self.index,
+            &mut self.bail_out_index,
+            &mut self.non_null_props,
+            &mut self.state,
+            &FunctionMap {
+                identifiers: HashMap::new(),
+                member_expressions: HashMap::new(),
+            },
+        );
+
+        member
+    }
+}
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -35,7 +67,7 @@ where
                         .contains(&ImportSources::Regular(ident.sym.to_string()))
                     {
                         let mut bail_out = false;
-                        let conditional = 0;
+                        let mut conditional = 0;
 
                         let mut current_index = -1;
 
@@ -57,9 +89,9 @@ where
                                     match resolved {
                                         StyleObject::Other => {
                                             dbg!(&arg);
-                                            panic!("Other");
                                             bail_out_index = Option::Some(current_index);
                                             bail_out = true;
+                                            todo!("StyleObject::Other case");
                                         }
                                         StyleObject::Style(_) => {
                                             resolved_args.push(ResolvedArg::StyleObject(
@@ -84,7 +116,44 @@ where
                                     }
                                 }
                                 Expr::Cond(_) => todo!("Condition"),
-                                Expr::Bin(_) => todo!("Logical"),
+                                Expr::Bin(BinExpr {
+                                    left, op, right, ..
+                                }) => {
+                                    if !op.eq(&BinaryOp::LogicalAnd) {
+                                        bail_out_index = Some(current_index);
+                                        bail_out = true;
+                                        break;
+                                    }
+
+                                    let left_resolved = parse_nullable_style(&left, &self.state);
+                                    let right_resolved = parse_nullable_style(&right, &self.state);
+                                    if !left_resolved.eq(&StyleObject::Other)
+                                        || right_resolved.eq(&StyleObject::Other)
+                                    {
+                                        bail_out_index = Some(current_index);
+                                        bail_out = true;
+                                    } else {
+                                        let ident = match right.as_ref() {
+                                            Expr::Ident(ident) => ident.clone(),
+                                            Expr::Member(meber) => meber
+                                                .obj
+                                                .as_ident()
+                                                .expect("Member obj is not an ident")
+                                                .clone(),
+                                            _ => panic!("Illegal argument"),
+                                        };
+
+                                        resolved_args.push(ResolvedArg::ConditionalStyle(
+                                            left,
+                                            Some(right_resolved),
+                                            None,
+                                            ident,
+                                        ));
+
+                                        conditional = conditional + 1;
+                                    }
+                                }
+
                                 _ => {
                                     bail_out_index = Option::Some(current_index);
                                     bail_out = true;
@@ -100,7 +169,8 @@ where
                             }
                         }
 
-                        if !self.state.options.gen_conditional_classes && conditional > 0 {
+                        dbg!(&self.state.gen_conditional_classes());
+                        if !self.state.gen_conditional_classes() && conditional > 0 {
                             bail_out = true;
                         }
 
@@ -111,41 +181,70 @@ where
 
                             let mut index = -1;
 
-                            for arg_path in arguments_path.into_iter() {
+                            for mut arg_path in arguments_path.into_iter() {
                                 index = index + 1;
 
                                 assert!(arg_path.spread.is_none(), "Spread not implemented yet");
 
-                                let arg = arg_path.expr.as_ref();
+                                // let mut arg = arg_path.expr.as_ref();
 
-                                if let Some(member) = arg.as_member() {
-                                    dbg!(&member);
-                                    member_expression(
-                                        member,
-                                        &mut index,
-                                        &mut bail_out_index,
-                                        &mut non_null_props,
-                                        &mut self.state,
-                                        &FunctionMap {
-                                            identifiers: HashMap::new(),
-                                            member_expressions: HashMap::new(),
-                                        },
-                                    );
-                                } else {
-                                    dbg!(&arg);
-                                    // todo!("Not member not implemented yet");
-                                }
+                                let mut member_transfom = MemberTransform {
+                                    index: index.clone(),
+                                    bail_out_index: bail_out_index.clone(),
+                                    non_null_props: non_null_props.clone(),
+                                    state: self.state.clone(),
+                                };
+
+                                arg_path.expr =
+                                    arg_path.expr.clone().fold_with(&mut member_transfom);
+
+                                index = member_transfom.index;
+                                bail_out_index = member_transfom.bail_out_index;
+                                non_null_props = member_transfom.non_null_props;
+                                self.state = member_transfom.state;
+
+                                // match arg {
+                                //     Expr::Member(member) => {
+                                //         dbg!(&member);
+
+                                //         member_expression(
+                                //             member,
+                                //             &mut index,
+                                //             &mut bail_out_index,
+                                //             &mut non_null_props,
+                                //             &mut self.state,
+                                //             &FunctionMap {
+                                //                 identifiers: HashMap::new(),
+                                //                 member_expressions: HashMap::new(),
+                                //             },
+                                //         )
+                                //     }
+                                //     Expr::Ident(_) => {}
+                                //     _ => {
+                                //         dbg!(&arg);
+                                //         panic!("Illegal argument");
+                                //         arg.clone().fold_with(self);
+                                //     }
+                                // }
                             }
                         } else {
-                            dbg!(&call.args);
+                            if resolved_args.is_empty() {
+                                return Option::None;
+                            }
+
                             let string_expression = make_string_expression(&resolved_args);
+                            reduce_ident_count(&mut self.state, &ident);
 
                             for arg in &resolved_args {
                                 match arg {
                                     ResolvedArg::StyleObject(_, ident) => {
+                                        dbg!(&ident);
                                         reduce_ident_count(&mut self.state, &ident);
                                     }
-                                    ResolvedArg::ConditionalStyle(_) => todo!("ConditionalStyle"),
+                                    ResolvedArg::ConditionalStyle(expr, _, _, ident) => {
+                                        dbg!(&ident);
+                                        reduce_ident_count(&mut self.state, &ident);
+                                    }
                                 }
                             }
 

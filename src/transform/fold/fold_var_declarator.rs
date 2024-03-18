@@ -38,6 +38,7 @@ where
             if self.cycle == ModuleCycle::Cleaning {
                 let mut vars_to_keep: HashMap<Id, NonNullProps> = HashMap::new();
 
+                dbg!(&self.state.style_vars_to_keep);
                 for StyleVarsToKeep(var_name, namespace_name, _) in
                     self.state.style_vars_to_keep.clone().into_iter()
                 {
@@ -82,32 +83,28 @@ where
                                         None => vec![],
                                     };
 
-                                    if namespace_to_keep.is_empty() {
-                                        return var_declarator;
+                                    if !namespace_to_keep.is_empty() {
+                                        let props = self.retain_object_props(
+                                            &object,
+                                            namespace_to_keep,
+                                            var_name,
+                                        );
+
+                                        dbg!(&props);
+
+                                        object.props = props;
+
+                                        var_declarator.init =
+                                            Option::Some(Box::new(Expr::Object(object)));
                                     }
-
-                                    let props = self.retain_object_props(
-                                        &object,
-                                        namespace_to_keep,
-                                        var_name,
-                                    );
-
-                                    dbg!(&props);
-
-                                    object.props = props;
-
-                                    var_declarator.init =
-                                        Option::Some(Box::new(Expr::Object(object)));
                                 }
                             }
                         }
                     }
                 }
-
-                return var_declarator;
             }
 
-            return var_declarator.fold_children_with(self);
+            return var_declarator;
         }
 
         if &var_declarator.init.is_some() == &true {

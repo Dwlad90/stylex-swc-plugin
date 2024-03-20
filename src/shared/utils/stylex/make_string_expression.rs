@@ -41,6 +41,8 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
     if conditions.is_empty() {
         if let Some(value) = stylex(values) {
             return Some(value);
+        } else {
+            return string_to_expression("".to_string());
         }
     }
 
@@ -50,6 +52,8 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
         .iter()
         .map(|permutation| {
             let mut i = 0;
+
+            dbg!(&values);
 
             let args = values
                 .into_iter()
@@ -84,6 +88,8 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
             let key = permutation
                 .iter()
                 .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
+
+            dbg!(&args, key);
 
             let prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                 key: PropName::Ident(Ident::new(key.to_string().clone().into(), DUMMY_SP)),
@@ -151,10 +157,10 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Box<Expr>>) -> Box<Expr> {
 
 fn stylex(values: &Vec<ResolvedArg>) -> Option<Expr> {
     let result = styleq(values);
-    if result.class_name.is_empty() {
-        return Option::None;
-    }
-    string_to_expression(result.class_name)
+
+    let class_name = result.class_name.to_string();
+
+    string_to_expression(class_name)
 }
 
 fn gen_condition_permutations(count: usize) -> Vec<Vec<bool>> {

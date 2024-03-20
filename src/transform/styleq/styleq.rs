@@ -116,6 +116,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
                             let mut defined_properties_chunk: Vec<String> = vec![];
 
                             for (prop, value) in style.iter() {
+                                dbg!(&prop, &value);
                                 if prop.eq(COMPILED_KEY) {
                                     continue;
                                 }
@@ -170,6 +171,8 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
                             } else {
                                 class_name
                             };
+
+                            dbg!(&class_name);
                         }
                     } else {
                         todo!("DYNAMIC: Process inline style object")
@@ -181,7 +184,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
             ResolvedArg::ConditionalStyle(_, _, _, _) => todo!("ConditionalStyle"),
         };
     }
-
+    dbg!(&class_name);
     StyleQResult {
         class_name,
         _inline_style: inline_style,

@@ -8,7 +8,10 @@ use swc_core::{
 };
 
 use crate::shared::{
-    constants, enums::VarDeclAction, regex::INCLUDED_IDENT_REGEX, structures::{
+    constants,
+    enums::VarDeclAction,
+    regex::INCLUDED_IDENT_REGEX,
+    structures::{
         functions::FunctionMap,
         null_pre_rule::NullPreRule,
         order_pair::OrderPair,
@@ -17,14 +20,15 @@ use crate::shared::{
         pre_rule_set::PreRuleSet,
         state_manager::StateManager,
         stylex_state_options::StyleXStateOptions,
-    }, utils::{
+    },
+    utils::{
         common::{
             expr_tpl_to_string, get_expr_from_var_decl, get_key_str, get_key_values_from_object,
             get_string_val_from_lit, get_var_decl_by_ident, handle_tpl_to_expression,
             number_to_expression, transform_bin_expr_to_number,
         },
         css::css::flat_map_expanded_shorthands,
-    }
+    },
 };
 
 use super::evaluate::State;
@@ -69,7 +73,10 @@ pub(crate) fn flatten_raw_style_object(
                                 let pairs = flat_map_expanded_shorthands(
                                     (
                                         css_property_key.clone(),
-                                        PreRuleValue::String(get_string_val_from_lit(property_lit)),
+                                        match get_string_val_from_lit(property_lit).as_str() {
+                                            "" => PreRuleValue::Null,
+                                            val => PreRuleValue::String(val.to_string()),
+                                        },
                                     ),
                                     &state.options,
                                 );
@@ -142,7 +149,11 @@ pub(crate) fn flatten_raw_style_object(
                     // let b = Option::Some(b);
 
                     let pairs = flat_map_expanded_shorthands(
-                        (css_property_key, PreRuleValue::String(value)),
+                        (css_property_key, match value.as_str() {
+                            "" => PreRuleValue::Null,
+                            val => PreRuleValue::String(val.to_string()),
+
+                        }),
                         &state.options,
                     );
 

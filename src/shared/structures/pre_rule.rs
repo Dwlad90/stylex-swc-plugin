@@ -29,6 +29,7 @@ pub(crate) enum PreRuleValue {
     Expr(Expr),
     String(String),
     Vec(Vec<String>),
+    Null,
 }
 
 #[derive(Debug, Clone)]

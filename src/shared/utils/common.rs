@@ -95,6 +95,7 @@ pub(crate) fn get_string_val_from_lit(value: &Lit) -> String {
     match value {
         Lit::Str(str) => format!("{}", str.value),
         Lit::Num(num) => format!("{}", num.value),
+        Lit::Null(_) => "".to_string(),
         _ => panic!("{}", ILLEGAL_PROP_VALUE),
     }
 }

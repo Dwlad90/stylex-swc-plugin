@@ -24,11 +24,11 @@ impl Default for StyleXOptionsParams {
     fn default() -> Self {
         StyleXOptionsParams {
             use_rem_for_font_size: Option::Some(false),
-            runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
+            runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
             class_name_prefix: Option::Some("x".to_string()),
             defined_stylex_css_variables: Option::Some(HashMap::new()),
             import_sources: Option::None,
-            treeshake_compensation: Option::None,
+            treeshake_compensation: Option::Some(true),
             gen_conditional_classes: Option::Some(false),
             dev: Option::Some(false),
             test: Option::Some(false),

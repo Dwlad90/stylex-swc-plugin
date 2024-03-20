@@ -62,6 +62,8 @@ pub(crate) fn stylex_create_set(
             })
             .collect::<Vec<(String, CompiledResult)>>();
 
+        dbg!(&compiled_namespace_tuples);
+
         let compiled_namespace = compiled_namespace_tuples
             .iter()
             .map(|(key, value)| {
@@ -95,6 +97,8 @@ pub(crate) fn stylex_create_set(
             } else if let Some(styles) = value.as_computed_styles() {
                 let class_name_tuples = styles.clone();
 
+                dbg!(&class_name_tuples);
+
                 let class_name = &class_name_tuples
                     .iter()
                     .map(|computed_style| {
@@ -126,10 +130,12 @@ pub(crate) fn stylex_create_set(
 
         namespace_obj.insert("$$css".to_string(), FlatCompiledStylesValue::Bool(true));
 
-        dbg!(&namespace_obj);
+
 
         resolved_namespaces.insert(resolved_namespace_name.clone(), namespace_obj);
     }
+
+    dbg!(&resolved_namespaces, &injected_styles_map);
 
     (resolved_namespaces, injected_styles_map)
 }

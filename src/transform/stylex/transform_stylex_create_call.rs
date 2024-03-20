@@ -319,6 +319,7 @@ where
                         let metadatas = MetaData::convert_from_injected_styles_map(injected_styles);
 
                         for metadata in metadatas {
+                            dbg!(&metadata);
                             self.push_to_css_output(metadata);
                         }
 

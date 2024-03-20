@@ -1,3 +1,4 @@
+use colored::{Color, Colorize};
 use swc_core::{
     common::{comments::Comments, DUMMY_SP},
     ecma::{
@@ -175,6 +176,8 @@ where
                         }
 
                         for metadata in &self.css_output {
+                            eprintln!("{}", Colorize::yellow("!!!! registerStyles: not implemented !!!!"));
+
                             let priority = &metadata.get_priority();
                             let css = &metadata.get_css();
 

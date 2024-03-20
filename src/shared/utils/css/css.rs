@@ -246,13 +246,14 @@ pub(crate) fn flat_map_expanded_shorthands(
     let (key, raw_value) = obj_entry.clone();
 
     let value = match raw_value {
-        PreRuleValue::String(value) => value,
+        PreRuleValue::String(value) => Some(value),
         PreRuleValue::Vec(_) => {
             panic!("Cannot use fallbacks for shorthands. Use the expansion instead.")
         }
         PreRuleValue::Expr(_) => {
             panic!("Cannot use expressions for shorthands. Use the expansion instead.")
         }
+        PreRuleValue::Null => None,
     };
 
     let key = if key.starts_with("var(") && key.ends_with(")") {
@@ -267,10 +268,10 @@ pub(crate) fn flat_map_expanded_shorthands(
     };
 
     if let Some(expansion_fn) = expansion_fn {
-        return (expansion_fn)(Option::Some(value.clone()));
+        return (expansion_fn)(value.clone());
     }
 
-    let order_pair = OrderPair(key, Some(value));
+    let order_pair = OrderPair(key, value);
 
     let vec_order_pair: Vec<OrderPair> = vec![order_pair];
 

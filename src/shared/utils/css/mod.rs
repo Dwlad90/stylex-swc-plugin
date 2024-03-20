@@ -140,6 +140,7 @@ pub(crate) fn convert_style_to_class_name(
                 .collect::<Vec<String>>(),
         ),
         PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+        PreRuleValue::Null => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
     };
 
     dbg!(&value);
@@ -151,6 +152,7 @@ pub(crate) fn convert_style_to_class_name(
             PreRuleValue::String(value) => value,
             PreRuleValue::Vec(values) => values.join(", "),
             PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+            PreRuleValue::Null => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
         },
         modifier_hash_string
     );
@@ -253,6 +255,7 @@ pub(crate) fn generate_rule(
             })
         }),
         PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+        PreRuleValue::Null => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
     }
 
     let ltr_pairs: Vec<Pair> = pairs

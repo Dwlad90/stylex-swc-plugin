@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use stylex_swc_plugin::{
     shared::structures::{
-        named_import_source::RuntimeInjection, stylex_options::StyleXOptionsParams,
+        named_import_source::RuntimeInjection, plugin_pass::PluginPass,
+        stylex_options::StyleXOptionsParams,
     },
     ModuleTransformVisitor,
 };
@@ -33,6 +34,7 @@ fn fixture(input: PathBuf) {
                 resolver(unresolved_mark, top_level_mark, false),
                 ModuleTransformVisitor::new_test_styles(
                     PluginCommentsProxy,
+                    PluginPass::default(),
                     Option::Some(StyleXOptionsParams {
                         use_rem_for_font_size: Option::None,
                         runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),

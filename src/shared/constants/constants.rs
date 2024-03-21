@@ -18,3 +18,5 @@ pub(crate) static INVALID_METHODS: phf::Set<&'static str> = phf_set! {
   "seal",
   "splice",
 };
+
+pub(crate) static COMPILED_KEY: &str = "$$css";

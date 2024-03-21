@@ -1,12 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
-pub(crate) struct PluginPass {
+use swc_core::common::FileName;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PluginPass {
     // Assuming BabelFile is a struct in your code
     // file: &BabelFile;
-    pub(crate) key: String,
-    pub(crate) opts: HashMap<String, String>, // Assuming opts is a HashMap
-    pub(crate) cwd: String,
-    pub(crate) filename: Option<String>,
+    // pub(crate) key: String,
+    // pub(crate) opts: HashMap<String, String>, // Assuming opts is a HashMap
+    pub cwd: Option<PathBuf>,
+    pub filename: FileName,
 }
 
 trait TraitName {
@@ -19,4 +22,13 @@ impl TraitName for PluginPass {
         Option::None
     } // Assuming the key is a string and the value is a string
     fn set(&mut self, key: &str, value: &str) {} // Assuming the key is a string and the value is a string
+}
+
+impl Default for PluginPass {
+    fn default() -> Self {
+        Self {
+            cwd: Option::None,
+            filename: FileName::Anon,
+        }
+    }
 }

@@ -67,6 +67,7 @@ where
                         .stylex_import
                         .contains(&ImportSources::Regular(ident.sym.to_string()))
                     {
+
                         let mut bail_out = false;
                         let mut conditional = 0;
 
@@ -129,7 +130,8 @@ where
                                     let left_resolved = parse_nullable_style(&left, &self.state);
                                     let right_resolved = parse_nullable_style(&right, &self.state);
                                     dbg!(&left, &right_resolved);
-                                    if !left_resolved.eq(&StyleObject::Other)
+
+                                      if !left_resolved.eq(&StyleObject::Other)
                                         || right_resolved.eq(&StyleObject::Other)
                                     {
                                         bail_out_index = Some(current_index);
@@ -144,8 +146,6 @@ where
                                                 .clone(),
                                             _ => panic!("Illegal argument"),
                                         };
-
-
 
                                         resolved_args.push(ResolvedArg::ConditionalStyle(
                                             left,
@@ -176,6 +176,7 @@ where
                         dbg!(&resolved_args, &conditional, &bail_out_index, &bail_out);
 
                         dbg!(&self.state.gen_conditional_classes());
+
                         if !self.state.gen_conditional_classes() && conditional > 0 {
                             bail_out = true;
                         }

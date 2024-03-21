@@ -2,6 +2,7 @@ use colored::Style;
 use stylex_swc_plugin::{
     shared::structures::{
         named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
+        plugin_pass::PluginPass,
         stylex_options::StyleXOptionsParams,
     },
     ModuleTransformVisitor,
@@ -22,7 +23,11 @@ test!(
         config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
         config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
-        ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::Some(config),
+        )
     },
     handles_custom_default_imports,
     r#"
@@ -48,7 +53,11 @@ test!(
         config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
         config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
-        ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::Some(config),
+        )
     },
     handles_custom_as_all_imports,
     r#"
@@ -78,7 +87,11 @@ test!(
         })]);
         config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
-        ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::Some(config),
+        )
     },
     handles_custom_named_imports,
     r#"
@@ -108,7 +121,11 @@ test!(
         })]);
         config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
 
-        ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::Some(config))
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::Some(config),
+        )
     },
     handles_custom_named_imports_with_other_named_imports,
     r#"

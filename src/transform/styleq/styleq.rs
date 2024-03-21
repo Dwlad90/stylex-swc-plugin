@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+use crate::shared::constants::constants::COMPILED_KEY;
 use crate::shared::{
     structures::flat_compiled_styles::{FlatCompiledStyles, FlatCompiledStylesValue},
     utils::stylex::parse_nallable_style::{ResolvedArg, StyleObject},
@@ -15,8 +16,6 @@ pub(crate) struct StyleQResult {
 }
 
 // pub(crate) static CACHE: phf::Map<&'static IndexMap<String, FlatCompiledStylesValue>, &'static str> = phf_map! {};
-
-static COMPILED_KEY: &str = "$$css";
 
 fn get_hash<T>(obj: T) -> u64
 where

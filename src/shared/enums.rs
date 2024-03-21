@@ -54,7 +54,7 @@ pub(crate) enum TopLevelExpressionKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub(crate) struct TopLevelExpression(pub(crate) TopLevelExpressionKind, pub(crate) Box<Expr>);
+pub(crate) struct TopLevelExpression(pub(crate) TopLevelExpressionKind, pub(crate) Expr);
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]

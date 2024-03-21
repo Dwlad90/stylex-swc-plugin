@@ -1,4 +1,4 @@
-use stylex_swc_plugin::ModuleTransformVisitor;
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
     parser::{Syntax, TsConfig},
     transforms::testing::test,
@@ -9,7 +9,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     transforms_media_queries,
     r#"
         import stylex from 'stylex';
@@ -30,7 +34,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     transforms_supports_queries,
     r#"
         import stylex from 'stylex';

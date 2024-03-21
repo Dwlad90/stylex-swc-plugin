@@ -15,6 +15,7 @@ use crate::{
         structures::{
             meta_data::MetaData,
             named_import_source::{ImportSources, RuntimeInjection},
+            plugin_pass::PluginPass,
             state_manager::StateManager,
             stylex_options::StyleXOptions,
         },
@@ -34,9 +35,8 @@ where
     comments: C,
     // declaration: Option<Id>,
     cycle: ModuleCycle,
-    file_name: String,
     props_declaration: Option<Id>,
-    css_output: Vec<MetaData>,
+    css_output: Vec<(String, MetaData)>,
     pub(crate) state: StateManager,
 }
 
@@ -44,40 +44,44 @@ impl<C> ModuleTransformVisitor<C>
 where
     C: Comments,
 {
-    pub(crate) fn new(comments: C, file_name: FileName, config: StyleXOptionsParams) -> Self {
+    pub(crate) fn new(comments: C, plugin_pass: PluginPass, config: StyleXOptionsParams) -> Self {
         let stylex_imports = fill_stylex_imports(&Option::Some(config.clone()));
 
         let mut state = StateManager::new(config.into());
 
         state.stylex_import = stylex_imports;
 
+        state._state = plugin_pass;
+
         ModuleTransformVisitor {
             comments,
             cycle: ModuleCycle::Initializing,
-            file_name: extract_filename_from_path(file_name),
             props_declaration: Option::None,
             css_output: vec![],
             state,
         }
     }
 
-    pub fn new_test_classname(comments: C, config: Option<StyleXOptionsParams>) -> Self {
-        panic!("new_test_classname");
-        let stylex_imports = fill_stylex_imports(&config);
-        let mut state = StateManager::new(config.unwrap_or(StyleXOptionsParams::default()).into());
+    // pub fn new_test_classname(comments: C, config: Option<StyleXOptionsParams>) -> Self {
+    //     panic!("new_test_classname");
+    //     let stylex_imports = fill_stylex_imports(&config);
+    //     let mut state = StateManager::new(config.unwrap_or(StyleXOptionsParams::default()).into());
 
-        state.stylex_import = stylex_imports;
+    //     state.stylex_import = stylex_imports;
 
-        ModuleTransformVisitor {
-            comments,
-            cycle: ModuleCycle::Initializing,
-            file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
-            props_declaration: Option::None,
-            css_output: vec![],
-            state,
-        }
-    }
-    pub fn new_test_styles(comments: C, config: Option<StyleXOptionsParams>) -> Self {
+    //     ModuleTransformVisitor {
+    //         comments,
+    //         cycle: ModuleCycle::Initializing,
+    //         props_declaration: Option::None,
+    //         css_output: vec![],
+    //         state,
+    //     }
+    // }
+    pub fn new_test_styles(
+        comments: C,
+        plugin_pass: PluginPass,
+        config: Option<StyleXOptionsParams>,
+    ) -> Self {
         let stylex_imports = fill_stylex_imports(&config);
 
         let mut state = match &config {
@@ -95,10 +99,13 @@ where
         // state.stylex_import = stylex_imports.clone();
         state.options.import_sources = stylex_imports.into_iter().collect();
 
+        let plugin_pass = plugin_pass.clone();
+
+        state._state = plugin_pass;
+
         ModuleTransformVisitor {
             comments,
             cycle: ModuleCycle::Initializing,
-            file_name: extract_filename_from_path(FileName::Real(PathBuf::from("app/page.tsx"))),
             props_declaration: Option::None,
             css_output: vec![],
             state,
@@ -177,16 +184,16 @@ where
         None
     }
 
-    pub(crate) fn push_to_css_output(&mut self, metadata: MetaData) {
+    pub(crate) fn push_to_css_output(&mut self, var_name: String, metadata: MetaData) {
         if self
             .css_output
             .iter()
-            .any(|x| x.get_class_name() == metadata.get_class_name())
+            .any(|(_, x)| x.get_class_name() == metadata.get_class_name())
         {
             return;
         }
 
-        self.css_output.push(metadata);
+        self.css_output.push((var_name, metadata));
     }
 }
 

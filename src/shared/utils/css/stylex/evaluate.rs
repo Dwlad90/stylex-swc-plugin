@@ -32,7 +32,9 @@ use crate::shared::{
     constants::{
         self,
         constants::{INVALID_METHODS, VALID_CALLEES},
-    }, enums::VarDeclAction, structures::{
+    },
+    enums::VarDeclAction,
+    structures::{
         evaluate_result::{EvaluateResult, EvaluateResultValue},
         functions::{CallbackType, FunctionConfig, FunctionMap, FunctionType},
         injectable_style::InjectableStyle,
@@ -41,7 +43,8 @@ use crate::shared::{
         state_manager::{self, StateManager},
         stylex_options::StyleXOptions,
         stylex_state_options::StyleXStateOptions,
-    }, utils::{
+    },
+    utils::{
         common::{
             binary_expr_to_num, deep_merge_props, expr_to_str, get_key_str,
             get_string_val_from_lit, get_var_decl_by_ident, get_var_decl_from,
@@ -53,7 +56,7 @@ use crate::shared::{
             native_functions::{evaluate_filter, evaluate_map},
         },
         validators::{validate_dynamic_style_params, validate_namespace},
-    }
+    },
 };
 
 #[derive(Debug)]
@@ -338,6 +341,9 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                 return Some(EvaluateResultValue::Expr(func()));
             }
 
+            let ident_binding =
+                get_binding(&Expr::Ident(ident.clone()), &mut state.traversal_state);
+
             Option::None
         }
         Expr::TsAs(_) => todo!("TsAs not implemented yet"),
@@ -362,8 +368,9 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
         }
         Expr::Member(member) => {
             dbg!(&member.obj);
+
             let Some(object) = evaluate_cached(&*member.obj, state) else {
-                dbg!(&member);
+                dbg!(&member.obj);
                 panic!("Object not found");
             };
 
@@ -1337,13 +1344,20 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
     if result.is_none() && path.is_ident() {
         let ident = path.as_ident().expect("Identifier not found");
 
-        let binding =
-            get_var_decl_by_ident(ident, &mut state.traversal_state, &state.functions, VarDeclAction::Reduce);
+        let binding = get_var_decl_by_ident(
+            ident,
+            &mut state.traversal_state,
+            &state.functions,
+            VarDeclAction::Reduce,
+        );
 
         match binding {
             Some(binding) => {
+                if path.eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
+                    todo!("Check what's happening here")
+                }
                 eprintln!("{}", Colorize::yellow("!!!! binding: {:#?} !!!!"));
-                dbg!(&binding);
+                dbg!(&binding.init);
 
                 return evaluate_cached(&*binding.init.expect("Binding nof found").clone(), state);
             }
@@ -1474,7 +1488,7 @@ pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<Evaluate
     // let seen = &mut state.seen;
 
     let existing = state.seen.get(&path);
-
+    dbg!(&path, &existing);
     match existing {
         Some(value) => {
             // panic!("Should not be here");
@@ -1491,6 +1505,8 @@ pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<Evaluate
                 resolved: false,
             };
             state.seen.insert(path.clone(), item);
+
+            dbg!(&path);
 
             let val = _evaluate(path, state);
 

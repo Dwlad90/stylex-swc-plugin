@@ -1,4 +1,4 @@
-use stylex_swc_plugin::ModuleTransformVisitor;
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
     parser::{Syntax, TsConfig},
     transforms::testing::test,
@@ -9,7 +9,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     ignores_valid_imports,
     r#"
         import stylex from '@stylexjs/stylex';
@@ -28,7 +32,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     ignores_valid_requires,
     r#"
         const stylex = require('@stylexjs/stylex');
@@ -47,7 +55,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     named_declaration_export,
     r#"
         import stylex from 'stylex';
@@ -64,7 +76,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     does_nothing_when_stylex_not_imported,
     r#"
         export const styles = stylex.create({
@@ -80,7 +96,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     named_property_export,
     r#"
         import stylex from '@stylexjs/stylex';
@@ -98,7 +118,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     default_export,
     r#"
         import stylex from '@stylexjs/stylex';
@@ -115,7 +139,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     default_export_with_parenthesis,
     r#"
         import stylex from '@stylexjs/stylex';
@@ -132,7 +160,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     module_export,
     r#"
         import stylex from '@stylexjs/stylex';

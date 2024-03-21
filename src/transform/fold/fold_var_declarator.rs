@@ -64,7 +64,9 @@ where
 
                 for (_, var_name) in self.state.style_vars.clone().into_iter() {
                     let var_decl = self.state.top_level_expressions.clone().into_iter().find(
-                        |TopLevelExpression(_, expr)| var_name.init.clone().unwrap().eq(expr),
+                        |TopLevelExpression(_, expr)| {
+                            var_name.init.clone().unwrap().eq(&Box::new(expr.clone()))
+                        },
                     );
 
                     if let Option::Some(TopLevelExpression(kind, _)) = var_decl {

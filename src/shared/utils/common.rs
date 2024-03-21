@@ -7,7 +7,7 @@ use swc_core::{
         ast::{
             BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Ident, KeyValueProp,
             Lit, Module, ModuleDecl, ModuleItem, Number, ObjectLit, Pat, Prop, PropName,
-            PropOrSpread, Stmt, Tpl, UnaryExpr, UnaryOp, VarDeclarator,
+            PropOrSpread, Stmt, Str, Tpl, UnaryExpr, UnaryOp, VarDeclarator,
         },
         visit::{Fold, FoldWith},
     },
@@ -39,7 +39,7 @@ fn replace_spans(expr: &mut Expr) -> Expr {
 
 pub(crate) fn prop_or_spread_expression_creator(key: String, value: Expr) -> PropOrSpread {
     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-        key: PropName::Ident(Ident::new(key.into(), DUMMY_SP)),
+        key: string_to_prop_name(key).unwrap(),
         value: Box::new(value),
     })))
 }
@@ -71,6 +71,19 @@ pub(crate) fn string_to_expression(value: String) -> Option<Expr> {
     Option::Some(Expr::Lit(Lit::Str(value.into())))
 }
 
+// Converts a string to an expression.
+pub(crate) fn string_to_prop_name(value: String) -> Option<PropName> {
+    if value.contains(".") {
+        Some(PropName::Str(Str {
+            span: DUMMY_SP,
+            value: value.clone().into(),
+            raw: None,
+        }))
+    } else {
+        Some(PropName::Ident(Ident::new(value.clone().into(), DUMMY_SP)))
+    }
+}
+
 // Converts a number to an expression.
 pub(crate) fn number_to_expression(value: f64) -> Option<Expr> {
     Option::Some(Expr::Lit(Lit::Num(Number {
@@ -83,7 +96,7 @@ pub(crate) fn number_to_expression(value: f64) -> Option<Expr> {
 pub(crate) fn extract_filename_from_path(path: FileName) -> String {
     match path {
         FileName::Real(path_buf) => path_buf.file_stem().unwrap().to_str().unwrap().to_string(),
-        _ => panic!("Not a real file name"),
+        _ => "UnknownFile".to_string(),
     }
 }
 
@@ -931,7 +944,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
                     if let Some(decl_init) = decl.init.as_ref() {
                         state.top_level_expressions.push(TopLevelExpression(
                             TopLevelExpressionKind::NamedExport,
-                            decl_init.clone(),
+                            *decl_init.clone(),
                         ));
                         state.declarations.push(decl.clone());
                     }
@@ -942,12 +955,12 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
             if let Some(paren) = export_decl.expr.as_paren() {
                 state.top_level_expressions.push(TopLevelExpression(
                     TopLevelExpressionKind::DefaultExport,
-                    paren.expr.clone(),
+                    *paren.expr.clone(),
                 ));
             } else {
                 state.top_level_expressions.push(TopLevelExpression(
                     TopLevelExpressionKind::DefaultExport,
-                    export_decl.expr.clone(),
+                    *export_decl.expr.clone(),
                 ));
             }
         }
@@ -956,7 +969,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
                 if let Some(decl_init) = decl.init.as_ref() {
                     state.top_level_expressions.push(TopLevelExpression(
                         TopLevelExpressionKind::Stmt,
-                        decl_init.clone(),
+                        *decl_init.clone(),
                     ));
                     state.declarations.push(decl.clone());
                 }

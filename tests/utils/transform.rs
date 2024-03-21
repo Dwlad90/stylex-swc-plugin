@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::{rc::Rc, sync::Arc};
 
+use stylex_swc_plugin::shared::structures::plugin_pass::PluginPass;
 use stylex_swc_plugin::ModuleTransformVisitor;
 // use swc_ecma_codegen::{text_writer::JsWriter, Emitter};
 
@@ -43,6 +44,7 @@ pub(crate) fn parse_js(source_code: &str) -> Module {
             // Do something with the parsed module.
             module.fold_with(&mut ModuleTransformVisitor::new_test_styles(
                 PluginCommentsProxy,
+                PluginPass::default(),
                 Option::None,
             ))
         }

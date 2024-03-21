@@ -1,4 +1,4 @@
-use stylex_swc_plugin::ModuleTransformVisitor;
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
     parser::{Syntax, TsConfig},
     transforms::testing::test,
@@ -14,7 +14,13 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+        |tr| {
+            ModuleTransformVisitor::new_test_styles(
+                tr.comments.clone(),
+                PluginPass::default(),
+                Option::None,
+            )
+        },
         r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -38,7 +44,13 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+        |tr| {
+            ModuleTransformVisitor::new_test_styles(
+                tr.comments.clone(),
+                PluginPass::default(),
+                Option::None,
+            )
+        },
         r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -62,7 +74,13 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+        |tr| {
+            ModuleTransformVisitor::new_test_styles(
+                tr.comments.clone(),
+                PluginPass::default(),
+                Option::None,
+            )
+        },
         r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -86,7 +104,13 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
             tsx: true,
             ..Default::default()
         }),
-        |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+        |tr| {
+            ModuleTransformVisitor::new_test_styles(
+                tr.comments.clone(),
+                PluginPass::default(),
+                Option::None,
+            )
+        },
         r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -100,10 +124,15 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
     )
 }
 
-
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
+    |tr| {
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::None,
+        )
+    },
     dynamic_style_function_only_accepts_named_parameters_valid,
     r#"
     import stylex from "@stylexjs/stylex";

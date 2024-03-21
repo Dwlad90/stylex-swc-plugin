@@ -5,15 +5,17 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Id, VarDeclarator};
 
 use crate::shared::enums::{StyleVarsToKeep, TopLevelExpression};
+use crate::shared::utils::common::extract_filename_from_path;
 
 use super::flat_compiled_styles::FlatCompiledStylesValue;
 use super::named_import_source::ImportSources;
+use super::plugin_pass::PluginPass;
 use super::stylex_options::StyleXOptions;
 use super::stylex_state_options::StyleXStateOptions;
 
 #[derive(Clone, Debug)]
 pub struct StateManager {
-    // _state: PluginPass, // Assuming PluginPass is a struct in your code
+    pub(crate) _state: PluginPass, // Assuming PluginPass is a struct in your code
 
     // Imports
     pub(crate) import_paths: HashSet<String>,
@@ -49,7 +51,7 @@ impl StateManager {
     pub fn new(stylex_options: StyleXOptions) -> Self {
         let options: StyleXStateOptions = StyleXStateOptions::from(stylex_options);
         Self {
-            // _state: state,
+            _state: PluginPass::default(),
             import_paths: HashSet::new(),
             stylex_import: HashSet::new(),
             stylex_props_import: HashSet::new(),
@@ -129,6 +131,9 @@ impl StateManager {
         self.options.gen_conditional_classes
     }
 
+    pub(crate) fn get_filename(&self) -> String {
+        extract_filename_from_path(self._state.filename.clone())
+    }
     // pub(crate) fn css_vars(&self) -> HashMap<String, String> {
     //     self.options.defined_stylex_css_variables.clone()
     // }

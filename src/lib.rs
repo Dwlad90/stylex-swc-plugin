@@ -1,7 +1,9 @@
-pub(crate) mod transform;
 pub mod shared;
+pub(crate) mod transform;
 
-use shared::structures::stylex_options::StyleXOptionsParams;
+use std::env;
+
+use shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
 pub use transform::ModuleTransformVisitor;
 
 use swc_core::{
@@ -51,14 +53,26 @@ pub(crate) fn process_transform(
     )
     .expect("invalid config for stylex");
 
-    let file_name: FileName =
+    let filename: FileName =
         match metadata.get_context(&TransformPluginMetadataContextKind::Filename) {
             Some(s) => FileName::Real(s.into()),
             None => FileName::Anon,
         };
 
+    let cwd = match env::current_dir() {
+        Ok(cwd) => Some(cwd),
+        Err(e) => panic!("Error getting current directory: {}", e),
+    };
+
+    let plugin_pass = PluginPass {
+        // key: "key".to_string(),
+        // opts: Default::default(),
+        cwd,
+        filename,
+    };
+
     let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
-        ModuleTransformVisitor::new(PluginCommentsProxy, file_name, config);
+        ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, config);
 
     let program = program.fold_with(&mut stylex);
 

@@ -14,3 +14,6 @@ pub(crate) static WHITESPACE_NORMALIZER_BRACE_REGEX: Lazy<Regex> =
 
 pub(crate) static DASHIFY_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(^|[a-z])([A-Z])").unwrap());
+
+pub(crate) static SANITIZE_CLASS_NAME_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"[^.a-zA-Z0-9_-]").unwrap());

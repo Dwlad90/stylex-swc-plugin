@@ -1,9 +1,9 @@
 use colored::{Color, Colorize};
 use swc_core::{
-    common::{comments::Comments, DUMMY_SP},
+    common::{comments::Comments, plugin::metadata, DUMMY_SP},
     ecma::{
         ast::{
-            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl,
+            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
             ImportDefaultSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleItem, Pat,
             Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
         },
@@ -72,7 +72,7 @@ where
             ModuleCycle::InjectClassName => module_items.fold_children_with(self),
             ModuleCycle::InjectStyles => {
                 let mut styles_item_idx = 0;
-                let mut styles_item_target_idx: Option<usize> = Option::None;
+                let mut styles_item_target_idx: Vec<(Option<String>, usize)> = vec![];
 
                 let prefix = "inject";
 
@@ -97,19 +97,20 @@ where
                                             increase_ident_count(&mut self.state, &ident);
                                         }
 
-                                        let decl_name = self.get_props_desclaration_as_string();
+                                        let decl_names =
+                                            self.state.style_vars.keys().collect::<Vec<&String>>();
                                         let var_declarator_name =
                                             get_pat_as_string(&var_declarator.name);
 
                                         println!(
-                                            "!!!! decl_name: {:?}, var_declarator_name: {:?}, self
+                                            "!!!! decl_names: {:?}, var_declarator_name: {:?}, self
                                             .props_declaration: {:?}",
-                                            decl_name, var_declarator_name, self.props_declaration
+                                            decl_names, var_declarator_name, self.props_declaration
                                         );
 
-                                        if decl_name.eq(&var_declarator_name) {
-                                            styles_item_target_idx = Option::Some(styles_item_idx);
-                                            break;
+                                        if decl_names.contains(&&var_declarator_name) {
+                                            styles_item_target_idx
+                                                .push((Some(var_declarator_name), styles_item_idx));
                                         }
                                     }
                                 }
@@ -118,8 +119,9 @@ where
                             ModuleDecl::ExportDefaultExpr(export_default_expr) => {
                                 match export_default_expr.expr.as_ref() {
                                     Expr::Object(_) => {
-                                        if self.props_declaration.is_none() {
-                                            styles_item_target_idx = Option::Some(styles_item_idx);
+                                        if self.state.style_vars.is_empty() {
+                                            styles_item_target_idx
+                                                .push((Option::None, styles_item_idx));
                                         }
                                     }
                                     _ => {}
@@ -131,18 +133,21 @@ where
                             Stmt::Decl(expr) => match expr {
                                 Decl::Var(decl_var) => {
                                     for decl in &decl_var.decls {
-                                        let decl_name = self.get_props_desclaration_as_string();
+                                        let decl_names =
+                                            self.state.style_vars.keys().collect::<Vec<&String>>();
                                         let var_declarator_name = get_pat_as_string(&decl.name);
 
                                         println!(
-                                            "!!!! decl_name: {:?}, var_declarator_name: {:?}, self
+                                            "!!!! decl_names: {:?}, var_declarator_name: {:?}, self
                                         .props_declaration: {:?}",
-                                            decl_name, var_declarator_name, self.props_declaration
+                                            decl_names,
+                                            var_declarator_name,
+                                            self.state.style_vars.keys()
                                         );
 
-                                        if decl_name.eq(&var_declarator_name) {
-                                            styles_item_target_idx = Option::Some(styles_item_idx);
-                                            break;
+                                        if decl_names.contains(&&var_declarator_name) {
+                                            styles_item_target_idx
+                                                .push((Some(var_declarator_name), styles_item_idx));
                                         }
                                     }
                                 }
@@ -155,66 +160,109 @@ where
                     styles_item_idx += 1;
                 }
 
-                let module_items: Vec<ModuleItem> = match styles_item_target_idx {
-                    Some(styles_item_target_idx) => {
-                        let module_item_start_slice = &module_items[0..styles_item_target_idx];
-                        let module_items_end_slice = &module_items[styles_item_target_idx..];
-                        let mut module_items_middle_vec: Vec<ModuleItem> = vec![];
-                        let mut module_item_pre_start_vec: Vec<ModuleItem> = vec![];
+                let module_items: Vec<ModuleItem> = if !styles_item_target_idx.is_empty() {
+                    dbg!(styles_item_target_idx.clone());
+                    let (first_id, first) = styles_item_target_idx.first().unwrap().clone();
+                    let (last_id, last) = styles_item_target_idx.last().unwrap().clone();
+                    let module_item_start_slice = &module_items[0..first];
+                    let module_items_end_slice = &module_items[last + 1..];
+                    let mut module_item_pre_start_vec: Vec<ModuleItem> = vec![];
 
-                        if !self.css_output.is_empty() {
-                            add_inject_import_expression(
-                                &mut module_item_pre_start_vec,
-                                &inject_module_ident,
-                            );
+                    if !self.css_output.is_empty() {
+                        add_inject_import_expression(
+                            &mut module_item_pre_start_vec,
+                            &inject_module_ident,
+                        );
 
-                            add_inject_var_decl_expression(
-                                &mut module_item_pre_start_vec,
-                                &inject_var_ident,
-                                &inject_module_ident,
-                            );
-                        }
-
-                        for metadata in &self.css_output {
-                            eprintln!("{}", Colorize::yellow("!!!! registerStyles: not implemented !!!!"));
-
-                            let priority = &metadata.get_priority();
-                            let css = &metadata.get_css();
-
-                            let stylex_inject_args = vec![
-                                expr_or_spread_string_expression_creator(css.clone()),
-                                expr_or_spread_number_expression_creator(f64::from(**priority)),
-                            ];
-
-                            let _inject = Expr::Ident(inject_var_ident.clone());
-
-                            let stylex_call_expr = CallExpr {
-                                span: DUMMY_SP,
-                                type_args: Option::None,
-                                callee: Callee::Expr(Box::new(_inject.clone())),
-                                args: stylex_inject_args,
-                            };
-
-                            let stylex_call = Expr::Call(stylex_call_expr);
-
-                            let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-                                span: DUMMY_SP,
-                                expr: Box::new(stylex_call),
-                            }));
-
-                            module_items_middle_vec.push(module);
-                        }
-
-                        let mut module_items: Vec<ModuleItem> = vec![];
-
-                        module_items.extend_from_slice(&&module_item_pre_start_vec[..]);
-                        module_items.extend_from_slice(&module_item_start_slice);
-                        module_items.extend_from_slice(&module_items_middle_vec[..]);
-                        module_items.extend_from_slice(&module_items_end_slice);
-
-                        module_items
+                        add_inject_var_decl_expression(
+                            &mut module_item_pre_start_vec,
+                            &inject_var_ident,
+                            &inject_module_ident,
+                        );
                     }
-                    None => module_items,
+                    let mut module_items_middle_vec: Vec<ModuleItem> = vec![];
+
+                    // for idx in styles_item_target_idx{
+
+                    // }
+
+                    let mut metadata_index = 0;
+                    dbg!(&self.css_output, first..=last);
+
+                    for index in first..=last {
+                        styles_item_target_idx
+                            .iter()
+                            .for_each(|(style_var_name, i)| {
+                                if i == &index {
+                                    for (metadata_var_name, metadata) in &self.css_output {
+                                        if metadata_var_name.eq(&style_var_name
+                                            .clone()
+                                            .unwrap_or("default".to_string()))
+                                        {
+                                            dbg!(
+                                                &index,
+                                                &metadata_index,
+                                                &metadata,
+                                                metadata_var_name
+                                            );
+
+                                            eprintln!(
+                                                "{}",
+                                                Colorize::yellow(
+                                                    "!!!! registerStyles: not implemented !!!!"
+                                                )
+                                            );
+
+                                            let priority = &metadata.get_priority();
+                                            let css = &metadata.get_css();
+
+                                            let stylex_inject_args = vec![
+                                                expr_or_spread_string_expression_creator(
+                                                    css.clone(),
+                                                ),
+                                                expr_or_spread_number_expression_creator(
+                                                    f64::from(**priority),
+                                                ),
+                                            ];
+
+                                            let _inject = Expr::Ident(inject_var_ident.clone());
+
+                                            let stylex_call_expr = CallExpr {
+                                                span: DUMMY_SP,
+                                                type_args: Option::None,
+                                                callee: Callee::Expr(Box::new(_inject.clone())),
+                                                args: stylex_inject_args,
+                                            };
+
+                                            let stylex_call = Expr::Call(stylex_call_expr);
+
+                                            let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+                                                span: DUMMY_SP,
+                                                expr: Box::new(stylex_call),
+                                            }));
+
+                                            module_items_middle_vec.push(module);
+                                            metadata_index += 1;
+                                        }
+                                    }
+                                }
+                            });
+
+                        module_items_middle_vec.push(module_items[index].clone());
+                    }
+
+                    // panic!();
+
+                    let mut module_items: Vec<ModuleItem> = vec![];
+
+                    module_items.extend_from_slice(&&module_item_pre_start_vec[..]);
+                    module_items.extend_from_slice(&module_item_start_slice);
+                    module_items.extend_from_slice(&module_items_middle_vec[..]);
+                    module_items.extend_from_slice(&module_items_end_slice);
+
+                    module_items
+                } else {
+                    module_items
                 };
 
                 module_items.fold_children_with(self)

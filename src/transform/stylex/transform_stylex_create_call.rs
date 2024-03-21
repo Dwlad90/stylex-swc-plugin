@@ -25,6 +25,9 @@ use crate::shared::utils::css::stylex::evaluate_style_x_create_arg::evaluate_sty
 use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
 use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
 use crate::shared::utils::js::stylex::stylex_include::stylex_include;
+use crate::shared::utils::stylex::dev_class_name::{
+    convert_to_test_styles, inject_dev_class_names,
+};
 use crate::shared::utils::stylex::js_to_expr::{
     convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
 };
@@ -119,7 +122,7 @@ where
     fn proccess_create_css_call(&mut self, ex: &CallExpr) -> Option<Expr> {
         let mut props: Vec<PropOrSpread> = vec![];
         let mut css_class_has_map: IndexMap<String, String> = IndexMap::new();
-        let decl_name = self.get_props_desclaration_as_string();
+        let decl_name = self.get_props_declaration_as_string();
 
         for arg in ex.args.iter() {
             match &arg.spread {
@@ -260,7 +263,7 @@ where
                             constants::messages::NON_STATIC_VALUE
                         );
 
-                        let (compiled_styles, injected_styles_sans_keyframes) =
+                        let (mut compiled_styles, injected_styles_sans_keyframes) =
                             stylex_create_set(&value, &mut self.state, &function_map);
 
                         compiled_styles
@@ -293,14 +296,22 @@ where
                         }
 
                         if self.state.is_test() {
-                            todo!("convertToTestStyles")
+                            compiled_styles = convert_to_test_styles(
+                                &compiled_styles,
+                                &var_name,
+                                &mut self.state,
+                            );
                         }
 
                         if self.state.is_dev() {
-                            todo!("injectDevClassNames")
+                            compiled_styles = inject_dev_class_names(
+                                &compiled_styles,
+                                &var_name,
+                                &mut self.state,
+                            );
                         }
 
-                        if let Option::Some(var_name) = var_name {
+                        if let Option::Some(var_name) = var_name.clone() {
                             let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
 
                             self.state
@@ -309,7 +320,7 @@ where
 
                             self.state
                                 .style_vars
-                                .insert(var_name, parent_var_decl.clone()?.clone());
+                                .insert(var_name.clone(), parent_var_decl.clone()?.clone());
                         }
 
                         let result_ast = convert_object_to_ast(
@@ -320,44 +331,40 @@ where
 
                         for metadata in metadatas {
                             dbg!(&metadata);
-                            self.push_to_css_output(metadata);
+                            self.push_to_css_output(
+                                var_name.clone().unwrap_or("default".to_string()),
+                                metadata,
+                            );
                         }
 
-                        self.state.declarations.iter_mut().find_map(|decl| {
-                            if decl
-                                .init
+                        dbg!(&self.state.declarations.len());
+                        if let Some(item) = self.state.declarations.iter_mut().find(|decl| {
+                            decl.init
                                 .as_ref()
                                 .unwrap()
                                 .eq(&Box::new(Expr::Call(call.clone())))
-                            {
-                                decl.init = Option::Some(Box::new(result_ast.clone()));
-                            }
+                        }) {
+                            item.init = Option::Some(Box::new(result_ast.clone()));
+                        };
 
-                            Option::Some(decl.clone())
-                        });
+                        if let Some((_, item)) =
+                            self.state.style_vars.iter_mut().find(|(_, decl)| {
+                                decl.init
+                                    .as_ref()
+                                    .unwrap()
+                                    .eq(&Box::new(Expr::Call(call.clone())))
+                            })
+                        {
+                            item.init = Option::Some(Box::new(result_ast.clone()));
+                        };
 
-                        self.state.style_vars.iter_mut().find_map(|(_, decl)| {
-                            if decl
-                                .init
-                                .as_ref()
-                                .unwrap()
-                                .eq(&Box::new(Expr::Call(call.clone())))
-                            {
-                                decl.init = Option::Some(Box::new(result_ast.clone()));
-                            }
-
-                            Option::Some(decl.clone())
-                        });
-
-                        self.state.top_level_expressions.iter_mut().find_map(
-                            |TopLevelExpression(_, decl)| {
-                                if decl.as_ref().eq(&Box::new(Expr::Call(call.clone()))) {
-                                    *decl = Box::new(result_ast.clone());
-                                }
-
-                                Option::Some(decl.clone())
-                            },
-                        );
+                        if let Some(TopLevelExpression(_, item)) =
+                            self.state.top_level_expressions.iter_mut().find(
+                                |TopLevelExpression(_, decl)| decl.eq(&Expr::Call(call.clone())),
+                            )
+                        {
+                            *item = result_ast.clone();
+                        };
 
                         Option::Some(result_ast)
                     }
@@ -387,8 +394,13 @@ where
 
         *css_class_has_map
             .entry("className".to_string())
-            .or_default() +=
-            format!("{}__{}.{} ", self.file_name, decl_name, namespace_name).as_str();
+            .or_default() += format!(
+            "{}__{}.{} ",
+            self.state.get_filename(),
+            decl_name,
+            namespace_name
+        )
+        .as_str();
 
         let value = namespace.value.clone();
 
@@ -411,7 +423,7 @@ where
                                     MetaData::convert_from_injected_styles_map(injected_styles_map);
 
                                 for metadata in metadatas {
-                                    self.push_to_css_output(metadata.clone());
+                                    self.push_to_css_output(decl_name.clone(), metadata.clone());
 
                                     *css_class_has_map
                                         .entry("className".to_string())
@@ -434,7 +446,7 @@ where
         }
     }
 
-    pub(crate) fn get_props_desclaration_as_string(&mut self) -> String {
+    pub(crate) fn get_props_declaration_as_string(&mut self) -> String {
         let decl_name = self
             .props_declaration
             .clone()

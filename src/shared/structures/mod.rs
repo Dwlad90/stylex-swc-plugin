@@ -10,7 +10,7 @@ pub(crate) mod null_pre_rule;
 pub(crate) mod order;
 pub(crate) mod order_pair;
 pub(crate) mod pair;
-pub(crate) mod plugin_pass;
+pub mod plugin_pass;
 pub(crate) mod pre_included_styles_rule;
 pub(crate) mod pre_rule;
 pub(crate) mod pre_rule_set;

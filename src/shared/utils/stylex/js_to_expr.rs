@@ -9,7 +9,12 @@ use swc_core::{
 
 use crate::shared::{
     structures::flat_compiled_styles::{FlatCompiledStyles, FlatCompiledStylesValue},
-    utils::{common::string_to_expression, css::factories::object_expression_factory},
+    utils::{
+        common::{
+            prop_or_spread_expression_creator, prop_or_spread_string_creator, string_to_expression,
+        },
+        css::factories::object_expression_factory,
+    },
 };
 
 pub(crate) fn remove_objects_with_spreads(
@@ -57,32 +62,25 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
             for (key, value) in obj.iter() {
                 let prop = match value {
                     FlatCompiledStylesValue::String(value) => {
-                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                            key: PropName::Ident(Ident::new(key.clone().into(), DUMMY_SP)),
-                            value: Box::new(string_to_expression(value.clone()).unwrap()),
-                        })))
+                        prop_or_spread_string_creator(key.clone(), value.clone())
                     }
-                    FlatCompiledStylesValue::Null => {
-                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                            key: PropName::Ident(Ident::new(key.clone().into(), DUMMY_SP)),
-                            value: Box::new(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))),
-                        })))
-                    }
+                    FlatCompiledStylesValue::Null => prop_or_spread_expression_creator(
+                        key.clone(),
+                        Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),
+                    ),
                     FlatCompiledStylesValue::IncludedStyle(include_style) => {
                         PropOrSpread::Spread(SpreadElement {
                             dot3_token: DUMMY_SP,
                             expr: Box::new(include_style.get_expr().clone()),
                         })
                     }
-                    FlatCompiledStylesValue::Bool(value) => {
-                        PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                            key: PropName::Ident(Ident::new(key.clone().into(), DUMMY_SP)),
-                            value: Box::new(Expr::Lit(Lit::Bool(Bool {
-                                span: DUMMY_SP,
-                                value: value.clone(),
-                            }))),
-                        })))
-                    }
+                    FlatCompiledStylesValue::Bool(value) => prop_or_spread_expression_creator(
+                        key.clone(),
+                        Expr::Lit(Lit::Bool(Bool {
+                            span: DUMMY_SP,
+                            value: value.clone(),
+                        })),
+                    ),
                 };
 
                 props.push(prop);

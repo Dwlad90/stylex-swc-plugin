@@ -1,4 +1,4 @@
-use stylex_swc_plugin::ModuleTransformVisitor;
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
     parser::{Syntax, TsConfig},
     transforms::testing::test,
@@ -6,7 +6,13 @@ use swc_core::ecma::{
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
+    |tr| {
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::None,
+        )
+    },
     transform_simple_css_class,
     r#"
       import s from "@stylexjs/stylex";
@@ -22,7 +28,13 @@ test!(
 
 test!(
     Default::default(),
-    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
+    |tr| {
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::None,
+        )
+    },
     transform_multiple_simple_css_classes,
     r#"
     import s from "@stylexjs/stylex";
@@ -53,7 +65,13 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None) },
+    |tr| {
+        ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::None,
+        )
+    },
     transform_multiple_simple_css_classes_and_inject_to_react_component,
     r#"
     import s from "@stylexjs/stylex";

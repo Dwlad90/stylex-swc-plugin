@@ -1,4 +1,4 @@
-use stylex_swc_plugin::ModuleTransformVisitor;
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
     parser::{Syntax, TsConfig},
     transforms::testing::test,
@@ -9,7 +9,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     transforms_invalid_pseudo_class,
     r#"
         import stylex from 'stylex';
@@ -29,7 +33,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     transforms_valid_pseudo_classes_in_order,
     r#"
         import stylex from 'stylex';
@@ -57,7 +65,11 @@ test!(
         tsx: true,
         ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+    ),
     transforms_pseudo_class_with_array_value_as_fallbacks,
     r#"
         import stylex from 'stylex';

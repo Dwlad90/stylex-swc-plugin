@@ -9,7 +9,7 @@ use swc_core::ecma::{
 //       tsx: true,
 //       ..Default::default()
 //   }),
-//   |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), Option::None),
+//   |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), PluginPass::default(), Option::None),
 //   does_nothing_when_stylex_not_imported,
 //   r#"
 //       export const styles = stylex.create({

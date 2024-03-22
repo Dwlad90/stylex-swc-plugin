@@ -182,76 +182,64 @@ where
                     }
                     let mut module_items_middle_vec: Vec<ModuleItem> = vec![];
 
-                    // for idx in styles_item_target_idx{
-
-                    // }
-
                     let mut metadata_index = 0;
                     dbg!(&self.css_output, first..=last);
 
                     for index in first..=last {
-                        styles_item_target_idx
-                            .iter()
-                            .for_each(|(style_var_name, i)| {
-                                if i == &index {
-                                    for (metadata_var_name, metadata) in &self.css_output {
-                                        if metadata_var_name.eq(&style_var_name
-                                            .clone()
-                                            .unwrap_or("default".to_string()))
-                                        {
-                                            dbg!(
-                                                &index,
-                                                &metadata_index,
-                                                &metadata,
-                                                metadata_var_name
-                                            );
+                        styles_item_target_idx.retain(|(style_var_name, i)| {
+                            if i == &index {
+                                if let Some(metadata_items) = self
+                                    .css_output
+                                    .get(&style_var_name.clone().unwrap_or("default".to_string()))
+                                {
+                                    for metadata in metadata_items.iter() {
+                                        dbg!(&index, &metadata_index, &metadata, style_var_name);
 
-                                            eprintln!(
-                                                "{}",
-                                                Colorize::yellow(
-                                                    "!!!! registerStyles: not implemented !!!!"
-                                                )
-                                            );
+                                        eprintln!(
+                                            "{}",
+                                            Colorize::yellow(
+                                                "!!!! registerStyles: not implemented !!!!"
+                                            )
+                                        );
 
-                                            let priority = &metadata.get_priority();
-                                            let css = &metadata.get_css();
+                                        let priority = &metadata.get_priority();
+                                        let css = &metadata.get_css();
 
-                                            let stylex_inject_args = vec![
-                                                expr_or_spread_string_expression_creator(
-                                                    css.clone(),
-                                                ),
-                                                expr_or_spread_number_expression_creator(
-                                                    f64::from(**priority),
-                                                ),
-                                            ];
+                                        let stylex_inject_args = vec![
+                                            expr_or_spread_string_expression_creator(css.clone()),
+                                            expr_or_spread_number_expression_creator(f64::from(
+                                                **priority,
+                                            )),
+                                        ];
 
-                                            let _inject = Expr::Ident(inject_var_ident.clone());
+                                        let _inject = Expr::Ident(inject_var_ident.clone());
 
-                                            let stylex_call_expr = CallExpr {
-                                                span: DUMMY_SP,
-                                                type_args: Option::None,
-                                                callee: Callee::Expr(Box::new(_inject.clone())),
-                                                args: stylex_inject_args,
-                                            };
+                                        let stylex_call_expr = CallExpr {
+                                            span: DUMMY_SP,
+                                            type_args: Option::None,
+                                            callee: Callee::Expr(Box::new(_inject.clone())),
+                                            args: stylex_inject_args,
+                                        };
 
-                                            let stylex_call = Expr::Call(stylex_call_expr);
+                                        let stylex_call = Expr::Call(stylex_call_expr);
 
-                                            let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-                                                span: DUMMY_SP,
-                                                expr: Box::new(stylex_call),
-                                            }));
+                                        let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+                                            span: DUMMY_SP,
+                                            expr: Box::new(stylex_call),
+                                        }));
 
-                                            module_items_middle_vec.push(module);
-                                            metadata_index += 1;
-                                        }
+                                        module_items_middle_vec.push(module);
+                                        metadata_index += 1;
                                     }
+                                    return false;
                                 }
-                            });
+                            };
+
+                            true
+                        });
 
                         module_items_middle_vec.push(module_items[index].clone());
                     }
-
-                    // panic!();
 
                     let mut module_items: Vec<ModuleItem> = vec![];
 

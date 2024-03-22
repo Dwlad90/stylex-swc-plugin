@@ -104,3 +104,35 @@ test!(
       stylex(styles.default, isActive && otherStyles.default);
 "#
 );
+
+test!(
+    Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass {
+            cwd: Option::None,
+            filename: FileName::Real("/html/js/FooBar.react.js".into()),
+        },
+        Some(StyleXOptionsParams {
+            dev: Some(true),
+            gen_conditional_classes: Some(true),
+            ..StyleXOptionsParams::default()
+        })
+    ),
+    stylex_call_produces_dev_class_name_with_collisions,
+    r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'red',
+      },
+      active: {
+        color: 'blue',
+      }
+    });
+    stylex(styles.default, isActive && styles.active);
+"#
+);

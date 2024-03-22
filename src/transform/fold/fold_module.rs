@@ -4,7 +4,10 @@ use swc_core::{
 };
 
 use crate::{
-    shared::{enums::ModuleCycle, utils::common::fill_top_level_expressions},
+    shared::{
+        enums::ModuleCycle, structures::meta_data::MetaData,
+        utils::common::fill_top_level_expressions,
+    },
     ModuleTransformVisitor,
 };
 
@@ -41,7 +44,15 @@ where
                         kind: CommentKind::Block,
                         text: format!(
                             "__stylex_metadata_start__{}__stylex_metadata_end__",
-                            serde_json::to_string(&self.css_output).unwrap()
+                            serde_json::to_string(
+                                &self
+                                    .css_output
+                                    .iter()
+                                    .map(|v| v.value().clone())
+                                    .flatten()
+                                    .collect::<Vec<MetaData>>()
+                            )
+                            .unwrap()
                         )
                         .into(),
                         span: module.span,

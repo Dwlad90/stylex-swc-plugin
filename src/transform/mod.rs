@@ -4,6 +4,7 @@ use std::{
     path::PathBuf,
 };
 
+use dashmap::DashMap;
 use swc_core::{
     common::{comments::Comments, FileName},
     ecma::ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, VarDeclarator},
@@ -36,7 +37,7 @@ where
     // declaration: Option<Id>,
     cycle: ModuleCycle,
     props_declaration: Option<Id>,
-    css_output: Vec<(String, MetaData)>,
+    css_output: DashMap<String, Vec<MetaData>>,
     pub(crate) state: StateManager,
 }
 
@@ -57,7 +58,7 @@ where
             comments,
             cycle: ModuleCycle::Initializing,
             props_declaration: Option::None,
-            css_output: vec![],
+            css_output: DashMap::new(),
             state,
         }
     }
@@ -107,7 +108,7 @@ where
             comments,
             cycle: ModuleCycle::Initializing,
             props_declaration: Option::None,
-            css_output: vec![],
+            css_output: DashMap::new(),
             state,
         }
     }
@@ -185,15 +186,14 @@ where
     }
 
     pub(crate) fn push_to_css_output(&mut self, var_name: String, metadata: MetaData) {
-        if self
-            .css_output
-            .iter()
-            .any(|(_, x)| x.get_class_name() == metadata.get_class_name())
-        {
-            return;
-        }
+        let mut value = self.css_output.entry(var_name).or_insert_with(Vec::new);
 
-        self.css_output.push((var_name, metadata));
+        if !value
+            .iter()
+            .any(|item| item.get_class_name() == metadata.get_class_name())
+        {
+            value.push(metadata);
+        }
     }
 }
 
@@ -209,6 +209,7 @@ fn fill_stylex_imports(config: &Option<StyleXOptionsParams>) -> HashSet<ImportSo
     } {
         stylex_imports.extend(stylex_imports_extends)
     }
+
     stylex_imports
 }
 

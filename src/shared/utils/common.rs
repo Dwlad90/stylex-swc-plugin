@@ -38,6 +38,7 @@ fn replace_spans(expr: &mut Expr) -> Expr {
 }
 
 pub(crate) fn prop_or_spread_expression_creator(key: String, value: Expr) -> PropOrSpread {
+    dbg!(&key, &value);
     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
         key: string_to_prop_name(key).unwrap(),
         value: Box::new(value),
@@ -73,7 +74,7 @@ pub(crate) fn string_to_expression(value: String) -> Option<Expr> {
 
 // Converts a string to an expression.
 pub(crate) fn string_to_prop_name(value: String) -> Option<PropName> {
-    if value.contains(".") {
+    if value.contains(".") || value.parse::<u16>().is_ok() {
         Some(PropName::Str(Str {
             span: DUMMY_SP,
             value: value.clone().into(),

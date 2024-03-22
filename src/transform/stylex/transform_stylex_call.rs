@@ -93,7 +93,6 @@ where
                                             dbg!(&arg);
                                             bail_out_index = Option::Some(current_index);
                                             bail_out = true;
-                                            todo!("StyleObject::Other case");
                                         }
                                         StyleObject::Style(_) => {
                                             resolved_args.push(ResolvedArg::StyleObject(

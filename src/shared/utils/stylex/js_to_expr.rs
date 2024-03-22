@@ -50,10 +50,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
                     value.clone(),
                 ));
 
-                let prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                    key: PropName::Ident(Ident::new(key.clone().into(), DUMMY_SP)),
-                    value: Box::new(expr),
-                })));
+                let prop = prop_or_spread_expression_creator(key.clone(), expr);
 
                 props.push(prop);
             }

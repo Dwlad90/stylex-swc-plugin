@@ -57,6 +57,16 @@ impl Fold for CssFolder {
         dimension.clone()
     }
 
+    fn fold_function(&mut self, func: Function) -> Function {
+        let mut fnc = func.clone();
+
+        if let Some(last) = fnc.value.last_mut() {
+            *last = last.clone().fold_with(self);
+        }
+
+        fnc
+    }
+
     // NOTE: Whitespace normalizer working out of the box with minify
     // fn fold_function(&mut self, mut function: Function) -> Function {
     //     function.value = whitespace_normalizer(function.value);

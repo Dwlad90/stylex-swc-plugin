@@ -50,16 +50,18 @@ pub(crate) fn member_expression(
                         prop_name = Option::Some(ident.to_id());
                     }
                     MemberProp::Computed(computed) => {
-                        todo!("Computed not implemented yet");
-                        // match computed.expr.as_ref() {
-                        //     Expr::Ident(lit) => {
-                        //         let prop_lit_name = get_string_val_from_lit(lit);
+                        dbg!(&computed);
+                        match computed.expr.as_ref() {
+                            Expr::Lit(lit) => {
+                                todo!("Computed not implemented yet");
 
-                        //         prop_name = Option::Some(prop_lit_name);
-                        //     }
-                        //     _ => {}
-                        // }
-                        // {}
+                                // let prop_lit_name = get_string_val_from_lit(lit);
+
+                                // prop_name = Option::Some(prop_lit_name);
+                            }
+                            _ => {}
+                        }
+                        {}
                     }
                     _ => {}
                 }

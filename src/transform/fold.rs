@@ -2,24 +2,27 @@ mod fold_export_default_expr;
 mod fold_expr;
 mod fold_ident;
 mod fold_import_decl;
+mod fold_member_expression;
 mod fold_module;
 mod fold_module_items;
 mod fold_stmt;
 mod fold_stmts;
 mod fold_var_declarator;
 mod fold_var_declarators;
+mod fold_export_decl;
 
 use swc_core::{
     common::comments::Comments,
     ecma::{
         ast::{
-            ExportDefaultExpr, Expr, Ident, ImportDecl, Module, ModuleItem, Stmt, VarDeclarator,
+            ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr, Module, ModuleItem,
+            Stmt, VarDeclarator,
         },
-        visit::{noop_fold_type, Fold},
+        visit::{noop_fold_type, Fold, FoldWith},
     },
 };
 
-use crate::ModuleTransformVisitor;
+use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
 
 impl<C> Fold for ModuleTransformVisitor<C>
 where
@@ -47,6 +50,10 @@ where
         self.fold_var_declarator_impl(var_declarator)
     }
 
+    fn fold_export_decl(&mut self, export_decl: ExportDecl) -> ExportDecl {
+        self.fold_export_decl_impl(export_decl)
+    }
+
     fn fold_stmts(&mut self, stmts: Vec<Stmt>) -> Vec<Stmt> {
         self.fold_stmts_impl(stmts)
     }
@@ -57,6 +64,10 @@ where
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         self.fold_expr_impl(expr)
+    }
+
+    fn fold_member_expr(&mut self, member_expresseion: MemberExpr) -> MemberExpr {
+        self.fold_member_expr_impl(member_expresseion)
     }
 
     fn fold_export_default_expr(

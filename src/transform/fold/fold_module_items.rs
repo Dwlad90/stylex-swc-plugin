@@ -18,7 +18,7 @@ use crate::{
         structures::uid_generator::UidGenerator,
         utils::common::{
             expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
-            get_pat_as_string, increase_ident_count,
+            get_pat_as_string, increase_ident_count, increase_ident_count_by_count,
         },
     },
     ModuleTransformVisitor,
@@ -87,16 +87,6 @@ where
                             ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
                                 Decl::Var(var_decl) => {
                                     for var_declarator in &var_decl.decls {
-                                        if let Option::Some(ident) =
-                                            match &var_declarator.name.clone() {
-                                                Pat::Ident(ident) => Option::Some(ident),
-                                                _ => Option::None,
-                                            }
-                                        {
-                                            // HACK: Prevent removing named export variables
-                                            increase_ident_count(&mut self.state, &ident);
-                                        }
-
                                         let decl_names =
                                             self.state.style_vars.keys().collect::<Vec<&String>>();
                                         let var_declarator_name =
@@ -162,8 +152,11 @@ where
 
                 let module_items: Vec<ModuleItem> = if !styles_item_target_idx.is_empty() {
                     dbg!(styles_item_target_idx.clone());
-                    let (first_id, first) = styles_item_target_idx.first().unwrap().clone();
-                    let (last_id, last) = styles_item_target_idx.last().unwrap().clone();
+                    let (_, first) = styles_item_target_idx.first().unwrap().clone();
+                    let (_, last) = styles_item_target_idx.last().unwrap().clone();
+
+                    dbg!(&first, &last);
+
                     let module_item_start_slice = &module_items[0..first];
                     let module_items_end_slice = &module_items[last + 1..];
                     let mut module_item_pre_start_vec: Vec<ModuleItem> = vec![];
@@ -183,7 +176,6 @@ where
                     let mut module_items_middle_vec: Vec<ModuleItem> = vec![];
 
                     let mut metadata_index = 0;
-                    dbg!(&self.css_output, first..=last);
 
                     for index in first..=last {
                         styles_item_target_idx.retain(|(style_var_name, i)| {
@@ -243,7 +235,7 @@ where
 
                     let mut module_items: Vec<ModuleItem> = vec![];
 
-                    module_items.extend_from_slice(&&module_item_pre_start_vec[..]);
+                    module_items.extend_from_slice(&module_item_pre_start_vec[..]);
                     module_items.extend_from_slice(&module_item_start_slice);
                     module_items.extend_from_slice(&module_items_middle_vec[..]);
                     module_items.extend_from_slice(&module_items_end_slice);
@@ -261,7 +253,18 @@ where
 
                 // We remove `Stmt::Empty` from the statement list.
                 // This is optional, but it's required if you don't want extra `;` in output.
-                module_items.retain(|s| !matches!(s, ModuleItem::Stmt(Stmt::Empty(..))));
+                module_items.retain(|module_item| {
+                    !matches!(module_item, ModuleItem::Stmt(Stmt::Empty(..)))
+                        && module_item
+                            .clone()
+                            .module_decl()
+                            .and_then(|module_decl| match module_decl {
+                                ModuleDecl::ExportDecl(import_decl) => import_decl.decl.var(),
+                                _ => None,
+                            })
+                            .filter(|var| var.decls.is_empty())
+                            .is_none()
+                });
 
                 module_items
             }

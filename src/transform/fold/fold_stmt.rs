@@ -17,20 +17,24 @@ where
             return stmt;
         }
 
-        let mut stmt = stmt.fold_children_with(self);
+        if self.cycle == ModuleCycle::Cleaning {
+            let mut stmt = stmt.fold_children_with(self);
 
-        match &stmt {
-            Stmt::Decl(Decl::Var(var)) => {
-                if var.decls.is_empty() {
-                    // Variable declaration without declarator is invalid.
-                    //
-                    // After this, `stmt` becomes `Stmt::Empty`.
-                    stmt.take();
+            match &stmt {
+                Stmt::Decl(Decl::Var(var)) => {
+                    dbg!(&var);
+                    if var.decls.is_empty() {
+                        // Variable declaration without declarator is invalid.
+                        //
+                        // After this, `stmt` becomes `Stmt::Empty`.
+                        stmt.take();
+                    }
                 }
+                _ => {}
             }
-            _ => {}
+            stmt
+        } else {
+            stmt.fold_children_with(self)
         }
-
-        stmt
     }
 }

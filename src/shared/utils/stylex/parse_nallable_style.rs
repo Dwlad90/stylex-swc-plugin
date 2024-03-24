@@ -3,7 +3,7 @@ use swc_core::ecma::ast::{Expr, Ident, Lit, MemberProp};
 
 use crate::shared::{
     structures::{flat_compiled_styles::FlatCompiledStylesValue, state_manager::StateManager},
-    utils::common::get_string_val_from_lit,
+    utils::common::{get_string_val_from_lit, reduce_ident_count},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -19,7 +19,11 @@ pub(crate) enum ResolvedArg {
     ConditionalStyle(Box<Expr>, Option<StyleObject>, Option<StyleObject>, Ident),
 }
 
-pub(crate) fn parse_nullable_style(node: &Expr, state: &StateManager) -> StyleObject {
+pub(crate) fn parse_nullable_style(
+    node: &Expr,
+    state: &mut StateManager,
+    should_reduce_count: bool,
+) -> StyleObject {
     match node {
         Expr::Lit(lit) => match lit {
             Lit::Null(_) => StyleObject::Nullable,
@@ -29,6 +33,9 @@ pub(crate) fn parse_nullable_style(node: &Expr, state: &StateManager) -> StyleOb
             if ident.sym == "undefined" {
                 StyleObject::Nullable
             } else {
+                if should_reduce_count {
+                    reduce_ident_count(state, ident);
+                }
                 StyleObject::Other
             }
         }
@@ -41,6 +48,12 @@ pub(crate) fn parse_nullable_style(node: &Expr, state: &StateManager) -> StyleOb
                     .style_map
                     .contains_key(&obj_ident.sym.as_str().to_string())
                 {
+                    if should_reduce_count {
+                        if let Some(member_ident) = member.obj.as_ident() {
+                            reduce_ident_count(state, member_ident);
+                        }
+                    }
+
                     match &member.prop {
                         MemberProp::Ident(prop_ident) => {
                             obj_name = Option::Some(obj_ident.clone().sym.as_str().to_string());

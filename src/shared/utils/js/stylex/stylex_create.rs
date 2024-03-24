@@ -39,8 +39,6 @@ pub(crate) fn stylex_create_set(
         let flattened_namespace =
             flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
 
-        dbg!(&flattened_namespace);
-
         let prefix = state.options.class_name_prefix.as_str();
 
         let compiled_namespace_tuples = flattened_namespace
@@ -81,8 +79,6 @@ pub(crate) fn stylex_create_set(
                 )
             })
             .collect::<IndexMap<String, CompiledResult>>();
-
-        dbg!(&compiled_namespace);
 
         let mut namespace_obj: FlatCompiledStyles = IndexMap::new();
 
@@ -130,12 +126,8 @@ pub(crate) fn stylex_create_set(
 
         namespace_obj.insert("$$css".to_string(), FlatCompiledStylesValue::Bool(true));
 
-
-
         resolved_namespaces.insert(resolved_namespace_name.clone(), namespace_obj);
     }
-
-    dbg!(&resolved_namespaces, &injected_styles_map);
 
     (resolved_namespaces, injected_styles_map)
 }

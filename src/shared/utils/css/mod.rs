@@ -430,7 +430,6 @@ pub(crate) fn normalize_css_property_value(
     };
 
     let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
-    dbg!(css_rule.clone(), css_property, css_property_value);
 
     if errors.len() > 0 {
         let error_message = errors.get(0).unwrap().message().to_string();
@@ -441,7 +440,6 @@ pub(crate) fn normalize_css_property_value(
     let ast_normalized = match parsed_css {
         Ok(ast) => {
             let (parsed_css_property_value, _) = swc_parse_css(&css_rule.as_str());
-            dbg!(&css_rule, &parsed_css_property_value);
 
             let validators: Vec<Validator> = vec![
                 unprefixed_custom_properties_validator,

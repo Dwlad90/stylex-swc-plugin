@@ -1,7 +1,7 @@
 use swc_core::ecma::ast::{Expr, Id};
 
 // Represents the current state of a plugin for a file.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub(crate) enum ModuleCycle {
     // The plugin is being processed.
     TransformEnter,

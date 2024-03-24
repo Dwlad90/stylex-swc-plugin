@@ -30,9 +30,8 @@ where
                             if self.state.var_decl_count_map.contains_key(&decl_id) {
                                 let count = self.state.var_decl_count_map.get(decl_id).unwrap();
 
-                                let is_used = count > &0;
-
-                                dbg!(&self.state.var_decl_count_map, &decl_id, &count, &is_used);
+                                // Remove the variable declaration if it is used only once after transformation.
+                                let is_used = count > &1;
 
                                 return is_used;
                             }

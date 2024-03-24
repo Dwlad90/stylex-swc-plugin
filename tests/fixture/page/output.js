@@ -9,14 +9,6 @@ const _stylex$props = {
         justifyContent: "x1qughib",
         minHeight: "xg6iff7",
         padding: "x1lmef92",
-        paddingInline: null,
-        paddingStart: null,
-        paddingLeft: null,
-        paddingEnd: null,
-        paddingRight: null,
-        paddingBlock: null,
-        paddingTop: null,
-        paddingBottom: null,
         $$css: true
     },
     title: {

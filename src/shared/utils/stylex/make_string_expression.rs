@@ -36,8 +36,6 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
         })
         .collect::<Vec<Box<Expr>>>();
 
-    dbg!(&conditions);
-
     if conditions.is_empty() {
         if let Some(value) = stylex(values) {
             return Some(value);
@@ -89,8 +87,6 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
                 .iter()
                 .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
 
-            dbg!(&args, key);
-
             let prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
                 key: PropName::Ident(Ident::new(key.to_string().clone().into(), DUMMY_SP)),
                 value: Box::new(stylex(&args).unwrap()),
@@ -100,7 +96,6 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
         })
         .collect::<Vec<PropOrSpread>>();
 
-    dbg!(&obj_entries);
     let obj_expressions = object_expression_factory(obj_entries).unwrap();
     let conditions_to_key = gen_bitwise_or_of_conditions(conditions);
 

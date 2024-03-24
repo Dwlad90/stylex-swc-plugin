@@ -1,5 +1,6 @@
 use std::{any::type_name, collections::HashSet};
 
+use colored::Colorize;
 use radix_fmt::radix;
 use swc_core::{
     common::{FileName, Span, DUMMY_SP},
@@ -16,7 +17,7 @@ use swc_core::{
 use crate::shared::{
     constants::{self, messages::ILLEGAL_PROP_VALUE},
     enums::{TopLevelExpression, TopLevelExpressionKind, VarDeclAction},
-    regex::DASHIFY_REGEX,
+    regex::{DASHIFY_REGEX, IDENT_PROP_REGEX},
     structures::{
         functions::{FunctionMap, FunctionType},
         state_manager::StateManager,
@@ -38,7 +39,6 @@ fn replace_spans(expr: &mut Expr) -> Expr {
 }
 
 pub(crate) fn prop_or_spread_expression_creator(key: String, value: Expr) -> PropOrSpread {
-    dbg!(&key, &value);
     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
         key: string_to_prop_name(key).unwrap(),
         value: Box::new(value),
@@ -74,14 +74,14 @@ pub(crate) fn string_to_expression(value: String) -> Option<Expr> {
 
 // Converts a string to an expression.
 pub(crate) fn string_to_prop_name(value: String) -> Option<PropName> {
-    if value.contains(".") || value.parse::<u16>().is_ok() {
+    if IDENT_PROP_REGEX.is_match(value.as_str()) {
+        Some(PropName::Ident(Ident::new(value.clone().into(), DUMMY_SP)))
+    } else {
         Some(PropName::Str(Str {
             span: DUMMY_SP,
             value: value.clone().into(),
             raw: None,
         }))
-    } else {
-        Some(PropName::Ident(Ident::new(value.clone().into(), DUMMY_SP)))
     }
 }
 
@@ -196,15 +196,37 @@ pub(crate) fn expr_or_spread_number_expression_creator(value: f64) -> ExprOrSpre
 // }
 
 pub fn reduce_ident_count<'a>(state: &'a mut StateManager, ident: &'a Ident) {
-    *state.var_decl_count_map.entry(ident.to_id()).or_insert(1) -= 1;
+    *state.var_decl_count_map.entry(ident.to_id()).or_insert(0) -= 1;
+
+    // eprintln!(
+    //     "{} {:?} {:?}",
+    //     Colorize::red("!!!! reduce_ident_count !!!!"),
+    //     state
+    //         .var_decl_count_map
+    //         .get(&Ident::new("styles".into(), DUMMY_SP).to_id()),
+    //     ident
+    // );
 }
 
 pub fn increase_ident_count(state: &mut StateManager, ident: &Ident) {
+    increase_ident_count_by_count(state, ident, 1);
+
+    // eprintln!(
+    //     "{} {:?} {:?}",
+    //     Colorize::green("!!!! increase_ident_count !!!!"),
+    //     state
+    //         .var_decl_count_map
+    //         .get(&Ident::new("styles".into(), DUMMY_SP).to_id()),
+    //     ident
+    // );
+}
+
+pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, count: i8) {
     let ident_id = &ident.to_id();
     *state
         .var_decl_count_map
         .entry(ident_id.clone())
-        .or_insert(-1) += 1;
+        .or_insert(0) += count;
 }
 
 pub fn get_var_decl_by_ident<'a>(
@@ -274,7 +296,6 @@ pub(crate) fn get_var_decl_by_ident_or_member<'a>(
     state: &'a StateManager,
     ident: &'a Ident,
 ) -> Option<&'a VarDeclarator> {
-    dbg!(&state.declarations);
     state.declarations.iter().find(|var_declarator| {
         if let Pat::Ident(binding_indent) = &var_declarator.name {
             if binding_indent.sym == ident.sym {

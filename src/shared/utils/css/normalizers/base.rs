@@ -311,7 +311,6 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
 }
 
 pub(crate) fn base_normalizer(ast: Stylesheet) -> Stylesheet {
-    dbg!(&ast);
     let mut folder = CssFolder;
     ast.fold_with(&mut folder)
 }

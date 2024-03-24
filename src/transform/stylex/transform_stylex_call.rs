@@ -1,9 +1,10 @@
+use core::panic;
 use std::collections::HashMap;
 
 use swc_core::{
     common::comments::Comments,
     ecma::{
-        ast::{BinExpr, BinaryOp, CallExpr, Callee, Expr, MemberExpr},
+        ast::{BinExpr, BinaryOp, CallExpr, Callee, CondExpr, Expr, MemberExpr},
         visit::{noop_fold_type, Fold, FoldWith},
     },
 };
@@ -67,7 +68,6 @@ where
                         .stylex_import
                         .contains(&ImportSources::Regular(ident.sym.to_string()))
                     {
-
                         let mut bail_out = false;
                         let mut conditional = 0;
 
@@ -86,7 +86,8 @@ where
 
                             match arg.clone() {
                                 Expr::Member(member) => {
-                                    let resolved = parse_nullable_style(arg, &self.state);
+                                    let resolved =
+                                        parse_nullable_style(arg, &mut self.state, false);
                                     dbg!(&member, &resolved);
                                     match resolved {
                                         StyleObject::Other => {
@@ -116,7 +117,42 @@ where
                                         }
                                     }
                                 }
-                                Expr::Cond(_) => todo!("Condition"),
+                                Expr::Cond(CondExpr {
+                                    test, cons, alt, ..
+                                }) => {
+                                    dbg!(&test, &cons, &alt);
+
+                                    let primary =
+                                        parse_nullable_style(&cons, &mut self.state, true);
+                                    let fallback =
+                                        parse_nullable_style(&alt, &mut self.state, true);
+
+                                    if primary.eq(&StyleObject::Other)
+                                        || fallback.eq(&StyleObject::Other)
+                                    {
+                                        bail_out_index = Some(current_index);
+                                        bail_out = true;
+                                    } else {
+                                        let ident = match alt.as_ref() {
+                                            Expr::Ident(ident) => ident.clone(),
+                                            Expr::Member(meber) => meber
+                                                .obj
+                                                .as_ident()
+                                                .expect("Member obj is not an ident")
+                                                .clone(),
+                                            _ => panic!("Illegal argument"),
+                                        };
+
+                                        resolved_args.push(ResolvedArg::ConditionalStyle(
+                                            test,
+                                            Some(primary),
+                                            Some(fallback),
+                                            ident,
+                                        ));
+
+                                        conditional = conditional + 1;
+                                    }
+                                }
                                 Expr::Bin(BinExpr {
                                     left, op, right, ..
                                 }) => {
@@ -126,11 +162,13 @@ where
                                         break;
                                     }
 
-                                    let left_resolved = parse_nullable_style(&left, &self.state);
-                                    let right_resolved = parse_nullable_style(&right, &self.state);
+                                    let left_resolved =
+                                        parse_nullable_style(&left, &mut self.state, true);
+                                    let right_resolved =
+                                        parse_nullable_style(&right, &mut self.state, true);
                                     dbg!(&left, &right_resolved);
 
-                                      if !left_resolved.eq(&StyleObject::Other)
+                                    if !left_resolved.eq(&StyleObject::Other)
                                         || right_resolved.eq(&StyleObject::Other)
                                     {
                                         bail_out_index = Some(current_index);
@@ -171,10 +209,6 @@ where
                                 break;
                             }
                         }
-
-                        dbg!(&resolved_args, &conditional, &bail_out_index, &bail_out);
-
-                        dbg!(&self.state.gen_conditional_classes());
 
                         if !self.state.gen_conditional_classes() && conditional > 0 {
                             bail_out = true;
@@ -239,16 +273,17 @@ where
                             }
 
                             let string_expression = make_string_expression(&resolved_args);
-                            reduce_ident_count(&mut self.state, &ident);
+                            // reduce_ident_count(&mut self.state, &ident);
 
                             for arg in &resolved_args {
                                 match arg {
-                                    ResolvedArg::StyleObject(_, ident) => {
-                                        dbg!(&ident);
+                                    ResolvedArg::StyleObject(style_object, ident) => {
+                                        dbg!(&style_object, &ident);
                                         reduce_ident_count(&mut self.state, &ident);
                                     }
-                                    ResolvedArg::ConditionalStyle(expr, _, _, ident) => {
-                                        dbg!(&ident);
+                                    ResolvedArg::ConditionalStyle(expr, style_object, _, ident) => {
+                                        dbg!(&expr, &style_object, &ident);
+
                                         reduce_ident_count(&mut self.state, &ident);
                                     }
                                 }

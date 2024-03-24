@@ -31,6 +31,8 @@ where
             let declaration = &src.value;
 
             let import_sources = self.state.import_sources_stringified();
+            dbg!(&import_decl, &import_sources, &declaration);
+            // panic!("declaration: {:?}", declaration);
 
             if import_sources.contains(&declaration.to_string()) {
                 let source_path = import_decl.src.value.to_string();

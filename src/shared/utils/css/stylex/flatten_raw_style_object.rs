@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::HashMap;
 
 use indexmap::IndexMap;

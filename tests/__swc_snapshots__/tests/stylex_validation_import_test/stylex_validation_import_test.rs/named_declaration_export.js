@@ -4,7 +4,7 @@ import stylex from 'stylex';
 _inject2(".x1e2nbdu{color:red}", 3000);
 export const styles = {
     foo: {
-    color: "x1e2nbdu",
-    $$css: true
+        color: "x1e2nbdu",
+        $$css: true
     }
 };

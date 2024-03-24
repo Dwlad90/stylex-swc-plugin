@@ -654,8 +654,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                 }
             }
 
-            println!("!!!!__ props: {:#?}", props);
-
             let obj = ObjectLit {
                 props: remove_duplicates(props.clone()),
                 span: DUMMY_SP,
@@ -1485,10 +1483,8 @@ pub(crate) fn evaluate_quasis(
 }
 
 pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
-    // let seen = &mut state.seen;
-
     let existing = state.seen.get(&path);
-    dbg!(&path, &existing);
+
     match existing {
         Some(value) => {
             // panic!("Should not be here");
@@ -1505,8 +1501,6 @@ pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<Evaluate
                 resolved: false,
             };
             state.seen.insert(path.clone(), item);
-
-            dbg!(&path);
 
             let val = _evaluate(path, state);
 

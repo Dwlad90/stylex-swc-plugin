@@ -248,8 +248,6 @@ where
                             &function_map,
                         );
 
-                        dbg!(&evaluated_arg);
-
                         let value = match evaluated_arg.value {
                             Some(value) => value,
                             None => {

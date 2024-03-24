@@ -15,9 +15,10 @@ where
         }
 
         if self.cycle == ModuleCycle::Cleaning {
-            stmts.retain(|s| {
+            stmts.retain(|stmt| {
+                dbg!(&stmt);
                 // We use `matches` macro as this match is trivial.
-                !matches!(s, Stmt::Empty(..))
+                !matches!(stmt, Stmt::Empty(..))
             });
 
             stmts

@@ -70,8 +70,6 @@ pub(crate) fn evaluate_style_x_create_arg(
                                         let value_to_insert = match val.value.unwrap() {
                                             EvaluateResultValue::Expr(expr) => match expr {
                                                 Expr::Object(obj_expr) => {
-                                                    dbg!(&obj_expr);
-
                                                     let mut obj_expr_props: Vec<KeyValueProp> =
                                                         vec![];
 
@@ -92,8 +90,6 @@ pub(crate) fn evaluate_style_x_create_arg(
                                                         }
                                                     }
 
-                                                    dbg!(&obj_expr_props);
-
                                                     obj_expr_props
                                                 }
                                                 _ => panic!(
@@ -108,7 +104,6 @@ pub(crate) fn evaluate_style_x_create_arg(
                                         };
 
                                         value.insert(key.as_expr().clone(), value_to_insert);
-                                        dbg!(&value);
 
                                         continue;
                                     }

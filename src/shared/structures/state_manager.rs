@@ -103,7 +103,7 @@ impl StateManager {
             .into_iter()
             .map(|import_source| match import_source {
                 ImportSources::Regular(regular) => regular,
-                ImportSources::Named(named) => named.r#as,
+                ImportSources::Named(named) => named.from,
             })
             .collect()
     }

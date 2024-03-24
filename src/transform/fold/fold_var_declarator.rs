@@ -38,7 +38,6 @@ where
             if self.cycle == ModuleCycle::Cleaning {
                 let mut vars_to_keep: HashMap<Id, NonNullProps> = HashMap::new();
 
-                dbg!(&self.state.style_vars_to_keep);
                 for StyleVarsToKeep(var_name, namespace_name, _) in
                     self.state.style_vars_to_keep.clone().into_iter()
                 {
@@ -172,6 +171,7 @@ where
         namespace_to_keep: Vec<Id>,
         var_name: VarDeclarator,
     ) -> Vec<PropOrSpread> {
+        dbg!(&object, &namespace_to_keep);
         let props = object
             .props
             .clone()
@@ -247,38 +247,41 @@ where
 
 fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Id>) {
     style_object.props.retain(|prop| {
-        assert!(prop.is_prop(), "Spread properties are not supported");
+        match prop {
+            PropOrSpread::Prop(prop) => {
+                let style_prop = prop.as_ref();
 
-        let style_prop = prop.as_prop().unwrap().as_ref();
+                match style_prop {
+                    Prop::KeyValue(key_value) => {
+                        let value = key_value.value.clone();
 
-        match style_prop {
-            Prop::KeyValue(key_value) => {
-                let value = key_value.value.clone();
+                        if let Some(Lit::Null(_)) = value.as_lit() {
+                            let style_key_as_ident = match key_value.key.clone() {
+                                PropName::Ident(ident) => Option::Some(ident),
+                                // PropName::Str(str) => {
+                                //     Option::Some(str.value.to_string())
+                                // }
+                                // PropName::Num(num) => {
+                                //     Option::Some(num.value.to_string())
+                                // }
+                                // PropName::Computed(_) => Option::None,
+                                // PropName::BigInt(big_int) => {
+                                //     Option::Some(big_int.value.to_string())
+                                // }
+                                _ => todo!("Not implemented yet"),
+                            };
 
-                if let Some(Lit::Null(_)) = value.as_lit() {
-                    let style_key_as_ident = match key_value.key.clone() {
-                        PropName::Ident(ident) => Option::Some(ident),
-                        // PropName::Str(str) => {
-                        //     Option::Some(str.value.to_string())
-                        // }
-                        // PropName::Num(num) => {
-                        //     Option::Some(num.value.to_string())
-                        // }
-                        // PropName::Computed(_) => Option::None,
-                        // PropName::BigInt(big_int) => {
-                        //     Option::Some(big_int.value.to_string())
-                        // }
-                        _ => todo!("Not implemented yet"),
-                    };
-
-                    style_key_as_ident.map_or(false, |style_key_as_string| {
-                        nulls_to_keep.contains(&style_key_as_string.to_id())
-                    })
-                } else {
-                    true
+                            style_key_as_ident.map_or(false, |style_key_as_string| {
+                                nulls_to_keep.contains(&style_key_as_string.to_id())
+                            })
+                        } else {
+                            true
+                        }
+                    }
+                    _ => true,
                 }
             }
-            _ => true,
+            PropOrSpread::Spread(_) => true,
         }
     });
 }

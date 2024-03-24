@@ -16,28 +16,25 @@ where
     C: Comments,
 {
     pub(crate) fn fold_module_impl(&mut self, module: Module) -> Module {
-        let module = module.clone().fold_children_with(self);
+        let mut module = module.fold_children_with(self);
 
         if !self.state.stylex_import.is_empty() || !self.state.import_paths.is_empty() {
             fill_top_level_expressions(&module, &mut self.state);
 
-            self.cycle = ModuleCycle::TransformEnter;
-            let module = module.clone().fold_children_with(self);
+            let cycles = [
+                ModuleCycle::TransformEnter,
+                ModuleCycle::TransformExit,
+                ModuleCycle::InjectStyles,
+                ModuleCycle::Cleaning,
+            ];
 
-            self.cycle = ModuleCycle::TransformExit;
-            let module = module.clone().fold_children_with(self);
+            for cycle in &cycles {
+                self.cycle = cycle.clone();
+                module = module.fold_children_with(self);
+            }
 
-            let module = if self.state.options.runtime_injection.is_some() {
-                self.cycle = ModuleCycle::InjectStyles;
-
-                let module = module.clone().fold_children_with(self);
-
-                module
-            } else {
-                self.cycle = ModuleCycle::InjectClassName;
-
-                let module = module.clone().fold_children_with(self);
-
+            if self.state.options.runtime_injection.is_none() {
+                // Preparing stylex metadata for css extraction
                 self.comments.add_leading_comments(
                     module.span.lo,
                     vec![Comment {
@@ -58,13 +55,9 @@ where
                         span: module.span,
                     }],
                 );
+            }
 
-                module
-            };
-
-            self.cycle = ModuleCycle::Cleaning;
-
-            module.fold_children_with(self)
+            module
         } else {
             self.cycle = ModuleCycle::Skip;
             module

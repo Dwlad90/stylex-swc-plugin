@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use swc_core::ecma::ast::{ArrayLit, ArrowExpr, Expr, Id};
+use swc_core::ecma::ast::{Expr, Id};
 
 use crate::shared::utils::js::enums::{ArrayJS, ObjectJS};
 

@@ -1,4 +1,3 @@
-use colored::Style;
 use stylex_swc_plugin::{
     shared::structures::{
         named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},

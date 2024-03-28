@@ -34,13 +34,13 @@ test!(
     },
     basic_stylex_call,
     r#"
-      import stylex from 'custom-stylex-path';
-      const styles = stylex.create({
-        red: {
-          color: 'red',
-        }
-      });
-      stylex(styles.red);
+        import stylex from 'custom-stylex-path';
+        const styles = stylex.create({
+            red: {
+            color: 'red',
+            }
+        });
+        stylex(styles.red);
 "#
 );
 

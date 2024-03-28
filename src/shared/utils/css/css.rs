@@ -223,7 +223,7 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
 //   }
 // }
 
-fn flip_value(value: &PreRules) -> Option<PreRules> {
+fn _flip_value(value: &PreRules) -> Option<PreRules> {
     // Implement your logic here to flip the value
     // For now, I'm just returning the same value
     Some(value.clone())

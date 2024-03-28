@@ -1,16 +1,13 @@
 use swc_core::{
     common::comments::Comments,
     ecma::{
-        ast::{Decl, ExportDecl, Stmt},
+        ast::{Decl, ExportDecl},
         visit::FoldWith,
     },
 };
 
 use crate::{
-    shared::{
-        enums::ModuleCycle,
-        utils::common::{increase_ident_count, increase_ident_count_by_count},
-    },
+    shared::{enums::ModuleCycle, utils::common::increase_ident_count_by_count},
     ModuleTransformVisitor,
 };
 

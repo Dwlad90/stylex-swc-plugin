@@ -39,8 +39,7 @@ use crate::shared::{
         functions::{CallbackType, FunctionConfig, FunctionMap, FunctionType},
         injectable_style::InjectableStyle,
         named_import_source::ImportSources,
-        pre_rule::{CompiledResult, PreRule, PreRules},
-        state_manager::{self, StateManager},
+        state_manager::StateManager,
         stylex_options::StyleXOptions,
         stylex_state_options::StyleXStateOptions,
     },
@@ -48,14 +47,13 @@ use crate::shared::{
         common::{
             binary_expr_to_num, deep_merge_props, expr_to_str, get_key_str,
             get_string_val_from_lit, get_var_decl_by_ident, get_var_decl_from,
-            increase_ident_count, number_to_expression, remove_duplicates, string_to_expression,
+            number_to_expression, remove_duplicates, string_to_expression,
         },
         css::factories::object_expression_factory,
         js::{
             enums::{ArrayJS, ObjectJS},
             native_functions::{evaluate_filter, evaluate_map},
         },
-        validators::{validate_dynamic_style_params, validate_namespace},
     },
 };
 

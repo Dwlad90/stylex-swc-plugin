@@ -1,6 +1,6 @@
-import s from "@stylexjs/stylex";
+import style from "@stylexjs/stylex";
 
-const c = s.create({
+const c = style.create({
   base: {
     color: "red",
     borderColor: "blue",
@@ -20,7 +20,7 @@ const c = s.create({
 });
 
 export default function Card() {
-  const { className, style } = s.props(s.main, s.title);
+  const { className, style } = style.props(c.base, c.test);
 
   return (
     <article className={className} style={style}>Card</article>

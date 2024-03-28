@@ -1,13 +1,9 @@
-use core::panic;
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-};
+use std::collections::HashSet;
 
 use dashmap::DashMap;
 use swc_core::{
-    common::{comments::Comments, FileName},
-    ecma::ast::{CallExpr, Callee, Expr, Id, Ident, MemberProp, VarDeclarator},
+    common::comments::Comments,
+    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp},
 };
 
 use crate::{
@@ -20,7 +16,7 @@ use crate::{
             state_manager::StateManager,
             stylex_options::StyleXOptions,
         },
-        utils::common::{extract_filename_from_path, increase_ident_count},
+        utils::common::increase_ident_count,
     },
     StyleXOptionsParams,
 };
@@ -121,8 +117,13 @@ where
                 Expr::Ident(ident) => {
                     let ident_id = ident.to_id();
 
+                    dbg!(&ident_id);
+
                     if stylex_imports.contains(&ident.sym.to_string())
-                        || self.state.stylex_create_import.contains(&ident.to_id())
+                        || (self.cycle == ModuleCycle::TransformEnter
+                            && self.state.stylex_create_import.contains(&ident.to_id()))
+                        || (self.cycle == ModuleCycle::TransformExit
+                            && self.state.stylex_props_import.contains(&ident.to_id()))
                     {
                         increase_ident_count(&mut self.state, &ident);
 
@@ -134,7 +135,10 @@ where
                         let ident_id = ident.to_id();
 
                         if stylex_imports.contains(&ident.sym.to_string())
-                            || self.state.stylex_create_import.contains(&ident.to_id())
+                            || (self.cycle == ModuleCycle::TransformEnter
+                                && self.state.stylex_create_import.contains(&ident.to_id()))
+                            || (self.cycle == ModuleCycle::TransformExit
+                                && self.state.stylex_props_import.contains(&ident.to_id()))
                         {
                             match member.prop.clone() {
                                 MemberProp::Ident(ident) => {
@@ -163,7 +167,7 @@ where
             Expr::Call(ex) => {
                 let declaration = self.process_declaration(&ex);
 
-                println!("!!!declaration: {:?}\n\n", declaration);
+                println!("!!!declaration: {:?}, ex: {:?}\n\n", declaration, ex);
 
                 if let Some(_) = declaration {
                     let value = self.transform_call_expression_to_stylex_expr(&ex);

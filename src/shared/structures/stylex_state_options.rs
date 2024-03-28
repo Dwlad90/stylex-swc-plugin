@@ -26,7 +26,7 @@ pub struct StyleXStateOptions {
 }
 
 impl StyleXStateOptions {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn _new() -> Self {
         StyleXStateOptions {
             style_resolution: StyleResolution::ApplicationOrder,
             use_rem_for_font_size: false,
@@ -60,7 +60,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
             RuntimeInjection::Regular(s) => Some(RuntimeInjectionState::Regular(s)),
         };
 
-        let mut aliases = match options.aliases {
+        let aliases = match options.aliases {
             Some(aliases) => match aliases {
                 stylex_options::Aliases::String(aliases) => {
                     let mut aliases_map = HashMap::new();

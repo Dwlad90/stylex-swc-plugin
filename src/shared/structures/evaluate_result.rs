@@ -1,12 +1,10 @@
-use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use std::sync::Arc;
-use swc_core::ecma::ast::{Expr, Ident, KeyValueProp, Lit, ObjectLit, Prop};
+use swc_core::ecma::ast::{Expr, KeyValueProp, Lit};
 
-use super::functions::{self, FunctionConfig};
+use super::functions::FunctionConfig;
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub(crate) enum ArrayJS {

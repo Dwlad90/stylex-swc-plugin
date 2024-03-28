@@ -1,16 +1,8 @@
-use std::{any::Any, fmt::Debug, sync::Arc};
-
-use serde::{Deserialize, Serialize};
-
-use crate::shared::{
-    structures::pre_rule::{CompiledResult, ComputedStyle},
-    utils::common::type_of,
-};
+use crate::shared::structures::pre_rule::{CompiledResult, ComputedStyle};
 
 use super::{
-    injectable_style::InjectableStyle,
     null_pre_rule::NullPreRule,
-    pre_rule::{PreRule, PreRuleValue, PreRules, Styles},
+    pre_rule::{PreRule, PreRuleValue, PreRules},
 };
 #[derive(Debug, Clone)]
 pub(crate) struct PreRuleSet {
@@ -18,7 +10,7 @@ pub(crate) struct PreRuleSet {
 }
 
 impl PreRuleSet {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn _new() -> Self {
         PreRuleSet { rules: vec![] }
     }
     pub(crate) fn create(rules: Vec<PreRules>) -> PreRules {
@@ -39,7 +31,7 @@ impl PreRuleSet {
 }
 
 impl PreRule for PreRuleSet {
-    fn equals(&self, other: &dyn PreRule) -> bool {
+    fn equals(&self, _other: &dyn PreRule) -> bool {
         true
     }
     fn compiled(&mut self, prefix: &str) -> CompiledResult {

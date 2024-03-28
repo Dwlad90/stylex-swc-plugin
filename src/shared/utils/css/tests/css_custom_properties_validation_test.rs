@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod css_tests {
-    use crate::shared::{structures::pre_rule::PreRuleValue, utils::css::transform_value};
+    use crate::shared::utils::css::transform_value;
 
     #[test]
     #[should_panic(expected = "Unexpected end of file, but expected ')'")]

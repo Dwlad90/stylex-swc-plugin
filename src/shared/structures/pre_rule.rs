@@ -1,7 +1,5 @@
-use std::any::Any;
 use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize};
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::{common::type_of, css::convert_style_to_class_name};
@@ -11,7 +9,7 @@ use super::{
     pre_included_styles_rule::PreIncludedStylesRule, pre_rule_set::PreRuleSet,
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct StyleWithDirections {
     pub(crate) rtl: Option<String>,
     pub(crate) ltr: String,
@@ -72,7 +70,7 @@ pub(crate) enum PreRules {
     NullPreRule(NullPreRule),
 }
 
-#[derive(Debug,  Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct StylesPreRule {
     property: String,
     value: PreRuleValue,

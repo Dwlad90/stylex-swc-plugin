@@ -1,16 +1,13 @@
-use core::panic;
+use std::collections::HashSet;
 
 use swc_core::{
     common::DUMMY_SP,
-    ecma::ast::{CallExpr, Expr, Ident, KeyValueProp, Pat, PropName, VarDeclarator},
+    ecma::ast::{CallExpr, Expr, Id, Ident, KeyValueProp, Pat, PropName},
 };
 
 use crate::shared::{
-    constants,
-    enums::{TopLevelExpression, TopLevelExpressionKind},
-    regex::INCLUDED_IDENT_REGEX,
-    structures::state_manager::StateManager,
-    utils::common::get_var_decl_by_ident_or_member,
+    constants, enums::TopLevelExpression, regex::INCLUDED_IDENT_REGEX,
+    structures::state_manager::StateManager, utils::common::get_var_decl_by_ident_or_member,
 };
 
 use super::common::{get_key_str, get_key_values_from_object};
@@ -47,14 +44,26 @@ pub(crate) fn validate_style_x_create_indent(call: &CallExpr, state: &mut StateM
         _ => panic!("{}", constants::messages::NON_OBJECT_FOR_STYLEX_CALL),
     }
 }
+
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
+    is_target_call(("create", &state.stylex_create_import), call, state)
+}
+
+pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
+    dbg!(&state.stylex_props_import);
+    is_target_call(("props", &state.stylex_props_import), call, state)
+}
+
+pub(crate) fn is_target_call(
+    (call_name, imports_map): (&str, &HashSet<Id>),
+    call: &CallExpr,
+    state: &StateManager,
+) -> bool {
     let is_create_ident = call
         .callee
         .as_expr()
         .and_then(|expr| expr.as_ident())
-        .map_or(false, |ident| {
-            state.stylex_create_import.contains(&ident.to_id())
-        });
+        .map_or(false, |ident| imports_map.contains(&ident.to_id()));
 
     let is_create_member = call
         .callee
@@ -63,7 +72,7 @@ pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
         .map_or(false, |member| {
             member.obj.is_ident()
                 && member.prop.as_ident().map_or(false, |ident| {
-                    ident.sym.eq("create")
+                    ident.sym.eq(call_name)
                         && state
                             .stylex_import_stringified()
                             .contains(&member.obj.as_ident().unwrap().sym.to_string())

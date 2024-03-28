@@ -386,12 +386,21 @@ test!(
     using_stylex_include_keeps_the_compiled_object,
     r#"
         import stylex from 'stylex';
+
+        const importedStyles = stylex.create({
+            foo: {
+                color: 'blue',
+            },
+        });
+
+
         const styles = stylex.create({
             foo: {
                 ...stylex.include(importedStyles.foo),
                 color: 'red',
             }
         });
+
         stylex.props(styles.foo);
     "#
 );

@@ -18,11 +18,11 @@ use swc_core::{
             ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr, Module, ModuleItem,
             Stmt, VarDeclarator,
         },
-        visit::{noop_fold_type, Fold, FoldWith},
+        visit::{noop_fold_type, Fold},
     },
 };
 
-use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
+use crate::ModuleTransformVisitor;
 
 impl<C> Fold for ModuleTransformVisitor<C>
 where

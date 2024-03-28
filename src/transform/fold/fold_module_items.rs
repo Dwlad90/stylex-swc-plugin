@@ -1,9 +1,9 @@
-use colored::{Color, Colorize};
+use colored::Colorize;
 use swc_core::{
-    common::{comments::Comments, plugin::metadata, DUMMY_SP},
+    common::{comments::Comments, DUMMY_SP},
     ecma::{
         ast::{
-            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
+            BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl,
             ImportDefaultSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleItem, Pat,
             Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
         },
@@ -18,7 +18,7 @@ use crate::{
         structures::uid_generator::UidGenerator,
         utils::common::{
             expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
-            get_pat_as_string, increase_ident_count, increase_ident_count_by_count,
+            get_pat_as_string,
         },
     },
     ModuleTransformVisitor,

@@ -7,7 +7,9 @@ _inject2(".x15hxx75{border-color:pink}", 2000);
 _inject2(".x7z7khe{padding:10px}", 1000);
 _inject2(".x16ydxro{margin-left:10px}", 4000);
 export default function Home() {
-    const { className, style } = s.props(s.main, s.title);
+    const { className, style } = {
+        className: "x1e2nbdu x15hxx75 x7z7khe"
+    };
     return <main className={className} style={style}>
 
           Main

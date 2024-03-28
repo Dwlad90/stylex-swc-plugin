@@ -12,7 +12,7 @@ use crate::shared::{
 
 pub(crate) struct StyleQResult {
     pub(crate) class_name: String,
-    pub(crate) _inline_style: Option<FlatCompiledStyles>,
+    pub(crate) inline_style: Option<FlatCompiledStyles>,
 }
 
 // pub(crate) static CACHE: phf::Map<&'static IndexMap<String, FlatCompiledStylesValue>, &'static str> = phf_map! {};
@@ -51,7 +51,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
         // Early return if there are no arguments
         return StyleQResult {
             class_name,
-            _inline_style: Option::None,
+            inline_style: Option::None,
         };
     }
 
@@ -186,6 +186,6 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
     dbg!(&class_name);
     StyleQResult {
         class_name,
-        _inline_style: inline_style,
+        inline_style,
     }
 }

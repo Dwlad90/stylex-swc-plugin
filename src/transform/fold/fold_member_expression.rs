@@ -1,7 +1,7 @@
 use swc_core::{
     common::comments::Comments,
     ecma::{
-        ast::{Expr, Id, MemberExpr, MemberProp, Stmt},
+        ast::{Expr, Id, MemberExpr, MemberProp},
         visit::FoldWith,
     },
 };
@@ -18,10 +18,7 @@ impl<C> ModuleTransformVisitor<C>
 where
     C: Comments,
 {
-    pub(crate) fn fold_member_expr_impl(
-        &mut self,
-        mut member_expression: MemberExpr,
-    ) -> MemberExpr {
+    pub(crate) fn fold_member_expr_impl(&mut self, member_expression: MemberExpr) -> MemberExpr {
         if self.cycle == ModuleCycle::Skip {
             return member_expression;
         }
@@ -42,7 +39,7 @@ where
                     if self.state.style_map.contains_key(&obj_ident_name) {
                         match property {
                             MemberProp::Ident(ident) => {
-                                let prop_ident_name = ident.sym.to_string();
+                                // let prop_ident_name = ident.sym.to_string();
 
                                 prop_name = Option::Some(ident.to_id());
                             }

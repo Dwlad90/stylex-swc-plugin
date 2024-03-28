@@ -1,7 +1,5 @@
-use core::panic;
 use std::collections::HashMap;
 
-use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Id, Ident, KeyValueProp};
@@ -18,7 +16,6 @@ use crate::shared::structures::functions::{FunctionConfig, FunctionMap, Function
 use crate::shared::structures::injectable_style::InjectableStyle;
 use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
-use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::common::prop_or_spread_string_creator;
 use crate::shared::utils::css::factories::object_expression_factory;
 use crate::shared::utils::css::stylex::evaluate_style_x_create_arg::evaluate_style_x_create_arg;
@@ -111,6 +108,18 @@ where
         }
 
         if self.cycle == ModuleCycle::TransformExit {
+            dbg!(&self.state.stylex_props_import);
+
+            if self.state.stylex_props_import.contains(&ident.to_id()) {
+                if let Some(value) = self.transform_stylex_props_call(ex) {
+                    return Some(Option::Some(value));
+                }
+            }
+
+            if let Some(value) = self.transform_stylex_props_call(ex) {
+                return Some(Option::Some(value));
+            }
+
             if let Some(value) = self.transform_stylex_call(ex) {
                 return Some(Option::Some(value));
             }
@@ -119,7 +128,7 @@ where
         None
     }
 
-    fn proccess_create_css_call(&mut self, ex: &CallExpr) -> Option<Expr> {
+    fn _proccess_create_css_call(&mut self, ex: &CallExpr) -> Option<Expr> {
         let mut props: Vec<PropOrSpread> = vec![];
         let mut css_class_has_map: IndexMap<String, String> = IndexMap::new();
         let decl_name = self.get_props_declaration_as_string();
@@ -198,7 +207,9 @@ where
                         };
 
                         let keyframes_fn = FunctionConfig {
-                            fn_ptr: FunctionType::OneArg(|arg| panic!("Keyframes not implemented")),
+                            fn_ptr: FunctionType::OneArg(|_arg| {
+                                panic!("Keyframes not implemented")
+                            }),
                             takes_path: false,
                         };
 

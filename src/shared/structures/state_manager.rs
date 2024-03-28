@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::option::Option;
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, Id, VarDeclarator};
+use swc_core::ecma::ast::{Id, VarDeclarator};
 
 use crate::shared::enums::{StyleVarsToKeep, TopLevelExpression};
 use crate::shared::utils::common::extract_filename_from_path;

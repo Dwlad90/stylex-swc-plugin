@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use swc_core::common::FileName;
 
@@ -18,10 +18,10 @@ trait TraitName {
 }
 
 impl TraitName for PluginPass {
-    fn get(&self, key: &str) -> Option<&str> {
+    fn get(&self, _key: &str) -> Option<&str> {
         Option::None
     } // Assuming the key is a string and the value is a string
-    fn set(&mut self, key: &str, value: &str) {} // Assuming the key is a string and the value is a string
+    fn set(&mut self, _key: &str, _value: &str) {} // Assuming the key is a string and the value is a string
 }
 
 impl Default for PluginPass {

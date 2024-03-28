@@ -1,6 +1,5 @@
 use std::{any::type_name, collections::HashSet};
 
-use colored::Colorize;
 use radix_fmt::radix;
 use swc_core::{
     common::{FileName, Span, DUMMY_SP},
@@ -24,7 +23,7 @@ use crate::shared::{
     },
 };
 
-use super::css::stylex::evaluate::{evaluate, evaluate_cached, State};
+use super::css::stylex::evaluate::{evaluate_cached, State};
 
 struct SpanReplacer;
 
@@ -34,7 +33,7 @@ impl Fold for SpanReplacer {
     }
 }
 
-fn replace_spans(expr: &mut Expr) -> Expr {
+fn _replace_spans(expr: &mut Expr) -> Expr {
     expr.clone().fold_children_with(&mut SpanReplacer)
 }
 
@@ -252,7 +251,7 @@ pub fn get_var_decl_by_ident<'a>(
 
                     match func.fn_ptr {
                         FunctionType::Mapper(func) => {
-                            let arg = Expr::Ident(ident.clone());
+                            // let arg = Expr::Ident(ident.clone());
                             let result = func();
 
                             println!("!!!!! ident: {:?}, result: {:?}", ident, result);
@@ -323,7 +322,7 @@ pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> Expr {
     var_decl_expr
 }
 
-pub fn unbox_option<T>(item: Option<Box<T>>) -> T {
+pub fn _unbox_option<T>(item: Option<Box<T>>) -> T {
     match item {
         Some(item) => unbox(item),
         None => panic!("Item is undefined"),
@@ -545,7 +544,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
         BinaryOp::LogicalOr => {
             println!("!!!!__ state.confident33333: {:#?}", state.confident);
 
-            let mut was_confident = state.confident;
+            let was_confident = state.confident;
             let mut left_confident = state.confident;
             let mut right_confident = state.confident;
 
@@ -581,7 +580,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
             }
         }
         BinaryOp::LogicalAnd => {
-            let mut was_confident = state.confident;
+            let was_confident = state.confident;
             let mut left_confident = state.confident;
             let mut right_confident = state.confident;
 

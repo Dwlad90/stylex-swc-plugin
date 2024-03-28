@@ -1,11 +1,8 @@
-use core::panic;
-use std::collections::HashMap;
-
 use indexmap::IndexMap;
 use regex::Regex;
 use swc_core::{
     common::DUMMY_SP,
-    ecma::ast::{Expr, Id, KeyValueProp, Prop, PropName, PropOrSpread, Str, VarDeclarator},
+    ecma::ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread, Str},
 };
 
 use crate::shared::{
@@ -20,7 +17,6 @@ use crate::shared::{
         pre_rule::{PreRuleValue, PreRules, StylesPreRule},
         pre_rule_set::PreRuleSet,
         state_manager::StateManager,
-        stylex_state_options::StyleXStateOptions,
     },
     utils::{
         common::{
@@ -31,8 +27,6 @@ use crate::shared::{
         css::css::flat_map_expanded_shorthands,
     },
 };
-
-use super::evaluate::State;
 
 pub(crate) fn flatten_raw_style_object(
     style: &Vec<KeyValueProp>,
@@ -150,11 +144,13 @@ pub(crate) fn flatten_raw_style_object(
                     // let b = Option::Some(b);
 
                     let pairs = flat_map_expanded_shorthands(
-                        (css_property_key, match value.as_str() {
-                            "" => PreRuleValue::Null,
-                            val => PreRuleValue::String(val.to_string()),
-
-                        }),
+                        (
+                            css_property_key,
+                            match value.as_str() {
+                                "" => PreRuleValue::Null,
+                                val => PreRuleValue::String(val.to_string()),
+                            },
+                        ),
                         &state.options,
                     );
 

@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, Id, VarDeclarator};
 
 use crate::shared::{
     structures::{
@@ -11,7 +8,6 @@ use crate::shared::{
         injectable_style::InjectableStyle,
         pre_rule::{CompiledResult, PreRule, PreRules},
         state_manager::StateManager,
-        stylex_state_options::StyleXStateOptions,
     },
     utils::{
         common::expr_to_str, css::stylex::flatten_raw_style_object::flatten_raw_style_object,

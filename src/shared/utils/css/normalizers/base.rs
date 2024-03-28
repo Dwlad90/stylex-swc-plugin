@@ -2,18 +2,11 @@ use swc_core::{
     common::DUMMY_SP,
     css::{
         ast::{
-            ComponentValue, Declaration, DeclarationName, Delimiter, DelimiterValue, Dimension,
-            DimensionToken, Function, Ident, ListOfComponentValues, Number, SimpleBlock,
-            Stylesheet, Token,
+            ComponentValue, Declaration, DeclarationName, DelimiterValue, Dimension, Function,
+            Ident, ListOfComponentValues, Number, Stylesheet, Token,
         },
         visit::{Fold, FoldWith},
     },
-};
-
-#[cfg(test)]
-use swc_core::css::codegen::{
-    writer::basic::{BasicCssWriter, BasicCssWriterConfig},
-    CodeGenerator, CodegenConfig, Emit,
 };
 
 use crate::shared::utils::common::dashify;
@@ -25,7 +18,7 @@ struct CssFolder;
 impl Fold for CssFolder {
     fn fold_list_of_component_values(
         &mut self,
-        mut list: ListOfComponentValues,
+        list: ListOfComponentValues,
     ) -> ListOfComponentValues {
         list.fold_children_with(self)
     }
@@ -43,7 +36,7 @@ impl Fold for CssFolder {
     // }
 
     fn fold_declaration(&mut self, mut declaration: Declaration) -> Declaration {
-        let mut declaration = kebab_case_normalizer(&mut declaration).clone();
+        let declaration = kebab_case_normalizer(&mut declaration).clone();
 
         // NOTE: Whitespace normalizer working out of the box with minify
         // declaration.value = whitespace_normalizer(declaration.value);
@@ -82,7 +75,7 @@ impl Fold for CssFolder {
     // }
 }
 
-fn whitespace_normalizer(values: Vec<ComponentValue>) -> Vec<ComponentValue> {
+fn _whitespace_normalizer(values: Vec<ComponentValue>) -> Vec<ComponentValue> {
     let mut index = 0;
 
     let values = values.clone();
@@ -261,7 +254,7 @@ fn get_zero_demansion_unit() -> Ident {
     }
 }
 
-fn leading_zero_normalizer(number: &mut Number) -> &mut Number {
+fn _leading_zero_normalizer(number: &mut Number) -> &mut Number {
     if number.value < 1.0 && number.value >= 0.0 {
         if let Some(raw) = &number.raw {
             number.raw = Option::Some(raw.replace("0.", ".").into());

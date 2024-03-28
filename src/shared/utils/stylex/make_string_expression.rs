@@ -1,5 +1,3 @@
-use std::result;
-
 use swc_core::{
     common::DUMMY_SP,
     ecma::ast::{
@@ -8,24 +6,31 @@ use swc_core::{
     },
 };
 
-use crate::{
-    shared::{
-        enums::ConditionPermutationsValue,
-        utils::{
-            common::string_to_expression, css::factories::object_expression_factory,
-            stylex::parse_nallable_style::StyleObject,
-        },
-    },
-    transform::styleq::styleq::styleq,
+use crate::shared::{
+    enums::FnResult,
+    utils::{common::string_to_expression, css::factories::object_expression_factory},
 };
 
-use super::parse_nallable_style::ResolvedArg;
+use super::{
+    js_to_expr::convert_object_to_ast, parse_nallable_style::ResolvedArg,
+    stylex::gen_condition_permutations,
+};
 
-pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> {
-    if values.is_empty() {
-        // Early return if there are no values
-        return Option::None;
+fn fn_result_to_expression(fn_result: &FnResult) -> Option<Expr> {
+    match fn_result {
+        FnResult::Stylex(string_object) => Some(string_object.clone()),
+        FnResult::Props(string_object) => Some(convert_object_to_ast(string_object)),
     }
+}
+
+pub(crate) fn make_string_expression(
+    values: &Vec<ResolvedArg>,
+    transform: fn(&Vec<ResolvedArg>) -> Option<FnResult>,
+) -> Option<Expr> {
+    // if values.is_empty() {
+    //     // Early return if there are no values
+    //     return Option::None;
+    // }
 
     let conditions = values
         .clone()
@@ -37,8 +42,8 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
         .collect::<Vec<Box<Expr>>>();
 
     if conditions.is_empty() {
-        if let Some(value) = stylex(values) {
-            return Some(value);
+        if let Some(value) = transform(values) {
+            return fn_result_to_expression(&value);
         } else {
             return string_to_expression("".to_string());
         }
@@ -48,7 +53,7 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
 
     let obj_entries = condition_permutations
         .iter()
-        .map(|permutation| {
+        .filter_map(|permutation| {
             let mut i = 0;
 
             dbg!(&values);
@@ -87,12 +92,16 @@ pub(crate) fn make_string_expression(values: &Vec<ResolvedArg>) -> Option<Expr> 
                 .iter()
                 .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
 
-            let prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                key: PropName::Ident(Ident::new(key.to_string().clone().into(), DUMMY_SP)),
-                value: Box::new(stylex(&args).unwrap()),
-            })));
+            if let Some(result) = fn_result_to_expression(&transform(&args).unwrap()) {
+                let prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+                    key: PropName::Ident(Ident::new(key.to_string().clone().into(), DUMMY_SP)),
+                    value: Box::new(result),
+                })));
 
-            prop
+                return Some(prop);
+            }
+
+            Option::None
         })
         .collect::<Vec<PropOrSpread>>();
 
@@ -148,24 +157,4 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Box<Expr>>) -> Box<Expr> {
             }))
         })
         .unwrap()
-}
-
-fn stylex(values: &Vec<ResolvedArg>) -> Option<Expr> {
-    let result = styleq(values);
-
-    let class_name = result.class_name.to_string();
-
-    string_to_expression(class_name)
-}
-
-fn gen_condition_permutations(count: usize) -> Vec<Vec<bool>> {
-    let mut result = Vec::new();
-    for i in 0..2u32.pow(count as u32) {
-        let mut combination = Vec::new();
-        for j in 0..count {
-            combination.push(i & (1 << j) != 0);
-        }
-        result.push(combination);
-    }
-    result
 }

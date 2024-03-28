@@ -1,23 +1,11 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-
-use swc_core::ecma::ast::{
-    Expr, Id, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread, VarDeclarator,
-};
+use swc_core::ecma::ast::{Expr, Id, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread};
 
 use crate::shared::{
-    enums::{NonNullProp, NonNullProps, StyleVarsToKeep, VarDeclAction},
+    enums::{NonNullProp, NonNullProps, StyleVarsToKeep},
     structures::{
-        evaluate_result::{EvaluateResult, EvaluateResultValue},
-        functions::FunctionMap,
-        state_manager::StateManager,
+        evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
     },
-    utils::{
-        common::{
-            get_key_str, get_string_val_from_lit, get_var_decl_by_ident, increase_ident_count,
-        },
-        css::stylex::evaluate::{self, evaluate},
-    },
+    utils::{common::increase_ident_count, css::stylex::evaluate::evaluate},
 };
 
 pub(crate) fn member_expression(
@@ -36,7 +24,6 @@ pub(crate) fn member_expression(
 
     dbg!(&state.style_map, &object);
 
-
     match object {
         Expr::Ident(ident) => {
             let obj_ident_name = ident.sym.to_string();
@@ -46,14 +33,14 @@ pub(crate) fn member_expression(
             if state.style_map.contains_key(&obj_ident_name) {
                 match property {
                     MemberProp::Ident(ident) => {
-                        let prop_ident_name = ident.sym.to_string();
+                        // let prop_ident_name = ident.sym.to_string();
 
                         prop_name = Option::Some(ident.to_id());
                     }
                     MemberProp::Computed(computed) => {
                         dbg!(&computed);
                         match computed.expr.as_ref() {
-                            Expr::Lit(lit) => {
+                            Expr::Lit(_) => {
                                 todo!("Computed not implemented yet");
 
                                 // let prop_lit_name = get_string_val_from_lit(lit);

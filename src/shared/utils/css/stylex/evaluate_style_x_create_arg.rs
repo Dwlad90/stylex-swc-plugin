@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use swc_core::ecma::{
-    ast::{Expr, Id, KeyValueProp, Prop, PropOrSpread, VarDeclarator},
+    ast::{Expr, KeyValueProp, Prop, PropOrSpread},
     utils::ExprExt,
 };
 

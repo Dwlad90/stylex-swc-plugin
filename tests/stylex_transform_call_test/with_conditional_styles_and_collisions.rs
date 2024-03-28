@@ -1,8 +1,5 @@
 use stylex_swc_plugin::{
-    shared::structures::{
-        named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-        stylex_options::StyleXOptionsParams,
-    },
+    shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
     ModuleTransformVisitor,
 };
 use swc_core::ecma::{

@@ -1,10 +1,6 @@
-use std::fmt::Debug;
+use super::pre_rule::{CompiledResult, PreRule, PreRuleValue};
 
-use serde::{Deserialize, Serialize};
-
-use super::pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRuleValue, Styles};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct NullPreRule {}
 
 impl NullPreRule {
@@ -17,10 +13,10 @@ impl PreRule for NullPreRule {
     fn get_value(&self) -> Option<PreRuleValue> {
         None
     }
-    fn compiled(&mut self, prefix: &str) -> CompiledResult {
+    fn compiled(&mut self, _prefix: &str) -> CompiledResult {
         CompiledResult::Null
     }
-    fn equals(&self, other: &dyn PreRule) -> bool {
+    fn equals(&self, _other: &dyn PreRule) -> bool {
         false
     }
 }

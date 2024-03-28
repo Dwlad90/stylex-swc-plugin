@@ -209,28 +209,28 @@ where
                 }
 
                 "props" => {
-                    todo!("include");
+                    self.state.stylex_props_import.insert(local_name_ident);
                 }
                 "attrs" => {
-                    todo!("include");
+                    todo!("attrs");
                 }
                 "keyframes" => {
-                    todo!("include");
+                    todo!("keyframes");
                 }
                 "include" => {
                     self.state.stylex_include_import.insert(local_name_ident);
                 }
                 "firstThatWorks" => {
-                    todo!("include");
+                    todo!("firstThatWorks");
                 }
                 "defineVars" => {
-                    todo!("include");
+                    todo!("defineVars");
                 }
                 "createTheme" => {
-                    todo!("include");
+                    todo!("createTheme");
                 }
                 "types" => {
-                    todo!("include");
+                    todo!("types");
                 }
                 _ => {
                     panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)

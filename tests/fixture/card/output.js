@@ -1,4 +1,4 @@
-import s from "@stylexjs/stylex";
+import style from "@stylexjs/stylex";
 const _stylex$props = {
     base: {
         color: "x1e2nbdu",
@@ -64,6 +64,8 @@ const _stylex$props = {
     }
 };
 export default function Card() {
-    const { className, style } = s.props(s.main, s.title);
+    const { className, style } = {
+        className: "x1e2nbdu x15hxx75 x7z7khe"
+    };
     return <article className={className} style={style}>Card</article>;
 }

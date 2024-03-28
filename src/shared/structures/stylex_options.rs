@@ -58,8 +58,8 @@ pub enum Aliases {
 #[serde(rename_all(deserialize = "camelCase", serialize = "PascalCase"))]
 pub struct ModuleResolution {
     r#type: String,
-    root_dir: String,
-    theme_file_extension: Option<String>,
+    _root_dir: String,
+    _theme_file_extension: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -107,7 +107,7 @@ impl Default for StyleXOptions {
 
 impl From<StyleXOptionsParams> for StyleXOptions {
     fn from(options: StyleXOptionsParams) -> Self {
-        let aliases: Option<HashMap<String, Vec<String>>> = Option::None;
+        // let aliases: Option<HashMap<String, Vec<String>>> = Option::None;
 
         let unstable_module_resolution = match options.unstable_module_resolution {
             Some(module_resolution) => match module_resolution.r#type.to_lowercase().as_str() {

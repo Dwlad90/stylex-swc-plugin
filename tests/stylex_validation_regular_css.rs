@@ -96,7 +96,7 @@ test!(
     });
 
     export default function Home() {
-      const { className, style } = s.props(s.main, s.title);
+      const { className, style } = s.props(c.base, c.test);
 
       return (
         <main className={className} style={style}>

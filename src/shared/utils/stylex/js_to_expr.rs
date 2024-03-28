@@ -1,18 +1,13 @@
 use indexmap::IndexMap;
 use swc_core::{
-    common::{Span, DUMMY_SP},
-    ecma::ast::{
-        Bool, Expr, Ident, KeyValueProp, Lit, Null, Prop, PropName, PropOrSpread, SpreadElement,
-        Str,
-    },
+    common::DUMMY_SP,
+    ecma::ast::{Bool, Expr, Lit, Null, PropOrSpread, SpreadElement},
 };
 
 use crate::shared::{
     structures::flat_compiled_styles::{FlatCompiledStyles, FlatCompiledStylesValue},
     utils::{
-        common::{
-            prop_or_spread_expression_creator, prop_or_spread_string_creator, string_to_expression,
-        },
+        common::{prop_or_spread_expression_creator, prop_or_spread_string_creator},
         css::factories::object_expression_factory,
     },
 };
@@ -35,6 +30,7 @@ pub(crate) fn remove_objects_with_spreads(
     obj
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) enum NestedStringObject {
     FlatCompiledStyles(IndexMap<String, FlatCompiledStyles>),
     FlatCompiledStylesValues(IndexMap<String, FlatCompiledStylesValue>),
@@ -79,6 +75,8 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
                         })),
                     ),
                 };
+
+                dbg!(&prop);
 
                 props.push(prop);
             }

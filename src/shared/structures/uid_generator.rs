@@ -25,7 +25,7 @@ impl UidGenerator {
             counters,
         }
     }
-    pub fn clear(&self) {
+    pub fn _clear(&self) {
         self.counters.remove(&self.prefix);
     }
     pub fn generate(&self) -> String {

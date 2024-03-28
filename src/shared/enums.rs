@@ -1,5 +1,7 @@
 use swc_core::ecma::ast::{Expr, Id};
 
+use super::utils::stylex::js_to_expr::NestedStringObject;
+
 // Represents the current state of a plugin for a file.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub(crate) enum ModuleCycle {
@@ -56,9 +58,14 @@ pub(crate) enum TopLevelExpressionKind {
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct TopLevelExpression(pub(crate) TopLevelExpressionKind, pub(crate) Expr);
 
-
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) enum ConditionPermutationsValue {
     Single(String),
     Triple((String, String, String)),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub(crate) enum FnResult {
+    Props(NestedStringObject),
+    Stylex(Expr),
 }

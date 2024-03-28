@@ -1,4 +1,4 @@
-use crate::shared::structures::{order::Order, order_pair::OrderPair};
+use crate::shared::structures::order_pair::OrderPair;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct Shorthands;

@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-use crate::shared::{structures::injectable_style::InjectableStyle, utils::css::get_priority};
+use crate::shared::structures::injectable_style::InjectableStyle;
 
 use super::injectable_style::InjectableStyleBase;
 
@@ -37,9 +37,9 @@ impl MetaData {
         &self.priority
     }
 
-    fn set_priority(key: &str) -> u16 {
-        get_priority(key)
-    }
+    // fn set_priority(key: &str) -> u16 {
+    //     get_priority(key)
+    // }
 
     pub(crate) fn convert_from_injected_styles_map(
         injected_styles_map: IndexMap<String, InjectableStyle>,

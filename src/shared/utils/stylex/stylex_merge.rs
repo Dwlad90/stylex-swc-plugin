@@ -52,7 +52,7 @@ pub(crate) fn stylex_merge(
     call: &CallExpr,
     transform: fn(&Vec<ResolvedArg>) -> Option<FnResult>,
     state: &mut StateManager,
-    cycle: &ModuleCycle
+    // cycle: &ModuleCycle
 ) -> Option<Expr> {
     let mut bail_out = false;
     let mut conditional = 0;
@@ -227,9 +227,9 @@ pub(crate) fn stylex_merge(
             dbg!(&arg_path);
             arg_path.expr = arg_path.expr.clone().fold_with(&mut member_transfom);
 
-            if cycle == &ModuleCycle::TransformExit{
-                dbg!(&arg_path);
-            }
+            // if cycle == &ModuleCycle::TransformExit{
+            //     dbg!(&arg_path);
+            // }
 
 
             index = member_transfom.index;

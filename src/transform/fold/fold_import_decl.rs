@@ -207,12 +207,11 @@ where
                 "create" => {
                     self.state.stylex_create_import.insert(local_name_ident);
                 }
-
                 "props" => {
                     self.state.stylex_props_import.insert(local_name_ident);
                 }
                 "attrs" => {
-                    todo!("attrs");
+                    self.state.stylex_attrs_import.insert(local_name_ident);
                 }
                 "keyframes" => {
                     todo!("keyframes");
@@ -224,7 +223,9 @@ where
                     todo!("firstThatWorks");
                 }
                 "defineVars" => {
-                    todo!("defineVars");
+                    self.state
+                        .stylex_define_vars_import
+                        .insert(local_name_ident);
                 }
                 "createTheme" => {
                     todo!("createTheme");

@@ -54,6 +54,20 @@ pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
     is_target_call(("props", &state.stylex_props_import), call, state)
 }
 
+pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
+    dbg!(&state.stylex_props_import);
+    is_target_call(("attrs", &state.stylex_attrs_import), call, state)
+}
+
+pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
+    dbg!(&state.stylex_props_import);
+    is_target_call(
+        ("defineVars", &state.stylex_define_vars_import),
+        call,
+        state,
+    )
+}
+
 pub(crate) fn is_target_call(
     (call_name, imports_map): (&str, &HashSet<Id>),
     call: &CallExpr,

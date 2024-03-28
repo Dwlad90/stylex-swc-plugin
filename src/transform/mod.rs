@@ -121,9 +121,13 @@ where
 
                     if stylex_imports.contains(&ident.sym.to_string())
                         || (self.cycle == ModuleCycle::TransformEnter
-                            && self.state.stylex_create_import.contains(&ident.to_id()))
-                        || (self.cycle == ModuleCycle::TransformExit
-                            && self.state.stylex_props_import.contains(&ident.to_id()))
+                            && (self.state.stylex_create_import.contains(&ident.to_id()))
+                            || self.state.stylex_props_import.contains(&ident.to_id())
+                            || self
+                                .state
+                                .stylex_define_vars_import
+                                .contains(&ident.to_id())
+                            || self.state.stylex_attrs_import.contains(&ident.to_id()))
                     {
                         increase_ident_count(&mut self.state, &ident);
 
@@ -136,9 +140,13 @@ where
 
                         if stylex_imports.contains(&ident.sym.to_string())
                             || (self.cycle == ModuleCycle::TransformEnter
-                                && self.state.stylex_create_import.contains(&ident.to_id()))
-                            || (self.cycle == ModuleCycle::TransformExit
-                                && self.state.stylex_props_import.contains(&ident.to_id()))
+                                && (self.state.stylex_create_import.contains(&ident.to_id()))
+                                || self.state.stylex_props_import.contains(&ident.to_id())
+                                || self
+                                    .state
+                                    .stylex_define_vars_import
+                                    .contains(&ident.to_id())
+                                || self.state.stylex_attrs_import.contains(&ident.to_id()))
                         {
                             match member.prop.clone() {
                                 MemberProp::Ident(ident) => {

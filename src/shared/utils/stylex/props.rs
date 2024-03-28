@@ -1,11 +1,9 @@
 use indexmap::IndexMap;
-use swc_core::ecma::ast::Expr;
 
 use crate::{
     shared::{
-        enums::FnResult,
-        structures::flat_compiled_styles::{FlatCompiledStyles, FlatCompiledStylesValue},
-        utils::{common::string_to_expression, stylex::js_to_expr::NestedStringObject},
+        enums::FnResult, structures::flat_compiled_styles::FlatCompiledStylesValue,
+        utils::stylex::js_to_expr::NestedStringObject,
     },
     transform::styleq::styleq::{styleq, StyleQResult},
 };

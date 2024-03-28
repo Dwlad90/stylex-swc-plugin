@@ -24,9 +24,7 @@ where
                         .stylex_import
                         .contains(&ImportSources::Regular(ident.sym.to_string()))
                     {
-                        if let Some(value) =
-                            stylex_merge(call, stylex, &mut self.state, &self.cycle)
-                        {
+                        if let Some(value) = stylex_merge(call, stylex, &mut self.state) {
                             return Some(value);
                         }
                     }

@@ -36,6 +36,22 @@ pub(crate) enum NestedStringObject {
     FlatCompiledStylesValues(IndexMap<String, FlatCompiledStylesValue>),
 }
 
+impl NestedStringObject {
+    pub(crate) fn as_styles(&self) -> Option<&IndexMap<String, FlatCompiledStyles>> {
+        match self {
+            NestedStringObject::FlatCompiledStyles(obj) => Some(obj),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_values(&self) -> Option<&IndexMap<String, FlatCompiledStylesValue>> {
+        match self {
+            NestedStringObject::FlatCompiledStylesValues(obj) => Some(obj),
+            _ => None,
+        }
+    }
+}
+
 pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
     let mut props: Vec<PropOrSpread> = vec![];
 

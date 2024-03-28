@@ -1,14 +1,5 @@
-use swc_core::ecma::ast::{Expr, PropOrSpread};
-
 use crate::{
-    shared::{
-        enums::FnResult,
-        utils::{
-            common::{prop_or_spread_expression_creator, string_to_expression},
-            css::factories::object_expression_factory,
-            stylex::js_to_expr::NestedStringObject,
-        },
-    },
+    shared::{enums::FnResult, utils::common::string_to_expression},
     transform::styleq::styleq::styleq,
 };
 

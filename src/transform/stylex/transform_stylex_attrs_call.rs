@@ -14,9 +14,9 @@ use crate::{
         structures::{functions::FunctionMap, state_manager::StateManager},
         utils::{
             stylex::{
-                member_expression::member_expression, props::props, stylex_merge::stylex_merge,
+                attrs::attrs, member_expression::member_expression, stylex_merge::stylex_merge,
             },
-            validators::is_props_call,
+            validators::is_attrs_call,
         },
     },
     ModuleTransformVisitor,
@@ -54,11 +54,11 @@ impl<C> ModuleTransformVisitor<C>
 where
     C: Comments,
 {
-    pub(crate) fn transform_stylex_props_call(&mut self, call: &CallExpr) -> Option<Expr> {
-        let is_props_call = is_props_call(call, &mut self.state);
+    pub(crate) fn transform_stylex_attrs_call(&mut self, call: &CallExpr) -> Option<Expr> {
+        let is_attrs_call = is_attrs_call(call, &mut self.state);
 
-        if is_props_call {
-            return stylex_merge(call, props, &mut self.state);
+        if is_attrs_call {
+            return stylex_merge(call, attrs, &mut self.state);
         }
 
         Option::None

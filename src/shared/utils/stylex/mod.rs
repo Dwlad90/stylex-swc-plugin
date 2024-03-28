@@ -1,3 +1,4 @@
+pub(crate) mod attrs;
 pub(crate) mod dev_class_name;
 pub(crate) mod js_to_expr;
 pub(crate) mod make_string_expression;

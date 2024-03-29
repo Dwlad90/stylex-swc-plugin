@@ -1,3 +1,5 @@
+use core::panic;
+
 use indexmap::IndexMap;
 use swc_core::{
     common::DUMMY_SP,
@@ -5,7 +7,8 @@ use swc_core::{
 };
 
 use crate::shared::{
-    structures::flat_compiled_styles::{FlatCompiledStyles, FlatCompiledStylesValue},
+    enums::FlatCompiledStylesValue,
+    structures::flat_compiled_styles::FlatCompiledStyles,
     utils::{
         common::{prop_or_spread_expression_creator, prop_or_spread_string_creator},
         css::factories::object_expression_factory,
@@ -30,7 +33,7 @@ pub(crate) fn remove_objects_with_spreads(
     obj
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum NestedStringObject {
     FlatCompiledStyles(IndexMap<String, FlatCompiledStyles>),
     FlatCompiledStylesValues(IndexMap<String, FlatCompiledStylesValue>),
@@ -90,6 +93,8 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
                             value: value.clone(),
                         })),
                     ),
+                    FlatCompiledStylesValue::InjectableStyle(_) => todo!("Injectable style"),
+                    FlatCompiledStylesValue::Tuple(_, _) => todo!("Tuple"),
                 };
 
                 dbg!(&prop);

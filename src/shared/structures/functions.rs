@@ -6,7 +6,7 @@ use crate::shared::utils::js::enums::{ArrayJS, ObjectJS};
 
 use super::named_import_source::ImportSources;
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Hash, PartialEq, Clone)]
 pub enum CallbackType {
     Array(ArrayJS),
     Object(ObjectJS),
@@ -54,8 +54,6 @@ impl PartialEq for FunctionType {
     }
 }
 
-impl Eq for FunctionType {}
-
 impl std::hash::Hash for FunctionType {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
@@ -75,20 +73,20 @@ impl std::hash::Hash for FunctionType {
     }
 }
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Hash, PartialEq, Clone)]
 pub struct FunctionConfig {
     pub fn_ptr: FunctionType,
     pub takes_path: bool,
 }
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Hash, PartialEq, Clone)]
 pub struct Functions {
     pub(crate) include: FunctionConfig,
     pub(crate) first_that_works: FunctionConfig,
     pub(crate) keyframes: FunctionConfig,
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FunctionMap {
     pub identifiers: HashMap<Id, FunctionConfig>,
     pub member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>>,

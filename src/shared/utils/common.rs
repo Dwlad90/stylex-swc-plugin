@@ -1,4 +1,8 @@
-use std::{any::type_name, collections::HashSet};
+use std::{
+    any::type_name,
+    collections::HashSet,
+    hash::{DefaultHasher, Hash, Hasher},
+};
 
 use radix_fmt::radix;
 use swc_core::{
@@ -100,7 +104,16 @@ pub(crate) fn extract_filename_from_path(path: FileName) -> String {
     }
 }
 
-pub(crate) fn hash_css(value: &str) -> String {
+pub(crate) fn extract_filename_with_ext_from_path(path: FileName) -> Option<String> {
+    match path {
+        FileName::Real(path_buf) => {
+            Option::Some(path_buf.file_name().unwrap().to_str().unwrap().to_string())
+        }
+        _ => Option::None,
+    }
+}
+
+pub(crate) fn create_hash(value: &str) -> String {
     radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }
 
@@ -933,14 +946,14 @@ pub(crate) fn deep_merge_props(
     remove_duplicates(new_props.into_iter().rev().collect())
 }
 
-pub(crate) fn get_key_values_from_object(
-    object: &swc_core::ecma::ast::ObjectLit,
-) -> Vec<KeyValueProp> {
+pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
     let mut key_values = vec![];
 
     for prop in object.props.iter() {
+        assert!(prop.is_prop(), "Spread in not supported");
+
         match prop {
-            PropOrSpread::Spread(_) => todo!("Spread operator"),
+            PropOrSpread::Spread(_) => todo!("Spread in not supported"),
             PropOrSpread::Prop(prop) => match prop.as_ref() {
                 Prop::KeyValue(key_value) => {
                     key_values.push(key_value.clone());
@@ -966,6 +979,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
                         state.top_level_expressions.push(TopLevelExpression(
                             TopLevelExpressionKind::NamedExport,
                             *decl_init.clone(),
+                            Option::Some(decl.name.as_ident().unwrap().to_id()),
                         ));
                         state.declarations.push(decl.clone());
                     }
@@ -977,11 +991,13 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
                 state.top_level_expressions.push(TopLevelExpression(
                     TopLevelExpressionKind::DefaultExport,
                     *paren.expr.clone(),
+                    None,
                 ));
             } else {
                 state.top_level_expressions.push(TopLevelExpression(
                     TopLevelExpressionKind::DefaultExport,
                     *export_decl.expr.clone(),
+                    None,
                 ));
             }
         }
@@ -991,6 +1007,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
                     state.top_level_expressions.push(TopLevelExpression(
                         TopLevelExpressionKind::Stmt,
                         *decl_init.clone(),
+                        Option::Some(decl.name.as_ident().unwrap().to_id()),
                     ));
                     state.declarations.push(decl.clone());
                 }
@@ -998,4 +1015,26 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
         }
         _ => {}
     });
+}
+
+pub(crate) fn gen_file_based_identifier(
+    file_name: &String,
+    export_name: &String,
+    key: Option<&String>,
+) -> String {
+    let key = key.map_or(String::new(), |k| format!(".{}", k));
+
+    format!("{}//{}{}", file_name, export_name, key).into()
+}
+
+pub(crate) fn hash_f32(value: f32) -> u64 {
+    let bits = value.to_bits();
+    let mut hasher = DefaultHasher::new();
+    bits.hash(&mut hasher);
+    hasher.finish()
+}
+
+pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
+    let multiplier = 10f64.powi(decimal_places as i32);
+    (value * multiplier).round() / multiplier
 }

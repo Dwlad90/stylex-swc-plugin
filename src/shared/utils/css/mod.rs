@@ -23,7 +23,7 @@ use crate::shared::{
         stylex_options::StyleXOptions,
     },
     utils::{
-        common::{dashify, hash_css},
+        common::{dashify, create_hash},
         css::normalizers::whitespace_normalizer::whitespace_normalizer,
     },
 };
@@ -161,7 +161,7 @@ pub(crate) fn convert_style_to_class_name(
     dbg!(&dashed_key, &value, &modifier_hash_string);
     dbg!(string_to_hash.clone());
 
-    let class_name_hashed = format!("{}{}", prefix, hash_css(string_to_hash.as_str()));
+    let class_name_hashed = format!("{}{}", prefix, create_hash(string_to_hash.as_str()));
 
     let css_rules = generate_rule(
         class_name_hashed.as_str(),
@@ -290,14 +290,14 @@ pub(crate) fn generate_rule(
     };
 
     let priority = get_priority(key)
-        + pseudos.iter().map(|p| get_priority(p)).sum::<u16>()
-        + at_rules.iter().map(|a| get_priority(a)).sum::<u16>();
+        + pseudos.iter().map(|p| get_priority(p)).sum::<f32>()
+        + at_rules.iter().map(|a| get_priority(a)).sum::<f32>();
 
     dbg!(
         get_priority(key),
         &pseudos,
-        pseudos.iter().map(|p| get_priority(p)).sum::<u16>(),
-        at_rules.iter().map(|a| get_priority(a)).sum::<u16>()
+        pseudos.iter().map(|p| get_priority(p)).sum::<f32>(),
+        at_rules.iter().map(|a| get_priority(a)).sum::<f32>()
     );
 
     InjectableStyle {
@@ -307,9 +307,9 @@ pub(crate) fn generate_rule(
     }
 }
 
-pub(crate) fn get_priority(key: &str) -> u16 {
+pub(crate) fn get_priority(key: &str) -> f32 {
     if key.starts_with("--") {
-        return 1;
+        return 1.0;
     };
 
     if key.starts_with("@supports") {
@@ -341,26 +341,26 @@ pub(crate) fn get_priority(key: &str) -> u16 {
             key
         };
 
-        return **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40);
+        return **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0);
     };
 
     if LONG_HAND_PHYSICAL.contains(key) {
-        return 4000;
+        return 4000.0;
     }
 
     if LONG_HAND_LOGICAL.contains(key) {
-        return 3000;
+        return 3000.0;
     }
 
     if SHORTHANDS_OF_LONGHANDS.contains(key) {
-        return 2000;
+        return 2000.0;
     }
 
     if SHORTHANDS_OF_SHORTHANDS.contains(key) {
-        return 1000;
+        return 1000.0;
     }
 
-    3000
+    3000.0
 }
 
 pub(crate) fn transform_value(key: &str, value: &str) -> String {

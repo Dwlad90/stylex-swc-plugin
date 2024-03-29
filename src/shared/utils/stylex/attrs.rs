@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 
 use crate::shared::{
-    enums::FnResult, structures::flat_compiled_styles::FlatCompiledStylesValue,
+    enums::{FlatCompiledStylesValue, FnResult},
     utils::stylex::js_to_expr::NestedStringObject,
 };
 

@@ -3,9 +3,8 @@ use std::path::Path;
 use indexmap::IndexMap;
 
 use crate::shared::{
-    constants::constants::COMPILED_KEY,
-    regex::SANITIZE_CLASS_NAME_REGEX,
-    structures::{flat_compiled_styles::FlatCompiledStylesValue, state_manager::StateManager},
+    constants::constants::COMPILED_KEY, enums::FlatCompiledStylesValue,
+    regex::SANITIZE_CLASS_NAME_REGEX, structures::state_manager::StateManager,
 };
 
 pub(crate) fn inject_dev_class_names(

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Id, Ident, KeyValueProp};
+use swc_core::ecma::ast::{Id, Ident, KeyValueProp, VarDeclarator};
 use swc_core::{
     common::comments::Comments,
     ecma::ast::{CallExpr, Expr, Prop, PropOrSpread},
@@ -18,7 +18,7 @@ use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
 use crate::shared::utils::common::prop_or_spread_string_creator;
 use crate::shared::utils::css::factories::object_expression_factory;
-use crate::shared::utils::css::stylex::evaluate_style_x_create_arg::evaluate_style_x_create_arg;
+use crate::shared::utils::css::stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
 use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
 use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
 use crate::shared::utils::js::stylex::stylex_include::stylex_include;
@@ -29,7 +29,7 @@ use crate::shared::utils::stylex::js_to_expr::{
     convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
 };
 use crate::shared::utils::validators::{
-    is_create_call, validate_namespace, validate_style_x_create_indent,
+    is_create_call, validate_namespace, validate_stylex_create_indent,
 };
 use crate::ModuleTransformVisitor;
 
@@ -68,56 +68,56 @@ where
     //     return Option::None;
     // }
 
-    fn _proccess_create_css_call(&mut self, ex: &CallExpr) -> Option<Expr> {
-        let mut props: Vec<PropOrSpread> = vec![];
-        let mut css_class_has_map: IndexMap<String, String> = IndexMap::new();
-        let decl_name = self._get_props_declaration_as_string();
+    // fn _proccess_create_css_call(&mut self, ex: &CallExpr) -> Option<Expr> {
+    //     let mut props: Vec<PropOrSpread> = vec![];
+    //     let mut css_class_has_map: IndexMap<String, String> = IndexMap::new();
+    //     let decl_name = self._get_props_declaration_as_string();
 
-        for arg in ex.args.iter() {
-            match &arg.spread {
-                Some(_) => todo!(),
-                None => match &arg.expr.as_ref() {
-                    Expr::Object(object) => {
-                        for prop in &object.props {
-                            match &prop {
-                                PropOrSpread::Prop(prop) => match &prop.as_ref() {
-                                    Prop::Shorthand(_) => todo!(),
-                                    Prop::KeyValue(namespace) => {
-                                        self._process_css_key_value(
-                                            namespace,
-                                            &mut css_class_has_map,
-                                            &decl_name,
-                                        );
-                                    }
-                                    _ => panic!(),
-                                },
-                                PropOrSpread::Spread(_) => todo!(),
-                            };
-                        }
+    //     for arg in ex.args.iter() {
+    //         match &arg.spread {
+    //             Some(_) => todo!(),
+    //             None => match &arg.expr.as_ref() {
+    //                 Expr::Object(object) => {
+    //                     for prop in &object.props {
+    //                         match &prop {
+    //                             PropOrSpread::Prop(prop) => match &prop.as_ref() {
+    //                                 Prop::Shorthand(_) => todo!(),
+    //                                 Prop::KeyValue(namespace) => {
+    //                                     self._process_css_key_value(
+    //                                         namespace,
+    //                                         &mut css_class_has_map,
+    //                                         &decl_name,
+    //                                     );
+    //                                 }
+    //                                 _ => panic!(),
+    //                             },
+    //                             PropOrSpread::Spread(_) => todo!(),
+    //                         };
+    //                     }
 
-                        for (key, value) in css_class_has_map.iter() {
-                            let value = (*value).clone();
+    //                     for (key, value) in css_class_has_map.iter() {
+    //                         let value = (*value).clone();
 
-                            props.push(prop_or_spread_string_creator(
-                                key.to_string(),
-                                value.clone().trim_end().to_string(),
-                            ));
-                        }
-                    }
-                    _ => panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE),
-                },
-            }
-            return object_expression_factory(props);
-        }
-        None
-    }
+    //                         props.push(prop_or_spread_string_creator(
+    //                             key.to_string(),
+    //                             value.clone().trim_end().to_string(),
+    //                         ));
+    //                     }
+    //                 }
+    //                 _ => panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE),
+    //             },
+    //         }
+    //         return object_expression_factory(props);
+    //     }
+    //     None
+    // }
 
     pub(crate) fn transform_stylex_create(&mut self, call: &CallExpr) -> Option<Expr> {
-        self.state.in_style_x_create = true;
+        self.state.in_stylex_create = true;
         let is_create_call = is_create_call(call, &mut self.state);
 
         let result = if is_create_call {
-            validate_style_x_create_indent(call, &mut self.state);
+            validate_stylex_create_indent(call, &mut self.state);
 
             let first_arg = call.args.get(0);
 
@@ -193,7 +193,7 @@ where
                             member_expressions,
                         };
 
-                        let evaluated_arg = evaluate_style_x_create_arg(
+                        let evaluated_arg = evaluate_stylex_create_arg(
                             &first_arg.expr,
                             &mut self.state,
                             &function_map,
@@ -228,21 +228,7 @@ where
                         let mut injected_styles = injected_keyframes.clone();
                         injected_styles.extend(injected_styles_sans_keyframes);
 
-                        let mut var_name: Option<String> = Option::None;
-
-                        let parent_var_decl =
-                            &self.state.declarations.clone().into_iter().find(|decl| {
-                                decl.init
-                                    .as_ref()
-                                    .unwrap()
-                                    .eq(&Box::new(Expr::Call(call.clone())))
-                            });
-
-                        if let Some(parent_var_decl) = &parent_var_decl {
-                            if let Some(ident) = parent_var_decl.name.as_ident() {
-                                var_name = Option::Some(ident.sym.clone().to_string());
-                            }
-                        }
+                        let (var_name, parent_var_decl) = &self.get_call_var_name(call);
 
                         if self.state.is_test() {
                             compiled_styles = convert_to_test_styles(
@@ -269,51 +255,15 @@ where
 
                             self.state
                                 .style_vars
-                                .insert(var_name.clone(), parent_var_decl.clone()?.clone());
+                                .insert(var_name.clone(), parent_var_decl.clone().unwrap().clone());
                         }
 
                         let result_ast = convert_object_to_ast(
                             &NestedStringObject::FlatCompiledStyles(compiled_styles),
                         );
 
-                        let metadatas = MetaData::convert_from_injected_styles_map(injected_styles);
-
-                        for metadata in metadatas {
-                            dbg!(&metadata);
-                            self.push_to_css_output(
-                                var_name.clone().unwrap_or("default".to_string()),
-                                metadata,
-                            );
-                        }
-
-                        dbg!(&self.state.declarations.len());
-                        if let Some(item) = self.state.declarations.iter_mut().find(|decl| {
-                            decl.init
-                                .as_ref()
-                                .unwrap()
-                                .eq(&Box::new(Expr::Call(call.clone())))
-                        }) {
-                            item.init = Option::Some(Box::new(result_ast.clone()));
-                        };
-
-                        if let Some((_, item)) =
-                            self.state.style_vars.iter_mut().find(|(_, decl)| {
-                                decl.init
-                                    .as_ref()
-                                    .unwrap()
-                                    .eq(&Box::new(Expr::Call(call.clone())))
-                            })
-                        {
-                            item.init = Option::Some(Box::new(result_ast.clone()));
-                        };
-
-                        if let Some(TopLevelExpression(_, item)) =
-                            self.state.top_level_expressions.iter_mut().find(
-                                |TopLevelExpression(_, decl)| decl.eq(&Expr::Call(call.clone())),
-                            )
-                        {
-                            *item = result_ast.clone();
-                        };
+                        self.state
+                            .register_styles(call, &injected_styles, &result_ast, &var_name);
 
                         Option::Some(result_ast)
                     }
@@ -321,79 +271,79 @@ where
                 None => Option::None,
             }
         } else {
-            Option::Some(Expr::Call(call.clone()))
+            None
         };
 
-        self.state.in_style_x_create = false;
+        self.state.in_stylex_create = false;
 
         result
     }
 
-    fn _process_css_key_value(
-        &mut self,
-        namespace: &KeyValueProp,
-        css_class_has_map: &mut IndexMap<String, String>,
-        decl_name: &String,
-    ) {
-        validate_namespace(&vec![namespace.clone()], &vec![]);
+    // fn _process_css_key_value(
+    //     &mut self,
+    //     namespace: &KeyValueProp,
+    //     css_class_has_map: &mut IndexMap<String, String>,
+    //     decl_name: &String,
+    // ) {
+    //     validate_namespace(&vec![namespace.clone()], &vec![]);
 
-        let namespace_name = "blah_replace_with_real_code".to_string();
+    //     let namespace_name = "blah_replace_with_real_code".to_string();
 
-        let namespace_name = format!("{}", namespace_name);
+    //     let namespace_name = format!("{}", namespace_name);
 
-        *css_class_has_map
-            .entry("className".to_string())
-            .or_default() += format!(
-            "{}__{}.{} ",
-            self.state.get_filename(),
-            decl_name,
-            namespace_name
-        )
-        .as_str();
+    //     *css_class_has_map
+    //         .entry("className".to_string())
+    //         .or_default() += format!(
+    //         "{}__{}.{} ",
+    //         self.state.get_filename(),
+    //         decl_name,
+    //         namespace_name
+    //     )
+    //     .as_str();
 
-        let value = namespace.value.clone();
+    //     let value = namespace.value.clone();
 
-        match value.as_ref() {
-            Expr::Object(css_object) => {
-                for prop in &css_object.props {
-                    match &prop {
-                        PropOrSpread::Prop(prop) => match prop.as_ref() {
-                            Prop::Shorthand(_) => todo!(),
-                            Prop::KeyValue(_) => {
-                                let stylex_set = stylex_create_set(
-                                    &EvaluateResultValue::Map(IndexMap::new()),
-                                    &mut self.state,
-                                    &FunctionMap::default(),
-                                );
+    //     match value.as_ref() {
+    //         Expr::Object(css_object) => {
+    //             for prop in &css_object.props {
+    //                 match &prop {
+    //                     PropOrSpread::Prop(prop) => match prop.as_ref() {
+    //                         Prop::Shorthand(_) => todo!(),
+    //                         Prop::KeyValue(_) => {
+    //                             let stylex_set = stylex_create_set(
+    //                                 &EvaluateResultValue::Map(IndexMap::new()),
+    //                                 &mut self.state,
+    //                                 &FunctionMap::default(),
+    //                             );
 
-                                let injected_styles_map = stylex_set.1;
+    //                             let injected_styles_map = stylex_set.1;
 
-                                let metadatas =
-                                    MetaData::convert_from_injected_styles_map(injected_styles_map);
+    //                             let metadatas =
+    //                                 MetaData::convert_from_injected_styles_map(injected_styles_map);
 
-                                for metadata in metadatas {
-                                    self.push_to_css_output(decl_name.clone(), metadata.clone());
+    //                             for metadata in metadatas {
+    //                                 self.push_to_css_output(decl_name.clone(), metadata.clone());
 
-                                    *css_class_has_map
-                                        .entry("className".to_string())
-                                        .or_default() +=
-                                        format!("{} ", metadata.get_class_name()).as_str();
-                                }
-                            }
-                            _ => panic!(),
-                        },
-                        PropOrSpread::Spread(_) => todo!(),
-                    };
-                }
-            }
-            Expr::Arrow(_) => {
-                todo!();
-            }
-            _ => {
-                panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE)
-            }
-        }
-    }
+    //                                 *css_class_has_map
+    //                                     .entry("className".to_string())
+    //                                     .or_default() +=
+    //                                     format!("{} ", metadata.get_class_name()).as_str();
+    //                             }
+    //                         }
+    //                         _ => panic!(),
+    //                     },
+    //                     PropOrSpread::Spread(_) => todo!(),
+    //                 };
+    //             }
+    //         }
+    //         Expr::Arrow(_) => {
+    //             todo!();
+    //         }
+    //         _ => {
+    //             panic!("{}", constants::messages::ILLEGAL_NAMESPACE_VALUE)
+    //         }
+    //     }
+    // }
 
     pub(crate) fn _get_props_declaration_as_string(&mut self) -> String {
         let decl_name = self

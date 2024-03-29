@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use dashmap::DashMap;
 use swc_core::{
     common::comments::Comments,
-    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp},
+    ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
 };
 
 use crate::{
@@ -33,7 +33,6 @@ where
     // declaration: Option<Id>,
     cycle: ModuleCycle,
     props_declaration: Option<Id>,
-    css_output: DashMap<String, Vec<MetaData>>,
     pub(crate) state: StateManager,
 }
 
@@ -54,7 +53,6 @@ where
             comments,
             cycle: ModuleCycle::Initializing,
             props_declaration: Option::None,
-            css_output: DashMap::new(),
             state,
         }
     }
@@ -104,7 +102,41 @@ where
             comments,
             cycle: ModuleCycle::Initializing,
             props_declaration: Option::None,
-            css_output: DashMap::new(),
+            state,
+        }
+    }
+
+    pub fn new_test(
+        comments: C,
+        plugin_pass: PluginPass,
+        config: Option<StyleXOptionsParams>,
+    ) -> Self {
+        let stylex_imports = fill_stylex_imports(&config);
+
+        let mut state = match &config {
+            Some(config) => StateManager::new(config.clone().into()),
+            None => {
+                let mut config = StyleXOptions::default();
+
+                config.runtime_injection = RuntimeInjection::Boolean(false);
+                config.treeshake_compensation = Option::Some(true);
+                config.class_name_prefix = "x".to_string();
+
+                StateManager::new(config.into())
+            }
+        };
+
+        // state.stylex_import = stylex_imports.clone();
+        state.options.import_sources = stylex_imports.into_iter().collect();
+
+        let plugin_pass = plugin_pass.clone();
+
+        state._state = plugin_pass;
+
+        ModuleTransformVisitor {
+            comments,
+            cycle: ModuleCycle::Initializing,
+            props_declaration: Option::None,
             state,
         }
     }
@@ -184,12 +216,14 @@ where
                     //     self.transform_call_expression_to_css_map_expr(&ex)
                     // };
 
-                    match value {
-                        Some(value) => {
-                            return Some(value);
-                        }
-                        None => {}
-                    }
+                    // match value {
+                    //     Some(value) => {
+                    //         return Some(value);
+                    //     }
+                    //     None => {}
+                    // }
+
+                    return value;
                 }
             }
             _ => {}
@@ -197,15 +231,26 @@ where
         None
     }
 
-    pub(crate) fn push_to_css_output(&mut self, var_name: String, metadata: MetaData) {
-        let mut value = self.css_output.entry(var_name).or_insert_with(Vec::new);
+    pub(crate) fn get_call_var_name(
+        &mut self,
+        call: &CallExpr,
+    ) -> (Option<String>, Option<VarDeclarator>) {
+        let mut var_name: Option<String> = Option::None;
 
-        if !value
-            .iter()
-            .any(|item| item.get_class_name() == metadata.get_class_name())
-        {
-            value.push(metadata);
+        let parent_var_decl = self.state.declarations.clone().into_iter().find(|decl| {
+            decl.init
+                .as_ref()
+                .unwrap()
+                .eq(&Box::new(Expr::Call(call.clone())))
+        });
+
+        if let Some(parent_var_decl) = &parent_var_decl {
+            if let Some(ident) = parent_var_decl.name.as_ident() {
+                var_name = Option::Some(ident.sym.clone().to_string());
+            }
         }
+
+        (var_name, parent_var_decl)
     }
 }
 

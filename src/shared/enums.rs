@@ -1,6 +1,10 @@
-use swc_core::ecma::ast::{Expr, Id};
+use indexmap::IndexMap;
+use swc_core::ecma::ast::{Expr, Id, ObjectLit};
 
-use super::utils::stylex::js_to_expr::NestedStringObject;
+use super::{
+    structures::{included_style::IncludedStyle, injectable_style::InjectableStyle},
+    utils::stylex::js_to_expr::NestedStringObject,
+};
 
 // Represents the current state of a plugin for a file.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
@@ -56,7 +60,11 @@ pub(crate) enum TopLevelExpressionKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub(crate) struct TopLevelExpression(pub(crate) TopLevelExpressionKind, pub(crate) Expr);
+pub(crate) struct TopLevelExpression(
+    pub(crate) TopLevelExpressionKind,
+    pub(crate) Expr,
+    pub(crate) Option<Id>,
+);
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) enum ConditionPermutationsValue {
@@ -64,7 +72,7 @@ pub(crate) enum ConditionPermutationsValue {
     Triple((String, String, String)),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum FnResult {
     Attrs(NestedStringObject),
     Props(NestedStringObject),
@@ -92,4 +100,70 @@ impl FnResult {
             _ => None,
         }
     }
+}
+
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// pub(crate) enum FlatCompiledStylesValueNested {
+//     String(String),
+//     Object(IndexMap<String, String>),
+// }
+
+#[derive(Debug, PartialEq, Clone, Hash)]
+pub(crate) enum FlatCompiledStylesValue {
+    String(String),
+    Null,
+    IncludedStyle(IncludedStyle),
+    InjectableStyle(InjectableStyle),
+    Bool(bool),
+    Tuple(String, Box<Expr>),
+}
+
+impl FlatCompiledStylesValue {
+    pub(crate) fn as_tuple(&self) -> Option<(&String, &Box<Expr>)> {
+        match self {
+            FlatCompiledStylesValue::Tuple(key, value) => Some((key, value)),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_string(&self) -> Option<&String> {
+        match self {
+            FlatCompiledStylesValue::String(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_injectable_style(&self) -> Option<&InjectableStyle> {
+        match self {
+            FlatCompiledStylesValue::InjectableStyle(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_bool(&self) -> Option<&bool> {
+        match self {
+            FlatCompiledStylesValue::Bool(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_null(&self) -> Option<()> {
+        match self {
+            FlatCompiledStylesValue::Null => Some(()),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_included_style(&self) -> Option<&IncludedStyle> {
+        match self {
+            FlatCompiledStylesValue::IncludedStyle(value) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum ObjMapType {
+    Object(ObjectLit),
+    Map(IndexMap<String, FlatCompiledStylesValue>),
 }

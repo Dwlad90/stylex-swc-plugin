@@ -6,26 +6,30 @@ use swc_core::{
 };
 
 use crate::shared::{
-    constants, enums::TopLevelExpression, regex::INCLUDED_IDENT_REGEX,
-    structures::state_manager::StateManager, utils::common::get_var_decl_by_ident_or_member,
+    constants,
+    enums::{TopLevelExpression, TopLevelExpressionKind},
+    regex::INCLUDED_IDENT_REGEX,
+    structures::state_manager::StateManager,
+    utils::common::get_var_decl_by_ident_or_member,
 };
 
 use super::common::{get_key_str, get_key_values_from_object};
 
-pub(crate) fn validate_style_x_create_indent(call: &CallExpr, state: &mut StateManager) {
+pub(crate) fn validate_stylex_create_indent(call: &CallExpr, state: &mut StateManager) {
     if !is_create_call(call, state) {
         return;
     }
 
     let ident = Ident::new("create".into(), DUMMY_SP);
 
+    dbg!(&ident);
     assert!(
         get_var_decl_by_ident_or_member(state, &ident).is_some()
             || state
                 .top_level_expressions
                 .clone()
                 .into_iter()
-                .any(|TopLevelExpression(_, call_item)| call_item
+                .any(|TopLevelExpression(_, call_item, _)| call_item
                     .eq(&Box::new(Expr::Call(call.clone())))),
         "{}",
         constants::messages::UNBOUND_STYLEX_CALL_VALUE
@@ -39,10 +43,53 @@ pub(crate) fn validate_style_x_create_indent(call: &CallExpr, state: &mut StateM
 
     let first_args = &call.args[0];
 
-    match first_args.expr.as_ref() {
-        Expr::Object(_) => {}
-        _ => panic!("{}", constants::messages::NON_OBJECT_FOR_STYLEX_CALL),
+    assert!(
+        first_args.expr.is_object(),
+        "{}",
+        constants::messages::NON_OBJECT_FOR_STYLEX_CALL
+    )
+}
+
+pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateManager) {
+    if !is_define_vars_call(call, state) {
+        return;
     }
+
+    let ident = Ident::new("defineVars".into(), DUMMY_SP);
+
+    assert!(
+        get_var_decl_by_ident_or_member(state, &ident).is_some()
+            || state
+                .top_level_expressions
+                .clone()
+                .into_iter()
+                .any(|TopLevelExpression(_, call_item, _)| call_item
+                    .eq(&Box::new(Expr::Call(call.clone())))),
+        "{}",
+        constants::messages::UNBOUND_STYLEX_CALL_VALUE
+    );
+
+    assert!(
+        &call.args.len() == &1,
+        "{}",
+        constants::messages::ILLEGAL_ARGUMENT_LENGTH
+    );
+
+    assert!(
+        state
+            .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call)
+            .is_some(),
+        "{}",
+        constants::messages::NON_EXPORT_NAMED_DECLARATION
+    );
+
+    // let first_args = &call.args[0];
+
+    // assert!(
+    //     first_args.expr.is_object(),
+    //     "{}",
+    //     constants::messages::NON_OBJECT_FOR_STYLEX_CALL
+    // )
 }
 
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {

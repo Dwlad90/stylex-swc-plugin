@@ -1,9 +1,10 @@
 use indexmap::IndexMap;
 
 use crate::shared::{
+    enums::FlatCompiledStylesValue,
     structures::{
         evaluate_result::EvaluateResultValue,
-        flat_compiled_styles::{FlatCompiledStyles, FlatCompiledStylesValue},
+        flat_compiled_styles::FlatCompiledStyles,
         functions::FunctionMap,
         injectable_style::InjectableStyle,
         pre_rule::{CompiledResult, PreRule, PreRules},
@@ -27,6 +28,8 @@ pub(crate) fn stylex_create_set(
     let mut injected_styles_map: IndexMap<String, InjectableStyle> = IndexMap::new();
 
     for (namespace_name, namespace) in namespaces.as_map().unwrap() {
+        // dbg!(&namespace_name, &namespace);
+        // panic!("Implement stylex_define_vars");
         validate_namespace(&namespace, &vec![]);
 
         let mut pseudos = vec![];
@@ -119,6 +122,8 @@ pub(crate) fn stylex_create_set(
         }
 
         let resolved_namespace_name = expr_to_str(namespace_name, state, functions);
+
+        let mut namespace_obj = namespace_obj.clone();
 
         namespace_obj.insert("$$css".to_string(), FlatCompiledStylesValue::Bool(true));
 

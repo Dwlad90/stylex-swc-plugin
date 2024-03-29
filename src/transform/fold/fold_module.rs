@@ -18,22 +18,19 @@ where
     pub(crate) fn fold_module_impl(&mut self, module: Module) -> Module {
         let mut module = module.fold_children_with(self);
 
-        if !self.state.stylex_import.is_empty() || !self.state.import_paths.is_empty() {
+        if !self.state.import_paths.is_empty() {
             fill_top_level_expressions(&module, &mut self.state);
 
-            let cycles = [
-                ModuleCycle::TransformEnter,
-                ModuleCycle::TransformExit,
-                ModuleCycle::InjectStyles,
-                ModuleCycle::Cleaning,
-            ];
+            self.cycle = ModuleCycle::TransformEnter;
+            module = module.fold_children_with(self);
 
-            for cycle in &cycles {
-                self.cycle = cycle.clone();
+            self.cycle = ModuleCycle::TransformExit;
+            module = module.fold_children_with(self);
+
+            if self.state.options.runtime_injection.is_some() {
+                self.cycle = ModuleCycle::InjectStyles;
                 module = module.fold_children_with(self);
-            }
-
-            if self.state.options.runtime_injection.is_none() {
+            } else {
                 // Preparing stylex metadata for css extraction
                 self.comments.add_leading_comments(
                     module.span.lo,
@@ -43,9 +40,10 @@ where
                             "__stylex_metadata_start__{}__stylex_metadata_end__",
                             serde_json::to_string(
                                 &self
-                                    .css_output
+                                    .state
+                                    .metadata
                                     .iter()
-                                    .map(|v| v.value().clone())
+                                    .map(|v| v.1.clone())
                                     .flatten()
                                     .collect::<Vec<MetaData>>()
                             )
@@ -57,7 +55,8 @@ where
                 );
             }
 
-            module
+            self.cycle = ModuleCycle::Cleaning;
+            module.fold_children_with(self)
         } else {
             self.cycle = ModuleCycle::Skip;
             module

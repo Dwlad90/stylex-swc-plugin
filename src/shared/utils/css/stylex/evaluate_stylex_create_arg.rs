@@ -17,7 +17,7 @@ use crate::shared::{
 
 use super::evaluate::{evaluate, evaluate_obj_key};
 
-pub(crate) fn evaluate_style_x_create_arg(
+pub(crate) fn evaluate_stylex_create_arg(
     path: &Expr,
     traversal_state: &mut StateManager,
     functions: &FunctionMap,

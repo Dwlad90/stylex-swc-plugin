@@ -2,16 +2,29 @@ use std::collections::{HashMap, HashSet};
 use std::option::Option;
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Id, VarDeclarator};
+use swc_core::common::DUMMY_SP;
+use swc_core::ecma::ast::{
+    BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
+    ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl,
+    ModuleExportName, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+};
 
-use crate::shared::enums::{StyleVarsToKeep, TopLevelExpression};
-use crate::shared::utils::common::extract_filename_from_path;
+use crate::shared::constants::constants::DEFAULT_INJECT_PATH;
+use crate::shared::enums::{
+    FlatCompiledStylesValue, StyleVarsToKeep, TopLevelExpression, TopLevelExpressionKind,
+};
+use crate::shared::utils::common::{
+    expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
+    extract_filename_from_path, extract_filename_with_ext_from_path, round_f64,
+};
 
-use super::flat_compiled_styles::FlatCompiledStylesValue;
-use super::named_import_source::ImportSources;
+use super::injectable_style::InjectableStyle;
+use super::meta_data::MetaData;
+use super::named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState};
 use super::plugin_pass::PluginPass;
 use super::stylex_options::StyleXOptions;
 use super::stylex_state_options::StyleXStateOptions;
+use super::uid_generator::UidGenerator;
 
 #[derive(Clone, Debug)]
 pub struct StateManager {
@@ -29,7 +42,8 @@ pub struct StateManager {
     pub(crate) stylex_define_vars_import: HashSet<Id>,
     pub(crate) stylex_create_theme_import: HashSet<Id>,
     pub(crate) stylex_types_import: HashSet<Id>,
-    pub(crate) inject_import_inserted: Option<String>, // Assuming this is a string identifier
+    pub(crate) inject_import_inserted: Option<(Ident, Ident)>, // Assuming this is a string identifier
+    pub(crate) theme_name: Option<String>, // Assuming this is a string identifier
 
     pub(crate) declarations: Vec<VarDeclarator>,
     pub(crate) top_level_expressions: Vec<TopLevelExpression>,
@@ -43,9 +57,14 @@ pub struct StateManager {
     // results of `stylex.create` calls that should be kept
     pub(crate) style_vars_to_keep: HashSet<StyleVarsToKeep>,
 
-    pub(crate) in_style_x_create: bool,
+    pub(crate) in_stylex_create: bool,
+
+    pub(crate) styles_vars_to_inject: Vec<String>,
 
     pub(crate) options: StyleXStateOptions, // Assuming StyleXStateOptions is a struct in your code
+    pub(crate) metadata: IndexMap<String, Vec<MetaData>>,
+    pub(crate) styles_to_inject: IndexMap<Expr, Vec<ModuleItem>>,
+    pub(crate) prepend_module_items: Vec<ModuleItem>,
 }
 impl StateManager {
     pub fn new(stylex_options: StyleXOptions) -> Self {
@@ -67,13 +86,19 @@ impl StateManager {
             style_map: HashMap::new(),
             style_vars: HashMap::new(),
             style_vars_to_keep: HashSet::new(),
+            theme_name: Option::None,
 
             declarations: vec![],
             top_level_expressions: vec![],
             var_decl_count_map: HashMap::new(),
 
-            in_style_x_create: false,
+            in_stylex_create: false,
             options, // Assuming StyleXStateOptions has a new function
+
+            styles_vars_to_inject: vec![],
+            metadata: IndexMap::new(),
+            styles_to_inject: IndexMap::new(),
+            prepend_module_items: vec![],
         }
     }
 
@@ -134,7 +159,233 @@ impl StateManager {
     pub(crate) fn get_filename(&self) -> String {
         extract_filename_from_path(self._state.filename.clone())
     }
+    pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
+        let filename = extract_filename_with_ext_from_path(self._state.filename.clone());
+
+        filename
+    }
+
+    pub(crate) fn get_top_level_expr(
+        &self,
+        kind: &TopLevelExpressionKind,
+        call: &CallExpr,
+    ) -> Option<TopLevelExpression> {
+        self.top_level_expressions
+            .clone()
+            .into_iter()
+            .find(|tpe| kind.eq(&tpe.0) && tpe.1.eq(&Box::new(Expr::Call(call.clone()))))
+    }
     // pub(crate) fn css_vars(&self) -> HashMap<String, String> {
     //     self.options.defined_stylex_css_variables.clone()
     // }
+
+    pub(crate) fn register_styles(
+        &mut self,
+        call: &CallExpr,
+        style: &IndexMap<String, InjectableStyle>,
+        ast: &Expr,
+        var_name: &Option<String>,
+    ) {
+        if style.is_empty() {
+            return;
+        }
+
+        let metadatas = MetaData::convert_from_injected_styles_map(style.clone());
+
+        let uid_generator_inject = UidGenerator::new("inject");
+
+        let runtime_injection = self
+            .options
+            .runtime_injection
+            .as_ref()
+            .unwrap_or(&RuntimeInjectionState::Regular(String::default()))
+            .clone();
+
+        let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.as_ref() {
+            Some(idents) => idents.clone(),
+            None => {
+                let inject_module_ident = uid_generator_inject.generate_ident();
+
+                let inject_var_ident = match runtime_injection.clone() {
+                    RuntimeInjectionState::Regular(_) => uid_generator_inject.generate_ident(),
+                    RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
+                        let uid_generator_inject = UidGenerator::new(&r#as);
+
+                        uid_generator_inject.generate_ident()
+                    }
+                };
+
+                self.inject_import_inserted =
+                    Option::Some((inject_module_ident.clone(), inject_var_ident.clone()));
+
+                (inject_module_ident, inject_var_ident)
+            }
+        };
+
+        if !metadatas.is_empty() && self.prepend_module_items.is_empty() {
+            let first_module_items = match runtime_injection {
+                RuntimeInjectionState::Regular(_) => vec![
+                    add_inject_default_import_expression(&inject_module_ident),
+                    add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
+                ],
+                RuntimeInjectionState::Named(_) => {
+                    vec![
+                        add_inject_named_import_expression(&inject_module_ident, &inject_var_ident),
+                        add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
+                    ]
+                }
+            };
+
+            self.prepend_module_items.extend(first_module_items);
+        }
+
+        for metadata in metadatas {
+            self.add_style(
+                var_name.clone().unwrap_or("default".to_string()),
+                metadata.clone(),
+            );
+
+            self.add_style_to_inject(&metadata, &inject_var_ident, ast);
+        }
+
+        if self.options.runtime_injection.is_none() {
+            return;
+        }
+
+        if let Some(item) = self.declarations.iter_mut().find(|decl| {
+            decl.init
+                .as_ref()
+                .unwrap()
+                .eq(&Box::new(Expr::Call(call.clone())))
+        }) {
+            item.init = Option::Some(Box::new(ast.clone()));
+
+            let var_id = item.name.as_ident().unwrap().sym.to_string();
+
+            if !self.styles_vars_to_inject.contains(&var_id) {
+                self.styles_vars_to_inject.push(var_id);
+            }
+        };
+
+        if let Some((_, item)) = self.style_vars.iter_mut().find(|(_, decl)| {
+            decl.init
+                .as_ref()
+                .unwrap()
+                .eq(&Box::new(Expr::Call(call.clone())))
+        }) {
+            item.init = Option::Some(Box::new(ast.clone()));
+        };
+
+        if let Some(TopLevelExpression(_, item, _)) = self
+            .top_level_expressions
+            .iter_mut()
+            .find(|TopLevelExpression(_, decl, _)| decl.eq(&Expr::Call(call.clone())))
+        {
+            *item = ast.clone();
+        };
+    }
+
+    fn add_style(&mut self, var_name: String, metadata: MetaData) {
+        let value = self.metadata.entry(var_name).or_insert_with(Vec::new);
+
+        if !value
+            .iter()
+            .any(|item| item.get_class_name() == metadata.get_class_name())
+        {
+            value.push(metadata);
+        }
+    }
+
+    fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, ast: &Expr) {
+        let priority = &metadata.get_priority();
+
+        let css = &metadata.get_css();
+
+        let stylex_inject_args = vec![
+            expr_or_spread_string_expression_creator(css.clone()),
+            expr_or_spread_number_expression_creator(round_f64(f64::from(**priority), 1)),
+        ];
+
+        let _inject = Expr::Ident(inject_var_ident.clone());
+
+        let stylex_call_expr = CallExpr {
+            span: DUMMY_SP,
+            type_args: Option::None,
+            callee: Callee::Expr(Box::new(_inject.clone())),
+            args: stylex_inject_args,
+        };
+
+        let stylex_call = Expr::Call(stylex_call_expr);
+
+        let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+            span: DUMMY_SP,
+            expr: Box::new(stylex_call),
+        }));
+
+        // self.styles_to_inject.insert(ast.clone(), module);
+        self.styles_to_inject
+            .entry(ast.clone())
+            .or_insert_with(Vec::new)
+            .push(module);
+    }
+}
+
+fn add_inject_default_import_expression(ident: &Ident) -> ModuleItem {
+    let inject_import_stmt = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
+            span: DUMMY_SP,
+            local: ident.clone(),
+        })],
+        src: Box::new(Str {
+            span: DUMMY_SP,
+            raw: Option::None,
+            value: DEFAULT_INJECT_PATH.into(),
+        }),
+        type_only: false,
+        with: Option::None,
+        phase: ImportPhase::Evaluation,
+    }));
+
+    inject_import_stmt
+}
+
+fn add_inject_named_import_expression(ident: &Ident, imported_ident: &Ident) -> ModuleItem {
+    let inject_import_stmt = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+            span: DUMMY_SP,
+            local: ident.clone(),
+            imported: Option::Some(ModuleExportName::Ident(imported_ident.clone())),
+            is_type_only: false,
+        })],
+        src: Box::new(Str {
+            span: DUMMY_SP,
+            raw: Option::None,
+            value: DEFAULT_INJECT_PATH.into(),
+        }),
+        type_only: false,
+        with: Option::None,
+        phase: ImportPhase::Evaluation,
+    }));
+
+    inject_import_stmt
+}
+
+fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> ModuleItem {
+    let inject_import_stmt = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+        declare: false,
+        decls: vec![VarDeclarator {
+            definite: true,
+            span: DUMMY_SP,
+            name: Pat::Ident(BindingIdent {
+                id: decl_ident.clone(),
+                type_ann: None,
+            }),
+            init: Option::Some(Box::new(Expr::Ident(value_ident.clone()))),
+        }],
+        kind: VarDeclKind::Var,
+        span: DUMMY_SP,
+    }))));
+    inject_import_stmt
 }

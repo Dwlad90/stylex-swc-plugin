@@ -10,7 +10,7 @@ use super::injectable_style::InjectableStyleBase;
 pub(crate) struct MetaData {
     class_name: String,
     style: InjectableStyleBase,
-    priority: u16,
+    priority: f32,
 }
 
 impl MetaData {
@@ -33,7 +33,7 @@ impl MetaData {
         &self.class_name
     }
 
-    pub(crate) fn get_priority(&self) -> &u16 {
+    pub(crate) fn get_priority(&self) -> &f32 {
         &self.priority
     }
 

@@ -9,14 +9,17 @@ use swc_core::{
 };
 
 use crate::shared::constants;
-use crate::shared::enums::TopLevelExpression;
+use crate::shared::enums::{TopLevelExpression, TopLevelExpressionKind};
 use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::injectable_style::InjectableStyle;
+use crate::shared::structures::injectable_style::{self, InjectableStyle};
 use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
-use crate::shared::utils::css::stylex::evaluate_style_x_create_arg::evaluate_style_x_create_arg;
+use crate::shared::utils::common::gen_file_based_identifier;
+use crate::shared::utils::css::stylex::evaluate::evaluate;
+use crate::shared::utils::css::stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
 use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
+use crate::shared::utils::js::stylex::stylex_define_vars::stylex_define_vars;
 use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
 use crate::shared::utils::js::stylex::stylex_include::stylex_include;
 use crate::shared::utils::stylex::dev_class_name::{
@@ -25,9 +28,7 @@ use crate::shared::utils::stylex::dev_class_name::{
 use crate::shared::utils::stylex::js_to_expr::{
     convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
 };
-use crate::shared::utils::validators::{
-    is_create_call, is_define_vars_call, validate_style_x_create_indent,
-};
+use crate::shared::utils::validators::{is_define_vars_call, validate_stylex_define_vars};
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -35,11 +36,11 @@ where
     C: Comments,
 {
     pub(crate) fn transform_stylex_define_vars(&mut self, call: &CallExpr) -> Option<Expr> {
-        self.state.in_style_x_create = true;
+        self.state.in_stylex_create = true;
         let is_define_vars = is_define_vars_call(call, &mut self.state);
 
         let result = if is_define_vars {
-            validate_style_x_create_indent(call, &mut self.state);
+            validate_stylex_define_vars(call, &mut self.state);
 
             let first_arg = call.args.get(0);
 
@@ -115,18 +116,10 @@ where
                             member_expressions,
                         };
 
-                        let evaluated_arg = evaluate_style_x_create_arg(
-                            &first_arg.expr,
-                            &mut self.state,
-                            &function_map,
-                        );
+                        let evaluated_arg =
+                            evaluate(&first_arg.expr, &mut self.state, &function_map);
 
-                        let value = match evaluated_arg.value {
-                            Some(value) => value,
-                            None => {
-                                panic!("{}", constants::messages::NON_STATIC_VALUE)
-                            }
-                        };
+                        dbg!(evaluated_arg.clone());
 
                         assert!(
                             evaluated_arg.confident,
@@ -134,119 +127,76 @@ where
                             constants::messages::NON_STATIC_VALUE
                         );
 
-                        let (mut compiled_styles, injected_styles_sans_keyframes) =
-                            stylex_create_set(&value, &mut self.state, &function_map);
-
-                        compiled_styles
-                            .clone()
-                            .into_iter()
-                            .for_each(|(namespace, properties)| {
-                                resolved_namespaces
-                                    .entry(namespace)
-                                    .or_default()
-                                    .extend(properties);
-                            });
-
-                        let mut injected_styles = injected_keyframes.clone();
-                        injected_styles.extend(injected_styles_sans_keyframes);
-
-                        let mut var_name: Option<String> = Option::None;
-
-                        let parent_var_decl =
-                            &self.state.declarations.clone().into_iter().find(|decl| {
-                                decl.init
-                                    .as_ref()
-                                    .unwrap()
-                                    .eq(&Box::new(Expr::Call(call.clone())))
-                            });
-
-                        if let Some(parent_var_decl) = &parent_var_decl {
-                            if let Some(ident) = parent_var_decl.name.as_ident() {
-                                var_name = Option::Some(ident.sym.clone().to_string());
+                        let value = match evaluated_arg.value {
+                            Some(value) => {
+                                assert!(
+                                    value
+                                        .as_expr()
+                                        .and_then(|expr| Option::Some(expr.is_object()))
+                                        .unwrap_or(false),
+                                    "{}",
+                                    constants::messages::NON_OBJECT_FOR_STYLEX_CALL
+                                );
+                                value
                             }
-                        }
+                            None => {
+                                panic!("{}", constants::messages::NON_STATIC_VALUE)
+                            }
+                        };
+                        dbg!(&evaluated_arg.confident, &value);
 
-                        if self.state.is_test() {
-                            compiled_styles = convert_to_test_styles(
-                                &compiled_styles,
-                                &var_name,
-                                &mut self.state,
-                            );
-                        }
+                        let Some(file_name) = self.state.get_filename_for_hashing() else {
+                            panic!("No filename found for generating theme name.")
+                        };
 
-                        if self.state.is_dev() {
-                            compiled_styles = inject_dev_class_names(
-                                &compiled_styles,
-                                &var_name,
-                                &mut self.state,
-                            );
-                        }
+                        let export_expr = self
+                            .state
+                            .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call);
 
-                        if let Option::Some(var_name) = var_name.clone() {
-                            let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
+                        let Some(export_name) = export_expr
+                            .and_then(|expr| expr.2)
+                            .and_then(|decl| Option::Some(decl.0.to_string()))
+                        else {
+                            panic!("Export variable not found")
+                        };
 
-                            self.state
-                                .style_map
-                                .insert(var_name.clone(), styles_to_remember);
+                        self.state.theme_name = Option::Some(gen_file_based_identifier(
+                            &file_name,
+                            &export_name,
+                            Option::None,
+                        ));
 
-                            self.state
-                                .style_vars
-                                .insert(var_name.clone(), parent_var_decl.clone()?.clone());
-                        }
+                        dbg!(&self.state.theme_name);
+
+                        let (variables_obj, injected_styles_sans_keyframes) =
+                            stylex_define_vars(&value, &mut self.state);
+
+                        dbg!(&variables_obj, &injected_styles_sans_keyframes);
+
+                        let mut injectable_style = injected_keyframes.clone();
+                        injectable_style.extend(injected_styles_sans_keyframes);
+
+                        dbg!(&variables_obj);
+
+                        let (var_name, _) = self.get_call_var_name(call);
 
                         let result_ast = convert_object_to_ast(
-                            &NestedStringObject::FlatCompiledStyles(compiled_styles),
+                            &NestedStringObject::FlatCompiledStylesValues(variables_obj),
                         );
 
-                        let metadatas = MetaData::convert_from_injected_styles_map(injected_styles);
+                        self.state
+                            .register_styles(call, &injectable_style, &result_ast, &var_name);
 
-                        for metadata in metadatas {
-                            dbg!(&metadata);
-                            self.push_to_css_output(
-                                var_name.clone().unwrap_or("default".to_string()),
-                                metadata,
-                            );
-                        }
-
-                        dbg!(&self.state.declarations.len());
-                        if let Some(item) = self.state.declarations.iter_mut().find(|decl| {
-                            decl.init
-                                .as_ref()
-                                .unwrap()
-                                .eq(&Box::new(Expr::Call(call.clone())))
-                        }) {
-                            item.init = Option::Some(Box::new(result_ast.clone()));
-                        };
-
-                        if let Some((_, item)) =
-                            self.state.style_vars.iter_mut().find(|(_, decl)| {
-                                decl.init
-                                    .as_ref()
-                                    .unwrap()
-                                    .eq(&Box::new(Expr::Call(call.clone())))
-                            })
-                        {
-                            item.init = Option::Some(Box::new(result_ast.clone()));
-                        };
-
-                        if let Some(TopLevelExpression(_, item)) =
-                            self.state.top_level_expressions.iter_mut().find(
-                                |TopLevelExpression(_, decl)| decl.eq(&Expr::Call(call.clone())),
-                            )
-                        {
-                            *item = result_ast.clone();
-                        };
-
-                        Option::Some(result_ast)
+                        return Option::Some(result_ast);
                     }
                 },
                 None => Option::None,
             }
         } else {
-            Option::Some(Expr::Call(call.clone()))
+            Option::None
         };
 
-        self.state.in_style_x_create = false;
+        self.state.in_stylex_create = false;
 
         result
     }

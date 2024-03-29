@@ -2,18 +2,19 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberProp};
 
 use crate::shared::{
-    structures::{flat_compiled_styles::FlatCompiledStylesValue, state_manager::StateManager},
+    enums::FlatCompiledStylesValue,
+    structures::state_manager::StateManager,
     utils::common::{get_string_val_from_lit, reduce_ident_count},
 };
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StyleObject {
     Style(IndexMap<String, FlatCompiledStylesValue>),
     Nullable,
     Other,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum ResolvedArg {
     StyleObject(StyleObject, Ident),
     ConditionalStyle(Box<Expr>, Option<StyleObject>, Option<StyleObject>, Ident),

@@ -1,9 +1,11 @@
 mod evaluation;
 mod stylex_transform_call_test;
 mod stylex_transform_create_test;
+mod stylex_transform_define_vars_test;
 mod stylex_transform_stylex_attrs_test;
 mod stylex_transform_stylex_props_test;
 mod stylex_validation_create_test;
+mod stylex_validation_define_vars_test;
 mod stylex_validation_import_test;
 mod stylex_validation_regular_css;
 pub(crate) mod utils;

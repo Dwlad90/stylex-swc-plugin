@@ -48,7 +48,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
     fn from(options: StyleXOptions) -> Self {
         let runtime_injection = match options.runtime_injection {
             RuntimeInjection::Boolean(b) => {
-                if b {
+                if b || options.dev {
                     Some(RuntimeInjectionState::Regular(
                         DEFAULT_INJECT_PATH.to_string(),
                     ))

@@ -6,7 +6,7 @@ use swc_core::ecma::ast::{Expr, KeyValueProp, Lit};
 
 use super::functions::FunctionConfig;
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Hash, PartialEq, Clone)]
 pub(crate) enum ArrayJS {
     Map,
     Filter,
@@ -22,8 +22,6 @@ pub enum EvaluateResultValue {
     ),
     FunctionConfig(FunctionConfig),
 }
-
-impl Eq for EvaluateResultValue {}
 
 impl Clone for EvaluateResultValue {
     fn clone(&self) -> Self {
@@ -67,7 +65,7 @@ impl PartialEq for EvaluateResultValue {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EvaluateResult {
     pub(crate) confident: bool,
     pub value: Option<EvaluateResultValue>,

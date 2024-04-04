@@ -65,6 +65,8 @@ pub struct StateManager {
     pub(crate) metadata: IndexMap<String, Vec<MetaData>>,
     pub(crate) styles_to_inject: IndexMap<Expr, Vec<ModuleItem>>,
     pub(crate) prepend_module_items: Vec<ModuleItem>,
+
+    pub(crate) injected_keyframes: IndexMap<String, InjectableStyle>,
 }
 impl StateManager {
     pub fn new(stylex_options: StyleXOptions) -> Self {
@@ -99,6 +101,8 @@ impl StateManager {
             metadata: IndexMap::new(),
             styles_to_inject: IndexMap::new(),
             prepend_module_items: vec![],
+
+            injected_keyframes: IndexMap::new(),
         }
     }
 
@@ -297,6 +301,7 @@ impl StateManager {
     }
 
     fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, ast: &Expr) {
+        dbg!(&metadata);
         let priority = &metadata.get_priority();
 
         let css = &metadata.get_css();
@@ -327,6 +332,10 @@ impl StateManager {
             .entry(ast.clone())
             .or_insert_with(Vec::new)
             .push(module);
+    }
+
+    pub(crate) fn get_css_vars(&self) -> HashMap<String, String> {
+        self.options.defined_stylex_css_variables.clone()
     }
 }
 

@@ -38,7 +38,7 @@ test!(
         PluginPass::default(),
         Option::None
     ),
-    transforms_style_object_with_import_asterics,
+    transforms_style_object_with_import_wildcard,
     r#"
         import * as foo from 'stylex';
         const styles = foo.create({

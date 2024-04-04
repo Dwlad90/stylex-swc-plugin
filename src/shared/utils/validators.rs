@@ -2,14 +2,14 @@ use std::collections::HashSet;
 
 use swc_core::{
     common::DUMMY_SP,
-    ecma::ast::{CallExpr, Expr, Id, Ident, KeyValueProp, Pat, PropName},
+    ecma::ast::{CallExpr, Expr, Id, Ident, KeyValueProp, Pat, PropName, VarDeclarator},
 };
 
 use crate::shared::{
     constants,
     enums::{TopLevelExpression, TopLevelExpressionKind},
     regex::INCLUDED_IDENT_REGEX,
-    structures::state_manager::StateManager,
+    structures::{evaluate_result::EvaluateResultValue, state_manager::StateManager},
     utils::common::get_var_decl_by_ident_or_member,
 };
 
@@ -47,6 +47,49 @@ pub(crate) fn validate_stylex_create_indent(call: &CallExpr, state: &mut StateMa
         first_args.expr.is_object(),
         "{}",
         constants::messages::NON_OBJECT_FOR_STYLEX_CALL
+    )
+}
+
+pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &mut StateManager) {
+    let init = match &var_decl.init {
+        Some(init) => init
+            .clone()
+            .call()
+            .expect(constants::messages::NON_STATIC_KEYFRAME_VALUE),
+        None => panic!("{}", constants::messages::NON_STATIC_KEYFRAME_VALUE),
+    };
+
+    if !is_keyframes_call(var_decl, state) {
+        return;
+    }
+
+    let ident = Ident::new("keyframes".into(), DUMMY_SP);
+
+    dbg!(&ident);
+    assert!(
+        get_var_decl_by_ident_or_member(state, &ident).is_some()
+            || state
+                .top_level_expressions
+                .clone()
+                .into_iter()
+                .any(|TopLevelExpression(_, call_item, _)| call_item
+                    .eq(&Box::new(Expr::Call(init.clone())))),
+        "{}",
+        constants::messages::UNBOUND_STYLEX_CALL_VALUE
+    );
+
+    assert!(
+        &init.args.len() == &1,
+        "{}",
+        constants::messages::ILLEGAL_ARGUMENT_LENGTH
+    );
+
+    let first_args = &init.args[0];
+
+    assert!(
+        first_args.expr.is_object(),
+        "{}",
+        constants::messages::NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
     )
 }
 
@@ -104,6 +147,19 @@ pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
 pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
     dbg!(&state.stylex_props_import);
     is_target_call(("attrs", &state.stylex_attrs_import), call, state)
+}
+
+pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
+    let init = match &var_decl.init {
+        Some(init) => init.clone().call(),
+        None => Option::None,
+    };
+
+    if let Some(call) = init {
+        is_target_call(("keyframes", &state.stylex_keyframes_import), &call, state)
+    } else {
+        false
+    }
 }
 
 pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
@@ -269,5 +325,30 @@ pub(crate) fn validate_conditional_styles(
             }
         }
         _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+    }
+}
+
+pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
+    match obj {
+        EvaluateResultValue::Expr(expr) => match expr {
+            Expr::Object(object) => {
+                let key_values = get_key_values_from_object(object);
+
+                for key_value in key_values.iter() {
+                    match key_value.value.as_ref() {
+                        Expr::Object(_) => {}
+                        _ => panic!("{}", constants::messages::NON_OBJECT_KEYFRAME),
+                    }
+                }
+            }
+            _ => panic!(
+                "{}",
+                constants::messages::NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
+            ),
+        },
+        _ => panic!(
+            "{}",
+            constants::messages::NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
+        ),
     }
 }

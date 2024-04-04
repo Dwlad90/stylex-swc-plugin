@@ -95,6 +95,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
                     ),
                     FlatCompiledStylesValue::InjectableStyle(_) => todo!("Injectable style"),
                     FlatCompiledStylesValue::Tuple(_, _) => todo!("Tuple"),
+                    FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
                 };
 
                 dbg!(&prop);

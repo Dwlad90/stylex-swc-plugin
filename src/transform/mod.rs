@@ -155,6 +155,12 @@ where
                         || (self.cycle == ModuleCycle::TransformEnter
                             && (self.state.stylex_create_import.contains(&ident.to_id()))
                             || self.state.stylex_props_import.contains(&ident.to_id())
+                            || self.state.stylex_keyframes_import.contains(&ident.to_id())
+                            || self
+                                .state
+                                .stylex_define_vars_import
+                                .contains(&ident.to_id())
+                            || self.state.stylex_attrs_import.contains(&ident.to_id())
                             || self
                                 .state
                                 .stylex_define_vars_import
@@ -174,6 +180,13 @@ where
                             || (self.cycle == ModuleCycle::TransformEnter
                                 && (self.state.stylex_create_import.contains(&ident.to_id()))
                                 || self.state.stylex_props_import.contains(&ident.to_id())
+                                || self.state.stylex_props_import.contains(&ident.to_id())
+                                || self.state.stylex_keyframes_import.contains(&ident.to_id())
+                                || self
+                                    .state
+                                    .stylex_define_vars_import
+                                    .contains(&ident.to_id())
+                                || self.state.stylex_attrs_import.contains(&ident.to_id())
                                 || self
                                     .state
                                     .stylex_define_vars_import
@@ -207,7 +220,7 @@ where
             Expr::Call(ex) => {
                 let declaration = self.process_declaration(&ex);
 
-                println!("!!!declaration: {:?}, ex: {:?}\n\n", declaration, ex);
+                dbg!(&declaration, &ex);
 
                 if let Some(_) = declaration {
                     let value = self.transform_call_expression_to_stylex_expr(&ex);

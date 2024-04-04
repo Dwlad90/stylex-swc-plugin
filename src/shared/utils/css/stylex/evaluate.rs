@@ -1174,9 +1174,11 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                             dbg!(&func_result, &args);
                             return Option::Some(EvaluateResultValue::Expr(func_result));
                         }
-                        FunctionType::OneArg(func) => {
-                            let func_result = (func)(args.get(0).unwrap().clone());
-                            return Option::Some(EvaluateResultValue::Expr(func_result));
+                        FunctionType::StylexFns(func) => {
+                            let func_result =
+                                (func)(args.get(0).unwrap().clone(), state.traversal_state.clone());
+                            state.traversal_state = func_result.1;
+                            return Option::Some(EvaluateResultValue::Expr(func_result.0));
                         }
                         FunctionType::Callback(_) => {
                             panic!("Arrow function not implemented yet");
@@ -1215,10 +1217,15 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                             );
                             return Option::Some(EvaluateResultValue::Expr(func_result));
                         }
-                        FunctionType::OneArg(func) => {
-                            let func_result =
-                                (func)(args.get(0).unwrap().clone().as_expr().unwrap().clone());
-                            return Option::Some(EvaluateResultValue::Expr(func_result));
+                        FunctionType::StylexFns(func) => {
+                            let func_result = (func)(
+                                args.get(0).unwrap().clone().as_expr().unwrap().clone(),
+                                state.traversal_state.clone(),
+                            );
+
+                            state.traversal_state = func_result.1;
+
+                            return Option::Some(EvaluateResultValue::Expr(func_result.0));
                         }
                         FunctionType::Callback(func) => {
                             let context = context.expect("Object.entries requires a context");

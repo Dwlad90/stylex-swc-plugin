@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
@@ -13,15 +14,17 @@ use crate::shared::enums::TopLevelExpression;
 use crate::shared::structures::evaluate_result::EvaluateResultValue;
 use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::injectable_style::InjectableStyle;
+use crate::shared::structures::injectable_style::{self, InjectableStyle};
 use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
-use crate::shared::utils::common::prop_or_spread_string_creator;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::common::{prop_or_spread_string_creator, string_to_expression};
 use crate::shared::utils::css::factories::object_expression_factory;
 use crate::shared::utils::css::stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
 use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
 use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
 use crate::shared::utils::js::stylex::stylex_include::stylex_include;
+use crate::shared::utils::js::stylex::stylex_keyframes::stylex_keyframes;
 use crate::shared::utils::stylex::dev_class_name::{
     convert_to_test_styles, inject_dev_class_names,
 };
@@ -128,7 +131,8 @@ where
                         let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> =
                             IndexMap::new();
 
-                        let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
+                        // let mut injected_keyframes: IndexMap<String, InjectableStyle> =
+                        //     IndexMap::new();
 
                         let mut identifiers: HashMap<Id, FunctionConfig> = HashMap::new();
                         let mut member_expressions: HashMap<
@@ -146,10 +150,71 @@ where
                             takes_path: false,
                         };
 
+                        // let arrow_closure_fabric = |local_state: StateManager,
+                        //                             mut injected_keyframes: IndexMap<
+                        //     String,
+                        //     InjectableStyle,
+                        // >| {
+                        //     move |expr: Expr| {
+                        //         let (animation_name, injected_style) = stylex_keyframes(
+                        //             &EvaluateResultValue::Expr(expr),
+                        //             &local_state,
+                        //         );
+
+                        //         injected_keyframes.insert(animation_name.clone(), injected_style);
+
+                        //         // let result = string_to_expression(animation_name);
+
+                        //         dbg!(
+                        //             &local_state.styles_to_inject,
+                        //             &local_state,
+                        //             &injected_keyframes
+                        //         );
+                        //         panic!();
+
+                        //         // result.unwrap()
+                        //     }
+                        // };
+
+                        // let state_clone = self.state.clone();
+
+                        // let arrow_closure = Rc::new(arrow_closure_fabric(
+                        //     state_clone,
+                        //     injected_keyframes.clone(),
+                        // ));
+
+                        // let aqwe = |state: StateManager| -> fn(Expr) -> Expr {
+                        //     return |arg| {
+
+                        //     };
+                        // };
+
                         let keyframes_fn = FunctionConfig {
-                            fn_ptr: FunctionType::OneArg(|_arg| {
-                                panic!("Keyframes not implemented")
-                            }),
+                            fn_ptr: FunctionType::StylexFns(
+                                |expr: Expr, local_state: StateManager| -> (Expr, StateManager) {
+                                    let (animation_name, injected_style) = stylex_keyframes(
+                                        &EvaluateResultValue::Expr(expr),
+                                        &local_state,
+                                    );
+
+                                    let mut local_state = local_state.clone();
+
+                                    local_state
+                                        .injected_keyframes
+                                        .insert(animation_name.clone(), injected_style);
+
+                                    let result = string_to_expression(animation_name);
+
+                                    // dbg!(
+                                    //     &local_state.styles_to_inject,
+                                    //     &local_state,
+                                    //     &injected_keyframes
+                                    // );
+                                    // panic!();
+
+                                    (result.unwrap(), local_state)
+                                },
+                            ),
                             takes_path: false,
                         };
 
@@ -225,7 +290,7 @@ where
                                     .extend(properties);
                             });
 
-                        let mut injected_styles = injected_keyframes.clone();
+                        let mut injected_styles = self.state.injected_keyframes.clone();
                         injected_styles.extend(injected_styles_sans_keyframes);
 
                         let (var_name, parent_var_decl) = &self.get_call_var_name(call);

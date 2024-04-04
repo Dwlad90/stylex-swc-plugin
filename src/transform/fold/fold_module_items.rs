@@ -65,7 +65,11 @@ where
                                         .decls
                                         .clone()
                                         .into_iter()
-                                        .filter(|decl| decl.init.clone().unwrap().is_object())
+                                        .filter(|decl| {
+                                            let init = decl.init.clone().unwrap();
+
+                                            init.is_object() || init.is_lit()
+                                        })
                                         .collect::<Vec<VarDeclarator>>()
                                 })
                             }
@@ -89,11 +93,16 @@ where
                                 .decls
                                 .clone()
                                 .into_iter()
-                                .filter(|decl| decl.init.clone().unwrap().is_object())
+                                .filter(|decl| {
+                                    let init = decl.init.clone().unwrap();
+
+                                    init.is_object() || init.is_lit()
+                                })
                                 .collect::<Vec<VarDeclarator>>(),
                         ),
                         _ => Option::None,
                     } {
+                        dbg!(&decls);
                         for decl in decls {
                             let key = decl.clone().init.clone().unwrap();
 

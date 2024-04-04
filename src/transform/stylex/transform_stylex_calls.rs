@@ -31,29 +31,25 @@ where
         Option::None
     }
 
-    fn transform_stylex_fns(&mut self, ident: Ident, ex: &CallExpr) -> Option<Expr> {
+    fn transform_stylex_fns(&mut self, ident: Ident, call_expr: &CallExpr) -> Option<Expr> {
         if self.cycle == ModuleCycle::TransformEnter {
-            if self.state.stylex_create_import.contains(&ident.to_id()) {
-                if let Some(value) = self.transform_stylex_create(ex) {
+            let (_, parent_var_decl) = &self.get_call_var_name(call_expr);
+
+            if let Some(parent_var_decl) = parent_var_decl {
+                if let Some(value) = self.transform_stylex_keyframes_call(parent_var_decl) {
                     return Option::Some(value);
                 }
             }
 
-            if self
-                .state
-                .stylex_define_vars_import
-                .contains(&ident.to_id())
-            {
-                if let Some(value) = self.transform_stylex_define_vars(ex) {
-                    return Option::Some(value);
-                }
-            }
-
-            if let Some(value) = self.transform_stylex_create(ex) {
+            if let Some(value) = self.transform_stylex_define_vars(call_expr) {
                 return Option::Some(value);
             }
 
-            if let Some(value) = self.transform_stylex_define_vars(ex) {
+            if let Some(value) = self.transform_stylex_create(call_expr) {
+                return Option::Some(value);
+            }
+
+            if let Some(value) = self.transform_stylex_create(call_expr) {
                 return Option::Some(value);
             }
         }
@@ -62,26 +58,26 @@ where
             dbg!(&self.state.stylex_props_import);
 
             if self.state.stylex_props_import.contains(&ident.to_id()) {
-                if let Some(value) = self.transform_stylex_props_call(ex) {
+                if let Some(value) = self.transform_stylex_props_call(call_expr) {
                     return Option::Some(value);
                 }
             }
 
             if self.state.stylex_attrs_import.contains(&ident.to_id()) {
-                if let Some(value) = self.transform_stylex_attrs_call(ex) {
+                if let Some(value) = self.transform_stylex_attrs_call(call_expr) {
                     return Option::Some(value);
                 }
             }
 
-            if let Some(value) = self.transform_stylex_call(ex) {
+            if let Some(value) = self.transform_stylex_call(call_expr) {
                 return Option::Some(value);
             }
 
-            if let Some(value) = self.transform_stylex_attrs_call(ex) {
+            if let Some(value) = self.transform_stylex_attrs_call(call_expr) {
                 return Option::Some(value);
             }
 
-            if let Some(value) = self.transform_stylex_props_call(ex) {
+            if let Some(value) = self.transform_stylex_props_call(call_expr) {
                 return Option::Some(value);
             }
         }

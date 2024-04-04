@@ -214,7 +214,7 @@ where
                     self.state.stylex_attrs_import.insert(local_name_ident);
                 }
                 "keyframes" => {
-                    todo!("keyframes");
+                    self.state.stylex_keyframes_import.insert(local_name_ident);
                 }
                 "include" => {
                     self.state.stylex_include_import.insert(local_name_ident);

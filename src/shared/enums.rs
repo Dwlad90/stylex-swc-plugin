@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Id, ObjectLit};
 
 use super::{
-    structures::{included_style::IncludedStyle, injectable_style::InjectableStyle},
+    structures::{included_style::IncludedStyle, injectable_style::InjectableStyle, pair::Pair},
     utils::stylex::js_to_expr::NestedStringObject,
 };
 
@@ -111,6 +111,7 @@ impl FnResult {
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub(crate) enum FlatCompiledStylesValue {
     String(String),
+    KeyValue(Pair),
     Null,
     IncludedStyle(IncludedStyle),
     InjectableStyle(InjectableStyle),
@@ -157,6 +158,13 @@ impl FlatCompiledStylesValue {
     pub(crate) fn as_included_style(&self) -> Option<&IncludedStyle> {
         match self {
             FlatCompiledStylesValue::IncludedStyle(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_key_value(&self) -> Option<&Pair> {
+        match self {
+            FlatCompiledStylesValue::KeyValue(value) => Some(value),
             _ => None,
         }
     }

@@ -57,6 +57,7 @@ pub(crate) fn stylex_define_vars(
                 FlatCompiledStylesValue::Null => todo!("Null"),
                 FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
                 FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
+                FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
             }
         },
     );
@@ -73,6 +74,7 @@ pub(crate) fn stylex_define_vars(
             FlatCompiledStylesValue::Null => todo!("Null"),
             FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
             FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
+            FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
         });
 
     dbg!(&variables_map, &theme_variables_objects,);

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use stylex_swc_plugin::shared::structures::{
     functions::{FunctionConfig, FunctionMap, FunctionType},
@@ -211,7 +211,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
             let mut identifiers = HashMap::new();
 
             let make_class = FunctionConfig {
-                fn_ptr: FunctionType::OneArg(|arg: Expr| {
+                fn_ptr: FunctionType::StylexFns(|arg, local_state| {
                     let new_expr = NewExpr {
                         span: DUMMY_SP,
                         callee: Box::new(Expr::Ident(Ident::new("MyClass".into(), DUMMY_SP))),
@@ -222,7 +222,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
                         type_args: None,
                     };
 
-                    Expr::New(new_expr)
+                    (Expr::New(new_expr), local_state)
                 }),
                 takes_path: false,
             };
@@ -259,7 +259,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
             let mut identifiers = HashMap::new();
 
             let make_obj = FunctionConfig {
-                fn_ptr: FunctionType::OneArg(|arg: Expr| {
+                fn_ptr: FunctionType::StylexFns(|arg, local_state| {
                     let object_lit = ObjectLit {
                         span: DUMMY_SP,
                         props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
@@ -268,7 +268,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
                         })))],
                     };
 
-                    Expr::Object(object_lit)
+                    (Expr::Object(object_lit), local_state)
                 }),
                 takes_path: false,
             };
@@ -305,7 +305,7 @@ fn evaluates_custom_functions_that_take_paths() {
             let mut identifiers = HashMap::new();
 
             let get_node = FunctionConfig {
-                fn_ptr: FunctionType::OneArg(|arg: Expr| {
+                fn_ptr: FunctionType::StylexFns(|arg, local_state| {
                     let object_lit = ObjectLit {
                         span: DUMMY_SP,
                         props: vec![
@@ -324,7 +324,7 @@ fn evaluates_custom_functions_that_take_paths() {
                         ],
                     };
 
-                    Expr::Object(object_lit)
+                    (Expr::Object(object_lit), local_state)
                 }),
                 takes_path: true,
             };

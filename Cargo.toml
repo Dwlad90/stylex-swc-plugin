@@ -20,8 +20,8 @@ opt-level = "z"
 strip = "symbols"
 
 [dependencies]
-serde = "1"
-swc_core = { version = "0.90.13", features = [
+serde = "1.0.197"
+swc_core = { version = "0.90.31", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -48,14 +48,14 @@ swc_core = { version = "0.90.13", features = [
 
 # swc_css_parser = {version = "0.150.20"}
 lazy_static = "1.4.0"
-serde_json = "1.0.107"
-regex = "1.10.2"
+serde_json = "1.0.115"
+regex = "1.10.4"
 snailquote = "0.3.1"
 dashmap = "5.5.3"
-indexmap = "2.1.0"
-getrandom = { version = "0.2.10", features = ["js"] }
+indexmap = "2.2.6"
+getrandom = { version = "0.2.14", features = ["js"] }
 rand = { version = "0.8.5" }
-chrono = { version = "0.4.31" }
+chrono = { version = "0.4.38" }
 derive_more = { version = "0.99.17" }
 convert_case = { version = "0.6.0" }
 murmur2 = { version = "0.1.0" }
@@ -63,16 +63,19 @@ radix_fmt = { version = "1.0.0" }
 phf = { version = "0.11.2", features = ["macros"] }
 once_cell = { version = "1.19.0" }
 colored = { version = "2.1.0" }
-node-resolve = { version = "2.2.0"}
-resolve-path={version = "0.1.0"}
+node-resolve = { version = "2.2.0" }
+resolve-path = { version = "0.1.0" }
+
+#HACK: temp solution for version of sourcemap package
+swc_config={ version = "0.1.12"}
 # sha2 = { version = "0.10.8" }
 
 [dev-dependencies]
-swc_core = { version = "0.90.13", features = [
+swc_core = { version = "0.90.31", features = [
   "testing_transform",
   "ecma_parser",
 ] }
-testing = "0.35.19"
+testing = "0.35.22"
 insta = { version = "1.38.0", features = ["yaml"] }
 
 

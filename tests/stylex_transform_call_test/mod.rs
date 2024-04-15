@@ -1,6 +1,7 @@
+mod accounts_for_edge_cases;
 mod keep_stylex_create_when_needed;
 mod setting_custom_import_paths;
+mod specific_edge_case_bugs;
 mod stylex_transform_call_test;
 mod with_conditional_styles_and_collisions;
 mod with_plugin_options;
-mod specific_edge_case_bugs;

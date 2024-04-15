@@ -265,7 +265,7 @@ where
             let evaluated_arg =
                 evaluate_stylex_create_arg(&first_arg, &mut self.state, &function_map);
 
-            dbg!(&evaluated_arg.value);
+
 
             let value = match evaluated_arg.value {
                 Some(value) => value,
@@ -282,6 +282,8 @@ where
 
             let (mut compiled_styles, injected_styles_sans_keyframes) =
                 stylex_create_set(&value, &mut self.state, &function_map);
+
+                dbg!(&compiled_styles, &injected_styles_sans_keyframes);
 
             compiled_styles
                 .clone()

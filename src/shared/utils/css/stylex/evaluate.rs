@@ -357,8 +357,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                 return Some(EvaluateResultValue::Expr(func()));
             }
 
-            let ident_binding =
-                get_binding(&Expr::Ident(ident.clone()), &mut state.traversal_state);
+            // let ident_binding =
+            //     get_binding(&Expr::Ident(ident.clone()), &mut state.traversal_state);
 
             Option::None
         }
@@ -751,13 +751,14 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             return Option::Some(EvaluateResultValue::Expr(Expr::Object(obj)));
         }
         Expr::Bin(bin) => {
-            let result = match binary_expr_to_num(bin, state) {
-                Some(num) => num as f64,
-                None => panic!("Not implemented yet"),
-            };
-            let result = number_to_expression(result).unwrap();
+            dbg!(&bin);
+            if let Some(result) = binary_expr_to_num(bin, state) {
+                let result = number_to_expression(result as f64).unwrap();
 
-            return Option::Some(EvaluateResultValue::Expr(result));
+                return Option::Some(EvaluateResultValue::Expr(result));
+            } else {
+                Option::None
+            }
         }
         Expr::Call(call) => {
             let callee = call.callee.clone();
@@ -1571,7 +1572,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
     }
 
     if result.is_none() {
-        deopt(path, state);
+        return deopt(path, state);
     }
 
     result

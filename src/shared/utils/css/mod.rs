@@ -1,5 +1,5 @@
 pub(crate) mod css;
-pub(crate) mod factories;
+pub mod factories;
 pub(crate) mod normalizers;
 pub mod stylex;
 pub(crate) mod tests;
@@ -23,7 +23,7 @@ use crate::shared::{
         stylex_options::StyleXOptions,
     },
     utils::{
-        common::{dashify, create_hash},
+        common::{create_hash, dashify},
         css::normalizers::whitespace_normalizer::whitespace_normalizer,
     },
 };
@@ -392,9 +392,11 @@ pub(crate) fn transform_value(key: &str, value: &str) -> String {
         return val.to_string();
     }
 
+    dbg!(&key, &value);
     let result = normalize_css_property_value(key, value.as_ref(), &StyleXOptions::default());
 
     dbg!(result.clone());
+
     result
 }
 pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
@@ -423,6 +425,12 @@ pub(crate) fn normalize_css_property_value(
     css_property_value: &str,
     options: &StyleXOptions,
 ) -> String {
+    let css_property = if css_property.starts_with("--") {
+        "color"
+    } else {
+        css_property
+    };
+
     let css_rule = if css_property.starts_with(":") {
         format!("{0} {1}", css_property, css_property_value)
     } else {
@@ -439,6 +447,8 @@ pub(crate) fn normalize_css_property_value(
 
     let ast_normalized = match parsed_css {
         Ok(ast) => {
+            dbg!(&css_rule);
+
             let (parsed_css_property_value, _) = swc_parse_css(&css_rule.as_str());
 
             let validators: Vec<Validator> = vec![

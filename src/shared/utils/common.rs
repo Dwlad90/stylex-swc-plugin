@@ -44,7 +44,7 @@ fn _replace_spans(expr: &mut Expr) -> Expr {
     expr.clone().fold_children_with(&mut SpanReplacer)
 }
 
-pub(crate) fn prop_or_spread_expression_creator(key: String, value: Expr) -> PropOrSpread {
+pub fn prop_or_spread_expression_creator(key: String, value: Expr) -> PropOrSpread {
     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
         key: string_to_prop_name(key).unwrap(),
         value: Box::new(value),
@@ -453,11 +453,23 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
 
     let op = binary_expr.op;
     let Some(left) = evaluate_cached(&*binary_expr.left, state) else {
+        dbg!(binary_expr.left);
+
+        if !state.confident {
+            return Option::None;
+        }
+
         panic!("Left expression is not a number")
     };
 
     let Some(right) = evaluate_cached(&*binary_expr.right, state) else {
-        panic!("Left expression is not a number")
+        dbg!(binary_expr.right);
+
+        if !state.confident {
+            return Option::None;
+        }
+
+        panic!("Right expression is not a number")
     };
 
     let result = match &op {

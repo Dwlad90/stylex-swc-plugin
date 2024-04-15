@@ -40,6 +40,8 @@ pub(crate) fn stylex_create_set(
         let flattened_namespace =
             flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
 
+          dbg!(&flattened_namespace);
+
         let prefix = state.options.class_name_prefix.as_str();
 
         let compiled_namespace_tuples = flattened_namespace

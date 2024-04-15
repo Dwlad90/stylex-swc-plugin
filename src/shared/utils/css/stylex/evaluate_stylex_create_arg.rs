@@ -33,7 +33,7 @@ use crate::shared::{
 
 use super::evaluate::{evaluate, evaluate_obj_key};
 
-pub(crate) fn evaluate_stylex_create_arg(
+pub fn evaluate_stylex_create_arg(
     path: &Expr,
     traversal_state: &mut StateManager,
     functions: &FunctionMap,
@@ -372,7 +372,7 @@ fn evaluate_partial_object_recursively(
 
                                     let new_prop = prop_or_spread_expression_creator(
                                         key.clone(),
-                                        string_to_expression(format!("var({},revert)", var_name))
+                                        string_to_expression(format!("var({}, revert)", var_name))
                                             .unwrap(),
                                     );
 

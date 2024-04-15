@@ -223,13 +223,12 @@ test!(
             labelColor: 'red',
         });
 
-        //TODO: keyframes
-        // export const styles2 = stylex.defineVars({
-        //     fadeIn: stylex.keyframes({
-        //         '0%': { opacity: 0 },
-        //         '100%': { opacity: 1}
-        //     }),
-        // });
+        export const styles3 = stylex.defineVars({
+            fadeIn: stylex.keyframes({
+                '0%': { opacity: 0 },
+                '100%': { opacity: 1}
+            }),
+        });
     "#
 );
 

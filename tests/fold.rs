@@ -1,4 +1,5 @@
 mod evaluation;
+mod stylex_metadata_test;
 mod stylex_transform_call_test;
 mod stylex_transform_create_test;
 mod stylex_transform_define_vars_test;

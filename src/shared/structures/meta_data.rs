@@ -1,15 +1,27 @@
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::shared::structures::injectable_style::InjectableStyle;
 
 use super::injectable_style::InjectableStyleBase;
+
+fn f32_to_int<S>(priority: &f32, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if priority.fract() == 0.0 {
+        return serializer.serialize_i32(*priority as i32);
+    }
+
+    serializer.serialize_f32(*priority as f32)
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 
 pub(crate) struct MetaData {
     class_name: String,
     style: InjectableStyleBase,
+    #[serde(serialize_with = "f32_to_int")]
     priority: f32,
 }
 

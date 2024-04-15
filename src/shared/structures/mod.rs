@@ -19,4 +19,5 @@ pub(crate) mod shorthands_of_shorthands;
 pub mod state_manager;
 pub mod stylex_options;
 pub(crate) mod stylex_state_options;
+pub(crate) mod theme_ref;
 pub(crate) mod uid_generator;

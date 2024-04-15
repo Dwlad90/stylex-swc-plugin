@@ -46,7 +46,7 @@ pub(crate) struct StyleVarsToKeep(
     pub(crate) NonNullProps,
 );
 
-pub(crate) enum VarDeclAction {
+pub enum VarDeclAction {
     Increase,
     Reduce,
     None,
@@ -174,4 +174,16 @@ impl FlatCompiledStylesValue {
 pub(crate) enum ObjMapType {
     Object(ObjectLit),
     Map(IndexMap<String, FlatCompiledStylesValue>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum ImportPathResolution {
+    False,
+    Tuple(ImportPathResolutionType, String),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum ImportPathResolutionType {
+    ThemeNameRef,
+    FilePath,
 }

@@ -31,6 +31,8 @@ where
             let declaration = &src.value;
 
             let import_sources = self.state.import_sources_stringified();
+
+            self.state.top_imports.push(import_decl.clone());
             dbg!(&import_decl, &import_sources, &declaration);
             // panic!("declaration: {:?}", declaration);
 

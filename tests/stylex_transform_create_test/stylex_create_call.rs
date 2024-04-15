@@ -4,7 +4,7 @@ use swc_core::ecma::{
     transforms::testing::test,
 };
 
-use crate::utils::transform::{parse_js, stringify_js};
+use crate::utils::transform::stringify_js;
 
 test!(
     Syntax::Typescript(TsConfig {
@@ -161,34 +161,68 @@ test!(
 
 #[test]
 fn handles_camel_cased_transition_properties() {
-    let camel_cased = parse_js(
-        "import stylex from 'stylex';
+    let camel_cased = "import stylex from 'stylex';
         const styles = stylex.create({
             default: {
                 transitionProperty: 'marginTop',
             },
-        });",
-    );
+        });";
 
-    let kebab_cased = parse_js(
-        "import stylex from 'stylex';
+    let kebab_cased = "import stylex from 'stylex';
         const styles = stylex.create({
             default: {
                 transitionProperty: 'margin-top',
             },
-        });",
-    );
-
-    assert_eq!(stringify_js(&camel_cased), stringify_js(&kebab_cased));
+        });";
 
     assert_eq!(
-        stringify_js(&camel_cased),
-        r#"import _inject from "@stylexjs/stylex/lib/stylex-inject";
-    var _inject2 = _inject;
-    import stylex from 'stylex';
-    _inject2(".x1cfch2b{transition-property:margin-top}", 3000);
-    "#
+        stringify_js(
+            &camel_cased,
+            Syntax::Typescript(TsConfig {
+                tsx: true,
+                ..Default::default()
+            }),
+            |tr| ModuleTransformVisitor::new_test_styles(
+                tr.comments.clone(),
+                PluginPass::default(),
+                Option::None
+            )
+        ),
+        stringify_js(
+            &kebab_cased,
+            Syntax::Typescript(TsConfig {
+                tsx: true,
+                ..Default::default()
+            }),
+            |tr| ModuleTransformVisitor::new_test_styles(
+                tr.comments.clone(),
+                PluginPass::default(),
+                Option::None
+            )
+        )
     );
+
+    insta::assert_snapshot!(stringify_js(
+        &camel_cased,
+        Syntax::Typescript(TsConfig {
+            tsx: true,
+            ..Default::default()
+        }),
+        |tr| ModuleTransformVisitor::new_test_styles(
+            tr.comments.clone(),
+            PluginPass::default(),
+            Option::None
+        )
+    ));
+
+    // assert_eq!(
+    //     stringify_js(&camel_cased),
+    //     r#"import _inject from "@stylexjs/stylex/lib/stylex-inject";
+    //     var _inject2 = _inject;
+    //     import stylex from 'stylex';
+    //     _inject2(".x1cfch2b{transition-property:margin-top}", 3000);
+    //     "#
+    // );
 }
 
 test!(

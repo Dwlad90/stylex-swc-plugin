@@ -22,7 +22,8 @@ pub(crate) fn member_expression(
     let mut obj_name: Option<Id> = Option::None;
     let mut prop_name: Option<Id> = Option::None;
 
-    dbg!(&state.style_map, &object);
+    dbg!(&state.style_map, &object, &member, &state.all_call_expressions.len());
+
 
     match object {
         Expr::Ident(ident) => {

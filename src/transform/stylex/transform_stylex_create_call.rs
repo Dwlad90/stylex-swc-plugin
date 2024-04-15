@@ -3,7 +3,10 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Id, Ident, KeyValueProp, VarDeclarator};
+use swc_core::ecma::ast::{
+    ArrayLit, ArrowExpr, BindingIdent, BlockStmtOrExpr, ExprOrSpread, Id, Ident, KeyValueProp,
+    ObjectLit, Pat, PropName, Str, VarDeclarator,
+};
 use swc_core::{
     common::comments::Comments,
     ecma::ast::{CallExpr, Expr, Prop, PropOrSpread},
@@ -18,7 +21,10 @@ use crate::shared::structures::injectable_style::{self, InjectableStyle};
 use crate::shared::structures::meta_data::MetaData;
 use crate::shared::structures::named_import_source::ImportSources;
 use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::common::{prop_or_spread_string_creator, string_to_expression};
+use crate::shared::utils::common::{
+    expr_to_str, get_key_str, get_key_values_from_object, prop_or_spread_expression_creator,
+    prop_or_spread_string_creator, string_to_expression,
+};
 use crate::shared::utils::css::factories::object_expression_factory;
 use crate::shared::utils::css::stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
 use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
@@ -124,217 +130,299 @@ where
 
             let first_arg = call.args.get(0);
 
-            match first_arg {
-                Some(first_arg) => match &first_arg.spread {
-                    Some(_) => todo!(),
-                    None => {
-                        let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> =
-                            IndexMap::new();
+            let Some(first_arg) = first_arg.and_then(|first_arg| match &first_arg.spread {
+                Some(_) => todo!(),
+                None => Option::Some(first_arg.expr.clone()),
+            }) else {
+                return Option::None;
+            };
 
-                        // let mut injected_keyframes: IndexMap<String, InjectableStyle> =
-                        //     IndexMap::new();
+            let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> = IndexMap::new();
 
-                        let mut identifiers: HashMap<Id, FunctionConfig> = HashMap::new();
-                        let mut member_expressions: HashMap<
-                            ImportSources,
-                            HashMap<Id, FunctionConfig>,
-                        > = HashMap::new();
+            // let mut injected_keyframes: IndexMap<String, InjectableStyle> =
+            //     IndexMap::new();
 
-                        let include_fn = FunctionConfig {
-                            fn_ptr: FunctionType::ArrayArgs(stylex_include),
-                            takes_path: true,
-                        };
+            let mut identifiers: HashMap<Id, FunctionConfig> = HashMap::new();
+            let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>> =
+                HashMap::new();
 
-                        let first_that_works_fn = FunctionConfig {
-                            fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
-                            takes_path: false,
-                        };
+            let include_fn = FunctionConfig {
+                fn_ptr: FunctionType::ArrayArgs(stylex_include),
+                takes_path: true,
+            };
 
-                        // let arrow_closure_fabric = |local_state: StateManager,
-                        //                             mut injected_keyframes: IndexMap<
-                        //     String,
-                        //     InjectableStyle,
-                        // >| {
-                        //     move |expr: Expr| {
-                        //         let (animation_name, injected_style) = stylex_keyframes(
-                        //             &EvaluateResultValue::Expr(expr),
-                        //             &local_state,
-                        //         );
+            let first_that_works_fn = FunctionConfig {
+                fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
+                takes_path: false,
+            };
 
-                        //         injected_keyframes.insert(animation_name.clone(), injected_style);
+            // let arrow_closure_fabric = |local_state: StateManager,
+            //                             mut injected_keyframes: IndexMap<
+            //     String,
+            //     InjectableStyle,
+            // >| {
+            //     move |expr: Expr| {
+            //         let (animation_name, injected_style) = stylex_keyframes(
+            //             &EvaluateResultValue::Expr(expr),
+            //             &local_state,
+            //         );
 
-                        //         // let result = string_to_expression(animation_name);
+            //         injected_keyframes.insert(animation_name.clone(), injected_style);
 
-                        //         dbg!(
-                        //             &local_state.styles_to_inject,
-                        //             &local_state,
-                        //             &injected_keyframes
-                        //         );
-                        //         panic!();
+            //         // let result = string_to_expression(animation_name);
 
-                        //         // result.unwrap()
-                        //     }
-                        // };
+            //         dbg!(
+            //             &local_state.styles_to_inject,
+            //             &local_state,
+            //             &injected_keyframes
+            //         );
+            //         panic!();
 
-                        // let state_clone = self.state.clone();
+            //         // result.unwrap()
+            //     }
+            // };
 
-                        // let arrow_closure = Rc::new(arrow_closure_fabric(
-                        //     state_clone,
-                        //     injected_keyframes.clone(),
-                        // ));
+            // let state_clone = self.state.clone();
 
-                        // let aqwe = |state: StateManager| -> fn(Expr) -> Expr {
-                        //     return |arg| {
+            // let arrow_closure = Rc::new(arrow_closure_fabric(
+            //     state_clone,
+            //     injected_keyframes.clone(),
+            // ));
 
-                        //     };
-                        // };
+            // let aqwe = |state: StateManager| -> fn(Expr) -> Expr {
+            //     return |arg| {
 
-                        let keyframes_fn = FunctionConfig {
-                            fn_ptr: FunctionType::StylexFns(
-                                |expr: Expr, local_state: StateManager| -> (Expr, StateManager) {
-                                    let (animation_name, injected_style) = stylex_keyframes(
-                                        &EvaluateResultValue::Expr(expr),
-                                        &local_state,
-                                    );
+            //     };
+            // };
 
-                                    let mut local_state = local_state.clone();
+            let keyframes_fn = FunctionConfig {
+                fn_ptr: FunctionType::StylexFns(
+                    |expr: Expr, local_state: StateManager| -> (Expr, StateManager) {
+                        let (animation_name, injected_style) =
+                            stylex_keyframes(&EvaluateResultValue::Expr(expr), &local_state);
 
-                                    local_state
-                                        .injected_keyframes
-                                        .insert(animation_name.clone(), injected_style);
+                        let mut local_state = local_state.clone();
 
-                                    let result = string_to_expression(animation_name);
+                        local_state
+                            .injected_keyframes
+                            .insert(animation_name.clone(), injected_style);
 
-                                    // dbg!(
-                                    //     &local_state.styles_to_inject,
-                                    //     &local_state,
-                                    //     &injected_keyframes
-                                    // );
-                                    // panic!();
+                        let result = string_to_expression(animation_name);
 
-                                    (result.unwrap(), local_state)
-                                },
-                            ),
-                            takes_path: false,
-                        };
+                        // dbg!(
+                        //     &local_state.styles_to_inject,
+                        //     &local_state,
+                        //     &injected_keyframes
+                        // );
+                        // panic!();
 
-                        for name in &self.state.stylex_include_import {
-                            identifiers.insert(name.clone(), include_fn.clone());
-                        }
+                        (result.unwrap(), local_state)
+                    },
+                ),
+                takes_path: false,
+            };
 
-                        for name in &self.state.stylex_first_that_works_import {
-                            identifiers.insert(name.clone(), first_that_works_fn.clone());
-                        }
-
-                        for name in &self.state.stylex_keyframes_import {
-                            identifiers.insert(name.clone(), keyframes_fn.clone());
-                        }
-
-                        for name in &self.state.stylex_import {
-                            member_expressions
-                                .entry(name.clone())
-                                .or_insert(HashMap::new());
-
-                            let member_expression = member_expressions.get_mut(name).unwrap();
-
-                            member_expression.insert(
-                                Ident::new("include".into(), DUMMY_SP).to_id(),
-                                include_fn.clone(),
-                            );
-
-                            member_expression.insert(
-                                Ident::new("firstThatWorks".into(), DUMMY_SP).to_id(),
-                                first_that_works_fn.clone(),
-                            );
-
-                            member_expression.insert(
-                                Ident::new("keyframes".into(), DUMMY_SP).to_id(),
-                                keyframes_fn.clone(),
-                            );
-                        }
-
-                        let function_map: FunctionMap = FunctionMap {
-                            identifiers,
-                            member_expressions,
-                        };
-
-                        let evaluated_arg = evaluate_stylex_create_arg(
-                            &first_arg.expr,
-                            &mut self.state,
-                            &function_map,
-                        );
-
-                        let value = match evaluated_arg.value {
-                            Some(value) => value,
-                            None => {
-                                panic!("{}", constants::messages::NON_STATIC_VALUE)
-                            }
-                        };
-
-                        assert!(
-                            evaluated_arg.confident,
-                            "{}",
-                            constants::messages::NON_STATIC_VALUE
-                        );
-
-                        let (mut compiled_styles, injected_styles_sans_keyframes) =
-                            stylex_create_set(&value, &mut self.state, &function_map);
-
-                        compiled_styles
-                            .clone()
-                            .into_iter()
-                            .for_each(|(namespace, properties)| {
-                                resolved_namespaces
-                                    .entry(namespace)
-                                    .or_default()
-                                    .extend(properties);
-                            });
-
-                        let mut injected_styles = self.state.injected_keyframes.clone();
-                        injected_styles.extend(injected_styles_sans_keyframes);
-
-                        let (var_name, parent_var_decl) = &self.get_call_var_name(call);
-
-                        if self.state.is_test() {
-                            compiled_styles = convert_to_test_styles(
-                                &compiled_styles,
-                                &var_name,
-                                &mut self.state,
-                            );
-                        }
-
-                        if self.state.is_dev() {
-                            compiled_styles = inject_dev_class_names(
-                                &compiled_styles,
-                                &var_name,
-                                &mut self.state,
-                            );
-                        }
-
-                        if let Option::Some(var_name) = var_name.clone() {
-                            let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
-
-                            self.state
-                                .style_map
-                                .insert(var_name.clone(), styles_to_remember);
-
-                            self.state
-                                .style_vars
-                                .insert(var_name.clone(), parent_var_decl.clone().unwrap().clone());
-                        }
-
-                        let result_ast = convert_object_to_ast(
-                            &NestedStringObject::FlatCompiledStyles(compiled_styles),
-                        );
-
-                        self.state
-                            .register_styles(call, &injected_styles, &result_ast, &var_name);
-
-                        Option::Some(result_ast)
-                    }
-                },
-                None => Option::None,
+            for name in &self.state.stylex_include_import {
+                identifiers.insert(name.clone(), include_fn.clone());
             }
+
+            for name in &self.state.stylex_first_that_works_import {
+                identifiers.insert(name.clone(), first_that_works_fn.clone());
+            }
+
+            for name in &self.state.stylex_keyframes_import {
+                identifiers.insert(name.clone(), keyframes_fn.clone());
+            }
+
+            for name in &self.state.stylex_import {
+                member_expressions
+                    .entry(name.clone())
+                    .or_insert(HashMap::new());
+
+                let member_expression = member_expressions.get_mut(name).unwrap();
+
+                member_expression.insert(
+                    Ident::new("include".into(), DUMMY_SP).to_id(),
+                    include_fn.clone(),
+                );
+
+                member_expression.insert(
+                    Ident::new("firstThatWorks".into(), DUMMY_SP).to_id(),
+                    first_that_works_fn.clone(),
+                );
+
+                member_expression.insert(
+                    Ident::new("keyframes".into(), DUMMY_SP).to_id(),
+                    keyframes_fn.clone(),
+                );
+            }
+
+            let function_map: FunctionMap = FunctionMap {
+                identifiers,
+                member_expressions,
+            };
+
+            let evaluated_arg =
+                evaluate_stylex_create_arg(&first_arg, &mut self.state, &function_map);
+
+            dbg!(&evaluated_arg.value);
+
+            let value = match evaluated_arg.value {
+                Some(value) => value,
+                None => {
+                    panic!("{}", constants::messages::NON_STATIC_VALUE)
+                }
+            };
+
+            assert!(
+                evaluated_arg.confident,
+                "{}",
+                constants::messages::NON_STATIC_VALUE
+            );
+
+            let (mut compiled_styles, injected_styles_sans_keyframes) =
+                stylex_create_set(&value, &mut self.state, &function_map);
+
+            compiled_styles
+                .clone()
+                .into_iter()
+                .for_each(|(namespace, properties)| {
+                    resolved_namespaces
+                        .entry(namespace)
+                        .or_default()
+                        .extend(properties);
+                });
+
+            let mut injected_styles = self.state.injected_keyframes.clone();
+
+            injected_styles.extend(injected_styles_sans_keyframes);
+            dbg!(&injected_styles);
+
+            let (var_name, parent_var_decl) = &self.get_call_var_name(call);
+
+            if self.state.is_test() {
+                compiled_styles =
+                    convert_to_test_styles(&compiled_styles, &var_name, &mut self.state);
+            }
+
+            if self.state.is_dev() {
+                compiled_styles =
+                    inject_dev_class_names(&compiled_styles, &var_name, &mut self.state);
+            }
+
+            if let Option::Some(var_name) = var_name.clone() {
+                let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
+
+                self.state
+                    .style_map
+                    .insert(var_name.clone(), styles_to_remember);
+
+                self.state
+                    .style_vars
+                    .insert(var_name.clone(), parent_var_decl.clone().unwrap().clone());
+            }
+
+            let mut result_ast =
+                convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
+
+            // panic!("fns not implemented");
+            if let Some(fns) = evaluated_arg.fns {
+                if let Some(object) = result_ast.as_object() {
+                    // let props = vec![];
+
+                    let key_values = get_key_values_from_object(object);
+
+                    let props = key_values
+                        .clone()
+                        .into_iter()
+                        .map(|key_value| {
+                            let orig_key = get_key_str(&key_value);
+                            let value = key_value.value.clone();
+
+                            let key = match &key_value.key {
+                                PropName::Ident(ident) => Some(ident.sym.as_ref().to_string()),
+                                PropName::Str(str) => Some(str.value.as_ref().to_string()),
+                                _ => None,
+                            };
+
+                            let mut prop: Option<PropOrSpread> = Option::None;
+
+                            if let Some(key) = key {
+                                if let Some((params, inline_styles)) = fns.get(&key) {
+                                    dbg!(&value);
+                                    let value = Expr::Arrow(ArrowExpr {
+                                        span: DUMMY_SP,
+                                        params: params
+                                            .clone()
+                                            .into_iter()
+                                            .map(|param| Pat::Ident(param))
+                                            .collect(), // replace with your parameters
+                                        body: Box::new(BlockStmtOrExpr::Expr(Box::new(
+                                            Expr::Array(ArrayLit {
+                                                span: DUMMY_SP,
+                                                elems: vec![
+                                            Some(ExprOrSpread {
+                                                spread: None,
+                                                expr: Box::new(value.as_ref().clone()),
+                                                // expr: Box::new(value.as_expr().expect("value is not an expression").clone()),
+                                                // expr: Box::new(value.as_map().cloned().and_then(|map|{
+                                                //         // for (expr, key_values) in map  {
+                                                //         //     let key = expr_to_str(&expr, &mut self.state, &FunctionMap::default());
+
+                                                //         //     // let prop = prop_or_spread_expression_creator(key, key_values)l
+                                                //         // }
+                                                //         // panic!();
+                                                //         string_to_expression("weqfwef".into())
+                                                // }).expect("Value is not a map").clone()), // replace with your value
+                                            }),
+                                            Some(ExprOrSpread {
+                                                spread: None,
+                                                expr: Box::new(Expr::Object(ObjectLit {
+                                                    span: DUMMY_SP,
+                                                    props: inline_styles // replace with your inline_styles
+                                                        .iter()
+                                                        .map(|(key, value)| {
+                                                            prop_or_spread_expression_creator(
+                                                                key.clone(),
+                                                                value.clone())
+                                                        })
+                                                        .collect(),
+                                                })),
+                                            }),
+                                        ],
+                                            }),
+                                        ))),
+                                        is_async: false,
+                                        is_generator: false,
+                                        type_params: None,
+                                        return_type: None,
+                                    });
+
+                                    prop = Option::Some(prop_or_spread_expression_creator(
+                                        orig_key.clone(),
+                                        value,
+                                    ));
+                                }
+                            }
+
+                            let prop = prop.unwrap_or(prop_or_spread_expression_creator(
+                                orig_key,
+                                value.as_ref().clone(),
+                            ));
+
+                            prop
+                        })
+                        .collect::<Vec<PropOrSpread>>();
+
+                    result_ast = object_expression_factory(props).unwrap_or(result_ast);
+                }
+                dbg!(&result_ast);
+            };
+
+            self.state
+                .register_styles(call, &injected_styles, &result_ast, &var_name);
+
+            Option::Some(result_ast)
         } else {
             None
         };

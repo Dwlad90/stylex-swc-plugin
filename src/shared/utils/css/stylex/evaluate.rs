@@ -1,15 +1,20 @@
+use core::panic;
 // use sha2::{Digest, Sha256};
-use std::{collections::HashMap, rc::Rc};
+use std::{
+    collections::{HashMap, HashSet},
+    env, fs,
+    rc::Rc,
+};
 
 use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::{
-    common::{Span, DUMMY_SP},
+    common::{EqIgnoreSpan, Span, Spanned, DUMMY_SP},
     ecma::{
         ast::{
             ArrayLit, BlockStmtOrExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Id, Ident,
-            KeyValueProp, Lit, MemberProp, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread,
-            Str, TplElement, VarDeclarator,
+            ImportDecl, ImportNamedSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName,
+            Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Str, TplElement, VarDeclarator,
         },
         utils::{ident::IdentLike, ExprExt},
         visit::{Fold, FoldWith},
@@ -33,20 +38,22 @@ use crate::shared::{
         self,
         constants::{INVALID_METHODS, VALID_CALLEES},
     },
-    enums::VarDeclAction,
+    enums::{ImportPathResolution, ImportPathResolutionType, VarDeclAction},
     structures::{
         evaluate_result::{EvaluateResult, EvaluateResultValue},
         functions::{CallbackType, FunctionConfig, FunctionMap, FunctionType},
         injectable_style::InjectableStyle,
         named_import_source::ImportSources,
-        state_manager::StateManager,
+        state_manager::{add_import_expression, StateManager},
         stylex_options::StyleXOptions,
         stylex_state_options::StyleXStateOptions,
+        theme_ref::{self, ThemeRef},
     },
     utils::{
         common::{
-            binary_expr_to_num, deep_merge_props, expr_to_str, get_key_str,
-            get_string_val_from_lit, get_var_decl_by_ident, get_var_decl_from,
+            binary_expr_to_num, create_hash, deep_merge_props, expr_to_str,
+            gen_file_based_identifier, get_import_by_ident, get_key_str, get_string_val_from_lit,
+            get_var_decl_by_ident, get_var_decl_from, hash_f32, normalize_expr,
             number_to_expression, remove_duplicates, string_to_expression,
         },
         css::factories::object_expression_factory,
@@ -54,6 +61,7 @@ use crate::shared::{
             enums::{ArrayJS, ObjectJS},
             native_functions::{evaluate_filter, evaluate_map},
         },
+        object,
     },
 };
 
@@ -64,11 +72,11 @@ pub(crate) struct SeenValue {
 }
 
 #[derive(Debug)]
-pub(crate) struct State {
+pub struct State {
     pub(crate) confident: bool,
     pub(crate) deopt_path: Option<Expr>, // Assuming this is a string identifier
     pub(crate) seen: HashMap<Expr, SeenValue>, // Assuming the values are strings
-    //pub(crate) added_imports: HashSet<String>,
+    pub(crate) added_imports: HashSet<String>,
     pub(crate) functions: FunctionMap,
     pub(crate) traversal_state: StateManager,
 }
@@ -79,6 +87,7 @@ impl State {
             confident: true,
             deopt_path: Option::None,
             seen: HashMap::new(),
+            added_imports: HashSet::new(),
             functions: FunctionMap {
                 identifiers: HashMap::new(),
                 member_expressions: HashMap::new(),
@@ -92,6 +101,7 @@ impl State {
             confident: true,
             deopt_path: Option::None,
             seen: HashMap::new(),
+            added_imports: HashSet::new(),
             functions: FunctionMap {
                 identifiers: HashMap::new(),
                 member_expressions: HashMap::new(),
@@ -142,6 +152,8 @@ pub(crate) fn evaluate_obj_key(
                     confident: false,
                     deopt: computed_result.deopt,
                     value: None,
+                    inline_styles: Option::None,
+                    fns: Option::None,
                 };
             }
         }
@@ -163,6 +175,8 @@ pub(crate) fn evaluate_obj_key(
         confident: true,
         deopt: Option::None,
         value: Option::Some(EvaluateResultValue::Expr(key_expr)),
+        inline_styles: Option::None,
+        fns: Option::None,
     }
 }
 pub fn evaluate(
@@ -174,7 +188,7 @@ pub fn evaluate(
         confident: true,
         deopt_path: None,
         seen: HashMap::new(),
-        // added_imports: HashSet::new(),
+        added_imports: HashSet::new(),
         functions: fns.clone(),
         traversal_state: traversal_state.clone(),
     };
@@ -191,6 +205,8 @@ pub fn evaluate(
         confident: state.confident,
         value,
         deopt: state.deopt_path,
+        inline_styles: Option::None,
+        fns: Option::None,
     }
 }
 
@@ -217,6 +233,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
         panic!("Should not be here");
         // return Option::None;
     }
+
+    let path = normalize_expr(path);
 
     let result = match path {
         Expr::Arrow(arrow) => {
@@ -359,103 +377,162 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             )
         }
         Expr::Cond(_) => todo!("Cond not implemented yet"),
-        Expr::Paren(paren) => {
-            let result = evaluate_cached(&paren.expr, state);
+        Expr::Paren(_) => {
+            panic!("Paren must be normalized before evaluation")
+            // let result = evaluate_cached(&paren.expr, state);
 
-            result
+            // result
         }
         Expr::Member(member) => {
             dbg!(&member.obj);
 
-            let Some(object) = evaluate_cached(&*member.obj, state) else {
-                dbg!(&member.obj);
-                panic!("Object not found");
-            };
-
-            if !state.confident {
-                return Option::None;
-            };
-
-            let Some(expr) = object.as_expr() else {
-                panic!("Function not found");
-            };
-
-            // let Some(ArrayLit { elems, .. }) = expr.as_array() else {
-            //     if let Some(object) = expr.as_object() {
-            //         return Some(EvaluateResultValue::Expr(Expr::Object(object.clone())));
-            //     } else {
-            //         dbg!(&expr);
-            //         todo!("Expression");
-            //     }
-            // };
-
-            let prop_path = &member.prop;
-
-            let propery = match prop_path {
-                MemberProp::Ident(ident) => {
-                    Option::Some(EvaluateResultValue::Expr(Expr::Ident(ident.clone())))
-                }
-                MemberProp::Computed(ComputedPropName { expr, .. }) => {
-                    let result = evaluate_cached(&*expr.clone(), state);
-
-                    if !state.confident {
-                        return Option::None;
-                    }
-
-                    result
-                }
-                MemberProp::PrivateName(_) => {
-                    return deopt(path, state);
-                }
-            };
-
-            match expr {
-                Expr::Array(ArrayLit { elems, .. }) => {
-                    let Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
-                        value, ..
-                    })))) = propery
-                    else {
-                        panic!("Member not found");
-                    };
-
-                    let property = elems.get(value as usize)?.clone();
-
-                    let Some(ExprOrSpread { expr, .. }) = property else {
-                        panic!("Member not found");
-                    };
-
-                    Some(EvaluateResultValue::Expr(*expr))
-                }
-                Expr::Object(ObjectLit { props, .. }) => {
-                    let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = propery else {
-                        panic!("Member not found");
-                    };
-
-                    let property = props
-                        .into_iter()
-                        .find(|prop| match prop {
-                            PropOrSpread::Spread(_) => {
-                                todo!("Spread not implemented yet");
-                            }
-                            PropOrSpread::Prop(prop) => match prop.as_ref() {
-                                Prop::KeyValue(key_value) => {
-                                    let key = get_key_str(key_value);
-
-                                    key == ident.sym.to_string()
-                                }
-                                _ => todo!("PropOrSpread"),
-                            },
-                        })?
-                        .clone();
-
-                    if let PropOrSpread::Prop(prop) = property {
-                        dbg!(&prop, ident);
-                        Some(EvaluateResultValue::Expr(*prop.key_value().unwrap().value))
+            let parent_is_call_expr = state
+                .traversal_state
+                .all_call_expressions
+                .clone()
+                .into_iter()
+                .any(|call_expr| {
+                    dbg!(&call_expr.callee, &member.obj);
+                    if let Some(callee) = call_expr.callee.as_expr() {
+                        callee
+                            .as_ref()
+                            .eq_ignore_span(&Expr::Member(member.clone()))
                     } else {
-                        panic!("Member not found");
+                        false
                     }
+                });
+
+            let evaluated_value = if parent_is_call_expr {
+                Option::None
+            } else {
+                evaluate_cached(&*member.obj, state)
+            };
+
+            if let Some(object) = evaluated_value {
+                if !state.confident {
+                    return Option::None;
+                };
+
+                // let Some(ArrayLit { elems, .. }) = expr.as_array() else {
+                //     if let Some(object) = expr.as_object() {
+                //         return Some(EvaluateResultValue::Expr(Expr::Object(object.clone())));
+                //     } else {
+                //         dbg!(&expr);
+                //         todo!("Expression");
+                //     }
+                // };
+
+                let prop_path = &member.prop;
+
+                let propery = match prop_path {
+                    MemberProp::Ident(ident) => {
+                        Option::Some(EvaluateResultValue::Expr(Expr::Ident(ident.clone())))
+                    }
+                    MemberProp::Computed(ComputedPropName { expr, .. }) => {
+                        let result = evaluate_cached(&*expr.clone(), state);
+
+                        if !state.confident {
+                            return Option::None;
+                        }
+
+                        result
+                    }
+                    MemberProp::PrivateName(_) => {
+                        return deopt(path, state);
+                    }
+                };
+
+                let Some(expr) = object.as_expr() else {
+                    match object.as_theme_ref() {
+                        Some(theme_ref) => {
+                            let key = match propery {
+                                Some(propery) => match propery {
+                                    EvaluateResultValue::Expr(expr) => match expr {
+                                        Expr::Ident(Ident { sym, .. }) => sym.to_string().clone(),
+                                        _ => panic!("Member not found"),
+                                    },
+                                    EvaluateResultValue::Vec(_) => todo!(),
+                                    EvaluateResultValue::Map(_) => todo!(),
+                                    EvaluateResultValue::Entries(_) => todo!(),
+                                    EvaluateResultValue::Callback(_) => todo!(),
+                                    EvaluateResultValue::FunctionConfig(_) => todo!(),
+                                    EvaluateResultValue::ThemeRef(_) => todo!(),
+                                },
+                                None => panic!("Member not found"),
+                            };
+
+                            let (value, updated_state) = &theme_ref.clone().get(&key);
+
+                            state.traversal_state =
+                                state.traversal_state.clone().combine(updated_state.clone());
+
+                            dbg!(
+                                &value,
+                                &state.traversal_state.prepend_include_module_items,
+                                &updated_state.prepend_include_module_items
+                            );
+
+                            return Some(EvaluateResultValue::Expr(
+                                string_to_expression(value.clone()).unwrap(),
+                            ));
+                        }
+                        _ => (),
+                    }
+
+                    panic!("Function not found");
+                };
+
+                match expr {
+                    Expr::Array(ArrayLit { elems, .. }) => {
+                        let Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
+                            value,
+                            ..
+                        })))) = propery
+                        else {
+                            panic!("Member not found");
+                        };
+
+                        let property = elems.get(value as usize)?.clone();
+
+                        let Some(ExprOrSpread { expr, .. }) = property else {
+                            panic!("Member not found");
+                        };
+
+                        Some(EvaluateResultValue::Expr(*expr))
+                    }
+                    Expr::Object(ObjectLit { props, .. }) => {
+                        let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = propery else {
+                            panic!("Member not found");
+                        };
+
+                        let property = props
+                            .into_iter()
+                            .find(|prop| match prop {
+                                PropOrSpread::Spread(_) => {
+                                    todo!("Spread not implemented yet");
+                                }
+                                PropOrSpread::Prop(prop) => match prop.as_ref() {
+                                    Prop::KeyValue(key_value) => {
+                                        let key = get_key_str(key_value);
+
+                                        key == ident.sym.to_string()
+                                    }
+                                    _ => todo!("PropOrSpread"),
+                                },
+                            })?
+                            .clone();
+
+                        if let PropOrSpread::Prop(prop) = property {
+                            dbg!(&prop, ident);
+                            Some(EvaluateResultValue::Expr(*prop.key_value().unwrap().value))
+                        } else {
+                            panic!("Member not found");
+                        }
+                    }
+                    _ => todo!("Expression"),
                 }
-                _ => todo!("Expression"),
+            } else {
+                Option::None
             }
         }
         Expr::Unary(_) => todo!("Unary not implemented yet"),
@@ -531,8 +608,12 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                                             return Option::None;
                                         }
 
-                                        panic!("Check what's happening here");
-                                        // Option::Some(evaluated_result.value.unwrap().as_expr())
+                                        // panic!("Check what's happening here");
+                                        Option::Some(expr_to_str(
+                                            evaluated_result.value.unwrap().as_expr().unwrap(),
+                                            &mut state.traversal_state,
+                                            &state.functions,
+                                        ))
                                     }
                                     PropName::BigInt(big_int) => {
                                         Option::Some(big_int.value.to_string())
@@ -631,7 +712,17 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
                                         Expr::Array(array)
                                     }
-                                    _ => panic!("Property value must be an expression"),
+                                    EvaluateResultValue::Callback(cb) => {
+                                        let a = cb(vec![]);
+
+                                        dbg!(&a);
+
+                                        panic!();
+                                    }
+                                    _ => {
+                                        dbg!(&value);
+                                        panic!("Property value must be an expression")
+                                    }
                                 };
 
                                 props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
@@ -1177,7 +1268,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                         FunctionType::StylexFns(func) => {
                             let func_result =
                                 (func)(args.get(0).unwrap().clone(), state.traversal_state.clone());
-                            state.traversal_state = func_result.1;
+                            state.traversal_state =
+                                state.traversal_state.clone().combine(func_result.1);
                             return Option::Some(EvaluateResultValue::Expr(func_result.0));
                         }
                         FunctionType::Callback(_) => {
@@ -1223,7 +1315,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                                 state.traversal_state.clone(),
                             );
 
-                            state.traversal_state = func_result.1;
+                            state.traversal_state =
+                                state.traversal_state.clone().combine(func_result.1);
 
                             return Option::Some(EvaluateResultValue::Expr(func_result.0));
                         }
@@ -1354,6 +1447,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             VarDeclAction::Reduce,
         );
 
+        dbg!(&binding);
+
         match binding {
             Some(binding) => {
                 if path.eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
@@ -1362,13 +1457,114 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                 eprintln!("{}", Colorize::yellow("!!!! binding: {:#?} !!!!"));
                 dbg!(&binding.init);
 
-                return evaluate_cached(&*binding.init.expect("Binding nof found").clone(), state);
+                let result =
+                    evaluate_cached(&*binding.init.expect("Binding nof found").clone(), state);
+                dbg!(&result);
+                return result;
             }
             None => {
+                dbg!(&state.traversal_state.top_imports);
+
                 let name = ident.sym.to_string();
 
                 if name == "undefined" || name == "infinity" || name == "NaN" {
                     return Option::Some(EvaluateResultValue::Expr(Expr::Ident(ident.clone())));
+                }
+
+                let binding = get_import_by_ident(ident, &mut state.traversal_state).and_then(
+                    |import_decl| {
+                        if import_decl
+                            .specifiers
+                            .iter()
+                            .any(|import| import.is_named())
+                        {
+                            Option::Some(import_decl.clone())
+                        } else {
+                            Option::None
+                        }
+                    },
+                );
+
+                match binding {
+                    Some(import_path) => {
+                        let import_specifier = import_path
+                            .specifiers
+                            .iter()
+                            .find_map(|import| {
+                                dbg!(&import);
+                                if let Some(name_import) = import.as_named() {
+                                    if name_import.local.sym.to_string() == ident.sym.to_string() {
+                                        return Option::Some(name_import.clone());
+                                    }
+
+                                    // match name_import
+                                    //     .imported
+                                    //     .clone()
+                                    //     .unwrap_or(ModuleExportName::Ident(ident.clone()))
+                                    // {
+                                    //     ModuleExportName::Ident(import_ident) => {
+                                    //         dbg!(&import_ident.sym.to_string(), &ident.sym.to_string());
+                                    //         if import_ident.sym.to_string() == ident.sym.to_string()
+                                    //         {
+                                    //             return Option::Some(name_import.clone());
+                                    //         }
+                                    //     }
+                                    //     ModuleExportName::Str(str) => {
+                                    //         dbg!(&str.value, &ident.sym.to_string());
+                                    //         if str.value == ident.sym.to_string() {
+                                    //             return Option::Some(name_import.clone());
+                                    //         }
+                                    //     }
+                                    // }
+                                }
+                                Option::None
+                            })
+                            .expect("Import specifier not found");
+                        let imported = import_specifier
+                            .imported
+                            .clone()
+                            .unwrap_or(ModuleExportName::Ident(import_specifier.local.clone()));
+
+                        let abs_path = &state
+                            .traversal_state
+                            .import_path_resolver(&import_path.src.value.to_string());
+
+                        let imported_name = match imported {
+                            ModuleExportName::Ident(ident) => ident.sym.to_string(),
+                            ModuleExportName::Str(str) => str.value.clone().to_string(),
+                        };
+
+                        let return_value = match abs_path {
+                            ImportPathResolution::Tuple(
+                                ImportPathResolutionType::ThemeNameRef,
+                                value,
+                            ) => evaluate_theme_ref(value, imported_name, &state.traversal_state),
+                            _ => {
+                                return deopt(path, state);
+                            }
+                        };
+
+                        dbg!(&abs_path);
+
+                        if state.confident {
+                            let import_path_src = import_path.src.value.to_string();
+
+                            if !state.added_imports.contains(&import_path_src)
+                                && state.traversal_state.get_treeshake_compensation()
+                            {
+                                state
+                                    .traversal_state
+                                    .prepend_import_module_items
+                                    .push(add_import_expression(&import_path_src));
+
+                                dbg!(&state.traversal_state.prepend_include_module_items);
+                                state.added_imports.insert(import_path_src);
+                            }
+
+                            return Option::Some(EvaluateResultValue::ThemeRef(return_value));
+                        }
+                    }
+                    None => (),
                 }
             }
         }
@@ -1554,4 +1750,8 @@ fn keyframes(
     // let (animation_name, injected_style) = stylex_keyframes(animation, &state.options);
     // state.stylex_keyframes_import.insert(animation_name.clone());
     // animation_name
+}
+
+fn evaluate_theme_ref(file_name: &str, export_name: String, state: &StateManager) -> ThemeRef {
+    ThemeRef::new(file_name.to_string(), export_name, state.clone())
 }

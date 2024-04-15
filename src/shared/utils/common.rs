@@ -2,6 +2,7 @@ use std::{
     any::type_name,
     collections::HashSet,
     hash::{DefaultHasher, Hash, Hasher},
+    path::PathBuf,
 };
 
 use radix_fmt::radix;
@@ -9,10 +10,12 @@ use swc_core::{
     common::{FileName, Span, DUMMY_SP},
     ecma::{
         ast::{
-            BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Ident, KeyValueProp,
-            Lit, Module, ModuleDecl, ModuleItem, Number, ObjectLit, Pat, Prop, PropName,
-            PropOrSpread, Stmt, Str, Tpl, UnaryExpr, UnaryOp, VarDeclarator,
+            BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Ident, ImportDecl,
+            ImportSpecifier, KeyValueProp, Lit, Module, ModuleDecl, ModuleExportName, ModuleItem,
+            Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt, Str, Tpl, UnaryExpr,
+            UnaryOp, VarDeclarator,
         },
+        utils::ident,
         visit::{Fold, FoldWith},
     },
 };
@@ -104,6 +107,13 @@ pub(crate) fn extract_filename_from_path(path: FileName) -> String {
     }
 }
 
+pub(crate) fn extract_path(path: FileName) -> String {
+    match path {
+        FileName::Real(path_buf) => path_buf.to_str().unwrap().to_string(),
+        _ => "UnknownFile".to_string(),
+    }
+}
+
 pub(crate) fn extract_filename_with_ext_from_path(path: FileName) -> Option<String> {
     match path {
         FileName::Real(path_buf) => {
@@ -113,7 +123,7 @@ pub(crate) fn extract_filename_with_ext_from_path(path: FileName) -> Option<Stri
     }
 }
 
-pub(crate) fn create_hash(value: &str) -> String {
+pub fn create_hash(value: &str) -> String {
     radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }
 
@@ -291,6 +301,13 @@ pub fn get_var_decl_by_ident<'a>(
     }
 }
 
+pub fn get_import_by_ident<'a>(
+    ident: &'a Ident,
+    state: &'a mut StateManager,
+) -> Option<ImportDecl> {
+    get_import_from(state, ident).cloned()
+}
+
 pub(crate) fn get_var_decl_from<'a>(
     state: &'a StateManager,
     ident: &'a Ident,
@@ -301,6 +318,30 @@ pub(crate) fn get_var_decl_from<'a>(
         }
 
         false
+    })
+}
+
+pub(crate) fn get_import_from<'a>(
+    state: &'a StateManager,
+    ident: &'a Ident,
+) -> Option<&'a ImportDecl> {
+    state.top_imports.iter().find(|import| {
+        import.specifiers.iter().any(|specifier| match specifier {
+            ImportSpecifier::Named(named_import) => {
+                named_import.local.sym == ident.sym || {
+                    if let Some(imported) = &named_import.imported {
+                        match imported {
+                            ModuleExportName::Ident(export_ident) => export_ident.sym == ident.sym,
+                            ModuleExportName::Str(str) => str.value == ident.sym,
+                        }
+                    } else {
+                        false
+                    }
+                }
+            }
+            ImportSpecifier::Default(default_import) => default_import.local.sym == ident.sym,
+            ImportSpecifier::Namespace(namespace_import) => namespace_import.local.sym == ident.sym,
+        })
     })
 }
 
@@ -1037,4 +1078,27 @@ pub(crate) fn hash_f32(value: f32) -> u64 {
 pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
     let multiplier = 10f64.powi(decimal_places as i32);
     (value * multiplier).round() / multiplier
+}
+
+pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
+    match node_resolve::Resolver::default()
+        .with_basedir(PathBuf::from("./cwd"))
+        .preserve_symlinks(true)
+        .with_extensions(&[".ts", ".tsx", ".js", ".jsx", ".json"])
+        .with_main_fields(vec![String::from("main"), String::from("module")])
+        .resolve(package_name)
+    {
+        Ok(path) => Ok(path),
+        Err(error) => Err(format!(
+            "Error resolving package {}: {:?}",
+            package_name, error
+        )),
+    }
+}
+
+pub(crate) fn normalize_expr(expr: &Expr) -> &Expr {
+    match expr {
+        Expr::Paren(paren) => normalize_expr(paren.expr.as_ref()),
+        _ => expr,
+    }
 }

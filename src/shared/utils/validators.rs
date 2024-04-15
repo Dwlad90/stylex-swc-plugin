@@ -10,7 +10,7 @@ use crate::shared::{
     enums::{TopLevelExpression, TopLevelExpressionKind},
     regex::INCLUDED_IDENT_REGEX,
     structures::{evaluate_result::EvaluateResultValue, state_manager::StateManager},
-    utils::common::get_var_decl_by_ident_or_member,
+    utils::common::{get_string_val_from_lit, get_var_decl_by_ident_or_member},
 };
 
 use super::common::{get_key_str, get_key_values_from_object};
@@ -93,6 +93,49 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
     )
 }
 
+pub(crate) fn validate_stylex_create_theme_indent(
+    var_decl: &Option<VarDeclarator>,
+    call: &CallExpr,
+    state: &mut StateManager,
+) {
+    let Some(var_decl) = var_decl else {
+        panic!("{}", constants::messages::UNBOUND_STYLEX_CALL_VALUE)
+    };
+
+    let init = match &var_decl.init {
+        Some(init) => init
+            .clone()
+            .call()
+            .expect(constants::messages::NON_STATIC_KEYFRAME_VALUE),
+        None => panic!("{}", constants::messages::NON_STATIC_KEYFRAME_VALUE),
+    };
+
+    if !is_create_theme_call(call, state) {
+        return;
+    }
+
+    let ident = Ident::new("keyframes".into(), DUMMY_SP);
+
+    dbg!(&ident);
+    assert!(
+        get_var_decl_by_ident_or_member(state, &ident).is_some()
+            || state
+                .top_level_expressions
+                .clone()
+                .into_iter()
+                .any(|TopLevelExpression(_, call_item, _)| call_item
+                    .eq(&Box::new(Expr::Call(init.clone())))),
+        "{}",
+        constants::messages::UNBOUND_STYLEX_CALL_VALUE
+    );
+
+    assert!(
+        &init.args.len() == &2,
+        "{}",
+        constants::messages::ILLEGAL_ARGUMENT_LENGTH
+    );
+}
+
 pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateManager) {
     if !is_define_vars_call(call, state) {
         return;
@@ -162,6 +205,14 @@ pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) 
     }
 }
 
+pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> bool {
+    is_target_call(
+        ("createTheme", &state.stylex_create_theme_import),
+        &call,
+        state,
+    )
+}
+
 pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
     dbg!(&state.stylex_props_import);
     is_target_call(
@@ -205,7 +256,8 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &Vec<S
             PropName::Str(key) => {
                 if !(key.value.starts_with("@")
                     || key.value.starts_with(":")
-                    || key.value == "default")
+                    || key.value == "default"
+                    || namespace.value.is_lit())
                 {
                     panic!("{}", constants::messages::INVALID_PSEUDO_OR_AT_RULE)
                 }
@@ -351,4 +403,43 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
             constants::messages::NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
         ),
     }
+}
+
+pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyValueProp {
+    assert!(
+        variables
+            .as_expr()
+            .and_then(|expr| Option::Some(expr.is_object()))
+            .unwrap_or(false),
+        "Can only override variables theme created with stylex.defineVars()."
+    );
+
+    variables
+        .as_expr()
+        .and_then(|expr| expr.as_object())
+        .and_then(|object| {
+            let key_values = get_key_values_from_object(object);
+
+            Option::Some(key_values)
+        })
+        .and_then(|key_values| {
+            for key_value in key_values.into_iter() {
+                let key = get_key_str(&key_value);
+
+                if key == "__themeName__" {
+                    let value = &key_value.value;
+
+                    if let Some(lit) = value.as_lit() {
+                        let value = get_string_val_from_lit(lit);
+
+                        if value != "" {
+                            return Option::Some(key_value);
+                        }
+                    }
+                }
+            }
+
+            Option::None
+        })
+        .expect("Can only override variables theme created with stylex.defineVars().")
 }

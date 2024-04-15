@@ -1,0 +1,13 @@
+---
+source: tests/evaluation/stylex_evaluation/stylex_import_evaluation/evaluation_of_imported_values_works_based_on_configuration/theme_name_hashing_based_on_filename_alone_works.rs
+expression: transformation
+---
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import "otherFile.stylex";
+import stylex from 'stylex';
+import { MyTheme } from 'otherFile.stylex';
+_inject2("@keyframes __hashed_var__1cb153o-B{from{color:var(--__hashed_var__1jqb1tb);}}", 1);
+export const fade = "__hashed_var__1cb153o-B";
+_inject2(".__hashed_var__1xwo6t1{animation-name:__hashed_var__1cb153o-B}", 3000);
+"__hashed_var__1xwo6t1";

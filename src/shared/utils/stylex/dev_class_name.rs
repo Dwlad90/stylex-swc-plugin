@@ -15,7 +15,7 @@ pub(crate) fn inject_dev_class_names(
     let mut result: IndexMap<String, IndexMap<String, FlatCompiledStylesValue>> = IndexMap::new();
 
     for (key, value) in obj.iter() {
-        let dev_class_name = namespace_to_dev_class_name(&key, &var_name, state.get_filename());
+        let dev_class_name = namespace_to_dev_class_name(&key, &var_name, state.get_short_filename());
 
         let mut dev_class = IndexMap::new();
 
@@ -40,7 +40,7 @@ pub(crate) fn convert_to_test_styles(
     let mut result: IndexMap<String, IndexMap<String, FlatCompiledStylesValue>> = IndexMap::new();
 
     for (key, _value) in obj.iter() {
-        let dev_class_name = namespace_to_dev_class_name(&key, &var_name, state.get_filename());
+        let dev_class_name = namespace_to_dev_class_name(&key, &var_name, state.get_short_filename());
 
         let mut dev_class = IndexMap::new();
 

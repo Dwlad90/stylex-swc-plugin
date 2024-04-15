@@ -22,33 +22,34 @@ use crate::{
     ModuleTransformVisitor,
 };
 
-#[derive(Clone, Debug)]
-struct MemberTransform {
-    pub(crate) index: i32,
-    pub(crate) bail_out_index: Option<i32>,
-    pub(crate) non_null_props: NonNullProps,
-    pub(crate) state: StateManager,
-}
+// #[derive(Clone, Debug)]
+// struct MemberTransform {
+//     pub(crate) index: i32,
+//     pub(crate) bail_out_index: Option<i32>,
+//     pub(crate) non_null_props: NonNullProps,
+//     pub(crate) state: StateManager,
+// }
 
-impl Fold for MemberTransform {
-    noop_fold_type!();
+// impl Fold for MemberTransform {
+//     noop_fold_type!();
 
-    fn fold_member_expr(&mut self, member: MemberExpr) -> MemberExpr {
-        member_expression(
-            &member,
-            &mut self.index,
-            &mut self.bail_out_index,
-            &mut self.non_null_props,
-            &mut self.state,
-            &FunctionMap {
-                identifiers: HashMap::new(),
-                member_expressions: HashMap::new(),
-            },
-        );
+//     fn fold_member_expr(&mut self, member: MemberExpr) -> MemberExpr {
+//         member_expression(
+//             &member,
+//             &mut self.index,
+//             &mut self.bail_out_index,
+//             &mut self.non_null_props,
+//             &mut self.state,
+//             &FunctionMap {
+//                 identifiers: HashMap::new(),
+//                 member_expressions: HashMap::new(),
+//             },
+//             &vec![],
+//         );
 
-        member
-    }
-}
+//         member
+//     }
+// }
 
 impl<C> ModuleTransformVisitor<C>
 where

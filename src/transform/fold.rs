@@ -1,3 +1,4 @@
+mod fold_export_decl;
 mod fold_export_default_expr;
 mod fold_expr;
 mod fold_ident;
@@ -9,14 +10,13 @@ mod fold_stmt;
 mod fold_stmts;
 mod fold_var_declarator;
 mod fold_var_declarators;
-mod fold_export_decl;
 
 use swc_core::{
     common::comments::Comments,
     ecma::{
         ast::{
-            ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr, Module, ModuleItem,
-            Stmt, VarDeclarator,
+            ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, ImportSpecifier, MemberExpr,
+            Module, ModuleItem, Stmt, VarDeclarator,
         },
         visit::{noop_fold_type, Fold},
     },

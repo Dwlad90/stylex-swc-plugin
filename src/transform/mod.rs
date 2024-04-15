@@ -158,6 +158,10 @@ where
                             || self.state.stylex_keyframes_import.contains(&ident.to_id())
                             || self
                                 .state
+                                .stylex_create_theme_import
+                                .contains(&ident.to_id())
+                            || self
+                                .state
                                 .stylex_define_vars_import
                                 .contains(&ident.to_id())
                             || self.state.stylex_attrs_import.contains(&ident.to_id())
@@ -180,8 +184,11 @@ where
                             || (self.cycle == ModuleCycle::TransformEnter
                                 && (self.state.stylex_create_import.contains(&ident.to_id()))
                                 || self.state.stylex_props_import.contains(&ident.to_id())
-                                || self.state.stylex_props_import.contains(&ident.to_id())
                                 || self.state.stylex_keyframes_import.contains(&ident.to_id())
+                                || self
+                                    .state
+                                    .stylex_create_theme_import
+                                    .contains(&ident.to_id())
                                 || self
                                     .state
                                     .stylex_define_vars_import
@@ -215,7 +222,7 @@ where
         Option::None
     }
 
-    pub(crate) fn transform_call_expression(&mut self, expr: &mut Expr) -> Option<Expr> {
+    pub(crate) fn transform_call_expression(&mut self, expr: &Expr) -> Option<Expr> {
         match expr {
             Expr::Call(ex) => {
                 let declaration = self.process_declaration(&ex);

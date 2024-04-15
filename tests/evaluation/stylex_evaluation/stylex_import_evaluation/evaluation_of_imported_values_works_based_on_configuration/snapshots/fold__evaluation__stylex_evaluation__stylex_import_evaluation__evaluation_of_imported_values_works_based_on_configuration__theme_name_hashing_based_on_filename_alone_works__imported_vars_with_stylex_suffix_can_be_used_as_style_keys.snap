@@ -1,0 +1,11 @@
+---
+source: tests/evaluation/stylex_evaluation/stylex_import_evaluation/evaluation_of_imported_values_works_based_on_configuration/theme_name_hashing_based_on_filename_alone_works.rs
+expression: transformation
+---
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import "otherFile.stylex";
+import stylex from 'stylex';
+import { MyTheme } from 'otherFile.stylex';
+_inject2(".__hashed_var__1g7q0my{--__hashed_var__1jqb1tb:red}", 1);
+"__hashed_var__1g7q0my";

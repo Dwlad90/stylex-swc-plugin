@@ -45,6 +45,7 @@ swc_core = { version = "0.90.13", features = [
   "css_ast",
   # "base_concurrent",
 ] }
+
 # swc_css_parser = {version = "0.150.20"}
 lazy_static = "1.4.0"
 serde_json = "1.0.107"
@@ -62,6 +63,8 @@ radix_fmt = { version = "1.0.0" }
 phf = { version = "0.11.2", features = ["macros"] }
 once_cell = { version = "1.19.0" }
 colored = { version = "2.1.0" }
+node-resolve = { version = "2.2.0"}
+resolve-path={version = "0.1.0"}
 # sha2 = { version = "0.10.8" }
 
 [dev-dependencies]
@@ -70,6 +73,8 @@ swc_core = { version = "0.90.13", features = [
   "ecma_parser",
 ] }
 testing = "0.35.19"
+insta = { version = "1.38.0", features = ["yaml"] }
+
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

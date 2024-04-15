@@ -45,6 +45,10 @@ where
                 return Option::Some(value);
             }
 
+            if let Some(value) = self.transform_stylex_create_theme_call(call_expr) {
+                return Option::Some(value);
+            }
+
             if let Some(value) = self.transform_stylex_create(call_expr) {
                 return Option::Some(value);
             }

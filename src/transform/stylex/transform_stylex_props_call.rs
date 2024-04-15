@@ -4,7 +4,7 @@ use swc_core::{
     common::comments::Comments,
     ecma::{
         ast::{CallExpr, Expr, MemberExpr},
-        visit::{noop_fold_type, Fold},
+        visit::{noop_fold_type, AstNodePath, Fold, FoldWith, Visit},
     },
 };
 
@@ -22,33 +22,41 @@ use crate::{
     ModuleTransformVisitor,
 };
 
-#[derive(Clone, Debug)]
-struct MemberTransform {
-    pub(crate) index: i32,
-    pub(crate) bail_out_index: Option<i32>,
-    pub(crate) non_null_props: NonNullProps,
-    pub(crate) state: StateManager,
-}
+// #[derive(Clone, Debug)]
+// struct MemberTransform {
+//     pub(crate) index: i32,
+//     pub(crate) bail_out_index: Option<i32>,
+//     pub(crate) non_null_props: NonNullProps,
+//     pub(crate) state: StateManager,
+//     parents: Vec<Expr>,
+// }
 
-impl Fold for MemberTransform {
-    noop_fold_type!();
+// impl Fold for MemberTransform {
+//     noop_fold_type!();
 
-    fn fold_member_expr(&mut self, member: MemberExpr) -> MemberExpr {
-        member_expression(
-            &member,
-            &mut self.index,
-            &mut self.bail_out_index,
-            &mut self.non_null_props,
-            &mut self.state,
-            &FunctionMap {
-                identifiers: HashMap::new(),
-                member_expressions: HashMap::new(),
-            },
-        );
+//     fn fold_expr(&mut self, expr: Expr) -> Expr {
+//         self.parents.push(expr.clone());
+// panic!("MemberTransform::fold_expr");
+//         expr.fold_children_with(self)
+//     }
 
-        member
-    }
-}
+//     fn fold_member_expr(&mut self, member: MemberExpr) -> MemberExpr {
+//         member_expression(
+//             &member,
+//             &mut self.index,
+//             &mut self.bail_out_index,
+//             &mut self.non_null_props,
+//             &mut self.state,
+//             &FunctionMap {
+//                 identifiers: HashMap::new(),
+//                 member_expressions: HashMap::new(),
+//             },
+//             &self.parents,
+//         );
+
+//         member
+//     }
+// }
 
 impl<C> ModuleTransformVisitor<C>
 where

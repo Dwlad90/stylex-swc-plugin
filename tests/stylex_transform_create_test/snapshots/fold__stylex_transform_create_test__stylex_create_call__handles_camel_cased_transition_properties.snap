@@ -1,0 +1,8 @@
+---
+source: tests/stylex_transform_create_test/stylex_create_call.rs
+expression: stringify_js(&camel_cased)
+---
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import stylex from 'stylex';
+_inject2(".x1cfch2b{transition-property:margin-top}", 3000);

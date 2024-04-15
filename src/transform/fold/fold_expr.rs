@@ -14,6 +14,12 @@ where
             return expr;
         }
 
+        if self.cycle == ModuleCycle::Initializing {
+            if let Some(call_expr) = expr.as_call() {
+                self.state.all_call_expressions.push(call_expr.clone());
+            }
+        }
+
         if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {
             if let Some(value) = self.transform_call_expression(&mut expr) {
                 return value;

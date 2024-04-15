@@ -6,7 +6,10 @@ use swc_core::{
     },
 };
 
-use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
+use crate::{
+    shared::{enums::ModuleCycle, utils::common::normalize_expr},
+    ModuleTransformVisitor,
+};
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -21,13 +24,10 @@ where
         }
 
         if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {
-            match &mut export_default_expr.expr.as_mut() {
-                Expr::Paren(paren) => {
-                    if let Some(value) = self.transform_call_expression(&mut paren.expr) {
-                        *export_default_expr.expr = value;
-                    }
-                }
-                _ => {}
+            if let Some(value) =
+                self.transform_call_expression(normalize_expr(export_default_expr.expr.as_ref()))
+            {
+                *export_default_expr.expr = value;
             }
         }
 

@@ -26,10 +26,17 @@ struct MemberTransform {
     pub(crate) bail_out_index: Option<i32>,
     pub(crate) non_null_props: NonNullProps,
     pub(crate) state: StateManager,
+    pub(crate) parents: Vec<Expr>,
 }
 
 impl Fold for MemberTransform {
     noop_fold_type!();
+
+    fn fold_expr(&mut self, expr: Expr) -> Expr {
+        self.parents.push(expr.clone());
+        dbg!(&expr);
+        expr.fold_children_with(self)
+    }
 
     fn fold_member_expr(&mut self, member: MemberExpr) -> MemberExpr {
         member_expression(
@@ -201,9 +208,8 @@ pub(crate) fn stylex_merge(
     if !state.gen_conditional_classes() && conditional > 0 {
         bail_out = true;
     }
+
     if bail_out {
-
-
         let arguments_path = call.args.clone();
 
         let mut non_null_props: NonNullProps = NonNullProps::Vec(vec![]);
@@ -215,6 +221,8 @@ pub(crate) fn stylex_merge(
 
             assert!(arg_path.spread.is_none(), "Spread not implemented yet");
 
+            dbg!(&arg_path.expr);
+
             // let mut arg = arg_path.expr.as_ref();
 
             let mut member_transfom = MemberTransform {
@@ -222,15 +230,15 @@ pub(crate) fn stylex_merge(
                 bail_out_index: bail_out_index.clone(),
                 non_null_props: non_null_props.clone(),
                 state: state.clone(),
+                parents: vec![],
             };
 
-            dbg!(&arg_path);
             arg_path.expr = arg_path.expr.clone().fold_with(&mut member_transfom);
+            dbg!(&arg_path);
 
             // if cycle == &ModuleCycle::TransformExit{
             //     dbg!(&arg_path);
             // }
-
 
             index = member_transfom.index;
             bail_out_index = member_transfom.bail_out_index;
@@ -288,7 +296,6 @@ pub(crate) fn stylex_merge(
 
         return string_expression;
     }
-
 
     None
 }

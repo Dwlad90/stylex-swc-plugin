@@ -54,7 +54,11 @@ where
             ModuleCycle::InjectClassName => module_items.fold_children_with(self),
             ModuleCycle::InjectStyles => {
                 let mut result_module_items: Vec<ModuleItem> =
-                    self.state.prepend_module_items.clone();
+                    self.state.prepend_include_module_items.clone();
+
+                result_module_items.extend(self.state.prepend_import_module_items.clone());
+
+                dbg!(&result_module_items);
 
                 for module_item in module_items.clone().into_iter() {
                     if let Some(decls) = match module_item.clone() {

@@ -7,6 +7,7 @@ mod stylex_transform_legacy_shorthands;
 mod stylex_transform_logical_properties_test;
 mod stylex_transform_logical_values_test;
 mod stylex_transform_override_vars_test;
+mod stylex_transform_polyfills_test;
 mod stylex_transform_stylex_attrs_test;
 mod stylex_transform_stylex_create_theme_test;
 mod stylex_transform_stylex_keyframes_test;

@@ -23,11 +23,7 @@ pub(crate) fn remove_objects_with_spreads(
   obj.retain(|_key, value| {
     value
       .values()
-      .into_iter()
-      .all(|keep_value| match keep_value {
-        FlatCompiledStylesValue::IncludedStyle(_) => false,
-        _ => true,
-      })
+      .all(|keep_value| !matches!(keep_value, FlatCompiledStylesValue::IncludedStyle(_)))
   });
 
   obj
@@ -40,7 +36,7 @@ pub(crate) enum NestedStringObject {
 }
 
 impl NestedStringObject {
-  pub(crate) fn as_styles(&self) -> Option<&IndexMap<String, FlatCompiledStyles>> {
+  pub(crate) fn _as_styles(&self) -> Option<&IndexMap<String, FlatCompiledStyles>> {
     match self {
       NestedStringObject::FlatCompiledStyles(obj) => Some(obj),
       _ => None,
@@ -89,7 +85,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
             key.clone(),
             Expr::Lit(Lit::Bool(Bool {
               span: DUMMY_SP,
-              value: value.clone(),
+              value: *value,
             })),
           ),
           FlatCompiledStylesValue::InjectableStyle(_) => todo!("Injectable style"),

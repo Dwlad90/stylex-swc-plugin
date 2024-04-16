@@ -26,15 +26,17 @@ where
       self.cycle = ModuleCycle::TransformExit;
       module = module.fold_children_with(self);
 
+      dbg!(&self.state.options.runtime_injection);
+
       if self.state.options.runtime_injection.is_some() {
         self.cycle = ModuleCycle::InjectStyles;
         module = module.fold_children_with(self);
       } else {
         // Preparing stylex metadata for css extraction
-        self.comments.add_leading_comments(
+        self.comments.add_leading(
           module.span.lo,
-          vec![Comment {
-            kind: CommentKind::Block,
+          Comment {
+            kind: CommentKind::Line,
             text: format!(
               "__stylex_metadata_start__{}__stylex_metadata_end__",
               serde_json::to_string(
@@ -42,15 +44,14 @@ where
                   .state
                   .metadata
                   .iter()
-                  .map(|v| v.1.clone())
-                  .flatten()
+                  .flat_map(|v| v.1.clone())
                   .collect::<Vec<MetaData>>()
               )
               .unwrap()
             )
             .into(),
             span: module.span,
-          }],
+          },
         );
       }
 

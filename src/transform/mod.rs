@@ -122,7 +122,7 @@ where
         config.treeshake_compensation = Option::Some(true);
         config.class_name_prefix = "x".to_string();
 
-        StateManager::new(config.into())
+        StateManager::new(config)
       }
     };
 

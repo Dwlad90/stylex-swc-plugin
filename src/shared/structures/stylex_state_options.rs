@@ -65,8 +65,8 @@ impl From<StyleXOptions> for StyleXStateOptions {
         stylex_options::Aliases::String(aliases) => {
           let mut aliases_map = HashMap::new();
           for (key, value) in aliases {
-            let mut vec = Vec::new();
-            vec.push(value);
+            let vec = vec![value];
+
             aliases_map.insert(key, vec);
           }
 

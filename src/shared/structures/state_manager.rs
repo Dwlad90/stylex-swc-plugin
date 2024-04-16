@@ -179,9 +179,7 @@ impl StateManager {
     extract_path(self._state.filename.clone())
   }
   pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
-    let filename = extract_filename_with_ext_from_path(self._state.filename.clone());
-
-    filename
+    extract_filename_with_ext_from_path(self._state.filename.clone())
   }
 
   pub(crate) fn import_path_resolver(&self, import_path: &String) -> ImportPathResolution {

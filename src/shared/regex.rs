@@ -19,7 +19,7 @@ pub(crate) static SANITIZE_CLASS_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[^.a-zA-Z0-9_-]").unwrap());
 
 pub(crate) static IDENT_PROP_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[a-zA-Z$_]*$").unwrap());
+  Lazy::new(|| Regex::new(r"^[a-zA-Z\d$_]*$").unwrap());
 
 pub(crate) static WHITESPACE_NORMALIZER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"(\))(\S)|(\")(\")"#).unwrap());

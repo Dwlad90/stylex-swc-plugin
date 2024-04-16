@@ -96,6 +96,14 @@ impl StyleXOptions {
       theme_file_extension: Option::None,
     }
   }
+
+  pub fn get_common_js_module_resolution() -> ModuleResolution {
+    ModuleResolution {
+      r#type: "commonjs".to_string(),
+      _root_dir: Option::None,
+      theme_file_extension: Option::None,
+    }
+  }
 }
 
 impl Default for StyleXOptions {
@@ -133,20 +141,28 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       },
       None => Option::None,
     };
+    dbg!(&options.runtime_injection);
+
+    let runtime_injection = options
+      .runtime_injection
+      .unwrap_or(RuntimeInjection::Boolean(options.dev.unwrap_or(false)));
+
+    // if options.dev.unwrap_or(false) && runtime_injection.eq(&RuntimeInjection::Boolean(false)) {
+    //   runtime_injection = RuntimeInjection::Boolean(true);
+    // }
+
+    // dbg!(runtime_injection);
+    // panic!("Implement your logic here to flip the value");
 
     StyleXOptions {
       style_resolution: options
         .style_resolution
         .unwrap_or(StyleResolution::ApplicationOrder),
       use_rem_for_font_size: options.use_rem_for_font_size.unwrap_or(false),
-      runtime_injection: options
-        .runtime_injection
-        .unwrap_or(RuntimeInjection::Boolean(false)),
+      runtime_injection,
       class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),
-      defined_stylex_css_variables: options
-        .defined_stylex_css_variables
-        .unwrap_or(HashMap::new()),
-      import_sources: options.import_sources.unwrap_or(vec![]),
+      defined_stylex_css_variables: options.defined_stylex_css_variables.unwrap_or_default(),
+      import_sources: options.import_sources.unwrap_or_default(),
       dev: options.dev.unwrap_or(false),
       test: options.test.unwrap_or(false),
       treeshake_compensation: options.treeshake_compensation,

@@ -79,7 +79,7 @@ pub(crate) fn string_to_expression(value: String) -> Option<Expr> {
 
 // Converts a string to an expression.
 pub(crate) fn string_to_prop_name(value: String) -> Option<PropName> {
-  if IDENT_PROP_REGEX.is_match(value.as_str()) {
+  if IDENT_PROP_REGEX.is_match(value.as_str()) && value.parse::<i64>().is_err() {
     Some(PropName::Ident(Ident::new(value.clone().into(), DUMMY_SP)))
   } else {
     Some(PropName::Str(Str {

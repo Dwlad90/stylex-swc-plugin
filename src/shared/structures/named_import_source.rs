@@ -21,7 +21,7 @@ impl ImportSources {
   }
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum RuntimeInjection {
   Boolean(bool),
   Regular(String),
@@ -76,7 +76,7 @@ impl RuntimeInjection {
   }
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum RuntimeInjectionState {
   Regular(String),
   Named(NamedImportSource),

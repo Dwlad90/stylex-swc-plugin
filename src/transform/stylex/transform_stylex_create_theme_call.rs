@@ -1,43 +1,21 @@
-use std::collections::HashMap;
-
-use indexmap::IndexMap;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Id, Ident, KeyValueProp, Lit, Str, VarDeclarator};
 use swc_core::{
   common::comments::Comments,
-  ecma::ast::{CallExpr, Expr, Prop, PropOrSpread},
+  ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::constants::{self, messages};
-use crate::shared::enums::TopLevelExpression;
-use crate::shared::structures::evaluate_result::EvaluateResultValue;
-use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
-use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::injectable_style::{self, InjectableStyle};
-use crate::shared::structures::meta_data::MetaData;
-use crate::shared::structures::named_import_source::ImportSources;
-use crate::shared::utils::common::{
-  get_key_str, get_key_values_from_object, get_string_val_from_lit, prop_or_spread_string_creator,
-  string_to_expression,
+use crate::shared::utils::stylex::js_to_expr::{convert_object_to_ast, NestedStringObject};
+use crate::shared::utils::{
+  js::stylex::stylex_create_theme::stylex_create_theme,
+  stylex::dev_class_name::convert_theme_to_test_styles,
 };
-use crate::shared::utils::css::factories::object_expression_factory;
-use crate::shared::utils::css::stylex::evaluate::evaluate;
-use crate::shared::utils::css::stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
-use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
-use crate::shared::utils::js::stylex::stylex_create_theme::stylex_create_theme;
-use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
-use crate::shared::utils::js::stylex::stylex_include::stylex_include;
-use crate::shared::utils::js::stylex::stylex_keyframes::stylex_keyframes;
-use crate::shared::utils::stylex::dev_class_name::{
-  convert_to_test_styles, inject_dev_class_names,
+use crate::shared::utils::{
+  stylex::dev_class_name::convert_theme_to_dev_styles,
+  validators::{
+    is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
+  },
 };
-use crate::shared::utils::stylex::js_to_expr::{
-  convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
-};
-use crate::shared::utils::validators::{
-  assert_valid_keyframes, is_create_call, is_create_theme_call, is_keyframes_call,
-  validate_namespace, validate_stylex_create_indent, validate_stylex_create_theme_indent,
-  validate_stylex_keyframes_indent, validate_theme_variables,
+use crate::shared::{
+  constants, structures::functions::FunctionMap, utils::css::stylex::evaluate::evaluate,
 };
 use crate::ModuleTransformVisitor;
 
@@ -46,40 +24,25 @@ where
   C: Comments,
 {
   pub(crate) fn transform_stylex_create_theme_call(&mut self, call: &CallExpr) -> Option<Expr> {
-    let is_create_theme_call = is_create_theme_call(call, &mut self.state);
+    let is_create_theme_call = is_create_theme_call(call, &self.state);
 
     let result = if is_create_theme_call {
       let (_, parent_var_decl) = &self.get_call_var_name(call);
 
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
-      let id = parent_var_decl
-        .as_ref()
-        .expect(constants::messages::UNBOUND_STYLEX_CALL_VALUE)
-        .clone()
-        .name;
-
-      let variable_name = id
-        .as_ident()
-        .expect(constants::messages::UNBOUND_STYLEX_CALL_VALUE)
-        .to_id();
-
-      let first_arg = call.args.get(0);
+      let first_arg = call.args.first();
       let second_arg = call.args.get(1);
 
-      let Some(first_arg) = first_arg.and_then(|first_arg| match &first_arg.spread {
+      let first_arg = first_arg.and_then(|first_arg| match &first_arg.spread {
         Some(_) => todo!(),
         None => Option::Some(first_arg.expr.clone()),
-      }) else {
-        return Option::None;
-      };
+      })?;
 
-      let Some(second_arg) = second_arg.and_then(|second_arg| match &second_arg.spread {
+      let second_arg = second_arg.and_then(|second_arg| match &second_arg.spread {
         Some(_) => todo!(),
         None => Option::Some(second_arg.expr.clone()),
-      }) else {
-        return Option::None;
-      };
+      })?;
 
       // let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> =
       //     IndexMap::new();
@@ -165,7 +128,7 @@ where
           assert!(
             value
               .as_expr()
-              .and_then(|expr| Option::Some(expr.is_object()))
+              .map(|expr| expr.is_object())
               .unwrap_or(false),
             "{}",
             constants::messages::NON_OBJECT_FOR_STYLEX_CALL
@@ -177,14 +140,18 @@ where
         }
       };
 
-      // let plain_object = value;
-
-      // assert_valid_keyframes(&plain_object);
-
-      let (overrides_obj, inject_styles) =
+      let (mut overrides_obj, inject_styles) =
         stylex_create_theme(&variables, &overrides, &mut self.state);
 
       let (var_name, _) = self.get_call_var_name(call);
+
+      if self.state.is_test() {
+        overrides_obj =
+          convert_theme_to_test_styles(&var_name, &overrides_obj, &self.state.get_filename());
+      } else if self.state.is_dev() {
+        overrides_obj =
+          convert_theme_to_dev_styles(&var_name, &overrides_obj, &self.state.get_filename());
+      }
 
       let result_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(overrides_obj));

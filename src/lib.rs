@@ -7,13 +7,13 @@ use shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsP
 pub use transform::ModuleTransformVisitor;
 
 use swc_core::{
-    common::FileName,
-    ecma::{ast::Program, visit::FoldWith},
-    plugin::{
-        metadata::TransformPluginMetadataContextKind,
-        plugin_transform,
-        proxies::{PluginCommentsProxy, TransformPluginProgramMetadata},
-    },
+  common::FileName,
+  ecma::{ast::Program, visit::FoldWith},
+  plugin::{
+    metadata::TransformPluginMetadataContextKind,
+    plugin_transform,
+    proxies::{PluginCommentsProxy, TransformPluginProgramMetadata},
+  },
 };
 
 // #[derive(Deserialize, Clone, Debug)]
@@ -43,38 +43,38 @@ use swc_core::{
 
 #[plugin_transform]
 pub(crate) fn process_transform(
-    program: Program,
-    metadata: TransformPluginProgramMetadata,
+  program: Program,
+  metadata: TransformPluginProgramMetadata,
 ) -> Program {
-    let config = serde_json::from_str::<StyleXOptionsParams>(
-        &metadata
-            .get_transform_plugin_config()
-            .expect("failed to get plugin config for stylex"),
-    )
-    .expect("invalid config for stylex");
+  let config = serde_json::from_str::<StyleXOptionsParams>(
+    &metadata
+      .get_transform_plugin_config()
+      .expect("failed to get plugin config for stylex"),
+  )
+  .expect("invalid config for stylex");
 
-    let filename: FileName =
-        match metadata.get_context(&TransformPluginMetadataContextKind::Filename) {
-            Some(s) => FileName::Real(s.into()),
-            None => FileName::Anon,
-        };
+  let filename: FileName = match metadata.get_context(&TransformPluginMetadataContextKind::Filename)
+  {
+    Some(s) => FileName::Real(s.into()),
+    None => FileName::Anon,
+  };
 
-    let cwd = match env::current_dir() {
-        Ok(cwd) => Some(cwd),
-        Err(e) => panic!("Error getting current directory: {}", e),
-    };
+  let cwd = match env::current_dir() {
+    Ok(cwd) => Some(cwd),
+    Err(e) => panic!("Error getting current directory: {}", e),
+  };
 
-    let plugin_pass = PluginPass {
-        // key: "key".to_string(),
-        // opts: Default::default(),
-        cwd,
-        filename,
-    };
+  let plugin_pass = PluginPass {
+    // key: "key".to_string(),
+    // opts: Default::default(),
+    cwd,
+    filename,
+  };
 
-    let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
-        ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, config);
+  let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
+    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, config);
 
-    let program = program.fold_with(&mut stylex);
+  let program = program.fold_with(&mut stylex);
 
-    program
+  program
 }

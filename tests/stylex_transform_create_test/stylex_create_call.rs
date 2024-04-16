@@ -1,23 +1,23 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-    parser::{Syntax, TsConfig},
-    transforms::testing::test,
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
 };
 
 use crate::utils::transform::stringify_js;
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_style_object,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_style_object,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -29,17 +29,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_style_object_with_import_wildcard,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_style_object_with_import_wildcard,
+  r#"
         import * as foo from 'stylex';
         const styles = foo.create({
             default: {
@@ -51,17 +51,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_style_object_with_named_imports,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_style_object_with_named_imports,
+  r#"
         import {create} from 'stylex';
         const styles = create({
             default: {
@@ -73,17 +73,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_style_object_with_custom_property,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_style_object_with_custom_property,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -94,17 +94,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_style_object_with_custom_property_as_value,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_style_object_with_custom_property_as_value,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -115,17 +115,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_multiple_namespaces,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_multiple_namespaces,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -139,17 +139,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    does_not_transform_attr_fn_value,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  does_not_transform_attr_fn_value,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -161,82 +161,82 @@ test!(
 
 #[test]
 fn handles_camel_cased_transition_properties() {
-    let camel_cased = "import stylex from 'stylex';
+  let camel_cased = "import stylex from 'stylex';
         const styles = stylex.create({
             default: {
                 transitionProperty: 'marginTop',
             },
         });";
 
-    let kebab_cased = "import stylex from 'stylex';
+  let kebab_cased = "import stylex from 'stylex';
         const styles = stylex.create({
             default: {
                 transitionProperty: 'margin-top',
             },
         });";
 
-    assert_eq!(
-        stringify_js(
-            &camel_cased,
-            Syntax::Typescript(TsConfig {
-                tsx: true,
-                ..Default::default()
-            }),
-            |tr| ModuleTransformVisitor::new_test_styles(
-                tr.comments.clone(),
-                PluginPass::default(),
-                Option::None
-            )
-        ),
-        stringify_js(
-            &kebab_cased,
-            Syntax::Typescript(TsConfig {
-                tsx: true,
-                ..Default::default()
-            }),
-            |tr| ModuleTransformVisitor::new_test_styles(
-                tr.comments.clone(),
-                PluginPass::default(),
-                Option::None
-            )
-        )
-    );
-
-    insta::assert_snapshot!(stringify_js(
-        &camel_cased,
-        Syntax::Typescript(TsConfig {
-            tsx: true,
-            ..Default::default()
-        }),
-        |tr| ModuleTransformVisitor::new_test_styles(
-            tr.comments.clone(),
-            PluginPass::default(),
-            Option::None
-        )
-    ));
-
-    // assert_eq!(
-    //     stringify_js(&camel_cased),
-    //     r#"import _inject from "@stylexjs/stylex/lib/stylex-inject";
-    //     var _inject2 = _inject;
-    //     import stylex from 'stylex';
-    //     _inject2(".x1cfch2b{transition-property:margin-top}", 3000);
-    //     "#
-    // );
-}
-
-test!(
-    Syntax::Typescript(TsConfig {
+  assert_eq!(
+    stringify_js(
+      &camel_cased,
+      Syntax::Typescript(TsConfig {
         tsx: true,
         ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
+      }),
+      |tr| ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         PluginPass::default(),
         Option::None
+      )
     ),
-    leaves_transition_properties_of_custom_properties_alone,
-    r#"
+    stringify_js(
+      &kebab_cased,
+      Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+      }),
+      |tr| ModuleTransformVisitor::new_test_styles(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Option::None
+      )
+    )
+  );
+
+  insta::assert_snapshot!(stringify_js(
+    &camel_cased,
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |tr| ModuleTransformVisitor::new_test_styles(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Option::None
+    )
+  ));
+
+  // assert_eq!(
+  //     stringify_js(&camel_cased),
+  //     r#"import _inject from "@stylexjs/stylex/lib/stylex-inject";
+  //     var _inject2 = _inject;
+  //     import stylex from 'stylex';
+  //     _inject2(".x1cfch2b{transition-property:margin-top}", 3000);
+  //     "#
+  // );
+}
+
+test!(
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  leaves_transition_properties_of_custom_properties_alone,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -247,17 +247,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_nested_pseudo_class_to_css,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_nested_pseudo_class_to_css,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -271,17 +271,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_nested_pseudo_class_within_properties_to_css,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_nested_pseudo_class_within_properties_to_css,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -297,17 +297,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_array_values_as_fallbacks,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_array_values_as_fallbacks,
+  r#"
         import stylex from 'stylex';
             const styles = stylex.create({
             default: {
@@ -318,17 +318,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_array_values_as_fallbacks_within_media_query,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_array_values_as_fallbacks_within_media_query,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -343,17 +343,17 @@ test!(
 
 // TODO: add more vendor-prefixed properties and values
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_properties_requiring_vendor_prefixes,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_properties_requiring_vendor_prefixes,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -364,17 +364,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_valid_shorthands,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_valid_shorthands,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -387,17 +387,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    uses_stylex_include_correctly_with_member_expressions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  uses_stylex_include_correctly_with_member_expressions,
+  r#"
         import stylex from 'stylex';
         export const styles = stylex.create({
             foo: {
@@ -408,17 +408,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    using_stylex_include_keeps_the_compiled_object,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  using_stylex_include_keeps_the_compiled_object,
+  r#"
         import stylex from 'stylex';
 
         const importedStyles = stylex.create({
@@ -440,17 +440,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    uses_stylex_first_that_works_correctly,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  uses_stylex_first_that_works_correctly,
+  r#"
         import stylex from 'stylex';
         export const styles = stylex.create({
             foo: {
@@ -461,17 +461,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_complex_property_values_containing_custom_properties_variables,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_complex_property_values_containing_custom_properties_variables,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -482,17 +482,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    auto_expands_shorthands,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  auto_expands_shorthands,
+  r#"
         import stylex from 'stylex';
         const borderRadius = 2;
         const styles = stylex.create({
@@ -527,17 +527,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    last_property_wins_even_if_shorthand,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  last_property_wins_even_if_shorthand,
+  r#"
         import stylex from 'stylex';
         const borderRadius = 2;
         const styles = stylex.create({

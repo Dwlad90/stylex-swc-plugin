@@ -1,17 +1,21 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-    parser::{Syntax, TsConfig},
-    transforms::testing::test,
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
 };
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), PluginPass::default(), Option::None),
-    transforms_before_and_after,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_before_and_after,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             foo: {
@@ -27,13 +31,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), PluginPass::default(), Option::None),
-    transforms_placeholder,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_placeholder,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             foo: {
@@ -46,13 +54,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), PluginPass::default(), Option::None),
-    transforms_thumb,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_thumb,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             foo: {

@@ -1,21 +1,21 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-    parser::{Syntax, TsConfig},
-    transforms::testing::test,
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
 };
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_media_queries,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_media_queries,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -30,17 +30,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    transforms_supports_queries,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  transforms_supports_queries,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {

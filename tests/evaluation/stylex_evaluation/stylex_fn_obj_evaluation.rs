@@ -4,31 +4,31 @@ use crate::evaluation::args_module_transform::ArgsModuleTransformVisitor;
 
 #[test]
 fn evaluates_empty_object() {
-    swc_core::ecma::transforms::testing::test_transform(
-        Syntax::Typescript(TsConfig {
-            tsx: true,
-            ..Default::default()
-        }),
-        |_| ArgsModuleTransformVisitor::default(),
-        r#"
+  swc_core::ecma::transforms::testing::test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| ArgsModuleTransformVisitor::default(),
+    r#"
           const x = {};
         "#,
-        r#"
+    r#"
             ({});
         "#,
-        false,
-    )
+    false,
+  )
 }
 
 #[test]
 fn evaluates_static_style_object() {
-    swc_core::ecma::transforms::testing::test_transform(
-        Syntax::Typescript(TsConfig {
-            tsx: true,
-            ..Default::default()
-        }),
-        |_| ArgsModuleTransformVisitor::default(),
-        r#"
+  swc_core::ecma::transforms::testing::test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| ArgsModuleTransformVisitor::default(),
+    r#"
           const x = {
             default: {
               overflow: 'hidden',
@@ -37,7 +37,7 @@ fn evaluates_static_style_object() {
             },
           };
         "#,
-        r#"
+    r#"
           ({
             default: {
               overflow: 'hidden',
@@ -46,19 +46,19 @@ fn evaluates_static_style_object() {
             },
           })
         "#,
-        false,
-    )
+    false,
+  )
 }
 
 #[test]
 fn evaluates_object_with_function_styles_identifier() {
-    swc_core::ecma::transforms::testing::test_transform(
-        Syntax::Typescript(TsConfig {
-            tsx: true,
-            ..Default::default()
-        }),
-        |_| ArgsModuleTransformVisitor::default(),
-        r#"
+  swc_core::ecma::transforms::testing::test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| ArgsModuleTransformVisitor::default(),
+    r#"
           const x = {
             default: (width) => ({
               overflow: 'hidden',
@@ -67,7 +67,7 @@ fn evaluates_object_with_function_styles_identifier() {
             }),
           };
         "#,
-        r#"
+    r#"
           ({
             default: {
               overflow: 'hidden',
@@ -76,20 +76,19 @@ fn evaluates_object_with_function_styles_identifier() {
             }
           })
         "#,
-        false,
-    )
+    false,
+  )
 }
-
 
 #[test]
 fn evaluates_object_with_function_styles_binary_expression() {
-    swc_core::ecma::transforms::testing::test_transform(
-        Syntax::Typescript(TsConfig {
-            tsx: true,
-            ..Default::default()
-        }),
-        |_| ArgsModuleTransformVisitor::default(),
-        r#"
+  swc_core::ecma::transforms::testing::test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| ArgsModuleTransformVisitor::default(),
+    r#"
           const x = {
             default: (width) => ({
               overflow: 'hidden',
@@ -98,7 +97,7 @@ fn evaluates_object_with_function_styles_binary_expression() {
             }),
           };
         "#,
-        r#"
+    r#"
           ({
             default: {
               overflow: 'hidden',
@@ -107,6 +106,6 @@ fn evaluates_object_with_function_styles_binary_expression() {
             }
           })
         "#,
-        false,
-    )
+    false,
+  )
 }

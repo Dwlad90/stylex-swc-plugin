@@ -1,25 +1,23 @@
 use std::collections::HashMap;
 
 use swc_core::{
-    common::comments::Comments,
-    ecma::{
-        ast::{CallExpr, Expr, MemberExpr},
-        visit::{noop_fold_type, Fold},
-    },
+  common::comments::Comments,
+  ecma::{
+    ast::{CallExpr, Expr, MemberExpr},
+    visit::{noop_fold_type, Fold},
+  },
 };
 
 use crate::{
-    shared::{
-        enums::NonNullProps,
-        structures::{functions::FunctionMap, state_manager::StateManager},
-        utils::{
-            stylex::{
-                attrs::attrs, member_expression::member_expression, stylex_merge::stylex_merge,
-            },
-            validators::is_attrs_call,
-        },
+  shared::{
+    enums::NonNullProps,
+    structures::{functions::FunctionMap, state_manager::StateManager},
+    utils::{
+      stylex::{attrs::attrs, member_expression::member_expression, stylex_merge::stylex_merge},
+      validators::is_attrs_call,
     },
-    ModuleTransformVisitor,
+  },
+  ModuleTransformVisitor,
 };
 
 // #[derive(Clone, Debug)]
@@ -53,15 +51,15 @@ use crate::{
 
 impl<C> ModuleTransformVisitor<C>
 where
-    C: Comments,
+  C: Comments,
 {
-    pub(crate) fn transform_stylex_attrs_call(&mut self, call: &CallExpr) -> Option<Expr> {
-        let is_attrs_call = is_attrs_call(call, &mut self.state);
+  pub(crate) fn transform_stylex_attrs_call(&mut self, call: &CallExpr) -> Option<Expr> {
+    let is_attrs_call = is_attrs_call(call, &mut self.state);
 
-        if is_attrs_call {
-            return stylex_merge(call, attrs, &mut self.state);
-        }
-
-        Option::None
+    if is_attrs_call {
+      return stylex_merge(call, attrs, &mut self.state);
     }
+
+    Option::None
+  }
 }

@@ -1,28 +1,28 @@
 use stylex_swc_plugin::{
-    shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-    ModuleTransformVisitor,
+  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  ModuleTransformVisitor,
 };
 use swc_core::ecma::{
-    parser::{Syntax, TsConfig},
-    transforms::testing::test,
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
 };
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(StyleXOptionsParams {
-            dev: Some(true),
-            gen_conditional_classes: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    basic_stylex_call,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(StyleXOptionsParams {
+      dev: Some(true),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  basic_stylex_call,
+  r#"
       import stylex from '@stylexjs/stylex';
       export const styles = stylex.create({
         sidebar: {
@@ -59,21 +59,21 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(StyleXOptionsParams {
-            dev: Some(true),
-            gen_conditional_classes: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    basic_stylex_call_exported,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(StyleXOptionsParams {
+      dev: Some(true),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  basic_stylex_call_exported,
+  r#"
         import stylex from '@stylexjs/stylex';
         const styles = stylex.create({
           sidebar: {

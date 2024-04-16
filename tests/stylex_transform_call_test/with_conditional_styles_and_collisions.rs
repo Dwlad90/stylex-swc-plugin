@@ -1,27 +1,27 @@
 use stylex_swc_plugin::{
-    shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-    ModuleTransformVisitor,
+  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  ModuleTransformVisitor,
 };
 use swc_core::ecma::{
-    parser::{Syntax, TsConfig},
-    transforms::testing::test,
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
 };
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(StyleXOptionsParams {
-            gen_conditional_classes: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    stylex_call_with_conditions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(StyleXOptionsParams {
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_with_conditions,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         default: {
@@ -36,17 +36,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    stylex_call_with_conditions_skip_conditional,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  stylex_call_with_conditions_skip_conditional,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         default: {
@@ -61,17 +61,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    stylex_call_with_property_collisions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  stylex_call_with_property_collisions,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         red: {
@@ -87,17 +87,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    stylex_call_with_short_form_property_collisions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  stylex_call_with_short_form_property_collisions,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         foo: {
@@ -115,17 +115,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    stylex_call_with_short_form_property_collisions_with_null,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  stylex_call_with_short_form_property_collisions_with_null,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         foo: {
@@ -143,20 +143,20 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(StyleXOptionsParams {
-            gen_conditional_classes: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    stylex_call_with_conditions_and_collisions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(StyleXOptionsParams {
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_with_conditions_and_collisions,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         red: {
@@ -171,17 +171,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    stylex_call_with_conditions_and_collisions_skip_conditional,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  stylex_call_with_conditions_and_collisions_skip_conditional,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         red: {
@@ -196,20 +196,20 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(StyleXOptionsParams {
-            gen_conditional_classes: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    stylex_call_with_conditions_and_null_collisions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(StyleXOptionsParams {
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_with_conditions_and_null_collisions,
+  r#"
       import stylex from 'stylex';
       const styles = stylex.create({
         red: {
@@ -224,17 +224,17 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Option::None
-    ),
-    stylex_call_with_conditions_and_null_collisions_skip_conditional,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Option::None
+  ),
+  stylex_call_with_conditions_and_null_collisions_skip_conditional,
+  r#"
     import stylex from 'stylex';
     const styles = stylex.create({
       red: {

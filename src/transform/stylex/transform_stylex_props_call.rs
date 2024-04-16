@@ -1,25 +1,23 @@
 use std::collections::HashMap;
 
 use swc_core::{
-    common::comments::Comments,
-    ecma::{
-        ast::{CallExpr, Expr, MemberExpr},
-        visit::{noop_fold_type, AstNodePath, Fold, FoldWith, Visit},
-    },
+  common::comments::Comments,
+  ecma::{
+    ast::{CallExpr, Expr, MemberExpr},
+    visit::{noop_fold_type, AstNodePath, Fold, FoldWith, Visit},
+  },
 };
 
 use crate::{
-    shared::{
-        enums::NonNullProps,
-        structures::{functions::FunctionMap, state_manager::StateManager},
-        utils::{
-            stylex::{
-                member_expression::member_expression, props::props, stylex_merge::stylex_merge,
-            },
-            validators::is_props_call,
-        },
+  shared::{
+    enums::NonNullProps,
+    structures::{functions::FunctionMap, state_manager::StateManager},
+    utils::{
+      stylex::{member_expression::member_expression, props::props, stylex_merge::stylex_merge},
+      validators::is_props_call,
     },
-    ModuleTransformVisitor,
+  },
+  ModuleTransformVisitor,
 };
 
 // #[derive(Clone, Debug)]
@@ -60,15 +58,15 @@ use crate::{
 
 impl<C> ModuleTransformVisitor<C>
 where
-    C: Comments,
+  C: Comments,
 {
-    pub(crate) fn transform_stylex_props_call(&mut self, call: &CallExpr) -> Option<Expr> {
-        let is_props_call = is_props_call(call, &mut self.state);
+  pub(crate) fn transform_stylex_props_call(&mut self, call: &CallExpr) -> Option<Expr> {
+    let is_props_call = is_props_call(call, &mut self.state);
 
-        if is_props_call {
-            return stylex_merge(call, props, &mut self.state);
-        }
-
-        Option::None
+    if is_props_call {
+      return stylex_merge(call, props, &mut self.state);
     }
+
+    Option::None
+  }
 }

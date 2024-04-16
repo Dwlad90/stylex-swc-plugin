@@ -1,8 +1,8 @@
 mod evaluation;
-mod stylex_metadata_test;
 mod stylex_transform_call_test;
 mod stylex_transform_create_test;
 mod stylex_transform_define_vars_test;
+mod stylex_transform_legacy_shorthands;
 mod stylex_transform_stylex_attrs_test;
 mod stylex_transform_stylex_create_theme_test;
 mod stylex_transform_stylex_keyframes_test;

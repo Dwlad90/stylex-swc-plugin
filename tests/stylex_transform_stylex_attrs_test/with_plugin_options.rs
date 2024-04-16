@@ -1,33 +1,33 @@
 use stylex_swc_plugin::{
-    shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-    ModuleTransformVisitor,
+  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  ModuleTransformVisitor,
 };
 use swc_core::{
-    common::FileName,
-    ecma::{
-        parser::{Syntax, TsConfig},
-        transforms::testing::test,
-    },
+  common::FileName,
+  ecma::{
+    parser::{Syntax, TsConfig},
+    transforms::testing::test,
+  },
 };
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass {
-            cwd: Option::None,
-            filename: FileName::Real("/html/js/FooBar.react.js".into()),
-        },
-        Some(StyleXOptionsParams {
-            dev: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    stylex_call_produces_dev_class_names,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: Option::None,
+      filename: FileName::Real("/html/js/FooBar.react.js".into()),
+    },
+    Some(StyleXOptionsParams {
+      dev: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_produces_dev_class_names,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -39,24 +39,24 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass {
-            cwd: Option::None,
-            filename: FileName::Real("/html/js/FooBar.react.js".into()),
-        },
-        Some(StyleXOptionsParams {
-            dev: Some(true),
-            gen_conditional_classes: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    stylex_call_produces_dev_class_name_with_conditions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: Option::None,
+      filename: FileName::Real("/html/js/FooBar.react.js".into()),
+    },
+    Some(StyleXOptionsParams {
+      dev: Some(true),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_produces_dev_class_name_with_conditions,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -73,23 +73,23 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass {
-            cwd: Option::None,
-            filename: FileName::Real("/html/js/FooBar.react.js".into()),
-        },
-        Some(StyleXOptionsParams {
-            dev: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    stylex_call_produces_dev_class_name_with_conditions_skip_conditional,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: Option::None,
+      filename: FileName::Real("/html/js/FooBar.react.js".into()),
+    },
+    Some(StyleXOptionsParams {
+      dev: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_produces_dev_class_name_with_conditions_skip_conditional,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
@@ -106,24 +106,24 @@ test!(
 );
 
 test!(
-    Syntax::Typescript(TsConfig {
-        tsx: true,
-        ..Default::default()
-    }),
-    |tr| ModuleTransformVisitor::new_test_styles(
-        tr.comments.clone(),
-        PluginPass {
-            cwd: Option::None,
-            filename: FileName::Real("/html/js/FooBar.react.js".into()),
-        },
-        Some(StyleXOptionsParams {
-            dev: Some(true),
-            gen_conditional_classes: Some(true),
-            ..StyleXOptionsParams::default()
-        })
-    ),
-    stylex_call_produces_dev_class_name_with_collisions,
-    r#"
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: Option::None,
+      filename: FileName::Real("/html/js/FooBar.react.js".into()),
+    },
+    Some(StyleXOptionsParams {
+      dev: Some(true),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_produces_dev_class_name_with_collisions,
+  r#"
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {

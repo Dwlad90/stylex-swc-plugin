@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap};
 
 use stylex_swc_plugin::shared::structures::{
   functions::{FunctionConfig, FunctionMap, FunctionType},
@@ -10,7 +10,7 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, Expr, ExprOrSpread, Id, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop,
+      ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop,
       PropName, PropOrSpread, Str,
     },
     parser::{Syntax, TsConfig},

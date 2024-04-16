@@ -9,8 +9,8 @@ use swc_core::ecma::ast::{
   CallExpr, Decl, Expr, ImportSpecifier, ModuleDecl, ModuleItem, Stmt, VarDecl, VarDeclKind,
   VarDeclarator,
 };
-use swc_core::ecma::codegen::text_writer::JsWriter;
-use swc_core::ecma::codegen::Emitter;
+
+
 use swc_core::ecma::transforms::base::{fixer, hygiene};
 use swc_core::ecma::transforms::testing::{HygieneVisualizer, Tester};
 use swc_core::ecma::utils::{quote_ident, quote_str, DropSpan, ExprFactory};

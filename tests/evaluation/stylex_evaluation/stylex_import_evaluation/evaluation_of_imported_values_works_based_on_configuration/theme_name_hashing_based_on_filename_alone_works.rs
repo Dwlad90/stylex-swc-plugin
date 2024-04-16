@@ -24,7 +24,8 @@ static OPTIONS: Options = Options {
 };
 
 fn tranform(input: &str) -> String {
-  let transformed_code = stringify_js(
+  
+  stringify_js(
     input,
     Syntax::Typescript(TsConfig {
       tsx: true,
@@ -50,8 +51,7 @@ fn tranform(input: &str) -> String {
         Option::Some(config),
       )
     },
-  );
-  transformed_code
+  )
 }
 
 #[test]

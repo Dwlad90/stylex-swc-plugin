@@ -52,7 +52,7 @@ impl Fold for EvaluationModuleTransformVisitor {
     let stmt = match &stmt {
       Stmt::Decl(decl) => match decl {
         Decl::Var(decl_var) => {
-          let decl = decl_var.decls.get(0);
+          let decl = decl_var.decls.first();
           match decl {
             Some(decl) => match decl.init.as_ref() {
               Some(expr) => {
@@ -88,13 +88,10 @@ impl Fold for EvaluationModuleTransformVisitor {
           elems: vec
             .iter()
             .map(|value| match value {
-              Some(value) => match value.as_expr() {
-                Some(expr) => Option::Some(ExprOrSpread {
+              Some(value) => value.as_expr().map(|expr| ExprOrSpread {
                   spread: None,
                   expr: Box::new(expr.clone()),
                 }),
-                None => None,
-              },
               None => None,
             })
             .collect(),

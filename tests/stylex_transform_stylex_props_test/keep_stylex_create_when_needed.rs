@@ -1,9 +1,8 @@
 use stylex_swc_plugin::{
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::structures::{plugin_pass::PluginPass},
   ModuleTransformVisitor,
 };
 use swc_core::{
-  common::FileName,
   ecma::{
     parser::{Syntax, TsConfig},
     transforms::testing::test,

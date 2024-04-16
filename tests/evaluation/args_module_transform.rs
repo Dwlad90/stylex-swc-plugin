@@ -5,13 +5,13 @@ use stylex_swc_plugin::shared::{
     evaluate_result::EvaluateResultValue,
     functions::FunctionMap,
     state_manager::StateManager,
-    stylex_options::{self, StyleXOptions},
+    stylex_options::{StyleXOptions},
   },
   utils::{
     common::{expr_to_str, prop_or_spread_expression_creator},
     css::{
       factories::object_expression_factory,
-      stylex::{evaluate::evaluate, evaluate_stylex_create_arg::evaluate_stylex_create_arg},
+      stylex::{evaluate_stylex_create_arg::evaluate_stylex_create_arg},
     },
   },
 };
@@ -63,7 +63,7 @@ impl Fold for ArgsModuleTransformVisitor {
     let stmt = match &stmt {
       Stmt::Decl(decl) => match decl {
         Decl::Var(decl_var) => {
-          let decl = decl_var.decls.get(0);
+          let decl = decl_var.decls.first();
           match decl {
             Some(decl) => match decl.init.as_ref() {
               Some(expr) => {
@@ -99,13 +99,10 @@ impl Fold for ArgsModuleTransformVisitor {
           elems: vec
             .iter()
             .map(|value| match value {
-              Some(value) => match value.as_expr() {
-                Some(expr) => Option::Some(ExprOrSpread {
+              Some(value) => value.as_expr().map(|expr| ExprOrSpread {
                   spread: None,
                   expr: Box::new(expr.clone()),
                 }),
-                None => None,
-              },
               None => None,
             })
             .collect(),
@@ -135,11 +132,11 @@ impl Fold for ArgsModuleTransformVisitor {
               ),
               object_expression_factory(
                 value
-                  .into_iter()
+                  .iter()
                   .map(|key_value| {
-                    let prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(key_value.clone())));
+                    
 
-                    prop
+                    PropOrSpread::Prop(Box::new(Prop::KeyValue(key_value.clone())))
                   })
                   .collect(),
               )

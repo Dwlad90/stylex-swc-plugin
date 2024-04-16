@@ -7,7 +7,6 @@ use stylex_swc_plugin::{
   ModuleTransformVisitor,
 };
 use swc_core::{
-  common::FileName,
   ecma::{
     parser::{Syntax, TsConfig},
     transforms::testing::test,

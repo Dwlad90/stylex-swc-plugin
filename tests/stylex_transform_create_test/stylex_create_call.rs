@@ -177,7 +177,7 @@ fn handles_camel_cased_transition_properties() {
 
   assert_eq!(
     stringify_js(
-      &camel_cased,
+      camel_cased,
       Syntax::Typescript(TsConfig {
         tsx: true,
         ..Default::default()
@@ -189,7 +189,7 @@ fn handles_camel_cased_transition_properties() {
       )
     ),
     stringify_js(
-      &kebab_cased,
+      kebab_cased,
       Syntax::Typescript(TsConfig {
         tsx: true,
         ..Default::default()
@@ -203,7 +203,7 @@ fn handles_camel_cased_transition_properties() {
   );
 
   insta::assert_snapshot!(stringify_js(
-    &camel_cased,
+    camel_cased,
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

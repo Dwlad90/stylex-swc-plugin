@@ -10,7 +10,7 @@ use swc_core::ecma::ast::{
   ModuleExportName, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
 };
 
-use crate::shared::constants::constants::DEFAULT_INJECT_PATH;
+use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 use crate::shared::enums::{
   FlatCompiledStylesValue, ImportPathResolution, ImportPathResolutionType, StyleVarsToKeep,
   TopLevelExpression, TopLevelExpressionKind,

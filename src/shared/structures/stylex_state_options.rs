@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use crate::shared::constants::constants::DEFAULT_INJECT_PATH;
+use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},

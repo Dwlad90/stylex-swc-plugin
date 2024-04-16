@@ -36,7 +36,7 @@ fn replace_spans(expr: &mut Expr) -> Expr {
 use crate::shared::{
   constants::{
     self,
-    constants::{INVALID_METHODS, VALID_CALLEES},
+    common::{INVALID_METHODS, VALID_CALLEES},
   },
   enums::{ImportPathResolution, ImportPathResolutionType, VarDeclAction},
   structures::{

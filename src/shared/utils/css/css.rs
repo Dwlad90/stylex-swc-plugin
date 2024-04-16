@@ -1,15 +1,19 @@
 use std::collections::HashMap;
 
-use crate::shared::structures::{
-  application_order::ApplicationOrder,
-  legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
-  order::Order,
-  order_pair::OrderPair,
-  pair::Pair,
-  pre_rule::{PreRuleValue, PreRules},
-  property_specificity_order::PropertySpecificityOrder,
-  stylex_options::StyleResolution,
-  stylex_state_options::StyleXStateOptions,
+use crate::shared::{
+  constants::cursor_flip::CURSOR_FLIP,
+  regex::LENGTH_UNIT_TESTER_REGEX,
+  structures::{
+    application_order::ApplicationOrder,
+    legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
+    order::Order,
+    order_pair::OrderPair,
+    pair::Pair,
+    pre_rule::{PreRuleValue, PreRules},
+    property_specificity_order::PropertySpecificityOrder,
+    stylex_options::StyleResolution,
+    stylex_state_options::StyleXStateOptions,
+  },
 };
 
 fn logical_to_physical(input: &str) -> &str {
@@ -77,13 +81,15 @@ pub(crate) fn generate_ltr(pair: Pair) -> Pair {
 fn flip_sign(value: String) -> String {
   if value == "0" {
     value.to_string()
+  } else if value.starts_with('-') {
+    value.strip_prefix('-').unwrap().to_string()
   } else {
-    if value.chars().next().unwrap() == '-' {
-      value[1..].to_string()
-    } else {
-      format!("-{}", value)
-    }
+    format!("-{}", value)
   }
+}
+
+fn is_unit(input: &str) -> bool {
+  LENGTH_UNIT_TESTER_REGEX.is_match(input)
 }
 
 fn flip_shadow(value: &str) -> Option<String> {
@@ -96,11 +102,11 @@ fn flip_shadow(value: &str) -> Option<String> {
       .split_whitespace()
       .map(|x| x.to_string())
       .collect::<Vec<String>>();
-    let index = if parts[0].parse::<f32>().is_ok() {
-      0
-    } else {
-      1
-    };
+
+    // NOTE: temporary solution, need to implement unit parser
+    let index = if is_unit(parts[0].as_str()) { 0 } else { 1 };
+
+    dbg!(&def, &index, &parts);
     if index < parts.len() {
       let flipped = flip_sign(parts[index].clone());
       parts[index] = flipped;
@@ -110,6 +116,8 @@ fn flip_shadow(value: &str) -> Option<String> {
 
   let rtl = built_defs.join(", ");
   if rtl != value {
+    dbg!(&value, &rtl);
+
     Some(rtl)
   } else {
     None
@@ -125,13 +133,10 @@ fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
   match key {
     "box-shadow" | "text-shadow" => {
       let rtl_val = flip_shadow(val);
-      match rtl_val {
-        Some(rtl_val) => Some(Pair {
-          key: key.to_string(),
-          value: rtl_val,
-        }),
-        None => None,
-      }
+      rtl_val.map(|rtl_val| Pair {
+        key: key.to_string(),
+        value: rtl_val,
+      })
     }
     _ => None,
   }
@@ -168,14 +173,57 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
       key: "border-left".to_string(),
       value: val.to_string(),
     }),
-    // ... add the rest of your properties here ...
-    "text-align" | "float" | "clear" => match logical_to_physical.get(val) {
-      Some(&physical_val) => Some(Pair {
-        key: key.to_string(),
-        value: physical_val.to_string(),
-      }),
-      None => None,
-    },
+    "border-start-width" => Some(Pair {
+      key: "border-right-width".to_string(),
+      value: val.to_string(),
+    }),
+    "border-end-width" => Some(Pair {
+      key: "border-lrft-width".to_string(),
+      value: val.to_string(),
+    }),
+
+    "border-start-color" => Some(Pair {
+      key: "border-right-color".to_string(),
+      value: val.to_string(),
+    }),
+    "border-end-color" => Some(Pair {
+      key: "border-lrft-colot".to_string(),
+      value: val.to_string(),
+    }),
+
+    "border-start-style" => Some(Pair {
+      key: "border-right-style".to_string(),
+      value: val.to_string(),
+    }),
+    "border-end-style" => Some(Pair {
+      key: "border-lrft-style".to_string(),
+      value: val.to_string(),
+    }),
+
+    "border-top-satrt-radius" => Some(Pair {
+      key: "border-top-right-radius".to_string(),
+      value: val.to_string(),
+    }),
+
+    "border-bottom-start-radius" => Some(Pair {
+      key: "border-bottom-right-radius".to_string(),
+      value: val.to_string(),
+    }),
+
+    "border-top-end-radius" => Some(Pair {
+      key: "border-top-left-radius".to_string(),
+      value: val.to_string(),
+    }),
+
+    "border-bottom-end-radius" => Some(Pair {
+      key: "border-bottom-left-radius".to_string(),
+      value: val.to_string(),
+    }),
+
+    "text-align" | "float" | "clear" => logical_to_physical.get(val).map(|&physical_val| Pair {
+      key: key.to_string(),
+      value: physical_val.to_string(),
+    }),
     "start" => Some(Pair {
       key: "right".to_string(),
       value: val.to_string(),
@@ -204,6 +252,10 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
         None
       }
     }
+    "cursor" => CURSOR_FLIP.get(val).map(|val| Pair {
+      key: key.to_string(),
+      value: val.to_string(),
+    }),
     _ => shadows_flip(key, val),
   }
 }
@@ -234,11 +286,9 @@ fn _flip_value(value: &PreRules) -> Option<PreRules> {
 pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
   let result = property_to_rtl(pair.key.as_str(), pair.value.as_str());
 
-  if let Some(pair) = result {
-    Option::Some(pair)
-  } else {
-    Option::None
-  }
+  dbg!(&pair, &result);
+
+  result
 }
 
 pub(crate) fn flat_map_expanded_shorthands(
@@ -258,7 +308,7 @@ pub(crate) fn flat_map_expanded_shorthands(
     PreRuleValue::Null => None,
   };
 
-  let key = if key.starts_with("var(") && key.ends_with(")") {
+  let key = if key.starts_with("var(") && key.ends_with(')') {
     key[4..key.len() - 1].to_string()
   } else {
     key

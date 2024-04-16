@@ -3,7 +3,7 @@ use std::path::Path;
 use indexmap::IndexMap;
 
 use crate::shared::{
-  constants::constants::COMPILED_KEY, enums::FlatCompiledStylesValue,
+  constants::common::COMPILED_KEY, enums::FlatCompiledStylesValue,
   regex::SANITIZE_CLASS_NAME_REGEX, structures::state_manager::StateManager,
 };
 

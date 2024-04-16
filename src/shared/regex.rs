@@ -23,3 +23,9 @@ pub(crate) static IDENT_PROP_REGEX: Lazy<Regex> =
 
 pub(crate) static WHITESPACE_NORMALIZER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"(\))(\S)|(\")(\")"#).unwrap());
+
+pub(crate) static HASH_WHITESPACE_NORMALIZER_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(\S)#").unwrap());
+
+pub(crate) static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^-?\d+(px|%|em|rem|ex|ch|vh|vw|vmin|vmax)?$").unwrap());

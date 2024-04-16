@@ -343,6 +343,13 @@ fn should_normalize() {
     )),
     "*{{transitionduration:.5s}}"
   );
+
+  assert_eq!(
+    stringify(&base_normalizer(
+      swc_parse_css("* {{ boxShadow: 1px 1px #000; }}").0.unwrap(),
+    )),
+    "*{{boxshadow:1px 1px#000}}"
+  );
 }
 
 // /// Stringifies the [`Stylesheet`]

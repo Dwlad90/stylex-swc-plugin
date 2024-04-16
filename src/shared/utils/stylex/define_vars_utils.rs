@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};
 
 use crate::shared::{
-  constants::constants::SPLIT_TOKEN,
+  constants::common::SPLIT_TOKEN,
   enums::FlatCompiledStylesValue,
   structures::injectable_style::InjectableStyle,
   utils::common::{create_hash, get_key_str, get_key_values_from_object, get_string_val_from_lit},

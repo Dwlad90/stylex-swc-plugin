@@ -18,6 +18,7 @@ use crate::shared::{
     shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
     unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
   },
+  regex::HASH_WHITESPACE_NORMALIZER_REGEX,
   structures::{
     injectable_style::InjectableStyle, pair::Pair, pre_rule::PreRuleValue,
     stylex_options::StyleXOptions,
@@ -443,8 +444,8 @@ pub(crate) fn normalize_css_property_value(
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
-  if errors.len() > 0 {
-    let error_message = errors.get(0).unwrap().message().to_string();
+  if !errors.is_empty() {
+    let error_message = errors.first().unwrap().message().to_string();
 
     panic!("{}", error_message)
   }
@@ -547,13 +548,15 @@ pub(crate) fn get_value_from_ident(ident: &Ident) -> String {
 }
 
 /// Stringifies the [`Stylesheet`]
-pub fn stringify(node: &Stylesheet) -> String {
+pub fn stringify(node: &swc_core::css::ast::Stylesheet) -> String {
+  dbg!(&node);
+
   let mut buf = String::new();
   let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
   let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
   // let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: false });
 
-  let _ = codegen.emit(&node);
+  codegen.emit(&node).unwrap();
 
   buf
 }

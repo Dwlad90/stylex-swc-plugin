@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use crate::shared::constants::constants::COMPILED_KEY;
+use crate::shared::constants::common::COMPILED_KEY;
 use crate::shared::enums::FlatCompiledStylesValue;
 use crate::shared::{
   structures::flat_compiled_styles::FlatCompiledStyles,

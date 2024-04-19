@@ -1,0 +1,1 @@
+mod optimization_removes_styles_variable_when_not_needed;

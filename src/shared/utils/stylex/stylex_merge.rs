@@ -13,7 +13,7 @@ use crate::shared::{
     css::factories::object_expression_factory,
     stylex::{
       make_string_expression::make_string_expression,
-      parse_nallable_style::{parse_nullable_style, ResolvedArg, StyleObject},
+      parse_nullable_style::{parse_nullable_style, ResolvedArg, StyleObject},
     },
   },
 };

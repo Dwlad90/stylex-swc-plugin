@@ -21,7 +21,7 @@ strip = "symbols"
 
 [dependencies]
 serde = "1.0.197"
-swc_core = { version = "0.90.31", features = [
+swc_core = { version = "0.90.35", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -48,7 +48,7 @@ swc_core = { version = "0.90.31", features = [
 
 # swc_css_parser = {version = "0.150.20"}
 lazy_static = "1.4.0"
-serde_json = "1.0.115"
+serde_json = "1.0.116"
 regex = "1.10.4"
 snailquote = "0.3.1"
 dashmap = "5.5.3"
@@ -66,16 +66,12 @@ colored = { version = "2.1.0" }
 node-resolve = { version = "2.2.0" }
 resolve-path = { version = "0.1.0" }
 
-#HACK: temp solution for version of sourcemap package
-swc_config={ version = "0.1.12"}
-# sha2 = { version = "0.10.8" }
-
 [dev-dependencies]
-swc_core = { version = "0.90.31", features = [
+swc_core = { version = "0.90.35", features = [
   "testing_transform",
   "ecma_parser",
 ] }
-testing = "0.35.22"
+testing = "0.35.23"
 insta = { version = "1.38.0", features = ["yaml"] }
 
 

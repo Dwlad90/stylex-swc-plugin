@@ -126,12 +126,12 @@ pub fn create_hash(value: &str) -> String {
   radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }
 
-pub(crate) fn get_string_val_from_lit(value: &Lit) -> String {
+pub(crate) fn get_string_val_from_lit(value: &Lit) -> Option<String> {
   match value {
-    Lit::Str(str) => format!("{}", str.value),
-    Lit::Num(num) => format!("{}", num.value),
-    Lit::Null(_) => "".to_string(),
-    _ => panic!("{}", ILLEGAL_PROP_VALUE),
+    Lit::Str(str) => Option::Some(format!("{}", str.value)),
+    Lit::Num(num) => Option::Some(format!("{}", num.value)),
+    Lit::BigInt(big_int) => Option::Some(format!("{}", big_int.value)),
+    _ => Option::None, // _ => panic!("{}", ILLEGAL_PROP_VALUE),
   }
 }
 
@@ -411,7 +411,7 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
       let var_decl_expr = get_expr_from_var_decl(var_decl);
 
       match &var_decl_expr {
-        Expr::Lit(lit) => get_string_val_from_lit(lit),
+        Expr::Lit(lit) => get_string_val_from_lit(lit).expect(ILLEGAL_PROP_VALUE),
         Expr::Ident(ident) => ident_to_string(ident, state, functions),
         _ => panic!("{}", ILLEGAL_PROP_VALUE),
       }
@@ -427,7 +427,7 @@ pub fn expr_to_str(
 ) -> String {
   match &expr_string {
     Expr::Ident(ident) => ident_to_string(ident, state, functions),
-    Expr::Lit(lit) => get_string_val_from_lit(lit),
+    Expr::Lit(lit) => get_string_val_from_lit(lit).expect("Value is not a string"),
     _ => panic!("Expression in not a string {:?}", expr_string),
   }
 }
@@ -812,12 +812,14 @@ pub fn expr_tpl_to_string(tpl: &Tpl, state: &mut StateManager, functions: &Funct
             Some(var_decl) => {
               let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
-              let a = match &var_decl_expr {
-                Expr::Lit(lit) => get_string_val_from_lit(lit),
+              let value = match &var_decl_expr {
+                Expr::Lit(lit) => {
+                  get_string_val_from_lit(lit).expect(constants::messages::ILLEGAL_PROP_VALUE)
+                }
                 _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
               };
 
-              tpl_str.push_str(a.as_str());
+              tpl_str.push_str(value.as_str());
             }
             None => panic!("{}", constants::messages::NON_STATIC_VALUE),
           }
@@ -827,7 +829,8 @@ pub fn expr_tpl_to_string(tpl: &Tpl, state: &mut StateManager, functions: &Funct
             .to_string()
             .as_str(),
         ),
-        Expr::Lit(lit) => tpl_str.push_str(&get_string_val_from_lit(lit)),
+        Expr::Lit(lit) => tpl_str
+          .push_str(&get_string_val_from_lit(lit).expect(constants::messages::ILLEGAL_PROP_VALUE)),
         _ => panic!("Value not suppported"), // Handle other expression types as needed
       }
     }

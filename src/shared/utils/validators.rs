@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use swc_core::{
   common::DUMMY_SP,
-  ecma::ast::{CallExpr, Expr, Id, Ident, KeyValueProp, Pat, PropName, VarDeclarator},
+  ecma::ast::{CallExpr, Expr, Id, Ident, KeyValueProp, Lit, Pat, PropName, VarDeclarator},
 };
 
 use crate::shared::{
@@ -33,7 +33,7 @@ pub(crate) fn validate_stylex_create_indent(call: &CallExpr, state: &mut StateMa
   );
 
   assert!(
-    &call.args.len() == &1,
+    call.args.len() == 1,
     "{}",
     constants::messages::ILLEGAL_ARGUMENT_LENGTH
   );
@@ -73,7 +73,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
   );
 
   assert!(
-    &init.args.len() == &1,
+    init.args.len() == 1,
     "{}",
     constants::messages::ILLEGAL_ARGUMENT_LENGTH
   );
@@ -242,8 +242,8 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &Vec<S
     let key = match &namespace.key {
       PropName::Ident(key) => format!("{}", key.sym),
       PropName::Str(key) => {
-        if !(key.value.starts_with("@")
-          || key.value.starts_with(":")
+        if !(key.value.starts_with('@')
+          || key.value.starts_with(':')
           || key.value == "default"
           || namespace.value.is_lit())
         {
@@ -255,21 +255,24 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &Vec<S
     };
 
     match namespace.value.as_ref() {
-      Expr::Lit(_) => {}
+      Expr::Lit(lit) => {
+        if let Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_) = lit {
+        } else {
+          panic!("{}", constants::messages::ILLEGAL_PROP_VALUE);
+        }
+      }
       Expr::Array(array) => {
-        for elem in &array.elems {
-          if let Some(elem) = elem {
-            assert!(
-              elem.spread.is_none(),
-              "{}",
-              "Spread operator not implemented"
-            );
+        for elem in array.elems.iter().flatten() {
+          assert!(
+            elem.spread.is_none(),
+            "{}",
+            "Spread operator not implemented"
+          );
 
-            if let Expr::Lit(_) = elem.expr.as_ref() {
-              // Do nothing
-            } else {
-              panic!("{}", constants::messages::ILLEGAL_PROP_ARRAY_VALUE);
-            }
+          if let Expr::Lit(_) = elem.expr.as_ref() {
+            // Do nothing
+          } else {
+            panic!("{}", constants::messages::ILLEGAL_PROP_ARRAY_VALUE);
           }
         }
       }
@@ -420,7 +423,16 @@ pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyVa
           if let Some(lit) = value.as_lit() {
             let value = get_string_val_from_lit(lit);
 
-            if value != "" {
+            if value
+              .and_then(|value| {
+                if value.is_empty() {
+                  Option::None
+                } else {
+                  Option::Some(value)
+                }
+              })
+              .is_some()
+            {
               return Option::Some(key_value);
             }
           }

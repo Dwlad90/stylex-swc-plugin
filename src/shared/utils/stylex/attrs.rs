@@ -5,7 +5,7 @@ use crate::shared::{
   utils::stylex::js_to_expr::NestedStringObject,
 };
 
-use super::{parse_nallable_style::ResolvedArg, props::props};
+use super::{parse_nullable_style::ResolvedArg, props::props};
 
 pub(crate) fn attrs(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
   let props = props(styles);

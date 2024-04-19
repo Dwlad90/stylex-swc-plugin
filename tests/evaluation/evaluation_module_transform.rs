@@ -28,7 +28,7 @@ impl Default for EvaluationModuleTransformVisitor {
         member_expressions: HashMap::new(),
       },
       declarations: vec![],
-      state: StateManager::new(StyleXOptions::default()),
+      state: StateManager::default(),
     }
   }
 }

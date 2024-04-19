@@ -24,12 +24,12 @@ use crate::shared::{
       get_string_val_from_lit, get_var_decl_by_ident, handle_tpl_to_expression,
       number_to_expression, transform_bin_expr_to_number,
     },
-    css::css::flat_map_expanded_shorthands,
+    css::common::flat_map_expanded_shorthands,
   },
 };
 
 pub(crate) fn flatten_raw_style_object(
-  style: &Vec<KeyValueProp>,
+  style: &[KeyValueProp],
   pseudos: &mut Vec<String>,
   at_rules: &mut Vec<String>,
   state: &mut StateManager,
@@ -68,9 +68,9 @@ pub(crate) fn flatten_raw_style_object(
                 let pairs = flat_map_expanded_shorthands(
                   (
                     css_property_key.clone(),
-                    match get_string_val_from_lit(property_lit).as_str() {
-                      "" => PreRuleValue::Null,
-                      val => PreRuleValue::String(val.to_string()),
+                    match get_string_val_from_lit(property_lit) {
+                      Some(val) => PreRuleValue::String(val),
+                      None => PreRuleValue::Null,
                     },
                   ),
                   &state.options,
@@ -141,12 +141,15 @@ pub(crate) fn flatten_raw_style_object(
           // let b = b.as_str();
           // let b = Option::Some(b);
 
+          dbg!(&css_property_key, &value);
+          // panic!();
+
           let pairs = flat_map_expanded_shorthands(
             (
               css_property_key,
-              match value.as_str() {
-                "" => PreRuleValue::Null,
-                val => PreRuleValue::String(val.to_string()),
+              match value {
+                Some(val) => PreRuleValue::String(val),
+                None => PreRuleValue::Null,
               },
             ),
             &state.options,

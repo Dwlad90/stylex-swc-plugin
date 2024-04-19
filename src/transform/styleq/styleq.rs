@@ -8,7 +8,7 @@ use crate::shared::constants::common::COMPILED_KEY;
 use crate::shared::enums::FlatCompiledStylesValue;
 use crate::shared::{
   structures::flat_compiled_styles::FlatCompiledStyles,
-  utils::stylex::parse_nallable_style::{ResolvedArg, StyleObject},
+  utils::stylex::parse_nullable_style::{ResolvedArg, StyleObject},
 };
 
 pub(crate) struct StyleQResult {

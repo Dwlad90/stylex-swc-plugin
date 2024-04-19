@@ -1686,9 +1686,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.115"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12dc5c46daa8e9fdf4f5e71b6cf9a53f2487da0e86e55808e2d35539666497dd"
+checksum = "3e17db7126d17feb94eb3fad46bf1a96b034e8aacbc2e775fe81505f8b0b2813"
 dependencies = [
  "itoa",
  "ryu",
@@ -1907,7 +1907,6 @@ dependencies = [
  "serde",
  "serde_json",
  "snailquote",
- "swc_config",
  "swc_core",
  "testing",
 ]
@@ -2105,9 +2104,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "0.90.31"
+version = "0.90.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06abbb96671d9fb89f051609242b6acb9ddde9e6ff6325f49fce453d96a4c533"
+checksum = "2b9e641c348c1e8b0e01430b4706b777ecb0873323b423a8e8e5515093583e43"
 dependencies = [
  "once_cell",
  "swc",
@@ -2145,9 +2144,9 @@ dependencies = [
 
 [[package]]
 name = "swc_css_codegen"
-version = "0.151.32"
+version = "0.151.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c9a4ae80f7103ad5672640bf2916c4614a9f59a57c0946040bfde7f52ac7836"
+checksum = "75b0b6962183d12f2b2dfa9800562654d2794a076439948a48b5d9766d55f86d"
 dependencies = [
  "auto_impl",
  "bitflags 2.5.0",
@@ -3110,9 +3109,9 @@ dependencies = [
 
 [[package]]
 name = "testing"
-version = "0.35.22"
+version = "0.35.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae76d28ca008df98f06a2a200458a31a5534e02934444e5e33c6cb184fd0adf2"
+checksum = "689e2661712768726869f62945ccbe5d76ab3a3957b88221275bebe22a0761c8"
 dependencies = [
  "ansi_term",
  "cargo_metadata",

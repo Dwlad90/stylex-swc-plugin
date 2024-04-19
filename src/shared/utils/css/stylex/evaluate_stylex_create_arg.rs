@@ -25,7 +25,7 @@ use crate::shared::{
       create_hash, expr_to_str, normalize_expr, prop_or_spread_expression_creator,
       string_to_expression,
     },
-    css::{factories::object_expression_factory, get_number_suffix, stylex::evaluate},
+    css::utils::get_number_suffix,
     object,
     validators::validate_dynamic_style_params,
   },

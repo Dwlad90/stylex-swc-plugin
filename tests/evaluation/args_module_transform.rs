@@ -2,16 +2,14 @@ use std::collections::HashMap;
 
 use stylex_swc_plugin::shared::{
   structures::{
-    evaluate_result::EvaluateResultValue,
-    functions::FunctionMap,
-    state_manager::StateManager,
-    stylex_options::{StyleXOptions},
+    evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
+    stylex_options::StyleXOptions,
   },
   utils::{
     common::{expr_to_str, prop_or_spread_expression_creator},
     css::{
       factories::object_expression_factory,
-      stylex::{evaluate_stylex_create_arg::evaluate_stylex_create_arg},
+      stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
     },
   },
 };
@@ -39,7 +37,7 @@ impl Default for ArgsModuleTransformVisitor {
         member_expressions: HashMap::new(),
       },
       declarations: vec![],
-      state: StateManager::new(StyleXOptions::default()),
+      state: StateManager::default(),
     }
   }
 }
@@ -100,9 +98,9 @@ impl Fold for ArgsModuleTransformVisitor {
             .iter()
             .map(|value| match value {
               Some(value) => value.as_expr().map(|expr| ExprOrSpread {
-                  spread: None,
-                  expr: Box::new(expr.clone()),
-                }),
+                spread: None,
+                expr: Box::new(expr.clone()),
+              }),
               None => None,
             })
             .collect(),
@@ -125,19 +123,11 @@ impl Fold for ArgsModuleTransformVisitor {
           for (key, value) in map.iter() {
             dbg!(&key, &value);
             let prop = prop_or_spread_expression_creator(
-              expr_to_str(
-                key,
-                &mut StateManager::new(StyleXOptions::default()),
-                &FunctionMap::default(),
-              ),
+              expr_to_str(key, &mut self.state, &FunctionMap::default()),
               object_expression_factory(
                 value
                   .iter()
-                  .map(|key_value| {
-                    
-
-                    PropOrSpread::Prop(Box::new(Prop::KeyValue(key_value.clone())))
-                  })
+                  .map(|key_value| PropOrSpread::Prop(Box::new(Prop::KeyValue(key_value.clone()))))
                   .collect(),
               )
               .unwrap(),

@@ -3,17 +3,48 @@ use swc_core::{
   css::{
     ast::{
       ComponentValue, Declaration, DeclarationName, DelimiterValue, Dimension, Function, Ident,
-      ListOfComponentValues, Number, Stylesheet, Token,
+      Length, ListOfComponentValues, Number, Stylesheet, Token,
     },
     visit::{Fold, FoldWith},
   },
 };
 
-use crate::shared::utils::common::dashify;
 #[cfg(test)]
-use crate::shared::utils::css::{stringify, swc_parse_css};
+use crate::shared::utils::css::utils::{stringify, swc_parse_css};
+use crate::shared::{constants::common::ROOT_FONT_SIZE, utils::common::dashify};
 
-struct CssFolder;
+struct CssFolder {
+  use_rem_for_font_size: bool,
+  parent_key: Option<String>,
+}
+
+impl CssFolder {
+  fn convert_font_size_to_rem_normalizer<'a>(
+    &'a mut self,
+    declaration: &'a mut Declaration,
+  ) -> Declaration {
+    dbg!(&declaration);
+
+    match &declaration.name {
+      DeclarationName::Ident(ident) => {
+        if ident.value.eq("fontSize") || self.parent_key.eq(&Option::Some("fontSize".into())) {
+          self.parent_key = Option::Some("fontSize".to_string());
+          declaration.value = declaration.value.clone().fold_children_with(self);
+          self.parent_key = None;
+        }
+      }
+      _ => {}
+    }
+
+    // if !declaration.value.starts_with("--") {
+    //    declaration.raw_value = dashify(declaration.raw_value.as_str()).into();
+    // };
+
+    // dbg!(&declaration);
+
+    declaration.clone()
+  }
+}
 
 impl Fold for CssFolder {
   fn fold_list_of_component_values(
@@ -36,23 +67,76 @@ impl Fold for CssFolder {
   // }
 
   fn fold_declaration(&mut self, mut declaration: Declaration) -> Declaration {
-    let declaration = kebab_case_normalizer(&mut declaration).clone();
+    let mut declaration = kebab_case_normalizer(&mut declaration).clone();
+
+    if self.use_rem_for_font_size {
+      declaration = self
+        .convert_font_size_to_rem_normalizer(&mut declaration)
+        .clone();
+    }
+
+    dbg!(&declaration);
 
     // NOTE: Whitespace normalizer working out of the box with minify
     // declaration.value = whitespace_normalizer(declaration.value);
 
     declaration.fold_children_with(self)
   }
+
+  // fn fold_component_value(&mut self, component_value: ComponentValue) -> ComponentValue {
+  //   let a = match &component_value {
+  //     ComponentValue::Str(s) => {
+  //       dbg!(s.value.clone(), s.raw.clone());
+  //       let replaced_value = s.value.replace('"', "'");
+  //       let replaced_raw = s.raw.as_ref().map(|raw| raw.replace('"', "'"));
+
+  //       ComponentValue::Str(Box::new(Str {
+  //         span: DUMMY_SP,
+  //         value: replaced_value.into(),
+  //         raw: Some(replaced_raw.unwrap().into()),
+  //       }))
+  //     }
+  //     _ => component_value.fold_children_with(self),
+  //   };
+  //   dbg!(&a);
+  //   a
+  // }
+
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
     let mut dimension = timing_normalizer(&mut dimension).clone();
     let dimension = zero_demention_normalizer(&mut dimension).clone();
 
-    dimension.clone()
+    dimension.clone().fold_children_with(self)
+  }
+
+  fn fold_length(&mut self, mut length: Length) -> Length {
+    dbg!(&length);
+    if self.parent_key == Option::Some("fontSize".into())
+      && length.unit.value.eq("px")
+      && length.value.value != 0.0
+    {
+      length = Length {
+        value: Number {
+          value: length.value.value / ROOT_FONT_SIZE as f64,
+          raw: Option::None,
+          span: length.span,
+        },
+        unit: Ident {
+          value: "rem".into(),
+          raw: Option::None,
+          span: length.span,
+        },
+        span: DUMMY_SP,
+      };
+    };
+
+    length
   }
 
   fn fold_function(&mut self, func: Function) -> Function {
     let mut fnc = func.clone();
 
+    // NOTE: only last css fucntion value should be folded
     if let Some(last) = fnc.value.last_mut() {
       *last = last.clone().fold_with(self);
     }
@@ -80,7 +164,7 @@ fn _whitespace_normalizer(values: Vec<ComponentValue>) -> Vec<ComponentValue> {
 
   let values = values.clone();
 
-  let mut a = values
+  let mut value = values
     .iter()
     .filter_map(|child| {
       // dbg!(&child);
@@ -121,9 +205,9 @@ fn _whitespace_normalizer(values: Vec<ComponentValue>) -> Vec<ComponentValue> {
     })
     .collect::<Vec<ComponentValue>>();
 
-  a.reverse();
+  value.reverse();
 
-  a
+  value
 }
 
 fn timing_normalizer(dimension: &mut Dimension) -> &mut Dimension {
@@ -303,8 +387,11 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
   declaration
 }
 
-pub(crate) fn base_normalizer(ast: Stylesheet) -> Stylesheet {
-  let mut folder = CssFolder;
+pub(crate) fn base_normalizer(ast: Stylesheet, use_rem_for_font_size: bool) -> Stylesheet {
+  let mut folder = CssFolder {
+    use_rem_for_font_size,
+    parent_key: Option::None,
+  };
   ast.fold_with(&mut folder)
 }
 
@@ -315,6 +402,7 @@ fn should_normalize() {
       swc_parse_css("* {{ transitionProperty: opacity, margin-top; }}")
         .0
         .unwrap(),
+      false
     )),
     "*{{transitionproperty:opacity,margin-top}}"
   );
@@ -324,6 +412,7 @@ fn should_normalize() {
       swc_parse_css("* {{ boxShadow: 0px 2px 4px var(--shadow-1); }}")
         .0
         .unwrap(),
+      false
     )),
     "*{{boxshadow:0 2px 4px var(--shadow-1)}}"
   );
@@ -331,6 +420,7 @@ fn should_normalize() {
   assert_eq!(
     stringify(&base_normalizer(
       swc_parse_css("* {{ opacity: 0.5; }}").0.unwrap(),
+      false
     )),
     "*{{opacity:.5}}"
   );
@@ -340,6 +430,7 @@ fn should_normalize() {
       swc_parse_css("* {{ transitionDuration: 500ms; }}")
         .0
         .unwrap(),
+      false
     )),
     "*{{transitionduration:.5s}}"
   );
@@ -347,8 +438,45 @@ fn should_normalize() {
   assert_eq!(
     stringify(&base_normalizer(
       swc_parse_css("* {{ boxShadow: 1px 1px #000; }}").0.unwrap(),
+      false
     )),
     "*{{boxshadow:1px 1px#000}}"
+  );
+
+  assert_eq!(
+    stringify(&base_normalizer(
+      swc_parse_css(r#"* {{ quotes: '""'; }}"#).0.unwrap(),
+      false
+    )),
+    r#"*{{quotes:""}}"#
+  );
+
+  assert_eq!(
+    stringify(&base_normalizer(
+      swc_parse_css(r#"* {{ quotes: '"123"'; }}"#).0.unwrap(),
+      false
+    )),
+    r#"*{{quotes:"123"}}"#
+  );
+
+  assert_eq!(
+    stringify(&base_normalizer(
+      swc_parse_css(r#"* {{ gridTemplateAreas: '"content"'; }}"#)
+        .0
+        .unwrap(),
+      false
+    )),
+    r#"*{{gridtemplateareas:"content"}}"#
+  );
+
+  assert_eq!(
+    stringify(&base_normalizer(
+      swc_parse_css(r#"* {{ gridTemplateAreas: '"content" "sidebar"'; }}"#)
+        .0
+        .unwrap(),
+      false
+    )),
+    r#"*{{gridtemplateareas:"content" "sidebar"}}"#
   );
 }
 

@@ -12,7 +12,7 @@ use crate::shared::{
 };
 
 use super::{
-  js_to_expr::convert_object_to_ast, parse_nallable_style::ResolvedArg,
+  js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg,
   stylex::gen_condition_permutations,
 };
 

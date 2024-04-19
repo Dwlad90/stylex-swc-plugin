@@ -92,7 +92,7 @@ impl State {
         identifiers: HashMap::new(),
         member_expressions: HashMap::new(),
       },
-      traversal_state: StateManager::new(StyleXOptions::default()),
+      traversal_state: StateManager::default(),
     }
   }
 
@@ -1563,7 +1563,9 @@ pub(crate) fn evaluate_quasis(
 
         let lit_str = get_string_val_from_lit(lit);
 
-        str += &lit_str;
+        if let Some(lit_str) = lit_str {
+          str += &lit_str;
+        }
       }
     }
   }

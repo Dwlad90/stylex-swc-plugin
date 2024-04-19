@@ -185,7 +185,7 @@ fn evaluates_customs_functions() {
           member_expressions,
         },
         declarations: vec![],
-        state: StateManager::new(StyleXOptions::default()),
+        state: StateManager::default(),
       }
     },
     r#"
@@ -235,7 +235,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
           member_expressions: HashMap::new(),
         },
         declarations: vec![],
-        state: StateManager::new(StyleXOptions::default()),
+        state: StateManager::default(),
       }
     },
     r#"
@@ -281,7 +281,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
           member_expressions: HashMap::new(),
         },
         declarations: vec![],
-        state: StateManager::new(StyleXOptions::default()),
+        state: StateManager::default(),
       }
     },
     r#"
@@ -337,7 +337,7 @@ fn evaluates_custom_functions_that_take_paths() {
           member_expressions: HashMap::new(),
         },
         declarations: vec![],
-        state: StateManager::new(StyleXOptions::default()),
+        state: StateManager::default(),
       }
     },
     r#"

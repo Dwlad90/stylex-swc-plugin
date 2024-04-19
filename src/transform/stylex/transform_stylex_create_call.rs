@@ -269,8 +269,8 @@ where
 
       let (mut compiled_styles, injected_styles_sans_keyframes) =
         stylex_create_set(&value, &mut self.state, &function_map);
-
-      dbg!(&compiled_styles, &injected_styles_sans_keyframes);
+        dbg!(&compiled_styles, &injected_styles_sans_keyframes);
+        // panic!();
 
       compiled_styles
         .clone()

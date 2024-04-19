@@ -8,7 +8,7 @@ use crate::{
   transform::styleq::styleq::{styleq, StyleQResult},
 };
 
-use super::parse_nallable_style::ResolvedArg;
+use super::parse_nullable_style::ResolvedArg;
 
 pub(crate) fn props(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
   dbg!(&styles);

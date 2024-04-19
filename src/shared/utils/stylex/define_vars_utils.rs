@@ -1,7 +1,4 @@
-use std::{
-  fmt::format,
-  ops::{Div, Mul},
-};
+use std::ops::Mul;
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};
@@ -58,7 +55,7 @@ pub(crate) fn collect_vars_by_at_rules(
   value: &FlatCompiledStylesValue,
   collection: &mut IndexMap<String, Vec<String>>,
   at_rules: &Vec<String>,
-) -> () {
+) {
   let Some((hash_name, value)) = value.as_tuple() else {
     panic!("Props must be an key value pair")
   };
@@ -70,7 +67,7 @@ pub(crate) fn collect_vars_by_at_rules(
         return;
       }
 
-      let val = get_string_val_from_lit(lit);
+      let val = get_string_val_from_lit(lit).expect("Value must be a string");
 
       let key = if at_rules.is_empty() {
         "default".to_string()
@@ -82,7 +79,7 @@ pub(crate) fn collect_vars_by_at_rules(
 
       collection
         .entry(key)
-        .or_insert_with(|| vec![])
+        .or_default()
         .push(format!("--{}:{};", hash_name, val));
     }
     Expr::Object(obj) => {

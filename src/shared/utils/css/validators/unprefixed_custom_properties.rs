@@ -1,10 +1,12 @@
 use swc_core::css::ast::{ComponentValue, FunctionName, Rule, Stylesheet};
 
-use crate::shared::utils::css::get_value_from_ident;
 #[cfg(test)]
-use crate::shared::utils::css::swc_parse_css;
+use crate::shared::utils::css::utils::swc_parse_css;
+
 
 pub(crate) fn unprefixed_custom_properties_validator(ast: Stylesheet) {
+  use crate::shared::utils::css::utils::get_value_from_ident;
+
   ast.rules.iter().for_each(|rule| match rule {
     Rule::QualifiedRule(qualified_rule) => {
       qualified_rule

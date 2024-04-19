@@ -22,3 +22,5 @@ pub(crate) static INVALID_METHODS: phf::Set<&'static str> = phf_set! {
 pub(crate) static COMPILED_KEY: &str = "$$css";
 
 pub(crate) static SPLIT_TOKEN: &str = "__$$__";
+
+pub(crate) static ROOT_FONT_SIZE: i8 = 16;

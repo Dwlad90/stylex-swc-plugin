@@ -63,7 +63,7 @@ pub(crate) fn parse_nullable_style(
             MemberProp::Computed(computed) => {
               if let Some(lit) = computed.expr.as_lit() {
                 obj_name = Option::Some(obj_ident.clone().sym.as_str().to_string());
-                prop_name = Option::Some(get_string_val_from_lit(lit));
+                prop_name = get_string_val_from_lit(lit);
               }
             }
             MemberProp::PrivateName(_) => {}

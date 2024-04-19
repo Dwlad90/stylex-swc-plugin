@@ -3,6 +3,7 @@ use crate::shared::structures::pre_rule::{CompiledResult, ComputedStyle};
 use super::{
   null_pre_rule::NullPreRule,
   pre_rule::{PreRule, PreRuleValue, PreRules},
+  state_manager::StateManager,
 };
 #[derive(Debug, Clone)]
 pub(crate) struct PreRuleSet {
@@ -34,17 +35,19 @@ impl PreRule for PreRuleSet {
   fn equals(&self, _other: &dyn PreRule) -> bool {
     true
   }
-  fn compiled(&mut self, prefix: &str) -> CompiledResult {
+  fn compiled(&mut self, prefix: &str, state: &StateManager) -> CompiledResult {
     let style_tuple = self
       .rules
       .iter()
       .flat_map(|rule| {
         let compiled_rule = match rule {
-          PreRules::PreRuleSet(rule_set) => rule_set.clone().compiled(prefix),
-          PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.clone().compiled(prefix),
-          PreRules::NullPreRule(null_pre_rule) => null_pre_rule.clone().compiled(prefix),
+          PreRules::PreRuleSet(rule_set) => rule_set.clone().compiled(prefix, state),
+          PreRules::StylesPreRule(styles_pre_rule) => {
+            styles_pre_rule.clone().compiled(prefix, state)
+          }
+          PreRules::NullPreRule(null_pre_rule) => null_pre_rule.clone().compiled(prefix, state),
           PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
-            pre_included_tyles_rule.clone().compiled(prefix)
+            pre_included_tyles_rule.clone().compiled(prefix, state)
           }
         };
 

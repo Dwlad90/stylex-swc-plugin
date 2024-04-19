@@ -2,11 +2,12 @@ use std::fmt::Debug;
 
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::utils::{common::type_of, css::convert_style_to_class_name};
+use crate::shared::utils::{common::type_of, css::utils::convert_style_to_class_name};
 
 use super::{
   included_style::IncludedStyle, injectable_style::InjectableStyle, null_pre_rule::NullPreRule,
   pre_included_styles_rule::PreIncludedStylesRule, pre_rule_set::PreRuleSet,
+  state_manager::StateManager,
 };
 
 #[derive(Debug, Clone)]
@@ -58,7 +59,7 @@ impl CompiledResult {
 
 pub(crate) trait PreRule: Debug {
   fn get_value(&self) -> Option<PreRuleValue>;
-  fn compiled(&mut self, prefix: &str) -> CompiledResult;
+  fn compiled(&mut self, prefix: &str, state: &StateManager) -> CompiledResult;
   fn equals(&self, other: &dyn PreRule) -> bool;
 }
 
@@ -122,12 +123,13 @@ impl PreRule for StylesPreRule {
     Option::Some(self.value.clone())
   }
 
-  fn compiled(&mut self, prefix: &str) -> CompiledResult {
+  fn compiled(&mut self, prefix: &str, state: &StateManager) -> CompiledResult {
     let (_, class_name, rule) = convert_style_to_class_name(
       (self.property.as_str(), &self.value),
       &mut self.pseudos,
       &mut self.at_rules,
       prefix,
+      state,
     );
 
     CompiledResult::ComputedStyles(vec![ComputedStyle(class_name, rule)])

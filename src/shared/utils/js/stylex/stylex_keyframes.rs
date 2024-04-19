@@ -1,22 +1,20 @@
-use chrono::format;
 use indexmap::IndexMap;
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::{
   enums::{FlatCompiledStylesValue, ObjMapType},
   structures::{
-    evaluate_result::EvaluateResultValue, flat_compiled_styles::FlatCompiledStyles,
-    functions::FunctionMap, injectable_style::InjectableStyle, order_pair::OrderPair, pair::Pair,
-    pre_rule::PreRuleValue, state_manager::StateManager, stylex_state_options::StyleXStateOptions,
+    evaluate_result::EvaluateResultValue, functions::FunctionMap,
+    injectable_style::InjectableStyle, order_pair::OrderPair, pair::Pair, pre_rule::PreRuleValue,
+    state_manager::StateManager,
   },
   utils::{
     common::{create_hash, dashify, expr_to_str, get_key_str},
     css::{
-      css::{flat_map_expanded_shorthands, generate_ltr, generate_rtl},
-      transform_value,
+      common::{flat_map_expanded_shorthands, generate_ltr, generate_rtl},
+      utils::transform_value,
     },
     object::{obj_entries, obj_from_entries, obj_map, obj_map_keys, Pipe},
-    stylex::define_vars_utils::construct_css_variables_string,
   },
 };
 
@@ -45,7 +43,7 @@ pub(crate) fn stylex_keyframes(
         obj_map(ObjMapType::Map(entries), |entry| match entry {
           FlatCompiledStylesValue::KeyValue(pair) => FlatCompiledStylesValue::KeyValue(Pair {
             key: pair.key.clone(),
-            value: transform_value(pair.key.as_str(), pair.value.as_str()),
+            value: transform_value(pair.key.as_str(), pair.value.as_str(), state),
           }),
           _ => panic!("Entry must be a tuple of key and value"),
         })

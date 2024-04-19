@@ -12,6 +12,7 @@ mod stylex_transform_stylex_attrs_test;
 mod stylex_transform_stylex_create_theme_test;
 mod stylex_transform_stylex_keyframes_test;
 mod stylex_transform_stylex_props_test;
+mod stylex_transform_value_normalize_test;
 mod stylex_validation_create_test;
 mod stylex_validation_create_theme_test;
 mod stylex_validation_define_vars_test;

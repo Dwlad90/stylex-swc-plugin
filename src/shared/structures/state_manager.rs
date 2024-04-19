@@ -73,6 +73,13 @@ pub struct StateManager {
   pub(crate) injected_keyframes: IndexMap<String, InjectableStyle>,
   pub(crate) top_imports: Vec<ImportDecl>,
 }
+
+impl Default for StateManager {
+  fn default() -> Self {
+    StateManager::new(StyleXOptions::default())
+  }
+}
+
 impl StateManager {
   pub fn new(stylex_options: StyleXOptions) -> Self {
     let options: StyleXStateOptions = StyleXStateOptions::from(stylex_options);

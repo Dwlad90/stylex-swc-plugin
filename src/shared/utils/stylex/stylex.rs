@@ -3,7 +3,7 @@ use crate::{
   transform::styleq::styleq::styleq,
 };
 
-use super::parse_nallable_style::ResolvedArg;
+use super::parse_nullable_style::ResolvedArg;
 
 pub(crate) fn stylex(values: &Vec<ResolvedArg>) -> Option<FnResult> {
   let result = styleq(values);

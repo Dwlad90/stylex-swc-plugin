@@ -103,8 +103,8 @@ impl Fold for CssFolder {
   // }
 
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
-    let mut dimension = timing_normalizer(&mut dimension).clone();
-    let dimension = zero_demention_normalizer(&mut dimension).clone();
+    let dimension = timing_normalizer(&mut dimension).clone();
+    // let dimension = zero_demention_normalizer(&mut dimension).clone();
 
     dimension.clone().fold_children_with(self)
   }
@@ -414,7 +414,7 @@ fn should_normalize() {
         .unwrap(),
       false
     )),
-    "*{{boxshadow:0 2px 4px var(--shadow-1)}}"
+    "*{{boxshadow:0px 2px 4px var(--shadow-1)}}"
   );
 
   assert_eq!(

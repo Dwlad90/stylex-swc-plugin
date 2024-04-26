@@ -14,5 +14,5 @@ _inject2(".x1lh7sze{border-color:var(--divider)}", 2000);
 _inject2(".xud65wk{border-bottom-color:red}", 4000);
 _inject2(".x12oqio5{border-radius:4px}", 2000);
 _inject2(".x1lmef92{padding:calc((100% - 50px) * .5) var(--rightpadding,20px)}", 1000);
-_inject2(".xexx8yu{padding-top:0}", 4000);
+_inject2(".x1uu4ab4{padding-top:0px}", 4000);
 _inject2(".x1bg2uv5{border-color:green}", 2000);

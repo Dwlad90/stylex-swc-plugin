@@ -56,7 +56,7 @@ mod css_tests {
         "0px 2px 4px var(--shadow-1)",
         &StateManager::default()
       ),
-      "0 2px 4px var(--shadow-1)"
+      "0px 2px 4px var(--shadow-1)"
     );
 
     assert_eq!(

@@ -1,28 +1,21 @@
 {
-  "s": "workspace:*",
-  "name": "@stylexjs/swc-plugin",
-  "description": "Haaretz theme plugin",
-  "version": "0.0.0",
-  "license": "UNLICENSED",
-  "sideEffects": false,
-  "files": [
-    "dist"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
+  "name": "@stylexswc/stylexswc",
+  "private": true,
   "scripts": {
-    "build": "cargo build --lib --release --target=wasm32-wasi",
-    "clean": "del-cli dist",
-    "precommit": "lint-staged",
-    "prepublishOnly": "cargo build-wasi --release",
-    "prepush": "lint-prepush",
-    "test": "clear && NODE_ENV=test cargo test --lib --bins --tests"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "clean": "turbo clean",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
-
-  "keywords": [
-    "swc-plugin"
-  ],
-  "main": "target/wasm32-wasi/release/stylex_swc_plugin.wasm",
-  "preferUnplugged": true
+  "devDependencies": {
+    "@stylexswc/eslint-config": "workspace:*",
+    "@stylexswc/typescript-config": "workspace:*",
+    "prettier": "^3.2.5",
+    "turbo": "^1.13.3"
+  },
+  "packageManager": "pnpm@8.9.0",
+  "engines": {
+    "node": ">=20"
+  }
 }

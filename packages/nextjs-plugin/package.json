@@ -1,0 +1,26 @@
+{
+  "name": "@stylexswc/nextjs-plugin",
+  "description": "Stylex next plugin with swc plugin",
+  "version": "0.0.1",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "echo \"Error: no build specified\" && exit 0",
+    "clean": "del-cli dist",
+    "precommit": "lint-staged",
+    "prepublishOnly": "cargo build-wasi --release",
+    "prepush": "lint-prepush",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "keywords": [
+    "swc-plugin"
+  ],
+  "main": "target/wasm32-wasi/release/stylex_swc_plugin.wasm",
+  "preferUnplugged": true
+}

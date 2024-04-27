@@ -74,7 +74,5 @@ pub(crate) fn process_transform(
   let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
     ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, config);
 
-  let program = program.fold_with(&mut stylex);
-
-  program
+  program.fold_with(&mut stylex)
 }

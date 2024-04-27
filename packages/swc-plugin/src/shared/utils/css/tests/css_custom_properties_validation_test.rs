@@ -5,7 +5,7 @@ mod css_tests {
   };
 
   #[test]
-  #[should_panic(expected = "Unexpected end of file, but expected ')'")]
+  #[should_panic(expected = "Rule contains an unclosed function")]
   fn disallow_unclosed_style_value_functions() {
     assert_eq!(
       transform_value("color", "var(--foo", &StateManager::default()),

@@ -1,0 +1,83 @@
+use std::{collections::HashMap, panic};
+
+use stylex_swc_plugin::{
+  shared::{
+    constants::messages,
+    structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  },
+  ModuleTransformVisitor,
+};
+use swc_core::ecma::{
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
+};
+
+use crate::utils::transform::stringify_js;
+
+#[test]
+#[ignore]
+fn validation_stylex_invalid_properties() {
+  // TODO: Not fully implemented
+  let camel_cased = format!(
+    r#"
+      import stylex from 'stylex';
+      const styles = stylex.create({{ x: {{ {}: "{}" }} }});
+    "#,
+    "animation", "anim 1s"
+  );
+
+  let result = panic::catch_unwind(|| {
+    stringify_js(
+      camel_cased.as_str(),
+      Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+      }),
+      |tr| {
+        ModuleTransformVisitor::new_test_styles(
+          tr.comments.clone(),
+          PluginPass::default(),
+          Option::None,
+        )
+      },
+    );
+  });
+  assert!(result.is_err());
+  let binding = result.unwrap_err();
+  let error = binding.downcast_ref::<&str>().unwrap();
+  assert_eq!(error, &messages::UNKNOWN_PROP_KEY);
+}
+
+#[test]
+#[ignore]
+fn stylex_invalid_property_values() {
+  // TODO: Not fully implemented
+  let camel_cased = format!(
+    r#"
+      import stylex from 'stylex';
+      const styles = stylex.create({{ x: {{ {}: "{}" }} }});
+    "#,
+    "backgroundPosition", "top left"
+  );
+
+  let result = panic::catch_unwind(|| {
+    stringify_js(
+      camel_cased.as_str(),
+      Syntax::Typescript(TsConfig {
+        tsx: true,
+        ..Default::default()
+      }),
+      |tr| {
+        ModuleTransformVisitor::new_test_styles(
+          tr.comments.clone(),
+          PluginPass::default(),
+          Option::None,
+        )
+      },
+    );
+  });
+  assert!(result.is_err());
+  let binding = result.unwrap_err();
+  let error = binding.downcast_ref::<&str>().unwrap();
+  assert_eq!(error, &messages::UNKNOWN_PROP_KEY);
+}

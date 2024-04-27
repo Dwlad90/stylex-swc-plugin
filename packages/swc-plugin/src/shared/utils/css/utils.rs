@@ -5,6 +5,7 @@ use crate::shared::{
     self,
     long_hand_logical::LONG_HAND_LOGICAL,
     long_hand_physical::LONG_HAND_PHYSICAL,
+    messages,
     number_properties::NUMBER_PROPERTY_SUFFIXIES,
     priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
     shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
@@ -397,7 +398,11 @@ pub(crate) fn normalize_css_property_value(
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
   if !errors.is_empty() {
-    let error_message = errors.first().unwrap().message().to_string();
+    let mut error_message = errors.first().unwrap().message().to_string();
+
+    if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {
+      error_message = messages::LINT_UNCLOSED_FUNCTION.to_string();
+    }
 
     panic!("{}", error_message)
   }

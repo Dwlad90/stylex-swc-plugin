@@ -1,4 +1,4 @@
-pub(crate) mod constants;
+pub mod constants;
 pub(crate) mod enums;
 pub mod regex;
 pub mod structures;

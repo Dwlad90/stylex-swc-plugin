@@ -5,7 +5,7 @@ pub(crate) mod legacy_expand_shorthands_order;
 pub(crate) mod length_units;
 pub(crate) mod long_hand_logical;
 pub(crate) mod long_hand_physical;
-pub(crate) mod messages;
+pub mod messages;
 pub(crate) mod number_properties;
 pub(crate) mod priorities;
 pub(crate) mod property_specificity_order;

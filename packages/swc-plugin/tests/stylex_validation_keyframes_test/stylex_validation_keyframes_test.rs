@@ -114,7 +114,6 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams::default();
-    //{ from: 'react-strict-dom', as: 'css' }
 
     let mut defined_stylex_css_variables = HashMap::new();
 

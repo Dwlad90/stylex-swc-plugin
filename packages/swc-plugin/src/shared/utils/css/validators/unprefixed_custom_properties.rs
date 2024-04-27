@@ -1,48 +1,49 @@
-use swc_core::css::ast::{ComponentValue, FunctionName, Rule, Stylesheet};
+use swc_core::css::ast::{
+  ComponentValue, Declaration, Function, FunctionName, QualifiedRule, Rule, Stylesheet,
+};
 
 #[cfg(test)]
 use crate::shared::utils::css::utils::swc_parse_css;
+use crate::shared::{constants::messages, utils::css::utils::get_value_from_ident};
 
+fn process_function(func: &Function) {
+  if let FunctionName::Ident(func_name_ident) = &func.name {
+    let func_name = get_value_from_ident(func_name_ident);
+    if func_name == "var" {
+      if let Some(ComponentValue::Ident(ident)) = func.value.first() {
+        let value = get_value_from_ident(ident.as_ref());
+        assert!(
+          value.starts_with("--"),
+          "{}",
+          messages::UNPREFIXED_CUSTOM_PROPERTIES
+        );
+      }
+    }
+  }
+}
+
+fn process_declaration(declaration: &Declaration) {
+  for value in declaration.value.iter() {
+    if let ComponentValue::Function(func) = value {
+      process_function(func);
+    }
+  }
+}
+
+fn process_qualified_rule(qualified_rule: &QualifiedRule) {
+  for declaration in qualified_rule.block.value.iter() {
+    if let ComponentValue::Declaration(declaration) = declaration {
+      process_declaration(declaration);
+    }
+  }
+}
 
 pub(crate) fn unprefixed_custom_properties_validator(ast: Stylesheet) {
-  use crate::shared::utils::css::utils::get_value_from_ident;
-
-  ast.rules.iter().for_each(|rule| match rule {
-    Rule::QualifiedRule(qualified_rule) => {
-      qualified_rule
-        .block
-        .value
-        .iter()
-        .for_each(|declaration| match &declaration {
-          ComponentValue::Declaration(declaration) => {
-            declaration.value.iter().for_each(|value| match &value {
-              ComponentValue::Function(func) => match &func.name {
-                FunctionName::Ident(func_name_ident) => {
-                  let func_name = get_value_from_ident(&func_name_ident);
-
-                  if func_name == "var" {
-                    let function_value = func.value.get(0).unwrap();
-
-                    match function_value {
-                      ComponentValue::Ident(ident) => {
-                        let value = get_value_from_ident(ident.as_ref());
-
-                        assert!(value.starts_with("--"), "Unprefixed custom properties");
-                      }
-                      _ => {}
-                    }
-                  }
-                }
-                _ => {}
-              },
-              _ => {}
-            });
-          }
-          _ => {}
-        })
+  for rule in ast.rules.iter() {
+    if let Rule::QualifiedRule(qualified_rule) = rule {
+      process_qualified_rule(qualified_rule);
     }
-    _ => {}
-  });
+  }
 }
 
 #[test]

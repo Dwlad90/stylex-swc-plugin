@@ -13,7 +13,7 @@ pub(crate) static ONLY_TOP_LEVEL: &str =
 pub(crate) static NON_OBJECT_FOR_STYLEX_CALL: &str =
   "stylex.create() can only accept a style object.";
 #[allow(dead_code)]
-pub(crate) static UNKNOWN_PROP_KEY: &str = "Unknown property key";
+pub static UNKNOWN_PROP_KEY: &str = "Unknown property key";
 #[allow(dead_code)]
 pub(crate) static MUST_BE_DEFAULT_IMPORT: &str = "Must be default import";
 #[allow(dead_code)]
@@ -78,3 +78,6 @@ pub(crate) static NON_STATIC_KEYFRAME_VALUE: &str =
 #[allow(dead_code)]
 pub(crate) static NON_OBJECT_KEYFRAME: &str =
   "Every frame within a stylex.keyframes() call must be an object.";
+
+pub(crate) static LINT_UNCLOSED_FUNCTION: &str = "Rule contains an unclosed function";
+pub(crate) static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";

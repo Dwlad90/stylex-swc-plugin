@@ -87,7 +87,7 @@ where
         config.runtime_injection = RuntimeInjection::Boolean(true);
         config.treeshake_compensation = Option::Some(true);
 
-        StateManager::new(config.into())
+        StateManager::new(config)
       }
     };
 

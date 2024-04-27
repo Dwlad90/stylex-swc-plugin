@@ -78,13 +78,9 @@ pub(crate) fn make_string_expression(
 
             dbg!(&result);
 
-            let result = if let Some(result) = result {
-              Some(ResolvedArg::StyleObject(result.clone(), ident.clone()))
-            } else {
-              Option::None
-            };
-
             result
+              .as_ref()
+              .map(|result| ResolvedArg::StyleObject(result.clone(), ident.clone()))
           }
         })
         .collect::<Vec<ResolvedArg>>();

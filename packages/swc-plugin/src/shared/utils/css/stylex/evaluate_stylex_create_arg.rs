@@ -1,5 +1,3 @@
-use std::clone;
-
 use indexmap::IndexMap;
 use swc_core::{
   common::DUMMY_SP,
@@ -23,10 +21,9 @@ use crate::shared::{
   utils::{
     common::{
       create_hash, expr_to_str, normalize_expr, prop_or_spread_expression_creator,
-      string_to_expression,
+      string_to_expression, transform_shorthand_to_key_values,
     },
     css::utils::get_number_suffix,
-    object,
     validators::validate_dynamic_style_params,
   },
 };
@@ -38,6 +35,8 @@ pub fn evaluate_stylex_create_arg(
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
 ) -> EvaluateResult {
+  dbg!(&path);
+
   match path {
     Expr::Object(object) => {
       let mut style_object = object.clone();
@@ -50,7 +49,10 @@ pub fn evaluate_stylex_create_arg(
         match prop {
           PropOrSpread::Spread(_) => todo!("Spread not implemented yet"),
           PropOrSpread::Prop(prop) => {
-            // let obj_prop_path = &prop.clone();
+            let mut prop = prop.clone();
+            dbg!(&prop);
+
+            transform_shorthand_to_key_values(&mut prop);
 
             match prop.as_ref() {
               Prop::KeyValue(key_value_prop) => {
@@ -86,7 +88,7 @@ pub fn evaluate_stylex_create_arg(
                     let fn_body = fn_path.body.clone();
                     if let BlockStmtOrExpr::Expr(expr) = fn_body.as_ref() {
                       if let Expr::Object(fn_body_object) = normalize_expr(expr) {
-                        dbg!(&object);
+                        dbg!(&object, fn_body_object);
 
                         let eval_result = evaluate_partial_object_recursively(
                           fn_body_object,
@@ -118,10 +120,7 @@ pub fn evaluate_stylex_create_arg(
 
                         let key = expr_to_str(key_expr, traversal_state, functions);
 
-                        fns.insert(
-                          key,
-                          (params, eval_result.inline_styles.unwrap_or(IndexMap::new())),
-                        );
+                        fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
 
                         result_value.insert(
                           key_expr.as_expr().clone(),
@@ -136,13 +135,13 @@ pub fn evaluate_stylex_create_arg(
 
                         dbg!(&result_value);
 
-                        return EvaluateResult {
-                          confident: true,
-                          deopt: Option::None,
-                          value: Option::Some(EvaluateResultValue::Map(result_value)),
-                          inline_styles: Option::None,
-                          fns: Option::Some(fns),
-                        };
+                        // return EvaluateResult {
+                        //   confident: true,
+                        //   deopt: Option::None,
+                        //   value: Option::Some(EvaluateResultValue::Map(result_value)),
+                        //   inline_styles: Option::None,
+                        //   fns: Option::Some(fns),
+                        // };
                       } else {
                         return evaluate(path, traversal_state, functions);
                       }
@@ -165,13 +164,17 @@ pub fn evaluate_stylex_create_arg(
                           for prop in obj_expr.props {
                             match prop {
                               PropOrSpread::Spread(_) => todo!(),
-                              PropOrSpread::Prop(prop) => match prop.as_ref() {
-                                Prop::KeyValue(obj_expr_prop_kv) => {
-                                  obj_expr_props.push(obj_expr_prop_kv.clone())
-                                }
+                              PropOrSpread::Prop(mut prop) => {
+                                transform_shorthand_to_key_values(&mut prop);
 
-                                _ => todo!(),
-                              },
+                                match prop.as_ref() {
+                                  Prop::KeyValue(obj_expr_prop_kv) => {
+                                    obj_expr_props.push(obj_expr_prop_kv.clone())
+                                  }
+
+                                  _ => todo!(),
+                                }
+                              }
                             }
                           }
 
@@ -197,12 +200,18 @@ pub fn evaluate_stylex_create_arg(
           }
         }
       }
+      dbg!(&result_value);
+
       EvaluateResult {
         confident: true,
-        deopt: None,
-        value: Some(EvaluateResultValue::Map(result_value)),
-        inline_styles: None,
-        fns: None,
+        deopt: Option::None,
+        value: Option::Some(EvaluateResultValue::Map(result_value)),
+        inline_styles: Option::None,
+        fns: if fns.is_empty() {
+          Option::None
+        } else {
+          Option::Some(fns)
+        },
       }
     }
     _ => {
@@ -218,7 +227,7 @@ fn evaluate_partial_object_recursively(
   functions: &FunctionMap,
   key_path: Option<Vec<String>>,
 ) -> EvaluateResult {
-  let key_path = key_path.unwrap_or(vec![]);
+  let key_path = key_path.unwrap_or_default();
 
   let mut inline_styles: IndexMap<String, Expr> = IndexMap::new();
 
@@ -226,7 +235,7 @@ fn evaluate_partial_object_recursively(
 
   let props = path.props.clone();
 
-  for prop in props.iter() {
+  for prop in props.into_iter() {
     match prop {
       PropOrSpread::Spread(spread) => {
         let result = evaluate(&spread.expr, traversal_state, functions);
@@ -236,23 +245,10 @@ fn evaluate_partial_object_recursively(
         }
 
         todo!("Check what to do with spread");
-
-        // let new_prop = prop_or_spread_expression_creator(
-        //     key,
-        //     result
-        //         .value
-        //         .expect("Value not found")
-        //         .as_expr()
-        //         .expect("Value not an expression")
-        //         .clone(),
-        // );
-
-        // obj.push(new_prop);
-
-        // //Object.assign(obj, result.value);
-        // continue;
       }
-      PropOrSpread::Prop(prop) => {
+      PropOrSpread::Prop(mut prop) => {
+        transform_shorthand_to_key_values(&mut prop);
+
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {
             dbg!(&key_value);
@@ -281,12 +277,13 @@ fn evaluate_partial_object_recursively(
             let mut key = expr_to_str(key, traversal_state, functions);
             dbg!(&key);
 
-            if key.starts_with("var(") && key.ends_with(")") {
+            if key.starts_with("var(") && key.ends_with(')') {
               key = key[4..key.len() - 1].to_string();
             }
             dbg!(&key);
 
             let value_path = &key_value.value;
+            dbg!(&value_path);
 
             match normalize_expr(value_path.as_ref()) {
               Expr::Object(object) => {
@@ -299,6 +296,8 @@ fn evaluate_partial_object_recursively(
                   functions,
                   Option::Some(extended_key_path),
                 );
+
+                dbg!(&result);
 
                 if !result.confident {
                   return EvaluateResult {

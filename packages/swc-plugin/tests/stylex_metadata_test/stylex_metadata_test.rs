@@ -29,20 +29,20 @@ test!(
   stylex_metadata_is_correctly_set,
   r#"
         import stylex from 'stylex';
-        const styles = stylex.create({
-        foo: {
-            color: 'red',
-            height: 5,
-            ':hover': {
-                start: 10,
-            },
-            '@media (min-width: 1000px)': {
-                end: 5
-            }
-        },
+        export const styles = stylex.create({
+          foo: {
+              color: 'red',
+              height: 5,
+              ':hover': {
+                  start: 10,
+              },
+              '@media (min-width: 1000px)': {
+                  end: 5
+              }
+          },
         });
 
-        const name = stylex.keyframes({
+        export const name = stylex.keyframes({
             from: {
                 start: 0,
             },

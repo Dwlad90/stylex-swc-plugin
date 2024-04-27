@@ -1,20 +1,23 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::{
+  collections::{hash_map::Entry, HashMap},
+  ops::Deref,
+};
 
 use swc_core::{
-  common::{comments::Comments, DUMMY_SP},
+  common::{comments::Comments, EqIgnoreSpan},
   ecma::{
-    ast::{
-      BindingIdent, Expr, Id, Ident, KeyValueProp, Lit, ObjectLit, Pat, Prop, PropName,
-      PropOrSpread, VarDeclarator,
-    },
+    ast::{Expr, Id, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread, VarDeclarator},
     visit::FoldWith,
   },
 };
 
 use crate::{
-  shared::enums::{
-    ModuleCycle, NonNullProp, NonNullProps, StyleVarsToKeep, TopLevelExpression,
-    TopLevelExpressionKind,
+  shared::{
+    enums::{
+      ModuleCycle, NonNullProp, NonNullProps, StyleVarsToKeep, TopLevelExpression,
+      TopLevelExpressionKind,
+    },
+    utils::common::transform_shorthand_to_key_values,
   },
   ModuleTransformVisitor,
 };
@@ -100,53 +103,29 @@ where
       return var_declarator;
     }
 
-    if &var_declarator.init.is_some() == &true {
-      match &*var_declarator.init.clone().unwrap() {
-        Expr::Call(call) => {
-          let declaration_tuple = self.process_declaration(&call);
+    if let Some(Expr::Call(call)) = var_declarator.init.as_deref() {
+      if let Some((declaration, member)) = self.process_declaration(call) {
+        let stylex_imports = self.state.stylex_import_stringified();
 
-          match &declaration_tuple {
-            Some(declaration) => {
-              let (declaration, member) = declaration;
+        let declaration_string = stylex_imports
+          .into_iter()
+          .find(|item| item.eq(declaration.0.as_str()))
+          .or_else(|| {
+            self
+              .state
+              .stylex_create_import
+              .iter()
+              .find(|decl| decl.eq_ignore_span(&&declaration))
+              .map(|decl| decl.0.to_string())
+          });
 
-              let stylex_imports = self.state.stylex_import_stringified();
-
-              if let Some(declaration_string) = stylex_imports
-                .into_iter()
-                .find(|item| item == &declaration.0.to_string())
-                .or_else(|| {
-                  self
-                    .state
-                    .stylex_create_import
-                    .clone()
-                    .into_iter()
-                    .find(|decl| decl.eq(&declaration))
-                    .and_then(|decl| Option::Some(decl.0.to_string()))
-                })
-              {
-                if member.as_str() == "create" || member.as_str() == declaration_string {
-                  if self.cycle == ModuleCycle::Initializing {
-                    self.props_declaration =
-                      var_declarator.name.as_ident().map(|ident| ident.to_id());
-                  } else {
-                    if self.state.options.runtime_injection.is_none() {
-                      var_declarator.name = Pat::Ident(BindingIdent {
-                        id: Ident {
-                          span: DUMMY_SP,
-                          optional: false,
-                          sym: "_stylex$props".into(),
-                        },
-                        type_ann: None,
-                      })
-                    }
-                  }
-                }
-              }
-            }
-            None => {}
+        if let Some(declaration_string) = declaration_string {
+          if self.cycle == ModuleCycle::Initializing
+            && (member.as_str() == "create" || member.eq(declaration_string.as_str()))
+          {
+            self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
           }
         }
-        _ => {}
       }
     }
 
@@ -237,26 +216,17 @@ fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Id>) {
   style_object.props.retain(|prop| {
     match prop {
       PropOrSpread::Prop(prop) => {
-        let style_prop = prop.as_ref();
+        let mut prop = prop.clone();
+        transform_shorthand_to_key_values(&mut prop);
 
-        match style_prop {
+        match prop.deref() {
           Prop::KeyValue(key_value) => {
             let value = key_value.value.clone();
 
             if let Some(Lit::Null(_)) = value.as_lit() {
               let style_key_as_ident = match key_value.key.clone() {
                 PropName::Ident(ident) => Option::Some(ident),
-                // PropName::Str(str) => {
-                //     Option::Some(str.value.to_string())
-                // }
-                // PropName::Num(num) => {
-                //     Option::Some(num.value.to_string())
-                // }
-                // PropName::Computed(_) => Option::None,
-                // PropName::BigInt(big_int) => {
-                //     Option::Some(big_int.value.to_string())
-                // }
-                _ => todo!("Not implemented yet"),
+                _ => todo!("PropName not an ident"),
               };
 
               style_key_as_ident.map_or(false, |style_key_as_string| {

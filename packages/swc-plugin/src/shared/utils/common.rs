@@ -982,12 +982,18 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
 
     match prop {
       PropOrSpread::Spread(_) => todo!("Spread in not supported"),
-      PropOrSpread::Prop(prop) => match prop.as_ref() {
-        Prop::KeyValue(key_value) => {
-          key_values.push(key_value.clone());
+      PropOrSpread::Prop(prop) => {
+        let mut prop = prop.clone();
+
+        transform_shorthand_to_key_values(&mut prop);
+
+        match prop.as_ref() {
+          Prop::KeyValue(key_value) => {
+            key_values.push(key_value.clone());
+          }
+          _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
         }
-        _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
-      },
+      }
     }
   }
   key_values
@@ -1087,5 +1093,14 @@ pub(crate) fn normalize_expr(expr: &Expr) -> &Expr {
   match expr {
     Expr::Paren(paren) => normalize_expr(paren.expr.as_ref()),
     _ => expr,
+  }
+}
+
+pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
+  if let Some(ident) = prop.as_shorthand() {
+    *prop = Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(ident.clone()),
+      value: Box::new(Expr::Ident(ident.clone())),
+    }));
   }
 }

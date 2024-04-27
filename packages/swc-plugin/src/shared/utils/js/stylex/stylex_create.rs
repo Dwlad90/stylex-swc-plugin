@@ -48,18 +48,18 @@ pub(crate) fn stylex_create_set(
       .iter()
       .map(|(key, value)| match value {
         PreRules::PreRuleSet(rule_set) => {
-          (key.to_string(), rule_set.clone().compiled(prefix, &state))
+          (key.to_string(), rule_set.clone().compiled(prefix, state))
         }
         PreRules::StylesPreRule(styles_pre_rule) => (
           key.to_string(),
-          styles_pre_rule.clone().compiled(prefix, &state),
+          styles_pre_rule.clone().compiled(prefix, state),
         ),
         PreRules::NullPreRule(rule_set) => {
-          (key.to_string(), rule_set.clone().compiled(prefix, &state))
+          (key.to_string(), rule_set.clone().compiled(prefix, state))
         }
         PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => (
           key.to_string(),
-          pre_included_tyles_rule.clone().compiled(prefix, &state),
+          pre_included_tyles_rule.clone().compiled(prefix, state),
         ),
       })
       .collect::<Vec<(String, CompiledResult)>>();

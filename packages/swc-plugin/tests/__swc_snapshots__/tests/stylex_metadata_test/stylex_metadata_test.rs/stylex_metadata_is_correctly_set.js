@@ -1,6 +1,6 @@
 //__stylex_metadata_start__[{"class_name":"x1e2nbdu","style":{"rtl":null,"ltr":".x1e2nbdu{color:red}"},"priority":3000},{"class_name":"x1ycjhwn","style":{"rtl":null,"ltr":".x1ycjhwn{height:5px}"},"priority":4000},{"class_name":"xaiupp8","style":{"rtl":null,"ltr":".xaiupp8:hover{inset-inline-start:10px}"},"priority":3130},{"class_name":"x1uy60zq","style":{"rtl":null,"ltr":"@media (min-width: 1000px){.x1uy60zq.x1uy60zq{inset-inline-end:5px}}"},"priority":3200},{"class_name":"x1g85oeb-B","style":{"rtl":null,"ltr":"@keyframes x1g85oeb-B{from{inset-inline-start:0px;}to{inset-inline-start:100px;}}"},"priority":1}]__stylex_metadata_end__
 import stylex from 'stylex';
-const _stylex$props = {
+export const styles = {
     foo: {
         color: "x1e2nbdu",
         height: "x1ycjhwn",
@@ -13,3 +13,4 @@ const _stylex$props = {
         $$css: true
     }
 };
+export const name = "x1g85oeb-B";

@@ -1,10 +1,7 @@
-use std::{collections::HashMap, panic};
+use std::panic;
 
 use stylex_swc_plugin::{
-  shared::{
-    constants::messages,
-    structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-  },
+  shared::{constants::messages, structures::plugin_pass::PluginPass},
   ModuleTransformVisitor,
 };
 use swc_core::ecma::{
@@ -57,7 +54,7 @@ fn stylex_invalid_property_values() {
       import stylex from 'stylex';
       const styles = stylex.create({{ x: {{ {}: "{}" }} }});
     "#,
-    "backgroundPosition", "top left"
+    "backgroundPosition", "anim 1s"
   );
 
   let result = panic::catch_unwind(|| {

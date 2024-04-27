@@ -54,7 +54,7 @@ use crate::shared::{
       binary_expr_to_num, create_hash, deep_merge_props, expr_to_str, gen_file_based_identifier,
       get_import_by_ident, get_key_str, get_string_val_from_lit, get_var_decl_by_ident,
       get_var_decl_from, hash_f32, normalize_expr, number_to_expression, remove_duplicates,
-      string_to_expression,
+      string_to_expression, transform_shorthand_to_key_values,
     },
     css::factories::object_expression_factory,
     js::{
@@ -501,25 +501,36 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             };
 
             let property = props
-              .into_iter()
+              .iter()
               .find(|prop| match prop {
                 PropOrSpread::Spread(_) => {
                   todo!("Spread not implemented yet");
                 }
-                PropOrSpread::Prop(prop) => match prop.as_ref() {
-                  Prop::KeyValue(key_value) => {
-                    let key = get_key_str(key_value);
+                PropOrSpread::Prop(prop) => {
+                  let mut prop = prop.clone();
 
-                    key == ident.sym.to_string()
+                  transform_shorthand_to_key_values(&mut prop);
+
+                  match prop.as_ref() {
+                    Prop::KeyValue(key_value) => {
+                      let key = get_key_str(key_value);
+
+                      ident.sym == key
+                    }
+                    _ => todo!("Prop not implemented yet"),
                   }
-                  _ => todo!("PropOrSpread"),
-                },
+                }
               })?
               .clone();
 
             if let PropOrSpread::Prop(prop) = property {
               dbg!(&prop, ident);
-              Some(EvaluateResultValue::Expr(*prop.key_value().unwrap().value))
+              Some(EvaluateResultValue::Expr(
+                *prop
+                  .key_value()
+                  .expect("Expression is not a key value")
+                  .value,
+              ))
             } else {
               panic!("Member not found");
             }
@@ -575,6 +586,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             if prop.is_method() {
               return deopt(path, state);
             }
+
+            let mut prop = prop.clone();
+
+            transform_shorthand_to_key_values(&mut prop);
 
             match prop.as_ref() {
               Prop::KeyValue(path_key_value) => {

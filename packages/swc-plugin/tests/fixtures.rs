@@ -9,7 +9,7 @@ use stylex_swc_plugin::{
   ModuleTransformVisitor,
 };
 use swc_core::{
-  common::{chain, Mark},
+  common::{chain, FileName, Mark},
   ecma::{
     parser::{Syntax, TsConfig},
     transforms::{base::resolver, testing::test_fixture},
@@ -31,25 +31,20 @@ fn fixture(input: PathBuf) {
       let unresolved_mark = Mark::new();
       let top_level_mark = Mark::new();
 
+      let mut config = StyleXOptionsParams::default();
+
+      config.dev = Option::Some(true);
+      config.treeshake_compensation = Option::Some(true);
+
       chain!(
         resolver(unresolved_mark, top_level_mark, false),
         ModuleTransformVisitor::new_test_styles(
           PluginCommentsProxy,
-          PluginPass::default(),
-          Option::Some(StyleXOptionsParams {
-            style_resolution: Option::Some(StyleResolution::ApplicationOrder),
-            use_rem_for_font_size: Option::None,
-            runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
-            class_name_prefix: Option::Some("x".to_string()),
-            defined_stylex_css_variables: Option::None,
-            import_sources: Option::None,
-            dev: Option::Some(false),
-            test: Option::Some(false),
-            treeshake_compensation: Option::None,
-            gen_conditional_classes: Option::Some(false),
-            aliases: Option::None,
-            unstable_module_resolution: Option::None,
-          })
+          PluginPass {
+            cwd: Option::None,
+            filename: FileName::Real("/app/pages/Page.tsx".into()),
+          },
+          Option::Some(config)
         ) // ModuleTransformVisitor::new_test(tr.comments.clone())
       )
     },

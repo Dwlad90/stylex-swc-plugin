@@ -1,7 +1,17 @@
-use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
-use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
-  transforms::testing::test,
+use stylex_swc_plugin::{
+  shared::structures::{
+    named_import_source::RuntimeInjection,
+    plugin_pass::PluginPass,
+    stylex_options::{StyleResolution, StyleXOptionsParams},
+  },
+  ModuleTransformVisitor,
+};
+use swc_core::{
+  base::config,
+  ecma::{
+    parser::{Syntax, TsConfig},
+    transforms::testing::test,
+  },
 };
 
 use crate::utils::transform::stringify_js;
@@ -553,5 +563,122 @@ test!(
             }
         });
         stylex(styles.default, styles.override);
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams::default();
+
+    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(false));
+
+    ModuleTransformVisitor::new_test_styles(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Option::Some(config),
+    )
+  },
+  adds_null_for_constituent_properties_of_shorthands,
+  r#"
+    import stylex from 'stylex';
+    const borderRadius = 2;
+    export const styles = stylex.create({
+      default: {
+        margin: 'calc((100% - 50px) * 0.5) 20px 0',
+      },
+      error: {
+        borderColor: 'red blue',
+        borderStyle: 'dashed',
+        borderWidth: '0 0 2px 0',
+      },
+      root: {
+        borderWidth: 1,
+        borderStyle: 'solid',
+        borderColor: 'var(--divider)',
+        borderRadius: borderRadius * 2,
+        borderBottomWidth: '5px',
+        borderBottomStyle: 'solid',
+        borderBottomColor: 'red',
+      },
+      short: {
+        padding: 'calc((100% - 50px) * 0.5) var(--rightpadding, 20px)',
+        paddingTop: 0,
+      },
+      shortReversed: {
+        paddingTop: 0,
+        padding: 'calc((100% - 50px) * 0.5) var(--rightpadding, 20px)',
+      },
+      valid: {
+        borderColor: 'green',
+        borderStyle: 'solid',
+        borderWidth: 1,
+      }
+    });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams::default();
+
+    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(false));
+
+    config.style_resolution = Option::Some(StyleResolution::PropertySpecificity);
+
+    ModuleTransformVisitor::new_test_styles(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Option::Some(config),
+    )
+  },
+  can_leave_shorthands_as_is_when_configured,
+  r#"
+    import stylex from 'stylex';
+    const borderRadius = 2;
+    export const styles = stylex.create({
+      default: {
+        marginTop: 'calc((100% - 50px) * 0.5)',
+        marginRight: 20,
+        marginBottom: 0,
+      },
+      error: {
+        borderVerticalColor: 'red',
+        borderHorizontalColor: 'blue',
+        borderStyle: 'dashed',
+        borderBottomWidth: 2,
+      },
+      root: {
+        borderWidth: 1,
+        borderStyle: 'solid',
+        borderColor: 'var(--divider)',
+        borderRadius: borderRadius * 2,
+        borderBottomWidth: 5,
+        borderBottomStyle: 'solid',
+        borderBottomColor: 'red',
+      },
+      short: {
+        paddingVertical: 'calc((100% - 50px) * 0.5)',
+        paddingHorizontal: 'var(--rightpadding, 20px)',
+        paddingTop: 0,
+      },
+      shortReversed: {
+        paddingTop: 0,
+        paddingVertical: 'calc((100% - 50px) * 0.5)',
+        paddingHorizontal: 'var(--rightpadding, 20px)',
+      },
+      valid: {
+        borderColor: 'green',
+        borderStyle: 'solid',
+        borderWidth: 1,
+      }
+    });
     "#
 );

@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use indexmap::IndexMap;
 use regex::Regex;
 use swc_core::{
@@ -22,7 +24,7 @@ use crate::shared::{
     common::{
       expr_tpl_to_string, get_expr_from_var_decl, get_key_str, get_key_values_from_object,
       get_string_val_from_lit, get_var_decl_by_ident, handle_tpl_to_expression,
-      number_to_expression, transform_bin_expr_to_number,
+      number_to_expression, transform_bin_expr_to_number, transform_shorthand_to_key_values,
     },
     css::common::flat_map_expanded_shorthands,
   },
@@ -231,65 +233,71 @@ pub(crate) fn flatten_raw_style_object(
           }
           let mut equivalent_pairs: IndexMap<String, IndexMap<String, PreRules>> = IndexMap::new();
 
-          obj.props.iter().for_each(|prop| match prop {
-            PropOrSpread::Prop(prop) => match prop.as_ref() {
-              Prop::KeyValue(key_value) => {
-                let mut inner_key_value: KeyValueProp = key_value.clone();
-                // validate_conditional_styles(&inner_key_value);
+          obj.props.clone().into_iter().for_each(|prop| {
+            match prop {
+              PropOrSpread::Prop(mut prop) => {
+                transform_shorthand_to_key_values(&mut prop);
 
-                let condition = get_key_str(&inner_key_value);
-                let mut pseudos_to_pass_down = pseudos.clone();
-                let mut at_rules_to_pass_down = at_rules.clone();
+                match prop.as_ref() {
+                  Prop::KeyValue(key_value) => {
+                    let mut inner_key_value: KeyValueProp = key_value.clone();
+                    // validate_conditional_styles(&inner_key_value);
 
-                if condition.starts_with(":") {
-                  dbg!("{:?}", &pseudos_to_pass_down);
-                  pseudos_to_pass_down.push(condition.clone());
-                } else if condition.starts_with("@") {
-                  at_rules_to_pass_down.push(condition.clone());
-                }
+                    let condition = get_key_str(&inner_key_value);
+                    let mut pseudos_to_pass_down = pseudos.clone();
+                    let mut at_rules_to_pass_down = at_rules.clone();
 
-                inner_key_value.key = PropName::Str(Str {
-                  span: DUMMY_SP,
-                  value: css_property_key.clone().into(),
-                  raw: Option::None,
-                });
+                    if condition.starts_with(":") {
+                      dbg!("{:?}", &pseudos_to_pass_down);
+                      pseudos_to_pass_down.push(condition.clone());
+                    } else if condition.starts_with("@") {
+                      at_rules_to_pass_down.push(condition.clone());
+                    }
 
-                println!(
-                  "!!condition: {:#?}, inner_key, {:#?}",
-                  condition, inner_key_value.key
-                );
+                    inner_key_value.key = PropName::Str(Str {
+                      span: DUMMY_SP,
+                      value: css_property_key.clone().into(),
+                      raw: Option::None,
+                    });
 
-                let pairs = flatten_raw_style_object(
-                  &vec![inner_key_value],
-                  &mut pseudos_to_pass_down,
-                  &mut at_rules_to_pass_down,
-                  state,
-                  functions,
-                );
+                    println!(
+                      "!!condition: {:#?}, inner_key, {:#?}",
+                      condition, inner_key_value.key
+                    );
 
-                println!("!!pairs: {:#?}", pairs);
-                // equivalent_pairs.extend(pairs);
-                // for (key, value) in pairs {
-                //     equivalent_pairs.insert(key, value);
-                // }
-                for (property, pre_rule) in pairs {
-                  // if let Some(pre_rule) = pre_rule.downcast_ref::<PreIncludedStylesRule>() {
-                  //     // NOT POSSIBLE, but needed for Flow
-                  //     panic!("stylex.include can only be used at the top-level");
-                  // }
-                  if equivalent_pairs.get(&property).is_none() {
-                    let mut inner_map = IndexMap::new();
-                    inner_map.insert(condition.clone(), pre_rule);
-                    equivalent_pairs.insert(property, inner_map);
-                  } else {
-                    let inner_map = equivalent_pairs.get_mut(&property).unwrap();
-                    inner_map.insert(condition.clone(), pre_rule);
+                    let pairs = flatten_raw_style_object(
+                      &vec![inner_key_value],
+                      &mut pseudos_to_pass_down,
+                      &mut at_rules_to_pass_down,
+                      state,
+                      functions,
+                    );
+
+                    println!("!!pairs: {:#?}", pairs);
+                    // equivalent_pairs.extend(pairs);
+                    // for (key, value) in pairs {
+                    //     equivalent_pairs.insert(key, value);
+                    // }
+                    for (property, pre_rule) in pairs {
+                      // if let Some(pre_rule) = pre_rule.downcast_ref::<PreIncludedStylesRule>() {
+                      //     // NOT POSSIBLE, but needed for Flow
+                      //     panic!("stylex.include can only be used at the top-level");
+                      // }
+                      if equivalent_pairs.get(&property).is_none() {
+                        let mut inner_map = IndexMap::new();
+                        inner_map.insert(condition.clone(), pre_rule);
+                        equivalent_pairs.insert(property, inner_map);
+                      } else {
+                        let inner_map = equivalent_pairs.get_mut(&property).unwrap();
+                        inner_map.insert(condition.clone(), pre_rule);
+                      }
+                    }
                   }
+                  _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
                 }
               }
               _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
-            },
-            _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
+            }
           });
           for (property, obj) in equivalent_pairs.iter() {
             let sorted_keys: Vec<&String> = obj.keys().collect();

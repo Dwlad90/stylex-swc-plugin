@@ -134,9 +134,9 @@ test!(
     )
   },
   dynamic_style_function_only_accepts_named_parameters_valid,
-  r#"
+r#"
     import stylex from "@stylexjs/stylex";
-    const styles = stylex.create({
+    export const styles = stylex.create({
         dynamic: (backgroundColor) => ({
             backgroundColor,
         }),

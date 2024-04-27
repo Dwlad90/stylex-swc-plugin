@@ -1,4 +1,5 @@
 use core::panic;
+use std::result;
 
 use crate::shared::{
   constants::{
@@ -489,7 +490,29 @@ pub fn stringify(node: &swc_core::css::ast::Stylesheet) -> String {
 
   dbg!(&buf);
 
-  let result = buf.replace('\'', "").to_string();
+  let mut result = buf.replace('\'', "");
+
+  if result.contains("--\\") {
+    /*
+     * In CSS, identifiers (including element names, classes, and IDs in selectors)
+     * can contain only the characters [a-zA-Z0-9] and ISO 10646 characters U+00A0 and higher,
+     * plus the hyphen (-) and the underscore (_);
+     * they cannot start with a digit, two hyphens, or a hyphen followed by a digit.
+     *
+     * https://stackoverflow.com/a/27882887/6717252
+     *
+     * HACK: Replace `--\3{number}` with `--{number}` to simulate original behavior of StyleX
+     */
+    let re = Regex::new(r"\\3(\d) ").unwrap();
+
+    result = re
+      .replace_all(buf.as_str(), |caps: &regex::Captures| {
+        caps
+          .get(1)
+          .map_or("".to_string(), |m| m.as_str().to_string())
+      })
+      .to_string();
+  }
 
   dbg!(&result);
 

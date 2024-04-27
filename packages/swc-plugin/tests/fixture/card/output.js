@@ -1,71 +1,14 @@
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
 import style from "@stylexjs/stylex";
-const _stylex$props = {
-    base: {
-        color: "x1e2nbdu",
-        borderColor: "x1118g2m",
-        borderInlineColor: null,
-        borderInlineStartColor: null,
-        borderLeftColor: null,
-        borderInlineEndColor: null,
-        borderRightColor: null,
-        borderBlockColor: null,
-        borderTopColor: null,
-        borderBottomColor: null,
-        $$css: true
-    },
-    test: {
-        borderColor: "x15hxx75",
-        borderInlineColor: null,
-        borderInlineStartColor: null,
-        borderLeftColor: null,
-        borderInlineEndColor: null,
-        borderRightColor: null,
-        borderBlockColor: null,
-        borderTopColor: null,
-        borderBottomColor: null,
-        padding: "x7z7khe",
-        paddingInline: null,
-        paddingStart: null,
-        paddingLeft: null,
-        paddingEnd: null,
-        paddingRight: null,
-        paddingBlock: null,
-        paddingTop: null,
-        paddingBottom: null,
-        $$css: true
-    },
-    wrapper: {
-        color: "x1e2nbdu",
-        borderColor: "x15hxx75",
-        borderInlineColor: null,
-        borderInlineStartColor: null,
-        borderLeftColor: null,
-        borderInlineEndColor: null,
-        borderRightColor: null,
-        borderBlockColor: null,
-        borderTopColor: null,
-        borderBottomColor: null,
-        $$css: true
-    },
-    container: {
-        marginLeft: "x16ydxro",
-        marginInlineStart: null,
-        marginInlineEnd: null,
-        padding: "x7z7khe",
-        paddingInline: null,
-        paddingStart: null,
-        paddingLeft: null,
-        paddingEnd: null,
-        paddingRight: null,
-        paddingBlock: null,
-        paddingTop: null,
-        paddingBottom: null,
-        $$css: true
-    }
-};
+_inject2(".x1e2nbdu{color:red}", 3000);
+_inject2(".x1118g2m{border-color:blue}", 2000);
+_inject2(".x15hxx75{border-color:pink}", 2000);
+_inject2(".x7z7khe{padding:10px}", 1000);
+_inject2(".x16ydxro{margin-left:10px}", 4000);
 export default function Card() {
     const { className, style } = {
-        className: "x1e2nbdu x15hxx75 x7z7khe"
+        className: "Page__c.base x1e2nbdu Page__c.test x15hxx75 x7z7khe"
     };
     return <article className={className} style={style}>Card</article>;
 }

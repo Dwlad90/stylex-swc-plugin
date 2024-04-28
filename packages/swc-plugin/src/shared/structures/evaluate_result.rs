@@ -1,8 +1,8 @@
-use std::fmt;
 use std::rc::Rc;
+use std::{collections::HashMap, fmt};
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{BindingIdent, Expr, KeyValueProp, Lit};
+use swc_core::ecma::ast::{BindingIdent, Expr, Id, KeyValueProp, Lit};
 
 use super::{functions::FunctionConfig, theme_ref::ThemeRef};
 
@@ -21,6 +21,7 @@ pub enum EvaluateResultValue {
     Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>, // Expr,
   ),
   FunctionConfig(FunctionConfig),
+  FunctionConfigMap(HashMap<Id, FunctionConfig>),
   ThemeRef(ThemeRef),
 }
 
@@ -32,6 +33,7 @@ impl Clone for EvaluateResultValue {
       Self::Map(m) => Self::Map(m.clone()),
       Self::Entries(e) => Self::Entries(e.clone()),
       Self::FunctionConfig(f) => Self::FunctionConfig(f.clone()),
+      Self::FunctionConfigMap(f) => Self::FunctionConfigMap(f.clone()),
       Self::Callback(c) => Self::Callback(Rc::clone(c)),
       Self::ThemeRef(tr) => Self::ThemeRef(tr.clone()),
     }
@@ -46,6 +48,7 @@ impl fmt::Debug for EvaluateResultValue {
       Self::Map(m) => f.debug_tuple("Map").field(m).finish(),
       Self::Entries(e) => f.debug_tuple("Entries").field(e).finish(),
       Self::FunctionConfig(e) => f.debug_tuple("FunctionConfig").field(e).finish(),
+      Self::FunctionConfigMap(e) => f.debug_tuple("FunctionConfigMap").field(e).finish(),
       Self::ThemeRef(e) => f.debug_tuple("ThemeRef").field(e).finish(),
       Self::Callback(_) => f
         .debug_tuple("Callback")
@@ -63,6 +66,7 @@ impl PartialEq for EvaluateResultValue {
       (Self::ThemeRef(v1), Self::ThemeRef(v2)) => v1 == v2,
       (Self::Map(m1), Self::Map(m2)) => m1 == m2,
       (Self::FunctionConfig(f1), Self::FunctionConfig(f2)) => f1 == f2,
+      (Self::FunctionConfigMap(f1), Self::FunctionConfigMap(f2)) => f1 == f2,
       (Self::Callback(_), Self::Callback(_)) => false,
       _ => false,
     }
@@ -110,6 +114,13 @@ impl EvaluateResultValue {
   pub fn as_function(&self) -> Option<&FunctionConfig> {
     match self {
       EvaluateResultValue::FunctionConfig(value) => Option::Some(value),
+      _ => Option::None,
+    }
+  }
+
+  pub fn as_function_map(&self) -> Option<&HashMap<Id, FunctionConfig>> {
+    match self {
+      EvaluateResultValue::FunctionConfigMap(value) => Option::Some(value),
       _ => Option::None,
     }
   }

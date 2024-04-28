@@ -2,6 +2,7 @@ use std::{
   any::type_name,
   collections::HashSet,
   hash::{DefaultHasher, Hash, Hasher},
+  ops::Deref,
   path::PathBuf,
 };
 
@@ -24,7 +25,7 @@ use crate::shared::{
   enums::{TopLevelExpression, TopLevelExpressionKind, VarDeclAction},
   regex::{DASHIFY_REGEX, IDENT_PROP_REGEX},
   structures::{
-    functions::{FunctionMap, FunctionType},
+    functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::StateManager,
   },
 };
@@ -268,28 +269,32 @@ pub fn get_var_decl_by_ident<'a>(
       match func {
         Some(func) => {
           let func = func.clone();
+          match func {
+            FunctionConfigType::Regular(func) => {
+              match func.fn_ptr {
+                FunctionType::Mapper(func) => {
+                  // let arg = Expr::Ident(ident.clone());
+                  let result = func();
 
-          match func.fn_ptr {
-            FunctionType::Mapper(func) => {
-              // let arg = Expr::Ident(ident.clone());
-              let result = func();
+                  println!("!!!!! ident: {:?}, result: {:?}", ident, result);
 
-              println!("!!!!! ident: {:?}, result: {:?}", ident, result);
+                  let var_decl = VarDeclarator {
+                    span: DUMMY_SP,
+                    name: Pat::Ident(BindingIdent {
+                      id: ident.clone(),
+                      type_ann: Option::None,
+                    }),
+                    init: Option::Some(Box::new(result)), // Clone the result
+                    definite: false,
+                  };
 
-              let var_decl = VarDeclarator {
-                span: DUMMY_SP,
-                name: Pat::Ident(BindingIdent {
-                  id: ident.clone(),
-                  type_ann: Option::None,
-                }),
-                init: Option::Some(Box::new(result)), // Clone the result
-                definite: false,
-              };
-
-              let var_declarator = var_decl.clone();
-              Option::Some(var_declarator)
+                  let var_declarator = var_decl.clone();
+                  Option::Some(var_declarator)
+                }
+                _ => panic!("Function type not supported"),
+              }
             }
-            _ => panic!("Function type not supported"),
+            FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
           }
         }
         None => Option::None,
@@ -974,6 +979,68 @@ pub(crate) fn deep_merge_props(
   remove_duplicates(new_props.into_iter().rev().collect())
 }
 
+pub(crate) fn get_css_value(key_value: KeyValueProp) -> Box<Expr> {
+  let Some(obj) = key_value.value.as_object() else {
+    return key_value.value;
+  };
+
+  for prop in obj.props.clone().into_iter() {
+    match prop {
+      PropOrSpread::Spread(_) => todo!("Spread in not supported"),
+      PropOrSpread::Prop(mut prop) => {
+        transform_shorthand_to_key_values(&mut prop);
+
+        match prop.deref() {
+          Prop::KeyValue(key_value) => {
+            if let Some(ident) = key_value.key.as_ident() {
+              if ident.sym == "syntax" {
+                let value = obj.props.iter().find(|prop| {
+                  match prop {
+                    PropOrSpread::Spread(_) => todo!("Spread in not supported"),
+                    PropOrSpread::Prop(prop) => {
+                      let mut prop = prop.clone();
+                      transform_shorthand_to_key_values(&mut prop);
+
+                      match prop.as_ref() {
+                        Prop::KeyValue(key_value) => {
+                          if let Some(ident) = key_value.key.as_ident() {
+                            return ident.sym == "value";
+                          }
+                        }
+                        _ => todo!(),
+                      }
+                    }
+                  }
+
+                  false
+                });
+                dbg!(&value);
+
+
+                if let Some(value) = value {
+                  let key_value = value.as_prop().unwrap().clone().key_value().unwrap();
+
+                  dbg!(&key_value);
+
+                  // panic!();
+                  // let value = value.value.object().unwrap().props.first().unwrap().clone();
+
+                  // let value = value.as_prop().unwrap().clone().key_value().unwrap();
+
+                  return key_value.value;
+                }
+              }
+            }
+          }
+          _ => todo!(),
+        }
+      }
+    }
+  }
+
+  key_value.value
+}
+
 pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
   let mut key_values = vec![];
 
@@ -986,6 +1053,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
         let mut prop = prop.clone();
 
         transform_shorthand_to_key_values(&mut prop);
+        dbg!(&prop);
 
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {

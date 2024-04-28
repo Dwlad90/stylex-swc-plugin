@@ -19,6 +19,13 @@ impl ImportSources {
       ImportSources::Named(_named) => true,
     }
   }
+
+  pub fn get_import_str(&self) -> String {
+    match self {
+      ImportSources::Regular(regular) => regular.clone(),
+      ImportSources::Named(named) => named.r#as.clone(),
+    }
+  }
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]

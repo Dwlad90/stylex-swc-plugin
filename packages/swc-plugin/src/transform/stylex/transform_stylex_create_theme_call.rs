@@ -1,13 +1,10 @@
+use std::collections::HashMap;
+
 use swc_core::{
-  common::comments::Comments,
-  ecma::ast::{CallExpr, Expr},
+  common::{comments::Comments, DUMMY_SP},
+  ecma::ast::{CallExpr, Expr, Id, Ident},
 };
 
-use crate::shared::utils::stylex::js_to_expr::{convert_object_to_ast, NestedStringObject};
-use crate::shared::utils::{
-  js::stylex::stylex_create_theme::stylex_create_theme,
-  stylex::dev_class_name::convert_theme_to_test_styles,
-};
 use crate::shared::utils::{
   stylex::dev_class_name::convert_theme_to_dev_styles,
   validators::{
@@ -16,6 +13,23 @@ use crate::shared::utils::{
 };
 use crate::shared::{
   constants, structures::functions::FunctionMap, utils::css::stylex::evaluate::evaluate,
+};
+use crate::shared::{
+  structures::functions::FunctionConfigType,
+  utils::js::stylex::{
+    stylex_include::stylex_include, stylex_keyframes::get_keyframes_fn, stylex_types::get_types_fn,
+  },
+};
+use crate::shared::{
+  structures::functions::{FunctionConfig, FunctionType},
+  utils::stylex::js_to_expr::{convert_object_to_ast, NestedStringObject},
+};
+use crate::shared::{
+  structures::named_import_source::ImportSources,
+  utils::{
+    js::stylex::stylex_create_theme::stylex_create_theme,
+    stylex::dev_class_name::convert_theme_to_test_styles,
+  },
 };
 use crate::ModuleTransformVisitor;
 
@@ -44,59 +58,55 @@ where
         None => Option::Some(second_arg.expr.clone()),
       })?;
 
-      // let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> =
-      //     IndexMap::new();
+      // let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> = IndexMap::new();
 
-      // // let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
+      // let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
 
-      // let mut identifiers: HashMap<Id, FunctionConfig> = HashMap::new();
-      // let mut member_expressions: HashMap<
-      //     ImportSources,
-      //     HashMap<Id, FunctionConfig>,
-      // > = HashMap::new();
+      let mut identifiers: HashMap<Id, FunctionConfigType> = HashMap::new();
+      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>> =
+        HashMap::new();
 
-      // let include_fn = FunctionConfig {
-      //     fn_ptr: FunctionType::ArrayArgs(stylex_include),
-      //     takes_path: true,
-      // };
+      let keyframes_fn = get_keyframes_fn();
+      let types_fn = get_types_fn();
 
-      // let first_that_works_fn = FunctionConfig {
-      //     fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
-      //     takes_path: false,
-      // };
+      for name in &self.state.stylex_keyframes_import {
+        identifiers.insert(
+          name.clone(),
+          FunctionConfigType::Regular(keyframes_fn.clone()),
+        );
+      }
 
-      // for name in &self.state.stylex_include_import {
-      //     identifiers.insert(name.clone(), include_fn.clone());
-      // }
+      for name in &self.state.stylex_types_import {
+        identifiers.insert(name.clone(), FunctionConfigType::Regular(types_fn.clone()));
+      }
 
-      // for name in &self.state.stylex_first_that_works_import {
-      //     identifiers.insert(name.clone(), first_that_works_fn.clone());
-      // }
+      for name in &self.state.stylex_import {
+        let member_expression = member_expressions.entry(name.clone()).or_default();
 
-      // for name in &self.state.stylex_import {
-      //     member_expressions
-      //         .entry(name.clone())
-      //         .or_insert(HashMap::new());
+        member_expression.insert(
+          Ident::new("keyframes".into(), DUMMY_SP).to_id(),
+          FunctionConfigType::Regular(keyframes_fn.clone()),
+        );
 
-      //     let member_expression = member_expressions.get_mut(name).unwrap();
+        let identifier = identifiers
+          .entry(Ident::new(name.get_import_str().into(), DUMMY_SP).to_id())
+          .or_insert(FunctionConfigType::Map(HashMap::default()));
 
-      //     member_expression.insert(
-      //         Ident::new("include".into(), DUMMY_SP).to_id(),
-      //         include_fn.clone(),
-      //     );
+        if let Some(identifier_map) = identifier.as_map_mut() {
+          identifier_map.insert(
+            Ident::new("types".into(), DUMMY_SP).to_id(),
+            types_fn.clone(),
+          );
+        }
+      }
+      dbg!(&second_arg, &identifiers);
 
-      //     member_expression.insert(
-      //         Ident::new("firstThatWorks".into(), DUMMY_SP).to_id(),
-      //         first_that_works_fn.clone(),
-      //     );
-      // }
+      let function_map: FunctionMap = FunctionMap {
+        identifiers,
+        member_expressions,
+      };
 
-      // let function_map: FunctionMap = FunctionMap {
-      //     identifiers,
-      //     member_expressions,
-      // };
-
-      let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &FunctionMap::default());
+      let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &function_map);
 
       assert!(
         evaluated_arg1.confident,
@@ -104,7 +114,9 @@ where
         constants::messages::NON_STATIC_VALUE
       );
 
-      let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &FunctionMap::default());
+      let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
+
+      dbg!(&evaluated_arg2);
 
       assert!(
         evaluated_arg2.confident,
@@ -112,6 +124,7 @@ where
         constants::messages::NON_STATIC_VALUE
       );
 
+      // let variables = match evaluated_arg2.value.clone() {
       let variables = match evaluated_arg1.value {
         Some(value) => {
           validate_theme_variables(&value);
@@ -122,7 +135,6 @@ where
           panic!("Can only override variables theme created with stylex.defineVars().")
         }
       };
-
       let overrides = match evaluated_arg2.value {
         Some(value) => {
           assert!(
@@ -141,7 +153,10 @@ where
       };
 
       let (mut overrides_obj, inject_styles) =
-        stylex_create_theme(&variables, &overrides, &mut self.state);
+      stylex_create_theme(&variables, &overrides, &mut self.state);
+
+      dbg!(&overrides_obj, &inject_styles);
+
 
       let (var_name, _) = self.get_call_var_name(call);
 

@@ -468,3 +468,43 @@ test!(
   )
   .as_str()
 );
+
+test!(
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: Option::None,
+      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+    },
+    Some(StyleXOptionsParams {
+      dev: Option::Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transforms_typed_object_overrides,
+  format!(
+    r#"
+      {}
+      export const RADIUS = 2;
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
+      bgColor: stylex.types.color({{
+        default: 'green',
+        '@media (prefers-color-scheme: dark)': 'lightgreen',
+        '@media print': 'transparent',
+      }}),
+      bgColorDisabled: stylex.types.color({{
+        default: 'antiquewhite',
+        '@media (prefers-color-scheme: dark)': 'floralwhite',
+      }}),
+      cornerRadius: stylex.types.length({{ default: RADIUS * 2 }}),
+      fgColor: stylex.types.color('coral'),
+    }});
+    "#,
+    OUTPUT_OF_STYLEX_DEFINE_VARS
+  )
+  .as_str()
+);

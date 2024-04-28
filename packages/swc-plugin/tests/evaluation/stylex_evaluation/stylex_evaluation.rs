@@ -1,7 +1,7 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use stylex_swc_plugin::shared::structures::{
-  functions::{FunctionConfig, FunctionMap, FunctionType},
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   named_import_source::ImportSources,
   state_manager::StateManager,
   stylex_options::StyleXOptions,
@@ -10,8 +10,8 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop,
-      PropName, PropOrSpread, Str,
+      ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop, PropName,
+      PropOrSpread, Str,
     },
     parser::{Syntax, TsConfig},
     transforms::testing::test,
@@ -170,7 +170,10 @@ fn evaluates_customs_functions() {
         takes_path: false,
       };
 
-      identifiers.insert(Ident::from("makeArray").to_id(), make_array);
+      identifiers.insert(
+        Ident::from("makeArray").to_id(),
+        FunctionConfigType::Regular(make_array),
+      );
 
       let mut member_expressions = HashMap::new();
 
@@ -211,7 +214,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       let mut identifiers = HashMap::new();
 
       let make_class = FunctionConfig {
-        fn_ptr: FunctionType::StylexFns(|arg, local_state| {
+        fn_ptr: FunctionType::StylexExprFn(|arg, local_state| {
           let new_expr = NewExpr {
             span: DUMMY_SP,
             callee: Box::new(Expr::Ident(Ident::new("MyClass".into(), DUMMY_SP))),
@@ -227,7 +230,10 @@ fn evaluates_custom_functions_that_return_non_static_values() {
         takes_path: false,
       };
 
-      identifiers.insert(Ident::from("makeClass").to_id(), make_class);
+      identifiers.insert(
+        Ident::from("makeClass").to_id(),
+        FunctionConfigType::Regular(make_class),
+      );
 
       EvaluationModuleTransformVisitor {
         functions: FunctionMap {
@@ -259,7 +265,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
       let mut identifiers = HashMap::new();
 
       let make_obj = FunctionConfig {
-        fn_ptr: FunctionType::StylexFns(|arg, local_state| {
+        fn_ptr: FunctionType::StylexExprFn(|arg, local_state| {
           let object_lit = ObjectLit {
             span: DUMMY_SP,
             props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
@@ -273,7 +279,10 @@ fn evaluates_custom_functions_used_as_spread_values() {
         takes_path: false,
       };
 
-      identifiers.insert(Ident::from("makeObj").to_id(), make_obj);
+      identifiers.insert(
+        Ident::from("makeObj").to_id(),
+        FunctionConfigType::Regular(make_obj),
+      );
 
       EvaluationModuleTransformVisitor {
         functions: FunctionMap {
@@ -305,7 +314,7 @@ fn evaluates_custom_functions_that_take_paths() {
       let mut identifiers = HashMap::new();
 
       let get_node = FunctionConfig {
-        fn_ptr: FunctionType::StylexFns(|arg, local_state| {
+        fn_ptr: FunctionType::StylexExprFn(|arg, local_state| {
           let object_lit = ObjectLit {
             span: DUMMY_SP,
             props: vec![
@@ -329,7 +338,10 @@ fn evaluates_custom_functions_that_take_paths() {
         takes_path: true,
       };
 
-      identifiers.insert(Ident::from("getNode").to_id(), get_node);
+      identifiers.insert(
+        Ident::from("getNode").to_id(),
+        FunctionConfigType::Regular(get_node),
+      );
 
       EvaluationModuleTransformVisitor {
         functions: FunctionMap {

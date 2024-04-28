@@ -158,13 +158,14 @@ where
               || self.state.stylex_keyframes_import.contains(&ident.to_id())
               || self
                 .state
-                .stylex_create_theme_import
+                .stylex_first_that_works_import
                 .contains(&ident.to_id())
+              || self.state.stylex_include_import.contains(&ident.to_id())
+              || self.state.stylex_types_import.contains(&ident.to_id())
               || self
                 .state
-                .stylex_define_vars_import
+                .stylex_create_theme_import
                 .contains(&ident.to_id())
-              || self.state.stylex_attrs_import.contains(&ident.to_id())
               || self
                 .state
                 .stylex_define_vars_import
@@ -187,13 +188,14 @@ where
                 || self.state.stylex_keyframes_import.contains(&ident.to_id())
                 || self
                   .state
-                  .stylex_create_theme_import
+                  .stylex_first_that_works_import
                   .contains(&ident.to_id())
+                || self.state.stylex_include_import.contains(&ident.to_id())
                 || self
                   .state
-                  .stylex_define_vars_import
+                  .stylex_create_theme_import
                   .contains(&ident.to_id())
-                || self.state.stylex_attrs_import.contains(&ident.to_id())
+                || self.state.stylex_types_import.contains(&ident.to_id())
                 || self
                   .state
                   .stylex_define_vars_import

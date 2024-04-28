@@ -1,14 +1,13 @@
 use std::{collections::HashMap, rc::Rc};
 
-use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Id};
 
-use crate::shared::utils::js::enums::{ArrayJS, ObjectJS};
-
-use super::{
-  injectable_style::InjectableStyle, named_import_source::ImportSources,
-  state_manager::StateManager,
+use crate::shared::utils::js::{
+  enums::{ArrayJS, ObjectJS},
+  stylex::stylex_types::ValueWithDefault,
 };
+
+use super::{named_import_source::ImportSources, state_manager::StateManager};
 
 #[derive(Debug, Hash, PartialEq, Clone)]
 pub enum CallbackType {
@@ -16,9 +15,14 @@ pub enum CallbackType {
   Object(ObjectJS),
 }
 
+pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
+
 pub enum FunctionType {
   ArrayArgs(fn(Vec<Expr>) -> Expr),
-  StylexFns(fn(Expr, StateManager) -> (Expr, StateManager)),
+  StylexExprFn(fn(Expr, StateManager) -> (Expr, StateManager)),
+  StylexTypeFn(StylexTypeFn),
+  // StylexTypeFn(StylexTypeFn),
+  StylexFnsFactory(fn(input: String) -> StylexTypeFn),
   // OneArg(
   //     Rc<
   //         dyn Fn(
@@ -36,8 +40,10 @@ pub enum FunctionType {
 impl Clone for FunctionType {
   fn clone(&self) -> Self {
     match self {
-      Self::ArrayArgs(e) => Self::ArrayArgs(e.clone()),
-      Self::StylexFns(e) => Self::StylexFns(e.clone()),
+      Self::ArrayArgs(e) => Self::ArrayArgs(*e),
+      Self::StylexExprFn(e) => Self::StylexExprFn(*e),
+      Self::StylexTypeFn(e) => Self::StylexTypeFn(e.clone()),
+      Self::StylexFnsFactory(e) => Self::StylexFnsFactory(*e),
       Self::Callback(v) => Self::Callback(v.clone()),
       Self::Mapper(c) => Self::Mapper(Rc::clone(c)),
     }
@@ -48,7 +54,9 @@ impl std::fmt::Debug for FunctionType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       FunctionType::ArrayArgs(_) => write!(f, "ArrayArgs"),
-      FunctionType::StylexFns(_) => write!(f, "OneArg"),
+      FunctionType::StylexExprFn(_) => write!(f, "StylexExprWithStateFn"),
+      FunctionType::StylexTypeFn(_) => write!(f, "StylexExprFn"),
+      FunctionType::StylexFnsFactory(_) => write!(f, "StylexFnsFactory"),
       FunctionType::Mapper(_) => write!(f, "Mapper"),
       FunctionType::Callback(_) => write!(f, "Callback"),
     }
@@ -58,10 +66,12 @@ impl std::fmt::Debug for FunctionType {
 impl PartialEq for FunctionType {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
-      (FunctionType::ArrayArgs(_), FunctionType::ArrayArgs(_)) => true,
-      (FunctionType::StylexFns(_), FunctionType::StylexFns(_)) => true,
-      (FunctionType::Mapper(_), FunctionType::StylexFns(_)) => true,
-      (FunctionType::Callback(_), FunctionType::Callback(_)) => true,
+      (FunctionType::ArrayArgs(_), FunctionType::ArrayArgs(_)) => false,
+      (FunctionType::StylexExprFn(_), FunctionType::StylexExprFn(_)) => false,
+      (FunctionType::StylexTypeFn(_), FunctionType::StylexTypeFn(_)) => false,
+      (FunctionType::StylexFnsFactory(_), FunctionType::StylexFnsFactory(_)) => false,
+      (FunctionType::Mapper(_), FunctionType::StylexExprFn(_)) => false,
+      (FunctionType::Callback(_), FunctionType::Callback(_)) => false,
       _ => false,
     }
   }
@@ -73,7 +83,13 @@ impl std::hash::Hash for FunctionType {
       FunctionType::ArrayArgs(_) => {
         std::mem::discriminant(self).hash(state);
       }
-      FunctionType::StylexFns(_) => {
+      FunctionType::StylexExprFn(_) => {
+        std::mem::discriminant(self).hash(state);
+      }
+      FunctionType::StylexTypeFn(_) => {
+        std::mem::discriminant(self).hash(state);
+      }
+      FunctionType::StylexFnsFactory(_) => {
         std::mem::discriminant(self).hash(state);
       }
       FunctionType::Mapper(_) => {
@@ -100,9 +116,45 @@ pub struct Functions {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum FunctionConfigType {
+  Regular(FunctionConfig),
+  Map(HashMap<Id, FunctionConfig>),
+}
+
+impl FunctionConfigType {
+  pub(crate) fn as_function_config(&self) -> Option<&FunctionConfig> {
+    match self {
+      Self::Regular(config) => Option::Some(config),
+      Self::Map(_) => Option::None,
+    }
+  }
+
+  pub(crate) fn as_map(&self) -> Option<&HashMap<Id, FunctionConfig>> {
+    match self {
+      Self::Regular(_) => Option::None,
+      Self::Map(map) => Option::Some(map),
+    }
+  }
+
+  pub(crate) fn as_map_mut(&mut self) -> Option<&mut HashMap<Id, FunctionConfig>> {
+    match self {
+      Self::Regular(_) => Option::None,
+      Self::Map(map) => Option::Some(map),
+    }
+  }
+
+  pub(crate) fn as_function_config_mut(&mut self) -> Option<&mut FunctionConfig> {
+    match self {
+      Self::Regular(config) => Option::Some(config),
+      Self::Map(_) => Option::None,
+    }
+  }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct FunctionMap {
-  pub identifiers: HashMap<Id, FunctionConfig>,
-  pub member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>>,
+  pub identifiers: HashMap<Id, FunctionConfigType>,
+  pub member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>>,
 }
 
 impl Default for FunctionMap {

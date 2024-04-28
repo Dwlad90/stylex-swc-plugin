@@ -3,6 +3,7 @@ use core::panic;
 use std::{
   collections::{HashMap, HashSet},
   env, fs,
+  ops::Deref,
   rc::Rc,
 };
 
@@ -41,7 +42,7 @@ use crate::shared::{
   enums::{ImportPathResolution, ImportPathResolutionType, VarDeclAction},
   structures::{
     evaluate_result::{EvaluateResult, EvaluateResultValue},
-    functions::{CallbackType, FunctionConfig, FunctionMap, FunctionType},
+    functions::{CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
     injectable_style::InjectableStyle,
     named_import_source::ImportSources,
     state_manager::{add_import_expression, StateManager},
@@ -53,13 +54,14 @@ use crate::shared::{
     common::{
       binary_expr_to_num, create_hash, deep_merge_props, expr_to_str, gen_file_based_identifier,
       get_import_by_ident, get_key_str, get_string_val_from_lit, get_var_decl_by_ident,
-      get_var_decl_from, hash_f32, normalize_expr, number_to_expression, remove_duplicates,
-      string_to_expression, transform_shorthand_to_key_values,
+      get_var_decl_from, hash_f32, lit_to_num, normalize_expr, number_to_expression,
+      remove_duplicates, string_to_expression, transform_shorthand_to_key_values,
     },
     css::factories::object_expression_factory,
     js::{
       enums::{ArrayJS, ObjectJS},
       native_functions::{evaluate_filter, evaluate_map},
+      stylex::stylex_types::ValueWithDefault,
     },
     object,
   },
@@ -260,42 +262,42 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
             let arrow_closure_fabric =
               |orig_args: Vec<Pat>,
-               functions: HashMap<Id, FunctionConfig>,
+               functions: HashMap<Id, FunctionConfigType>,
                ident_params: Vec<Id>,
                body_expr: Expr,
                traversal_state: StateManager| {
                 move |cb_args: Vec<Option<EvaluateResultValue>>| {
                   let mut functions = functions.clone();
 
-                  let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>> =
-                    HashMap::new();
+                  let mut member_expressions: HashMap<
+                    ImportSources,
+                    HashMap<Id, FunctionConfigType>,
+                  > = HashMap::new();
                   println!(
                     "!!!!__ orig_args: {:#?}, functions: {:#?}, cb_args: {:#?}",
                     orig_args, functions, cb_args
                   );
 
                   ident_params.iter().enumerate().for_each(|(index, ident)| {
-                    match cb_args.get(index) {
-                      Some(arg) => {
-                        let arg = arg.clone();
-                        let expr = arg.unwrap().as_expr().unwrap().clone();
+                    if let Some(arg) = cb_args.get(index) {
+                      let arg = arg.clone();
+                      let expr = arg.unwrap().as_expr().unwrap().clone();
 
-                        let cl = |arg: Expr| move || arg.clone();
+                      let cl = |arg: Expr| move || arg.clone();
 
-                        // panic!("Check what's happening here, expr: {:#?}", expr);
-                        let result = (cl)(expr.clone());
-                        let function = FunctionConfig {
-                          fn_ptr: FunctionType::Mapper(Rc::new(result)),
-                          takes_path: false,
-                        };
-                        functions.insert(ident.clone(), function.clone());
+                      // panic!("Check what's happening here, expr: {:#?}", expr);
+                      let result = (cl)(expr.clone());
+                      let function = FunctionConfig {
+                        fn_ptr: FunctionType::Mapper(Rc::new(result)),
+                        takes_path: false,
+                      };
+                      functions
+                        .insert(ident.clone(), FunctionConfigType::Regular(function.clone()));
 
-                        member_expressions.insert(
-                          ImportSources::Regular("entry".to_string()),
-                          functions.clone(),
-                        );
-                      }
-                      None => {}
+                      member_expressions.insert(
+                        ImportSources::Regular("entry".to_string()),
+                        functions.clone(),
+                      );
                     }
                   });
 
@@ -348,11 +350,18 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
         let func = state.functions.identifiers.get(&ident_id)?;
         dbg!(&ident_id, &func);
 
-        let FunctionType::Mapper(func) = func.fn_ptr.clone() else {
-          panic!("Function not found");
-        };
+        match func {
+          FunctionConfigType::Regular(func) => {
+            let FunctionType::Mapper(func) = func.fn_ptr.clone() else {
+              panic!("Function not found");
+            };
 
-        return Some(EvaluateResultValue::Expr(func()));
+            return Some(EvaluateResultValue::Expr(func()));
+          }
+          FunctionConfigType::Map(func_map) => {
+            return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
+          }
+        }
       }
 
       // let ident_binding =
@@ -382,7 +391,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
       // result
     }
     Expr::Member(member) => {
-      dbg!(&member.obj);
+      dbg!(&member);
 
       let parent_is_call_expr = state
         .traversal_state
@@ -399,12 +408,15 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             false
           }
         });
+      dbg!(&parent_is_call_expr, &member.obj);
 
       let evaluated_value = if parent_is_call_expr {
         Option::None
       } else {
-        evaluate_cached(&*member.obj, state)
+        evaluate_cached(&member.obj, state)
       };
+
+      dbg!(&evaluated_value);
 
       if let Some(object) = evaluated_value {
         if !state.confident {
@@ -421,13 +433,14 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
         // };
 
         let prop_path = &member.prop;
+        dbg!(&prop_path);
 
         let propery = match prop_path {
           MemberProp::Ident(ident) => {
             Option::Some(EvaluateResultValue::Expr(Expr::Ident(ident.clone())))
           }
           MemberProp::Computed(ComputedPropName { expr, .. }) => {
-            let result = evaluate_cached(&*expr.clone(), state);
+            let result = evaluate_cached(&expr.clone(), state);
 
             if !state.confident {
               return Option::None;
@@ -440,102 +453,126 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
           }
         };
 
-        let Some(expr) = object.as_expr() else {
-          match object.as_theme_ref() {
-            Some(theme_ref) => {
-              let key = match propery {
-                Some(propery) => match propery {
-                  EvaluateResultValue::Expr(expr) => match expr {
-                    Expr::Ident(Ident { sym, .. }) => sym.to_string().clone(),
-                    _ => panic!("Member not found"),
-                  },
-                  EvaluateResultValue::Vec(_) => todo!(),
-                  EvaluateResultValue::Map(_) => todo!(),
-                  EvaluateResultValue::Entries(_) => todo!(),
-                  EvaluateResultValue::Callback(_) => todo!(),
-                  EvaluateResultValue::FunctionConfig(_) => todo!(),
-                  EvaluateResultValue::ThemeRef(_) => todo!(),
-                },
-                None => panic!("Member not found"),
+        match object {
+          EvaluateResultValue::Expr(expr) => match expr {
+            Expr::Array(ArrayLit { elems, .. }) => {
+              let Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number { value, .. })))) =
+                propery
+              else {
+                panic!("Member not found");
               };
 
-              let (value, updated_state) = &theme_ref.clone().get(&key);
+              let property = elems.get(value as usize)?.clone();
 
-              state.traversal_state = state.traversal_state.clone().combine(updated_state.clone());
+              let Some(ExprOrSpread { expr, .. }) = property else {
+                panic!("Member not found");
+              };
 
-              dbg!(
-                &value,
-                &state.traversal_state.prepend_include_module_items,
-                &updated_state.prepend_include_module_items
-              );
-
-              return Some(EvaluateResultValue::Expr(
-                string_to_expression(value.clone()).unwrap(),
-              ));
+              Some(EvaluateResultValue::Expr(*expr))
             }
-            _ => (),
-          }
+            Expr::Object(ObjectLit { props, .. }) => {
+              let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = propery else {
+                panic!("Member not found");
+              };
 
-          panic!("Function not found");
-        };
-
-        match expr {
-          Expr::Array(ArrayLit { elems, .. }) => {
-            let Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number { value, .. })))) =
-              propery
-            else {
-              panic!("Member not found");
-            };
-
-            let property = elems.get(value as usize)?.clone();
-
-            let Some(ExprOrSpread { expr, .. }) = property else {
-              panic!("Member not found");
-            };
-
-            Some(EvaluateResultValue::Expr(*expr))
-          }
-          Expr::Object(ObjectLit { props, .. }) => {
-            let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = propery else {
-              panic!("Member not found");
-            };
-
-            let property = props
-              .iter()
-              .find(|prop| match prop {
-                PropOrSpread::Spread(_) => {
-                  todo!("Spread not implemented yet");
-                }
-                PropOrSpread::Prop(prop) => {
-                  let mut prop = prop.clone();
-
-                  transform_shorthand_to_key_values(&mut prop);
-
-                  match prop.as_ref() {
-                    Prop::KeyValue(key_value) => {
-                      let key = get_key_str(key_value);
-
-                      ident.sym == key
-                    }
-                    _ => todo!("Prop not implemented yet"),
+              let property = props
+                .iter()
+                .find(|prop| match prop {
+                  PropOrSpread::Spread(_) => {
+                    todo!("Spread not implemented yet");
                   }
-                }
-              })?
-              .clone();
+                  PropOrSpread::Prop(prop) => {
+                    let mut prop = prop.clone();
 
-            if let PropOrSpread::Prop(prop) = property {
-              dbg!(&prop, ident);
-              Some(EvaluateResultValue::Expr(
-                *prop
-                  .key_value()
-                  .expect("Expression is not a key value")
-                  .value,
-              ))
-            } else {
-              panic!("Member not found");
+                    transform_shorthand_to_key_values(&mut prop);
+
+                    match prop.as_ref() {
+                      Prop::KeyValue(key_value) => {
+                        let key = get_key_str(key_value);
+
+                        ident.sym == key
+                      }
+                      _ => todo!("Prop not implemented yet"),
+                    }
+                  }
+                })?
+                .clone();
+
+              if let PropOrSpread::Prop(prop) = property {
+                dbg!(&prop, ident);
+                return Some(EvaluateResultValue::Expr(
+                  *prop
+                    .key_value()
+                    .expect("Expression is not a key value")
+                    .value,
+                ));
+              } else {
+                panic!("Member not found");
+              }
             }
+            _ => todo!("Expression"),
+          },
+          EvaluateResultValue::Vec(_) => todo!("EvaluateResultValue::Vec"),
+          EvaluateResultValue::Map(_) => todo!("EvaluateResultValue::Map"),
+          EvaluateResultValue::Entries(_) => todo!("EvaluateResultValue::Entries"),
+          EvaluateResultValue::Callback(_) => todo!("EvaluateResultValue::Callback"),
+          EvaluateResultValue::FunctionConfig(_) => todo!("EvaluateResultValue::FunctionConfig"),
+          EvaluateResultValue::FunctionConfigMap(fc_map) => {
+            dbg!(&fc_map, &propery);
+
+            let key = match propery {
+              Some(propery) => match propery {
+                EvaluateResultValue::Expr(expr) => match expr {
+                  Expr::Ident(ident) => ident.clone(),
+                  _ => panic!("Member not found"),
+                },
+                EvaluateResultValue::Vec(_) => todo!(),
+                EvaluateResultValue::Map(_) => todo!(),
+                EvaluateResultValue::Entries(_) => todo!(),
+                EvaluateResultValue::Callback(_) => todo!(),
+                EvaluateResultValue::FunctionConfig(_) => todo!(),
+                EvaluateResultValue::FunctionConfigMap(_) => todo!(),
+                EvaluateResultValue::ThemeRef(_) => todo!(),
+              },
+              None => panic!("Member not found"),
+            };
+
+            let fc = fc_map.get(&key.into_id()).unwrap();
+
+            return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
           }
-          _ => todo!("Expression"),
+          EvaluateResultValue::ThemeRef(theme_ref) => {
+            let key = match propery {
+              Some(propery) => match propery {
+                EvaluateResultValue::Expr(expr) => match expr {
+                  Expr::Ident(Ident { sym, .. }) => sym.to_string().clone(),
+                  _ => panic!("Member not found"),
+                },
+                EvaluateResultValue::Vec(_) => todo!(),
+                EvaluateResultValue::Map(_) => todo!(),
+                EvaluateResultValue::Entries(_) => todo!(),
+                EvaluateResultValue::Callback(_) => todo!(),
+                EvaluateResultValue::FunctionConfig(_) => todo!(),
+                EvaluateResultValue::FunctionConfigMap(_) => todo!(),
+                EvaluateResultValue::ThemeRef(_) => todo!(),
+              },
+              None => panic!("Member not found"),
+            };
+
+            let (value, updated_state) = &theme_ref.clone().get(&key);
+
+            state.traversal_state = state.traversal_state.clone().combine(updated_state.clone());
+
+            dbg!(
+              &value,
+              &state.traversal_state.prepend_include_module_items,
+              &updated_state.prepend_include_module_items
+            );
+
+            return Some(EvaluateResultValue::Expr(
+              string_to_expression(value.clone()).unwrap(),
+            ));
+          }
         }
       } else {
         Option::None
@@ -591,6 +628,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
             transform_shorthand_to_key_values(&mut prop);
 
+            dbg!(&prop);
+
             match prop.as_ref() {
               Prop::KeyValue(path_key_value) => {
                 let key_path = path_key_value.key.clone();
@@ -622,6 +661,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                 };
 
                 let value_path = path_key_value.value.clone();
+
+                dbg!(&value_path);
 
                 let value = evaluate(&value_path, &mut state.traversal_state, &state.functions);
 
@@ -658,7 +699,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                         .and_then(|entry| {
                           entry
                             .as_vec()
-                            .and_then(|vec| {
+                            .map(|vec| {
                               let mut elems = vec![];
 
                               for item in vec {
@@ -671,10 +712,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                                 }
                               }
 
-                              Option::Some(Expr::Array(ArrayLit {
+                              Expr::Array(ArrayLit {
                                 span: DUMMY_SP,
                                 elems,
-                              }))
+                              })
                             })
                             .or_else(|| entry.as_expr().cloned())
                         })
@@ -762,7 +803,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
           let ident_id = ident.to_id();
 
           if state.functions.identifiers.contains_key(&ident_id) {
-            func = Option::Some(state.functions.identifiers.get(&ident_id).unwrap().clone());
+            match state.functions.identifiers.get(&ident_id).unwrap() {
+              FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+              FunctionConfigType::Regular(fc) => func = Option::Some(fc.clone()),
+            }
           }
         }
 
@@ -1039,7 +1083,13 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                     // context = Option::Some(vec![Option::Some(EvaluateResultValue::Expr(
                     //     member_expr_fn.clone(),
                     // ))]);
-                    func = Option::Some(member_expr.get(&prop_id).unwrap().clone());
+
+                    match member_expr_fn {
+                      FunctionConfigType::Regular(fc) => {
+                        func = Option::Some(fc.clone());
+                      }
+                      FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+                    }
                   }
                 }
               }
@@ -1064,7 +1114,12 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                   todo!("Check what's happening here");
 
                   // context = Option::Some(member_expr.clone());
-                  func = Option::Some(member_expr.get(&prop_id).unwrap().clone());
+                  match member_expr.get(&prop_id).unwrap() {
+                    FunctionConfigType::Regular(fc) => {
+                      func = Option::Some(fc.clone());
+                    }
+                    FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+                  }
                 }
               }
             }
@@ -1085,91 +1140,117 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             }
           }
 
-          let parsed_obj = evaluate(object, &mut state.traversal_state, &state.functions);
+          if func.is_none() {
+            let parsed_obj = evaluate(object, &mut state.traversal_state, &state.functions);
 
-          // println!("!!!!__ obj: {:#?}, parsed_obj: {:#?}", obj, parsed_obj);
+            // println!("!!!!__ obj: {:#?}, parsed_obj: {:#?}", object, parsed_obj);
 
-          if parsed_obj.confident {
-            if property.is_ident() {
-              let prop_ident = property.as_ident().unwrap().clone();
-              let prop_name = prop_ident.sym.to_string();
+            // panic!("Member not implemented yet");
 
-              let value = parsed_obj.value.unwrap();
+            if parsed_obj.confident {
+              if property.is_ident() {
+                let prop_ident = property.as_ident().unwrap().clone();
+                let prop_name = prop_ident.sym.to_string();
 
-              match value.clone() {
-                EvaluateResultValue::Map(map) => {
-                  let result_fn = map.get(&Expr::Ident(prop_ident.clone()));
+                let value = parsed_obj.value.unwrap();
 
-                  func = match result_fn {
-                    Some(_) => panic!("Not implemented yet"),
-                    None => Option::None,
-                  };
-                }
-                EvaluateResultValue::Vec(expr) => {
-                  func = Option::Some(FunctionConfig {
-                    fn_ptr: FunctionType::Callback(
-                      match prop_name.as_str() {
-                        "map" => CallbackType::Array(ArrayJS::Map),
-                        "filter" => CallbackType::Array(ArrayJS::Filter),
-                        "entries" => CallbackType::Object(ObjectJS::Entries),
-                        _ => todo!("Array method '{}' implemented yet", prop_name),
-                      },
-                      // obj.clone(),
-                    ),
-                    takes_path: false,
-                  });
+                match value.clone() {
+                  EvaluateResultValue::Map(map) => {
+                    let result_fn = map.get(&Expr::Ident(prop_ident.clone()));
 
-                  // panic!("Array method not implemented yet, {:#?}",expr);
-
-                  context = Option::Some(expr)
-                }
-                EvaluateResultValue::Expr(expr) => match expr {
-                  Expr::Array(ArrayLit { elems, .. }) => {
+                    func = match result_fn {
+                      Some(_) => panic!("Not implemented yet"),
+                      None => Option::None,
+                    };
+                  }
+                  EvaluateResultValue::Vec(expr) => {
                     func = Option::Some(FunctionConfig {
                       fn_ptr: FunctionType::Callback(
                         match prop_name.as_str() {
                           "map" => CallbackType::Array(ArrayJS::Map),
                           "filter" => CallbackType::Array(ArrayJS::Filter),
                           "entries" => CallbackType::Object(ObjectJS::Entries),
-                          _ => todo!("Method '{}' implemented yet", prop_name),
+                          _ => todo!("Array method '{}' implemented yet", prop_name),
                         },
                         // obj.clone(),
                       ),
                       takes_path: false,
                     });
 
-                    let expr = elems
-                      .into_iter()
-                      .map(|elem| {
-                        Option::Some(EvaluateResultValue::Expr(*elem.unwrap().expr.clone()))
-                      })
-                      .collect::<Vec<Option<EvaluateResultValue>>>();
                     // panic!("Array method not implemented yet, {:#?}",expr);
 
-                    context = Option::Some(vec![Option::Some(EvaluateResultValue::Vec(expr))]);
+                    context = Option::Some(expr)
                   }
-                  _ => {}
-                },
-                _ => {
-                  println!("!!!!__ Evaluation result value: {:#?}", value);
-                  panic!("Evaluation result not implemented yet")
+                  EvaluateResultValue::Expr(expr) => {
+                    if let Some(ArrayLit { elems, .. }) = expr.array() {
+                      func = Option::Some(FunctionConfig {
+                        fn_ptr: FunctionType::Callback(
+                          match prop_name.as_str() {
+                            "map" => CallbackType::Array(ArrayJS::Map),
+                            "filter" => CallbackType::Array(ArrayJS::Filter),
+                            "entries" => CallbackType::Object(ObjectJS::Entries),
+                            _ => todo!("Method '{}' implemented yet", prop_name),
+                          },
+                          // obj.clone(),
+                        ),
+                        takes_path: false,
+                      });
+
+                      let expr = elems
+                        .into_iter()
+                        .map(|elem| {
+                          Option::Some(EvaluateResultValue::Expr(*elem.unwrap().expr.clone()))
+                        })
+                        .collect::<Vec<Option<EvaluateResultValue>>>();
+                      // panic!("Array method not implemented yet, {:#?}",expr);
+
+                      context = Option::Some(vec![Option::Some(EvaluateResultValue::Vec(expr))]);
+                    }
+                  }
+                  EvaluateResultValue::FunctionConfig(fc) => {
+                    match fc.fn_ptr {
+                      FunctionType::ArrayArgs(_) => todo!(),
+                      FunctionType::StylexFnsFactory(sfns) => {
+                        dbg!(&sfns);
+                        let fc = sfns(prop_name);
+
+                        func = Option::Some(FunctionConfig {
+                          fn_ptr: FunctionType::StylexTypeFn(fc),
+                          takes_path: false,
+                        });
+
+                        context = Option::Some(vec![Option::Some(EvaluateResultValue::Entries(
+                          IndexMap::default(),
+                        ))]);
+                      }
+                      FunctionType::StylexExprFn(_) => todo!(),
+                      FunctionType::StylexTypeFn(_) => todo!(),
+                      FunctionType::Mapper(_) => todo!(),
+                      FunctionType::Callback(_) => todo!(),
+                    }
+                    // func = Option::Some(fc);
+                  }
+                  _ => {
+                    println!("!!!!__ Evaluation result value: {:#?}", value);
+                    panic!("Evaluation result not implemented yet")
+                  }
                 }
+              } else if let Option::Some(prop_id) = is_id_prop(property) {
+                let prop_id = prop_id.clone();
+                let value = parsed_obj.value.unwrap();
+                let map = value.as_map().unwrap();
+
+                let result_fn = map.get(&Expr::Lit(Lit::Str(Str {
+                  value: prop_id.clone().0,
+                  raw: Option::None,
+                  span: DUMMY_SP,
+                })));
+
+                func = match result_fn {
+                  Some(_) => panic!("Not implemented yet"),
+                  None => Option::None,
+                };
               }
-            } else if let Option::Some(prop_id) = is_id_prop(property) {
-              let prop_id = prop_id.clone();
-              let value = parsed_obj.value.unwrap();
-              let map = value.as_map().unwrap();
-
-              let result_fn = map.get(&Expr::Lit(Lit::Str(Str {
-                value: prop_id.clone().0,
-                raw: Option::None,
-                span: DUMMY_SP,
-              })));
-
-              func = match result_fn {
-                Some(_) => panic!("Not implemented yet"),
-                None => Option::None,
-              };
             }
           }
         }
@@ -1191,10 +1272,17 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
               dbg!(&func_result, &args);
               return Option::Some(EvaluateResultValue::Expr(func_result));
             }
-            FunctionType::StylexFns(func) => {
-              let func_result = (func)(args.get(0).unwrap().clone(), state.traversal_state.clone());
+            FunctionType::StylexExprFn(func) => {
+              let func_result =
+                (func)(args.first().unwrap().clone(), state.traversal_state.clone());
               state.traversal_state = state.traversal_state.clone().combine(func_result.1);
               return Option::Some(EvaluateResultValue::Expr(func_result.0));
+            }
+            FunctionType::StylexTypeFn(_) => {
+              panic!("StylexTypeFn not implemented yet");
+            }
+            FunctionType::StylexFnsFactory(_) => {
+              panic!("StylexFnsFactory not implemented yet");
             }
             FunctionType::Callback(_) => {
               panic!("Arrow function not implemented yet");
@@ -1234,15 +1322,61 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
               );
               return Option::Some(EvaluateResultValue::Expr(func_result));
             }
-            FunctionType::StylexFns(func) => {
+            FunctionType::StylexExprFn(func) => {
               let func_result = (func)(
-                args.get(0).unwrap().clone().as_expr().unwrap().clone(),
+                args.first().unwrap().clone().as_expr().unwrap().clone(),
                 state.traversal_state.clone(),
               );
 
               state.traversal_state = state.traversal_state.clone().combine(func_result.1);
 
               return Option::Some(EvaluateResultValue::Expr(func_result.0));
+            }
+            FunctionType::StylexTypeFn(func) => {
+              dbg!(&args);
+
+              let mut fn_args = IndexMap::default();
+
+              let expr = args
+                .first()
+                .and_then(|expr| expr.as_expr())
+                .expect("Argument is not an expression");
+
+              match expr {
+                Expr::Object(obj) => {
+                  for prop in obj.props.clone() {
+                    let prop = prop.as_prop().unwrap();
+                    let key_value = prop.as_key_value().unwrap();
+
+                    let key = key_value.key.as_ident().unwrap().sym.to_string();
+                    let value = key_value.value.as_lit().unwrap();
+
+                    dbg!(&key, &value);
+
+                    fn_args.insert(
+                      key,
+                      ValueWithDefault::String(get_string_val_from_lit(value).unwrap()),
+                    );
+                  }
+                }
+                Expr::Lit(lit) => {
+                  dbg!(&lit);
+                  fn_args.insert(
+                    "default".to_string(),
+                    ValueWithDefault::String(get_string_val_from_lit(lit).unwrap()),
+                  );
+                }
+                _ => {}
+              }
+
+              dbg!(&fn_args);
+
+              let func_result = (func)(ValueWithDefault::Map(fn_args));
+
+              let css_type = func_result;
+              dbg!(&css_type);
+
+              return Option::Some(EvaluateResultValue::Expr(css_type));
             }
             FunctionType::Callback(func) => {
               let context = context.expect("Object.entries requires a context");
@@ -1255,7 +1389,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
                   return evaluate_filter(&args, &context);
                 }
                 CallbackType::Object(ObjectJS::Entries) => {
-                  let Some(Some(EvaluateResultValue::Entries(entries))) = context.get(0) else {
+                  let Some(Some(EvaluateResultValue::Entries(entries))) = context.first() else {
                     panic!("Object.entries requires an argument")
                   };
 
@@ -1487,7 +1621,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
 fn get_binding(callee: &Expr, state: &mut StateManager) -> Option<VarDeclarator> {
   match callee {
-    Expr::Ident(ident) => get_var_decl_from(state, &ident).cloned(),
+    Expr::Ident(ident) => get_var_decl_from(state, ident).cloned(),
     _ => Option::None,
   }
 }

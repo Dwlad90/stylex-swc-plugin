@@ -196,7 +196,7 @@ pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) 
 pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
     ("createTheme", &state.stylex_create_theme_import),
-    &call,
+    call,
     state,
   )
 }

@@ -17,7 +17,7 @@ pub(crate) fn construct_css_variables_string(
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
   for (key, value) in variables.iter() {
-    collect_vars_by_at_rules(&key, &value, &mut rules_by_at_rule, &vec![]);
+    collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &vec![]);
   }
 
   dbg!(&rules_by_at_rule);
@@ -85,12 +85,14 @@ pub(crate) fn collect_vars_by_at_rules(
     Expr::Object(obj) => {
       let key_values = get_key_values_from_object(obj);
 
+      dbg!(&key_values);
+
       if !key_values.iter().any(|key_value| {
         let key = get_key_str(key_value);
 
         key == "default"
       }) {
-        panic!("Default value is not defined for {} variable.", key);
+        panic!(r#"Default value is not defined for "{}" variable."#, key);
       }
 
       for key_value in key_values.iter() {

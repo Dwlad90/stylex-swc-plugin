@@ -8,7 +8,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, Prop, PropOrSpread},
 };
 
-use crate::shared::constants;
 use crate::shared::enums::TopLevelExpression;
 use crate::shared::structures::evaluate_result::EvaluateResultValue;
 use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
@@ -34,6 +33,7 @@ use crate::shared::utils::validators::{
   assert_valid_keyframes, is_create_call, is_keyframes_call, validate_namespace,
   validate_stylex_create_indent, validate_stylex_keyframes_indent,
 };
+use crate::shared::{constants, structures::functions::FunctionConfigType};
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -64,8 +64,8 @@ where
 
       // let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
 
-      let mut identifiers: HashMap<Id, FunctionConfig> = HashMap::new();
-      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>> =
+      let mut identifiers: HashMap<Id, FunctionConfigType> = HashMap::new();
+      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>> =
         HashMap::new();
 
       let include_fn = FunctionConfig {
@@ -79,11 +79,17 @@ where
       };
 
       for name in &self.state.stylex_include_import {
-        identifiers.insert(name.clone(), include_fn.clone());
+        identifiers.insert(
+          name.clone(),
+          FunctionConfigType::Regular(include_fn.clone()),
+        );
       }
 
       for name in &self.state.stylex_first_that_works_import {
-        identifiers.insert(name.clone(), first_that_works_fn.clone());
+        identifiers.insert(
+          name.clone(),
+          FunctionConfigType::Regular(first_that_works_fn.clone()),
+        );
       }
 
       for name in &self.state.stylex_import {
@@ -95,12 +101,12 @@ where
 
         member_expression.insert(
           Ident::new("include".into(), DUMMY_SP).to_id(),
-          include_fn.clone(),
+          FunctionConfigType::Regular(include_fn.clone()),
         );
 
         member_expression.insert(
           Ident::new("firstThatWorks".into(), DUMMY_SP).to_id(),
-          first_that_works_fn.clone(),
+          FunctionConfigType::Regular(first_that_works_fn.clone()),
         );
       }
 

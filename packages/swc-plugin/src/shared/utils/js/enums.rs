@@ -1,11 +1,11 @@
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
-pub(crate) enum ArrayJS {
+pub enum ArrayJS {
   Map,
   Filter,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
-pub(crate) enum ObjectJS {
+pub enum ObjectJS {
   Entries,
   Keys,
   Values,

@@ -4,12 +4,16 @@ use swc_core::ecma::ast::Expr;
 use crate::shared::{
   enums::{FlatCompiledStylesValue, ObjMapType},
   structures::{
-    evaluate_result::EvaluateResultValue, functions::FunctionMap,
-    injectable_style::InjectableStyle, order_pair::OrderPair, pair::Pair, pre_rule::PreRuleValue,
+    evaluate_result::EvaluateResultValue,
+    functions::{FunctionConfig, FunctionMap, FunctionType},
+    injectable_style::InjectableStyle,
+    order_pair::OrderPair,
+    pair::Pair,
+    pre_rule::PreRuleValue,
     state_manager::StateManager,
   },
   utils::{
-    common::{create_hash, dashify, expr_to_str, get_key_str},
+    common::{create_hash, dashify, expr_to_str, get_key_str, string_to_expression},
     css::{
       common::{flat_map_expanded_shorthands, generate_ltr, generate_rtl},
       utils::transform_value,
@@ -162,4 +166,26 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
   let res = obj_from_entries(&res);
 
   res
+}
+
+pub(crate) fn get_keyframes_fn() -> FunctionConfig {
+  FunctionConfig {
+    fn_ptr: FunctionType::StylexExprFn(
+      |expr: Expr, local_state: StateManager| -> (Expr, StateManager) {
+        let (animation_name, injected_style) =
+          stylex_keyframes(&EvaluateResultValue::Expr(expr), &local_state);
+
+        let mut local_state = local_state.clone();
+
+        local_state
+          .injected_keyframes
+          .insert(animation_name.clone(), injected_style);
+
+        let result = string_to_expression(animation_name);
+
+        (result.unwrap(), local_state)
+      },
+    ),
+    takes_path: false,
+  }
 }

@@ -234,10 +234,13 @@ where
             .insert(local_name_ident);
         }
         "createTheme" => {
-          todo!("createTheme");
+          self
+            .state
+            .stylex_create_theme_import
+            .insert(local_name_ident);
         }
         "types" => {
-          todo!("types");
+          self.state.stylex_types_import.insert(local_name_ident);
         }
         _ => {
           panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)

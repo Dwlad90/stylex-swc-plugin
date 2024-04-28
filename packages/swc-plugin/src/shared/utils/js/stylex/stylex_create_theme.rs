@@ -10,7 +10,7 @@ use crate::shared::{
     injectable_style::InjectableStyle, state_manager::StateManager,
   },
   utils::{
-    common::{create_hash, expr_to_str, get_key_str, get_key_values_from_object},
+    common::{create_hash, expr_to_str, get_css_value, get_key_str, get_key_values_from_object},
     stylex::define_vars_utils::{
       collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules,
     },
@@ -32,10 +32,15 @@ pub(crate) fn stylex_create_theme(
 
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
-  let mut key_values =
-    get_key_values_from_object(variables.as_expr().unwrap().as_object().unwrap());
+  let mut variables_key_values = get_key_values_from_object(
+    variables
+      .as_expr()
+      .and_then(|expr| expr.as_object())
+      .expect("Variables must be an object"),
+  );
+  dbg!(&variables_key_values);
 
-  key_values.sort_by(|a, b| {
+  variables_key_values.sort_by(|a, b| {
     let a_key = get_key_str(a);
     let b_key = get_key_str(b);
 
@@ -46,7 +51,7 @@ pub(crate) fn stylex_create_theme(
 
   let theme_vars_key_values = get_key_values_from_object(theme_vars_props);
 
-  for key_value in key_values.into_iter() {
+  for key_value in variables_key_values.into_iter() {
     let key = get_key_str(&key_value);
 
     let theme_vars_item = theme_vars_key_values
@@ -67,7 +72,13 @@ pub(crate) fn stylex_create_theme(
 
     let name_hash = theme_vars_str_value[6..theme_vars_str_value.len() - 1].to_string();
 
-    let value = FlatCompiledStylesValue::Tuple(name_hash, key_value.value);
+    dbg!(&key_value);
+    let css_value = get_css_value(key_value);
+    dbg!(&css_value);
+
+    // panic!();
+
+    let value = FlatCompiledStylesValue::Tuple(name_hash, css_value);
 
     collect_vars_by_at_rules(&key, &value, &mut rules_by_at_rule, &vec![]);
   }

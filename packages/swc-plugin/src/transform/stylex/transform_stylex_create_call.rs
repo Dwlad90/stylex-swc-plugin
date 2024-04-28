@@ -10,12 +10,13 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::constants;
-use crate::shared::structures::evaluate_result::EvaluateResultValue;
 use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
 use crate::shared::structures::named_import_source::ImportSources;
 use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::{
+  evaluate_result::EvaluateResultValue, functions::FunctionConfigType,
+};
 use crate::shared::utils::common::{
   get_key_str, get_key_values_from_object, prop_or_spread_expression_creator, string_to_expression,
 };
@@ -32,6 +33,7 @@ use crate::shared::utils::stylex::js_to_expr::{
   convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
 };
 use crate::shared::utils::validators::{is_create_call, validate_stylex_create_indent};
+use crate::shared::{constants, utils::js::stylex::stylex_keyframes::get_keyframes_fn};
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -54,8 +56,8 @@ where
 
       let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> = IndexMap::new();
 
-      let mut identifiers: HashMap<Id, FunctionConfig> = HashMap::new();
-      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfig>> =
+      let mut identifiers: HashMap<Id, FunctionConfigType> = HashMap::new();
+      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>> =
         HashMap::new();
 
       let include_fn = FunctionConfig {
@@ -68,36 +70,27 @@ where
         takes_path: false,
       };
 
-      let keyframes_fn = FunctionConfig {
-        fn_ptr: FunctionType::StylexFns(
-          |expr: Expr, local_state: StateManager| -> (Expr, StateManager) {
-            let (animation_name, injected_style) =
-              stylex_keyframes(&EvaluateResultValue::Expr(expr), &local_state);
-
-            let mut local_state = local_state.clone();
-
-            local_state
-              .injected_keyframes
-              .insert(animation_name.clone(), injected_style);
-
-            let result = string_to_expression(animation_name);
-
-            (result.unwrap(), local_state)
-          },
-        ),
-        takes_path: false,
-      };
+      let keyframes_fn = get_keyframes_fn();
 
       for name in &self.state.stylex_include_import {
-        identifiers.insert(name.clone(), include_fn.clone());
+        identifiers.insert(
+          name.clone(),
+          FunctionConfigType::Regular(include_fn.clone()),
+        );
       }
 
       for name in &self.state.stylex_first_that_works_import {
-        identifiers.insert(name.clone(), first_that_works_fn.clone());
+        identifiers.insert(
+          name.clone(),
+          FunctionConfigType::Regular(first_that_works_fn.clone()),
+        );
       }
 
       for name in &self.state.stylex_keyframes_import {
-        identifiers.insert(name.clone(), keyframes_fn.clone());
+        identifiers.insert(
+          name.clone(),
+          FunctionConfigType::Regular(keyframes_fn.clone()),
+        );
       }
 
       for name in &self.state.stylex_import {
@@ -107,17 +100,17 @@ where
 
         member_expression.insert(
           Ident::new("include".into(), DUMMY_SP).to_id(),
-          include_fn.clone(),
+          FunctionConfigType::Regular(include_fn.clone()),
         );
 
         member_expression.insert(
           Ident::new("firstThatWorks".into(), DUMMY_SP).to_id(),
-          first_that_works_fn.clone(),
+          FunctionConfigType::Regular(first_that_works_fn.clone()),
         );
 
         member_expression.insert(
           Ident::new("keyframes".into(), DUMMY_SP).to_id(),
-          keyframes_fn.clone(),
+          FunctionConfigType::Regular(keyframes_fn.clone()),
         );
       }
 

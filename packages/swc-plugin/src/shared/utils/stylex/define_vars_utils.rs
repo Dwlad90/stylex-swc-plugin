@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::{default, ops::Mul};
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};
@@ -13,11 +13,12 @@ use crate::shared::{
 pub(crate) fn construct_css_variables_string(
   variables: &IndexMap<String, FlatCompiledStylesValue>,
   theme_name_hash: &String,
+  typed_variables: &mut IndexMap<String, FlatCompiledStylesValue>,
 ) -> IndexMap<String, InjectableStyle> {
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
   for (key, value) in variables.iter() {
-    collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &vec![]);
+    collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &vec![], typed_variables);
   }
 
   dbg!(&rules_by_at_rule);
@@ -55,10 +56,29 @@ pub(crate) fn collect_vars_by_at_rules(
   value: &FlatCompiledStylesValue,
   collection: &mut IndexMap<String, Vec<String>>,
   at_rules: &Vec<String>,
+  typed_variables: &mut IndexMap<String, FlatCompiledStylesValue>,
 ) {
-  let Some((hash_name, value)) = value.as_tuple() else {
+  let Some((hash_name, value, css_type)) = value.as_tuple() else {
     panic!("Props must be an key value pair")
   };
+
+  if let Some(css_type) = css_type {
+    let values = css_type.value.as_map().expect("Value must be an map");
+
+    let initial_value = values
+      .get("default")
+      .and_then(|value| value.as_string())
+      .expect("Default value is not defined");
+
+    typed_variables.insert(
+      hash_name.clone(),
+      FlatCompiledStylesValue::CSSType(
+        hash_name.clone(),
+        css_type.syntax.clone(),
+        initial_value.clone(),
+      ),
+    );
+  }
 
   match value.as_ref() {
     Expr::Array(_) => panic!("Array is not supported in stylex.defineVars"),
@@ -110,9 +130,10 @@ pub(crate) fn collect_vars_by_at_rules(
 
         collect_vars_by_at_rules(
           &at_rule,
-          &FlatCompiledStylesValue::Tuple(hash_name.clone(), value),
+          &FlatCompiledStylesValue::Tuple(hash_name.clone(), value, Option::None),
           collection,
           &extended_at_rules,
+          typed_variables,
         );
       }
     }

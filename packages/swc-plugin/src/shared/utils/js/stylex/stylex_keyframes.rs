@@ -37,7 +37,7 @@ pub(crate) fn stylex_keyframes(
   };
 
   let extended_object = obj_map(ObjMapType::Object(frames.clone()), |frame| {
-    let Some((_, frame)) = frame.as_tuple() else {
+    let Some((_, frame, _)) = frame.as_tuple() else {
       panic!("Values must be an object")
     };
     let a = Pipe::create(frame.clone())

@@ -1,7 +1,8 @@
 use stylex_swc_plugin::{
   shared::structures::{
-    named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-    stylex_options::StyleXOptionsParams,
+    named_import_source::RuntimeInjection,
+    plugin_pass::PluginPass,
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
   ModuleTransformVisitor,
 };
@@ -12,6 +13,16 @@ use swc_core::{
     transforms::testing::test,
   },
 };
+
+fn get_default_opts() -> StyleXOptionsParams {
+  StyleXOptionsParams {
+    unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
+      Option::None,
+    )),
+    class_name_prefix: Option::Some("x".to_string()),
+    ..StyleXOptionsParams::default()
+  }
+}
 
 test!(
   Syntax::Typescript(TsConfig {
@@ -26,7 +37,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   output_of_stylex_define_vars,

@@ -36,7 +36,7 @@ pub enum RuntimeInjection {
 }
 
 impl RuntimeInjection {
-  pub(crate) fn _is_named_export(&self) -> bool {
+pub(crate) fn _is_named_export(&self) -> bool {
     match self {
       RuntimeInjection::Boolean(_) => false,
       RuntimeInjection::Regular(_) => false,

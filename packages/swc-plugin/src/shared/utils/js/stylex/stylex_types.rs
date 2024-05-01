@@ -1,6 +1,11 @@
 use crate::shared::{
+  constants::common::CSS_TYPE_KEY,
   structures::functions::{FunctionConfig, FunctionType},
-  utils::common::{prop_or_spread_expression_creator, prop_or_spread_string_creator},
+  utils::common::{
+    get_key_str, get_key_values_from_object, get_string_val_from_lit,
+    prop_or_spread_expression_creator, prop_or_spread_string_creator,
+    transform_shorthand_to_key_values,
+  },
 };
 use indexmap::IndexMap;
 use phf::phf_map;
@@ -8,7 +13,8 @@ use std::fmt;
 use std::rc::Rc;
 use swc_core::{
   common::DUMMY_SP,
-  ecma::ast::{Expr, ObjectLit, PropOrSpread},
+  css,
+  ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropOrSpread},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -18,7 +24,39 @@ pub enum ValueWithDefault {
   Map(IndexMap<String, ValueWithDefault>),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+impl std::hash::Hash for ValueWithDefault {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    match self {
+      ValueWithDefault::Number(n) => n.to_bits().hash(state),
+      ValueWithDefault::String(s) => s.hash(state),
+      ValueWithDefault::Map(map) => {
+        for (key, value) in map {
+          key.hash(state);
+          value.hash(state);
+        }
+      }
+    }
+  }
+}
+
+impl ValueWithDefault {
+  pub(crate) fn as_map(&self) -> Option<&IndexMap<String, ValueWithDefault>> {
+    match self {
+      ValueWithDefault::Map(map) => Option::Some(map),
+      _ => Option::None,
+    }
+  }
+
+
+  pub(crate) fn as_string(&self) -> Option<&String> {
+    match self {
+      ValueWithDefault::String(s) => Option::Some(s),
+      _ => Option::None,
+    }
+  }
+}
+
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub enum CSSSyntax {
   Length,
   Number,
@@ -38,26 +76,47 @@ pub enum CSSSyntax {
 impl fmt::Display for CSSSyntax {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
-      CSSSyntax::Angle => write!(f, "angle"),
-      CSSSyntax::Color => write!(f, "color"),
-      CSSSyntax::Image => write!(f, "image"),
-      CSSSyntax::Integer => write!(f, "integer"),
-      CSSSyntax::Length => write!(f, "length"),
-      CSSSyntax::LengthPercentage => write!(f, "lengthPercentage"),
-      CSSSyntax::Number => write!(f, "number"),
-      CSSSyntax::Percentage => write!(f, "percentage"),
-      CSSSyntax::Resolution => write!(f, "resolution"),
-      CSSSyntax::Time => write!(f, "time"),
-      CSSSyntax::TransformFunction => write!(f, "transformFunction"),
-      CSSSyntax::TransformList => write!(f, "transformList"),
-      CSSSyntax::Url => write!(f, "url"),
+      CSSSyntax::Angle => write!(f, "<angle>"),
+      CSSSyntax::Color => write!(f, "<color>"),
+      CSSSyntax::Image => write!(f, "<image>"),
+      CSSSyntax::Integer => write!(f, "<integer>"),
+      CSSSyntax::Length => write!(f, "<length>"),
+      CSSSyntax::LengthPercentage => write!(f, "<lengthPercentage>"),
+      CSSSyntax::Number => write!(f, "<number>"),
+      CSSSyntax::Percentage => write!(f, "<percentage>"),
+      CSSSyntax::Resolution => write!(f, "<resolution>"),
+      CSSSyntax::Time => write!(f, "<time>"),
+      CSSSyntax::TransformFunction => write!(f, "<transformFunction>"),
+      CSSSyntax::TransformList => write!(f, "<transformList>"),
+      CSSSyntax::Url => write!(f, "<url>"),
+    }
+  }
+}
+
+impl From<String> for CSSSyntax {
+  fn from(value: String) -> Self {
+    match value.as_str() {
+      "<angle>" => CSSSyntax::Angle,
+      "<color>" => CSSSyntax::Color,
+      "<image>" => CSSSyntax::Image,
+      "<integer>" => CSSSyntax::Integer,
+      "<length>" => CSSSyntax::Length,
+      "<lengthPercentage>" => CSSSyntax::LengthPercentage,
+      "<number>" => CSSSyntax::Number,
+      "<percentage>" => CSSSyntax::Percentage,
+      "<resolution>" => CSSSyntax::Resolution,
+      "<time>" => CSSSyntax::Time,
+      "<transformFunction>" => CSSSyntax::TransformFunction,
+      "<transformList>" => CSSSyntax::TransformList,
+      "<url>" => CSSSyntax::Url,
+      _ => panic!(r#"CSSSyntax "{}" not found"#, value),
     }
   }
 }
 
 type CSSSyntaxType = CSSSyntax;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub(crate) struct BaseCSSType {
   pub(crate) value: ValueWithDefault,
   pub(crate) syntax: CSSSyntaxType,
@@ -99,9 +158,68 @@ impl BaseCSSType {
       }
     };
 
+    // value.push(prop_or_spread_string_creator(
+    //   CSS_TYPE_KEY.to_string(),
+    //   "true".to_string(),
+    // ));
+
     dbg!(&value);
 
     value
+  }
+}
+
+impl From<ObjectLit> for BaseCSSType {
+  fn from(obj: ObjectLit) -> BaseCSSType {
+    let key_values = get_key_values_from_object(&obj);
+    let mut syntax: Option<CSSSyntax> = Option::None;
+
+    let mut values: IndexMap<String, ValueWithDefault> = IndexMap::new();
+
+    for key_value in key_values {
+      let key = get_key_str(&key_value);
+
+      match key.as_str() {
+        "syntax" => {
+          syntax = key_value
+            .value
+            .as_lit()
+            .and_then(get_string_val_from_lit)
+            .map(|str| str.into())
+        }
+        "value" => {
+          let obj_value = key_value
+            .value
+            .as_object()
+            .expect("Value must be an object");
+
+          for key_value in get_key_values_from_object(obj_value) {
+            let key = get_key_str(&key_value);
+
+            let value = key_value
+              .value
+              .as_lit()
+              .and_then(get_string_val_from_lit)
+              .expect("Value must be a string");
+
+            values.insert(key, ValueWithDefault::String(value));
+          }
+        }
+        _ => panic!(r#"Key "{}" not support by BaseCSSType"#, key),
+      }
+    }
+
+    assert!(!values.is_empty(), "Invalid value in stylex.defineVars");
+
+    assert!(
+      values.contains_key("default"),
+      "Default value is not defined for variable."
+    );
+
+    BaseCSSType {
+      value: ValueWithDefault::Map(values),
+      syntax: syntax.expect("Syntax is required"),
+    }
   }
 }
 
@@ -402,7 +520,9 @@ fn convert_number_to_string_using(
   Rc::new(move |value: ValueWithDefault| -> ValueWithDefault {
     match value {
       ValueWithDefault::Number(n) => transform_number(n),
-      ValueWithDefault::String(s) => transform_number(s.parse().expect("String not a number")),
+      ValueWithDefault::String(s) => s
+        .parse()
+        .map_or(ValueWithDefault::String(s), transform_number),
       ValueWithDefault::Map(o) => {
         let mut result = IndexMap::new();
         for (key, val) in o {

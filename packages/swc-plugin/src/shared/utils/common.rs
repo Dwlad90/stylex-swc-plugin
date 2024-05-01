@@ -30,7 +30,10 @@ use crate::shared::{
   },
 };
 
-use super::css::stylex::evaluate::{evaluate_cached, State};
+use super::{
+  css::stylex::evaluate::{evaluate_cached, State},
+  js::stylex::stylex_types::{BaseCSSType, CSSSyntax},
+};
 
 struct SpanReplacer;
 
@@ -979,9 +982,9 @@ pub(crate) fn deep_merge_props(
   remove_duplicates(new_props.into_iter().rev().collect())
 }
 
-pub(crate) fn get_css_value(key_value: KeyValueProp) -> Box<Expr> {
+pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {
   let Some(obj) = key_value.value.as_object() else {
-    return key_value.value;
+    return (key_value.value, Option::None);
   };
 
   for prop in obj.props.clone().into_iter() {
@@ -1016,18 +1019,15 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> Box<Expr> {
                 });
                 dbg!(&value);
 
-
                 if let Some(value) = value {
-                  let key_value = value.as_prop().unwrap().clone().key_value().unwrap();
-
                   dbg!(&key_value);
+                  let result_key_value = value.as_prop().unwrap().clone().key_value().unwrap();
 
-                  // panic!();
                   // let value = value.value.object().unwrap().props.first().unwrap().clone();
 
                   // let value = value.as_prop().unwrap().clone().key_value().unwrap();
 
-                  return key_value.value;
+                  return (result_key_value.value, Option::Some(obj.clone().into()));
                 }
               }
             }
@@ -1038,7 +1038,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> Box<Expr> {
     }
   }
 
-  key_value.value
+  (key_value.value, Option::None)
 }
 
 pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
@@ -1120,9 +1120,9 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
 }
 
 pub(crate) fn gen_file_based_identifier(
-  file_name: &String,
-  export_name: &String,
-  key: Option<&String>,
+  file_name: &str,
+  export_name: &str,
+  key: Option<&str>,
 ) -> String {
   let key = key.map_or(String::new(), |k| format!(".{}", k));
 

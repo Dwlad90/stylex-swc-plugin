@@ -25,7 +25,11 @@ where
 
         let value = key_value.value.clone();
 
-        let result = mapper(FlatCompiledStylesValue::Tuple(key.clone(), value));
+        let result = mapper(FlatCompiledStylesValue::Tuple(
+          key.clone(),
+          value,
+          Option::None,
+        ));
 
         variables_map.insert(key, result);
       }

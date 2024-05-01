@@ -3,7 +3,10 @@ use swc_core::ecma::ast::{Expr, Id, ObjectLit};
 
 use super::{
   structures::{included_style::IncludedStyle, injectable_style::InjectableStyle, pair::Pair},
-  utils::stylex::js_to_expr::NestedStringObject,
+  utils::{
+    js::stylex::stylex_types::{BaseCSSType, CSSSyntax},
+    stylex::js_to_expr::NestedStringObject,
+  },
 };
 
 // Represents the current state of a plugin for a file.
@@ -116,13 +119,14 @@ pub(crate) enum FlatCompiledStylesValue {
   IncludedStyle(IncludedStyle),
   InjectableStyle(InjectableStyle),
   Bool(bool),
-  Tuple(String, Box<Expr>),
+  Tuple(String, Box<Expr>, Option<BaseCSSType>),
+  CSSType(String, CSSSyntax, String),
 }
 
 impl FlatCompiledStylesValue {
-  pub(crate) fn as_tuple(&self) -> Option<(&String, &Box<Expr>)> {
+  pub(crate) fn as_tuple(&self) -> Option<(&String, &Box<Expr>, &Option<BaseCSSType>)> {
     match self {
-      FlatCompiledStylesValue::Tuple(key, value) => Some((key, value)),
+      FlatCompiledStylesValue::Tuple(key, value, css_type) => Some((key, value, css_type)),
       _ => None,
     }
   }

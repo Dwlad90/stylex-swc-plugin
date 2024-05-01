@@ -20,8 +20,8 @@ opt-level = "z"
 strip = "symbols"
 
 [dependencies]
-serde = "1.0.198"
-swc_core = { version = "0.91.0", features = [
+serde = "1.0.199"
+swc_core = { version = "0.91.2", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -67,11 +67,11 @@ node-resolve = { version = "2.2.0" }
 resolve-path = { version = "0.1.0" }
 
 [dev-dependencies]
-swc_core = { version = "0.91.0", features = [
+swc_core = { version = "0.91.2", features = [
   "testing_transform",
   "ecma_parser",
 ] }
-testing = "0.35.23"
+testing = "0.35.24"
 insta = { version = "1.38.0", features = ["yaml"] }
 
 

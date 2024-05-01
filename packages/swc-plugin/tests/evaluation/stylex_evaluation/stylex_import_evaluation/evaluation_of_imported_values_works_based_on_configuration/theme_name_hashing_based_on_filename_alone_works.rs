@@ -24,7 +24,6 @@ static OPTIONS: Options = Options {
 };
 
 fn tranform(input: &str) -> String {
-  
   stringify_js(
     input,
     Syntax::Typescript(TsConfig {
@@ -38,7 +37,7 @@ fn tranform(input: &str) -> String {
       config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
       config.treeshake_compensation = Option::Some(true);
       config.unstable_module_resolution =
-        Option::Some(StyleXOptions::get_haste_module_resolution());
+        Option::Some(StyleXOptions::get_haste_module_resolution(Option::None));
 
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),

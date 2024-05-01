@@ -17,7 +17,17 @@ use swc_core::{
 
 use crate::utils::transform::stringify_js;
 
-fn tranform(input: &str, override_params: StyleXOptionsParams) -> String {
+fn get_default_opts() -> StyleXOptionsParams {
+  StyleXOptionsParams {
+    unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
+      Option::None,
+    )),
+    class_name_prefix: Option::Some("x".to_string()),
+    ..StyleXOptionsParams::default()
+  }
+}
+
+fn transform(input: &str) -> String {
   stringify_js(
     input,
     Syntax::Typescript(TsConfig {
@@ -34,7 +44,7 @@ fn tranform(input: &str, override_params: StyleXOptionsParams) -> String {
         Some(StyleXOptionsParams {
           runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
           dev: Option::Some(true),
-          ..override_params
+          ..get_default_opts()
         }),
       )
     },
@@ -98,8 +108,8 @@ fn variables_order_does_not_change_the_class_name_hash() {
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME_WITH_DIFFERENT_ORDER
   );
 
-  let output_v1 = tranform(input_v1.as_str(), StyleXOptionsParams::default());
-  let output_v2 = tranform(input_v2.as_str(), StyleXOptionsParams::default());
+  let output_v1 = transform(input_v1.as_str());
+  let output_v2 = transform(input_v2.as_str());
 
   assert_snapshot!(output_v1);
   assert_snapshot!(output_v2);
@@ -120,7 +130,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   transforms_variables_object,
@@ -147,7 +157,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   transforms_variables_object_and_add_stylex_inject_in_dev_mode,
@@ -174,8 +184,10 @@ test!(
     },
     Some(StyleXOptionsParams {
       runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution()),
-      ..StyleXOptionsParams::default()
+      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
+        Option::None
+      )),
+      ..get_default_opts()
     })
   ),
   transforms_variables_object_in_non_haste_env,
@@ -202,8 +214,10 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution()),
-      ..StyleXOptionsParams::default()
+      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
+        Option::None
+      )),
+      ..get_default_opts()
     })
   ),
   transforms_variables_object_in_non_haste_dev_env,
@@ -230,7 +244,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   transforms_multiple_variables_objects_in_a_single_file,
@@ -261,7 +275,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   transforms_multiple_variables_objects_in_a_single_file_in_dev_mode,
@@ -294,7 +308,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   transforms_variables_objects_with_references_to_local_variables,
@@ -334,7 +348,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   allows_references_to_local_variables_with_static_values,
@@ -374,7 +388,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   allows_template_literal_references,
@@ -414,7 +428,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   allows_pure_complex_expressions,
@@ -454,8 +468,10 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution()),
-      ..StyleXOptionsParams::default()
+      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
+        Option::None
+      )),
+      ..get_default_opts()
     })
   ),
   transforms_variables_object_in_common_js_with_nested_file_path,
@@ -482,7 +498,7 @@ test!(
     },
     Some(StyleXOptionsParams {
       dev: Option::Some(true),
-      ..StyleXOptionsParams::default()
+      ..get_default_opts()
     })
   ),
   transforms_typed_object_overrides,

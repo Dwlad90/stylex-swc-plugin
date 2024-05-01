@@ -1570,7 +1570,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
 
             let abs_path = &state
               .traversal_state
-              .import_path_resolver(&import_path.src.value.to_string());
+              .import_path_resolver(&import_path.src.value);
 
             let imported_name = match imported {
               ModuleExportName::Ident(ident) => ident.sym.to_string(),

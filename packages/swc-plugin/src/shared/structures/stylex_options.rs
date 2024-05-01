@@ -60,7 +60,7 @@ pub enum Aliases {
 #[serde(rename_all(deserialize = "camelCase", serialize = "PascalCase"))]
 pub struct ModuleResolution {
   pub(crate) r#type: String,
-  pub(crate) _root_dir: Option<String>,
+  pub(crate) root_dir: Option<String>,
   pub(crate) theme_file_extension: Option<String>,
 }
 
@@ -89,18 +89,18 @@ pub struct StyleXOptions {
 }
 
 impl StyleXOptions {
-  pub fn get_haste_module_resolution() -> ModuleResolution {
+  pub fn get_haste_module_resolution(root_dir: Option<String>) -> ModuleResolution {
     ModuleResolution {
       r#type: "haste".to_string(),
-      _root_dir: Option::None,
+      root_dir,
       theme_file_extension: Option::None,
     }
   }
 
-  pub fn get_common_js_module_resolution() -> ModuleResolution {
+  pub fn get_common_js_module_resolution(root_dir: Option<String>) -> ModuleResolution {
     ModuleResolution {
       r#type: "commonjs".to_string(),
-      _root_dir: Option::None,
+      root_dir,
       theme_file_extension: Option::None,
     }
   }
@@ -121,7 +121,7 @@ impl Default for StyleXOptions {
       gen_conditional_classes: false,
       aliases: Option::None,
       unstable_module_resolution: Option::Some(CheckModuleResolution::Haste(
-        StyleXOptions::get_haste_module_resolution(),
+        StyleXOptions::get_haste_module_resolution(Option::None),
       )),
     }
   }

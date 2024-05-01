@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use indexmap::IndexMap;
 use swc_core::{
   common::{comments::Comments, DUMMY_SP},
   ecma::ast::{CallExpr, Expr, Id, Ident},
@@ -152,11 +153,14 @@ where
         }
       };
 
-      let (mut overrides_obj, inject_styles) =
-      stylex_create_theme(&variables, &overrides, &mut self.state);
+      let (mut overrides_obj, inject_styles) = stylex_create_theme(
+        &variables,
+        &overrides,
+        &mut self.state,
+        &mut IndexMap::default(),
+      );
 
       dbg!(&overrides_obj, &inject_styles);
-
 
       let (var_name, _) = self.get_call_var_name(call);
 

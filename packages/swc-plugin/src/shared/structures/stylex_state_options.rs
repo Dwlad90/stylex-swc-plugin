@@ -44,6 +44,11 @@ impl StyleXStateOptions {
   }
 }
 
+impl Default for CheckModuleResolution {
+  fn default() -> Self {
+    CheckModuleResolution::Haste(StyleXOptions::get_haste_module_resolution(Option::None))
+  }
+}
 impl From<StyleXOptions> for StyleXStateOptions {
   fn from(options: StyleXOptions) -> Self {
     let runtime_injection = match options.runtime_injection {

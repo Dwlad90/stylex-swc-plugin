@@ -22,6 +22,7 @@ pub(crate) fn stylex_create_theme(
   theme_vars: &EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
+  typed_variables: &mut IndexMap<String, FlatCompiledStylesValue>,
 ) -> (
   IndexMap<String, FlatCompiledStylesValue>,
   IndexMap<String, InjectableStyle>,
@@ -78,9 +79,15 @@ pub(crate) fn stylex_create_theme(
 
     // panic!();
 
-    let value = FlatCompiledStylesValue::Tuple(name_hash, css_value);
+    let value = FlatCompiledStylesValue::Tuple(name_hash, css_value.0, css_value.1);
 
-    collect_vars_by_at_rules(&key, &value, &mut rules_by_at_rule, &vec![]);
+    collect_vars_by_at_rules(
+      &key,
+      &value,
+      &mut rules_by_at_rule,
+      &vec![],
+      typed_variables,
+    );
   }
 
   dbg!(&rules_by_at_rule);

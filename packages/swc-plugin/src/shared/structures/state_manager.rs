@@ -1,9 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use core::panic;
 use std::option::Option;
 use std::path::Path;
+use std::{
+  collections::{HashMap, HashSet},
+  path::PathBuf,
+};
 
 use indexmap::{IndexMap, IndexSet};
-use swc_core::common::{EqIgnoreSpan, DUMMY_SP};
+use swc_core::common::{EqIgnoreSpan, FileName, DUMMY_SP};
 use swc_core::ecma::ast::{
   BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
   ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl,
@@ -20,13 +24,13 @@ use crate::shared::utils::common::{
   extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
 };
 
-use super::injectable_style::InjectableStyle;
 use super::meta_data::MetaData;
 use super::named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState};
 use super::plugin_pass::PluginPass;
 use super::stylex_options::{CheckModuleResolution, StyleXOptions};
 use super::stylex_state_options::StyleXStateOptions;
 use super::uid_generator::UidGenerator;
+use super::{injectable_style::InjectableStyle, stylex_options::ModuleResolution};
 
 #[derive(Clone, Debug)]
 pub struct StateManager {
@@ -186,10 +190,72 @@ impl StateManager {
     extract_path(self._state.filename.clone())
   }
   pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
-    extract_filename_with_ext_from_path(self._state.filename.clone())
+    let filename = self.get_filename();
+
+    let unstable_module_resolution = self
+      .options
+      .unstable_module_resolution
+      .clone()
+      .unwrap_or_default();
+
+    let theme_file_extension = match unstable_module_resolution.clone() {
+      CheckModuleResolution::CommonJS(ModuleResolution {
+        theme_file_extension,
+        ..
+      }) => theme_file_extension,
+      CheckModuleResolution::Haste(ModuleResolution {
+        theme_file_extension,
+        ..
+      }) => theme_file_extension,
+      CheckModuleResolution::CrossFileParsing(ModuleResolution {
+        theme_file_extension,
+        ..
+      }) => theme_file_extension,
+    }
+    .unwrap_or(".stylex".to_string());
+
+    if filename.is_empty()
+      || !matches_file_suffix(theme_file_extension.as_str(), &filename)
+      || self.options.unstable_module_resolution.is_none()
+    {
+
+      dbg!(
+        &filename,
+        &theme_file_extension.as_str(),
+        &matches_file_suffix(theme_file_extension.as_str(), &filename),
+        &self.options.unstable_module_resolution
+      );
+      panic!();
+      return Option::None;
+    }
+
+    match unstable_module_resolution {
+      CheckModuleResolution::Haste(_) => {
+        let filename = FileName::Real(filename.into());
+        extract_filename_with_ext_from_path(filename)
+      }
+      CheckModuleResolution::CommonJS(module_resolution)
+      | CheckModuleResolution::CrossFileParsing(module_resolution) => {
+        let root_dir = module_resolution
+          .root_dir
+          .expect("root_dir is required for CommonJS");
+
+        let root_dir = Path::new(root_dir.as_str());
+
+        let filename = Path::new(&filename);
+
+        let filename_for_hashing = filename
+          .strip_prefix(root_dir)
+          .expect("filename does not start with root_dir")
+          .display()
+          .to_string();
+
+        Option::Some(filename_for_hashing)
+      }
+    }
   }
 
-  pub(crate) fn import_path_resolver(&self, import_path: &String) -> ImportPathResolution {
+  pub(crate) fn import_path_resolver(&self, import_path: &str) -> ImportPathResolution {
     let source_file_path = self.get_filename();
 
     if source_file_path.is_empty() {
@@ -210,7 +276,7 @@ impl StateManager {
 
         dbg!(&theme_file_extension);
 
-        if !matches_file_suffix(&theme_file_extension.as_str(), import_path) {
+        if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
           return ImportPathResolution::False;
         }
 
@@ -490,7 +556,7 @@ impl StateManager {
 }
 
 fn add_inject_default_import_expression(ident: &Ident) -> ModuleItem {
-  let inject_import_stmt = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+  ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
     specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
       span: DUMMY_SP,
@@ -504,26 +570,22 @@ fn add_inject_default_import_expression(ident: &Ident) -> ModuleItem {
     type_only: false,
     with: Option::None,
     phase: ImportPhase::Evaluation,
-  }));
-
-  inject_import_stmt
+  }))
 }
 
-pub(crate) fn add_import_expression(path: &String) -> ModuleItem {
-  let inject_import_stmt = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+pub(crate) fn add_import_expression(path: &str) -> ModuleItem {
+  ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
     specifiers: vec![],
     src: Box::new(Str {
       span: DUMMY_SP,
       raw: Option::None,
-      value: path.clone().into(),
+      value: path.into(),
     }),
     type_only: false,
     with: Option::None,
     phase: ImportPhase::Evaluation,
-  }));
-
-  inject_import_stmt
+  }))
 }
 
 fn add_inject_named_import_expression(ident: &Ident, imported_ident: &Ident) -> ModuleItem {
@@ -566,7 +628,7 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
   inject_import_stmt
 }
 
-fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
+pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
   filename.ends_with(&format!("{}.js", allowed_suffix))
     || filename.ends_with(&format!("{}.ts", allowed_suffix))
     || filename.ends_with(&format!("{}.tsx", allowed_suffix))

@@ -1,6 +1,6 @@
 {
-  "name": "@stylexswc/nextjs-plugin",
-  "description": "Stylex next plugin with swc plugin",
+  "name": "@stylexswc/test-parser",
+  "description": "Parse origin jest stylex test files",
   "version": "0.0.1",
   "license": "UNLICENSED",
   "sideEffects": false,
@@ -11,19 +11,17 @@
     "access": "public"
   },
   "scripts": {
-    "build": "echo \"Error: no build specified\" && exit 0",
+    "build": "cargo build --release",
     "clean": "del-cli dist",
     "precommit": "lint-staged",
     "prepublishOnly": "cargo build-wasi --release",
     "prepush": "lint-prepush",
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "NODE_ENV=test cargo test --lib --bins --tests"
   },
+
   "keywords": [
     "swc-plugin"
   ],
-  "main": "dist/index.js",
-  "preferUnplugged": true,
-  "devDependencies": {
-    "@stylexswc/typescript-config": "workspace:*"
-  }
+  "main": "target/wasm32-wasi/release/stylex_swc_plugin.wasm",
+  "preferUnplugged": true
 }

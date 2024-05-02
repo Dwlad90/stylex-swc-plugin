@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/swc-plugin",
-  "description": "Haaretz theme plugin",
+  "description": "SWC plugin for transforming StyleX code",
   "version": "0.0.1",
   "license": "UNLICENSED",
   "sideEffects": false,

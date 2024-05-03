@@ -26,10 +26,13 @@ pub(crate) fn parse_nullable_style(
   should_reduce_count: bool,
 ) -> StyleObject {
   match node {
-    Expr::Lit(lit) => match lit {
-      Lit::Null(_) => StyleObject::Nullable,
-      _ => StyleObject::Other,
-    },
+    Expr::Lit(lit) => {
+      if let Lit::Null(_) = lit {
+        StyleObject::Nullable
+      } else {
+        StyleObject::Other
+      }
+    }
     Expr::Ident(ident) => {
       if ident.sym == "undefined" {
         StyleObject::Nullable

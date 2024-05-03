@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use stylex_swc_plugin::shared::{
   structures::{
     evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
-    stylex_options::StyleXOptions,
   },
   utils::{
     common::{expr_to_str, prop_or_spread_expression_creator},

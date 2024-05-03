@@ -4,7 +4,6 @@ use stylex_swc_plugin::shared::structures::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   named_import_source::ImportSources,
   state_manager::StateManager,
-  stylex_options::StyleXOptions,
 };
 use swc_core::{
   common::DUMMY_SP,

@@ -6,11 +6,10 @@ use swc_core::ecma::{
 };
 
 use crate::shared::{
-  enums::{FnResult, ModuleCycle, NonNullProps},
+  enums::{FnResult, NonNullProps},
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
     common::reduce_ident_count,
-    css::factories::object_expression_factory,
     stylex::{
       make_string_expression::make_string_expression,
       parse_nullable_style::{parse_nullable_style, ResolvedArg, StyleObject},
@@ -59,13 +58,12 @@ pub(crate) fn stylex_merge(
   call: &CallExpr,
   transform: fn(&Vec<ResolvedArg>) -> Option<FnResult>,
   state: &mut StateManager,
-  // cycle: &ModuleCycle
 ) -> Option<Expr> {
   let mut bail_out = false;
   let mut conditional = 0;
   let mut current_index = -1;
-  let mut bail_out_index: Option<i32> = Option::None;
-  let mut resolved_args: Vec<ResolvedArg> = vec![];
+  let mut bail_out_index = Option::None;
+  let mut resolved_args = vec![];
 
   let args = call
     .args
@@ -78,11 +76,11 @@ pub(crate) fn stylex_merge(
         _ => vec![Some(arg.clone())],
       }
     })
-    .filter_map(|arg| arg)
+    .flatten()
     .collect::<Vec<ExprOrSpread>>();
 
   for arg in args.iter() {
-    current_index = current_index + 1;
+    current_index += 1;
 
     assert!(arg.spread.is_none(), "Spread not implemented yet");
 
@@ -149,7 +147,7 @@ pub(crate) fn stylex_merge(
             ident,
           ));
 
-          conditional = conditional + 1;
+          conditional += 1;
         }
       }
       Expr::Bin(BinExpr {
@@ -186,7 +184,7 @@ pub(crate) fn stylex_merge(
             ident,
           ));
 
-          conditional = conditional + 1;
+          conditional += 1;
         }
       }
 
@@ -216,7 +214,7 @@ pub(crate) fn stylex_merge(
     let mut index = -1;
 
     for mut arg_path in arguments_path.into_iter() {
-      index = index + 1;
+      index += 1;
 
       assert!(arg_path.spread.is_none(), "Spread not implemented yet");
 
@@ -225,8 +223,8 @@ pub(crate) fn stylex_merge(
       // let mut arg = arg_path.expr.as_ref();
 
       let mut member_transfom = MemberTransform {
-        index: index.clone(),
-        bail_out_index: bail_out_index.clone(),
+        index,
+        bail_out_index,
         non_null_props: non_null_props.clone(),
         state: state.clone(),
         parents: vec![],
@@ -283,12 +281,12 @@ pub(crate) fn stylex_merge(
       match arg {
         ResolvedArg::StyleObject(style_object, ident) => {
           dbg!(&style_object, &ident);
-          reduce_ident_count(&mut *state, &ident);
+          reduce_ident_count(&mut *state, ident);
         }
         ResolvedArg::ConditionalStyle(expr, style_object, _, ident) => {
           dbg!(&expr, &style_object, &ident);
 
-          reduce_ident_count(&mut *state, &ident);
+          reduce_ident_count(&mut *state, ident);
         }
       }
     }

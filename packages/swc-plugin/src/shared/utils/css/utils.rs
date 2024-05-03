@@ -1,5 +1,4 @@
 use core::panic;
-use std::result;
 
 use crate::shared::{
   constants::{
@@ -93,17 +92,27 @@ pub(crate) fn convert_style_to_class_name(
     PreRuleValue::Null => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
   };
 
-  dbg!(&value);
+  let value = match value.clone() {
+    PreRuleValue::String(value) => vec![value],
+    PreRuleValue::Vec(values) => {
+      if values
+        .iter()
+        .any(|value| value.starts_with("var(") && value.ends_with(')'))
+      {
+        variable_fallbacks(values)
+      } else {
+        values
+      }
+    }
+    PreRuleValue::Expr(_) | PreRuleValue::Null => {
+      panic!("{}", constants::messages::ILLEGAL_PROP_VALUE)
+    }
+  };
 
   let string_to_hash = format!(
     "<>{}{}{}",
     dashed_key,
-    match value.clone() {
-      PreRuleValue::String(value) => value,
-      PreRuleValue::Vec(values) => values.join(", "),
-      PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
-      PreRuleValue::Null => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
-    },
+    value.join(", "),
     modifier_hash_string
   );
 
@@ -121,7 +130,7 @@ pub(crate) fn convert_style_to_class_name(
     at_rules,
   );
 
-  dbg!(key, class_name_hashed.clone(), css_rules.clone(),);
+  dbg!(key, &value, &class_name_hashed, &css_rules);
 
   (key.to_string(), class_name_hashed, css_rules)
 }
@@ -187,26 +196,33 @@ pub(crate) fn generate_css_rule(
 pub(crate) fn generate_rule(
   class_name: &str,
   key: &str,
-  values: &PreRuleValue,
+  values: &Vec<String>,
   pseudos: &mut [String],
   at_rules: &mut [String],
 ) -> InjectableStyle {
   let mut pairs: Vec<Pair> = vec![];
 
-  match values {
-    PreRuleValue::String(value) => pairs.push(Pair {
+  for value in values {
+    pairs.push(Pair {
       key: key.to_string(),
       value: value.clone(),
-    }),
-    PreRuleValue::Vec(values) => values.iter().for_each(|value| {
-      pairs.push(Pair {
-        key: key.to_string(),
-        value: value.clone(),
-      })
-    }),
-    PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
-    PreRuleValue::Null => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+    });
   }
+
+  // match values {
+  //   PreRuleValue::String(value) => pairs.push(Pair {
+  //     key: key.to_string(),
+  //     value: value.clone(),
+  //   }),
+  //   PreRuleValue::Vec(values) => values.iter().for_each(|value| {
+  //     pairs.push(Pair {
+  //       key: key.to_string(),
+  //       value: value.clone(),
+  //     })
+  //   }),
+  //   PreRuleValue::Expr(_) => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+  //   PreRuleValue::Null => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+  // }
 
   let ltr_pairs: Vec<Pair> = pairs
     .iter()
@@ -229,6 +245,7 @@ pub(crate) fn generate_rule(
     .map(|pair| format!("{}:{}", pair.key, pair.value))
     .collect::<Vec<String>>()
     .join(";");
+
   dbg!(&ltr_decls, &rtl_decls);
 
   let ltr_rule = generate_css_rule(class_name, ltr_decls, pseudos, at_rules);
@@ -520,3 +537,74 @@ pub fn stringify(node: &swc_core::css::ast::Stylesheet) -> String {
 }
 
 // fn get_expanded_keys(stylex_config: &StyleXOptions) -> Vec<String> {}
+
+fn variable_fallbacks(values: Vec<String>) -> Vec<String> {
+  let first_var = values
+    .iter()
+    .position(|val| val.starts_with("var(") && val.ends_with(')'));
+
+  let last_var = values
+    .iter()
+    .rev()
+    .position(|val| val.starts_with("var(") && val.ends_with(')'))
+    .map(|i| values.len() - 1 - i);
+
+  let values_before_first_var = &values[0..first_var.unwrap_or(0)];
+
+  let mut var_values: Vec<String> = values
+    [first_var.unwrap_or(0)..last_var.unwrap_or(values.len()) + 1]
+    .iter()
+    .rev()
+    .cloned()
+    .collect::<Vec<String>>();
+
+  let values_after_last_var = &values[last_var.unwrap_or(values.len()) + 1..];
+
+  assert!(
+    !var_values
+      .iter()
+      .any(|val| !val.starts_with("var(") || !val.ends_with(')')),
+    "{}",
+    messages::NON_CONTIGUOUS_VARS
+  );
+
+  var_values = var_values
+    .iter()
+    .map(|val| val[4..val.len() - 1].to_string())
+    .collect::<Vec<String>>();
+
+  let mut result = Vec::new();
+
+  if !values_before_first_var.is_empty() {
+    for val in values_before_first_var {
+      let mut to_push = var_values.clone();
+
+      to_push.push(val.to_string());
+
+      result.push(compose_vars(to_push));
+    }
+  } else {
+    result.push(compose_vars(var_values));
+  }
+
+  for val in values_after_last_var {
+    result.push(val.to_string());
+  }
+
+  dbg!(&result);
+
+  result
+}
+
+fn compose_vars(vars: Vec<String>) -> String {
+  match vars.split_first() {
+    Some((first, rest)) if !rest.is_empty() => {
+      format!("var({},{})", first, compose_vars(rest.to_vec()))
+    }
+    Some((first, _)) if first.starts_with("--") => {
+      format!("var({})", first)
+    }
+    Some((first, _)) => first.to_string(),
+    None => String::new(),
+  }
+}

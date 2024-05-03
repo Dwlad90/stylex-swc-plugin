@@ -81,3 +81,6 @@ pub(crate) static NON_OBJECT_KEYFRAME: &str =
 
 pub(crate) static LINT_UNCLOSED_FUNCTION: &str = "Rule contains an unclosed function";
 pub(crate) static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";
+
+pub(crate) static NON_CONTIGUOUS_VARS: &str =
+  "All variables passed to `stylex.firstThatWorks` must be contiguous.";

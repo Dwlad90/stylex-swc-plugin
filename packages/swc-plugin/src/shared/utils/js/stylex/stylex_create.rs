@@ -32,7 +32,7 @@ pub(crate) fn stylex_create_set(
 
   for (namespace_name, namespace) in namespaces.as_map().unwrap() {
     dbg!(&namespace_name, &namespace);
-    validate_namespace(namespace, &vec![]);
+    validate_namespace(namespace, &[]);
 
     let mut pseudos = vec![];
     let mut at_rules = vec![];

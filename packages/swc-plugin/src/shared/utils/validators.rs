@@ -121,7 +121,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   );
 
   assert!(
-    &init.args.len() == &2,
+    init.args.len() == 2,
     "{}",
     constants::messages::ILLEGAL_ARGUMENT_LENGTH
   );
@@ -144,7 +144,7 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateMana
   );
 
   assert!(
-    &call.args.len() == &1,
+    call.args.len() == 1,
     "{}",
     constants::messages::ILLEGAL_ARGUMENT_LENGTH
   );
@@ -237,7 +237,7 @@ pub(crate) fn is_target_call(
 
   is_create_ident || is_create_member
 }
-pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &Vec<String>) {
+pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[String]) {
   for namespace in namespaces {
     let key = match &namespace.key {
       PropName::Ident(key) => format!("{}", key.sym),
@@ -279,7 +279,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &Vec<S
       Expr::Object(object) => {
         let key = get_key_str(namespace);
 
-        if key.starts_with("@") || key.starts_with(":") {
+        if key.starts_with('@') || key.starts_with(':') {
           if conditions.contains(&key) {
             panic!("{}", constants::messages::DUPLICATE_CONDITIONAL);
           }
@@ -311,7 +311,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &Vec<S
   }
 }
 
-pub(crate) fn validate_dynamic_style_params(params: &Vec<Pat>) {
+pub(crate) fn validate_dynamic_style_params(params: &[Pat]) {
   if params.iter().any(|param| !param.is_ident()) {
     panic!(
       "{}",
@@ -322,7 +322,7 @@ pub(crate) fn validate_dynamic_style_params(params: &Vec<Pat>) {
 
 pub(crate) fn validate_conditional_styles(
   inner_key_value: &KeyValueProp,
-  conditions: &Vec<String>,
+  conditions: &[String],
 ) {
   let inner_key = get_key_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
@@ -330,7 +330,7 @@ pub(crate) fn validate_conditional_styles(
   dbg!(inner_key.clone());
 
   assert!(
-    (inner_key.starts_with(":") || inner_key.starts_with("@") || inner_key == "default"),
+    (inner_key.starts_with(':') || inner_key.starts_with('@') || inner_key == "default"),
     "{}",
     constants::messages::INVALID_PSEUDO_OR_AT_RULE,
   );
@@ -355,7 +355,7 @@ pub(crate) fn validate_conditional_styles(
     Expr::Object(object) => {
       let nested_key_values = get_key_values_from_object(object);
 
-      let mut extended_conditions = conditions.clone();
+      let mut extended_conditions = conditions.to_vec();
       extended_conditions.push(inner_key);
 
       for nested_key_value in nested_key_values.iter() {
@@ -400,7 +400,7 @@ pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyVa
   assert!(
     variables
       .as_expr()
-      .and_then(|expr| Option::Some(expr.is_object()))
+      .map(|expr| expr.is_object())
       .unwrap_or(false),
     "Can only override variables theme created with stylex.defineVars()."
   );
@@ -408,11 +408,7 @@ pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyVa
   variables
     .as_expr()
     .and_then(|expr| expr.as_object())
-    .and_then(|object| {
-      let key_values = get_key_values_from_object(object);
-
-      Option::Some(key_values)
-    })
+    .map(get_key_values_from_object)
     .and_then(|key_values| {
       for key_value in key_values.into_iter() {
         let key = get_key_str(&key_value);

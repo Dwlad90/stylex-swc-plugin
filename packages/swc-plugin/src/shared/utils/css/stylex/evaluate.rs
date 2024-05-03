@@ -83,8 +83,8 @@ pub struct State {
   pub(crate) traversal_state: StateManager,
 }
 
-impl State {
-  pub(crate) fn default() -> Self {
+impl Default for State {
+  fn default() -> Self {
     State {
       confident: true,
       deopt_path: Option::None,
@@ -97,7 +97,9 @@ impl State {
       traversal_state: StateManager::default(),
     }
   }
+}
 
+impl State {
   pub(crate) fn new(traversal_state: &StateManager) -> Self {
     State {
       confident: true,

@@ -1,9 +1,4 @@
-use stylex_swc_plugin::{
-  shared::structures::{
-    plugin_pass::PluginPass,
-  },
-  ModuleTransformVisitor,
-};
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
   transforms::testing::test,
@@ -334,7 +329,7 @@ test!(
   "#
 );
 
-/**
+/*
  * Legacy transforms
  * TODO(#33): Remove once support for multi-sided values is removed from shortforms.
  */

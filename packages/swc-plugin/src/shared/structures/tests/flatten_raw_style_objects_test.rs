@@ -286,7 +286,7 @@ mod nested_objects {
   use crate::shared::{
     structures::{
       functions::FunctionMap,
-      tests::flatten_raw_style_objects::flatten_style_object_with_legacy_shorthand_expansion::{
+      tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
         get_state, null_rule_factory, pre_rule_factory, pre_rule_set_factory,
         pre_rule_with_pseudos_factory,
       },
@@ -628,7 +628,7 @@ mod multiple_levels_of_nesting {
   use crate::shared::{
     structures::{
       functions::FunctionMap,
-      tests::flatten_raw_style_objects::flatten_style_object_with_legacy_shorthand_expansion::{
+      tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
         get_state, pre_rule_factory, pre_rule_set_factory, pre_rule_vec_with_pseudos_factory,
         pre_rule_with_pseudos_factory,
       },

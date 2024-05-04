@@ -5,3 +5,4 @@ pub(crate) mod stylex_first_that_works;
 pub(crate) mod stylex_include;
 pub(crate) mod stylex_keyframes;
 pub(crate) mod stylex_types;
+pub(crate) mod tests;

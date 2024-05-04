@@ -1,1 +1,1 @@
-mod flatten_raw_style_objects;
+mod flatten_raw_style_objects_test;

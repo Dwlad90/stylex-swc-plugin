@@ -181,7 +181,7 @@ pub(crate) fn get_keyframes_fn() -> FunctionConfig {
           .injected_keyframes
           .insert(animation_name.clone(), injected_style);
 
-        let result = string_to_expression(animation_name);
+        let result = string_to_expression(animation_name.as_str());
 
         (result.unwrap(), local_state)
       },

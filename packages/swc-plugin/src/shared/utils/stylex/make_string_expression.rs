@@ -46,7 +46,7 @@ pub(crate) fn make_string_expression(
     if let Some(value) = transform(values) {
       return fn_result_to_expression(&value);
     } else {
-      return string_to_expression("".to_string());
+      return string_to_expression("");
     }
   }
 

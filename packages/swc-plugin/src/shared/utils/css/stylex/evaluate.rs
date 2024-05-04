@@ -172,8 +172,8 @@ pub(crate) fn evaluate_obj_key(
     }
   }
 
-  let key_expr =
-    string_to_expression(expr_to_str(&key, state, functions)).expect("Expected string value");
+  let key_expr = string_to_expression(expr_to_str(&key, state, functions).as_str())
+    .expect("Expected string value");
 
   EvaluateResult {
     confident: true,
@@ -572,7 +572,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {
             );
 
             return Some(EvaluateResultValue::Expr(
-              string_to_expression(value.clone()).unwrap(),
+              string_to_expression(value.as_str()).unwrap(),
             ));
           }
         }
@@ -1725,7 +1725,7 @@ pub(crate) fn evaluate_quasis(
     return Option::None;
   };
 
-  Option::Some(EvaluateResultValue::Expr(string_to_expression(str)?))
+  Option::Some(EvaluateResultValue::Expr(string_to_expression(str.as_str())?))
 }
 
 pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<EvaluateResultValue> {

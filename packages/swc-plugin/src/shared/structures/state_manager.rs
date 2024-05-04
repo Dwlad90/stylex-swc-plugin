@@ -218,14 +218,13 @@ impl StateManager {
       || !matches_file_suffix(theme_file_extension.as_str(), &filename)
       || self.options.unstable_module_resolution.is_none()
     {
-
       dbg!(
         &filename,
         &theme_file_extension.as_str(),
         &matches_file_suffix(theme_file_extension.as_str(), &filename),
         &self.options.unstable_module_resolution
       );
-      panic!();
+
       return Option::None;
     }
 
@@ -447,12 +446,12 @@ impl StateManager {
     dbg!(&css);
 
     let mut stylex_inject_args = vec![
-      expr_or_spread_string_expression_creator(css.clone()),
+      expr_or_spread_string_expression_creator(css.as_str()),
       expr_or_spread_number_expression_creator(round_f64(f64::from(**priority), 1)),
     ];
 
     if let Some(rtl) = css_rtl {
-      stylex_inject_args.push(expr_or_spread_string_expression_creator(rtl.clone()));
+      stylex_inject_args.push(expr_or_spread_string_expression_creator(rtl.as_str()));
     }
 
     let _inject = Expr::Ident(inject_var_ident.clone());

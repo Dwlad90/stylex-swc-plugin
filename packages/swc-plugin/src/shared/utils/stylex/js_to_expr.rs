@@ -58,7 +58,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
         let expr =
           convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(value.clone()));
 
-        let prop = prop_or_spread_expression_creator(key.clone(), expr);
+        let prop = prop_or_spread_expression_creator(key.as_str(), expr);
 
         props.push(prop);
       }
@@ -67,10 +67,10 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
       for (key, value) in obj.iter() {
         let prop = match value {
           FlatCompiledStylesValue::String(value) => {
-            prop_or_spread_string_creator(key.clone(), value.clone())
+            prop_or_spread_string_creator(key.as_str(), value.as_str())
           }
           FlatCompiledStylesValue::Null => prop_or_spread_expression_creator(
-            key.clone(),
+            key.as_str(),
             Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),
           ),
           FlatCompiledStylesValue::IncludedStyle(include_style) => {
@@ -80,7 +80,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
             })
           }
           FlatCompiledStylesValue::Bool(value) => prop_or_spread_expression_creator(
-            key.clone(),
+            key.as_str(),
             Expr::Lit(Lit::Bool(Bool {
               span: DUMMY_SP,
               value: *value,

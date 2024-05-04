@@ -8,30 +8,11 @@ use super::parse_nullable_style::ResolvedArg;
 pub(crate) fn stylex(values: &Vec<ResolvedArg>) -> Option<FnResult> {
   let result = styleq(values);
 
-  let class_name = result.class_name.to_string();
+  dbg!(&values, &result.class_name);
 
-  // let props: Vec<PropOrSpread> = vec![];
-
-  // panic!("Implement stylex");
-
-  // if let Some(value) =  {
-  // vec![];
-  // };
-  //  else {
-  //     vec![]
-// };
-
-  dbg!(&values, &class_name);
-
-  Some(FnResult::Stylex(string_to_expression(class_name).unwrap()))
-
-  // Some(FnResult::Stylex(
-  //     object_expression_factory(vec![prop_or_spread_expression_creator(
-  //         String::from("className"),
-  //         string_to_expression(class_name).unwrap(),
-  //     )])
-  //     .unwrap(),
-  // ))
+  Some(FnResult::Stylex(
+    string_to_expression(result.class_name.as_str()).unwrap(),
+  ))
 }
 
 pub(crate) fn gen_condition_permutations(count: usize) -> Vec<Vec<bool>> {

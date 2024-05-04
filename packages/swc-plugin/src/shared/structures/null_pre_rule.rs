@@ -3,12 +3,18 @@ use super::{
   state_manager::StateManager,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct NullPreRule {}
 
 impl NullPreRule {
   pub(crate) fn new() -> Self {
     NullPreRule {}
+  }
+}
+
+impl Default for NullPreRule {
+  fn default() -> Self {
+    NullPreRule::new()
   }
 }
 

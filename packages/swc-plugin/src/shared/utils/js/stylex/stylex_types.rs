@@ -47,7 +47,6 @@ impl ValueWithDefault {
     }
   }
 
-
   pub(crate) fn as_string(&self) -> Option<&String> {
     match self {
       ValueWithDefault::String(s) => Option::Some(s),
@@ -126,13 +125,16 @@ impl BaseCSSType {
   fn value_to_props(value: ValueWithDefault, key: Option<String>) -> Vec<PropOrSpread> {
     let value = match value {
       ValueWithDefault::Number(n) => {
-        let value_prop =
-          prop_or_spread_string_creator(key.unwrap_or(String::from("value")), n.to_string());
+        let value_prop = prop_or_spread_string_creator(
+          key.unwrap_or(String::from("value")).as_str(),
+          n.to_string().as_str(),
+        );
         let props = vec![value_prop];
         props
       }
       ValueWithDefault::String(s) => {
-        let value_prop = prop_or_spread_string_creator(key.unwrap_or(String::from("value")), s);
+        let value_prop =
+          prop_or_spread_string_creator(key.unwrap_or(String::from("value")).as_str(), s.as_str());
         let props = vec![value_prop];
 
         props
@@ -152,7 +154,7 @@ impl BaseCSSType {
           span: DUMMY_SP,
           props: local_props,
         });
-        let prop = prop_or_spread_expression_creator("value".to_string(), object_expr);
+        let prop = prop_or_spread_expression_creator("value", object_expr);
 
         vec![prop]
       }
@@ -656,7 +658,7 @@ impl From<Url> for BaseCSSType {
 impl From<BaseCSSType> for Expr {
   fn from(instance: BaseCSSType) -> Self {
     let syntax_prop =
-      prop_or_spread_string_creator(String::from("syntax"), format!("{}", instance.syntax));
+      prop_or_spread_string_creator("syntax", format!("{}", instance.syntax).as_str());
 
     let mut props = vec![syntax_prop];
 

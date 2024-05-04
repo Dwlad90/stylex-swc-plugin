@@ -18,11 +18,12 @@ fn split_value_inner(str: Option<String>) -> Vec<String> {
   match str {
     None => vec![String::from("None")],
     Some(s) => {
-      if s.parse::<i32>().is_ok() {
+      if s.parse::<i32>().is_ok() || !s.contains(' ') {
         vec![s]
       } else {
-        panic!()
-        // Handle non-numeric string case
+        s.split_whitespace()
+          .flat_map(|s| split_value_inner(Option::Some(s.to_string())))
+          .collect::<Vec<String>>()
       }
     }
   }

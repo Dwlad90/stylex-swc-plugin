@@ -11,21 +11,17 @@ use swc_core::{
 };
 
 use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
+use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
 use crate::shared::structures::named_import_source::ImportSources;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::{
-  evaluate_result::EvaluateResultValue, functions::FunctionConfigType,
-};
 use crate::shared::utils::common::{
-  get_key_str, get_key_values_from_object, prop_or_spread_expression_creator, string_to_expression,
+  get_key_str, get_key_values_from_object, prop_or_spread_expression_creator,
 };
 use crate::shared::utils::css::factories::object_expression_factory;
 use crate::shared::utils::css::stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
 use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
 use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
 use crate::shared::utils::js::stylex::stylex_include::stylex_include;
-use crate::shared::utils::js::stylex::stylex_keyframes::stylex_keyframes;
 use crate::shared::utils::stylex::dev_class_name::{
   convert_to_test_styles, inject_dev_class_names,
 };
@@ -222,7 +218,7 @@ where
                             props: inline_styles // replace with your inline_styles
                               .iter()
                               .map(|(key, value)| {
-                                prop_or_spread_expression_creator(key.clone(), value.clone())
+                                prop_or_spread_expression_creator(key.as_str(), value.clone())
                               })
                               .collect(),
                           })),
@@ -235,12 +231,12 @@ where
                     return_type: None,
                   });
 
-                  prop = Option::Some(prop_or_spread_expression_creator(orig_key.clone(), value));
+                  prop = Option::Some(prop_or_spread_expression_creator(orig_key.as_str(), value));
                 }
               }
 
               let prop = prop.unwrap_or(prop_or_spread_expression_creator(
-                orig_key,
+                orig_key.as_str(),
                 value.as_ref().clone(),
               ));
 

@@ -11,7 +11,7 @@ use swc_core::{
   common::{FileName, Span, DUMMY_SP},
   ecma::{
     ast::{
-      BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Ident, ImportDecl,
+      ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Ident, ImportDecl,
       ImportSpecifier, KeyValueProp, Lit, Module, ModuleDecl, ModuleExportName, ModuleItem, Number,
       ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt, Str, Tpl, UnaryExpr, UnaryOp,
       VarDeclarator,
@@ -32,7 +32,7 @@ use crate::shared::{
 
 use super::{
   css::stylex::evaluate::{evaluate_cached, State},
-  js::stylex::stylex_types::{BaseCSSType, CSSSyntax},
+  js::stylex::stylex_types::BaseCSSType,
 };
 
 struct SpanReplacer;
@@ -47,14 +47,21 @@ fn _replace_spans(expr: &mut Expr) -> Expr {
   expr.clone().fold_children_with(&mut SpanReplacer)
 }
 
-pub fn prop_or_spread_expression_creator(key: String, value: Expr) -> PropOrSpread {
+pub fn prop_or_spread_expression_creator(key: &str, value: Expr) -> PropOrSpread {
   PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
     key: string_to_prop_name(key).unwrap(),
     value: Box::new(value),
   })))
 }
 
-pub(crate) fn prop_or_spread_string_creator(key: String, value: String) -> PropOrSpread {
+pub fn key_value_creator(key: &str, value: Expr) -> KeyValueProp {
+  KeyValueProp {
+    key: PropName::Ident(Ident::new(key.into(), DUMMY_SP)),
+    value: Box::new(value),
+  }
+}
+
+pub(crate) fn prop_or_spread_string_creator(key: &str, value: &str) -> PropOrSpread {
   let value = string_to_expression(value);
 
   match value {
@@ -63,7 +70,28 @@ pub(crate) fn prop_or_spread_string_creator(key: String, value: String) -> PropO
   }
 }
 
-pub(crate) fn prop_or_spread_boolean_creator(key: String, value: Option<bool>) -> PropOrSpread {
+pub(crate) fn prop_or_spread_array_string_creator(key: &str, value: &[&str]) -> PropOrSpread {
+  let array = ArrayLit {
+    span: DUMMY_SP,
+    elems: value
+      .iter()
+      .map(|v| Option::Some(expr_or_spread_string_expression_creator(v)))
+      .collect::<Vec<Option<ExprOrSpread>>>(),
+  };
+
+  prop_or_spread_expression_creator(key, Expr::Array(array))
+}
+
+pub(crate) fn prop_or_spread_expr_creator(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
+  let object = ObjectLit {
+    span: DUMMY_SP,
+    props: values,
+  };
+
+  prop_or_spread_expression_creator(key, Expr::Object(object))
+}
+
+pub(crate) fn prop_or_spread_boolean_creator(key: &str, value: Option<bool>) -> PropOrSpread {
   match value {
     Some(value) => prop_or_spread_expression_creator(
       key,
@@ -77,18 +105,43 @@ pub(crate) fn prop_or_spread_boolean_creator(key: String, value: Option<bool>) -
 }
 
 // Converts a string to an expression.
-pub(crate) fn string_to_expression(value: String) -> Option<Expr> {
+pub(crate) fn string_to_expression(value: &str) -> Option<Expr> {
   Option::Some(Expr::Lit(Lit::Str(value.into())))
 }
 
+fn array_fabric(values: &[Expr], spread: Option<Span>) -> Option<ArrayLit> {
+  let array = ArrayLit {
+    span: DUMMY_SP,
+    elems: values
+      .iter()
+      .map(|value| {
+        Some(ExprOrSpread {
+          spread,
+          expr: Box::new(value.clone()),
+        })
+      })
+      .collect(),
+  };
+
+  Option::Some(array)
+}
+
+pub(crate) fn create_array(values: &[Expr]) -> Option<ArrayLit> {
+  array_fabric(values, Option::None)
+}
+
+pub(crate) fn create_spreaded_array(values: &[Expr]) -> Option<ArrayLit> {
+  array_fabric(values, Option::Some(DUMMY_SP))
+}
+
 // Converts a string to an expression.
-pub(crate) fn string_to_prop_name(value: String) -> Option<PropName> {
-  if IDENT_PROP_REGEX.is_match(value.as_str()) && value.parse::<i64>().is_err() {
-    Some(PropName::Ident(Ident::new(value.clone().into(), DUMMY_SP)))
+pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
+  if IDENT_PROP_REGEX.is_match(value) && value.parse::<i64>().is_err() {
+    Some(PropName::Ident(Ident::new(value.into(), DUMMY_SP)))
   } else {
     Some(PropName::Str(Str {
       span: DUMMY_SP,
-      value: value.clone().into(),
+      value: value.into(),
       raw: None,
     }))
   }
@@ -193,7 +246,7 @@ pub(crate) fn get_pat_as_string(pat: &Pat) -> String {
 //     }
 // }
 
-pub(crate) fn expr_or_spread_string_expression_creator(value: String) -> ExprOrSpread {
+pub(crate) fn expr_or_spread_string_expression_creator(value: &str) -> ExprOrSpread {
   let expr = Box::new(string_to_expression(value).expect(constants::messages::NON_STATIC_VALUE));
 
   ExprOrSpread {

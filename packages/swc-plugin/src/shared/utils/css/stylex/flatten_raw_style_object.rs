@@ -1,5 +1,3 @@
-use std::ops::{Deref, DerefMut};
-
 use indexmap::IndexMap;
 use regex::Regex;
 use swc_core::{
@@ -64,8 +62,8 @@ pub(crate) fn flatten_raw_style_object(
         let mut equivalent_pairs: IndexMap<String, Vec<String>> = IndexMap::new();
 
         property_array.elems.iter().for_each(|each_val| {
-          match each_val {
-            Option::Some(property) => match property.expr.as_ref() {
+          if let Option::Some(property) = each_val {
+            match property.expr.as_ref() {
               Expr::Lit(property_lit) => {
                 let pairs = flat_map_expanded_shorthands(
                   (
@@ -91,19 +89,9 @@ pub(crate) fn flatten_raw_style_object(
                     }
                   }
                 }
-
-                // let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-                //     css_property_key.clone(),
-                //     PreRuleValue::String(get_string_val_from_lit(property_lit)),
-                //     pseudos.clone(),
-                //     at_rules.clone(),
-                // ));
-
-                // flattened.insert(css_property_key.clone(), pre_rule);
               }
               _ => panic!("{}", constants::messages::ILLEGAL_PROP_ARRAY_VALUE),
-            },
-            _ => {}
+            }
           }
         });
 
@@ -120,31 +108,29 @@ pub(crate) fn flatten_raw_style_object(
           if values.is_empty() {
             flattened.insert(property.clone(), PreRules::NullPreRule(NullPreRule::new()));
           } else {
-            let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-              property.clone(),
-              PreRuleValue::Vec(values),
-              pseudos.clone(),
-              at_rules.clone(),
-            ));
+            let pre_rule_value = if let Some(first_value) = values.first() {
+              if values.len() == 1 {
+                PreRuleValue::String(first_value.clone())
+              } else {
+                PreRuleValue::Vec(values.clone())
+              }
+            } else {
+              PreRuleValue::Null // Default value when `values` is empty.
+            };
 
-            flattened.insert(css_property_key.clone(), pre_rule);
+            let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
+              property.as_str(),
+              pre_rule_value,
+              Some(pseudos.clone()),
+              Some(at_rules.clone()),
+            ));
+            flattened.insert(property.clone(), pre_rule);
           }
         }
       }
       Expr::Lit(property_lit) => {
-        if !css_property_key.starts_with(":") && !css_property_key.starts_with("@") {
+        if !css_property_key.starts_with(':') && !css_property_key.starts_with('@') {
           let value = get_string_val_from_lit(property_lit);
-
-          // let a = css_property_key.clone();
-          // let a = a.as_ref();
-
-          // let b = value.clone();
-
-          // let b = b.as_str();
-          // let b = Option::Some(b);
-
-          dbg!(&css_property_key, &value);
-          // panic!();
 
           let pairs = flat_map_expanded_shorthands(
             (
@@ -164,10 +150,10 @@ pub(crate) fn flatten_raw_style_object(
 
             if let Some(pair_value) = pre_rule {
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-                property.clone(),
+                property.as_str(),
                 PreRuleValue::String(pair_value.to_string()),
-                pseudos.clone(),
-                at_rules.clone(),
+                Option::Some(pseudos.clone()),
+                Option::Some(at_rules.clone()),
               ));
 
               flattened.insert(property, pre_rule);
@@ -182,10 +168,10 @@ pub(crate) fn flatten_raw_style_object(
         let result = expr_tpl_to_string(handled_tpl.as_tpl().unwrap(), state, functions);
 
         let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-          css_property_key.clone(),
+          css_property_key.as_str(),
           PreRuleValue::String(result),
-          pseudos.clone(),
-          at_rules.clone(),
+          Option::Some(pseudos.clone()),
+          Option::Some(at_rules.clone()),
         ));
 
         flattened.insert(css_property_key, pre_rule);
@@ -201,7 +187,7 @@ pub(crate) fn flatten_raw_style_object(
             k.value = Box::new(var_decl_expr);
 
             let inner_flattened =
-              flatten_raw_style_object(&vec![k], pseudos, at_rules, state, functions);
+              flatten_raw_style_object(&[k], pseudos, at_rules, state, functions);
 
             println!("!!before_updated_flattened: {:?}", flattened);
             // println!("!!updated_flattened: {:?}", updated_flattened);
@@ -219,14 +205,13 @@ pub(crate) fn flatten_raw_style_object(
         let mut k = property.clone();
         k.value = Box::new(number_to_expression(result as f64).unwrap());
 
-        let inner_flattened =
-          flatten_raw_style_object(&vec![k], pseudos, at_rules, state, functions);
+        let inner_flattened = flatten_raw_style_object(&[k], pseudos, at_rules, state, functions);
 
         flattened.extend(inner_flattened)
       }
       Expr::Call(_) => panic!("{}", constants::messages::NON_STATIC_VALUE),
       Expr::Object(obj) => {
-        if !key.starts_with(":") && !key.starts_with("@") {
+        if !key.starts_with(':') && !key.starts_with('@') {
           if obj.props.is_empty() {
             println!("!!obj.props.is_empty(): {:?}", flattened);
             return flattened;
@@ -247,10 +232,10 @@ pub(crate) fn flatten_raw_style_object(
                     let mut pseudos_to_pass_down = pseudos.clone();
                     let mut at_rules_to_pass_down = at_rules.clone();
 
-                    if condition.starts_with(":") {
+                    if condition.starts_with(':') {
                       dbg!("{:?}", &pseudos_to_pass_down);
                       pseudos_to_pass_down.push(condition.clone());
-                    } else if condition.starts_with("@") {
+                    } else if condition.starts_with('@') {
                       at_rules_to_pass_down.push(condition.clone());
                     }
 
@@ -266,7 +251,7 @@ pub(crate) fn flatten_raw_style_object(
                     );
 
                     let pairs = flatten_raw_style_object(
-                      &vec![inner_key_value],
+                      &[inner_key_value],
                       &mut pseudos_to_pass_down,
                       &mut at_rules_to_pass_down,
                       state,
@@ -316,9 +301,9 @@ pub(crate) fn flatten_raw_style_object(
           let mut pseudos_to_pass_down = pseudos.clone();
           let mut at_rules_to_pass_down = at_rules.clone();
 
-          if key.starts_with(":") {
+          if key.starts_with(':') {
             pseudos_to_pass_down.push(key.clone());
-          } else if key.starts_with("@") {
+          } else if key.starts_with('@') {
             at_rules_to_pass_down.push(key.clone());
           }
 
@@ -336,6 +321,7 @@ pub(crate) fn flatten_raw_style_object(
             flattened.insert(format!("{}_{}", key, property), pre_rule);
           }
         }
+
       }
       _ => {
         dbg!(value);

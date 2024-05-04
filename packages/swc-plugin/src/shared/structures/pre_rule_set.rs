@@ -5,7 +5,7 @@ use super::{
   pre_rule::{PreRule, PreRuleValue, PreRules},
   state_manager::StateManager,
 };
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PreRuleSet {
   rules: Vec<PreRules>,
 }
@@ -25,7 +25,7 @@ impl PreRuleSet {
 
     match flat_rules.len() {
       0 => PreRules::NullPreRule(NullPreRule::new()),
-      1 => flat_rules.get(0).unwrap().clone(),
+      1 => flat_rules.first().unwrap().clone(),
       _ => PreRules::PreRuleSet(PreRuleSet { rules: flat_rules }),
     }
   }

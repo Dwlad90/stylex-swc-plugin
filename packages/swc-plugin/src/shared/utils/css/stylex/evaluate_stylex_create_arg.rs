@@ -310,7 +310,7 @@ fn evaluate_partial_object_recursively(
                 }
 
                 let new_prop = prop_or_spread_expression_creator(
-                  key,
+                  key.as_str(),
                   result
                     .value
                     .and_then(|value| value.as_expr().cloned())
@@ -338,8 +338,8 @@ fn evaluate_partial_object_recursively(
                   dbg!(&var_name);
 
                   let new_prop = prop_or_spread_expression_creator(
-                    key.clone(),
-                    string_to_expression(format!("var({}, revert)", var_name)).unwrap(),
+                    key.as_str(),
+                    string_to_expression(format!("var({}, revert)", var_name).as_str()).unwrap(),
                   );
 
                   obj.push(new_prop);
@@ -438,7 +438,7 @@ fn evaluate_partial_object_recursively(
                   inline_styles.insert(var_name, result_expression);
                 } else {
                   let new_prop = prop_or_spread_expression_creator(
-                    key,
+                    key.as_str(),
                     result
                       .value
                       .expect("Value not found")

@@ -23,3 +23,4 @@ pub mod stylex_options;
 pub(crate) mod stylex_state_options;
 pub(crate) mod theme_ref;
 pub(crate) mod uid_generator;
+pub(crate) mod tests;

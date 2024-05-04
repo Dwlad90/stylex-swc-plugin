@@ -10,7 +10,7 @@ use super::{
   state_manager::StateManager,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PreIncludedStylesRule {
   pub(crate) included_styles: Expr,
 }

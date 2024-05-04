@@ -122,7 +122,7 @@ impl Fold for ArgsModuleTransformVisitor {
           for (key, value) in map.iter() {
             dbg!(&key, &value);
             let prop = prop_or_spread_expression_creator(
-              expr_to_str(key, &mut self.state, &FunctionMap::default()),
+              expr_to_str(key, &mut self.state, &FunctionMap::default()).as_str(),
               object_expression_factory(
                 value
                   .iter()

@@ -23,7 +23,7 @@ pub(crate) enum Styles {
   // Add more types as needed
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PreRuleValue {
   Expr(Expr),
   String(String),
@@ -63,7 +63,7 @@ pub(crate) trait PreRule: Debug {
   fn equals(&self, other: &dyn PreRule) -> bool;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PreRules {
   PreIncludedStylesRule(PreIncludedStylesRule),
   PreRuleSet(PreRuleSet),
@@ -71,7 +71,7 @@ pub(crate) enum PreRules {
   NullPreRule(NullPreRule),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct StylesPreRule {
   property: String,
   value: PreRuleValue,
@@ -81,24 +81,28 @@ pub(crate) struct StylesPreRule {
 
 impl StylesPreRule {
   pub(crate) fn new(
-    property: String,
+    property: &str,
     value: PreRuleValue,
-    pseudos: Vec<String>,
-    at_rules: Vec<String>,
+    pseudos: Option<Vec<String>>,
+    at_rules: Option<Vec<String>>,
   ) -> Self {
-    dbg!(&property, &value, &pseudos, &at_rules);
+    let pseudos = pseudos.unwrap_or_default();
+    let at_rules = at_rules.unwrap_or_default();
+    let property = property.to_string();
+
+    // dbg!(&property, &value, &pseudos, &at_rules);
 
     StylesPreRule {
       property: property.clone(),
       value,
-      pseudos: if property.as_str().starts_with(":") {
+      pseudos: if property.as_str().starts_with(':') {
         let mut extended_pseudos = vec![property.clone()];
         extended_pseudos.extend(pseudos);
         extended_pseudos
       } else {
         pseudos
       },
-      at_rules: if property.as_str().starts_with("@") {
+      at_rules: if property.as_str().starts_with('@') {
         let mut extender_at_rules = vec![property];
         extender_at_rules.extend(at_rules);
         extender_at_rules
@@ -107,13 +111,13 @@ impl StylesPreRule {
       },
     }
   }
-  pub(crate) fn get_property(&self) -> Option<String> {
+  pub(crate) fn _get_property(&self) -> Option<String> {
     Option::Some(self.property.clone())
   }
-  pub(crate) fn get_pseudos(&self) -> Option<Vec<String>> {
+  pub(crate) fn _get_pseudos(&self) -> Option<Vec<String>> {
     Option::Some(self.pseudos.clone())
   }
-  pub(crate) fn get_at_rules(&self) -> Option<Vec<String>> {
+  pub(crate) fn _get_at_rules(&self) -> Option<Vec<String>> {
     Option::Some(self.at_rules.clone())
   }
 }

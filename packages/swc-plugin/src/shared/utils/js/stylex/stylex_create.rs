@@ -42,24 +42,17 @@ pub(crate) fn stylex_create_set(
 
     dbg!(&flattened_namespace);
 
-    let prefix = state.options.class_name_prefix.as_str();
-
     let compiled_namespace_tuples = flattened_namespace
       .iter()
       .map(|(key, value)| match value {
-        PreRules::PreRuleSet(rule_set) => {
-          (key.to_string(), rule_set.clone().compiled(prefix, state))
+        PreRules::PreRuleSet(rule_set) => (key.to_string(), rule_set.clone().compiled(state)),
+        PreRules::StylesPreRule(styles_pre_rule) => {
+          (key.to_string(), styles_pre_rule.clone().compiled(state))
         }
-        PreRules::StylesPreRule(styles_pre_rule) => (
-          key.to_string(),
-          styles_pre_rule.clone().compiled(prefix, state),
-        ),
-        PreRules::NullPreRule(rule_set) => {
-          (key.to_string(), rule_set.clone().compiled(prefix, state))
-        }
+        PreRules::NullPreRule(rule_set) => (key.to_string(), rule_set.clone().compiled(state)),
         PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => (
           key.to_string(),
-          pre_included_tyles_rule.clone().compiled(prefix, state),
+          pre_included_tyles_rule.clone().compiled(state),
         ),
       })
       .collect::<Vec<(String, CompiledResult)>>();

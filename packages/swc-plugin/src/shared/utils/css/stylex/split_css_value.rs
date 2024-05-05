@@ -1,30 +1,25 @@
-pub(crate) fn split_value(str: Option<String>) -> (String, String, String, String) {
-  let split_values = split_value_inner(str); // Assuming split_value returns a Vec<String>
+use super::parse_css::parse_css;
 
-  match &split_values[..] {
-    [top] => (top.clone(), top.clone(), top.clone(), top.clone()),
-    [top, right] => (top.clone(), right.clone(), top.clone(), right.clone()),
-    [top, right, bottom] => (top.clone(), right.clone(), bottom.clone(), right.clone()),
-    _ => (
-      split_values[0].clone(),
-      split_values[1].clone(),
-      split_values[2].clone(),
-      split_values[3].clone(),
-    ),
-  }
+pub(crate) fn split_value_required(str: Option<&str>) -> (String, String, String, String) {
+  let values = split_value(str);
+
+  let top = values.0;
+  let right = values.1.unwrap_or(top.clone());
+  let bottom = values.2.unwrap_or(top.clone());
+  let left = values.3.unwrap_or(right.clone());
+
+  (top, right, bottom, left)
 }
 
-fn split_value_inner(str: Option<String>) -> Vec<String> {
-  match str {
-    None => vec![String::from("None")],
-    Some(s) => {
-      if s.parse::<i32>().is_ok() || !s.contains(' ') {
-        vec![s]
-      } else {
-        s.split_whitespace()
-          .flat_map(|s| split_value_inner(Option::Some(s.to_string())))
-          .collect::<Vec<String>>()
-      }
-    }
-  }
+pub(crate) fn split_value(
+  str: Option<&str>,
+) -> (String, Option<String>, Option<String>, Option<String>) {
+  let nodes = parse_css(str.unwrap_or(""));
+
+  let top = nodes.first().cloned().unwrap_or("".to_string());
+  let right = nodes.get(1).cloned();
+  let bottom = nodes.get(2).cloned();
+  let left = nodes.get(3).cloned();
+
+  (top, right, bottom, left)
 }

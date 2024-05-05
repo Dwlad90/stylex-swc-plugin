@@ -31,10 +31,10 @@ pub(crate) enum PreRuleValue {
   Null,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ComputedStyle(pub(crate) String, pub(crate) InjectableStyle);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum CompiledResult {
   Null,
   IncludedStyle(IncludedStyle),
@@ -59,7 +59,7 @@ impl CompiledResult {
 
 pub(crate) trait PreRule: Debug {
   fn get_value(&self) -> Option<PreRuleValue>;
-  fn compiled(&mut self, prefix: &str, state: &StateManager) -> CompiledResult;
+  fn compiled(&mut self, state: &StateManager) -> CompiledResult;
   fn equals(&self, other: &dyn PreRule) -> bool;
 }
 
@@ -127,12 +127,12 @@ impl PreRule for StylesPreRule {
     Option::Some(self.value.clone())
   }
 
-  fn compiled(&mut self, prefix: &str, state: &StateManager) -> CompiledResult {
+  fn compiled(&mut self, state: &StateManager) -> CompiledResult {
     let (_, class_name, rule) = convert_style_to_class_name(
       (self.property.as_str(), &self.value),
       &mut self.pseudos,
       &mut self.at_rules,
-      prefix,
+      &state.options.class_name_prefix,
       state,
     );
 

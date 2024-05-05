@@ -5,12 +5,16 @@ use crate::shared::regex::{
 };
 
 pub(crate) fn whitespace_normalizer(result: String) -> String {
-  let css_string: &str = CSS_RULE_REGEX
-    .captures(result.as_str())
-    .unwrap()
-    .get(1)
-    .unwrap()
-    .as_str();
+  let css_string: &str = if result.contains('{') {
+    CSS_RULE_REGEX
+      .captures(result.as_str())
+      .unwrap()
+      .get(1)
+      .unwrap()
+      .as_str()
+  } else {
+    result.as_str()
+  };
 
   let normalized_css_string =
     WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX.replace_all(css_string, " $1 $2");

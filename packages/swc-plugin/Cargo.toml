@@ -65,6 +65,7 @@ once_cell = { version = "1.19.0" }
 colored = { version = "2.1.0" }
 node-resolve = { version = "2.2.0" }
 resolve-path = { version = "0.1.0" }
+cssparser = {version =  "0.34.0"}
 
 [dev-dependencies]
 swc_core = { version = "0.91.2", features = [

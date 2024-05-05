@@ -13,7 +13,7 @@ pub(crate) static WHITESPACE_NORMALIZER_SPACES_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(\))\s+(\))").unwrap());
 
 pub(crate) static WHITESPACE_NORMALIZER_SPACES_EMPTY_STRING_REGEX: Lazy<Regex> =
-Lazy::new(|| Regex::new(r#"^(\")\s(\")$"#).unwrap());
+  Lazy::new(|| Regex::new(r#"^(\")\s(\")$"#).unwrap());
 
 pub(crate) static DASHIFY_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(^|[a-z])([A-Z])").unwrap());

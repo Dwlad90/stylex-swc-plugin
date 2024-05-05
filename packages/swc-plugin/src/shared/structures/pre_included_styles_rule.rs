@@ -25,7 +25,7 @@ impl PreRule for PreIncludedStylesRule {
   fn get_value(&self) -> Option<PreRuleValue> {
     Option::Some(PreRuleValue::Expr(self.included_styles.clone()))
   }
-  fn compiled(&mut self, _prefix: &str, _: &StateManager) -> CompiledResult {
+  fn compiled(&mut self, _: &StateManager) -> CompiledResult {
     CompiledResult::IncludedStyle(IncludedStyle::new(self.included_styles.clone()))
   }
   fn equals(&self, other: &dyn PreRule) -> bool {

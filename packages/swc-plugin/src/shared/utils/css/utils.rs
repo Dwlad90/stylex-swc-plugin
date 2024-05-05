@@ -493,8 +493,8 @@ pub(crate) fn get_value_from_ident(ident: &Ident) -> String {
   ident.value.to_string()
 }
 
+pub fn stringify(node: &Stylesheet) -> String {
 /// Stringifies the [`Stylesheet`]
-pub fn stringify(node: &swc_core::css::ast::Stylesheet) -> String {
   dbg!(&node);
 
   let mut buf = String::new();

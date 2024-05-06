@@ -65,6 +65,16 @@ mod ensure_css_values_are_split_correctly {
         Option::None
       )
     );
+
+    assert_eq!(
+      split_value(Option::Some("rgb(255 200 / 0.5)")),
+      (
+        "rgb(255 200/0.5)".into(),
+        Option::None,
+        Option::None,
+        Option::None
+      )
+    );
   }
 
   #[test]

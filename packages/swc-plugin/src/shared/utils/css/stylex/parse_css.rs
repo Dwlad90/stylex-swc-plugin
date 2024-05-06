@@ -97,7 +97,7 @@ pub fn parse_css_inner<'a>(
           closure = "}";
         }
 
-        let block_css: String = parser
+        let block_css: Vec<String> = parser
           .parse_nested_block(|parser| {
             parse_css_inner(
               // cache,
@@ -111,9 +111,9 @@ pub fn parse_css_inner<'a>(
               // func_name,
             )
           })
-          .unwrap()
-          .join(" ");
-        iter_result.push_str(block_css.as_str());
+          .unwrap();
+
+        iter_result.push_str(join_css(&block_css).as_str());
 
         iter_result.push_str(closure);
       }
@@ -350,7 +350,7 @@ pub fn parse_css_inner<'a>(
         iter_result.push_str(function_name);
         iter_result.push('(');
 
-        let block_css: String = parser
+        let block_css: Vec<String> = parser
           .parse_nested_block(|parser| {
             parse_css_inner(
               // cache,
@@ -364,9 +364,9 @@ pub fn parse_css_inner<'a>(
               // function_name,
             )
           })
-          .unwrap()
-          .join(" ");
-        iter_result.push_str(block_css.as_str());
+          .unwrap();
+
+        iter_result.push_str(join_css(&block_css).as_str());
 
         iter_result.push(')');
       }
@@ -425,7 +425,7 @@ pub fn parse_css(
         .into_iter()
         .filter_map(|s| {
           if !s.is_empty() && s != "," {
-            Option::Some(s.replace(" , ", ","))
+            Option::Some(s)
           } else {
             Option::None
           }
@@ -436,4 +436,23 @@ pub fn parse_css(
     }
     Err(_) => todo!(),
   }
+}
+
+fn join_css(nodes: &[String]) -> String {
+  let mut result = String::new();
+  let mut needs_space = false;
+
+  for node in nodes.iter() {
+    if node == "/" || node == "," {
+      needs_space = false;
+    } else {
+      if needs_space {
+        result.push(' ');
+      }
+      needs_space = true;
+    }
+    result.push_str(node);
+  }
+
+  result
 }

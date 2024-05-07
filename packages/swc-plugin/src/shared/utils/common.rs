@@ -54,6 +54,15 @@ pub fn prop_or_spread_expression_creator(key: &str, value: Expr) -> PropOrSpread
   })))
 }
 
+pub(crate) fn prop_or_spread_expr_creator(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
+  let object = ObjectLit {
+    span: DUMMY_SP,
+    props: values,
+  };
+
+  prop_or_spread_expression_creator(key, Expr::Object(object))
+}
+
 pub fn key_value_creator(key: &str, value: Expr) -> KeyValueProp {
   KeyValueProp {
     key: PropName::Ident(Ident::new(key.into(), DUMMY_SP)),
@@ -80,15 +89,6 @@ pub(crate) fn prop_or_spread_array_string_creator(key: &str, value: &[&str]) -> 
   };
 
   prop_or_spread_expression_creator(key, Expr::Array(array))
-}
-
-pub(crate) fn prop_or_spread_expr_creator(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
-  let object = ObjectLit {
-    span: DUMMY_SP,
-    props: values,
-  };
-
-  prop_or_spread_expression_creator(key, Expr::Object(object))
 }
 
 pub(crate) fn prop_or_spread_boolean_creator(key: &str, value: Option<bool>) -> PropOrSpread {

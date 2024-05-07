@@ -61,6 +61,8 @@ pub(crate) fn stylex_create_theme(
       .find(|key_value| {
         let local_key = get_key_str(key_value);
 
+        dbg!(&local_key, &key);
+
         local_key == key
       })
       .expect("Theme variable not found");

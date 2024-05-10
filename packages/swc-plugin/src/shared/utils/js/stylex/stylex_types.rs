@@ -1,10 +1,13 @@
 use crate::shared::{
   constants::common::CSS_TYPE_KEY,
   structures::functions::{FunctionConfig, FunctionType},
-  utils::common::{
-    get_key_str, get_key_values_from_object, get_string_val_from_lit,
-    prop_or_spread_expression_creator, prop_or_spread_string_creator,
-    transform_shorthand_to_key_values,
+  utils::{
+    common::{
+      get_key_str, get_key_values_from_object, get_string_val_from_lit,
+      prop_or_spread_expression_creator, prop_or_spread_string_creator,
+      transform_shorthand_to_key_values,
+    },
+    css::factories::object_expression_factory,
   },
 };
 use indexmap::IndexMap;
@@ -122,19 +125,21 @@ pub(crate) struct BaseCSSType {
 }
 
 impl BaseCSSType {
-  fn value_to_props(value: ValueWithDefault, key: Option<String>) -> Vec<PropOrSpread> {
+  fn value_to_props(value: ValueWithDefault, top_key: Option<String>) -> Vec<PropOrSpread> {
     let value = match value {
       ValueWithDefault::Number(n) => {
         let value_prop = prop_or_spread_string_creator(
-          key.unwrap_or(String::from("value")).as_str(),
+          top_key.unwrap_or(String::from("value")).as_str(),
           n.to_string().as_str(),
         );
         let props = vec![value_prop];
         props
       }
       ValueWithDefault::String(s) => {
-        let value_prop =
-          prop_or_spread_string_creator(key.unwrap_or(String::from("value")).as_str(), s.as_str());
+        let value_prop = prop_or_spread_string_creator(
+          top_key.unwrap_or(String::from("value")).as_str(),
+          s.as_str(),
+        );
         let props = vec![value_prop];
 
         props
@@ -146,6 +151,7 @@ impl BaseCSSType {
 
         for (key, val) in map {
           let props_to_extend = BaseCSSType::value_to_props(val, Some(key.clone()));
+          dbg!(&key, &props_to_extend);
 
           local_props.extend(props_to_extend);
         }
@@ -154,7 +160,10 @@ impl BaseCSSType {
           span: DUMMY_SP,
           props: local_props,
         });
-        let prop = prop_or_spread_expression_creator("value", object_expr);
+        let prop = prop_or_spread_expression_creator(
+          top_key.unwrap_or("value".to_string()).as_str(),
+          object_expr,
+        );
 
         vec![prop]
       }
@@ -165,7 +174,7 @@ impl BaseCSSType {
     //   "true".to_string(),
     // ));
 
-    dbg!(&value);
+    // dbg!(&value);
 
     value
   }
@@ -173,6 +182,8 @@ impl BaseCSSType {
 
 impl From<ObjectLit> for BaseCSSType {
   fn from(obj: ObjectLit) -> BaseCSSType {
+    dbg!(&obj);
+
     let key_values = get_key_values_from_object(&obj);
     let mut syntax: Option<CSSSyntax> = Option::None;
 
@@ -180,6 +191,7 @@ impl From<ObjectLit> for BaseCSSType {
 
     for key_value in key_values {
       let key = get_key_str(&key_value);
+      dbg!(&key);
 
       match key.as_str() {
         "syntax" => {
@@ -190,28 +202,74 @@ impl From<ObjectLit> for BaseCSSType {
             .map(|str| str.into())
         }
         "value" => {
-          let obj_value = key_value
-            .value
-            .as_object()
-            .expect("Value must be an object");
+          let obj_value = match key_value.value.as_ref() {
+            Expr::Object(obj) => obj.clone(),
+            Expr::Lit(obj) => {
+              let value = get_string_val_from_lit(obj).expect("Value must be a string");
 
-          for key_value in get_key_values_from_object(obj_value) {
+              let prop = prop_or_spread_string_creator("default", value.as_str());
+
+            ObjectLit {
+                span: DUMMY_SP,
+                props: vec![prop],
+              }
+            }
+            _ => panic!("Value must be an object or string"),
+          };
+
+          // key_value
+          //   .value
+          //   .as_object()
+          //   .expect("Value must be an object");
+
+          for key_value in get_key_values_from_object(&obj_value) {
+            dbg!(&key_value);
             let key = get_key_str(&key_value);
 
-            let value = key_value
-              .value
-              .as_lit()
-              .and_then(get_string_val_from_lit)
-              .expect("Value must be a string");
+            match key_value.value.as_ref() {
+              Expr::Object(obj) => {
+                dbg!(&key, &obj);
 
-            values.insert(key, ValueWithDefault::String(value));
+                let mut obj_map = IndexMap::new();
+
+                let key_values = get_key_values_from_object(obj);
+
+                for key_value in key_values {
+                  let key = get_key_str(&key_value);
+
+                  match key_value.value.as_ref() {
+                    Expr::Lit(lit) => {
+                      let value = get_string_val_from_lit(lit).expect("Value must be a string");
+
+                      obj_map.insert(key, ValueWithDefault::String(value));
+                    }
+                    _ => panic!("Value must be a string"),
+                  }
+                }
+
+                let value = ValueWithDefault::Map(obj_map);
+
+                values.insert(key, value);
+              }
+              Expr::Lit(lit) => {
+                let value = get_string_val_from_lit(lit).expect("Value must be a string");
+
+                values.insert(key, ValueWithDefault::String(value));
+              }
+              _ => panic!("Value must be a string or object"),
+            }
           }
         }
-        _ => panic!(r#"Key "{}" not support by BaseCSSType"#, key),
+        _ => {
+          dbg!(&obj);
+          panic!(r#"Key "{}" not support by BaseCSSType"#, key)
+        }
       }
     }
 
     assert!(!values.is_empty(), "Invalid value in stylex.defineVars");
+
+    dbg!(&values);
 
     assert!(
       values.contains_key("default"),
@@ -659,11 +717,12 @@ impl From<BaseCSSType> for Expr {
   fn from(instance: BaseCSSType) -> Self {
     let syntax_prop =
       prop_or_spread_string_creator("syntax", format!("{}", instance.syntax).as_str());
+    dbg!(&syntax_prop);
 
     let mut props = vec![syntax_prop];
 
     props.extend(BaseCSSType::value_to_props(instance.value, Option::None));
-    dbg!(&props);
+    // dbg!(&props);
 
     // panic!();
 
@@ -681,6 +740,7 @@ fn angle(value: ValueWithDefault) -> Expr {
 
 fn color(value: ValueWithDefault) -> Expr {
   let base_css_type: BaseCSSType = Color::new(value).into();
+  dbg!(&base_css_type);
 
   base_css_type.into()
 }

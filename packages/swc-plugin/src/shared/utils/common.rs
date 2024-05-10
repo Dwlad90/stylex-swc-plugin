@@ -1048,6 +1048,8 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
         match prop.deref() {
           Prop::KeyValue(key_value) => {
+            dbg!(&key_value);
+
             if let Some(ident) = key_value.key.as_ident() {
               if ident.sym == "syntax" {
                 let value = obj.props.iter().find(|prop| {
@@ -1071,6 +1073,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                   false
                 });
                 dbg!(&value);
+
 
                 if let Some(value) = value {
                   dbg!(&key_value);

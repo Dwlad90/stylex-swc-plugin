@@ -187,6 +187,8 @@ mod stylex_create_theme {
       &[("fgColor", "coral")],
     );
 
+    dbg!(&created_theme);
+
     let created_theme_2 = style_object_factory(
       &[
         ("cornerRadius", &[("default", "6px")], &[]),

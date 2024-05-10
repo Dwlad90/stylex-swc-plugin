@@ -71,6 +71,9 @@ pub(crate) fn stylex_define_vars(
     },
   );
 
+  dbg!(&variables_map);
+
+
   let theme_variables_objects =
     obj_map(ObjMapType::Map(variables_map.clone()), |item| match item {
       FlatCompiledStylesValue::String(_) => panic!("String is not supported"),

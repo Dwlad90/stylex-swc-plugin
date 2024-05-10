@@ -7,7 +7,10 @@ use crate::shared::{
   constants::common::SPLIT_TOKEN,
   enums::FlatCompiledStylesValue,
   structures::injectable_style::InjectableStyle,
-  utils::common::{create_hash, get_key_str, get_key_values_from_object, get_string_val_from_lit},
+  utils::{
+    common::{create_hash, get_key_str, get_key_values_from_object, get_string_val_from_lit},
+    js::stylex::stylex_types::ValueWithDefault,
+  },
 };
 
 pub(crate) fn construct_css_variables_string(
@@ -62,13 +65,13 @@ pub(crate) fn collect_vars_by_at_rules(
     panic!("Props must be an key value pair")
   };
 
+  dbg!(&hash_name, &value, css_type);
+
   if let Some(css_type) = css_type {
     let values = css_type.value.as_map().expect("Value must be an map");
+    dbg!(&values);
 
-    let initial_value = values
-      .get("default")
-      .and_then(|value| value.as_string())
-      .expect("Default value is not defined");
+    let initial_value = get_nitial_value_of_css_type(values);
 
     typed_variables.insert(
       hash_name.clone(),
@@ -139,6 +142,18 @@ pub(crate) fn collect_vars_by_at_rules(
     }
     _ => {}
   }
+}
+
+fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> String {
+  let initial_value = values
+    .get("default")
+    .map(|value| match value {
+      ValueWithDefault::Number(num) => num.clone().to_string(),
+      ValueWithDefault::String(str) => str.clone(),
+      ValueWithDefault::Map(map) => get_nitial_value_of_css_type(map),
+    })
+    .expect("Default value is not defined");
+  initial_value
 }
 
 pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {

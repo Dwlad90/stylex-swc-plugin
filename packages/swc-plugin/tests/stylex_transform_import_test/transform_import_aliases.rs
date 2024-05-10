@@ -1,7 +1,7 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
-  transforms::testing::test,
+  transforms::testing::{test, test_transform},
 };
 
 test!(
@@ -31,7 +31,7 @@ test!(
 #[test]
 #[should_panic(expected = "Must be default import")]
 fn throw_when_named_import() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

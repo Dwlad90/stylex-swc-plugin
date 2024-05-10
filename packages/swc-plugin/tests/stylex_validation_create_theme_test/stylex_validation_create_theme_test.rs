@@ -8,13 +8,13 @@ use stylex_swc_plugin::{
 };
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
-  transforms::testing::test,
+  transforms::testing::{test, test_transform},
 };
 
 #[test]
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
 fn must_be_bound_to_a_variable() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -38,7 +38,7 @@ fn must_be_bound_to_a_variable() {
 #[test]
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn it_must_have_two_arguments_no_args() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -62,7 +62,7 @@ fn it_must_have_two_arguments_no_args() {
 #[test]
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn it_must_have_two_arguments_one_args() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -86,7 +86,7 @@ fn it_must_have_two_arguments_one_args() {
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn it_must_have_two_arguments_fn_args() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -110,7 +110,7 @@ fn it_must_have_two_arguments_fn_args() {
 #[test]
 #[should_panic(expected = "Can only override variables theme created with stylex.defineVars().")]
 fn it_must_have_two_arguments_empty_object_args() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -153,7 +153,7 @@ test!(
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn variable_keys_must_be_a_static_value() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -218,7 +218,7 @@ test!(
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -245,7 +245,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

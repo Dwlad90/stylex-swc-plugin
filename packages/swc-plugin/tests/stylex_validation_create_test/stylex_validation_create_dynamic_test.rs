@@ -1,7 +1,7 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
-  transforms::testing::test,
+  transforms::testing::{test, test_transform},
 };
 
 #[test]
@@ -9,7 +9,7 @@ use swc_core::ecma::{
   expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed."
 )]
 fn dynamic_style_function_only_accepts_named_parameters_default_value() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -39,7 +39,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
   expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed."
 )]
 fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -69,7 +69,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
   expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed."
 )]
 fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -99,7 +99,7 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
   expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed."
 )]
 fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

@@ -9,14 +9,14 @@ use stylex_swc_plugin::{
 };
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
-  transforms::testing::test,
+  transforms::testing::{test, test_transform},
 };
 
 #[test]
 // TODO: This needs a different message. It mentions stylex.create right now.
 #[should_panic(expected = "stylex.keyframes() can only accept an object.")]
 fn only_argument_must_be_an_object_of_objects_null() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -40,7 +40,7 @@ fn only_argument_must_be_an_object_of_objects_null() {
 #[test]
 #[should_panic(expected = "Every frame within a stylex.keyframes() call must be an object.")]
 fn only_argument_must_be_an_object_of_objects_non_keyframe() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

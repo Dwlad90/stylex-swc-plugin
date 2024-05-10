@@ -6,13 +6,13 @@ use stylex_swc_plugin::{
 };
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
-  transforms::testing::test,
+  transforms::testing::{test, test_transform},
 };
 
 #[test]
 #[should_panic(expected = "Rule contains an unclosed function")]
 fn disallow_unclosed_style_value_functions() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -44,7 +44,7 @@ fn disallow_unclosed_style_value_functions() {
 #[test]
 #[should_panic(expected = "Unprefixed custom properties")]
 fn disallow_unprefixed_custom_properties() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

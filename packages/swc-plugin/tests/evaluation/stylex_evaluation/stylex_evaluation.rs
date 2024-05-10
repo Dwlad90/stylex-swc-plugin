@@ -13,7 +13,7 @@ use swc_core::{
       PropOrSpread, Str,
     },
     parser::{Syntax, TsConfig},
-    transforms::testing::test,
+    transforms::testing::{test, test_transform},
   },
 };
 
@@ -21,7 +21,7 @@ use crate::evaluation::evaluation_module_transform::EvaluationModuleTransformVis
 
 #[test]
 fn evaluates_primitive_value_expressions() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -75,7 +75,7 @@ fn evaluates_primitive_value_expressions() {
 
 #[test]
 fn evaluates_simple_arrays_and_objects() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -101,7 +101,7 @@ fn evaluates_simple_arrays_and_objects() {
 
 #[test]
 fn evaluates_objects_with_spreads() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -124,7 +124,7 @@ fn evaluates_objects_with_spreads() {
 #[test]
 #[should_panic(expected = "Evaluation built-in functions not supported")]
 fn evaluates_built_in_functions() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -141,7 +141,7 @@ fn evaluates_built_in_functions() {
 
 #[test]
 fn evaluates_customs_functions() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -204,7 +204,7 @@ fn evaluates_customs_functions() {
 
 #[test]
 fn evaluates_custom_functions_that_return_non_static_values() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -255,7 +255,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
 
 #[test]
 fn evaluates_custom_functions_used_as_spread_values() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -304,7 +304,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
 
 #[test]
 fn evaluates_custom_functions_that_take_paths() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

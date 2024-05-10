@@ -3,6 +3,7 @@ mod stylex_metadata_test;
 mod stylex_transform_call_test;
 mod stylex_transform_create_test;
 mod stylex_transform_define_vars_test;
+mod stylex_transform_import_test;
 mod stylex_transform_legacy_shorthands;
 mod stylex_transform_logical_properties_test;
 mod stylex_transform_logical_values_test;

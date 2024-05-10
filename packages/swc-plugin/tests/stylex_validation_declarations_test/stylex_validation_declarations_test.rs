@@ -48,7 +48,7 @@ fn validation_stylex_invalid_properties() {
 #[test]
 #[ignore]
 fn stylex_invalid_property_values() {
-  // TODO: Not fully implemented
+  // TODO: Not fully implemented - originally skipped
   let camel_cased = format!(
     r#"
       import stylex from 'stylex';

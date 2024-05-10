@@ -1,10 +1,10 @@
-use swc_core::ecma::parser::{Syntax, TsConfig};
+use swc_core::ecma::{parser::{Syntax, TsConfig}, transforms::testing::test_transform};
 
 use crate::evaluation::evaluation_module_transform::EvaluationModuleTransformVisitor;
 
 #[test]
 fn function_with_a_single_params() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -22,7 +22,7 @@ fn function_with_a_single_params() {
 
 #[test]
 fn function_with_a_two_params() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -40,7 +40,7 @@ fn function_with_a_two_params() {
 
 #[test]
 fn array_map() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -58,7 +58,7 @@ fn array_map() {
 
 #[test]
 fn array_filter() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -76,7 +76,7 @@ fn array_filter() {
 
 #[test]
 fn array_map_and_filter() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -98,7 +98,7 @@ fn array_map_and_filter() {
 
 #[test]
 fn array_methods() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -120,7 +120,7 @@ fn array_methods() {
 
 #[test]
 fn object_methods() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()
@@ -148,7 +148,7 @@ fn object_methods() {
 
 #[test]
 fn object_entries() {
-  swc_core::ecma::transforms::testing::test_transform(
+  test_transform(
     Syntax::Typescript(TsConfig {
       tsx: true,
       ..Default::default()

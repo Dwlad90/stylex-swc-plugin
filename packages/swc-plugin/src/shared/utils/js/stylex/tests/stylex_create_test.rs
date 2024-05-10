@@ -91,9 +91,11 @@ mod stylex_create {
     object
   }
 
+  type InjectedStylesArg<'a> = [(&'a str, &'a [(&'a str, (&'a str, f32))])];
+
   fn exprected_result_factory(
     resolved_namespaces: &[(&str, &[(&str, &str)])],
-    injected_styles: &[(&str, &[(&str, (&str, f32))])],
+    injected_styles: &InjectedStylesArg,
   ) -> (
     IndexMap<String, FlatCompiledStyles>,
     IndexMap<String, InjectableStyle>,
@@ -576,9 +578,18 @@ mod stylex_create {
         &[
           (
             "x1ssfqz5",
-            ("@media (min-width: 2000px){.x1ssfqz5.x1ssfqz5{background-color:purple}}", 3200.0),
+            (
+              "@media (min-width: 2000px){.x1ssfqz5.x1ssfqz5{background-color:purple}}",
+              3200.0,
+            ),
           ),
-          ("xc445zv", ("@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}", 3200.0)),
+          (
+            "xc445zv",
+            (
+              "@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}",
+              3200.0,
+            ),
+          ),
           ("xrkmrrc", (".xrkmrrc{background-color:red}", 3000.0)),
         ],
       )],

@@ -10,6 +10,7 @@ mod stylex_define_vars {
     structures::{
       evaluate_result::EvaluateResultValue, functions::FunctionType,
       injectable_style::InjectableStyle, state_manager::StateManager,
+      stylex_state_options::StyleXStateOptions,
     },
     utils::{
       common::{
@@ -24,8 +25,14 @@ mod stylex_define_vars {
     },
   };
 
+  type DefaultVarsFactoryArgs<'a> = [(
+    &'a str,
+    &'a [(&'a str, &'a str)],
+    &'a [(&'a str, &'a [(&'a str, &'a str)])],
+    &'a [Expr],
+  )];
   fn default_vars_factory(
-    args: &[(&str, &[(&str, &str)], &[(&str, &[(&str, &str)])], &[Expr])],
+    args: &DefaultVarsFactoryArgs,
     str_args: &[(&str, &str)],
   ) -> EvaluateResultValue {
     let mut props = args
@@ -476,9 +483,14 @@ mod stylex_define_vars {
 
     dbg!(&default_vars);
 
+    let state = StateManager::default();
     let mut state = StateManager {
       theme_name: Option::Some(theme_name.to_string()),
-      ..StateManager::default()
+      options: StyleXStateOptions {
+        class_name_prefix: class_name_prefix.to_string(),
+        ..state.options
+      },
+      ..state
     };
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);

@@ -46,8 +46,14 @@ mod stylex_create_theme {
     expected_injected_styles
   }
 
+  type StyleObjectFactoryArgs<'a> = [(
+    &'a str,
+    &'a [(&'a str, &'a str)],
+    &'a [(&'a str, &'a [(&'a str, &'a str)])],
+  )];
+
   fn style_object_factory(
-    args: &[(&str, &[(&str, &str)], &[(&str, &[(&str, &str)])])],
+    args: &StyleObjectFactoryArgs,
     str_args: &[(&str, &str)],
   ) -> EvaluateResultValue {
     let mut props = args

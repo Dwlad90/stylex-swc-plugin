@@ -26,7 +26,7 @@ pub struct StyleXStateOptions {
 }
 
 impl StyleXStateOptions {
-  pub(crate) fn _new() -> Self {
+  pub(crate) fn new() -> Self {
     StyleXStateOptions {
       style_resolution: StyleResolution::ApplicationOrder,
       use_rem_for_font_size: false,

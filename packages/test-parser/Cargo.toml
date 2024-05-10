@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 walkdir = { version = "2.5.0" }
-serde = "1.0.199"
-swc_core = { version = "0.91.2", features = [
+serde = "1.0.201"
+swc_core = { version = "0.92.2", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -35,4 +35,4 @@ swc_core = { version = "0.91.2", features = [
 
 clap = {version = "4.5.4", features = ["derive"]}
 
-serde_json = "1.0.116"
+serde_json = "1.0.117"

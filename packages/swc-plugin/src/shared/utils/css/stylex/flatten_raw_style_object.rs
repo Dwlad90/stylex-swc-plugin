@@ -146,7 +146,7 @@ pub(crate) fn flatten_raw_style_object(
           for OrderPair(property, pre_rule) in pairs.iter() {
             let property = property.to_string();
 
-            dbg!("{:#?}", &pseudos);
+            // dbg!("{:#?}", &pseudos);
 
             if let Some(pair_value) = pre_rule {
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
@@ -189,7 +189,7 @@ pub(crate) fn flatten_raw_style_object(
             let inner_flattened =
               flatten_raw_style_object(&[k], pseudos, at_rules, state, functions);
 
-            println!("!!before_updated_flattened: {:?}", flattened);
+            // println!("!!before_updated_flattened: {:?}", flattened);
             // println!("!!updated_flattened: {:?}", updated_flattened);
 
             flattened.extend(inner_flattened);
@@ -213,7 +213,7 @@ pub(crate) fn flatten_raw_style_object(
       Expr::Object(obj) => {
         if !key.starts_with(':') && !key.starts_with('@') {
           if obj.props.is_empty() {
-            println!("!!obj.props.is_empty(): {:?}", flattened);
+            // println!("!!obj.props.is_empty(): {:?}", flattened);
             return flattened;
           }
           let mut equivalent_pairs: IndexMap<String, IndexMap<String, PreRules>> = IndexMap::new();
@@ -233,7 +233,7 @@ pub(crate) fn flatten_raw_style_object(
                     let mut at_rules_to_pass_down = at_rules.clone();
 
                     if condition.starts_with(':') {
-                      dbg!("{:?}", &pseudos_to_pass_down);
+                      // dbg!("{:?}", &pseudos_to_pass_down);
                       pseudos_to_pass_down.push(condition.clone());
                     } else if condition.starts_with('@') {
                       at_rules_to_pass_down.push(condition.clone());
@@ -245,10 +245,10 @@ pub(crate) fn flatten_raw_style_object(
                       raw: Option::None,
                     });
 
-                    println!(
-                      "!!condition: {:#?}, inner_key, {:#?}",
-                      condition, inner_key_value.key
-                    );
+                    // println!(
+                    //   "!!condition: {:#?}, inner_key, {:#?}",
+                    //   condition, inner_key_value.key
+                    // );
 
                     let pairs = flatten_raw_style_object(
                       &[inner_key_value],
@@ -258,7 +258,7 @@ pub(crate) fn flatten_raw_style_object(
                       functions,
                     );
 
-                    println!("!!pairs: {:#?}", pairs);
+                    // println!("!!pairs: {:#?}", pairs);
                     // equivalent_pairs.extend(pairs);
                     // for (key, value) in pairs {
                     //     equivalent_pairs.insert(key, value);
@@ -310,7 +310,7 @@ pub(crate) fn flatten_raw_style_object(
           let inner_key_value = get_key_values_from_object(obj);
 
           let pairs = flatten_raw_style_object(
-            &inner_key_value,
+            &inner_key_value.into_iter().collect::<Vec<KeyValueProp>>(),
             &mut pseudos_to_pass_down,
             &mut at_rules_to_pass_down,
             state,
@@ -321,10 +321,9 @@ pub(crate) fn flatten_raw_style_object(
             flattened.insert(format!("{}_{}", key, property), pre_rule);
           }
         }
-
       }
       _ => {
-        dbg!(value);
+        // dbg!(value);
         panic!("{}", constants::messages::ILLEGAL_PROP_VALUE)
       }
     };

@@ -16,15 +16,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(false));
-
-    ModuleTransformVisitor::new_test_styles(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
-    )
+    ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), Option::None)
   },
   stylex_metadata_is_correctly_set,
   r#"

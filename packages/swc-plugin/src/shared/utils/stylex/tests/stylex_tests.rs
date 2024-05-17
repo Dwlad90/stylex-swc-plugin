@@ -2,12 +2,12 @@
 mod tests {
 
   use indexmap::IndexMap;
-  use swc_core::{common::DUMMY_SP, ecma::ast::Ident};
+  use swc_core::{common::DUMMY_SP, ecma::ast::{Ident, MemberExpr, MemberProp}};
 
   use crate::shared::{
     enums::FlatCompiledStylesValue,
     utils::{
-      common::get_string_val_from_lit,
+      common::{get_string_val_from_lit, string_to_expression},
       stylex::{
         parse_nullable_style::{ResolvedArg, StyleObject},
         stylex::stylex,
@@ -22,12 +22,17 @@ mod tests {
       let mut object = IndexMap::new();
 
       for (key, value) in arg.iter() {
-        object.insert(key.to_string(), value.clone());
+        object.insert(key.to_string(),Box::new(value.clone()));
       }
 
       result_args.push(ResolvedArg::StyleObject(
         StyleObject::Style(object),
         Ident::new("test".into(), DUMMY_SP),
+        MemberExpr {
+          span: DUMMY_SP,
+          obj: Box::new(string_to_expression("test").unwrap()),
+          prop: MemberProp::Ident(Ident::new("test".into(), DUMMY_SP)),
+        },
       ))
     }
 

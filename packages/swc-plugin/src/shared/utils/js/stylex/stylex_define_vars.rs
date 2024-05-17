@@ -18,10 +18,10 @@ pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (
-  IndexMap<String, FlatCompiledStylesValue>,
-  IndexMap<String, InjectableStyle>,
+  IndexMap<String, Box<FlatCompiledStylesValue>>,
+  IndexMap<String, Box<InjectableStyle>>,
 ) {
-  dbg!(&variables);
+  // dbg!(&variables);
 
   let theme_name_hash = format!(
     "{}{}",
@@ -29,9 +29,9 @@ pub(crate) fn stylex_define_vars(
     create_hash(state.theme_name.clone().unwrap().as_str())
   );
 
-  dbg!(&theme_name_hash, state.theme_name.clone().unwrap().as_str());
+  // dbg!(&theme_name_hash, state.theme_name.clone().unwrap().as_str());
 
-  let mut typed_variables: IndexMap<String, FlatCompiledStylesValue> = IndexMap::new();
+  let mut typed_variables: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
 
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
     panic!("Values must be an object")
@@ -39,14 +39,14 @@ pub(crate) fn stylex_define_vars(
 
   let variables_map = obj_map(
     ObjMapType::Object(variables.clone()),
-    |item| -> FlatCompiledStylesValue {
-      match item {
+    |item| -> Box<FlatCompiledStylesValue> {
+      let reuslt = match item.as_ref() {
         FlatCompiledStylesValue::String(_) => panic!("String is not supported"),
         FlatCompiledStylesValue::InjectableStyle(_) => {
           panic!("InjectableStyle is not supported")
         }
         FlatCompiledStylesValue::Tuple(key, value, _) => {
-          dbg!(&value);
+          // dbg!(&value);
 
           // Created hashed variable names with fileName//themeName//key
           let name_hash = format!(
@@ -67,41 +67,43 @@ pub(crate) fn stylex_define_vars(
         FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
         FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
         FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
-      }
+      };
+
+      Box::new(reuslt)
     },
   );
 
-  dbg!(&variables_map);
+  // dbg!(&variables_map);
 
+  let theme_variables_objects = obj_map(ObjMapType::Map(variables_map.clone()), |item| match item
+    .as_ref()
+  {
+    FlatCompiledStylesValue::String(_) => panic!("String is not supported"),
+    FlatCompiledStylesValue::InjectableStyle(_) => {
+      panic!("InjectableStyle is not supported")
+    }
+    FlatCompiledStylesValue::Tuple(key, _, _) => {
+      Box::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
+    }
+    FlatCompiledStylesValue::Null => todo!("Null"),
+    FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
+    FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
+    FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
+    FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
+  });
 
-  let theme_variables_objects =
-    obj_map(ObjMapType::Map(variables_map.clone()), |item| match item {
-      FlatCompiledStylesValue::String(_) => panic!("String is not supported"),
-      FlatCompiledStylesValue::InjectableStyle(_) => {
-        panic!("InjectableStyle is not supported")
-      }
-      FlatCompiledStylesValue::Tuple(key, _, _) => {
-        FlatCompiledStylesValue::String(format!("var(--{})", key))
-      }
-      FlatCompiledStylesValue::Null => todo!("Null"),
-      FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
-      FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
-      FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
-      FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
-    });
-
-  dbg!(&variables_map, &theme_variables_objects,);
+  // dbg!(&variables_map, &theme_variables_objects,);
 
   let injectable_styles =
     construct_css_variables_string(&variables_map, &theme_name_hash, &mut typed_variables);
 
-  dbg!(&injectable_styles);
-  dbg!(&typed_variables);
+  // dbg!(&injectable_styles);
+  // dbg!(&typed_variables);
 
   let injectable_types = obj_map(
     ObjMapType::Map(typed_variables),
-    |item| -> FlatCompiledStylesValue {
-      match item {
+    |item| -> Box<FlatCompiledStylesValue> {
+      let result = match item.as_ref() {
         FlatCompiledStylesValue::String(_) => panic!("String is not supported"),
         FlatCompiledStylesValue::Null => todo!("Null"),
         FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
@@ -121,15 +123,17 @@ pub(crate) fn stylex_define_vars(
         }
         FlatCompiledStylesValue::InjectableStyle(_) => todo!("InjectableStyle"),
         FlatCompiledStylesValue::Tuple(_, _, _) => todo!("Tuple"),
-      }
+      };
+
+      Box::new(result)
     },
   );
 
-  let mut injectable_types: IndexMap<String, InjectableStyle> = injectable_types
+  let mut injectable_types: IndexMap<String, Box<InjectableStyle>> = injectable_types
     .iter()
     .filter_map(|(key, value)| {
       if let Some(inj_style) = value.as_injectable_style() {
-        return Some((key.clone(), inj_style.clone()));
+        return Some((key.clone(), Box::new(inj_style.clone())));
       }
 
       Option::None
@@ -140,7 +144,7 @@ pub(crate) fn stylex_define_vars(
 
   theme_variables_objects.insert(
     "__themeName__".to_string(),
-    FlatCompiledStylesValue::String(theme_name_hash),
+    Box::new(FlatCompiledStylesValue::String(theme_name_hash)),
   );
 
   injectable_types.extend(injectable_styles);

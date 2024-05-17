@@ -6,11 +6,9 @@ use stylex_swc_plugin::{
   },
   ModuleTransformVisitor,
 };
-use swc_core::{
-  ecma::{
-    parser::{Syntax, TsConfig},
-    transforms::testing::test,
-  },
+use swc_core::ecma::{
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
 };
 
 use crate::utils::transform::stringify_js;
@@ -22,7 +20,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_style_object,
@@ -44,7 +42,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_style_object_with_import_wildcard,
@@ -66,7 +64,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_style_object_with_named_imports,
@@ -88,7 +86,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_style_object_with_custom_property,
@@ -109,7 +107,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_style_object_with_custom_property_as_value,
@@ -130,7 +128,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_multiple_namespaces,
@@ -154,7 +152,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   does_not_transform_attr_fn_value,
@@ -193,7 +191,7 @@ fn handles_camel_cased_transition_properties() {
       }),
       |tr| ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None
       )
     ),
@@ -205,7 +203,7 @@ fn handles_camel_cased_transition_properties() {
       }),
       |tr| ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None
       )
     )
@@ -219,7 +217,7 @@ fn handles_camel_cased_transition_properties() {
     }),
     |tr| ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None
     )
   ));
@@ -241,7 +239,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   leaves_transition_properties_of_custom_properties_alone,
@@ -262,7 +260,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_nested_pseudo_class_to_css,
@@ -286,7 +284,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_nested_pseudo_class_within_properties_to_css,
@@ -312,7 +310,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_array_values_as_fallbacks,
@@ -333,7 +331,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_array_values_as_fallbacks_within_media_query,
@@ -358,7 +356,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_properties_requiring_vendor_prefixes,
@@ -379,7 +377,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_valid_shorthands,
@@ -402,7 +400,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   uses_stylex_include_correctly_with_member_expressions,
@@ -423,7 +421,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   using_stylex_include_keeps_the_compiled_object,
@@ -455,7 +453,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   uses_stylex_first_that_works_correctly,
@@ -476,7 +474,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transforms_complex_property_values_containing_custom_properties_variables,
@@ -497,7 +495,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   auto_expands_shorthands,
@@ -542,7 +540,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   last_property_wins_even_if_shorthand,
@@ -571,15 +569,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(false));
-
-    ModuleTransformVisitor::new_test_styles(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
-    )
+    ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), Option::None)
   },
   adds_null_for_constituent_properties_of_shorthands,
   r#"
@@ -628,14 +618,12 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(false));
-
     config.style_resolution = Option::Some(StyleResolution::PropertySpecificity);
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   can_leave_shorthands_as_is_when_configured,

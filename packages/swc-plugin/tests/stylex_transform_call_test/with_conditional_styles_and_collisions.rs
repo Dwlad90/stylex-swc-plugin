@@ -14,8 +14,8 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -42,7 +42,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   stylex_call_with_conditions_skip_conditional,
@@ -67,7 +67,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   stylex_call_with_property_collisions,
@@ -93,7 +93,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   stylex_call_with_short_form_property_collisions,
@@ -121,7 +121,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   stylex_call_with_short_form_property_collisions_with_null,
@@ -149,8 +149,8 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -177,7 +177,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   stylex_call_with_conditions_and_collisions_skip_conditional,
@@ -202,8 +202,8 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -230,7 +230,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   stylex_call_with_conditions_and_null_collisions_skip_conditional,

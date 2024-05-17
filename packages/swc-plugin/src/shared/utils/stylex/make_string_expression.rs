@@ -37,10 +37,10 @@ pub(crate) fn make_string_expression(
     .clone()
     .into_iter()
     .filter_map(|value| match value {
-      ResolvedArg::ConditionalStyle(expr, _, _, _) => Option::Some(expr),
+      ResolvedArg::ConditionalStyle(expr, _, _, _, _) => Option::Some(*expr),
       _ => Option::None,
     })
-    .collect::<Vec<Box<Expr>>>();
+    .collect::<Vec<Expr>>();
 
   if conditions.is_empty() {
     if let Some(value) = transform(values) {
@@ -57,17 +57,17 @@ pub(crate) fn make_string_expression(
     .filter_map(|permutation| {
       let mut i = 0;
 
-      dbg!(&values);
+      // dbg!(&values);
 
       let args = values
         .into_iter()
         .filter_map(|v| match v {
-          ResolvedArg::StyleObject(_, _) => {
-            dbg!(&v);
+          ResolvedArg::StyleObject(_, _, _) => {
+            // dbg!(&v);
             Some(v.clone())
           }
-          ResolvedArg::ConditionalStyle(_test, primary, fallback, ident) => {
-            dbg!(&ident);
+          ResolvedArg::ConditionalStyle(_test, primary, fallback, ident, member) => {
+            // dbg!(&ident);
             let result = if permutation.get(i).unwrap_or(&false) == &true {
               primary
             } else {
@@ -76,11 +76,11 @@ pub(crate) fn make_string_expression(
 
             i += 1;
 
-            dbg!(&result);
+            // dbg!(&result);
 
             result
               .as_ref()
-              .map(|result| ResolvedArg::StyleObject(result.clone(), ident.clone()))
+              .map(|result| ResolvedArg::StyleObject(result.clone(), ident.clone(), member.clone()))
           }
         })
         .collect::<Vec<ResolvedArg>>();
@@ -115,20 +115,20 @@ pub(crate) fn make_string_expression(
   }));
 }
 
-fn gen_bitwise_or_of_conditions(conditions: Vec<Box<Expr>>) -> Box<Expr> {
+fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
   let binary_expressions = conditions
     .iter()
     .enumerate()
     .map(|(i, condition)| {
       let shift = conditions.len() - i - 1;
-      let shift_expr = Box::new(Expr::Bin(BinExpr {
+      let shift_expr = Expr::Bin(BinExpr {
         left: Box::new(Expr::Unary(UnaryExpr {
           span: DUMMY_SP,
           op: UnaryOp::Bang,
           arg: Box::new(Expr::Unary(UnaryExpr {
             span: DUMMY_SP,
             op: UnaryOp::Bang,
-            arg: condition.clone(),
+            arg: Box::new(condition.clone()),
           })),
         })),
         op: BinaryOp::LShift,
@@ -138,20 +138,22 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Box<Expr>>) -> Box<Expr> {
           raw: None,
         }))),
         span: DUMMY_SP,
-      }));
+      });
       shift_expr
     })
-    .collect::<Vec<Box<Expr>>>();
+    .collect::<Vec<Expr>>();
 
-  binary_expressions
-    .into_iter()
-    .reduce(|acc, expr| {
-      Box::new(Expr::Bin(BinExpr {
-        span: DUMMY_SP,
-        op: BinaryOp::BitOr,
-        left: acc,
-        right: expr,
-      }))
-    })
-    .unwrap()
+  Box::new(
+    binary_expressions
+      .into_iter()
+      .reduce(|acc, expr| {
+        Expr::Bin(BinExpr {
+          span: DUMMY_SP,
+          op: BinaryOp::BitOr,
+          left: Box::new(acc),
+          right: Box::new(expr),
+        })
+      })
+      .unwrap(),
+  )
 }

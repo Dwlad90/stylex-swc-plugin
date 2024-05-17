@@ -44,7 +44,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
   // let weak_map_retrieved = next_cache.get(&style).unwrap().2.clone();
 
   // Keep track of property commits to the className
-  dbg!(&arguments);
+  // dbg!(&arguments);
 
   let mut class_name = "".to_string();
 
@@ -73,8 +73,8 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
   while styles.len() > 0 {
     let possible_style = match styles.pop() {
       Some(possible_style) => match possible_style {
-        ResolvedArg::StyleObject(_, _) => possible_style,
-        ResolvedArg::ConditionalStyle(_, value, _, _) => {
+        ResolvedArg::StyleObject(_, _, _) => possible_style,
+        ResolvedArg::ConditionalStyle(_, value, _, _, _) => {
           if value.is_some() {
             possible_style
           } else {
@@ -85,14 +85,18 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
       None => continue,
     };
 
-    dbg!(&possible_style, &styles);
+    // dbg!(&possible_style, &styles);
 
     // let style = possible_style.clone();
 
     match possible_style {
-      ResolvedArg::StyleObject(style, _) => match style {
+      ResolvedArg::StyleObject(style, _, _) => match style {
         StyleObject::Style(style) => {
-          if let Some(FlatCompiledStylesValue::Bool(_)) = style.get(COMPILED_KEY) {
+          let Some(a) = style.get(COMPILED_KEY) else {
+            panic!("Style object does not contain a compiled key")
+          };
+
+          if let FlatCompiledStylesValue::Bool(_) = a.as_ref() {
             let btree_map: BTreeMap<_, _> = style.clone().into_iter().collect();
 
             let style_hash = get_hash(btree_map);
@@ -115,12 +119,12 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
               let mut defined_properties_chunk: Vec<String> = vec![];
 
               for (prop, value) in style.iter() {
-                dbg!(&prop, &value);
+                // dbg!(&prop, &value);
                 if prop.eq(COMPILED_KEY) {
                   continue;
                 }
 
-                match value {
+                match value.as_ref() {
                   FlatCompiledStylesValue::IncludedStyle(_) => {
                     eprintln!(
                       "styleq: {} typeof {} is not \"string\" or \"null\".",
@@ -144,7 +148,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
                     defined_properties_chunk.push(prop.clone())
                   }
 
-                  if let FlatCompiledStylesValue::String(value) = value {
+                  if let FlatCompiledStylesValue::String(value) = *value.clone() {
                     class_name_chunk = if class_name_chunk.is_empty() {
                       value.to_string()
                     } else {
@@ -171,7 +175,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
                 class_name
               };
 
-              dbg!(&class_name);
+              // dbg!(&class_name);
             }
           } else {
             todo!("DYNAMIC: Process inline style object")
@@ -180,10 +184,10 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
         StyleObject::Nullable => panic!("Nullable style object is not allowed in styleq"),
         StyleObject::Other => panic!("Other style object is not allowed in styleq"),
       },
-      ResolvedArg::ConditionalStyle(_, _, _, _) => todo!("ConditionalStyle"),
+      ResolvedArg::ConditionalStyle(_, _, _, _, _) => todo!("ConditionalStyle"),
     };
   }
-  dbg!(&class_name);
+  // dbg!(&class_name);
   StyleQResult {
     class_name,
     inline_style,

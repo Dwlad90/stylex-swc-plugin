@@ -44,11 +44,13 @@ pub(crate) fn stylex_keyframes(
       .pipe(|frame| expand_frame_shorthands(&frame, &mut state.clone()))
       .pipe(|entries| obj_map_keys(&entries, dashify))
       .pipe(|entries| {
-        obj_map(ObjMapType::Map(entries), |entry| match entry {
-          FlatCompiledStylesValue::KeyValue(pair) => FlatCompiledStylesValue::KeyValue(Pair {
-            key: pair.key.clone(),
-            value: transform_value(pair.key.as_str(), pair.value.as_str(), state),
-          }),
+        obj_map(ObjMapType::Map(entries), |entry| match entry.as_ref() {
+          FlatCompiledStylesValue::KeyValue(pair) => {
+            Box::new(FlatCompiledStylesValue::KeyValue(Pair {
+              key: pair.key.clone(),
+              value: transform_value(pair.key.as_str(), pair.value.as_str(), state),
+            }))
+          }
           _ => panic!("Entry must be a tuple of key and value"),
         })
       })
@@ -56,13 +58,16 @@ pub(crate) fn stylex_keyframes(
 
     let (_, result) = a.into_iter().next().unwrap_or((
       "".to_string(),
-      FlatCompiledStylesValue::KeyValue(Pair::new("".to_string(), "".to_string())),
+      Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
+        "".to_string(),
+        "".to_string(),
+      ))),
     ));
 
     result
   });
 
-  dbg!(&extended_object);
+  // dbg!(&extended_object);
 
   let ltr_styles = obj_map(ObjMapType::Map(extended_object.clone()), |frame| {
     let Some(pair) = frame.as_key_value() else {
@@ -71,7 +76,7 @@ pub(crate) fn stylex_keyframes(
 
     let ltr_value = generate_ltr(pair.clone());
 
-    FlatCompiledStylesValue::KeyValue(ltr_value)
+    Box::new(FlatCompiledStylesValue::KeyValue(ltr_value))
   });
 
   let rtl_styles = obj_map(ObjMapType::Map(extended_object.clone()), |frame| {
@@ -81,15 +86,17 @@ pub(crate) fn stylex_keyframes(
 
     let rtl_value = generate_rtl(pair.clone());
 
-    FlatCompiledStylesValue::KeyValue(rtl_value.unwrap_or(pair.clone()))
+    Box::new(FlatCompiledStylesValue::KeyValue(
+      rtl_value.unwrap_or(pair.clone()),
+    ))
   });
 
-  dbg!(&ltr_styles, &rtl_styles);
+  // dbg!(&ltr_styles, &rtl_styles);
 
   let ltr_string = construct_keyframes_obj(&ltr_styles);
   let rtl_string = construct_keyframes_obj(&rtl_styles);
 
-  dbg!(&ltr_string, &rtl_string);
+  // dbg!(&ltr_string, &rtl_string);
   let animation_name = format!(
     "{}{}-B",
     class_name_prefix,
@@ -113,12 +120,12 @@ pub(crate) fn stylex_keyframes(
   )
 }
 
-fn construct_keyframes_obj(frames: &IndexMap<String, FlatCompiledStylesValue>) -> String {
+fn construct_keyframes_obj(frames: &IndexMap<String, Box<FlatCompiledStylesValue>>) -> String {
   frames
     .into_iter()
     .map(|(key, value)| {
       let key = format!("{}", key);
-      let value = match value {
+      let value = match value.as_ref() {
         FlatCompiledStylesValue::KeyValue(pair) => {
           let key = pair.key.clone();
           let value = pair.value.clone();
@@ -173,13 +180,13 @@ pub(crate) fn get_keyframes_fn() -> FunctionConfig {
     fn_ptr: FunctionType::StylexExprFn(
       |expr: Expr, local_state: StateManager| -> (Expr, StateManager) {
         let (animation_name, injected_style) =
-          stylex_keyframes(&EvaluateResultValue::Expr(expr), &local_state);
+          stylex_keyframes(&EvaluateResultValue::Expr(Box::new(expr)), &local_state);
 
         let mut local_state = local_state.clone();
 
         local_state
           .injected_keyframes
-          .insert(animation_name.clone(), injected_style);
+          .insert(animation_name.clone(), Box::new(injected_style));
 
         let result = string_to_expression(animation_name.as_str());
 

@@ -75,37 +75,40 @@ impl Fold for EvaluationModuleTransformVisitor {
   }
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
-    println!("!!!!!expr: {:?}", expr);
-    let evaluate_result = evaluate(&expr, &mut self.state, &self.functions);
-    println!("!!!!!evaluate_result: {:?}", evaluate_result);
+    let evaluate_result = evaluate(&Box::new(expr), &mut self.state, &self.functions);
+    // println!("!!!!!evaluate_result: {:?}", evaluate_result);
 
     match evaluate_result.value {
-      Some(value) => match value {
-        EvaluateResultValue::Expr(expr) => expr.clone(), //.fold_children_with(self),
+      Some(value) => match value.as_ref() {
+        EvaluateResultValue::Expr(expr) => *expr.clone(), //.fold_children_with(self),
         EvaluateResultValue::Vec(vec) => Expr::Array(ArrayLit {
           span: DUMMY_SP,
           elems: vec
             .iter()
             .map(|value| match value {
               Some(value) => value.as_expr().map(|expr| ExprOrSpread {
-                  spread: None,
-                  expr: Box::new(expr.clone()),
-                }),
+                spread: None,
+                expr: Box::new(expr.clone()),
+              }),
               None => None,
             })
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(vec![
-          Option::Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
-            span: DUMMY_SP,
-            value: 2.0,
-            raw: Option::None,
-          })))),
-          Option::Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
-            span: DUMMY_SP,
-            value: 7.0,
-            raw: Option::None,
-          })))),
+          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
+            Number {
+              span: DUMMY_SP,
+              value: 2.0,
+              raw: Option::None,
+            },
+          ))))),
+          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
+            Number {
+              span: DUMMY_SP,
+              value: 7.0,
+              raw: Option::None,
+            },
+          ))))),
         ]),
         _ => panic!("Failed to evaluate expression"),
       },

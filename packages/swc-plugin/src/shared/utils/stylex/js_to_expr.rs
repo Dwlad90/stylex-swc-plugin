@@ -14,14 +14,17 @@ use crate::shared::{
 };
 
 pub(crate) fn remove_objects_with_spreads(
-  obj: &IndexMap<String, FlatCompiledStyles>,
-) -> IndexMap<String, FlatCompiledStyles> {
+  obj: &IndexMap<String, Box<FlatCompiledStyles>>,
+) -> IndexMap<String, Box<FlatCompiledStyles>> {
   let mut obj = obj.clone();
 
   obj.retain(|_key, value| {
-    value
-      .values()
-      .all(|keep_value| !matches!(keep_value, FlatCompiledStylesValue::IncludedStyle(_)))
+    value.values().all(|keep_value| {
+      !matches!(
+        *keep_value.clone(),
+        FlatCompiledStylesValue::IncludedStyle(_)
+      )
+    })
   });
 
   obj
@@ -29,19 +32,19 @@ pub(crate) fn remove_objects_with_spreads(
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum NestedStringObject {
-  FlatCompiledStyles(IndexMap<String, FlatCompiledStyles>),
-  FlatCompiledStylesValues(IndexMap<String, FlatCompiledStylesValue>),
+  FlatCompiledStyles(IndexMap<String, Box<FlatCompiledStyles>>),
+  FlatCompiledStylesValues(IndexMap<String, Box<FlatCompiledStylesValue>>),
 }
 
 impl NestedStringObject {
-  pub(crate) fn _as_styles(&self) -> Option<&IndexMap<String, FlatCompiledStyles>> {
+  pub(crate) fn _as_styles(&self) -> Option<&IndexMap<String, Box<FlatCompiledStyles>>> {
     match self {
       NestedStringObject::FlatCompiledStyles(obj) => Some(obj),
       _ => None,
     }
   }
 
-  pub(crate) fn as_values(&self) -> Option<&IndexMap<String, FlatCompiledStylesValue>> {
+  pub(crate) fn as_values(&self) -> Option<&IndexMap<String, Box<FlatCompiledStylesValue>>> {
     match self {
       NestedStringObject::FlatCompiledStylesValues(obj) => Some(obj),
       _ => None,
@@ -55,23 +58,24 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
   match obj {
     NestedStringObject::FlatCompiledStyles(obj) => {
       for (key, value) in obj.iter() {
-        let expr =
-          convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(value.clone()));
+        let expr = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
+          *value.clone(),
+        ));
 
-        let prop = prop_or_spread_expression_creator(key.as_str(), expr);
+        let prop = prop_or_spread_expression_creator(key.as_str(), Box::new(expr));
 
         props.push(prop);
       }
     }
     NestedStringObject::FlatCompiledStylesValues(obj) => {
       for (key, value) in obj.iter() {
-        let prop = match value {
+        let prop = match value.as_ref() {
           FlatCompiledStylesValue::String(value) => {
             prop_or_spread_string_creator(key.as_str(), value.as_str())
           }
           FlatCompiledStylesValue::Null => prop_or_spread_expression_creator(
             key.as_str(),
-            Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),
+            Box::new(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))),
           ),
           FlatCompiledStylesValue::IncludedStyle(include_style) => {
             PropOrSpread::Spread(SpreadElement {
@@ -81,10 +85,10 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           }
           FlatCompiledStylesValue::Bool(value) => prop_or_spread_expression_creator(
             key.as_str(),
-            Expr::Lit(Lit::Bool(Bool {
+            Box::new(Expr::Lit(Lit::Bool(Bool {
               span: DUMMY_SP,
               value: *value,
-            })),
+            }))),
           ),
           FlatCompiledStylesValue::InjectableStyle(_) => todo!("Injectable style"),
           FlatCompiledStylesValue::Tuple(_, _, _) => todo!("Tuple"),
@@ -92,7 +96,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
         };
 
-        dbg!(&prop);
+        // dbg!(&prop);
 
         props.push(prop);
       }

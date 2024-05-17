@@ -11,3 +11,13 @@ pub enum ObjectJS {
   Values,
   FromEntries,
 }
+
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+pub enum MathJS {
+  Pow,
+  Round,
+  Ceil,
+  Floor,
+  Max,
+  Min
+}

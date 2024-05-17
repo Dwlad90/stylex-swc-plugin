@@ -10,9 +10,9 @@ use crate::shared::{
 pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,
   mapper: F,
-) -> IndexMap<String, FlatCompiledStylesValue>
+) -> IndexMap<String, Box<FlatCompiledStylesValue>>
 where
-  F: Fn(FlatCompiledStylesValue) -> FlatCompiledStylesValue,
+  F: Fn(Box<FlatCompiledStylesValue>) -> Box<FlatCompiledStylesValue>,
 {
   let mut variables_map = IndexMap::new();
 
@@ -25,11 +25,11 @@ where
 
         let value = key_value.value.clone();
 
-        let result = mapper(FlatCompiledStylesValue::Tuple(
+        let result = mapper(Box::new(FlatCompiledStylesValue::Tuple(
           key.clone(),
           value,
           Option::None,
-        ));
+        )));
 
         variables_map.insert(key, result);
       }
@@ -45,7 +45,7 @@ where
     }
   }
 
-  dbg!(&variables_map);
+  // dbg!(&variables_map);
   variables_map
 }
 
@@ -102,17 +102,17 @@ pub(crate) fn obj_from_entries(entries: &Vec<OrderPair>) -> IndexMap<String, Str
 pub(crate) fn obj_map_keys(
   entries: &IndexMap<String, String>,
   mapper: fn(&str) -> String,
-) -> IndexMap<String, FlatCompiledStylesValue> {
+) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
   let mut map = IndexMap::new();
 
   for (key, value) in entries {
     let key = mapper(key);
     map.insert(
       key.clone(),
-      FlatCompiledStylesValue::KeyValue(Pair {
+      Box::new(FlatCompiledStylesValue::KeyValue(Pair {
         key,
         value: value.clone(),
-      }),
+      })),
     );
   }
 

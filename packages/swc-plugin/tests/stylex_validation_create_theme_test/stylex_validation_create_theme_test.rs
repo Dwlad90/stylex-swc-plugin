@@ -22,7 +22,7 @@ fn must_be_bound_to_a_variable() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -46,7 +46,7 @@ fn it_must_have_two_arguments_no_args() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -70,7 +70,7 @@ fn it_must_have_two_arguments_one_args() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -94,7 +94,7 @@ fn it_must_have_two_arguments_fn_args() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -118,7 +118,7 @@ fn it_must_have_two_arguments_empty_object_args() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -136,7 +136,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -161,7 +161,7 @@ fn variable_keys_must_be_a_static_value() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -182,7 +182,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -201,7 +201,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -226,7 +226,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -253,7 +253,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },

@@ -1,15 +1,31 @@
 use std::collections::HashMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
+
+use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::named_import_source::{ImportSources, RuntimeInjection};
+
+fn deserialize_runtime_injection<'de, D>(
+  deserializer: D,
+) -> Result<Option<RuntimeInjection>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let opt: Option<_> = Option::deserialize(deserializer)?;
+
+  // println!("!!!opt: {:#?}", opt);
+
+  Ok(opt.map(RuntimeInjection::Boolean))
+}
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct StyleXOptionsParams {
   pub style_resolution: Option<StyleResolution>,
   pub use_rem_for_font_size: Option<bool>,
-  pub runtime_injection: Option<RuntimeInjection>,
+  // #[serde(deserialize_with = "deserialize_runtime_injection")]
+  pub runtime_injection: Option<bool>,
   pub class_name_prefix: Option<String>,
   pub defined_stylex_css_variables: Option<HashMap<String, String>>,
   pub import_sources: Option<Vec<ImportSources>>,
@@ -18,6 +34,7 @@ pub struct StyleXOptionsParams {
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub aliases: Option<Aliases>,
+  #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
 }
 
@@ -26,7 +43,7 @@ impl Default for StyleXOptionsParams {
     StyleXOptionsParams {
       style_resolution: Option::Some(StyleResolution::ApplicationOrder),
       use_rem_for_font_size: Option::Some(false),
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+      runtime_injection: Option::Some(false),
       class_name_prefix: Option::Some("x".to_string()),
       defined_stylex_css_variables: Option::Some(HashMap::new()),
       import_sources: Option::None,
@@ -53,7 +70,7 @@ pub enum StyleResolution {
 
 pub enum Aliases {
   String(HashMap<String, String>),
-  StringVec(HashMap<String, Vec<String>>),
+  StringVec(HashMap<String, Box<Vec<String>>>),
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -72,7 +89,7 @@ pub enum CheckModuleResolution {
   CrossFileParsing(ModuleResolution),
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct StyleXOptions {
   pub dev: bool,
   pub test: bool,
@@ -141,17 +158,21 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       },
       None => Option::None,
     };
-    dbg!(&options.runtime_injection);
+    // dbg!(&options.runtime_injection);
 
-    let runtime_injection = options
-      .runtime_injection
-      .unwrap_or(RuntimeInjection::Boolean(options.dev.unwrap_or(false)));
+    let runtime_injection = match options.runtime_injection {
+      Some(value) => match value {
+        true => RuntimeInjection::Regular(DEFAULT_INJECT_PATH.to_string()),
+        false => RuntimeInjection::Boolean(options.dev.unwrap_or(false)),
+      },
+      None => RuntimeInjection::Boolean(options.dev.unwrap_or(false)),
+    };
 
     // if options.dev.unwrap_or(false) && runtime_injection.eq(&RuntimeInjection::Boolean(false)) {
     //   runtime_injection = RuntimeInjection::Boolean(true);
     // }
 
-    // dbg!(runtime_injection);
+    //// dbg!(runtime_injection);
     // panic!("Implement your logic here to flip the value");
 
     StyleXOptions {

@@ -28,8 +28,8 @@ fn disallow_unclosed_style_value_functions() {
 
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
-        Option::Some(config),
+        &PluginPass::default(),
+        Option::Some(&mut config),
       )
     },
     r#"
@@ -60,8 +60,8 @@ fn disallow_unprefixed_custom_properties() {
 
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
-        Option::Some(config),
+        &PluginPass::default(),
+        Option::Some(&mut config),
       )
     },
     r#"
@@ -89,8 +89,8 @@ test!(
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   allow_defined_custom_properties_simple,
@@ -117,8 +117,8 @@ test!(
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   allow_defined_custom_properties_double,
@@ -135,7 +135,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None,
   ),
   allow_undefined_custom_properties_regular,
@@ -157,10 +157,12 @@ test!(
 
     config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
 
+  // dbg!(&config.runtime_injection);
+
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   allow_undefined_custom_properties_not_defined,
@@ -187,8 +189,8 @@ test!(
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   allow_undefined_custom_properties_double_not_defined,

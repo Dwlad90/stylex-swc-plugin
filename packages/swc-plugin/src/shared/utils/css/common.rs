@@ -106,7 +106,7 @@ fn flip_shadow(value: &str) -> Option<String> {
     // NOTE: temporary solution, need to implement unit parser
     let index = if is_unit(parts[0].as_str()) { 0 } else { 1 };
 
-    dbg!(&def, &index, &parts);
+   // dbg!(&def, &index, &parts);
     if index < parts.len() {
       let flipped = flip_sign(parts[index].clone());
       parts[index] = flipped;
@@ -116,7 +116,7 @@ fn flip_shadow(value: &str) -> Option<String> {
 
   let rtl = built_defs.join(", ");
   if rtl != value {
-    dbg!(&value, &rtl);
+   // dbg!(&value, &rtl);
 
     Some(rtl)
   } else {
@@ -286,7 +286,7 @@ fn _flip_value(value: &PreRules) -> Option<PreRules> {
 pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
   let result = property_to_rtl(pair.key.as_str(), pair.value.as_str());
 
-  dbg!(&pair, &result);
+ // dbg!(&pair, &result);
 
   result
 }
@@ -314,7 +314,7 @@ pub(crate) fn flat_map_expanded_shorthands(
     key
   };
 
-  dbg!(&options.style_resolution);
+ // dbg!(&options.style_resolution);
 
   let expansion_fn = match &options.style_resolution {
     StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.clone()),

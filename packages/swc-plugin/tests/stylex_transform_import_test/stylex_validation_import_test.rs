@@ -11,7 +11,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   ignores_valid_imports,
@@ -34,7 +34,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   ignores_valid_requires,
@@ -57,7 +57,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   named_declaration_export,
@@ -78,7 +78,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   does_nothing_when_stylex_not_imported,
@@ -98,7 +98,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   named_property_export,
@@ -120,7 +120,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   default_export,
@@ -141,7 +141,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   default_export_with_parenthesis,
@@ -162,7 +162,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   module_export,

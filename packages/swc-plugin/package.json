@@ -16,7 +16,8 @@
     "precommit": "lint-staged",
     "prepublishOnly": "cargo build-wasi --release",
     "prepush": "lint-prepush",
-    "test": "NODE_ENV=test cargo test --lib --bins --tests"
+    "test": "NODE_ENV=test cargo test --lib --bins --tests",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
 
   "keywords": [

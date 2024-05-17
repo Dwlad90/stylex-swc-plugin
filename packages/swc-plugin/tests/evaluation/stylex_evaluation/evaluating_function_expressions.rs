@@ -1,4 +1,9 @@
-use swc_core::ecma::{parser::{Syntax, TsConfig}, transforms::testing::test_transform};
+use std::env;
+
+use swc_core::ecma::{
+  parser::{Syntax, TsConfig},
+  transforms::testing::test_transform,
+};
 
 use crate::evaluation::evaluation_module_transform::EvaluationModuleTransformVisitor;
 
@@ -168,6 +173,147 @@ fn object_entries() {
                 b: 2,
                 c: 4,
             });
+        "#,
+    false,
+  )
+}
+
+#[test]
+fn math_pow() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+            const x = Math.pow(2, 3);
+            const x = Math.pow(8, 4);
+        "#,
+    r#"
+            8;
+            4096;
+        "#,
+    false,
+  )
+}
+
+#[test]
+fn math_round() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+          const x = Math.round(2);
+          const x = Math.round(2.5);
+          const x = Math.round(2.51);
+          const x = Math.round(2.49);
+        "#,
+    r#"
+            2;
+            3;
+            3;
+            2;
+        "#,
+    false,
+  )
+}
+
+#[test]
+fn math_ceil() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+          const x = Math.ceil(2);
+          const x = Math.ceil(2.5);
+          const x = Math.ceil(2.51);
+          const x = Math.ceil(2.49);
+        "#,
+    r#"
+            2;
+            3;
+            3;
+            3;
+        "#,
+    false,
+  )
+}
+
+#[test]
+fn math_floor() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+          const x = Math.floor(2);
+          const x = Math.floor(2.5);
+          const x = Math.floor(2.51);
+          const x = Math.floor(2.49);
+          const x = Math.floor(2.99);
+          const x = Math.floor(3);
+        "#,
+    r#"
+            2;
+            2;
+            2;
+            2;
+            2;
+            3;
+        "#,
+    false,
+  )
+}
+
+#[test]
+fn math_min() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+          const x = Math.min(2);
+          // const x = Math.min(3,1,2);
+          // const x = Math.min(3,1,2, [0.5], 5);
+          // const x = Math.min(3,1,2, ...[0.5, 0.1, 0.3]);
+        "#,
+    r#"
+            2;
+            // 1;
+            // 0.5;
+            // 0.1;
+        "#,
+    false,
+  )
+}
+
+#[test]
+fn math_complicated() {
+  env::set_var("RUST_MIN_STACK", "8388608"); // 8MB
+
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+          const x =  Math.min(Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100)
+          ;
+        "#,
+    r#"
+          0.5799999833106995;
         "#,
     false,
   )

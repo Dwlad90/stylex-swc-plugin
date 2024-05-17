@@ -16,12 +16,14 @@ mod stylex_create {
     },
   };
 
-  fn style_object_factory(args: &[(&str, &[(&str, &str)])]) -> IndexMap<Expr, Vec<KeyValueProp>> {
+  fn style_object_factory(
+    args: &[(&str, &[(&str, &str)])],
+  ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 
     for (key, value) in args {
       object.insert(
-        string_to_expression(key).unwrap(),
+        Box::new(string_to_expression(key).unwrap()),
         value
           .iter()
           .map(|(key, value)| key_value_creator(key, string_to_expression(value).unwrap()))
@@ -34,12 +36,12 @@ mod stylex_create {
 
   fn style_nested_object_factory(
     args: &[(&str, &[(&str, &[(&str, &str)])])],
-  ) -> IndexMap<Expr, Vec<KeyValueProp>> {
+  ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 
     for (key, value) in args {
       object.insert(
-        string_to_expression(key).unwrap(),
+        Box::new(string_to_expression(key).unwrap()),
         value
           .iter()
           .map(|(key, value)| {
@@ -63,12 +65,12 @@ mod stylex_create {
 
   fn style_array_object_factory(
     args: &[(&str, &[(&str, &[&str])])],
-  ) -> IndexMap<Expr, Vec<KeyValueProp>> {
+  ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 
     for (key, value) in args {
       object.insert(
-        string_to_expression(key).unwrap(),
+        Box::new(string_to_expression(key).unwrap()),
         value
           .iter()
           .map(|(key, value)| {
@@ -97,8 +99,8 @@ mod stylex_create {
     resolved_namespaces: &[(&str, &[(&str, &str)])],
     injected_styles: &InjectedStylesArg,
   ) -> (
-    IndexMap<String, FlatCompiledStyles>,
-    IndexMap<String, InjectableStyle>,
+    IndexMap<String, Box<FlatCompiledStyles>>,
+    IndexMap<String, Box<InjectableStyle>>,
   ) {
     let mut expected_resolved_namespaces = IndexMap::new();
     let mut expected_injected_styles = IndexMap::new();
@@ -106,20 +108,23 @@ mod stylex_create {
     for (resolved_namespace, namespace) in resolved_namespaces {
       let mut default_val = IndexMap::new();
 
-      default_val.insert("$$css".to_string(), FlatCompiledStylesValue::Bool(true));
+      default_val.insert(
+        "$$css".to_string(),
+        Box::new(FlatCompiledStylesValue::Bool(true)),
+      );
 
       for (key, value) in namespace.iter() {
         default_val.insert(
           key.to_string(),
-          if value.eq(&"null") {
+          Box::new(if value.eq(&"null") {
             FlatCompiledStylesValue::Null
           } else {
             FlatCompiledStylesValue::String(value.to_string())
-          },
+          }),
         );
       }
 
-      expected_resolved_namespaces.insert(resolved_namespace.to_string(), default_val);
+      expected_resolved_namespaces.insert(resolved_namespace.to_string(), Box::new(default_val));
     }
 
     for injected_style in injected_styles {
@@ -127,11 +132,11 @@ mod stylex_create {
         let (value, priority) = inj;
         expected_injected_styles.insert(
           key.to_string(),
-          InjectableStyle {
+          Box::new(InjectableStyle {
             ltr: value.to_string(),
             rtl: Option::None,
             priority: Option::Some(*priority),
-          },
+          }),
         );
       }
     }
@@ -140,10 +145,10 @@ mod stylex_create {
   }
 
   fn stylex_create(
-    style_object: IndexMap<Expr, Vec<KeyValueProp>>,
+    style_object: IndexMap<Box<Expr>, Vec<KeyValueProp>>,
   ) -> (
-    IndexMap<String, IndexMap<String, FlatCompiledStylesValue>>,
-    IndexMap<String, InjectableStyle>,
+    IndexMap<String, Box<FlatCompiledStyles>>,
+    IndexMap<String, Box<InjectableStyle>>,
   ) {
     stylex_create_set(
       &EvaluateResultValue::Map(style_object),

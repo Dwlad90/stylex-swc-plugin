@@ -50,11 +50,13 @@ where
         None => Option::Some(first_arg.expr.clone()),
       })?;
 
-      let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> = IndexMap::new();
+      let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
 
-      let mut identifiers: HashMap<Id, FunctionConfigType> = HashMap::new();
-      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>> =
-        HashMap::new();
+      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
+      let mut member_expressions: HashMap<
+        Box<ImportSources>,
+        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
+      > = HashMap::new();
 
       let include_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_include),
@@ -71,21 +73,21 @@ where
       for name in &self.state.stylex_include_import {
         identifiers.insert(
           name.clone(),
-          FunctionConfigType::Regular(include_fn.clone()),
+          Box::new(FunctionConfigType::Regular(include_fn.clone())),
         );
       }
 
       for name in &self.state.stylex_first_that_works_import {
         identifiers.insert(
           name.clone(),
-          FunctionConfigType::Regular(first_that_works_fn.clone()),
+          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
       }
 
       for name in &self.state.stylex_keyframes_import {
         identifiers.insert(
           name.clone(),
-          FunctionConfigType::Regular(keyframes_fn.clone()),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }
 
@@ -95,29 +97,29 @@ where
         let member_expression = member_expressions.get_mut(name).unwrap();
 
         member_expression.insert(
-          Ident::new("include".into(), DUMMY_SP).to_id(),
-          FunctionConfigType::Regular(include_fn.clone()),
+          Box::new(Ident::new("include".into(), DUMMY_SP).to_id()),
+          Box::new(FunctionConfigType::Regular(include_fn.clone())),
         );
 
         member_expression.insert(
-          Ident::new("firstThatWorks".into(), DUMMY_SP).to_id(),
-          FunctionConfigType::Regular(first_that_works_fn.clone()),
+          Box::new(Ident::new("firstThatWorks".into(), DUMMY_SP).to_id()),
+          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
 
         member_expression.insert(
-          Ident::new("keyframes".into(), DUMMY_SP).to_id(),
-          FunctionConfigType::Regular(keyframes_fn.clone()),
+          Box::new(Ident::new("keyframes".into(), DUMMY_SP).to_id()),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }
 
-      let function_map: FunctionMap = FunctionMap {
+      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
         identifiers,
         member_expressions,
-      };
+      });
 
       let evaluated_arg = evaluate_stylex_create_arg(&first_arg, &mut self.state, &function_map);
 
-      dbg!(&evaluated_arg);
+      // dbg!(&evaluated_arg);
 
       let value = match evaluated_arg.value {
         Some(value) => value,
@@ -135,7 +137,7 @@ where
       let (mut compiled_styles, injected_styles_sans_keyframes) =
         stylex_create_set(&value, &mut self.state, &function_map);
 
-      dbg!(&compiled_styles, &injected_styles_sans_keyframes);
+      // dbg!(&compiled_styles, &injected_styles_sans_keyframes);
 
       compiled_styles
         .clone()
@@ -144,13 +146,13 @@ where
           resolved_namespaces
             .entry(namespace)
             .or_default()
-            .extend(properties);
+            .extend(*properties);
         });
 
       let mut injected_styles = self.state.injected_keyframes.clone();
 
       injected_styles.extend(injected_styles_sans_keyframes);
-      dbg!(&injected_styles);
+      // dbg!(&injected_styles);
 
       let (var_name, parent_var_decl) = &self.get_call_var_name(call);
 
@@ -163,7 +165,7 @@ where
       }
 
       if let Option::Some(var_name) = var_name.clone() {
-        let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
+        let styles_to_remember = Box::new(remove_objects_with_spreads(&compiled_styles));
 
         self
           .state
@@ -178,6 +180,8 @@ where
 
       let mut result_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
+
+      // println!("result_ast: {:?}", result_ast);
 
       if let Some(fns) = evaluated_arg.fns {
         if let Some(object) = result_ast.as_object() {
@@ -200,7 +204,7 @@ where
 
               if let Some(key) = key {
                 if let Some((params, inline_styles)) = fns.get(&key) {
-                  dbg!(&value);
+                  // dbg!(&value);
                   let value = Expr::Arrow(ArrowExpr {
                     span: DUMMY_SP,
                     params: params.clone().into_iter().map(Pat::Ident).collect(), // replace with your parameters
@@ -231,14 +235,15 @@ where
                     return_type: None,
                   });
 
-                  prop = Option::Some(prop_or_spread_expression_creator(orig_key.as_str(), value));
+                  prop = Option::Some(prop_or_spread_expression_creator(
+                    orig_key.as_str(),
+                    Box::new(value),
+                  ));
                 }
               }
 
-              let prop = prop.unwrap_or(prop_or_spread_expression_creator(
-                orig_key.as_str(),
-                value.as_ref().clone(),
-              ));
+              let prop =
+                prop.unwrap_or(prop_or_spread_expression_creator(orig_key.as_str(), value));
 
               prop
             })
@@ -246,7 +251,7 @@ where
 
           result_ast = object_expression_factory(props).unwrap_or(result_ast);
         }
-        dbg!(&result_ast);
+        //// dbg!(&result_ast);
       };
 
       self

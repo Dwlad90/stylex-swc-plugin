@@ -24,12 +24,12 @@ test!(
       "custom-stylex-path".to_string(),
     )]);
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   basic_stylex_call,
@@ -57,12 +57,12 @@ test!(
       r#as: "css".to_string(),
     })]);
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   named_import_from_custom_source,
@@ -90,12 +90,12 @@ test!(
       r#as: "css".to_string(),
     })]);
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   named_import_with_other_name_from_custom_source,

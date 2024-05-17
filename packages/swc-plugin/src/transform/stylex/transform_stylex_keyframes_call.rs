@@ -40,9 +40,11 @@ where
         None => Option::Some(first_arg.expr.clone()),
       })?;
 
-      let mut identifiers: HashMap<Id, FunctionConfigType> = HashMap::new();
-      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>> =
-        HashMap::new();
+      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
+      let mut member_expressions: HashMap<
+        Box<ImportSources>,
+        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
+      > = HashMap::new();
 
       let include_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_include),
@@ -57,14 +59,14 @@ where
       for name in &self.state.stylex_include_import {
         identifiers.insert(
           name.clone(),
-          FunctionConfigType::Regular(include_fn.clone()),
+          Box::new(FunctionConfigType::Regular(include_fn.clone())),
         );
       }
 
       for name in &self.state.stylex_first_that_works_import {
         identifiers.insert(
           name.clone(),
-          FunctionConfigType::Regular(first_that_works_fn.clone()),
+          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
       }
 
@@ -74,24 +76,24 @@ where
         let member_expression = member_expressions.get_mut(name).unwrap();
 
         member_expression.insert(
-          Ident::new("include".into(), DUMMY_SP).to_id(),
-          FunctionConfigType::Regular(include_fn.clone()),
+          Box::new(Ident::new("include".into(), DUMMY_SP).to_id()),
+          Box::new(FunctionConfigType::Regular(include_fn.clone())),
         );
 
         member_expression.insert(
-          Ident::new("firstThatWorks".into(), DUMMY_SP).to_id(),
-          FunctionConfigType::Regular(first_that_works_fn.clone()),
+          Box::new(Ident::new("firstThatWorks".into(), DUMMY_SP).to_id()),
+          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
       }
 
-      let function_map: FunctionMap = FunctionMap {
+      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
         identifiers,
         member_expressions,
-      };
+      });
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      dbg!(evaluated_arg.clone());
+      // dbg!(evaluated_arg.clone());
 
       assert!(
         evaluated_arg.confident,
@@ -126,7 +128,7 @@ where
 
       let mut injected_styles = IndexMap::new();
 
-      injected_styles.insert(animation_name.clone(), injectable_style);
+      injected_styles.insert(animation_name.clone(), Box::new(injectable_style));
 
       let result_ast = string_to_expression(animation_name.as_str());
 
@@ -142,7 +144,7 @@ where
       None
     };
 
-    dbg!(&result);
+    // dbg!(&result);
 
     result
   }

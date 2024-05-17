@@ -253,7 +253,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       &FunctionMap::default(),
     );
 
-    dbg!(&result);
+   // dbg!(&result);
     assert_eq!(result.len(), 4);
 
     let mut expected_result = IndexMap::new();
@@ -321,7 +321,7 @@ mod nested_objects {
       &FunctionMap::default(),
     );
 
-    dbg!(&result);
+   // dbg!(&result);
     assert_eq!(result.len(), 8);
 
     let mut expected_result = IndexMap::new();

@@ -379,13 +379,13 @@ pub fn parse_css_inner<'a>(
       iter_result = iter_result.trim().to_string()
     }
 
-    dbg!(&iter_result);
+   // dbg!(&iter_result);
     if !iter_result.is_empty() {
       result.push(iter_result);
     }
   }
 
-  dbg!(&result);
+ // dbg!(&result);
   Ok(result)
 }
 
@@ -420,7 +420,7 @@ pub fn parse_css(
     // func_name,
   ) {
     Ok(nodes) => {
-      dbg!(&nodes);
+     // dbg!(&nodes);
       let nodes = nodes
         .into_iter()
         .filter_map(|s| {
@@ -431,7 +431,7 @@ pub fn parse_css(
           }
         })
         .collect::<Vec<String>>();
-      dbg!(&nodes);
+     // dbg!(&nodes);
       nodes
     }
     Err(_) => todo!(),

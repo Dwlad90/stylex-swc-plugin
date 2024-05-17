@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use swc_core::ecma::{
   ast::{BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, MemberExpr},
+  utils::member_expr,
   visit::{noop_fold_type, Fold, FoldWith},
 };
 
@@ -9,7 +10,7 @@ use crate::shared::{
   enums::{FnResult, NonNullProps},
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    common::reduce_ident_count,
+    common::{reduce_ident_count, reduce_member_expression_count},
     stylex::{
       make_string_expression::make_string_expression,
       parse_nullable_style::{parse_nullable_style, ResolvedArg, StyleObject},
@@ -33,7 +34,7 @@ impl Fold for MemberTransform {
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
     self.parents.push(expr.clone());
-    dbg!(&expr);
+    // dbg!(&expr);
     expr.fold_children_with(self)
   }
 
@@ -85,14 +86,15 @@ pub(crate) fn stylex_merge(
     assert!(arg.spread.is_none(), "Spread not implemented yet");
 
     let arg = arg.expr.as_ref();
+  // dbg!(&arg);
 
     match arg.clone() {
       Expr::Member(member) => {
         let resolved = parse_nullable_style(arg, state, false);
-        dbg!(&member, &resolved);
-        match resolved {
+        // dbg!(&member, &resolved);
+        let result = match resolved {
           StyleObject::Other => {
-            dbg!(&arg);
+            // dbg!(&arg);
             bail_out_index = Option::Some(current_index);
             bail_out = true;
           }
@@ -104,6 +106,7 @@ pub(crate) fn stylex_merge(
                 .as_ident()
                 .expect("Member obj is not an ident")
                 .clone(),
+              member.clone(),
             ));
           }
           StyleObject::Nullable => {
@@ -114,14 +117,17 @@ pub(crate) fn stylex_merge(
                 .as_ident()
                 .expect("Member obj is not an ident")
                 .clone(),
+              member.clone(),
             ));
           }
-        }
+        };
+
+        result
       }
       Expr::Cond(CondExpr {
         test, cons, alt, ..
       }) => {
-        dbg!(&test, &cons, &alt);
+        // dbg!(&test, &cons, &alt);
 
         let primary = parse_nullable_style(&cons, state, true);
         let fallback = parse_nullable_style(&alt, state, true);
@@ -140,11 +146,17 @@ pub(crate) fn stylex_merge(
             _ => panic!("Illegal argument"),
           };
 
+          let member = match alt.as_ref() {
+            Expr::Member(meber) => meber.clone(),
+            _ => panic!("Illegal argument"),
+          };
+
           resolved_args.push(ResolvedArg::ConditionalStyle(
             test,
             Some(primary),
             Some(fallback),
             ident,
+            member,
           ));
 
           conditional += 1;
@@ -161,7 +173,7 @@ pub(crate) fn stylex_merge(
 
         let left_resolved = parse_nullable_style(&left, state, true);
         let right_resolved = parse_nullable_style(&right, state, true);
-        dbg!(&left, &right_resolved);
+        // dbg!(&left, &right_resolved);
 
         if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
@@ -177,11 +189,17 @@ pub(crate) fn stylex_merge(
             _ => panic!("Illegal argument"),
           };
 
+          let member = match right.as_ref() {
+            Expr::Member(meber) => meber.clone(),
+            _ => panic!("Illegal argument"),
+          };
+
           resolved_args.push(ResolvedArg::ConditionalStyle(
             left,
             Some(right_resolved),
             None,
             ident,
+            member,
           ));
 
           conditional += 1;
@@ -218,7 +236,7 @@ pub(crate) fn stylex_merge(
 
       assert!(arg_path.spread.is_none(), "Spread not implemented yet");
 
-      dbg!(&arg_path.expr);
+      // dbg!(&arg_path.expr);
 
       // let mut arg = arg_path.expr.as_ref();
 
@@ -231,10 +249,11 @@ pub(crate) fn stylex_merge(
       };
 
       arg_path.expr = arg_path.expr.clone().fold_with(&mut member_transfom);
-      dbg!(&arg_path);
+
+      // dbg!(&arg_path);
 
       // if cycle == &ModuleCycle::TransformExit{
-      //     dbg!(&arg_path);
+      //    // dbg!(&arg_path);
       // }
 
       index = member_transfom.index;
@@ -244,7 +263,7 @@ pub(crate) fn stylex_merge(
 
       // match arg {
       //     Expr::Member(member) => {
-      //         dbg!(&member);
+      //        // dbg!(&member);
 
       //         member_expression(
       //             member,
@@ -260,11 +279,20 @@ pub(crate) fn stylex_merge(
       //     }
       //     Expr::Ident(_) => {}
       //     _ => {
-      //         dbg!(&arg);
+      //        // dbg!(&arg);
       //         panic!("Illegal argument");
       //         arg.clone().fold_with(self);
       //     }
       // }
+    }
+
+    for arg in args.iter() {
+      if let Expr::Member(member_expression) = arg.expr.as_ref() {
+        reduce_member_expression_count(state, member_expression)
+        // if let Expr::Ident(ident) = member_expression.obj.as_ref() {
+        //   reduce_ident_count(state, ident);
+        // }
+      }
     }
   } else {
     // if resolved_args.is_empty() {
@@ -273,20 +301,23 @@ pub(crate) fn stylex_merge(
 
     let string_expression = make_string_expression(&resolved_args, transform);
 
-    dbg!(&string_expression);
+    // dbg!(&string_expression);
 
     // reduce_ident_count(&mut state, &ident);
 
     for arg in &resolved_args {
+    // dbg!(&arg);
       match arg {
-        ResolvedArg::StyleObject(style_object, ident) => {
-          dbg!(&style_object, &ident);
+        ResolvedArg::StyleObject(style_object, ident, member_expr) => {
+        // dbg!(&style_object, &ident, &member_expr);
           reduce_ident_count(&mut *state, ident);
+          reduce_member_expression_count(state, member_expr)
         }
-        ResolvedArg::ConditionalStyle(expr, style_object, _, ident) => {
-          dbg!(&expr, &style_object, &ident);
+        ResolvedArg::ConditionalStyle(expr, style_object, _, ident, member_expr) => {
+        // dbg!(&expr, &style_object, &ident, member_expr);
 
           reduce_ident_count(&mut *state, ident);
+          reduce_member_expression_count(state, member_expr)
         }
       }
     }

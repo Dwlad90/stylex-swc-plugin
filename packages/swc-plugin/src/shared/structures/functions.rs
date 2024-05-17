@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use swc_core::ecma::ast::{Expr, Id};
 
 use crate::shared::utils::js::{
-  enums::{ArrayJS, ObjectJS},
+  enums::{ArrayJS, MathJS, ObjectJS},
   stylex::stylex_types::ValueWithDefault,
 };
 
@@ -13,6 +13,7 @@ use super::{named_import_source::ImportSources, state_manager::StateManager};
 pub enum CallbackType {
   Array(ArrayJS),
   Object(ObjectJS),
+  Math(MathJS),
 }
 
 pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
@@ -34,7 +35,7 @@ pub enum FunctionType {
   // ), // Expr,
   Mapper(Rc<dyn Fn() -> Expr + 'static>),
   // Callback(CallbackType, Expr),
-  Callback(CallbackType),
+  Callback(Box<CallbackType>),
 }
 
 impl Clone for FunctionType {
@@ -153,8 +154,9 @@ impl FunctionConfigType {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionMap {
-  pub identifiers: HashMap<Id, FunctionConfigType>,
-  pub member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>>,
+  pub identifiers: HashMap<Box<Id>, Box<FunctionConfigType>>,
+  pub member_expressions:
+    HashMap<Box<ImportSources>, Box<HashMap<Box<Id>, Box<FunctionConfigType>>>>,
 }
 
 impl Default for FunctionMap {

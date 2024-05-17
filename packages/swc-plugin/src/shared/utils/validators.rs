@@ -6,11 +6,14 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants,
+  constants::{self, common::THEME_NAME_KEY},
   enums::{TopLevelExpression, TopLevelExpressionKind},
   regex::INCLUDED_IDENT_REGEX,
-  structures::{evaluate_result::EvaluateResultValue, state_manager::StateManager},
-  utils::common::{get_string_val_from_lit, get_var_decl_by_ident_or_member},
+  structures::{evaluate_result::EvaluateResultValue, state_manager::StateManager, theme_ref},
+  utils::common::{
+    get_string_val_from_lit, get_var_decl_by_ident_or_member, key_value_creator,
+    string_to_expression,
+  },
 };
 
 use super::common::{get_key_str, get_key_values_from_object};
@@ -22,11 +25,11 @@ pub(crate) fn validate_stylex_create_indent(call: &CallExpr, state: &mut StateMa
 
   let ident = Ident::new("create".into(), DUMMY_SP);
 
-  dbg!(&ident);
+  // dbg!(&ident);
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| call_item.eq(&Box::new(Expr::Call(call.clone())))
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(call.clone()))) }
       ),
     "{}",
     constants::messages::UNBOUND_STYLEX_CALL_VALUE
@@ -62,11 +65,11 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let ident = Ident::new("keyframes".into(), DUMMY_SP);
 
-  dbg!(&ident);
+  // dbg!(&ident);
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| call_item.eq(&Box::new(Expr::Call(init.clone())))
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(init.clone()))) }
       ),
     "{}",
     constants::messages::UNBOUND_STYLEX_CALL_VALUE
@@ -88,7 +91,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 }
 
 pub(crate) fn validate_stylex_create_theme_indent(
-  var_decl: &Option<VarDeclarator>,
+  var_decl: &Option<Box<VarDeclarator>>,
   call: &CallExpr,
   state: &mut StateManager,
 ) {
@@ -110,11 +113,11 @@ pub(crate) fn validate_stylex_create_theme_indent(
 
   let ident = Ident::new("keyframes".into(), DUMMY_SP);
 
-  dbg!(&ident);
+  // dbg!(&ident);
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| call_item.eq(&Box::new(Expr::Call(init.clone())))
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(init.clone()))) }
       ),
     "{}",
     constants::messages::UNBOUND_STYLEX_CALL_VALUE
@@ -137,7 +140,7 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateMana
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| call_item.eq(&Box::new(Expr::Call(call.clone())))
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(call.clone()))) }
       ),
     "{}",
     constants::messages::UNBOUND_STYLEX_CALL_VALUE
@@ -171,12 +174,12 @@ pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
 }
 
 pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
-  dbg!(&state.stylex_props_import);
+  // dbg!(&state.stylex_props_import);
   is_target_call(("props", &state.stylex_props_import), call, state)
 }
 
 pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
-  dbg!(&state.stylex_props_import);
+  // dbg!(&state.stylex_props_import);
   is_target_call(("attrs", &state.stylex_attrs_import), call, state)
 }
 
@@ -202,7 +205,7 @@ pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> boo
 }
 
 pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
-  dbg!(&state.stylex_props_import);
+  // dbg!(&state.stylex_props_import);
   is_target_call(
     ("defineVars", &state.stylex_define_vars_import),
     call,
@@ -211,7 +214,7 @@ pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool
 }
 
 pub(crate) fn is_target_call(
-  (call_name, imports_map): (&str, &HashSet<Id>),
+  (call_name, imports_map): (&str, &HashSet<Box<Id>>),
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
@@ -320,14 +323,11 @@ pub(crate) fn validate_dynamic_style_params(params: &[Pat]) {
   }
 }
 
-pub(crate) fn validate_conditional_styles(
-  inner_key_value: &KeyValueProp,
-  conditions: &[String],
-) {
+pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, conditions: &[String]) {
   let inner_key = get_key_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
 
-  dbg!(inner_key.clone());
+  // dbg!(inner_key.clone());
 
   assert!(
     (inner_key.starts_with(':') || inner_key.starts_with('@') || inner_key == "default"),
@@ -373,7 +373,7 @@ pub(crate) fn validate_conditional_styles(
 
 pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
   match obj {
-    EvaluateResultValue::Expr(expr) => match expr {
+    EvaluateResultValue::Expr(expr) => match expr.as_ref() {
       Expr::Object(object) => {
         let key_values = get_key_values_from_object(object);
 
@@ -396,7 +396,25 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
   }
 }
 
-pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyValueProp {
+pub(crate) fn validate_theme_variables(
+  variables: &EvaluateResultValue,
+  state: &mut StateManager,
+) -> KeyValueProp {
+  if let Some(theme_ref) = variables.as_theme_ref() {
+    let (value, updated_state) = theme_ref.clone().get(THEME_NAME_KEY);
+
+    *state = state.clone().combine(updated_state);
+
+    let key_value = key_value_creator(
+      THEME_NAME_KEY,
+      string_to_expression(value.as_str()).unwrap(),
+    );
+    // dbg!(&key_value);
+
+    return key_value;
+  }
+
+  // return Option::None;
   assert!(
     variables
       .as_expr()

@@ -23,20 +23,17 @@ where
       // ModuleCycle::Initializing => {}
       ModuleCycle::Cleaning => {
         var_declarators.retain(|decl| {
-          match &decl.name {
-            Pat::Ident(bind_ident) => {
-              let decl_id = &bind_ident.to_id();
+          if let Pat::Ident(bind_ident) = &decl.name {
+            let decl_id = &bind_ident.to_id();
 
-              if self.state.var_decl_count_map.contains_key(&decl_id) {
-                let count = self.state.var_decl_count_map.get(decl_id).unwrap();
+            if self.state.var_decl_count_map.contains_key(decl_id) {
+              let count = self.state.var_decl_count_map.get(decl_id).unwrap();
 
-                // Remove the variable declaration if it is used only once after transformation.
-                let is_used = count > &1;
+              // Remove the variable declaration if it is used only once after transformation.
+              let is_used = count > &1;
 
-                return is_used;
-              }
+              return is_used;
             }
-            _ => {}
           }
 
           true

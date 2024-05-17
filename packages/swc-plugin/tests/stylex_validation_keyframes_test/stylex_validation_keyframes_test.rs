@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use stylex_swc_plugin::{
-  shared::structures::{
-    named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-    stylex_options::StyleXOptionsParams,
-  },
+  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
   ModuleTransformVisitor,
 };
 use swc_core::ecma::{
@@ -24,7 +21,7 @@ fn only_argument_must_be_an_object_of_objects_null() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -48,7 +45,7 @@ fn only_argument_must_be_an_object_of_objects_non_keyframe() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -70,7 +67,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   only_argument_must_be_an_object_of_objects_valid,
@@ -90,7 +87,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   only_argument_must_be_an_object_of_objects_valid_filled,
@@ -121,12 +118,12 @@ test!(
 
     config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   allow_defined_css_variables_in_keyframes,

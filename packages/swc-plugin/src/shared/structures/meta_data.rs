@@ -58,11 +58,11 @@ impl MetaData {
   // }
 
   pub(crate) fn convert_from_injected_styles_map(
-    injected_styles_map: IndexMap<String, InjectableStyle>,
+    injected_styles_map: IndexMap<String, Box<InjectableStyle>>,
   ) -> Vec<MetaData> {
     injected_styles_map
       .into_iter()
-      .map(|(class_name, injectable_style)| MetaData::new(class_name.clone(), injectable_style))
+      .map(|(class_name, injectable_style)| MetaData::new(class_name.clone(), *injectable_style))
       .collect::<Vec<MetaData>>()
   }
 }

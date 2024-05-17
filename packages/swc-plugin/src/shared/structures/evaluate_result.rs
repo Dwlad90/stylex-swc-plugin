@@ -13,10 +13,10 @@ pub(crate) enum ArrayJS {
 }
 
 pub enum EvaluateResultValue {
-  Expr(Expr),
+  Expr(Box<Expr>),
   Vec(Vec<Option<EvaluateResultValue>>),
-  Map(IndexMap<Expr, Vec<KeyValueProp>>),
-  Entries(IndexMap<Lit, Lit>),
+  Map(IndexMap<Box<Expr>, Vec<KeyValueProp>>),
+  Entries(IndexMap<Box<Lit>, Box<Lit>>),
   Callback(
     Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>, // Expr,
   ),
@@ -76,10 +76,10 @@ impl PartialEq for EvaluateResultValue {
 #[derive(Debug, Clone, PartialEq)]
 pub struct EvaluateResult {
   pub(crate) confident: bool,
-  pub value: Option<EvaluateResultValue>,
-  pub(crate) deopt: Option<Expr>,
-  pub(crate) inline_styles: Option<IndexMap<String, Expr>>,
-  pub(crate) fns: Option<IndexMap<String, (Vec<BindingIdent>, IndexMap<String, Expr>)>>,
+  pub value: Option<Box<EvaluateResultValue>>,
+  pub(crate) deopt: Option<Box<Expr>>,
+  pub(crate) inline_styles: Option<IndexMap<String, Box<Expr>>>,
+  pub(crate) fns: Option<IndexMap<String, (Vec<BindingIdent>, IndexMap<String, Box<Expr>>)>>,
 }
 
 impl EvaluateResultValue {
@@ -97,14 +97,14 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_map(&self) -> Option<&IndexMap<Expr, Vec<KeyValueProp>>> {
+  pub fn as_map(&self) -> Option<&IndexMap<Box<Expr>, Vec<KeyValueProp>>> {
     match self {
       EvaluateResultValue::Map(value) => Option::Some(value),
       _ => Option::None,
     }
   }
 
-  pub fn as_entries(&self) -> Option<&IndexMap<Lit, Lit>> {
+  pub fn as_entries(&self) -> Option<&IndexMap<Box<Lit>, Box<Lit>>> {
     match self {
       EvaluateResultValue::Entries(value) => Option::Some(value),
       _ => Option::None,

@@ -22,7 +22,7 @@ where
 
       match &stmt {
         Stmt::Decl(Decl::Var(var)) => {
-          dbg!(&var);
+         // dbg!(&var);
           if var.decls.is_empty() {
             // Variable declaration without declarator is invalid.
             //

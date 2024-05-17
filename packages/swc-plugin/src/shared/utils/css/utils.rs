@@ -52,7 +52,7 @@ pub(crate) fn convert_style_to_class_name(
   state: &StateManager,
 ) -> (String, String, InjectableStyle) {
   let (key, raw_value) = obj_entry;
-  dbg!(obj_entry);
+ // dbg!(obj_entry);
 
   let dashed_key = if key.starts_with("--") {
     key.to_string()
@@ -60,7 +60,7 @@ pub(crate) fn convert_style_to_class_name(
     dashify(key).to_case(Case::Kebab)
   };
 
-  dbg!(&dashed_key);
+ // dbg!(&dashed_key);
 
   let sorted_pseudos = &mut pseudos.to_vec();
   sorted_pseudos.sort();
@@ -79,7 +79,7 @@ pub(crate) fn convert_style_to_class_name(
     modifier_hash_string
   };
 
-  dbg!(&raw_value);
+ // dbg!(&raw_value);
   let value = match raw_value {
     PreRuleValue::String(value) => PreRuleValue::String(transform_value(key, value, state)),
     PreRuleValue::Vec(vec) => PreRuleValue::Vec(
@@ -116,9 +116,9 @@ pub(crate) fn convert_style_to_class_name(
     modifier_hash_string
   );
 
-  dbg!(&at_rule_hash_string, &pseudo_hash_string);
-  dbg!(&dashed_key, &value, &modifier_hash_string);
-  dbg!(string_to_hash.clone());
+ // dbg!(&at_rule_hash_string, &pseudo_hash_string);
+ // dbg!(&dashed_key, &value, &modifier_hash_string);
+ // dbg!(string_to_hash.clone());
 
   let class_name_hashed = format!("{}{}", prefix, create_hash(string_to_hash.as_str()));
 
@@ -130,7 +130,7 @@ pub(crate) fn convert_style_to_class_name(
     at_rules,
   );
 
-  dbg!(key, &value, &class_name_hashed, &css_rules);
+ // dbg!(key, &value, &class_name_hashed, &css_rules);
 
   (key.to_string(), class_name_hashed, css_rules)
 }
@@ -246,7 +246,7 @@ pub(crate) fn generate_rule(
     .collect::<Vec<String>>()
     .join(";");
 
-  dbg!(&ltr_decls, &rtl_decls);
+ // dbg!(&ltr_decls, &rtl_decls);
 
   let ltr_rule = generate_css_rule(class_name, ltr_decls, pseudos, at_rules);
   let rtl_rule = if rtl_decls.is_empty() {
@@ -255,13 +255,13 @@ pub(crate) fn generate_rule(
     Option::Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
   };
 
-  dbg!(&ltr_rule, &rtl_rule);
+ // dbg!(&ltr_rule, &rtl_rule);
 
   let priority = get_priority(key)
     + pseudos.iter().map(|p| get_priority(p)).sum::<f32>()
     + at_rules.iter().map(|a| get_priority(a)).sum::<f32>();
 
-  // dbg!(
+  //// dbg!(
   //     get_priority(key),
   //     &pseudos,
   //     pseudos.iter().map(|p| get_priority(p)).sum::<f32>(),
@@ -359,10 +359,10 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
     return val.to_string();
   }
 
-  dbg!(&key, &value);
+ // dbg!(&key, &value);
   let result = normalize_css_property_value(key, value.as_ref(), &state.options);
 
-  dbg!(&result);
+ // dbg!(&result);
 
   // panic!("Not implemented yet");
   result
@@ -411,7 +411,7 @@ pub(crate) fn normalize_css_property_value(
   //   minify: true,
   //   ..Default::default()
   // });
-  // dbg!(&stylesheet, &a);
+  //// dbg!(&stylesheet, &a);
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
@@ -427,7 +427,7 @@ pub(crate) fn normalize_css_property_value(
 
   let ast_normalized = match parsed_css {
     Ok(ast) => {
-      dbg!(&css_rule);
+     // dbg!(&css_rule);
 
       let (parsed_css_property_value, _) = swc_parse_css(css_rule.as_str());
 
@@ -441,27 +441,27 @@ pub(crate) fn normalize_css_property_value(
         // Add other normalizer functions here...
       ];
 
-      dbg!(&options.use_rem_for_font_size);
+     // dbg!(&options.use_rem_for_font_size);
 
       for validator in validators {
         validator(ast.clone());
       }
 
       let mut parsed_ast = parsed_css_property_value.unwrap();
-      dbg!(&parsed_ast);
+     // dbg!(&parsed_ast);
 
       for normalizer in normalizers {
         parsed_ast = normalizer(parsed_ast, options.use_rem_for_font_size);
       }
 
-      dbg!(&parsed_ast);
+     // dbg!(&parsed_ast);
       // panic!("Not implemented yet");
       let result = stringify(&parsed_ast);
       // let b = a.unwrap().code;
 
-      // dbg!(&result, &b);
+      //// dbg!(&result, &b);
 
-      // dbg!(&result, &b, &result == &b);
+      //// dbg!(&result, &b, &result == &b);
       // result.to_case(Case::Kebab)
       whitespace_normalizer(result)
     }
@@ -495,7 +495,7 @@ pub(crate) fn get_value_from_ident(ident: &Ident) -> String {
 
 pub fn stringify(node: &Stylesheet) -> String {
 /// Stringifies the [`Stylesheet`]
-  dbg!(&node);
+ // dbg!(&node);
 
   let mut buf = String::new();
   let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
@@ -505,7 +505,7 @@ pub fn stringify(node: &Stylesheet) -> String {
 
   codegen.emit(&node).unwrap();
 
-  dbg!(&buf);
+ // dbg!(&buf);
 
   let mut result = buf.replace('\'', "");
 
@@ -531,7 +531,7 @@ pub fn stringify(node: &Stylesheet) -> String {
       .to_string();
   }
 
-  dbg!(&result);
+ // dbg!(&result);
 
   result
 }
@@ -591,7 +591,7 @@ fn variable_fallbacks(values: Vec<String>) -> Vec<String> {
     result.push(val.to_string());
   }
 
-  dbg!(&result);
+ // dbg!(&result);
 
   result
 }

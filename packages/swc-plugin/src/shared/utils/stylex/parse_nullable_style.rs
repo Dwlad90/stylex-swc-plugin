@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, Ident, Lit, MemberProp};
+use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp};
 
 use crate::shared::{
   enums::FlatCompiledStylesValue,
@@ -9,15 +9,21 @@ use crate::shared::{
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StyleObject {
-  Style(IndexMap<String, FlatCompiledStylesValue>),
+  Style(IndexMap<String, Box<FlatCompiledStylesValue>>),
   Nullable,
   Other,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum ResolvedArg {
-  StyleObject(StyleObject, Ident),
-  ConditionalStyle(Box<Expr>, Option<StyleObject>, Option<StyleObject>, Ident),
+  StyleObject(StyleObject, Ident, MemberExpr),
+  ConditionalStyle(
+    Box<Expr>,
+    Option<StyleObject>,
+    Option<StyleObject>,
+    Ident,
+    MemberExpr,
+  ),
 }
 
 pub(crate) fn parse_nullable_style(
@@ -82,7 +88,7 @@ pub(crate) fn parse_nullable_style(
             let style_value = style.get(&prop_name);
 
             if let Some(style_value) = style_value {
-              return StyleObject::Style(style_value.clone());
+              return StyleObject::Style(*style_value.clone());
             }
           }
         }

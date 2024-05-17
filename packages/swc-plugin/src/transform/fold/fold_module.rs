@@ -1,3 +1,5 @@
+use std::panic;
+
 use swc_core::{
   common::comments::{Comment, CommentKind, Comments},
   ecma::{ast::Module, visit::FoldWith},
@@ -26,7 +28,7 @@ where
       self.cycle = ModuleCycle::TransformExit;
       module = module.fold_children_with(self);
 
-      dbg!(&self.state.options.runtime_injection);
+      // dbg!(&self.state.options.runtime_injection);
 
       if self.state.options.runtime_injection.is_some() {
         self.cycle = ModuleCycle::InjectStyles;
@@ -54,6 +56,9 @@ where
           },
         );
       }
+
+      self.cycle = ModuleCycle::PreCleaning;
+      module = module.fold_children_with(self);
 
       self.cycle = ModuleCycle::Cleaning;
       module.fold_children_with(self)

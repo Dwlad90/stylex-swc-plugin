@@ -13,7 +13,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -33,7 +33,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -53,7 +53,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -73,7 +73,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -93,7 +93,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -113,7 +113,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -135,7 +135,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -155,7 +155,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -175,7 +175,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -195,7 +195,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -217,7 +217,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -237,7 +237,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -257,7 +257,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -277,7 +277,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -297,7 +297,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -317,7 +317,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -342,7 +342,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -362,7 +362,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -382,7 +382,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -402,7 +402,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -422,7 +422,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -442,7 +442,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -462,7 +462,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -482,7 +482,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -502,7 +502,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -522,7 +522,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -542,7 +542,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -562,7 +562,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -582,7 +582,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -602,7 +602,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -622,7 +622,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -642,7 +642,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },
@@ -662,7 +662,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },

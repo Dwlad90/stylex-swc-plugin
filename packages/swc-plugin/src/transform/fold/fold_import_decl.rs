@@ -33,30 +33,38 @@ where
       let import_sources = self.state.import_sources_stringified();
 
       self.state.top_imports.push(import_decl.clone());
-      dbg!(&import_decl, &import_sources, &declaration);
-      // panic!("declaration: {:?}", declaration);
+      // dbg!(&import_decl, &import_sources, &declaration);
+      // println!(
+      //   "!!!self.state.stylex_import: {:?}",
+      //   self.state.stylex_import
+      // );
+      // println!("!!!import_sources: {:?}", import_sources);
 
       if import_sources.contains(&declaration.to_string()) {
         let source_path = import_decl.src.value.to_string();
 
         for specifier in &import_decl.specifiers {
+          // println!("!!!! specifier: {:?}", specifier);
+
+
           match &specifier {
             ImportSpecifier::Default(import_specifier) => {
               if self.state.import_as(&import_decl.src.value).is_none() {
                 let local_name = import_specifier.local.sym.to_string();
 
-                println!("!!!! import_decl: {:?}", source_path);
-                println!("!!!! import_specifier: {:?}", local_name);
+                // println!("!!!! import_decl: {:?}", source_path);
+                // println!("!!!! import_specifier: {:?}", local_name);
 
                 self.state.import_paths.insert(source_path.clone());
 
                 self
                   .state
                   .stylex_import
-                  .insert(ImportSources::Regular(local_name));
+                  .insert(Box::new(ImportSources::Regular(local_name)));
               };
             }
             ImportSpecifier::Namespace(import_specifier) => {
+              // println!("!!!! import_decl.src.value: {:?}", import_decl.src.value);
               if self.state.import_as(&import_decl.src.value).is_none() {
                 let local_name = import_specifier.local.sym.to_string();
 
@@ -65,7 +73,7 @@ where
                 self
                   .state
                   .stylex_import
-                  .insert(ImportSources::Regular(local_name));
+                  .insert(Box::new(ImportSources::Regular(local_name)));
               }
             }
             ImportSpecifier::Named(import_specifier) => {
@@ -175,6 +183,8 @@ where
         }
       }
 
+      // dbg!(&self.state.import_paths);
+
       if self.state.import_paths.len() == 0 {
         import_decl
       } else {
@@ -199,7 +209,7 @@ where
         self
           .state
           .stylex_import
-          .insert(ImportSources::Regular(local_name.clone()));
+          .insert(Box::new(ImportSources::Regular(local_name.clone())));
       }
     }
 
@@ -210,19 +220,34 @@ where
 
       match imported_name.as_str() {
         "create" => {
-          self.state.stylex_create_import.insert(local_name_ident);
+          self
+            .state
+            .stylex_create_import
+            .insert(Box::new(local_name_ident));
         }
         "props" => {
-          self.state.stylex_props_import.insert(local_name_ident);
+          self
+            .state
+            .stylex_props_import
+            .insert(Box::new(local_name_ident));
         }
         "attrs" => {
-          self.state.stylex_attrs_import.insert(local_name_ident);
+          self
+            .state
+            .stylex_attrs_import
+            .insert(Box::new(local_name_ident));
         }
         "keyframes" => {
-          self.state.stylex_keyframes_import.insert(local_name_ident);
+          self
+            .state
+            .stylex_keyframes_import
+            .insert(Box::new(local_name_ident));
         }
         "include" => {
-          self.state.stylex_include_import.insert(local_name_ident);
+          self
+            .state
+            .stylex_include_import
+            .insert(Box::new(local_name_ident));
         }
         "firstThatWorks" => {
           todo!("firstThatWorks");
@@ -231,16 +256,19 @@ where
           self
             .state
             .stylex_define_vars_import
-            .insert(local_name_ident);
+            .insert(Box::new(local_name_ident));
         }
         "createTheme" => {
           self
             .state
             .stylex_create_theme_import
-            .insert(local_name_ident);
+            .insert(Box::new(local_name_ident));
         }
         "types" => {
-          self.state.stylex_types_import.insert(local_name_ident);
+          self
+            .state
+            .stylex_types_import
+            .insert(Box::new(local_name_ident));
         }
         _ => {
           panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)

@@ -25,3 +25,5 @@ pub(crate) static CSS_TYPE_KEY: &str = "$$css_type";
 pub(crate) static SPLIT_TOKEN: &str = "__$$__";
 
 pub(crate) static ROOT_FONT_SIZE: i8 = 16;
+
+pub(crate) static THEME_NAME_KEY : &str = "__themeName__";

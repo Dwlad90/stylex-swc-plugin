@@ -11,7 +11,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   transform_import_aliases,
@@ -39,7 +39,7 @@ fn throw_when_named_import() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -60,7 +60,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   can_import_with_a_different_name,
@@ -84,7 +84,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   can_import_wildcard,
@@ -109,7 +109,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   can_import_just_create,
@@ -134,7 +134,7 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass::default(),
+    &PluginPass::default(),
     Option::None
   ),
   can_import_just_create_with_alias,

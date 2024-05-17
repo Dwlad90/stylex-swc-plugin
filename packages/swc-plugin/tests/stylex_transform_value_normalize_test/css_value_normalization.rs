@@ -17,9 +17,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -42,9 +42,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -63,9 +63,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -87,9 +87,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -108,9 +108,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -133,9 +133,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -154,9 +154,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -178,9 +178,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -199,9 +199,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -224,9 +224,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -256,9 +256,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -277,9 +277,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -308,9 +308,9 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass::default(),
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(true)),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
       use_rem_for_font_size: Option::Some(true),
       ..StyleXOptionsParams::default()
     })

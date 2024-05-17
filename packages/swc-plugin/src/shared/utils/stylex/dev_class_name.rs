@@ -3,16 +3,19 @@ use std::path::Path;
 use indexmap::IndexMap;
 
 use crate::shared::{
-  constants::common::COMPILED_KEY, enums::FlatCompiledStylesValue,
-  regex::SANITIZE_CLASS_NAME_REGEX, structures::state_manager::StateManager,
+  constants::common::COMPILED_KEY,
+  enums::FlatCompiledStylesValue,
+  regex::SANITIZE_CLASS_NAME_REGEX,
+  structures::{flat_compiled_styles::FlatCompiledStyles, state_manager::StateManager},
 };
 
 pub(crate) fn inject_dev_class_names(
-  obj: &IndexMap<String, IndexMap<String, FlatCompiledStylesValue>>,
+  obj: &IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>>,
   var_name: &Option<String>,
   state: &StateManager,
-) -> IndexMap<String, IndexMap<String, FlatCompiledStylesValue>> {
-  let mut result: IndexMap<String, IndexMap<String, FlatCompiledStylesValue>> = IndexMap::new();
+) -> IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>> {
+  let mut result: IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>> =
+    IndexMap::new();
 
   for (key, value) in obj.iter() {
     let dev_class_name =
@@ -22,23 +25,23 @@ pub(crate) fn inject_dev_class_names(
 
     dev_class.insert(
       dev_class_name.clone(),
-      FlatCompiledStylesValue::String(dev_class_name),
+      Box::new(FlatCompiledStylesValue::String(dev_class_name)),
     );
 
-    dev_class.extend(value.clone());
+    dev_class.extend(*value.clone());
 
-    result.insert(key.clone(), dev_class);
+    result.insert(key.clone(), Box::new(dev_class));
   }
 
   result
 }
 
 pub(crate) fn convert_to_test_styles(
-  obj: &IndexMap<String, IndexMap<String, FlatCompiledStylesValue>>,
+  obj: &IndexMap<String, Box<FlatCompiledStyles>>,
   var_name: &Option<String>,
   state: &StateManager,
-) -> IndexMap<String, IndexMap<String, FlatCompiledStylesValue>> {
-  let mut result: IndexMap<String, IndexMap<String, FlatCompiledStylesValue>> = IndexMap::new();
+) -> IndexMap<String, Box<FlatCompiledStyles>> {
+  let mut result: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
 
   for (key, _value) in obj.iter() {
     let dev_class_name =
@@ -48,15 +51,15 @@ pub(crate) fn convert_to_test_styles(
 
     dev_class.insert(
       dev_class_name.clone(),
-      FlatCompiledStylesValue::String(dev_class_name),
+      Box::new(FlatCompiledStylesValue::String(dev_class_name)),
     );
 
     dev_class.insert(
       COMPILED_KEY.to_string(),
-      FlatCompiledStylesValue::Bool(true),
+      Box::new(FlatCompiledStylesValue::Bool(true)),
     );
 
-    result.insert(key.clone(), dev_class);
+    result.insert(key.clone(), Box::new(dev_class));
   }
 
   result
@@ -93,7 +96,7 @@ fn namespace_to_dev_class_name(
 fn convert_theme_to_base_styles(
   variable_name: &str,
   filename: &str,
-) -> IndexMap<String, FlatCompiledStylesValue> {
+) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
   let mut overrides_obj_extended = IndexMap::new();
 
   // Get the basename of the file without the extension
@@ -110,7 +113,7 @@ fn convert_theme_to_base_styles(
 
   overrides_obj_extended.insert(
     dev_class_name.clone(),
-    FlatCompiledStylesValue::String(dev_class_name),
+    Box::new(FlatCompiledStylesValue::String(dev_class_name)),
   );
 
   overrides_obj_extended
@@ -118,9 +121,9 @@ fn convert_theme_to_base_styles(
 
 pub(crate) fn convert_theme_to_dev_styles(
   variable_name: &Option<String>,
-  overrides_obj: &IndexMap<String, FlatCompiledStylesValue>,
+  overrides_obj: &IndexMap<String, Box<FlatCompiledStylesValue>>,
   filename: &str,
-) -> IndexMap<String, FlatCompiledStylesValue> {
+) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
   let mut overrides_obj_extended = convert_theme_to_base_styles(
     variable_name
       .clone()
@@ -136,9 +139,9 @@ pub(crate) fn convert_theme_to_dev_styles(
 
 pub(crate) fn convert_theme_to_test_styles(
   variable_name: &Option<String>,
-  overrides_obj: &IndexMap<String, FlatCompiledStylesValue>,
+  overrides_obj: &IndexMap<String, Box<FlatCompiledStylesValue>>,
   filename: &str,
-) -> IndexMap<String, FlatCompiledStylesValue> {
+) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
   let mut overrides_obj_extended = convert_theme_to_base_styles(
     variable_name
       .clone()
@@ -150,7 +153,7 @@ pub(crate) fn convert_theme_to_test_styles(
 
   overrides_obj_extended.insert(
     COMPILED_KEY.to_string(),
-    FlatCompiledStylesValue::Bool(true),
+    Box::new(FlatCompiledStylesValue::Bool(true)),
   );
 
   overrides_obj_extended

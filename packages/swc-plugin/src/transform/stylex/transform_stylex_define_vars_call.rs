@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, panic};
 
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Id, Ident};
@@ -42,9 +42,11 @@ where
 
       // let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
 
-      let mut identifiers: HashMap<Id, FunctionConfigType> = HashMap::new();
-      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>> =
-        HashMap::new();
+      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
+      let mut member_expressions: HashMap<
+        Box<ImportSources>,
+        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
+      > = HashMap::new();
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();
@@ -52,25 +54,30 @@ where
       for name in &self.state.stylex_keyframes_import {
         identifiers.insert(
           name.clone(),
-          FunctionConfigType::Regular(keyframes_fn.clone()),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }
 
       for name in &self.state.stylex_types_import {
-        identifiers.insert(name.clone(), FunctionConfigType::Regular(types_fn.clone()));
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::Regular(types_fn.clone())),
+        );
       }
 
       for name in &self.state.stylex_import {
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          Ident::new("keyframes".into(), DUMMY_SP).to_id(),
-          FunctionConfigType::Regular(keyframes_fn.clone()),
+          Box::new(Ident::new("keyframes".into(), DUMMY_SP).to_id()),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
         let identifier = identifiers
-          .entry(Ident::new(name.get_import_str().into(), DUMMY_SP).to_id())
-          .or_insert(FunctionConfigType::Map(HashMap::default()));
+          .entry(Box::new(
+            Ident::new(name.get_import_str().into(), DUMMY_SP).to_id(),
+          ))
+          .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert(
@@ -80,14 +87,14 @@ where
         }
       }
 
-      let function_map: FunctionMap = FunctionMap {
+      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
         identifiers,
         member_expressions,
-      };
+      });
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      dbg!(evaluated_arg.clone());
+      // dbg!(evaluated_arg.clone());
 
       assert!(
         evaluated_arg.confident,
@@ -111,7 +118,7 @@ where
           panic!("{}", constants::messages::NON_STATIC_VALUE)
         }
       };
-      dbg!(&evaluated_arg.confident, &value);
+      // dbg!(&evaluated_arg.confident, &value);
 
       let Some(file_name) = self.state.get_filename_for_hashing() else {
         panic!("No filename found for generating theme name.")
@@ -132,17 +139,17 @@ where
         Option::None,
       ));
 
-      dbg!(&self.state.theme_name);
+      // dbg!(&self.state.theme_name);
 
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);
 
-      dbg!(&variables_obj, &injected_styles_sans_keyframes);
+      // dbg!(&variables_obj, &injected_styles_sans_keyframes);
 
       let mut injected_styles = self.state.injected_keyframes.clone();
       injected_styles.extend(injected_styles_sans_keyframes);
 
-      dbg!(&variables_obj);
+      // dbg!(&variables_obj);
 
       let (var_name, _) = self.get_call_var_name(call);
 

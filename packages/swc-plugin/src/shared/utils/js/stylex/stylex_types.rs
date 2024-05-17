@@ -145,13 +145,13 @@ impl BaseCSSType {
         props
       }
       ValueWithDefault::Map(map) => {
-        dbg!(&map);
+       // dbg!(&map);
 
         let mut local_props = vec![];
 
         for (key, val) in map {
           let props_to_extend = BaseCSSType::value_to_props(val, Some(key.clone()));
-          dbg!(&key, &props_to_extend);
+         // dbg!(&key, &props_to_extend);
 
           local_props.extend(props_to_extend);
         }
@@ -162,7 +162,7 @@ impl BaseCSSType {
         });
         let prop = prop_or_spread_expression_creator(
           top_key.unwrap_or("value".to_string()).as_str(),
-          object_expr,
+          Box::new(object_expr),
         );
 
         vec![prop]
@@ -174,7 +174,7 @@ impl BaseCSSType {
     //   "true".to_string(),
     // ));
 
-    // dbg!(&value);
+    //// dbg!(&value);
 
     value
   }
@@ -182,7 +182,7 @@ impl BaseCSSType {
 
 impl From<ObjectLit> for BaseCSSType {
   fn from(obj: ObjectLit) -> BaseCSSType {
-    dbg!(&obj);
+   // dbg!(&obj);
 
     let key_values = get_key_values_from_object(&obj);
     let mut syntax: Option<CSSSyntax> = Option::None;
@@ -191,7 +191,7 @@ impl From<ObjectLit> for BaseCSSType {
 
     for key_value in key_values {
       let key = get_key_str(&key_value);
-      dbg!(&key);
+     // dbg!(&key);
 
       match key.as_str() {
         "syntax" => {
@@ -223,12 +223,12 @@ impl From<ObjectLit> for BaseCSSType {
           //   .expect("Value must be an object");
 
           for key_value in get_key_values_from_object(&obj_value) {
-            dbg!(&key_value);
+           // dbg!(&key_value);
             let key = get_key_str(&key_value);
 
             match key_value.value.as_ref() {
               Expr::Object(obj) => {
-                dbg!(&key, &obj);
+               // dbg!(&key, &obj);
 
                 let mut obj_map = IndexMap::new();
 
@@ -261,7 +261,7 @@ impl From<ObjectLit> for BaseCSSType {
           }
         }
         _ => {
-          dbg!(&obj);
+         // dbg!(&obj);
           panic!(r#"Key "{}" not support by BaseCSSType"#, key)
         }
       }
@@ -269,7 +269,7 @@ impl From<ObjectLit> for BaseCSSType {
 
     assert!(!values.is_empty(), "Invalid value in stylex.defineVars");
 
-    dbg!(&values);
+   // dbg!(&values);
 
     assert!(
       values.contains_key("default"),
@@ -289,7 +289,7 @@ impl From<ObjectLit> for BaseCSSType {
 // }
 
 // fn _is_css_type(value: &dyn CSSType) -> bool {
-//   println!("isCSSType {:?}", value.value());
+// // println!("isCSSType {:?}", value.value());
 
 //   match value.syntax() {
 //     CSSSyntax::Asterisk => true,
@@ -592,7 +592,7 @@ fn convert_number_to_string_using(
           );
         }
 
-        dbg!(&result);
+       // dbg!(&result);
 
         ValueWithDefault::Map(result)
       }
@@ -610,7 +610,7 @@ fn convert_number_to_bare_string(value: ValueWithDefault) -> ValueWithDefault {
 fn convert_number_to_length(value: ValueWithDefault) -> ValueWithDefault {
   convert_number_to_string_using(
     |value: f64| {
-      dbg!(&value);
+     // dbg!(&value);
 
       if value == 0.0 {
         ValueWithDefault::String("0".to_string())
@@ -717,12 +717,12 @@ impl From<BaseCSSType> for Expr {
   fn from(instance: BaseCSSType) -> Self {
     let syntax_prop =
       prop_or_spread_string_creator("syntax", format!("{}", instance.syntax).as_str());
-    dbg!(&syntax_prop);
+   // dbg!(&syntax_prop);
 
     let mut props = vec![syntax_prop];
 
     props.extend(BaseCSSType::value_to_props(instance.value, Option::None));
-    // dbg!(&props);
+    //// dbg!(&props);
 
     // panic!();
 
@@ -740,7 +740,7 @@ fn angle(value: ValueWithDefault) -> Expr {
 
 fn color(value: ValueWithDefault) -> Expr {
   let base_css_type: BaseCSSType = Color::new(value).into();
-  dbg!(&base_css_type);
+ // dbg!(&base_css_type);
 
   base_css_type.into()
 }
@@ -832,7 +832,7 @@ pub(crate) fn get_types_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexFnsFactory(
       |prop_name| -> Rc<dyn Fn(ValueWithDefault) -> Expr + 'static> {
-        dbg!(&prop_name);
+       // dbg!(&prop_name);
         // let orig_args: Vec<Pat> = params.clone();
 
         // let arrow_closure_fabric = |orig_args: Vec<Pat>| move |expr: Expr| expr.clone();

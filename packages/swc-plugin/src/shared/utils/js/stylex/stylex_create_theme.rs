@@ -1,16 +1,21 @@
 use std::cmp::Ordering;
 
 use indexmap::IndexMap;
+use swc_core::common::DUMMY_SP;
 
 use crate::shared::{
-  constants::common::COMPILED_KEY,
+  constants::common::{COMPILED_KEY, THEME_NAME_KEY},
   enums::FlatCompiledStylesValue,
   structures::{
     evaluate_result::EvaluateResultValue, functions::FunctionMap,
     injectable_style::InjectableStyle, state_manager::StateManager,
   },
   utils::{
-    common::{create_hash, expr_to_str, get_css_value, get_key_str, get_key_values_from_object},
+    common::{
+      create_hash, expr_to_str, get_css_value, get_key_str, get_key_values_from_object,
+      key_value_creator, prop_or_spread_string_creator, string_to_expression,
+    },
+    css::factories::object_expression_factory,
     stylex::define_vars_utils::{
       collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules,
     },
@@ -22,24 +27,24 @@ pub(crate) fn stylex_create_theme(
   theme_vars: &EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
-  typed_variables: &mut IndexMap<String, FlatCompiledStylesValue>,
+  typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
 ) -> (
-  IndexMap<String, FlatCompiledStylesValue>,
-  IndexMap<String, InjectableStyle>,
+  IndexMap<String, Box<FlatCompiledStylesValue>>,
+  IndexMap<String, Box<InjectableStyle>>,
 ) {
-  dbg!(theme_vars, variables);
+  // dbg!(theme_vars, variables);
 
-  let theme_name_key_value = validate_theme_variables(theme_vars);
+  let theme_name_key_value = validate_theme_variables(theme_vars, state);
 
-  let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
+  let mut rules_by_at_rule: IndexMap<String, Box<Vec<String>>> = IndexMap::new();
 
-  let mut variables_key_values = get_key_values_from_object(
+  let mut variables_key_values = Box::new(get_key_values_from_object(
     variables
       .as_expr()
       .and_then(|expr| expr.as_object())
       .expect("Variables must be an object"),
-  );
-  dbg!(&variables_key_values);
+  ));
+  // dbg!(&variables_key_values);
 
   variables_key_values.sort_by(|a, b| {
     let a_key = get_key_str(a);
@@ -48,36 +53,87 @@ pub(crate) fn stylex_create_theme(
     a_key.cmp(&b_key)
   });
 
-  let theme_vars_props = theme_vars.as_expr().unwrap().as_object().unwrap();
+  // let theme_vars_props = match theme_vars {
+  //   EvaluateResultValue::Expr(expr) => expr.clone().object().unwrap(),
+  //   EvaluateResultValue::ThemeRef(theme_ref) => {
+  //     let (value, updated_state) = theme_ref.clone().get(THEME_NAME_KEY);
 
-  let theme_vars_key_values = get_key_values_from_object(theme_vars_props);
+  //     *state = state.clone().combine(updated_state);
+
+  //     let prop = prop_or_spread_string_creator(THEME_NAME_KEY, value.as_str());
+
+  //     ObjectLit {
+  //       span: DUMMY_SP,
+  //       props: vec![prop],
+  //     }
+  //   }
+  //   _ => unreachable!("Theme vars must be an Epression or a ThemeRef"),
+  // };
+
+  // dbg!(&variables_key_values);
 
   for key_value in variables_key_values.into_iter() {
     let key = get_key_str(&key_value);
 
-    let theme_vars_item = theme_vars_key_values
-      .clone()
-      .into_iter()
-      .find(|key_value| {
-        let local_key = get_key_str(key_value);
+    let theme_vars_str_value = match theme_vars {
+      EvaluateResultValue::Expr(expr) => {
+        let theme_vars_key_values = get_key_values_from_object(&expr.clone().object().unwrap());
+        let theme_vars_item = theme_vars_key_values
+          .clone()
+          .into_iter()
+          .find(|key_value| {
+            let local_key = get_key_str(key_value);
 
-        dbg!(&local_key, &key);
+            // dbg!(&local_key, &key);
 
-        local_key == key
-      })
-      .expect("Theme variable not found");
+            local_key == key
+          })
+          .expect("Theme variable not found");
 
-    let theme_vars_str_value = expr_to_str(
-      theme_vars_item.value.as_ref(),
-      state,
-      &FunctionMap::default(),
-    );
+        let theme_vars_str_value = expr_to_str(
+          theme_vars_item.value.as_ref(),
+          state,
+          &FunctionMap::default(),
+        );
+
+        theme_vars_str_value
+      }
+      EvaluateResultValue::Vec(_) => todo!(),
+      EvaluateResultValue::Map(_) => todo!(),
+      EvaluateResultValue::Entries(_) => todo!(),
+      EvaluateResultValue::Callback(_) => todo!(),
+      EvaluateResultValue::FunctionConfig(_) => todo!(),
+      EvaluateResultValue::FunctionConfigMap(_) => todo!(),
+      EvaluateResultValue::ThemeRef(theme_ref) => {
+        let a = theme_ref.clone().get(key.as_str()).0.clone();
+
+        a
+      }
+    };
+
+    // let theme_vars_item = theme_vars_key_values
+    //   .clone()
+    //   .into_iter()
+    //   .find(|key_value| {
+    //     let local_key = get_key_str(key_value);
+
+    //   // dbg!(&local_key, &key);
+
+    //     local_key == key
+    //   })
+    //   .expect("Theme variable not found");
+
+    // let theme_vars_str_value = expr_to_str(
+    //   theme_vars_item.0,
+    //   state,
+    //   &FunctionMap::default(),
+    // );
 
     let name_hash = theme_vars_str_value[6..theme_vars_str_value.len() - 1].to_string();
 
-    dbg!(&key_value);
+    // dbg!(&key_value);
     let css_value = get_css_value(key_value);
-    dbg!(&css_value);
+    // dbg!(&css_value);
 
     // panic!();
 
@@ -91,8 +147,9 @@ pub(crate) fn stylex_create_theme(
       typed_variables,
     );
   }
+  // panic!();
 
-  dbg!(&rules_by_at_rule);
+  // dbg!(&rules_by_at_rule);
 
   // Sort @-rules to get a consistent unique hash value
   // But also put "default" first
@@ -108,7 +165,7 @@ pub(crate) fn stylex_create_theme(
     }
   });
 
-  dbg!(&sorted_at_rules);
+  // dbg!(&sorted_at_rules);
 
   let at_rules_string_for_hash = sorted_at_rules
     .clone()
@@ -121,7 +178,7 @@ pub(crate) fn stylex_create_theme(
     .collect::<Vec<String>>()
     .join("");
 
-  dbg!(&at_rules_string_for_hash);
+  // dbg!(&at_rules_string_for_hash);
 
   // Create a class name hash
   let override_class_name = format!(
@@ -130,12 +187,12 @@ pub(crate) fn stylex_create_theme(
     create_hash(at_rules_string_for_hash.as_str())
   );
 
-  dbg!(&override_class_name);
+  // dbg!(&override_class_name);
 
-  let mut resolved_theme_vars: IndexMap<String, FlatCompiledStylesValue> = IndexMap::new();
-  let mut styles_to_inject: IndexMap<String, InjectableStyle> = IndexMap::new();
+  let mut resolved_theme_vars: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut styles_to_inject: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
 
-  dbg!(&sorted_at_rules);
+  // dbg!(&sorted_at_rules);
 
   for at_rule in sorted_at_rules.into_iter() {
     let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
@@ -144,11 +201,11 @@ pub(crate) fn stylex_create_theme(
     if at_rule == "default" {
       styles_to_inject.insert(
         override_class_name.clone(),
-        InjectableStyle {
+        Box::new(InjectableStyle {
           ltr: rule.clone(),
           rtl: None,
           priority: Some(0.5),
-        },
+        }),
       );
     } else {
       let key = format!("{}-{}", override_class_name, create_hash(at_rule));
@@ -157,30 +214,46 @@ pub(crate) fn stylex_create_theme(
 
       styles_to_inject.insert(
         key,
-        InjectableStyle {
+        Box::new(InjectableStyle {
           ltr,
           rtl: None,
           priority: Some(priority),
-        },
+        }),
       );
     }
   }
-  dbg!(&styles_to_inject);
+  // dbg!(&styles_to_inject);
 
   resolved_theme_vars.insert(
     COMPILED_KEY.to_string(),
-    FlatCompiledStylesValue::Bool(true),
+    Box::new(FlatCompiledStylesValue::Bool(true)),
   );
 
-  let theme_name_str_value = expr_to_str(
-    theme_name_key_value.value.as_ref(),
-    state,
-    &FunctionMap::default(),
-  );
+  // panic!("Remove this line after debugging");
+  let theme_name_str_value = match theme_vars {
+    EvaluateResultValue::Expr(expr) => expr_to_str(
+      theme_name_key_value.value.as_ref(),
+      state,
+      &FunctionMap::default(),
+    ),
+    EvaluateResultValue::Vec(_) => todo!(),
+    EvaluateResultValue::Map(_) => todo!(),
+    EvaluateResultValue::Entries(_) => todo!(),
+    EvaluateResultValue::Callback(_) => todo!(),
+    EvaluateResultValue::FunctionConfig(_) => todo!(),
+    EvaluateResultValue::FunctionConfigMap(_) => todo!(),
+    EvaluateResultValue::ThemeRef(theme_ref) => {
+      let result = theme_ref.clone().get(THEME_NAME_KEY).0;
+
+      result
+    }
+  };
+
+  // dbg!(&theme_name_str_value, &override_class_name);
 
   resolved_theme_vars.insert(
     theme_name_str_value,
-    FlatCompiledStylesValue::String(override_class_name),
+    Box::new(FlatCompiledStylesValue::String(override_class_name)),
   );
 
   (resolved_theme_vars, styles_to_inject)

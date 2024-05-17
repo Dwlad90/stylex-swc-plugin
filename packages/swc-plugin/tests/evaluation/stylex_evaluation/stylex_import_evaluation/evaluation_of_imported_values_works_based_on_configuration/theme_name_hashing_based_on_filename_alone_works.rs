@@ -34,20 +34,20 @@ fn tranform(input: &str) -> String {
       let mut config = StyleXOptionsParams::default();
 
       config.class_name_prefix = Option::Some("__hashed_var__".to_string());
-      config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+      config.runtime_injection = Option::Some(true);
       config.treeshake_compensation = Option::Some(true);
       config.unstable_module_resolution =
         Option::Some(StyleXOptions::get_haste_module_resolution(Option::None));
 
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass {
+        &PluginPass {
           filename: FileName::Real(
             format!("{}/test.skip.js", env::current_dir().unwrap().display()).into(),
           ),
           ..Default::default()
         },
-        Option::Some(config),
+        Option::Some(&mut config),
       )
     },
   )

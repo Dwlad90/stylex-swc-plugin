@@ -84,13 +84,14 @@ impl Fold for ArgsModuleTransformVisitor {
   }
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
-    println!("!!!!!expr: {:?}", expr);
-    let evaluate_result = evaluate_stylex_create_arg(&expr, &mut self.state, &self.functions);
-    println!("!!!!!evaluate_result: {:?}", evaluate_result);
+    // println!("!!!!!expr: {:?}", expr);
+    let evaluate_result =
+      evaluate_stylex_create_arg(&Box::new(expr), &mut self.state, &self.functions);
+    // println!("!!!!!evaluate_result: {:?}", evaluate_result);
 
     match evaluate_result.value {
-      Some(value) => match value {
-        EvaluateResultValue::Expr(expr) => expr.clone(), //.fold_children_with(self),
+      Some(value) => match value.as_ref() {
+        EvaluateResultValue::Expr(expr) => *expr.clone(), //.fold_children_with(self),
         EvaluateResultValue::Vec(vec) => Expr::Array(ArrayLit {
           span: DUMMY_SP,
           elems: vec
@@ -105,31 +106,39 @@ impl Fold for ArgsModuleTransformVisitor {
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(vec![
-          Option::Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
-            span: DUMMY_SP,
-            value: 2.0,
-            raw: Option::None,
-          })))),
-          Option::Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
-            span: DUMMY_SP,
-            value: 7.0,
-            raw: Option::None,
-          })))),
+          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
+            Number {
+              span: DUMMY_SP,
+              value: 2.0,
+              raw: Option::None,
+            },
+          ))))),
+          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
+            Number {
+              span: DUMMY_SP,
+              value: 7.0,
+              raw: Option::None,
+            },
+          ))))),
         ]),
         EvaluateResultValue::Map(map) => {
           let mut props = vec![];
 
           for (key, value) in map.iter() {
-            dbg!(&key, &value);
+            // dbg!(&key, &value);
             let prop = prop_or_spread_expression_creator(
               expr_to_str(key, &mut self.state, &FunctionMap::default()).as_str(),
-              object_expression_factory(
-                value
-                  .iter()
-                  .map(|key_value| PropOrSpread::Prop(Box::new(Prop::KeyValue(key_value.clone()))))
-                  .collect(),
-              )
-              .unwrap(),
+              Box::new(
+                object_expression_factory(
+                  value
+                    .iter()
+                    .map(|key_value| {
+                      PropOrSpread::Prop(Box::new(Prop::KeyValue(key_value.clone())))
+                    })
+                    .collect(),
+                )
+                .unwrap(),
+              ),
             );
 
             props.push(prop);

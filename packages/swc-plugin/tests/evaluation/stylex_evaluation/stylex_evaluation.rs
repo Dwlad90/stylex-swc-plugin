@@ -131,8 +131,7 @@ fn evaluates_built_in_functions() {
     }),
     |_| EvaluationModuleTransformVisitor::default(),
     r#"
-            const x = Math.max(1, 2, 3);
-            const x = Math.min(1, 2, 3)
+            const x = Object.getOwnPropertyNames({a: 2});
         "#,
     r#""#,
     false,
@@ -170,15 +169,15 @@ fn evaluates_customs_functions() {
       };
 
       identifiers.insert(
-        Ident::from("makeArray").to_id(),
-        FunctionConfigType::Regular(make_array),
+        Box::new(Ident::from("makeArray").to_id()),
+        Box::new(FunctionConfigType::Regular(make_array)),
       );
 
       let mut member_expressions = HashMap::new();
 
       member_expressions.insert(
-        ImportSources::Regular("stylex".to_string()),
-        identifiers.clone(),
+        Box::new(ImportSources::Regular("stylex".to_string())),
+        Box::new(identifiers.clone()),
       );
 
       EvaluationModuleTransformVisitor {
@@ -230,8 +229,8 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       };
 
       identifiers.insert(
-        Ident::from("makeClass").to_id(),
-        FunctionConfigType::Regular(make_class),
+        Box::new(Ident::from("makeClass").to_id()),
+        Box::new(FunctionConfigType::Regular(make_class)),
       );
 
       EvaluationModuleTransformVisitor {
@@ -279,8 +278,8 @@ fn evaluates_custom_functions_used_as_spread_values() {
       };
 
       identifiers.insert(
-        Ident::from("makeObj").to_id(),
-        FunctionConfigType::Regular(make_obj),
+        Box::new(Ident::from("makeObj").to_id()),
+        Box::new(FunctionConfigType::Regular(make_obj)),
       );
 
       EvaluationModuleTransformVisitor {
@@ -338,8 +337,8 @@ fn evaluates_custom_functions_that_take_paths() {
       };
 
       identifiers.insert(
-        Ident::from("getNode").to_id(),
-        FunctionConfigType::Regular(get_node),
+        Box::new(Ident::from("getNode").to_id()),
+        Box::new(FunctionConfigType::Regular(get_node)),
       );
 
       EvaluationModuleTransformVisitor {

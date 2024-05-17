@@ -17,7 +17,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -47,7 +47,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -77,7 +77,7 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -107,7 +107,7 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
     |tr| {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       )
     },
@@ -129,7 +129,7 @@ test!(
   |tr| {
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
+      &PluginPass::default(),
       Option::None,
     )
   },

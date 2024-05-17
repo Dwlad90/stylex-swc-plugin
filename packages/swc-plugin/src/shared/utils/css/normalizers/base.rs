@@ -23,7 +23,7 @@ impl CssFolder {
     &'a mut self,
     declaration: &'a mut Declaration,
   ) -> Declaration {
-    dbg!(&declaration);
+   // dbg!(&declaration);
 
     match &declaration.name {
       DeclarationName::Ident(ident) => {
@@ -40,7 +40,7 @@ impl CssFolder {
     //    declaration.raw_value = dashify(declaration.raw_value.as_str()).into();
     // };
 
-    // dbg!(&declaration);
+    //// dbg!(&declaration);
 
     declaration.clone()
   }
@@ -61,7 +61,7 @@ impl Fold for CssFolder {
   // }
 
   // fn fold_token(&mut self,n:Token) -> Token {
-  //     dbg!(&n);
+  //    // dbg!(&n);
 
   //     Token::LBrace
   // }
@@ -75,7 +75,7 @@ impl Fold for CssFolder {
         .clone();
     }
 
-    dbg!(&declaration);
+   // dbg!(&declaration);
 
     // NOTE: Whitespace normalizer working out of the box with minify
     // declaration.value = whitespace_normalizer(declaration.value);
@@ -86,7 +86,7 @@ impl Fold for CssFolder {
   // fn fold_component_value(&mut self, component_value: ComponentValue) -> ComponentValue {
   //   let a = match &component_value {
   //     ComponentValue::Str(s) => {
-  //       dbg!(s.value.clone(), s.raw.clone());
+  //      // dbg!(s.value.clone(), s.raw.clone());
   //       let replaced_value = s.value.replace('"', "'");
   //       let replaced_raw = s.raw.as_ref().map(|raw| raw.replace('"', "'"));
 
@@ -98,7 +98,7 @@ impl Fold for CssFolder {
   //     }
   //     _ => component_value.fold_children_with(self),
   //   };
-  //   dbg!(&a);
+  //  // dbg!(&a);
   //   a
   // }
 
@@ -110,7 +110,7 @@ impl Fold for CssFolder {
   }
 
   fn fold_length(&mut self, mut length: Length) -> Length {
-    dbg!(&length);
+   // dbg!(&length);
     if self.parent_key == Option::Some("fontSize".into())
       && length.unit.value.eq("px")
       && length.value.value != 0.0
@@ -167,14 +167,14 @@ fn _whitespace_normalizer(values: Vec<ComponentValue>) -> Vec<ComponentValue> {
   let mut value = values
     .iter()
     .filter_map(|child| {
-      // dbg!(&child);
+      //// dbg!(&child);
       let result = match child {
         ComponentValue::Delimiter(delimiter) => {
           let mut delimiter = delimiter.clone();
 
           delimiter.value = DelimiterValue::Comma;
 
-          dbg!(&delimiter.value, &child.as_delimiter().unwrap().value);
+         // dbg!(&delimiter.value, &child.as_delimiter().unwrap().value);
 
           // Some(ComponentValue::Delimiter(delimiter))
           // None
@@ -245,7 +245,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       length.value = get_zero_demansion_value();
       length.unit = get_zero_demansion_unit();
 
-      dbg!(&dimension);
+     // dbg!(&dimension);
 
       dimension
     }
@@ -342,7 +342,7 @@ fn _leading_zero_normalizer(number: &mut Number) -> &mut Number {
   if number.value < 1.0 && number.value >= 0.0 {
     if let Some(raw) = &number.raw {
       number.raw = Option::Some(raw.replace("0.", ".").into());
-      dbg!(&number);
+     // dbg!(&number);
     }
   }
 
@@ -350,7 +350,7 @@ fn _leading_zero_normalizer(number: &mut Number) -> &mut Number {
 }
 
 fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
-  // dbg!(&declaration);
+  //// dbg!(&declaration);
   match &declaration.name {
     DeclarationName::Ident(ident) => {
       if !ident.value.eq("transitionProperty") && !ident.value.eq("willChange") {
@@ -382,7 +382,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
   //    declaration.raw_value = dashify(declaration.raw_value.as_str()).into();
   // };
 
-  // dbg!(&declaration);
+  //// dbg!(&declaration);
 
   declaration
 }

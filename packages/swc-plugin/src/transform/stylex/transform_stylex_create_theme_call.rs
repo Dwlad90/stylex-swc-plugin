@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
@@ -63,9 +64,11 @@ where
 
       // let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
 
-      let mut identifiers: HashMap<Id, FunctionConfigType> = HashMap::new();
-      let mut member_expressions: HashMap<ImportSources, HashMap<Id, FunctionConfigType>> =
-        HashMap::new();
+      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
+      let mut member_expressions: HashMap<
+        Box<ImportSources>,
+        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
+      > = HashMap::new();
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();
@@ -73,25 +76,30 @@ where
       for name in &self.state.stylex_keyframes_import {
         identifiers.insert(
           name.clone(),
-          FunctionConfigType::Regular(keyframes_fn.clone()),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }
 
       for name in &self.state.stylex_types_import {
-        identifiers.insert(name.clone(), FunctionConfigType::Regular(types_fn.clone()));
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::Regular(types_fn.clone())),
+        );
       }
 
       for name in &self.state.stylex_import {
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          Ident::new("keyframes".into(), DUMMY_SP).to_id(),
-          FunctionConfigType::Regular(keyframes_fn.clone()),
+          Box::new(Ident::new("keyframes".into(), DUMMY_SP).to_id()),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
         let identifier = identifiers
-          .entry(Ident::new(name.get_import_str().into(), DUMMY_SP).to_id())
-          .or_insert(FunctionConfigType::Map(HashMap::default()));
+          .entry(Box::new(
+            Ident::new(name.get_import_str().into(), DUMMY_SP).to_id(),
+          ))
+          .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert(
@@ -100,14 +108,15 @@ where
           );
         }
       }
-      dbg!(&second_arg, &identifiers);
+      // dbg!(&second_arg, &identifiers);
 
-      let function_map: FunctionMap = FunctionMap {
+      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
         identifiers,
         member_expressions,
-      };
+      });
 
       let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &function_map);
+      // dbg!(&evaluated_arg1);
 
       assert!(
         evaluated_arg1.confident,
@@ -117,7 +126,7 @@ where
 
       let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
 
-      dbg!(&evaluated_arg2);
+      // dbg!(&evaluated_arg2);
 
       assert!(
         evaluated_arg2.confident,
@@ -128,7 +137,7 @@ where
       // let variables = match evaluated_arg2.value.clone() {
       let variables = match evaluated_arg1.value {
         Some(value) => {
-          validate_theme_variables(&value);
+          validate_theme_variables(&value, &mut self.state);
 
           value
         }
@@ -160,7 +169,7 @@ where
         &mut IndexMap::default(),
       );
 
-      dbg!(&overrides_obj, &inject_styles);
+      // dbg!(&overrides_obj, &inject_styles);
 
       let (var_name, _) = self.get_call_var_name(call);
 
@@ -174,6 +183,7 @@ where
 
       let result_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(overrides_obj));
+      // dbg!(&result_ast);
 
       self
         .state
@@ -184,7 +194,7 @@ where
       None
     };
 
-    dbg!(&result);
+    // dbg!(&result);
 
     result
   }

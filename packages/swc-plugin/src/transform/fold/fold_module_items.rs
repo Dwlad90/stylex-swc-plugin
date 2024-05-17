@@ -1,7 +1,7 @@
 use swc_core::{
   common::{comments::Comments, DUMMY_SP},
   ecma::{
-    ast::{BindingIdent, Decl, Expr, Ident, ModuleDecl, ModuleItem, Pat, Stmt, VarDeclarator},
+    ast::{BindingIdent, Decl, Expr, Ident, Lit, ModuleDecl, ModuleItem, Pat, Stmt, VarDeclarator},
     visit::FoldWith,
   },
 };
@@ -26,7 +26,7 @@ where
                     if let Pat::Ident(_) = &decl.name {
                       let var = decl.clone();
 
-                      if !self.state.declarations.contains(&var) {
+                      if !self.state.declarations.contains(&Box::new(var.clone())) {
                         self.state.declarations.push(var);
                       }
                     }
@@ -51,16 +51,31 @@ where
       }
       ModuleCycle::TransformEnter => module_items.fold_children_with(self),
       ModuleCycle::TransformExit => module_items.fold_children_with(self),
+      ModuleCycle::PreCleaning => module_items.fold_children_with(self),
       ModuleCycle::InjectClassName => module_items.fold_children_with(self),
       ModuleCycle::InjectStyles => {
         let mut result_module_items: Vec<ModuleItem> =
           self.state.prepend_include_module_items.clone();
+        // dbg!(&module_items.first());
 
         result_module_items.extend(self.state.prepend_import_module_items.clone());
 
-        dbg!(&result_module_items);
+        // dbg!(&result_module_items);
 
-        for module_item in module_items.clone().into_iter() {
+        let mut items_to_skip: usize = 0;
+
+        if let Some(first) = module_items
+          .first()
+          .and_then(|first| first.as_stmt())
+          .and_then(|stmp| stmp.as_expr())
+        {
+          if let Some(Lit::Str(_)) = first.expr.as_lit() {
+            result_module_items.insert(0, module_items.first().unwrap().clone());
+            items_to_skip = 1;
+          }
+        }
+
+        for module_item in module_items.clone().into_iter().skip(items_to_skip) {
           if let Some(decls) = match module_item.clone() {
             ModuleItem::ModuleDecl(decl) => match decl {
               ModuleDecl::ExportDecl(export_decl) => export_decl.decl.var().map(|var_decl| {
@@ -104,7 +119,7 @@ where
             ),
             _ => Option::None,
           } {
-            dbg!(&decls);
+            // dbg!(&decls);
             for decl in decls {
               let key = decl.clone().init.clone().unwrap();
 

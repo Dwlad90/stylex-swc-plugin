@@ -23,14 +23,16 @@ mod stylex_keyframes {
       .map(|(key, values)| {
         let props = values
           .iter()
-          .map(|val| prop_or_spread_expression_creator(val.0, string_to_expression(val.1).unwrap()))
+          .map(|val| {
+            prop_or_spread_expression_creator(val.0, Box::new(string_to_expression(val.1).unwrap()))
+          })
           .collect::<Vec<PropOrSpread>>();
 
         prop_or_spread_expr_creator(key, props)
       })
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(object_expression_factory(props).unwrap())
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
   }
 
   fn exprected_css_result_factory(

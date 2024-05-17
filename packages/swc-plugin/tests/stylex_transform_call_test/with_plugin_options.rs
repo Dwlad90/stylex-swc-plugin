@@ -17,11 +17,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -45,11 +45,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Some(true),
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
@@ -79,11 +79,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -112,11 +112,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Some(true),
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
@@ -144,11 +144,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })

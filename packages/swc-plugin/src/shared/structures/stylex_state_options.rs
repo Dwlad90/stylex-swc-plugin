@@ -21,7 +21,7 @@ pub struct StyleXStateOptions {
   pub runtime_injection: Option<RuntimeInjectionState>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
-  pub aliases: Option<HashMap<String, Vec<String>>>,
+  pub aliases: Option<HashMap<String, Box<Vec<String>>>>,
   pub unstable_module_resolution: Option<CheckModuleResolution>,
 }
 
@@ -51,6 +51,8 @@ impl Default for CheckModuleResolution {
 }
 impl From<StyleXOptions> for StyleXStateOptions {
   fn from(options: StyleXOptions) -> Self {
+    // dbg!(&options.runtime_injection);
+
     let runtime_injection = match options.runtime_injection {
       RuntimeInjection::Boolean(b) => {
         if b || options.dev {
@@ -64,6 +66,9 @@ impl From<StyleXOptions> for StyleXStateOptions {
       RuntimeInjection::Named(n) => Some(RuntimeInjectionState::Named(n)),
       RuntimeInjection::Regular(s) => Some(RuntimeInjectionState::Regular(s)),
     };
+    // dbg!(&runtime_injection);
+
+    // panic!();
 
     let aliases = match options.aliases {
       Some(aliases) => match aliases {
@@ -72,7 +77,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
           for (key, value) in aliases {
             let vec = vec![value];
 
-            aliases_map.insert(key, vec);
+            aliases_map.insert(key, Box::new(vec));
           }
 
           Option::Some(aliases_map)

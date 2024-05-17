@@ -22,16 +22,16 @@ pub(crate) fn stylex_create_set(
   state: &mut StateManager,
   functions: &FunctionMap,
 ) -> (
-  IndexMap<String, FlatCompiledStyles>,
-  IndexMap<String, InjectableStyle>,
+  IndexMap<String, Box<FlatCompiledStyles>>,
+  IndexMap<String, Box<InjectableStyle>>,
 ) {
-  let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> = IndexMap::new();
-  let mut injected_styles_map: IndexMap<String, InjectableStyle> = IndexMap::new();
+  let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
+  let mut injected_styles_map: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
 
-  dbg!(&namespaces);
+  // dbg!(&namespaces);
 
   for (namespace_name, namespace) in namespaces.as_map().unwrap() {
-    dbg!(&namespace_name, &namespace);
+    // dbg!(&namespace_name, &namespace);
     validate_namespace(namespace, &[]);
 
     let mut pseudos = vec![];
@@ -40,7 +40,7 @@ pub(crate) fn stylex_create_set(
     let flattened_namespace =
       flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
 
-    dbg!(&flattened_namespace);
+    // dbg!(&flattened_namespace);
 
     let compiled_namespace_tuples = flattened_namespace
       .iter()
@@ -57,7 +57,7 @@ pub(crate) fn stylex_create_set(
       })
       .collect::<Vec<(String, CompiledResult)>>();
 
-    dbg!(&compiled_namespace_tuples);
+    // dbg!(&compiled_namespace_tuples);
 
     let compiled_namespace = compiled_namespace_tuples
       .iter()
@@ -77,7 +77,7 @@ pub(crate) fn stylex_create_set(
       })
       .collect::<IndexMap<String, CompiledResult>>();
 
-    dbg!(&compiled_namespace);
+    // dbg!(&compiled_namespace);
 
     let mut namespace_obj: FlatCompiledStyles = IndexMap::new();
 
@@ -87,12 +87,14 @@ pub(crate) fn stylex_create_set(
       if let Some(included_styles) = value.as_included_style() {
         namespace_obj.insert(
           key.clone(),
-          FlatCompiledStylesValue::IncludedStyle(included_styles.clone()),
+          Box::new(FlatCompiledStylesValue::IncludedStyle(
+            included_styles.clone(),
+          )),
         );
       } else if let Some(styles) = value.as_computed_styles() {
         let class_name_tuples = styles.clone();
 
-        dbg!(&class_name_tuples);
+        // dbg!(&class_name_tuples);
 
         let class_name = &class_name_tuples
           .iter()
@@ -102,18 +104,18 @@ pub(crate) fn stylex_create_set(
 
         namespace_obj.insert(
           key.clone(),
-          FlatCompiledStylesValue::String(class_name.clone()),
+          Box::new(FlatCompiledStylesValue::String(class_name.clone())),
         );
 
         for item in &class_name_tuples {
           let class_name = item.0.clone();
           let injectable_styles = item.1.clone();
           if !injected_styles_map.contains_key(class_name.as_str()) {
-            injected_styles_map.insert(class_name.clone(), injectable_styles.clone());
+            injected_styles_map.insert(class_name.clone(), Box::new(injectable_styles.clone()));
           }
         }
       } else {
-        namespace_obj.insert(key.clone(), FlatCompiledStylesValue::Null);
+        namespace_obj.insert(key.clone(), Box::new(FlatCompiledStylesValue::Null));
       }
     }
 
@@ -123,10 +125,10 @@ pub(crate) fn stylex_create_set(
 
     namespace_obj.insert(
       COMPILED_KEY.to_string(),
-      FlatCompiledStylesValue::Bool(true),
+      Box::new(FlatCompiledStylesValue::Bool(true)),
     );
 
-    resolved_namespaces.insert(resolved_namespace_name.clone(), namespace_obj);
+    resolved_namespaces.insert(resolved_namespace_name.clone(), Box::new(namespace_obj));
   }
 
   (resolved_namespaces, injected_styles_map)

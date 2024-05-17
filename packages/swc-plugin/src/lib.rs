@@ -46,7 +46,7 @@ pub(crate) fn process_transform(
   program: Program,
   metadata: TransformPluginProgramMetadata,
 ) -> Program {
-  let config = serde_json::from_str::<StyleXOptionsParams>(
+  let mut config = serde_json::from_str::<StyleXOptionsParams>(
     &metadata
       .get_transform_plugin_config()
       .expect("failed to get plugin config for stylex"),
@@ -64,15 +64,15 @@ pub(crate) fn process_transform(
     Err(e) => panic!("Error getting current directory: {}", e),
   };
 
-  let plugin_pass = PluginPass {
+  let plugin_pass = Box::new(PluginPass {
     // key: "key".to_string(),
     // opts: Default::default(),
     cwd,
     filename,
-  };
+  });
 
   let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
-    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, config);
+    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config);
 
   program.fold_with(&mut stylex)
 }

@@ -22,12 +22,12 @@ pub(crate) fn member_expression(
   let mut obj_name: Option<Id> = Option::None;
   let mut prop_name: Option<Id> = Option::None;
 
-  dbg!(
-    &state.style_map,
-    &object,
-    &member,
-    &state.all_call_expressions.len()
-  );
+  // dbg!(
+  //   &state.style_map,
+  //   &object,
+  //   &member,
+  //   &state.all_call_expressions.len()
+  // );
 
   match object {
     Expr::Ident(ident) => {
@@ -43,7 +43,7 @@ pub(crate) fn member_expression(
             prop_name = Option::Some(ident.to_id());
           }
           MemberProp::Computed(computed) => {
-            dbg!(&computed);
+            // dbg!(&computed);
             match computed.expr.as_ref() {
               Expr::Lit(_) => {
                 todo!("Computed not implemented yet");
@@ -73,13 +73,13 @@ pub(crate) fn member_expression(
   }
 
   if let NonNullProps::True = non_null_props {
-    dbg!(&obj_name, &prop_name, style_non_null_props);
+    // dbg!(&obj_name, &prop_name, style_non_null_props);
     style_non_null_props = NonNullProps::True;
   } else {
-    dbg!(&member);
-    let evaluate_result = evaluate(&Expr::Member(member.clone()), &mut state, fns);
+    // dbg!(&member);
+    let evaluate_result = evaluate(&Box::new(Expr::Member(member.clone())), &mut state, fns);
 
-    dbg!(&evaluate_result);
+    // dbg!(&evaluate_result);
 
     if !evaluate_result.confident {
       *non_null_props = NonNullProps::True;
@@ -92,10 +92,11 @@ pub(crate) fn member_expression(
       }
 
       if let NonNullProps::Vec(vec) = non_null_props {
-        if let Some(EvaluateResultValue::Expr(expr)) = evaluate_result.value {
-          if let Expr::Object(ObjectLit { props, .. }) = expr {
+        if let Some(EvaluateResultValue::Expr(expr)) = evaluate_result.value.map(|v| *v) {
+          if let Expr::Object(ObjectLit { props, .. }) = expr.as_ref() {
+            // dbg!(&member, &props);
             let namespaces = props
-              .into_iter()
+              .iter()
               .filter_map(|item| match item {
                 PropOrSpread::Spread(_) => todo!("Spread not implemented yet"),
                 PropOrSpread::Prop(prop) => match prop.as_ref() {
@@ -115,17 +116,22 @@ pub(crate) fn member_expression(
               })
               .collect::<Vec<Id>>();
 
+            // dbg!(&obj_name, &prop_name, &namespaces, &vec);
+
             vec.extend(namespaces);
+            // dbg!(&vec);
           }
         }
       }
 
-      dbg!(&style_non_null_props, &non_null_props, object, property);
+      // dbg!(&style_non_null_props, &non_null_props, object, property);
     }
   }
 
   if let Some(obj_name) = obj_name {
     increase_ident_count(state, object.as_ident().expect("Object not an ident"));
+
+    // dbg!(&obj_name, &prop_name);
 
     let style_var_to_keep = StyleVarsToKeep(
       obj_name,
@@ -135,7 +141,10 @@ pub(crate) fn member_expression(
       },
       style_non_null_props,
     );
-    state.style_vars_to_keep.insert(style_var_to_keep);
-    dbg!(&state.style_vars_to_keep);
+
+    // dbg!(&style_var_to_keep);
+
+    state.style_vars_to_keep.insert(Box::new(style_var_to_keep));
+    // dbg!(&state.style_vars_to_keep);
   }
 }

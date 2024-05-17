@@ -19,13 +19,13 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
     config.style_resolution = Option::Some(StyleResolution::LegacyExpandShorthands);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   stylex_call_with_exported_short_form_properties,
@@ -48,13 +48,13 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
     config.style_resolution = Option::Some(StyleResolution::LegacyExpandShorthands);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   stylex_call_with_short_form_property_collisions,
@@ -83,13 +83,13 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
     config.style_resolution = Option::Some(StyleResolution::LegacyExpandShorthands);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   stylex_call_with_short_form_property_collisions_with_null,

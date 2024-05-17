@@ -24,23 +24,23 @@ mod stylex_create_theme {
       .map(|(key, value)| prop_or_spread_string_creator(key, value))
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(object_expression_factory(props).unwrap())
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
   }
 
   fn exprected_result_factory(
     injected_styles: &[(&str, (&str, f32))],
-  ) -> IndexMap<String, InjectableStyle> {
+  ) -> IndexMap<String, Box<InjectableStyle>> {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        InjectableStyle {
+        Box::new(InjectableStyle {
           ltr: value.0.to_string(),
           rtl: Option::None,
           priority: Option::Some(value.1),
-        },
+        }),
       );
     }
     expected_injected_styles
@@ -61,7 +61,9 @@ mod stylex_create_theme {
       .map(|(key, values, nested_values)| {
         let mut props = values
           .iter()
-          .map(|val| prop_or_spread_expression_creator(val.0, string_to_expression(val.1).unwrap()))
+          .map(|val| {
+            prop_or_spread_expression_creator(val.0, Box::new(string_to_expression(val.1).unwrap()))
+          })
           .collect::<Vec<PropOrSpread>>();
 
         let nested_props = nested_values
@@ -71,11 +73,17 @@ mod stylex_create_theme {
               .1
               .iter()
               .map(|val| {
-                prop_or_spread_expression_creator(val.0, string_to_expression(val.1).unwrap())
+                prop_or_spread_expression_creator(
+                  val.0,
+                  Box::new(string_to_expression(val.1).unwrap()),
+                )
               })
               .collect::<Vec<PropOrSpread>>();
 
-            prop_or_spread_expression_creator(val.0, object_expression_factory(props).unwrap())
+            prop_or_spread_expression_creator(
+              val.0,
+              Box::new(object_expression_factory(props).unwrap()),
+            )
           })
           .collect::<Vec<PropOrSpread>>();
 
@@ -89,7 +97,7 @@ mod stylex_create_theme {
       props.push(prop_or_spread_string_creator(key, value));
     }
 
-    EvaluateResultValue::Expr(object_expression_factory(props).unwrap())
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
   }
 
   #[test]
@@ -142,6 +150,7 @@ mod stylex_create_theme {
       .unwrap();
 
     let injectable_rule = css_output.get(key).unwrap();
+    // dbg!(&injectable_rule, &key);
 
     assert_eq!(
       injectable_rule,
@@ -193,7 +202,7 @@ mod stylex_create_theme {
       &[("fgColor", "coral")],
     );
 
-    dbg!(&created_theme);
+    // dbg!(&created_theme);
 
     let created_theme_2 = style_object_factory(
       &[

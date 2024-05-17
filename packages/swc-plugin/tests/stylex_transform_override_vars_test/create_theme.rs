@@ -37,12 +37,12 @@ fn transform(input: &str) -> String {
     |tr| {
       ModuleTransformVisitor::new_test(
         tr.comments.clone(),
-        PluginPass {
+        &PluginPass {
           cwd: Option::None,
           filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
         },
-        Some(StyleXOptionsParams {
-          runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
+        Some(&mut StyleXOptionsParams {
+          runtime_injection: Option::Some(false),
           dev: Option::Some(true),
           ..get_default_opts()
         }),
@@ -124,12 +124,12 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(false),
       ..get_default_opts()
     })
   ),
@@ -151,11 +151,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       ..get_default_opts()
     })
@@ -178,12 +178,12 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(false),
       unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
         Option::None
       )),
@@ -208,11 +208,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
         Option::None
@@ -238,12 +238,12 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(false),
       ..get_default_opts()
     })
   ),
@@ -269,11 +269,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       ..get_default_opts()
     })
@@ -302,11 +302,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       ..get_default_opts()
     })
@@ -342,11 +342,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       ..get_default_opts()
     })
@@ -382,11 +382,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       ..get_default_opts()
     })
@@ -422,11 +422,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       ..get_default_opts()
     })
@@ -462,14 +462,14 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/utils/NestedTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
-        Option::None
+        Option::Some("/stylex/packages/".to_string())
       )),
       ..get_default_opts()
     })
@@ -492,11 +492,11 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
+    Some(&mut StyleXOptionsParams {
       dev: Option::Some(true),
       ..get_default_opts()
     })

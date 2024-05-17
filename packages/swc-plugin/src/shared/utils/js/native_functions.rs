@@ -6,9 +6,9 @@ use swc_core::{
 };
 
 pub(crate) fn evaluate_map(
-  funcs: &Vec<EvaluateResultValue>,
+  funcs: &Vec<Box<EvaluateResultValue>>,
   args: &Vec<Option<EvaluateResultValue>>,
-) -> Option<EvaluateResultValue> {
+) -> Option<Box<EvaluateResultValue>> {
   let cb = funcs.get(0)?.clone();
 
   let Some(cb) = cb.as_callback() else {
@@ -30,7 +30,7 @@ pub(crate) fn evaluate_map(
             .filter_map(|expr| {
               let expr = evaluate_map_cb(cb, &expr.clone());
 
-              Option::Some(EvaluateResultValue::Expr(expr))
+              Option::Some(EvaluateResultValue::Expr(Box::new(expr)))
             })
             .collect::<Vec<EvaluateResultValue>>();
 
@@ -55,26 +55,30 @@ pub(crate) fn evaluate_map(
     .collect::<Vec<Expr>>();
 
   match func_result.get(0) {
-    Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::Array(array.clone()))),
-    _ => Some(EvaluateResultValue::Expr(Expr::Array(ArrayLit {
-      span: DUMMY_SP,
-      elems: func_result
-        .into_iter()
-        .map(|expr| {
-          Option::Some(ExprOrSpread {
-            spread: None,
-            expr: Box::new(expr),
+    Some(Expr::Array(array)) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Array(
+      array.clone(),
+    ))))),
+    _ => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Array(
+      ArrayLit {
+        span: DUMMY_SP,
+        elems: func_result
+          .into_iter()
+          .map(|expr| {
+            Option::Some(ExprOrSpread {
+              spread: None,
+              expr: Box::new(expr),
+            })
           })
-        })
-        .collect(),
-    }))),
+          .collect(),
+      },
+    ))))),
   }
 }
 
 pub(crate) fn evaluate_filter(
-  funcs: &Vec<EvaluateResultValue>,
+  funcs: &Vec<Box<EvaluateResultValue>>,
   args: &Vec<Option<EvaluateResultValue>>,
-) -> Option<EvaluateResultValue> {
+) -> Option<Box<EvaluateResultValue>> {
   let cb = funcs.get(0)?.clone();
 
   let Some(cb) = cb.as_callback() else {
@@ -89,7 +93,7 @@ pub(crate) fn evaluate_filter(
       };
 
       match result {
-        EvaluateResultValue::Expr(expr) => evaluate_filter_cb(cb, &arg, &expr),
+        EvaluateResultValue::Expr(expr) => evaluate_filter_cb(cb, &arg, expr.as_ref()),
         EvaluateResultValue::Vec(vec) => {
           let func_result = vec
             .into_iter()
@@ -100,7 +104,7 @@ pub(crate) fn evaluate_filter(
                 &expr.as_ref()?.clone().as_expr()?.clone(),
               );
 
-              result.map(|expr| EvaluateResultValue::Expr(expr))
+              result.map(|expr| EvaluateResultValue::Expr(Box::new(expr)))
             })
             .collect::<Vec<EvaluateResultValue>>();
 
@@ -125,19 +129,23 @@ pub(crate) fn evaluate_filter(
     .collect::<Vec<Expr>>();
 
   match func_result.get(0) {
-    Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::Array(array.clone()))),
-    _ => Some(EvaluateResultValue::Expr(Expr::Array(ArrayLit {
-      span: DUMMY_SP,
-      elems: func_result
-        .into_iter()
-        .map(|expr| {
-          Option::Some(ExprOrSpread {
-            spread: None,
-            expr: Box::new(expr),
+    Some(Expr::Array(array)) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Array(
+      array.clone(),
+    ))))),
+    _ => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Array(
+      ArrayLit {
+        span: DUMMY_SP,
+        elems: func_result
+          .into_iter()
+          .map(|expr| {
+            Option::Some(ExprOrSpread {
+              spread: None,
+              expr: Box::new(expr),
+            })
           })
-        })
-        .collect(),
-    }))),
+          .collect(),
+      },
+    ))))),
   }
 }
 

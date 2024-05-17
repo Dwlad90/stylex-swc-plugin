@@ -31,7 +31,7 @@ pub(crate) fn whitespace_normalizer(result: String) -> String {
   let normalized_css_string =
     HASH_WHITESPACE_NORMALIZER_REGEX.replace_all(&normalized_css_string, "$1 #");
 
-  dbg!(&result, &normalized_css_string);
+ // dbg!(&result, &normalized_css_string);
 
   normalized_css_string.trim().to_string()
 }

@@ -40,7 +40,9 @@ mod stylex_define_vars {
       .map(|(key, values, nested_values, types_values)| {
         let mut props = values
           .iter()
-          .map(|val| prop_or_spread_expression_creator(val.0, string_to_expression(val.1).unwrap()))
+          .map(|val| {
+            prop_or_spread_expression_creator(val.0, Box::new(string_to_expression(val.1).unwrap()))
+          })
           .collect::<Vec<PropOrSpread>>();
 
         let nested_props = nested_values
@@ -50,11 +52,17 @@ mod stylex_define_vars {
               .1
               .iter()
               .map(|val| {
-                prop_or_spread_expression_creator(val.0, string_to_expression(val.1).unwrap())
+                prop_or_spread_expression_creator(
+                  val.0,
+                  Box::new(string_to_expression(val.1).unwrap()),
+                )
               })
               .collect::<Vec<PropOrSpread>>();
 
-            prop_or_spread_expression_creator(val.0, object_expression_factory(props).unwrap())
+            prop_or_spread_expression_creator(
+              val.0,
+              Box::new(object_expression_factory(props).unwrap()),
+            )
           })
           .collect::<Vec<PropOrSpread>>();
 
@@ -68,7 +76,7 @@ mod stylex_define_vars {
           })
           .collect::<Vec<PropOrSpread>>();
 
-        dbg!(&types_props);
+        // dbg!(&types_props);
 
         props.extend(types_props);
 
@@ -80,23 +88,23 @@ mod stylex_define_vars {
       props.push(prop_or_spread_string_creator(key, value));
     }
 
-    EvaluateResultValue::Expr(object_expression_factory(props).unwrap())
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
   }
 
   fn exprected_css_result_factory(
     injected_styles: &[(&str, (&str, f32))],
-  ) -> IndexMap<String, InjectableStyle> {
+  ) -> IndexMap<String, Box<InjectableStyle>> {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        InjectableStyle {
+        Box::new(InjectableStyle {
           ltr: value.0.to_string(),
           rtl: Option::None,
           priority: Option::Some(value.1),
-        },
+        }),
       );
     }
     expected_injected_styles
@@ -104,13 +112,13 @@ mod stylex_define_vars {
 
   fn exprected_js_result_factory(
     js_output: &[(&str, &str)],
-  ) -> IndexMap<String, FlatCompiledStylesValue> {
+  ) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
     let mut expected_injected_styles = IndexMap::new();
 
     for (key, value) in js_output {
       expected_injected_styles.insert(
         key.to_string(),
-        FlatCompiledStylesValue::String(value.to_string()),
+        Box::new(FlatCompiledStylesValue::String(value.to_string())),
       );
     }
 
@@ -148,10 +156,10 @@ mod stylex_define_vars {
       &[("cornerRadius", "10px")],
     );
 
-    let mut state = StateManager {
+    let mut state = Box::new(StateManager {
       theme_name: Option::Some(theme_name.to_string()),
       ..StateManager::default()
-    };
+    });
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -272,10 +280,10 @@ mod stylex_define_vars {
       &[("cornerRadius", "10px")],
     );
 
-    let mut state = StateManager {
+    let mut state = Box::new(StateManager {
       theme_name: Option::Some(theme_name.to_string()),
       ..StateManager::default()
-    };
+    });
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -455,21 +463,21 @@ mod stylex_define_vars {
       ValueWithDefault::String("pink".to_string()),
     );
 
-    // dbg!(&bg_color_map);
+    //// dbg!(&bg_color_map);
 
     // #endregion fgColor
 
     let bg_color = type_fabric(&color_fn, ValueWithDefault::Map(bg_color_map));
-    // dbg!(&bg_color);
+    //// dbg!(&bg_color);
     let bg_color_disabled = type_fabric(&color_fn, ValueWithDefault::Map(bg_color_disabled_map));
-    // dbg!(&bg_color_disabled);
+    //// dbg!(&bg_color_disabled);
 
     let corner_radius = type_fabric(&length_fn, ValueWithDefault::String("10px".to_string()));
-    // dbg!(&corner_radius);
+    //// dbg!(&corner_radius);
 
     let fg_color = type_fabric(&color_fn, ValueWithDefault::Map(fg_color_map));
 
-    dbg!(&bg_color, &bg_color_disabled, &corner_radius, &fg_color);
+    // dbg!(&bg_color, &bg_color_disabled, &corner_radius, &fg_color);
 
     let default_vars = default_vars_factory(
       &[
@@ -481,66 +489,19 @@ mod stylex_define_vars {
       &[],
     );
 
-    dbg!(&default_vars);
+    // dbg!(&default_vars);
 
-    let state = StateManager::default();
-    let mut state = StateManager {
+    let state = Box::<StateManager>::default();
+    let mut state = Box::new(StateManager {
       theme_name: Option::Some(theme_name.to_string()),
-      options: StyleXStateOptions {
+      options: Box::new(StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
-        ..state.options
-      },
-      ..state
-    };
+        ..*state.options
+      }),
+      ..*state
+    });
 
-    let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
-    dbg!(&js_output, &css_output);
-
-    // assert_eq!(
-    //   js_output,
-    //   exprected_js_result_factory(&[
-    //     (
-    //       "__themeName__",
-    //       format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
-    //     ),
-    //     (
-    //       "bgColor",
-    //       format!(
-    //         "var(--{}{})",
-    //         class_name_prefix,
-    //         create_hash(format!("{}.bgColor", theme_name).as_str())
-    //       )
-    //       .as_str()
-    //     ),
-    //     (
-    //       "bgColorDisabled",
-    //       format!(
-    //         "var(--{}{})",
-    //         class_name_prefix,
-    //         create_hash(format!("{}.bgColorDisabled", theme_name).as_str())
-    //       )
-    //       .as_str()
-    //     ),
-    //     (
-    //       "cornerRadius",
-    //       format!(
-    //         "var(--{}{})",
-    //         class_name_prefix,
-    //         create_hash(format!("{}.cornerRadius", theme_name).as_str())
-    //       )
-    //       .as_str()
-    //     ),
-    //     (
-    //       "fgColor",
-    //       format!(
-    //         "var(--{}{})",
-    //         class_name_prefix,
-    //         create_hash(format!("{}.fgColor", theme_name).as_str())
-    //       )
-    //       .as_str()
-    //     ),
-    //   ])
-    // );
+    let (_, css_output) = stylex_define_vars(&default_vars, &mut state);
 
     assert_eq!(
       css_output,

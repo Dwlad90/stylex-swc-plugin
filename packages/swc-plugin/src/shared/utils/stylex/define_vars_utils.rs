@@ -14,19 +14,19 @@ use crate::shared::{
 };
 
 pub(crate) fn construct_css_variables_string(
-  variables: &IndexMap<String, FlatCompiledStylesValue>,
+  variables: &IndexMap<String, Box<FlatCompiledStylesValue>>,
   theme_name_hash: &String,
-  typed_variables: &mut IndexMap<String, FlatCompiledStylesValue>,
-) -> IndexMap<String, InjectableStyle> {
-  let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
+  typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
+) -> IndexMap<String, Box<InjectableStyle>> {
+  let mut rules_by_at_rule: IndexMap<String, Box<Vec<String>>> = IndexMap::new();
 
   for (key, value) in variables.iter() {
     collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &vec![], typed_variables);
   }
 
-  dbg!(&rules_by_at_rule);
+  // dbg!(&rules_by_at_rule);
 
-  let mut result: IndexMap<String, InjectableStyle> = IndexMap::new();
+  let mut result: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
 
   for (at_rule, value) in rules_by_at_rule.iter() {
     let suffix = if at_rule == "default" {
@@ -43,11 +43,11 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix),
-      InjectableStyle {
+      Box::new(InjectableStyle {
         priority: Option::Some(priority_for_at_rule(at_rule).mul(0.1)),
         ltr,
         rtl: Option::None,
-      },
+      }),
     );
   }
 
@@ -57,29 +57,29 @@ pub(crate) fn construct_css_variables_string(
 pub(crate) fn collect_vars_by_at_rules(
   key: &String,
   value: &FlatCompiledStylesValue,
-  collection: &mut IndexMap<String, Vec<String>>,
+  collection: &mut IndexMap<String, Box<Vec<String>>>,
   at_rules: &Vec<String>,
-  typed_variables: &mut IndexMap<String, FlatCompiledStylesValue>,
+  typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
 ) {
   let Some((hash_name, value, css_type)) = value.as_tuple() else {
     panic!("Props must be an key value pair")
   };
 
-  dbg!(&hash_name, &value, css_type);
+  // dbg!(&hash_name, &value, css_type);
 
   if let Some(css_type) = css_type {
     let values = css_type.value.as_map().expect("Value must be an map");
-    dbg!(&values);
+    // dbg!(&values);
 
     let initial_value = get_nitial_value_of_css_type(values);
 
     typed_variables.insert(
       hash_name.clone(),
-      FlatCompiledStylesValue::CSSType(
+      Box::new(FlatCompiledStylesValue::CSSType(
         hash_name.clone(),
         css_type.syntax.clone(),
         initial_value.clone(),
-      ),
+      )),
     );
   }
 
@@ -108,7 +108,7 @@ pub(crate) fn collect_vars_by_at_rules(
     Expr::Object(obj) => {
       let key_values = get_key_values_from_object(obj);
 
-      dbg!(&key_values);
+      // dbg!(&key_values);
 
       if !key_values.iter().any(|key_value| {
         let key = get_key_str(key_value);

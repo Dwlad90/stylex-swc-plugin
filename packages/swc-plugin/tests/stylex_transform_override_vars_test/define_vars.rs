@@ -31,12 +31,12 @@ test!(
   }),
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
-    PluginPass {
+    &PluginPass {
       cwd: Option::None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Some(StyleXOptionsParams {
-      runtime_injection: Option::Some(RuntimeInjection::Boolean(false)),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Option::Some(false),
       ..get_default_opts()
     })
   ),

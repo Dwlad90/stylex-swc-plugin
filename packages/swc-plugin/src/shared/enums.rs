@@ -16,6 +16,7 @@ pub(crate) enum ModuleCycle {
   TransformEnter,
   TransformExit,
   // The plugin has been processed and the file is being cleaned.
+  PreCleaning,
   Cleaning,
   // The file has been processed and the plugin is skipped.
   Initializing,
@@ -177,7 +178,7 @@ impl FlatCompiledStylesValue {
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum ObjMapType {
   Object(ObjectLit),
-  Map(IndexMap<String, FlatCompiledStylesValue>),
+  Map(IndexMap<String, Box<FlatCompiledStylesValue>>),
 }
 
 #[derive(Debug, PartialEq, Clone)]

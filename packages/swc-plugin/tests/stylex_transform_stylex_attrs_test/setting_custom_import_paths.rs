@@ -26,12 +26,12 @@ test!(
       "custom-stylex-path".to_string(),
     )]);
 
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   basic_stylex_call,

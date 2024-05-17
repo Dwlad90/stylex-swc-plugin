@@ -53,7 +53,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
       // Do something with the parsed module.
       module.fold_with(&mut ModuleTransformVisitor::new_test_styles(
         PluginCommentsProxy,
-        PluginPass::default(),
+        &PluginPass::default(),
         Option::None,
       ))
     }
@@ -152,7 +152,7 @@ where
           &actual.clone().fold_with(&mut HygieneVisualizer),
           &tester.comments.clone(),
         );
-        println!("----- Hygiene -----\n{}", hygiene_src);
+      // println!("----- Hygiene -----\n{}", hygiene_src);
       }
       _ => {}
     }

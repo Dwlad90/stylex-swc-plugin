@@ -20,12 +20,12 @@ test!(
     let mut config = StyleXOptionsParams::default();
 
     config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   handles_custom_default_imports,
@@ -50,12 +50,12 @@ test!(
     let mut config = StyleXOptionsParams::default();
 
     config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   handles_custom_as_all_imports,
@@ -84,12 +84,12 @@ test!(
       from: "react-strict-dom".to_string(),
       r#as: "css".to_string(),
     })]);
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   handles_custom_named_imports,
@@ -118,12 +118,12 @@ test!(
       from: "react-strict-dom".to_string(),
       r#as: "css".to_string(),
     })]);
-    config.runtime_injection = Option::Some(RuntimeInjection::Boolean(true));
+    config.runtime_injection = Option::Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
-      PluginPass::default(),
-      Option::Some(config),
+      &PluginPass::default(),
+      Option::Some(&mut config),
     )
   },
   handles_custom_named_imports_with_other_named_imports,

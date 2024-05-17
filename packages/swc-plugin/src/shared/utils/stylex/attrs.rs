@@ -17,13 +17,13 @@ pub(crate) fn attrs(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
     return None;
   };
 
-  let mut attrs_map: IndexMap<String, FlatCompiledStylesValue> = IndexMap::new();
+  let mut attrs_map: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
 
   if let Some(class_name) = props.get("className") {
     attrs_map.insert("class".to_string(), class_name.clone());
   };
 
-  if let Some(inline_style) = props.get("style") {
+  if let Some(_inline_style) = props.get("style") {
     panic!("Implement inline style");
   };
 

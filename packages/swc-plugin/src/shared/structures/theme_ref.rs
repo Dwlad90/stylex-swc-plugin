@@ -33,15 +33,17 @@ impl ThemeRef {
       gen_file_based_identifier(
         &self.file_name,
         &self.export_name,
-        Option::Some(&key.to_string()),
+        Option::Some(key),
       )
     };
+  // dbg!(&str_to_hash, &self.state.options.class_name_prefix);
 
     let var_name = format!(
       "{}{}",
       self.state.options.class_name_prefix,
       create_hash(&str_to_hash)
     );
+  // dbg!(&var_name);
 
     let value = format!("var(--{})", var_name);
 
@@ -49,7 +51,7 @@ impl ThemeRef {
     (value, self.state.clone())
   }
 
-  fn set(&self, key: &str, value: &str) {
+  fn _set(&self, key: &str, value: &str) {
     panic!(
       "Cannot set value {} to key {} in theme {}",
       value, key, self.file_name
@@ -58,7 +60,7 @@ impl ThemeRef {
 }
 
 impl PartialEq for ThemeRef {
-  fn eq(&self, other: &Self) -> bool {
+  fn eq(&self, _other: &Self) -> bool {
     panic!("ThemeRef cannot be compared");
     // self.file_name == other.file_name && self.export_name == other.export_name
   }

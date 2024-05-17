@@ -11,10 +11,7 @@ use swc_core::{
   common::{FileName, Span, DUMMY_SP},
   ecma::{
     ast::{
-      ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Ident, ImportDecl,
-      ImportSpecifier, KeyValueProp, Lit, Module, ModuleDecl, ModuleExportName, ModuleItem, Number,
-      ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt, Str, Tpl, UnaryExpr, UnaryOp,
-      VarDeclarator,
+      ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Id, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt, Str, Tpl, UnaryExpr, UnaryOp, VarDeclarator
     },
     visit::{Fold, FoldWith},
   },
@@ -47,10 +44,10 @@ fn _replace_spans(expr: &mut Expr) -> Expr {
   expr.clone().fold_children_with(&mut SpanReplacer)
 }
 
-pub fn prop_or_spread_expression_creator(key: &str, value: Expr) -> PropOrSpread {
+pub fn prop_or_spread_expression_creator(key: &str, value: Box<Expr>) -> PropOrSpread {
   PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
     key: string_to_prop_name(key).unwrap(),
-    value: Box::new(value),
+    value,
   })))
 }
 
@@ -60,7 +57,7 @@ pub(crate) fn prop_or_spread_expr_creator(key: &str, values: Vec<PropOrSpread>) 
     props: values,
   };
 
-  prop_or_spread_expression_creator(key, Expr::Object(object))
+  prop_or_spread_expression_creator(key, Box::new(Expr::Object(object)))
 }
 
 pub fn key_value_creator(key: &str, value: Expr) -> KeyValueProp {
@@ -74,7 +71,7 @@ pub(crate) fn prop_or_spread_string_creator(key: &str, value: &str) -> PropOrSpr
   let value = string_to_expression(value);
 
   match value {
-    Some(value) => prop_or_spread_expression_creator(key, value),
+    Some(value) => prop_or_spread_expression_creator(key, Box::new(value)),
     None => panic!("Value is not a string"),
   }
 }
@@ -88,17 +85,17 @@ pub(crate) fn prop_or_spread_array_string_creator(key: &str, value: &[&str]) -> 
       .collect::<Vec<Option<ExprOrSpread>>>(),
   };
 
-  prop_or_spread_expression_creator(key, Expr::Array(array))
+  prop_or_spread_expression_creator(key, Box::new(Expr::Array(array)))
 }
 
 pub(crate) fn prop_or_spread_boolean_creator(key: &str, value: Option<bool>) -> PropOrSpread {
   match value {
     Some(value) => prop_or_spread_expression_creator(
       key,
-      Expr::Lit(Lit::Bool(Bool {
+      Box::new(Expr::Lit(Lit::Bool(Bool {
         span: DUMMY_SP,
         value,
-      })),
+      }))),
     ),
     None => panic!("Value is not a boolean"),
   }
@@ -273,28 +270,36 @@ pub(crate) fn expr_or_spread_number_expression_creator(value: f64) -> ExprOrSpre
 
 pub fn reduce_ident_count<'a>(state: &'a mut StateManager, ident: &'a Ident) {
   *state.var_decl_count_map.entry(ident.to_id()).or_insert(0) -= 1;
+}
 
-  // eprintln!(
-  //     "{} {:?} {:?}",
-  //     Colorize::red("!!!! reduce_ident_count !!!!"),
-  //     state
-  //         .var_decl_count_map
-  //         .get(&Ident::new("styles".into(), DUMMY_SP).to_id()),
-  //     ident
-  // );
+pub fn increase_member_ident(state: &mut StateManager, member_obj: &MemberExpr) {
+  if let Some(obj_ident) = member_obj.obj.as_ident() {
+    increase_member_ident_count(state, &obj_ident.to_id());
+  }
+}
+
+pub fn reduce_member_expression_count<'a>(
+  state: &'a mut StateManager,
+  member_expression: &MemberExpr,
+) {
+  if let Some(obj_ident) = member_expression.obj.as_ident() {
+    reduce_member_ident_count(state, &obj_ident.to_id());
+  }
+}
+
+pub fn reduce_member_ident_count<'a>(state: &'a mut StateManager, obj_ident: &Id) {
+  *state
+    .member_object_ident_count_map
+    .entry(obj_ident.clone())
+    .or_insert(0) -= 1;
 }
 
 pub fn increase_ident_count(state: &mut StateManager, ident: &Ident) {
   increase_ident_count_by_count(state, ident, 1);
+}
 
-  // eprintln!(
-  //     "{} {:?} {:?}",
-  //     Colorize::green("!!!! increase_ident_count !!!!"),
-  //     state
-  //         .var_decl_count_map
-  //         .get(&Ident::new("styles".into(), DUMMY_SP).to_id()),
-  //     ident
-  // );
+pub fn increase_member_ident_count(state: &mut StateManager, obj_ident: &Id) {
+  increase_member_ident_count_by_count(state, obj_ident, 1);
 }
 
 pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, count: i8) {
@@ -302,6 +307,13 @@ pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, co
   *state
     .var_decl_count_map
     .entry(ident_id.clone())
+    .or_insert(0) += count;
+}
+
+pub fn increase_member_ident_count_by_count(state: &mut StateManager, obj_ident: &Id, count: i8) {
+  *state
+    .member_object_ident_count_map
+    .entry(obj_ident.clone())
     .or_insert(0) += count;
 }
 
@@ -325,14 +337,14 @@ pub fn get_var_decl_by_ident<'a>(
       match func {
         Some(func) => {
           let func = func.clone();
-          match func {
+          match func.as_ref() {
             FunctionConfigType::Regular(func) => {
-              match func.fn_ptr {
+              match func.fn_ptr.clone() {
                 FunctionType::Mapper(func) => {
                   // let arg = Expr::Ident(ident.clone());
                   let result = func();
 
-                  println!("!!!!! ident: {:?}, result: {:?}", ident, result);
+                  // println!("!!!!! ident: {:?}, result: {:?}", ident, result);
 
                   let var_decl = VarDeclarator {
                     span: DUMMY_SP,
@@ -449,9 +461,9 @@ pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f32 {
     Expr::Lit(lit) => lit_to_num(lit),
     Expr::Unary(unary) => unari_to_num(unary, traversal_state),
     Expr::Bin(lit) => {
-      dbg!(&traversal_state.var_decl_count_map);
+      // dbg!(&traversal_state.var_decl_count_map);
 
-      let mut state = State::new(traversal_state);
+      let mut state = Box::new(State::new(traversal_state));
 
       match binary_expr_to_num(lit, &mut state) {
         Some(result) => result,
@@ -465,7 +477,7 @@ pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f32 {
 fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> String {
   let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
 
-  println!("var_decl: {:?}, ident: {:?}", var_decl, ident);
+  // println!("var_decl: {:?}, ident: {:?}", var_decl, ident);
 
   match &var_decl {
     Some(var_decl) => {
@@ -509,7 +521,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
 
   let op = binary_expr.op;
   let Some(left) = evaluate_cached(&binary_expr.left, state) else {
-    dbg!(binary_expr.left);
+    // dbg!(binary_expr.left);
 
     if !state.confident {
       return Option::None;
@@ -519,7 +531,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
   };
 
   let Some(right) = evaluate_cached(&binary_expr.right, state) else {
-    dbg!(binary_expr.right);
+    // dbg!(binary_expr.right);
 
     if !state.confident {
       return Option::None;
@@ -527,6 +539,9 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
 
     panic!("Right expression is not a number")
   };
+
+// dbg!(&left, &right, &op);
+
 
   let result = match &op {
     BinaryOp::Add => {
@@ -542,8 +557,11 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
         * expr_to_num(right.as_expr()?, &mut state.traversal_state)
     }
     BinaryOp::Div => {
-      expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        / expr_to_num(right.as_expr()?, &mut state.traversal_state)
+      let a = expr_to_num(left.as_expr()?, &mut state.traversal_state)
+        / expr_to_num(right.as_expr()?, &mut state.traversal_state);
+
+      // dbg!(&a);
+        a
     }
     BinaryOp::Mod => {
       expr_to_num(left.as_expr()?, &mut state.traversal_state)
@@ -659,11 +677,11 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     }
     // #region Logical
     BinaryOp::LogicalOr => {
-      println!("!!!!__ state.confident33333: {:#?}", state.confident);
+      // println!("!!!!__ state.confident33333: {:#?}", state.confident);
 
       let was_confident = state.confident;
 
-      let result = evaluate_cached(left.as_expr()?, state);
+      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -672,7 +690,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(right.as_expr()?, state);
+      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
@@ -682,7 +700,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
       let right = expr_to_num(right, &mut state.traversal_state);
 
       state.confident = left_confident && (left != 0.0 || right_confident);
-      println!("!!!!__ state.confident44444: {:#?}", state.confident);
+      // println!("!!!!__ state.confident44444: {:#?}", state.confident);
 
       if !state.confident {
         return Option::None;
@@ -697,7 +715,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     BinaryOp::LogicalAnd => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(left.as_expr()?, state);
+      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -706,7 +724,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(right.as_expr()?, state);
+      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
@@ -730,7 +748,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     BinaryOp::NullishCoalescing => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(left.as_expr()?, state);
+      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -739,7 +757,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(right.as_expr()?, state);
+      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
@@ -767,6 +785,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     }
   };
 
+// dbg!(&result);
   Option::Some(result)
 }
 
@@ -911,7 +930,7 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f32, right: f32) -> f32 {
 }
 
 pub fn transform_bin_expr_to_number(bin: &BinExpr, traversal_state: &mut StateManager) -> f32 {
-  let mut state = State::new(traversal_state);
+  let mut state = Box::new(State::new(traversal_state));
   let op = bin.op;
   let Some(left) = evaluate_cached(&bin.left, &mut state) else {
     panic!("Left expression is not a number")
@@ -952,7 +971,7 @@ pub(crate) fn type_of<T>(_: T) -> &'static str {
 //             }
 //         }
 //         None => {
-//             println!("value_ident: {:?}", value_ident);
+//           // println!("value_ident: {:?}", value_ident);
 //             panic!("Variable not declared")
 //         }
 //     }
@@ -1048,7 +1067,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
         match prop.deref() {
           Prop::KeyValue(key_value) => {
-            dbg!(&key_value);
+            // dbg!(&key_value);
 
             if let Some(ident) = key_value.key.as_ident() {
               if ident.sym == "syntax" {
@@ -1072,11 +1091,10 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
                   false
                 });
-                dbg!(&value);
-
+                // dbg!(&value);
 
                 if let Some(value) = value {
-                  dbg!(&key_value);
+                  // dbg!(&key_value);
                   let result_key_value = value.as_prop().unwrap().clone().key_value().unwrap();
 
                   // let value = value.value.object().unwrap().props.first().unwrap().clone();
@@ -1109,7 +1127,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
         let mut prop = prop.clone();
 
         transform_shorthand_to_key_values(&mut prop);
-        dbg!(&prop);
+        // dbg!(&prop);
 
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {

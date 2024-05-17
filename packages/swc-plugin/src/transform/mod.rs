@@ -8,10 +8,11 @@ use swc_core::{
 
 use crate::{
   shared::{
+    constants::common::DEFAULT_INJECT_PATH,
     enums::ModuleCycle,
     structures::{
       meta_data::MetaData,
-      named_import_source::{ImportSources, RuntimeInjection},
+      named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
       plugin_pass::PluginPass,
       state_manager::StateManager,
       stylex_options::StyleXOptions,
@@ -33,19 +34,28 @@ where
   // declaration: Option<Id>,
   cycle: ModuleCycle,
   props_declaration: Option<Id>,
-  pub(crate) state: StateManager,
+  pub(crate) state: Box<StateManager>,
 }
 
 impl<C> ModuleTransformVisitor<C>
 where
   C: Comments,
 {
-  pub(crate) fn new(comments: C, plugin_pass: PluginPass, config: StyleXOptionsParams) -> Self {
-    let stylex_imports = fill_stylex_imports(&Option::Some(config.clone()));
+  pub(crate) fn new(
+    comments: C,
+    plugin_pass: Box<PluginPass>,
+    config: &mut StyleXOptionsParams,
+  ) -> Self {
+    let stylex_imports = fill_stylex_imports(&Option::Some(config));
 
-    let mut state = StateManager::new(config.into());
+    let mut state = Box::new(StateManager::new(config.clone().into()));
 
-    state.stylex_import = stylex_imports;
+    state.stylex_import.clone_from(&stylex_imports);
+
+    state.options.import_sources = stylex_imports
+      .into_iter()
+      .map(|stylex_import| *stylex_import)
+      .collect();
 
     state._state = plugin_pass;
 
@@ -74,13 +84,18 @@ where
   // }
   pub fn new_test_styles(
     comments: C,
-    plugin_pass: PluginPass,
-    config: Option<StyleXOptionsParams>,
+    plugin_pass: &PluginPass,
+    config: Option<&mut StyleXOptionsParams>,
   ) -> Self {
     let stylex_imports = fill_stylex_imports(&config);
 
-    let mut state = match &config {
-      Some(config) => StateManager::new(config.clone().into()),
+    let mut state = Box::new(match config {
+      Some(config) => {
+        config.runtime_injection = Option::Some(true);
+        config.treeshake_compensation = Option::Some(true);
+
+        StateManager::new(config.clone().clone().into())
+      }
       None => {
         let mut config = StyleXOptions::default();
 
@@ -89,12 +104,15 @@ where
 
         StateManager::new(config)
       }
-    };
+    });
 
     // state.stylex_import = stylex_imports.clone();
-    state.options.import_sources = stylex_imports.into_iter().collect();
+    state.options.import_sources = stylex_imports
+      .into_iter()
+      .map(|stylex_import| *stylex_import)
+      .collect();
 
-    let plugin_pass = plugin_pass.clone();
+    let plugin_pass = Box::new(plugin_pass.clone());
 
     state._state = plugin_pass;
 
@@ -108,13 +126,13 @@ where
 
   pub fn new_test(
     comments: C,
-    plugin_pass: PluginPass,
-    config: Option<StyleXOptionsParams>,
+    plugin_pass: &PluginPass,
+    config: Option<&mut StyleXOptionsParams>,
   ) -> Self {
     let stylex_imports = fill_stylex_imports(&config);
 
-    let mut state = match &config {
-      Some(config) => StateManager::new(config.clone().into()),
+    let mut state = Box::new(match &config {
+      Some(config) => StateManager::new((*config).clone().into()), // Convert &&mut StyleXOptionsParams into StyleXOptionsParams
       None => {
         let mut config = StyleXOptions::default();
 
@@ -124,14 +142,14 @@ where
 
         StateManager::new(config)
       }
-    };
+    });
 
     // state.stylex_import = stylex_imports.clone();
-    state.options.import_sources = stylex_imports.into_iter().collect();
+    state.options.import_sources = stylex_imports.into_iter().map(|s_i| *s_i).collect();
 
     let plugin_pass = plugin_pass.clone();
 
-    state._state = plugin_pass;
+    state._state = Box::new(plugin_pass);
 
     ModuleTransformVisitor {
       comments,
@@ -149,7 +167,7 @@ where
         Expr::Ident(ident) => {
           let ident_id = ident.to_id();
 
-          dbg!(&ident_id);
+          // dbg!(&ident_id);
 
           if stylex_imports.contains(&ident.sym.to_string())
             || (self.cycle == ModuleCycle::TransformEnter
@@ -226,7 +244,7 @@ where
       Expr::Call(ex) => {
         let declaration = self.process_declaration(&ex);
 
-        dbg!(&declaration, &ex);
+        // dbg!(&declaration, &ex);
 
         if let Some(_) = declaration {
           let value = self.transform_call_expression_to_stylex_expr(&ex);
@@ -253,16 +271,22 @@ where
   pub(crate) fn get_call_var_name(
     &mut self,
     call: &CallExpr,
-  ) -> (Option<String>, Option<VarDeclarator>) {
+  ) -> (Option<String>, Option<Box<VarDeclarator>>) {
     let mut var_name: Option<String> = Option::None;
 
-    let parent_var_decl = self.state.declarations.clone().into_iter().find(|decl| {
-      decl
-        .init
-        .as_ref()
-        .unwrap()
-        .eq(&Box::new(Expr::Call(call.clone())))
-    });
+    let parent_var_decl = self
+      .state
+      .declarations
+      .clone()
+      .into_iter()
+      .find(|decl| {
+        decl
+          .init
+          .as_ref()
+          .unwrap()
+          .eq(&Box::new(Expr::Call(call.clone())))
+      })
+      .map(Box::new);
 
     if let Some(parent_var_decl) = &parent_var_decl {
       if let Some(ident) = parent_var_decl.name.as_ident() {
@@ -274,17 +298,24 @@ where
   }
 }
 
-fn fill_stylex_imports(config: &Option<StyleXOptionsParams>) -> HashSet<ImportSources> {
+fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> HashSet<Box<ImportSources>> {
   let mut stylex_imports = HashSet::new();
 
-  stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
-  stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));
+  stylex_imports.insert(Box::new(ImportSources::Regular("stylex".to_string())));
+  stylex_imports.insert(Box::new(ImportSources::Regular(
+    "@stylexjs/stylex".to_string(),
+  )));
 
   if let Some(stylex_imports_extends) = match config {
     Some(ref config) => config.import_sources.clone(),
     None => Option::None,
   } {
-    stylex_imports.extend(stylex_imports_extends)
+    stylex_imports.extend(
+      stylex_imports_extends
+        .into_iter()
+        .map(Box::new)
+        .collect::<Vec<Box<ImportSources>>>(),
+    )
   }
 
   stylex_imports

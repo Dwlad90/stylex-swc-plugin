@@ -56,7 +56,7 @@ where
     }
 
     if self.cycle == ModuleCycle::TransformExit {
-      dbg!(&self.state.stylex_props_import);
+      // dbg!(&self.state.stylex_props_import);
 
       if self.state.stylex_props_import.contains(&ident.to_id()) {
         if let Some(value) = self.transform_stylex_props_call(call_expr) {
@@ -82,6 +82,7 @@ where
         return Option::Some(value);
       }
     }
+
 
     // Option::Some(Expr::Call(ex.clone()))
     Option::None

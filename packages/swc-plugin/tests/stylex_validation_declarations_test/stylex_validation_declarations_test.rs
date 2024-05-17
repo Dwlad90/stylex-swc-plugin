@@ -33,7 +33,7 @@ fn validation_stylex_invalid_properties() {
       |tr| {
         ModuleTransformVisitor::new_test_styles(
           tr.comments.clone(),
-          PluginPass::default(),
+          &PluginPass::default(),
           Option::None,
         )
       },
@@ -67,7 +67,7 @@ fn stylex_invalid_property_values() {
       |tr| {
         ModuleTransformVisitor::new_test_styles(
           tr.comments.clone(),
-          PluginPass::default(),
+          &PluginPass::default(),
           Option::None,
         )
       },

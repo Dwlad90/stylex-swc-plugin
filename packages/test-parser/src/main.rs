@@ -205,7 +205,7 @@ fn main() {
             }
         }
 
-        println!(
+      // println!(
             "Processed files for '{}' stylex package: {}",
             package,
             file_paths.len()

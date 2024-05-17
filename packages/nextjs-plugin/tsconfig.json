@@ -1,6 +1,11 @@
 {
-  "extends": "@stylexswc/typescript-config/nextjs.json",
+  "extends": "@stylexswc/typescript-config/base.json",
   "compilerOptions": {
+    "outDir": "dist",
+    "moduleResolution": "Node",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "plugins": [
       {
         "name": "next"
@@ -10,9 +15,11 @@
   "include": [
     "next-env.d.ts",
     "next.config.js",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

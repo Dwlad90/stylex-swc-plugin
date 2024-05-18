@@ -1746,7 +1746,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
         if path.eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
           todo!("Check what's happening here")
         }
-        eprintln!("{}", Colorize::yellow("!!!! binding: {:#?} !!!!"));
+        // eprintln!("{}", Colorize::yellow("!!!! binding: {:#?} !!!!"));
         // dbg!(&binding.init);
 
         let result = evaluate_cached(
@@ -1824,7 +1824,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
               .traversal_state
               .import_path_resolver(&import_path.src.value);
 
-            // dbg!(&import_path.src.value, &abs_path);
+          // println!("!!!!!_valuate import_path.src.value: {}, abs_path: {:?}",&import_path.src.value, &abs_path);
 
             let imported_name = match imported {
               ModuleExportName::Ident(ident) => ident.sym.to_string(),

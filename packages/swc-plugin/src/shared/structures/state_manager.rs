@@ -1,10 +1,10 @@
 use core::panic;
-use std::option::Option;
-use std::path::Path;
 use std::{
   collections::{HashMap, HashSet},
   path::PathBuf,
 };
+use std::{fs, path::Path};
+use std::{option::Option, str::FromStr};
 
 use indexmap::{IndexMap, IndexSet};
 use swc_core::common::{EqIgnoreSpan, FileName, DUMMY_SP};
@@ -14,16 +14,19 @@ use swc_core::ecma::ast::{
   ModuleExportName, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
 };
 
-use crate::shared::enums::{
-  FlatCompiledStylesValue, ImportPathResolution, ImportPathResolutionType, StyleVarsToKeep,
-  TopLevelExpression, TopLevelExpressionKind,
-};
 use crate::shared::utils::common::{
   expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
   extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
 };
 use crate::shared::{
   constants::common::DEFAULT_INJECT_PATH, utils::css::stylex::evaluate::SeenValue,
+};
+use crate::shared::{
+  enums::{
+    FlatCompiledStylesValue, ImportPathResolution, ImportPathResolutionType, StyleVarsToKeep,
+    TopLevelExpression, TopLevelExpressionKind,
+  },
+  utils::common::resolve_file_path,
 };
 
 use super::meta_data::MetaData;
@@ -196,6 +199,7 @@ impl StateManager {
     extract_filename_from_path(self._state.filename.clone())
   }
   pub(crate) fn get_filename(&self) -> String {
+    // dbg!(&self._state.filename);
     extract_path(self._state.filename.clone())
   }
   pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
@@ -257,13 +261,12 @@ impl StateManager {
 
         let filename = Path::new(&filename);
 
-        let filename_for_hashing = filename
-          .strip_prefix(root_dir)
-          .unwrap_or(filename)
+        let filename_for_hashing = relative_path(root_dir, filename)
+          // .unwrap_or(filename.to_path_buf())
           // .expect("filename does not start with root_dir")
           .display()
           .to_string();
-        // println!("{}", &filename_for_hashing);
+        // println!("!!!!filename_for_hashingfilename_for_hashing {}", &filename_for_hashing);
 
         Option::Some(filename_for_hashing)
       }
@@ -272,6 +275,7 @@ impl StateManager {
 
   pub(crate) fn import_path_resolver(&self, import_path: &str) -> ImportPathResolution {
     let source_file_path = self.get_filename();
+    // println!("!!!source_file_path: {}", &source_file_path);
 
     // dbg!(&self.options.unstable_module_resolution);
 
@@ -284,7 +288,45 @@ impl StateManager {
     };
 
     match unstable_module_resolution {
-      CheckModuleResolution::CommonJS(_) => todo!("CommonJS"),
+      CheckModuleResolution::CommonJS(module_resolution) => {
+        let root_dir = module_resolution
+          .clone()
+          .root_dir
+          .expect("root_dir is required for CommonJS");
+
+        let root_dir_path = Path::new(root_dir.as_str());
+        // dbg!(&root_dir);
+
+        let theme_file_extension = module_resolution
+          .theme_file_extension
+          .clone()
+          .unwrap_or(".stylex".to_string());
+
+        // dbg!(&theme_file_extension);
+
+        if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
+          return ImportPathResolution::False;
+        }
+
+        let resolved_file_path =
+          file_path_resolver(import_path, source_file_path, root_dir.as_str());
+        // println!("!!!resolved_file_path: {}", &resolved_file_path);
+
+        // dbg!(&root_dir, &resolved_file_path);
+        let res = ImportPathResolution::Tuple(
+          ImportPathResolutionType::ThemeNameRef,
+          relative_path(
+            Path::new(root_dir_path),
+            Path::new(resolved_file_path.as_str()),
+          )
+          // .unwrap()
+          .display()
+          .to_string(),
+        );
+        // dbg!(&res);
+
+        res
+      }
       CheckModuleResolution::Haste(module_resolution) => {
         let theme_file_extension = module_resolution
           .theme_file_extension
@@ -655,12 +697,15 @@ pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool 
     || filename.ends_with(&format!("{}.ts", allowed_suffix))
     || filename.ends_with(&format!("{}.tsx", allowed_suffix))
     || filename.ends_with(&format!("{}.jsx", allowed_suffix))
+    || filename.ends_with(&format!("{}.mdx", allowed_suffix))
+    || filename.ends_with(&format!("{}.md", allowed_suffix))
     || filename.ends_with(&format!("{}.mjs", allowed_suffix))
     || filename.ends_with(&format!("{}.cjs", allowed_suffix))
     || filename.ends_with(allowed_suffix)
 }
 
-const EXTENSIONS: [&str; 6] = [".js", ".ts", ".tsx", ".jsx", ".mjs", ".cjs"];
+pub(crate) const EXTENSIONS: [&str; 8] =
+  [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".mdx", ".md"];
 
 fn add_file_extension(imported_file_path: &str, source_file: &str) -> String {
   if EXTENSIONS
@@ -691,10 +736,10 @@ fn chain_collect_hash_map<K: Eq + std::hash::Hash, V: Clone>(
   map1: HashMap<K, V>,
   map2: HashMap<K, V>,
 ) -> HashMap<K, V> {
-  map1.into_iter().chain(map2.into_iter()).collect()
+  map1.into_iter().chain(map2).collect()
 }
 
-fn union_index_set<T: Clone + Eq + std::hash::Hash>(
+fn _union_index_set<T: Clone + Eq + std::hash::Hash>(
   set1: &IndexSet<T>,
   set2: &IndexSet<T>,
 ) -> IndexSet<T> {
@@ -705,5 +750,53 @@ fn chain_collect_index_map<K: Eq + std::hash::Hash, V: Clone>(
   map1: IndexMap<K, V>,
   map2: IndexMap<K, V>,
 ) -> IndexMap<K, V> {
-  map1.into_iter().chain(map2.into_iter()).collect()
+  map1.into_iter().chain(map2).collect()
+}
+
+fn file_path_resolver(
+  relative_file_path: &str,
+  source_file_path: String,
+  root_path: &str,
+) -> String {
+  let file_to_look_for = relative_file_path;
+
+  if EXTENSIONS.iter().any(|ext| file_to_look_for.ends_with(ext)) {
+    todo!("file_path_resolver")
+  }
+
+  // let paths = fs::read_dir("/cwd").unwrap();
+
+  // for path in paths {
+  //   println!("Name: {}", path.unwrap().path().display())
+  // }
+
+  for ext in EXTENSIONS.iter() {
+    let import_path_str = if file_to_look_for.starts_with('.') {
+      format!("{}{}", file_to_look_for, ext)
+    } else {
+      file_to_look_for.to_string()
+    };
+
+    // println!("!!!! file_to_look_for: {}, import_path_str: {}", &file_to_look_for, import_path_str);
+
+    let resolved_file_path = resolve_file_path(&import_path_str, &source_file_path, ext, root_path);
+
+    if let Ok(resolved_path) = resolved_file_path {
+      return resolved_path
+        .display()
+        .to_string()
+        .replace("/app/@", "/node_modules1/@");
+    }
+  }
+
+  panic!("Cannot resolve file path: {}", relative_file_path)
+}
+
+fn relative_path(root: &Path, file_path: &Path) -> PathBuf {
+  let rel_path = file_path
+    .strip_prefix(root)
+    .ok()
+    .map_or(file_path.to_path_buf(), PathBuf::from);
+
+  rel_path
 }

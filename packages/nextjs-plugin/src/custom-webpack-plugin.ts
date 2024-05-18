@@ -199,7 +199,8 @@ class StylexPlugin {
   // for JS modules. The loader than calls this function.
   async transformCode(inputCode: string, filename: string, logger: any) {
     const originalSource = inputCode;
-    if(inputCode.includes("export default function Card") || inputCode.includes("export const buttonTokens")) console.log("originalSource: ", originalSource);
+    // if(inputCode.includes("export default function Card") || inputCode.includes("export const buttonTokens")) console.log("originalSource: ", originalSource);
+    if(inputCode.includes("Welcome to my MDX page")) console.log("originalSource: ", originalSource);
 
     if (
       this.stylexImports.some((importName) =>

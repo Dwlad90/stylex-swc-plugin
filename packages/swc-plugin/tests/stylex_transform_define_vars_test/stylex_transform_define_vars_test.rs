@@ -637,3 +637,39 @@ test!(
     });
   "#
 );
+
+test!(
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test(
+    tr.comments.clone(),
+    &PluginPass {
+      cwd: Option::None,
+      filename: FileName::Real("/stylex/packages/utils/NestedTheme.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      dev: Option::Some(false),
+      runtime_injection: Option::Some(false),
+      gen_conditional_classes: Option::Some(true),
+      treeshake_compensation: Option::Some(true),
+      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
+        Option::Some(ROOT_DIR.to_string())
+      )),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transforms_variables_object_in_commonjs_with_nested_file_path_v2,
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const buttonTokens = stylex.defineVars({
+      bgColor: "blue",
+      textColor: "white",
+      cornerRadius: "4px",
+      paddingBlock: "4px",
+      paddingInline: "8px",
+    });
+  "#
+);

@@ -1,17 +1,24 @@
 use std::{
   any::type_name,
   collections::HashSet,
+  ffi::OsStr,
+  fmt::format,
+  fs,
   hash::{DefaultHasher, Hash, Hasher},
   ops::Deref,
-  path::PathBuf,
+  path::{Path, PathBuf},
 };
 
+use path_clean::PathClean;
 use radix_fmt::radix;
 use swc_core::{
   common::{FileName, Span, DUMMY_SP},
   ecma::{
     ast::{
-      ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Id, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt, Str, Tpl, UnaryExpr, UnaryOp, VarDeclarator
+      ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Id, Ident,
+      ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, Module, ModuleDecl,
+      ModuleExportName, ModuleItem, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt,
+      Str, Tpl, UnaryExpr, UnaryOp, VarDeclarator,
     },
     visit::{Fold, FoldWith},
   },
@@ -23,7 +30,7 @@ use crate::shared::{
   regex::{DASHIFY_REGEX, IDENT_PROP_REGEX},
   structures::{
     functions::{FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::StateManager,
+    state_manager::{StateManager, EXTENSIONS},
   },
 };
 
@@ -540,8 +547,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     panic!("Right expression is not a number")
   };
 
-// dbg!(&left, &right, &op);
-
+  // dbg!(&left, &right, &op);
 
   let result = match &op {
     BinaryOp::Add => {
@@ -561,7 +567,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
         / expr_to_num(right.as_expr()?, &mut state.traversal_state);
 
       // dbg!(&a);
-        a
+      a
     }
     BinaryOp::Mod => {
       expr_to_num(left.as_expr()?, &mut state.traversal_state)
@@ -785,7 +791,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     }
   };
 
-// dbg!(&result);
+  // dbg!(&result);
   Option::Some(result)
 }
 
@@ -1199,6 +1205,7 @@ pub(crate) fn gen_file_based_identifier(
   key: Option<&str>,
 ) -> String {
   let key = key.map_or(String::new(), |k| format!(".{}", k));
+  // dbg!(&file_name);
 
   format!("{}//{}{}", file_name, export_name, key)
 }
@@ -1228,6 +1235,153 @@ pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, S
       "Error resolving package {}: {:?}",
       package_name, error
     )),
+  }
+}
+
+pub(crate) fn resolve_file_path(
+  import_path_str: &str,
+  source_file_path: &str,
+  ext: &str,
+  root_path: &str,
+) -> std::io::Result<PathBuf> {
+  let source_dir = Path::new(source_file_path).parent().unwrap();
+  // dbg!(&source_dir);
+
+  // let import_path_str  = import_path_str.starts_with(".") ? import_path_str : format!("./{}", import_path_str);
+
+  let mut resolved_file_path = (if import_path_str.starts_with("./") {
+    source_dir
+      .join(import_path_str)
+      .strip_prefix(root_path)
+      .unwrap()
+      .to_path_buf()
+  } else if import_path_str.starts_with('/') {
+    Path::new(root_path).join(import_path_str)
+  } else {
+    Path::new("node_modules").join(import_path_str)
+  })
+  .clean();
+
+  // dbg!(&resolved_file_path);
+
+  // dbg!(&source_dir,&source_file_path,  &resolved_file_path, &import_path_str);
+  // println!(
+  //   "!!!!resolved_file_path import_path_str:{}, resolved_file_path: {:?}, ext: {}",
+  //   import_path_str,
+  //   &resolved_file_path,
+  //   resolved_file_path.extension().is_none()
+  // );
+
+  // if !EXTENSIONS
+  //   .iter()
+  //   .all(|ext| resolved_file_path.ends_with(ext))
+  // {
+  //   resolved_file_path.set_extension(format!(
+  //     "{}{}",
+  //     resolved_file_path
+  //       .extension()
+  //       .unwrap_or(OsStr::new(""))
+  //       .to_string_lossy(),
+  //     ext,
+  //   ));
+  // }
+
+  if let Some(extension) = resolved_file_path.extension() {
+    let subpath = extension.to_string_lossy();
+
+    if EXTENSIONS.iter().all(|ext| {
+      let res = !ext.ends_with(subpath.as_ref());
+      // println!("!!! subpath: {}, ext: {}, res: {}", subpath, ext, res);
+      res
+    }) {
+      resolved_file_path.set_extension(format!("{}{}", subpath, ext));
+    }
+  } else {
+    resolved_file_path.set_extension(ext);
+  }
+
+  let resolved_file_path = resolved_file_path.clean();
+  // println!("!!! resolved_file_path !!!!: {:?}", resolved_file_path);
+
+  // let a = PathBuf::from(
+  //   resolved_file_path
+  //     .display()
+  //     .to_string()
+  //     .replace(root_path, "./cwd")
+  //     .replace("/app/@", "/node_modules2/@")
+  //     .replace("./cwd/@", "./cwd/node_modules3/@"),
+  // );
+
+  // // let a = format!(
+  // //   "{}{}",
+  // //   "./cwd",
+  // //   resolved_file_path.parent().unwrap().display()
+  // // );
+
+  // let joined_path = PathBuf::from(
+  //   Path::new("./cwd")
+  //     .join(resolved_file_path.clone())
+  //     .display()
+  //     .to_string()
+  //     .replace("/app/@", "/node_modules4/@")
+  //     .replace("./cwd/@", "./cwd/node_modules5/@"),
+  // );
+
+  let path_to_check = Path::new("./cwd").join(&resolved_file_path);
+  // println!(
+  //   "!!! resolved_file_path: {:?},\n path_to_check:{:?},\n right_path: {:?},\n  metadata:{:?},\n  right_metadata:{:?}\n\n",
+  //   resolved_file_path,
+  //   path_to_check,
+  //   Path::new("/cwd/app/components/ButtonTokens.stylex.ts"),
+  //   fs::metadata(path_to_check).is_ok(),
+  //   fs::metadata(Path::new("/cwd/app/components/ButtonTokens.stylex.ts")).is_ok(),
+  // );
+  // let path_exist = fs::read_dir(
+  //   PathBuf::from("/cwd")
+  //     .join(resolved_file_path.clone())
+  //     .parent()
+  //     .unwrap(),
+  // )
+  // .unwrap()
+  // .any(|dir| {
+  //  println!(
+  //     "Name: {}, cur_filr: {}",
+  //     &dir.as_ref().unwrap().path().display(),
+  //     &resolved_file_path.display().to_string()
+  //   );
+
+  //   dir
+  //     .unwrap()
+  //     .path()
+  //     .display()
+  //     .to_string()
+  //     .contains(&resolved_file_path.display().to_string())
+  // });
+
+  // println!(
+  //   "!!!  path_exist: {}",
+  //   // path_to_check,
+  //   // fs::metadata(path_to_check.clone()),
+  //   path_exist
+  // );
+
+  // if path_exist {
+  //   Ok(resolved_file_path.to_path_buf())
+  // } else {
+  //   Err(std::io::Error::new(
+  //     std::io::ErrorKind::NotFound,
+  //     "File not found",
+  //   ))
+  // }
+
+  // dbg!(&path_to_check, &resolved_file_path);
+  if fs::metadata(&path_to_check).is_ok() {
+    Ok(resolved_file_path.to_path_buf())
+  } else {
+    Err(std::io::Error::new(
+      std::io::ErrorKind::NotFound,
+      "File not found",
+    ))
   }
 }
 

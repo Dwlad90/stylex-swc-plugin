@@ -18,7 +18,7 @@ use crate::shared::{
 
 use super::common::{get_key_str, get_key_values_from_object};
 
-pub(crate) fn validate_stylex_create_indent(call: &CallExpr, state: &mut StateManager) {
+pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
   if !is_create_call(call, state) {
     return;
   }

@@ -28,7 +28,7 @@ use crate::shared::utils::stylex::dev_class_name::{
 use crate::shared::utils::stylex::js_to_expr::{
   convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
 };
-use crate::shared::utils::validators::{is_create_call, validate_stylex_create_indent};
+use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
 use crate::shared::{constants, utils::js::stylex::stylex_keyframes::get_keyframes_fn};
 use crate::ModuleTransformVisitor;
 
@@ -41,7 +41,7 @@ where
     let is_create_call = is_create_call(call, &self.state);
 
     let result = if is_create_call {
-      validate_stylex_create_indent(call, &mut self.state);
+      validate_stylex_create(call, &mut self.state);
 
       let first_arg = call.args.first();
 
@@ -119,7 +119,7 @@ where
 
       let evaluated_arg = evaluate_stylex_create_arg(&first_arg, &mut self.state, &function_map);
 
-      // dbg!(&evaluated_arg);
+      // println!("!!!evaluated_arg.value: {:?}\n\n",evaluated_arg.value);
 
       let value = match evaluated_arg.value {
         Some(value) => value,

@@ -48,12 +48,17 @@ pub(crate) fn stylex_define_vars(
         FlatCompiledStylesValue::Tuple(key, value, _) => {
           // dbg!(&value);
 
+          let str_to_hash = format!("{}.{}", state.theme_name.clone().unwrap(), key);
+          // println!("!!!!!vardecl str_to_hash: {:?}", str_to_hash);
+
           // Created hashed variable names with fileName//themeName//key
           let name_hash = format!(
             "{}{}",
             state.options.class_name_prefix,
-            create_hash(format!("{}.{}", state.theme_name.clone().unwrap(), key).as_str())
+            create_hash(str_to_hash.as_str())
           );
+
+          // println!("!!!!!vardecl, key:{}\n, value:{:?}\n, str_to_hash: {}\n,  name_hash: {:?}", key, value, str_to_hash, name_hash);
 
           let (css_value, css_type) = get_css_value(KeyValueProp {
             key: PropName::Str(key.clone().into()),
@@ -74,6 +79,7 @@ pub(crate) fn stylex_define_vars(
   );
 
   // dbg!(&variables_map);
+  // println!("!!!!!stylex_define_vars: variables_map: {:?}", &variables_map);
 
   let theme_variables_objects = obj_map(ObjMapType::Map(variables_map.clone()), |item| match item
     .as_ref()

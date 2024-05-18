@@ -12,6 +12,7 @@ import WebpackPluginStylex from "./custom-webpack-plugin";
 import type { Configuration } from "webpack";
 import type { NextConfig } from "next";
 import type { ConfigurationContext } from "next/dist/build/webpack/config/utils";
+import type { WebpackConfigContext } from "next/dist/server/config-shared";
 
 let count = 0;
 function StylexNextJSPlugin({
@@ -22,7 +23,8 @@ function StylexNextJSPlugin({
   return (nextConfig: NextConfig = {}) => {
     return {
       ...nextConfig,
-      webpack(config: Configuration & ConfigurationContext, options: any) {
+      transpilePackages: [...(nextConfig.transpilePackages || []), "@stylexjs/open-props"],
+      webpack(config: Configuration & ConfigurationContext, options: WebpackConfigContext) {
         if (typeof nextConfig.webpack === "function") {
           config = nextConfig.webpack(config, options);
         }

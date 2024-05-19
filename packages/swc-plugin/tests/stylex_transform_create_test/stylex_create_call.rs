@@ -166,6 +166,30 @@ test!(
     "#
 );
 
+test!(
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    Option::None
+  ),
+  transforms_style_object_with_gradient,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            default: {
+              backgroundImage: {
+                default: "linear-gradient(to bottom, rgb(214, 219, 220), white)",
+                ["@media (prefers-color-scheme: dark)"]: "linear-gradient(to bottom, rgb(20, 22, 27), black)",
+              }
+            }
+        });
+    "#
+);
+
 #[test]
 fn handles_camel_cased_transition_properties() {
   let camel_cased = "import stylex from 'stylex';
@@ -382,12 +406,21 @@ test!(
   ),
   transforms_valid_shorthands,
   r#"
+        const MEDIA_MOBILE = "@media (max-width: 700px)";
+
         import stylex from 'stylex';
         const styles = stylex.create({
             default: {
                 overflow: 'hidden',
                 borderStyle: 'dashed',
-                borderWidth: 1
+                borderWidth: {
+                    default: "1px",
+                    "@media (max-width: 700px)": "0",
+                },
+                borderColor: {
+                    default: "rgba(131, 134, 135, 0)",
+                    ":hover": "rgba(var(--xpue81e), var(--x1gflzcx), var(--x1363ko0), 0.1)",
+                }
             }
         });
     "#

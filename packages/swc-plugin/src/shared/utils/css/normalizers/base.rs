@@ -479,15 +479,3 @@ fn should_normalize() {
     r#"*{{gridtemplateareas:"content" "sidebar"}}"#
   );
 }
-
-// /// Stringifies the [`Stylesheet`]
-// #[cfg(test)]
-// pub fn stringify(node: &Stylesheet) -> String {
-//     let mut buf = String::new();
-//     let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
-//     let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
-
-//     let _ = codegen.emit(&node);
-
-//     buf
-// }

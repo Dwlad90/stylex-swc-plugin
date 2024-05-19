@@ -10,19 +10,6 @@ use super::{
   state_manager::StateManager,
 };
 
-#[derive(Debug, Clone)]
-pub(crate) struct StyleWithDirections {
-  pub(crate) rtl: Option<String>,
-  pub(crate) ltr: String,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum Styles {
-  IncludedStyle(IncludedStyle),
-  InjectableStyle(InjectableStyle),
-  // Add more types as needed
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PreRuleValue {
   Expr(Expr),
@@ -58,8 +45,10 @@ impl CompiledResult {
 }
 
 pub(crate) trait PreRule: Debug {
+  #[allow(dead_code)]
   fn get_value(&self) -> Option<PreRuleValue>;
   fn compiled(&mut self, state: &StateManager) -> CompiledResult;
+  #[allow(dead_code)]
   fn equals(&self, other: &dyn PreRule) -> bool;
 }
 

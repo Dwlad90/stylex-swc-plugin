@@ -660,7 +660,7 @@ test!(
       ..StyleXOptionsParams::default()
     })
   ),
-  transforms_variables_object_in_commonjs_with_nested_file_path_v2,
+  transforms_variables_object_in_commonjs_with_nested_file_path_and_extended_options,
   r#"
     import * as stylex from "@stylexjs/stylex";
 

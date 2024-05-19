@@ -144,5 +144,14 @@ mod css_tests {
       ),
       r#""content" "sidebar""#
     );
+
+    assert_eq!(
+      transform_value(
+        "--span-t",
+        r#"translateX(4px)"#,
+        &StateManager::default()
+      ),
+      r#"translateX(4px)"#
+    );
   }
 }

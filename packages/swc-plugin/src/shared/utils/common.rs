@@ -1,8 +1,6 @@
 use std::{
   any::type_name,
   collections::HashSet,
-  ffi::OsStr,
-  fmt::format,
   fs,
   hash::{DefaultHasher, Hash, Hasher},
   ops::Deref,
@@ -13,14 +11,11 @@ use path_clean::PathClean;
 use radix_fmt::radix;
 use swc_core::{
   common::{FileName, Span, DUMMY_SP},
-  ecma::{
-    ast::{
-      ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Id, Ident,
-      ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, Module, ModuleDecl,
-      ModuleExportName, ModuleItem, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt,
-      Str, Tpl, UnaryExpr, UnaryOp, VarDeclarator,
-    },
-    visit::{Fold, FoldWith},
+  ecma::ast::{
+    ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Id, Ident,
+    ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, Module, ModuleDecl,
+    ModuleExportName, ModuleItem, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt, Str,
+    Tpl, UnaryExpr, UnaryOp, VarDeclarator,
   },
 };
 
@@ -39,18 +34,6 @@ use super::{
   js::stylex::stylex_types::BaseCSSType,
 };
 
-struct SpanReplacer;
-
-impl Fold for SpanReplacer {
-  fn fold_span(&mut self, _: Span) -> Span {
-    DUMMY_SP
-  }
-}
-
-fn _replace_spans(expr: &mut Expr) -> Expr {
-  expr.clone().fold_children_with(&mut SpanReplacer)
-}
-
 pub fn prop_or_spread_expression_creator(key: &str, value: Box<Expr>) -> PropOrSpread {
   PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
     key: string_to_prop_name(key).unwrap(),
@@ -58,6 +41,8 @@ pub fn prop_or_spread_expression_creator(key: &str, value: Box<Expr>) -> PropOrS
   })))
 }
 
+// NOTE: Tests only using this function
+#[allow(dead_code)]
 pub(crate) fn prop_or_spread_expr_creator(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
   let object = ObjectLit {
     span: DUMMY_SP,
@@ -83,6 +68,8 @@ pub(crate) fn prop_or_spread_string_creator(key: &str, value: &str) -> PropOrSpr
   }
 }
 
+// NOTE: Tests only using this function
+#[allow(dead_code)]
 pub(crate) fn prop_or_spread_array_string_creator(key: &str, value: &[&str]) -> PropOrSpread {
   let array = ArrayLit {
     span: DUMMY_SP,
@@ -95,7 +82,7 @@ pub(crate) fn prop_or_spread_array_string_creator(key: &str, value: &[&str]) -> 
   prop_or_spread_expression_creator(key, Box::new(Expr::Array(array)))
 }
 
-pub(crate) fn prop_or_spread_boolean_creator(key: &str, value: Option<bool>) -> PropOrSpread {
+pub(crate) fn _prop_or_spread_boolean_creator(key: &str, value: Option<bool>) -> PropOrSpread {
   match value {
     Some(value) => prop_or_spread_expression_creator(
       key,
@@ -113,6 +100,8 @@ pub(crate) fn string_to_expression(value: &str) -> Option<Expr> {
   Option::Some(Expr::Lit(Lit::Str(value.into())))
 }
 
+// NOTE: Tests only using this function
+#[allow(dead_code)]
 fn array_fabric(values: &[Expr], spread: Option<Span>) -> Option<ArrayLit> {
   let array = ArrayLit {
     span: DUMMY_SP,
@@ -130,11 +119,13 @@ fn array_fabric(values: &[Expr], spread: Option<Span>) -> Option<ArrayLit> {
   Option::Some(array)
 }
 
+// NOTE: Tests only using this function
+#[allow(dead_code)]
 pub(crate) fn create_array(values: &[Expr]) -> Option<ArrayLit> {
   array_fabric(values, Option::None)
 }
 
-pub(crate) fn create_spreaded_array(values: &[Expr]) -> Option<ArrayLit> {
+pub(crate) fn _create_spreaded_array(values: &[Expr]) -> Option<ArrayLit> {
   array_fabric(values, Option::Some(DUMMY_SP))
 }
 
@@ -156,6 +147,7 @@ pub(crate) fn number_to_expression(value: f64) -> Option<Expr> {
   Option::Some(Expr::Lit(Lit::Num(Number {
     span: DUMMY_SP,
     value,
+    // value: trancate_f64(value),
     raw: Option::None,
   })))
 }
@@ -221,35 +213,6 @@ pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: &bool) -> Str
   }
 }
 
-// pub(crate) fn push_css_anchor_prop(props: &mut Vec<PropOrSpread>) {
-//     props.push(prop_or_spread_boolean_creator(
-//         "$$css".to_string(),
-//         Option::Some(true),
-//     ))
-// }
-
-pub(crate) fn get_pat_as_string(pat: &Pat) -> String {
-  match pat {
-    Pat::Ident(ident) => ident.sym.to_string(),
-    _ => todo!("get_pat_as_string: Pat"),
-  }
-}
-
-// pub(crate) fn expr_or_spread_object_expression_creator(
-//     key: String,
-//     value: Box<Expr>,
-// ) -> ExprOrSpread {
-//     let expr = Box::new(Expr::Object(ObjectLit {
-//         span: DUMMY_SP,
-//         props: vec![prop_or_spread_box_expression_creator(key.as_ref(), value)],
-//     }));
-
-//     ExprOrSpread {
-//         expr,
-//         spread: Option::None,
-//     }
-// }
-
 pub(crate) fn expr_or_spread_string_expression_creator(value: &str) -> ExprOrSpread {
   let expr = Box::new(string_to_expression(value).expect(constants::messages::NON_STATIC_VALUE));
 
@@ -268,13 +231,6 @@ pub(crate) fn expr_or_spread_number_expression_creator(value: f64) -> ExprOrSpre
   }
 }
 
-// pub(crate) fn prop_or_spread_box_expression_creator(key: &str, value: Box<Expr>) -> PropOrSpread {
-//     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-//         key: PropName::Ident(Ident::new(key.into(), DUMMY_SP)),
-//         value,
-//     })))
-// }
-
 pub fn reduce_ident_count<'a>(state: &'a mut StateManager, ident: &'a Ident) {
   *state.var_decl_count_map.entry(ident.to_id()).or_insert(0) -= 1;
 }
@@ -285,16 +241,13 @@ pub fn increase_member_ident(state: &mut StateManager, member_obj: &MemberExpr) 
   }
 }
 
-pub fn reduce_member_expression_count<'a>(
-  state: &'a mut StateManager,
-  member_expression: &MemberExpr,
-) {
+pub fn reduce_member_expression_count(state: &mut StateManager, member_expression: &MemberExpr) {
   if let Some(obj_ident) = member_expression.obj.as_ident() {
     reduce_member_ident_count(state, &obj_ident.to_id());
   }
 }
 
-pub fn reduce_member_ident_count<'a>(state: &'a mut StateManager, obj_ident: &Id) {
+pub fn reduce_member_ident_count(state: &mut StateManager, obj_ident: &Id) {
   *state
     .member_object_ident_count_map
     .entry(obj_ident.clone())
@@ -446,23 +399,12 @@ pub(crate) fn get_var_decl_by_ident_or_member<'a>(
 
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> Expr {
   match &var_decl.init {
-    Some(var_decl_init) => unbox(var_decl_init.clone()),
+    Some(var_decl_init) => *var_decl_init.clone(),
     None => panic!("Variable declaration is not an expression"),
   }
 }
 
-pub fn _unbox_option<T>(item: Option<Box<T>>) -> T {
-  match item {
-    Some(item) => unbox(item),
-    None => panic!("Item is undefined"),
-  }
-}
-
-pub fn unbox<T>(value: Box<T>) -> T {
-  *value
-}
-
-pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f32 {
+pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f64 {
   match &expr_num {
     Expr::Ident(ident) => ident_to_number(ident, traversal_state, &FunctionMap::default()),
     Expr::Lit(lit) => lit_to_num(lit),
@@ -512,7 +454,7 @@ pub fn expr_to_str(
   }
 }
 
-pub fn unari_to_num(unary_expr: &UnaryExpr, state: &mut StateManager) -> f32 {
+pub fn unari_to_num(unary_expr: &UnaryExpr, state: &mut StateManager) -> f64 {
   let arg = unary_expr.arg.as_ref();
   let op = unary_expr.op;
 
@@ -523,7 +465,7 @@ pub fn unari_to_num(unary_expr: &UnaryExpr, state: &mut StateManager) -> f32 {
   }
 }
 
-pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f32> {
+pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f64> {
   let binary_expr = binary_expr.clone();
 
   let op = binary_expr.op;
@@ -563,11 +505,8 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
         * expr_to_num(right.as_expr()?, &mut state.traversal_state)
     }
     BinaryOp::Div => {
-      let a = expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        / expr_to_num(right.as_expr()?, &mut state.traversal_state);
-
-      // dbg!(&a);
-      a
+      expr_to_num(left.as_expr()?, &mut state.traversal_state)
+        / expr_to_num(right.as_expr()?, &mut state.traversal_state)
     }
     BinaryOp::Mod => {
       expr_to_num(left.as_expr()?, &mut state.traversal_state)
@@ -577,23 +516,23 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
       .powf(expr_to_num(right.as_expr()?, &mut state.traversal_state)),
     BinaryOp::RShift => {
       ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        >> expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f32
+        >> expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
     }
     BinaryOp::LShift => {
       ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        << expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f32
+        << expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
     }
     BinaryOp::BitAnd => {
       ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        & expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f32
+        & expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
     }
     BinaryOp::BitOr => {
       ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        | expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f32
+        | expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
     }
     BinaryOp::BitXor => {
       ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        ^ expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f32
+        ^ expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
     }
     BinaryOp::In => {
       if expr_to_num(right.as_expr()?, &mut state.traversal_state) == 0.0 {
@@ -683,8 +622,6 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     }
     // #region Logical
     BinaryOp::LogicalOr => {
-      // println!("!!!!__ state.confident33333: {:#?}", state.confident);
-
       let was_confident = state.confident;
 
       let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
@@ -787,11 +724,11 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f3
     // #endregion Logical
     BinaryOp::ZeroFillRShift => {
       ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        >> expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f32
+        >> expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
     }
   };
 
-  // dbg!(&result);
+  // Option::Some(trancate_f64(result))
   Option::Some(result)
 }
 
@@ -799,7 +736,7 @@ pub fn ident_to_number(
   ident: &Ident,
   traveral_state: &mut StateManager,
   functions: &FunctionMap,
-) -> f32 {
+) -> f64 {
   // 1. Get the variable declaration
   let var_decl = get_var_decl_by_ident(ident, traveral_state, functions, VarDeclAction::Reduce);
 
@@ -825,7 +762,7 @@ pub fn ident_to_number(
   }
 }
 
-pub fn lit_to_num(lit_num: &Lit) -> f32 {
+pub fn lit_to_num(lit_num: &Lit) -> f64 {
   match &lit_num {
     Lit::Bool(Bool { value, .. }) => {
       if value == &true {
@@ -834,9 +771,9 @@ pub fn lit_to_num(lit_num: &Lit) -> f32 {
         0.0
       }
     }
-    Lit::Num(num) => num.value as f32,
+    Lit::Num(num) => num.value as f64,
     Lit::Str(str) => {
-      let Result::Ok(num) = str.value.parse::<f32>() else {
+      let Result::Ok(num) = str.value.parse::<f64>() else {
         panic!("Value in not a number");
       };
 
@@ -925,7 +862,7 @@ pub fn expr_tpl_to_string(tpl: &Tpl, state: &mut StateManager, functions: &Funct
   tpl_str
 }
 
-pub fn evaluate_bin_expr(op: BinaryOp, left: f32, right: f32) -> f32 {
+pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
   match &op {
     BinaryOp::Add => left + right,
     BinaryOp::Sub => left - right,
@@ -935,7 +872,7 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f32, right: f32) -> f32 {
   }
 }
 
-pub fn transform_bin_expr_to_number(bin: &BinExpr, traversal_state: &mut StateManager) -> f32 {
+pub fn transform_bin_expr_to_number(bin: &BinExpr, traversal_state: &mut StateManager) -> f64 {
   let mut state = Box::new(State::new(traversal_state));
   let op = bin.op;
   let Some(left) = evaluate_cached(&bin.left, &mut state) else {
@@ -954,34 +891,6 @@ pub fn transform_bin_expr_to_number(bin: &BinExpr, traversal_state: &mut StateMa
 pub(crate) fn type_of<T>(_: T) -> &'static str {
   type_name::<T>()
 }
-
-// pub fn get_value_as_string_from_ident(
-//     value_ident: &Ident,
-//     declarations: &Vec<VarDeclarator>,
-//     var_dec_count_map: &mut HashMap<Id, i8>,
-// ) -> String {
-//     reduce_ident_count(var_dec_count_map, &value_ident);
-
-//     let var_decl = get_var_decl_from(declarations, &value_ident);
-
-//     match &var_decl {
-//         Some(var_decl) => {
-//             let var_decl_expr = get_expr_from_var_decl(var_decl);
-
-//             match &var_decl_expr {
-//                 Expr::Lit(lit) => get_string_val_from_lit(lit),
-//                 Expr::Ident(ident) => {
-//                     get_value_as_string_from_ident(ident)
-//                 }
-//                 _ => panic!("Value type not supported"),
-//             }
-//         }
-//         None => {
-//           // println!("value_ident: {:?}", value_ident);
-//             panic!("Variable not declared")
-//         }
-//     }
-// }
 
 fn prop_name_eq(a: &PropName, b: &PropName) -> bool {
   match (a, b) {
@@ -1210,7 +1119,7 @@ pub(crate) fn gen_file_based_identifier(
   format!("{}//{}{}", file_name, export_name, key)
 }
 
-pub(crate) fn hash_f32(value: f32) -> u64 {
+pub(crate) fn hash_f64(value: f64) -> u64 {
   let bits = value.to_bits();
   let mut hasher = DefaultHasher::new();
   bits.hash(&mut hasher);
@@ -1222,7 +1131,7 @@ pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
   (value * multiplier).round() / multiplier
 }
 
-pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
+pub(crate) fn _resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
   match node_resolve::Resolver::default()
     .with_basedir(PathBuf::from("./cwd"))
     .preserve_symlinks(true)
@@ -1245,9 +1154,6 @@ pub(crate) fn resolve_file_path(
   root_path: &str,
 ) -> std::io::Result<PathBuf> {
   let source_dir = Path::new(source_file_path).parent().unwrap();
-  // dbg!(&source_dir);
-
-  // let import_path_str  = import_path_str.starts_with(".") ? import_path_str : format!("./{}", import_path_str);
 
   let mut resolved_file_path = (if import_path_str.starts_with("./") {
     source_dir
@@ -1261,30 +1167,6 @@ pub(crate) fn resolve_file_path(
     Path::new("node_modules").join(import_path_str)
   })
   .clean();
-
-  // dbg!(&resolved_file_path);
-
-  // dbg!(&source_dir,&source_file_path,  &resolved_file_path, &import_path_str);
-  // println!(
-  //   "!!!!resolved_file_path import_path_str:{}, resolved_file_path: {:?}, ext: {}",
-  //   import_path_str,
-  //   &resolved_file_path,
-  //   resolved_file_path.extension().is_none()
-  // );
-
-  // if !EXTENSIONS
-  //   .iter()
-  //   .all(|ext| resolved_file_path.ends_with(ext))
-  // {
-  //   resolved_file_path.set_extension(format!(
-  //     "{}{}",
-  //     resolved_file_path
-  //       .extension()
-  //       .unwrap_or(OsStr::new(""))
-  //       .to_string_lossy(),
-  //     ext,
-  //   ));
-  // }
 
   if let Some(extension) = resolved_file_path.extension() {
     let subpath = extension.to_string_lossy();
@@ -1301,81 +1183,10 @@ pub(crate) fn resolve_file_path(
   }
 
   let resolved_file_path = resolved_file_path.clean();
-  // println!("!!! resolved_file_path !!!!: {:?}", resolved_file_path);
-
-  // let a = PathBuf::from(
-  //   resolved_file_path
-  //     .display()
-  //     .to_string()
-  //     .replace(root_path, "./cwd")
-  //     .replace("/app/@", "/node_modules2/@")
-  //     .replace("./cwd/@", "./cwd/node_modules3/@"),
-  // );
-
-  // // let a = format!(
-  // //   "{}{}",
-  // //   "./cwd",
-  // //   resolved_file_path.parent().unwrap().display()
-  // // );
-
-  // let joined_path = PathBuf::from(
-  //   Path::new("./cwd")
-  //     .join(resolved_file_path.clone())
-  //     .display()
-  //     .to_string()
-  //     .replace("/app/@", "/node_modules4/@")
-  //     .replace("./cwd/@", "./cwd/node_modules5/@"),
-  // );
 
   let path_to_check = Path::new("./cwd").join(&resolved_file_path);
-  // println!(
-  //   "!!! resolved_file_path: {:?},\n path_to_check:{:?},\n right_path: {:?},\n  metadata:{:?},\n  right_metadata:{:?}\n\n",
-  //   resolved_file_path,
-  //   path_to_check,
-  //   Path::new("/cwd/app/components/ButtonTokens.stylex.ts"),
-  //   fs::metadata(path_to_check).is_ok(),
-  //   fs::metadata(Path::new("/cwd/app/components/ButtonTokens.stylex.ts")).is_ok(),
-  // );
-  // let path_exist = fs::read_dir(
-  //   PathBuf::from("/cwd")
-  //     .join(resolved_file_path.clone())
-  //     .parent()
-  //     .unwrap(),
-  // )
-  // .unwrap()
-  // .any(|dir| {
-  //  println!(
-  //     "Name: {}, cur_filr: {}",
-  //     &dir.as_ref().unwrap().path().display(),
-  //     &resolved_file_path.display().to_string()
-  //   );
 
-  //   dir
-  //     .unwrap()
-  //     .path()
-  //     .display()
-  //     .to_string()
-  //     .contains(&resolved_file_path.display().to_string())
-  // });
-
-  // println!(
-  //   "!!!  path_exist: {}",
-  //   // path_to_check,
-  //   // fs::metadata(path_to_check.clone()),
-  //   path_exist
-  // );
-
-  // if path_exist {
-  //   Ok(resolved_file_path.to_path_buf())
-  // } else {
-  //   Err(std::io::Error::new(
-  //     std::io::ErrorKind::NotFound,
-  //     "File not found",
-  //   ))
-  // }
-
-  // dbg!(&path_to_check, &resolved_file_path);
-  if fs::metadata(&path_to_check).is_ok() {
+  if fs::metadata(path_to_check).is_ok() {
     Ok(resolved_file_path.to_path_buf())
   } else {
     Err(std::io::Error::new(
@@ -1400,3 +1211,17 @@ pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
     }));
   }
 }
+
+// pub(crate) fn trancate_f32(number: f32) -> f32 {
+//   f32::trunc(number  * 100.0) / 100.0
+// }
+
+// pub(crate) fn trancate_f64(number: f64) -> f64 {
+//   let a = f64::trunc(number * 100.0) / 100.0;
+
+//   if a == 4.0 {
+//     println!("Origin: {}, trancated: {}", &number, &a);
+//   }
+
+//   number
+// }

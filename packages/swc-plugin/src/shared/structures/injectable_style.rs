@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
 
-use crate::shared::utils::common::hash_f32;
+use crate::shared::utils::common::hash_f64;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct InjectableStyleBase {
@@ -14,14 +14,14 @@ pub(crate) struct InjectableStyleBase {
 pub(crate) struct InjectableStyle {
   pub(crate) ltr: String,
   pub(crate) rtl: Option<String>,
-  pub(crate) priority: Option<f32>,
+  pub(crate) priority: Option<f64>,
 }
 
 impl Hash for InjectableStyle {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.ltr.hash(state);
     self.rtl.hash(state);
-    hash_f32(self.priority.unwrap_or(0.0));
+    hash_f64(self.priority.unwrap_or(0.0));
   }
 }
 

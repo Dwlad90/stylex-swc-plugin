@@ -1,6 +1,6 @@
 use phf::phf_map;
 
-pub(crate) static PSEUDO_CLASS_PRIORITIES: phf::Map<&'static str, &'static f32> = phf_map! {
+pub(crate) static PSEUDO_CLASS_PRIORITIES: phf::Map<&'static str, &'static f64> = phf_map! {
   ":is" => &40.0,
   ":where" => &40.0,
   ":not" => &40.0,
@@ -63,10 +63,25 @@ pub(crate) static PSEUDO_CLASS_PRIORITIES: phf::Map<&'static str, &'static f32> 
   ":active" => &170.0,
 };
 
-pub(crate) static AT_RULE_PRIORITIES: phf::Map<&'static str, &'static f32> = phf_map! {
+pub(crate) static AT_RULE_PRIORITIES: phf::Map<&'static str, &'static f64> = phf_map! {
   "@supports" => &30.0,
   "@media" => &200.0,
   "@container" => &300.0,
 };
 
-pub(crate) static PSEUDO_ELEMENT_PRIORITY: f32 = 5000.0;
+pub(crate) static PSEUDO_ELEMENT_PRIORITY: f64 = 5000.0;
+
+pub(crate) static CAMEL_CASE_PRIORITIES: phf::Map<&'static str, &'static str> = phf_map! {
+  "translatex" => "translateX",
+  "translatey" => "translateY",
+  "translatez" => "translateZ",
+  "scalex" => "scaleX",
+  "scaley" => "scaleY",
+  "scalez" => "scaleZ",
+  "rotatex" => "rotateX",
+  "rotatey" => "rotateY",
+  "rotatez" => "rotateZ",
+  "skewx" => "skewX",
+  "skewy" => "skewY",
+  "skewz" => "skewZ",
+};

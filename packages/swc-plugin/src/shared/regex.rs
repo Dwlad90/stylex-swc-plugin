@@ -27,6 +27,12 @@ pub(crate) static IDENT_PROP_REGEX: Lazy<Regex> =
 pub(crate) static WHITESPACE_NORMALIZER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"(\))(\S)|(\")(\")"#).unwrap());
 
+// pub(crate) static WHITESPACE_VARS_NORMALIZER_REGEX: Lazy<Regex> =
+//   Lazy::new(|| Regex::new(r#"(\))\s,(var|\d|\.)"#).unwrap());
+
+pub(crate) static WHITESPACE_FUNC_NORMALIZER_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"\(\s*([^)]*?)\s*\)\s*,\s*"#).unwrap());
+
 pub(crate) static HASH_WHITESPACE_NORMALIZER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(\S)#").unwrap());
 

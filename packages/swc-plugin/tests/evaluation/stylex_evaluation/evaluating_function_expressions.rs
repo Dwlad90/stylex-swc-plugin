@@ -309,11 +309,12 @@ fn math_complicated() {
     }),
     |_| EvaluationModuleTransformVisitor::default(),
     r#"
-          const x =  Math.min(Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100)
-          ;
+          const x =  Math.min(Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100);
+          const x =  Math.round(100 * (Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100 - (16 * (Math.round(20 / Math.pow(1.333, 3) / 0.16) / 100 - Math.round(15 / Math.pow(1.2, 2) / 0.16) / 10016)) / (1240 - 320) * (320 / 16))) / 100
         "#,
     r#"
-          0.5799999833106995;
+          0.58;
+          0.4;
         "#,
     false,
   )

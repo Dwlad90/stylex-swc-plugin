@@ -164,10 +164,10 @@ pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {
     })
 }
 
-pub(crate) fn priority_for_at_rule(at_rule: &str) -> f32 {
+pub(crate) fn priority_for_at_rule(at_rule: &str) -> f64 {
   if at_rule == "default" {
     0.0
   } else {
-    at_rule.split(SPLIT_TOKEN).count() as f32
+    at_rule.split(SPLIT_TOKEN).count() as f64
   }
 }

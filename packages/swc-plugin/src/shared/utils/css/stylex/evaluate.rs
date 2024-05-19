@@ -7,6 +7,7 @@ use std::{
   rc::Rc,
 };
 
+use chrono::format;
 use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::{
@@ -54,7 +55,7 @@ use crate::shared::{
     common::{
       binary_expr_to_num, create_hash, deep_merge_props, expr_to_num, expr_to_str,
       gen_file_based_identifier, get_import_by_ident, get_key_str, get_string_val_from_lit,
-      get_var_decl_by_ident, get_var_decl_from, hash_f32, lit_to_num, normalize_expr,
+      get_var_decl_by_ident, get_var_decl_from, hash_f64, lit_to_num, normalize_expr,
       number_to_expression, reduce_member_expression_count, remove_duplicates,
       string_to_expression, transform_shorthand_to_key_values,
     },
@@ -906,7 +907,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         // let a = cached_first_arg.unwrap();
 
                         let cached_first_arg = evaluate_cached(&first_arg.expr, state);
-                      // dbg!(&cached_first_arg, &first_arg.expr);
+                        // dbg!(&cached_first_arg, &first_arg.expr);
 
                         context = Option::Some(Box::new(vec![Option::Some(
                           EvaluateResultValue::Expr(Box::new(
@@ -1648,12 +1649,14 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         .map(|expr| expr_to_num(expr, &mut state.traversal_state))
                         .expect("All arguments must be a number")
                     })
-                    .collect::<Vec<f32>>();
+                    .collect::<Vec<f64>>();
 
                   let result = num_args.first().unwrap().powf(*num_args.get(1).unwrap());
 
+                  // let trancated_num = trancate_f64(result);
+
                   return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(
-                    number_to_expression(result as f64).unwrap(),
+                    number_to_expression(result).unwrap(),
                   ))));
                 }
                 CallbackType::Math(MathJS::Round | MathJS::Floor | MathJS::Ceil) => {
@@ -1670,8 +1673,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     _ => unreachable!("Invalid function type"),
                   };
 
+                  // let trancated_num = trancate_f64(result);
+
                   return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(
-                    number_to_expression(result as f64).unwrap(),
+                    number_to_expression(result).unwrap(),
                   ))));
                 }
                 CallbackType::Math(MathJS::Min | MathJS::Max) => {
@@ -1688,7 +1693,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         .map(|expr| expr_to_num(expr, &mut state.traversal_state))
                         .expect("All arguments must be a number")
                     })
-                    .collect::<Vec<f32>>();
+                    .collect::<Vec<f64>>();
 
                   let result = match func.as_ref() {
                     CallbackType::Math(MathJS::Min) => num_args
@@ -1703,8 +1708,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   }
                   .unwrap();
 
+                  // let trancated_num = trancate_f64(result);
+
                   return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(
-                    number_to_expression(result as f64).unwrap(),
+                    number_to_expression(result).unwrap(),
                   ))));
                 }
               }
@@ -1824,7 +1831,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
               .traversal_state
               .import_path_resolver(&import_path.src.value);
 
-          // println!("!!!!!_valuate import_path.src.value: {}, abs_path: {:?}",&import_path.src.value, &abs_path);
+            // println!("!!!!!_valuate import_path.src.value: {}, abs_path: {:?}",&import_path.src.value, &abs_path);
 
             let imported_name = match imported {
               ModuleExportName::Ident(ident) => ident.sym.to_string(),
@@ -1986,10 +1993,10 @@ pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<Box<Eval
 
   match existing {
     Some(value) => {
-    // dbg!(&cleaned_path, value);
+      // dbg!(&cleaned_path, value);
       if value.resolved {
         let resolved = value.value.clone();
-      // dbg!(&resolved);
+
         return resolved;
       }
       deopt(path, state)

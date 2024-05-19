@@ -28,10 +28,7 @@ pub(crate) fn stylex_create_set(
   let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
   let mut injected_styles_map: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
 
-  // dbg!(&namespaces);
-
   for (namespace_name, namespace) in namespaces.as_map().unwrap() {
-    // dbg!(&namespace_name, &namespace);
     validate_namespace(namespace, &[]);
 
     let mut pseudos = vec![];
@@ -39,7 +36,6 @@ pub(crate) fn stylex_create_set(
 
     let flattened_namespace =
       flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
-
     // dbg!(&flattened_namespace);
 
     let compiled_namespace_tuples = flattened_namespace
@@ -56,8 +52,6 @@ pub(crate) fn stylex_create_set(
         ),
       })
       .collect::<Vec<(String, CompiledResult)>>();
-
-    // dbg!(&compiled_namespace_tuples);
 
     let compiled_namespace = compiled_namespace_tuples
       .iter()
@@ -77,8 +71,6 @@ pub(crate) fn stylex_create_set(
       })
       .collect::<IndexMap<String, CompiledResult>>();
 
-    // dbg!(&compiled_namespace);
-
     let mut namespace_obj: FlatCompiledStyles = IndexMap::new();
 
     for key in compiled_namespace.keys() {
@@ -93,8 +85,6 @@ pub(crate) fn stylex_create_set(
         );
       } else if let Some(styles) = value.as_computed_styles() {
         let class_name_tuples = styles.clone();
-
-        // dbg!(&class_name_tuples);
 
         let class_name = &class_name_tuples
           .iter()

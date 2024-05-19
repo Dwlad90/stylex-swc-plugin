@@ -93,7 +93,7 @@ mod stylex_create {
     object
   }
 
-  type InjectedStylesArg<'a> = [(&'a str, &'a [(&'a str, (&'a str, f32))])];
+  type InjectedStylesArg<'a> = [(&'a str, &'a [(&'a str, (&'a str, f64))])];
 
   fn exprected_result_factory(
     resolved_namespaces: &[(&str, &[(&str, &str)])],

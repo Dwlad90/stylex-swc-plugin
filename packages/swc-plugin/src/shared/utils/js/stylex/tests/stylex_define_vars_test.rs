@@ -92,7 +92,7 @@ mod stylex_define_vars {
   }
 
   fn exprected_css_result_factory(
-    injected_styles: &[(&str, (&str, f32))],
+    injected_styles: &[(&str, (&str, f64))],
   ) -> IndexMap<String, Box<InjectableStyle>> {
     let mut expected_injected_styles = IndexMap::new();
 

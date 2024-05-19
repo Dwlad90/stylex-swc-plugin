@@ -5,7 +5,7 @@ use crate::shared::structures::injectable_style::InjectableStyle;
 
 use super::injectable_style::InjectableStyleBase;
 
-fn f32_to_int<S>(priority: &f32, serializer: S) -> Result<S::Ok, S::Error>
+fn f64_to_int<S>(priority: &f64, serializer: S) -> Result<S::Ok, S::Error>
 where
   S: Serializer,
 {
@@ -13,7 +13,7 @@ where
     return serializer.serialize_i32(*priority as i32);
   }
 
-  serializer.serialize_f32(*priority as f32)
+  serializer.serialize_f64(*priority as f64)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -21,8 +21,8 @@ where
 pub(crate) struct MetaData {
   class_name: String,
   style: InjectableStyleBase,
-  #[serde(serialize_with = "f32_to_int")]
-  priority: f32,
+  #[serde(serialize_with = "f64_to_int")]
+  priority: f64,
 }
 
 impl MetaData {
@@ -49,7 +49,7 @@ impl MetaData {
     &self.class_name
   }
 
-  pub(crate) fn get_priority(&self) -> &f32 {
+  pub(crate) fn get_priority(&self) -> &f64 {
     &self.priority
   }
 

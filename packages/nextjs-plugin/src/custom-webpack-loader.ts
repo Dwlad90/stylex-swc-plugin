@@ -15,7 +15,13 @@ export type WebpackLoaderOptions = {
   /**
    * Please never use this feature, it will be removed without further notice.
    */
-  // unstable_keepOriginalCode?: boolean;
+  stylexPlugin?: {
+    transformCode: (
+      code: string,
+      filePath: string,
+      logger?: ReturnType<webpack.Compiler["getInfrastructureLogger"]>,
+    ) => Promise<{ code: string; map: string }>;
+  };
 };
 
 type WebpackLoaderParams = Parameters<
@@ -28,11 +34,10 @@ function stylexLoader(
 ) {
   const callback = this.async();
 
-  // @ts-expect-error - tmp
   const { stylexPlugin } = this.getOptions();
   const logger = this._compiler?.getInfrastructureLogger(PLUGIN_NAME);
 
-  stylexPlugin.transformCode(inputCode, this.resourcePath, logger).then(
+  stylexPlugin?.transformCode(inputCode, this.resourcePath, logger).then(
     ({ code, map }: { code: string; map: string }) => {
       callback(null, code, map);
     },

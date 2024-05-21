@@ -7,17 +7,14 @@
  *
  */
 
-import * as babel from "@babel/core";
 import path from "path";
 import stylexBabelPlugin from "@stylexjs/babel-plugin";
-import webpack, { Compiler } from "webpack";
-//@ts-expect-error - no types
-import flowSyntaxPlugin from "@babel/plugin-syntax-flow";
-//@ts-expect-error - no types
-import jsxSyntaxPlugin from "@babel/plugin-syntax-jsx";
-//@ts-expect-error - no types
-import typescriptSyntaxPlugin from "@babel/plugin-syntax-typescript";
+import type { Rule } from "@stylexjs/babel-plugin";
+import webpack from "webpack";
+import type { Compiler, WebpackError } from "webpack";
+
 import fs from "fs/promises";
+import { PluginRule } from "./types";
 const { NormalModule, Compilation } = webpack;
 
 const PLUGIN_NAME = "stylex";
@@ -28,23 +25,7 @@ const IS_DEV_ENV =
 
 const { RawSource, ConcatSource } = webpack.sources;
 
-/*::
-type PluginOptions = $ReadOnly<{
-  dev?: boolean,
-  useRemForFontSize?: boolean,
-  stylexImports?: $ReadOnlyArray<string>,
-  babelConfig?: $ReadOnly<{
-    plugins?: $ReadOnlyArray<mixed>,
-    presets?: $ReadOnlyArray<mixed>,
-    babelrc?: boolean,
-  }>,
-  filename?: string,
-  appendTo?: string | (string) => boolean,
-  useCSSLayers?: boolean,
-}>
-*/
-
-const stylexRules: any = {};
+const stylexRules: Record<string, Rule[]> = {};
 const cssFiles = new Set<any>();
 const compilers = new Set<any>();
 
@@ -61,41 +42,16 @@ class StylexPlugin {
 
   constructor({
     dev = IS_DEV_ENV,
-    useRemForFontSize,
     appendTo,
     filename = appendTo == null ? "stylex.css" : undefined,
     stylexImports = ["stylex", "@stylexjs/stylex"],
-    rootDir,
-    babelConfig = {},
-    aliases,
     useCSSLayers = false,
   }: any = {}) {
     this.dev = dev;
     this.appendTo = appendTo;
     this.filename = filename;
-    // this.babelConfig = {
-    //   plugins: [],
-    //   presets: [],
-    //   babelrc: [],
-    //   ...babelConfig,
-    // };
     this.stylexImports = stylexImports;
-    // this.babelPlugin = [
-    //   stylexBabelPlugin,
-    //   {
-    //     dev,
-    //     useRemForFontSize,
-    //     aliases: aliases,
-    //     runtimeInjection: false,
-    //     genConditionalClasses: true,
-    //     treeshakeCompensation: true,
-    //     unstable_moduleResolution: {
-    //       type: "commonJS",
-    //       rootDir,
-    //     },
-    //     importSources: stylexImports,
-    //   },
-    // ];
+
     this.useCSSLayers = useCSSLayers;
   }
 
@@ -104,7 +60,7 @@ class StylexPlugin {
       // Apply loader to JS modules.
       NormalModule.getCompilationHooks(compilation).loader.tap(
         PLUGIN_NAME,
-        (loaderContext, module) => {
+        (_, module) => {
           if (
             // JavaScript (and Flow) modules
             /\.jsx?/.test(path.extname(module.resource)) ||
@@ -114,10 +70,11 @@ class StylexPlugin {
             // We use .push() here instead of .unshift()
             // Webpack usually runs loaders in reverse order and we want to ideally run
             // our loader before anything else.
-            // @ts-expect-error - tmp
             module.loaders.unshift({
               loader: path.resolve(__dirname, "custom-webpack-loader.js"),
               options: { stylexPlugin: this },
+              ident: null,
+              type: null,
             });
           }
 
@@ -136,9 +93,10 @@ class StylexPlugin {
         }
         // Take styles for the modules that were included in the last compilation.
         const allRules = Object.keys(stylexRules)
-        .map((filename) => stylexRules[filename])
-        .flat();
-        // console.log("!!!processStylexRules allRules: ", allRules);
+          .map((filename) => stylexRules[filename])
+          .filter(Boolean)
+          .flat() as unknown as Rule[];
+
         return stylexBabelPlugin.processStylexRules(
           allRules,
           this.useCSSLayers,
@@ -162,14 +120,17 @@ class StylexPlugin {
             if (cssFileName && stylexCSS != null) {
               this.filePath = path.join(process.cwd(), ".next", cssFileName);
 
-              const updatedSource = new ConcatSource(
-                // @ts-expect-error - tmp
-                new RawSource(assets[cssFileName].source()),
-                new RawSource(stylexCSS),
-              );
+              const source = assets?.[cssFileName]?.source();
 
-              compilation.updateAsset(cssFileName, updatedSource);
-              compilers.add(compiler);
+              if (source) {
+                const updatedSource = new ConcatSource(
+                  new RawSource(source),
+                  new RawSource(stylexCSS),
+                );
+
+                compilation.updateAsset(cssFileName, updatedSource);
+                compilers.add(compiler);
+              }
             }
           },
         );
@@ -186,8 +147,7 @@ class StylexPlugin {
               );
             }
           } catch (e) {
-            // @ts-expect-error - tmp
-            compilation.errors.push(e);
+            compilation.errors.push(e as WebpackError);
           }
         });
       }
@@ -199,20 +159,22 @@ class StylexPlugin {
   // for JS modules. The loader than calls this function.
   async transformCode(inputCode: string, filename: string, logger: any) {
     const originalSource = inputCode;
-    // if(inputCode.includes("export default function Card") || inputCode.includes("export const buttonTokens")) console.log("originalSource: ", originalSource);
-    if(inputCode.includes("Welcome to my MDX page")) console.log("originalSource: ", originalSource);
+    if (inputCode.includes("Welcome to my MDX page"))
+      console.log("originalSource: ", originalSource);
 
     if (
       this.stylexImports.some((importName) =>
         originalSource.includes(importName),
-    )
-  ) {
+      )
+    ) {
       let metadataStr = "[]";
 
       const code = originalSource.replace(
         /\/\/*__stylex_metadata_start__(?<metadata>.+)__stylex_metadata_end__/,
         (...args) => {
-          metadataStr = args.at(-1)?.metadata.split('"__stylex_metadata_end__')[0];
+          metadataStr = args
+            .at(-1)
+            ?.metadata.split('"__stylex_metadata_end__')[0];
 
           return "";
         },
@@ -229,12 +191,14 @@ class StylexPlugin {
 
       if (metadata.stylex != null && metadata.stylex.length > 0) {
         const oldRules = stylexRules[filename] || [];
-        //@ts-expect-error - tmp
-        stylexRules[filename] = metadata.stylex?.map((rule) => [rule.class_name, rule.style, rule.priority]);
+
+        stylexRules[filename] = metadata.stylex?.map(
+          (rule: PluginRule) =>
+            [rule.class_name, rule.style, rule.priority] as Rule,
+        );
 
         logger.debug(`Read stylex styles from ${filename}:`, metadata.stylex);
 
-        // @ts-expect-error - tmp
         const oldClassNames = new Set(oldRules.map((rule) => rule[0]));
         const newClassNames = new Set(metadata.stylex.map((rule) => rule[0]));
 
@@ -260,7 +224,6 @@ class StylexPlugin {
 
         return { code, map };
       }
-
     }
     return { code: inputCode };
   }

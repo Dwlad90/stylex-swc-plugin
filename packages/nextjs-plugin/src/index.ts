@@ -23,8 +23,14 @@ function StylexNextJSPlugin({
   return (nextConfig: NextConfig = {}) => {
     return {
       ...nextConfig,
-      transpilePackages: [...(nextConfig.transpilePackages || []), "@stylexjs/open-props"],
-      webpack(config: Configuration & ConfigurationContext, options: WebpackConfigContext) {
+      transpilePackages: [
+        ...(nextConfig.transpilePackages || []),
+        "@stylexjs/open-props",
+      ],
+      webpack(
+        config: Configuration & ConfigurationContext,
+        options: WebpackConfigContext,
+      ) {
         if (typeof nextConfig.webpack === "function") {
           config = nextConfig.webpack(config, options);
         }
@@ -42,18 +48,16 @@ function StylexNextJSPlugin({
           ].join("\n"),
         );
 
-        // @ts-expect-error - tmp
-        config.optimization.splitChunks ||= { cacheGroups: {} };
+        if (config.optimization?.splitChunks) {
+          config.optimization.splitChunks ||= { cacheGroups: {} };
 
-        // @ts-expect-error - tmp
-        if (config.optimization.splitChunks?.cacheGroups?.styles) {
-          // @ts-expect-error - tmp
-          config.optimization.splitChunks.cacheGroups.styles = {
-            name: "styles",
-            test: /\.css$/,
-            chunks: "all",
-            enforce: true,
-          };
+          if (config.optimization.splitChunks.cacheGroups) {
+            config.optimization.splitChunks.cacheGroups.stylex = {
+              name: "stylex",
+              chunks: "all",
+              enforce: true,
+            };
+          }
         }
 
         const webpackPluginOptions = {
@@ -72,8 +76,7 @@ function StylexNextJSPlugin({
         };
 
         const stylexPlugin = new WebpackPluginStylex(webpackPluginOptions);
-        // @ts-expect-error - tmp
-        config.plugins.push(stylexPlugin);
+        config.plugins?.push(stylexPlugin);
 
         return config;
       },

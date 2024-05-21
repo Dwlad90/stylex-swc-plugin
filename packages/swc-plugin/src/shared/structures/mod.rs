@@ -1,6 +1,5 @@
 pub(crate) mod application_order;
 pub mod evaluate_result;
-pub(crate) mod flat_compiled_styles;
 pub mod functions;
 pub(crate) mod included_style;
 pub(crate) mod injectable_style;
@@ -21,6 +20,7 @@ pub(crate) mod shorthands_of_shorthands;
 pub mod state_manager;
 pub mod stylex_options;
 pub(crate) mod stylex_state_options;
-pub(crate) mod theme_ref;
-pub(crate) mod uid_generator;
 pub(crate) mod tests;
+pub(crate) mod theme_ref;
+pub(crate) mod types;
+pub(crate) mod uid_generator;

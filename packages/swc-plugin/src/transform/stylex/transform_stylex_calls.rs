@@ -14,12 +14,11 @@ where
   pub(crate) fn transform_call_expression_to_stylex_expr(&mut self, ex: &CallExpr) -> Option<Expr> {
     if let Callee::Expr(callee) = &ex.callee {
       match callee.as_ref() {
-        Expr::Member(member) => match member.prop.clone() {
-          MemberProp::Ident(ident) => {
+        Expr::Member(member) => {
+          if let MemberProp::Ident(ident) = member.prop.clone() {
             return self.transform_stylex_fns(ident, ex);
           }
-          _ => {}
-        },
+        }
         Expr::Ident(ident) => return self.transform_stylex_fns(ident.clone(), ex),
         _ => {}
       }
@@ -56,8 +55,6 @@ where
     }
 
     if self.cycle == ModuleCycle::TransformExit {
-      // dbg!(&self.state.stylex_props_import);
-
       if self.state.stylex_props_import.contains(&ident.to_id()) {
         if let Some(value) = self.transform_stylex_props_call(call_expr) {
           return Option::Some(value);
@@ -83,8 +80,6 @@ where
       }
     }
 
-
-    // Option::Some(Expr::Call(ex.clone()))
     Option::None
   }
 }

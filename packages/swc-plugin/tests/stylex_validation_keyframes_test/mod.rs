@@ -1,1 +1,1 @@
-mod stylex_validation_keyframes_test;
+mod stylex_validation_keyframes;

@@ -12,8 +12,8 @@ use crate::shared::{
 };
 
 use super::{
-  js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg,
-  stylex::gen_condition_permutations,
+  common::gen_condition_permutations, js_to_expr::convert_object_to_ast,
+  parse_nullable_style::ResolvedArg,
 };
 
 fn fn_result_to_expression(fn_result: &FnResult) -> Option<Expr> {
@@ -57,17 +57,11 @@ pub(crate) fn make_string_expression(
     .filter_map(|permutation| {
       let mut i = 0;
 
-      // dbg!(&values);
-
       let args = values
-        .into_iter()
+        .iter()
         .filter_map(|v| match v {
-          ResolvedArg::StyleObject(_, _, _) => {
-            // dbg!(&v);
-            Some(v.clone())
-          }
+          ResolvedArg::StyleObject(_, _, _) => Some(v.clone()),
           ResolvedArg::ConditionalStyle(_test, primary, fallback, ident, member) => {
-            // dbg!(&ident);
             let result = if permutation.get(i).unwrap_or(&false) == &true {
               primary
             } else {
@@ -75,8 +69,6 @@ pub(crate) fn make_string_expression(
             };
 
             i += 1;
-
-            // dbg!(&result);
 
             result
               .as_ref()
@@ -105,14 +97,14 @@ pub(crate) fn make_string_expression(
   let obj_expressions = object_expression_factory(obj_entries).unwrap();
   let conditions_to_key = gen_bitwise_or_of_conditions(conditions);
 
-  return Some(Expr::Member(MemberExpr {
+  Some(Expr::Member(MemberExpr {
     span: DUMMY_SP,
     obj: Box::new(obj_expressions),
     prop: MemberProp::Computed(ComputedPropName {
       span: DUMMY_SP,
       expr: conditions_to_key,
     }),
-  }));
+  }))
 }
 
 fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
@@ -121,7 +113,8 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
     .enumerate()
     .map(|(i, condition)| {
       let shift = conditions.len() - i - 1;
-      let shift_expr = Expr::Bin(BinExpr {
+
+      Expr::Bin(BinExpr {
         left: Box::new(Expr::Unary(UnaryExpr {
           span: DUMMY_SP,
           op: UnaryOp::Bang,
@@ -138,8 +131,7 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
           raw: None,
         }))),
         span: DUMMY_SP,
-      });
-      shift_expr
+      })
     })
     .collect::<Vec<Expr>>();
 

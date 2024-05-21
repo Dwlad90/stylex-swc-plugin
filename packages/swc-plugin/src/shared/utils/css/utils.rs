@@ -61,8 +61,6 @@ pub(crate) fn convert_style_to_class_name(
     dashify(key).to_case(Case::Kebab)
   };
 
-  // dbg!(&dashed_key);
-
   let sorted_pseudos = &mut pseudos.to_vec();
   sorted_pseudos.sort();
 
@@ -115,11 +113,6 @@ pub(crate) fn convert_style_to_class_name(
     value.join(", "),
     modifier_hash_string
   );
-  // dbg!(&string_to_hash);
-
-  // dbg!(&at_rule_hash_string, &pseudo_hash_string);
-  // dbg!(&dashed_key, &value, &modifier_hash_string);
-  // dbg!(string_to_hash.clone());
 
   let class_name_hashed = format!("{}{}", prefix, create_hash(string_to_hash.as_str()));
 
@@ -131,26 +124,9 @@ pub(crate) fn convert_style_to_class_name(
     at_rules,
   );
 
-  // dbg!(key, &value, &class_name_hashed, &css_rules);
-
   (key.to_string(), class_name_hashed, css_rules)
 }
 
-// pub(crate) fn generate_ltr(pair: Pair) -> Pair {
-//     eprintln!(
-//         "{}",
-//         Colorize::yellow("!!!! generate_ltr not implemented yet !!!!")
-//     );
-//     pair
-// }
-
-// pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
-//     eprintln!(
-//         "{}",
-//         Colorize::yellow("!!!! generate_rtl not implemented yet !!!!")
-//     );
-//     Option::None
-// }
 const THUMB_VARIANTS: [&str; 3] = [
   "::-webkit-slider-thumb",
   "::-moz-range-thumb",
@@ -247,8 +223,6 @@ pub(crate) fn generate_rule(
     .collect::<Vec<String>>()
     .join(";");
 
-  // dbg!(&ltr_decls, &rtl_decls);
-
   let ltr_rule = generate_css_rule(class_name, ltr_decls, pseudos, at_rules);
   let rtl_rule = if rtl_decls.is_empty() {
     Option::None
@@ -256,13 +230,10 @@ pub(crate) fn generate_rule(
     Option::Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
   };
 
-  // dbg!(&ltr_rule, &rtl_rule);
-
   let priority = get_priority(key)
     + pseudos.iter().map(|p| get_priority(p)).sum::<f64>()
     + at_rules.iter().map(|a| get_priority(a)).sum::<f64>();
 
-  //// dbg!(
   //     get_priority(key),
   //     &pseudos,
   //     pseudos.iter().map(|p| get_priority(p)).sum::<f64>(),
@@ -362,9 +333,6 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
 
   let result = normalize_css_property_value(key, value.as_ref(), &state.options);
 
-  // dbg!(&key, &value, &result);
-
-  // panic!("Not implemented yet");
   result
 }
 pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
@@ -411,7 +379,6 @@ pub(crate) fn normalize_css_property_value(
   //   minify: true,
   //   ..Default::default()
   // });
-  //// dbg!(&stylesheet, &a);
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
@@ -475,8 +442,6 @@ pub(crate) fn get_number_suffix(key: &str) -> String {
     Some(suffix) => suffix,
     None => "px",
   };
-
-  // dbg!(&key);
 
   result.to_string()
 }
@@ -587,8 +552,6 @@ fn variable_fallbacks(values: Vec<String>) -> Vec<String> {
   for val in values_after_last_var {
     result.push(val.to_string());
   }
-
-  // dbg!(&result);
 
   result
 }

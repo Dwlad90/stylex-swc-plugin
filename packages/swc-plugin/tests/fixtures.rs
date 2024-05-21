@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use stylex_swc_plugin::{
-  shared::structures::{plugin_pass::PluginPass, stylex_options::{StyleXOptions, StyleXOptionsParams}},
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
+  },
   ModuleTransformVisitor,
 };
 use swc_core::{
@@ -22,20 +25,18 @@ fn fixture(input: PathBuf) {
       tsx: true,
       ..Default::default()
     }),
-    // &|tr| {
     &|_| {
       let unresolved_mark = Mark::new();
       let top_level_mark = Mark::new();
 
-      let mut config = StyleXOptionsParams::default();
-
-      config.dev = Option::Some(true);
-      config.treeshake_compensation = Option::Some(true);
-
-      config.unstable_module_resolution =
-        Option::Some(StyleXOptions::get_haste_module_resolution(Option::None));
-
-
+      let mut config = StyleXOptionsParams {
+        dev: Option::Some(true),
+        treeshake_compensation: Option::Some(true),
+        unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
+          Option::None,
+        )),
+        ..StyleXOptionsParams::default()
+      };
 
       chain!(
         resolver(unresolved_mark, top_level_mark, false),

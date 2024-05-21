@@ -1,6 +1,5 @@
 use stylex_swc_plugin::{
   shared::structures::{
-    named_import_source::RuntimeInjection,
     plugin_pass::PluginPass,
     stylex_options::{StyleResolution, StyleXOptionsParams},
   },
@@ -17,10 +16,11 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    config.runtime_injection = Option::Some(true);
-    config.style_resolution = Option::Some(StyleResolution::LegacyExpandShorthands);
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
+      style_resolution: Option::Some(StyleResolution::LegacyExpandShorthands),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
@@ -46,10 +46,11 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    config.runtime_injection = Option::Some(true);
-    config.style_resolution = Option::Some(StyleResolution::LegacyExpandShorthands);
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
+      style_resolution: Option::Some(StyleResolution::LegacyExpandShorthands),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
@@ -81,10 +82,12 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Option::Some(true),
+      style_resolution: Option::Some(StyleResolution::LegacyExpandShorthands),
 
-    config.runtime_injection = Option::Some(true);
-    config.style_resolution = Option::Some(StyleResolution::LegacyExpandShorthands);
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),

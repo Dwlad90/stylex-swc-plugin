@@ -1,1 +1,1 @@
-mod stylex_metadata_test;
+mod stylex_metadata_common_test;

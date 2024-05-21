@@ -79,8 +79,6 @@ impl StylesPreRule {
     let at_rules = at_rules.unwrap_or_default();
     let property = property.to_string();
 
-    //// dbg!(&property, &value, &pseudos, &at_rules);
-
     StylesPreRule {
       property: property.clone(),
       value,

@@ -6,8 +6,8 @@ mod stylex_create {
   use crate::shared::{
     enums::FlatCompiledStylesValue,
     structures::{
-      evaluate_result::EvaluateResultValue, flat_compiled_styles::FlatCompiledStyles,
-      functions::FunctionMap, injectable_style::InjectableStyle, state_manager::StateManager,
+      evaluate_result::EvaluateResultValue, functions::FunctionMap,
+      injectable_style::InjectableStyle, state_manager::StateManager, types::FlatCompiledStyles,
     },
     utils::{
       common::{key_value_creator, prop_or_spread_string_creator, string_to_expression},
@@ -34,8 +34,10 @@ mod stylex_create {
     object
   }
 
+  type StyleNestedObjectFactoryArgs<'a> = [(&'a str, &'a [(&'a str, &'a [(&'a str, &'a str)])])];
+
   fn style_nested_object_factory(
-    args: &[(&str, &[(&str, &[(&str, &str)])])],
+    args: &StyleNestedObjectFactoryArgs,
   ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 
@@ -63,8 +65,10 @@ mod stylex_create {
     object
   }
 
+
+  type StyleArrayObjectFactoryArgs<'a> = [(&'a str, &'a [(&'a str, &'a [&'a str])])];
   fn style_array_object_factory(
-    args: &[(&str, &[(&str, &[&str])])],
+    args: &StyleArrayObjectFactoryArgs,
   ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 

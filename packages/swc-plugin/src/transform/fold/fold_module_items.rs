@@ -16,28 +16,19 @@ where
     match self.cycle {
       ModuleCycle::Skip => module_items,
       ModuleCycle::Initializing => {
-        module_items
-          .iter()
-          .for_each(|module_item| match module_item {
-            ModuleItem::Stmt(stmp) => match stmp {
-              Stmt::Decl(decl) => match decl {
-                Decl::Var(var_decl) => {
-                  var_decl.decls.iter().for_each(|decl| {
-                    if let Pat::Ident(_) = &decl.name {
-                      let var = decl.clone();
+        module_items.iter().for_each(|module_item| {
+          if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
+            var_decl.decls.iter().for_each(|decl| {
+              if let Pat::Ident(_) = &decl.name {
+                let var = decl.clone();
 
-                      if !self.state.declarations.contains(&Box::new(var.clone())) {
-                        self.state.declarations.push(var);
-                      }
-                    }
-                  });
+                if !self.state.declarations.contains(&Box::new(var.clone())) {
+                  self.state.declarations.push(var);
                 }
-                _ => {}
-              },
-              _ => {}
-            },
-            _ => {}
-          });
+              }
+            });
+          }
+        });
 
         let transformed_module_items = module_items.clone().fold_children_with(self);
 
@@ -52,15 +43,11 @@ where
       ModuleCycle::TransformEnter => module_items.fold_children_with(self),
       ModuleCycle::TransformExit => module_items.fold_children_with(self),
       ModuleCycle::PreCleaning => module_items.fold_children_with(self),
-      ModuleCycle::InjectClassName => module_items.fold_children_with(self),
       ModuleCycle::InjectStyles => {
         let mut result_module_items: Vec<ModuleItem> =
           self.state.prepend_include_module_items.clone();
-        // dbg!(&module_items.first());
 
         result_module_items.extend(self.state.prepend_import_module_items.clone());
-
-        // dbg!(&result_module_items);
 
         let mut items_to_skip: usize = 0;
 
@@ -75,7 +62,7 @@ where
           }
         }
 
-        for module_item in module_items.clone().into_iter().skip(items_to_skip) {
+        for module_item in module_items.iter().skip(items_to_skip) {
           if let Some(decls) = match module_item.clone() {
             ModuleItem::ModuleDecl(decl) => match decl {
               ModuleDecl::ExportDecl(export_decl) => export_decl.decl.var().map(|var_decl| {
@@ -119,7 +106,6 @@ where
             ),
             _ => Option::None,
           } {
-            // dbg!(&decls);
             for decl in decls {
               let key = decl.clone().init.clone().unwrap();
 

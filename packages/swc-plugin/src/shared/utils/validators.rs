@@ -9,7 +9,7 @@ use crate::shared::{
   constants::{self, common::THEME_NAME_KEY},
   enums::{TopLevelExpression, TopLevelExpressionKind},
   regex::INCLUDED_IDENT_REGEX,
-  structures::{evaluate_result::EvaluateResultValue, state_manager::StateManager, theme_ref},
+  structures::{evaluate_result::EvaluateResultValue, state_manager::StateManager},
   utils::common::{
     get_string_val_from_lit, get_var_decl_by_ident_or_member, key_value_creator,
     string_to_expression,
@@ -25,7 +25,6 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
 
   let ident = Ident::new("create".into(), DUMMY_SP);
 
-  // dbg!(&ident);
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state.top_level_expressions.clone().into_iter().any(
@@ -65,7 +64,6 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let ident = Ident::new("keyframes".into(), DUMMY_SP);
 
-  // dbg!(&ident);
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state.top_level_expressions.clone().into_iter().any(
@@ -113,7 +111,6 @@ pub(crate) fn validate_stylex_create_theme_indent(
 
   let ident = Ident::new("keyframes".into(), DUMMY_SP);
 
-  // dbg!(&ident);
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state.top_level_expressions.clone().into_iter().any(
@@ -174,12 +171,10 @@ pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
 }
 
 pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
-  // dbg!(&state.stylex_props_import);
   is_target_call(("props", &state.stylex_props_import), call, state)
 }
 
 pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
-  // dbg!(&state.stylex_props_import);
   is_target_call(("attrs", &state.stylex_attrs_import), call, state)
 }
 
@@ -205,7 +200,6 @@ pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> boo
 }
 
 pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
-  // dbg!(&state.stylex_props_import);
   is_target_call(
     ("defineVars", &state.stylex_define_vars_import),
     call,
@@ -327,8 +321,6 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
   let inner_key = get_key_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
 
-  // dbg!(inner_key.clone());
-
   assert!(
     (inner_key.starts_with(':') || inner_key.starts_with('@') || inner_key == "default"),
     "{}",
@@ -409,7 +401,6 @@ pub(crate) fn validate_theme_variables(
       THEME_NAME_KEY,
       string_to_expression(value.as_str()).unwrap(),
     );
-    // dbg!(&key_value);
 
     return key_value;
   }

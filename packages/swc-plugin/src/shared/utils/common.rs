@@ -301,10 +301,7 @@ pub fn get_var_decl_by_ident<'a>(
             FunctionConfigType::Regular(func) => {
               match func.fn_ptr.clone() {
                 FunctionType::Mapper(func) => {
-                  // let arg = Expr::Ident(ident.clone());
                   let result = func();
-
-                  // println!("!!!!! ident: {:?}, result: {:?}", ident, result);
 
                   let var_decl = VarDeclarator {
                     span: DUMMY_SP,
@@ -410,8 +407,6 @@ pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f64 {
     Expr::Lit(lit) => lit_to_num(lit),
     Expr::Unary(unary) => unari_to_num(unary, traversal_state),
     Expr::Bin(lit) => {
-      // dbg!(&traversal_state.var_decl_count_map);
-
       let mut state = Box::new(State::new(traversal_state));
 
       match binary_expr_to_num(lit, &mut state) {
@@ -425,8 +420,6 @@ pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f64 {
 
 fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> String {
   let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
-
-  // println!("var_decl: {:?}, ident: {:?}", var_decl, ident);
 
   match &var_decl {
     Some(var_decl) => {
@@ -470,8 +463,6 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f6
 
   let op = binary_expr.op;
   let Some(left) = evaluate_cached(&binary_expr.left, state) else {
-    // dbg!(binary_expr.left);
-
     if !state.confident {
       return Option::None;
     }
@@ -480,16 +471,12 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f6
   };
 
   let Some(right) = evaluate_cached(&binary_expr.right, state) else {
-    // dbg!(binary_expr.right);
-
     if !state.confident {
       return Option::None;
     }
 
     panic!("Right expression is not a number")
   };
-
-  // dbg!(&left, &right, &op);
 
   let result = match &op {
     BinaryOp::Add => {
@@ -643,7 +630,6 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f6
       let right = expr_to_num(right, &mut state.traversal_state);
 
       state.confident = left_confident && (left != 0.0 || right_confident);
-      // println!("!!!!__ state.confident44444: {:#?}", state.confident);
 
       if !state.confident {
         return Option::None;
@@ -771,7 +757,7 @@ pub fn lit_to_num(lit_num: &Lit) -> f64 {
         0.0
       }
     }
-    Lit::Num(num) => num.value as f64,
+    Lit::Num(num) => num.value,
     Lit::Str(str) => {
       let Result::Ok(num) = str.value.parse::<f64>() else {
         panic!("Value in not a number");
@@ -982,8 +968,6 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
         match prop.deref() {
           Prop::KeyValue(key_value) => {
-            // dbg!(&key_value);
-
             if let Some(ident) = key_value.key.as_ident() {
               if ident.sym == "syntax" {
                 let value = obj.props.iter().find(|prop| {
@@ -1006,10 +990,8 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
                   false
                 });
-                // dbg!(&value);
 
                 if let Some(value) = value {
-                  // dbg!(&key_value);
                   let result_key_value = value.as_prop().unwrap().clone().key_value().unwrap();
 
                   // let value = value.value.object().unwrap().props.first().unwrap().clone();
@@ -1042,7 +1024,6 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
         let mut prop = prop.clone();
 
         transform_shorthand_to_key_values(&mut prop);
-        // dbg!(&prop);
 
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {
@@ -1114,7 +1095,6 @@ pub(crate) fn gen_file_based_identifier(
   key: Option<&str>,
 ) -> String {
   let key = key.map_or(String::new(), |k| format!(".{}", k));
-  // dbg!(&file_name);
 
   format!("{}//{}{}", file_name, export_name, key)
 }
@@ -1173,7 +1153,6 @@ pub(crate) fn resolve_file_path(
 
     if EXTENSIONS.iter().all(|ext| {
       let res = !ext.ends_with(subpath.as_ref());
-      // println!("!!! subpath: {}, ext: {}, res: {}", subpath, ext, res);
       res
     }) {
       resolved_file_path.set_extension(format!("{}{}", subpath, ext));
@@ -1211,17 +1190,3 @@ pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
     }));
   }
 }
-
-// pub(crate) fn trancate_f32(number: f32) -> f32 {
-//   f32::trunc(number  * 100.0) / 100.0
-// }
-
-// pub(crate) fn trancate_f64(number: f64) -> f64 {
-//   let a = f64::trunc(number * 100.0) / 100.0;
-
-//   if a == 4.0 {
-//     println!("Origin: {}, trancated: {}", &number, &a);
-//   }
-
-//   number
-// }

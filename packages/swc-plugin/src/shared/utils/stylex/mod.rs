@@ -6,6 +6,6 @@ pub(crate) mod make_string_expression;
 pub(crate) mod member_expression;
 pub(crate) mod parse_nullable_style;
 pub(crate) mod props;
-pub(crate) mod stylex;
+pub(crate) mod common;
 pub(crate) mod stylex_merge;
 pub(crate) mod tests;

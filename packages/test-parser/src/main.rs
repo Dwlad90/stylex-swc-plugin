@@ -204,11 +204,5 @@ fn main() {
                 eprintln!("Error transforming file {}: {}", path.display(), err);
             }
         }
-
-      // println!(
-            "Processed files for '{}' stylex package: {}",
-            package,
-            file_paths.len()
-        );
     }
 }

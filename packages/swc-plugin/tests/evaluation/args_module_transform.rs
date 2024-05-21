@@ -58,24 +58,21 @@ impl Fold for ArgsModuleTransformVisitor {
 
   fn fold_stmt(&mut self, stmt: Stmt) -> Stmt {
     let stmt = match &stmt {
-      Stmt::Decl(decl) => match decl {
-        Decl::Var(decl_var) => {
-          let decl = decl_var.decls.first();
-          match decl {
-            Some(decl) => match decl.init.as_ref() {
-              Some(expr) => {
-                return Stmt::Expr(ExprStmt {
-                  span: DUMMY_SP,
-                  expr: expr.clone().fold_with(self),
-                });
-              }
-              None => stmt,
-            },
+      Stmt::Decl(Decl::Var(decl_var)) => {
+        let decl = decl_var.decls.first();
+        match decl {
+          Some(decl) => match decl.init.as_ref() {
+            Some(expr) => {
+              return Stmt::Expr(ExprStmt {
+                span: DUMMY_SP,
+                expr: expr.clone().fold_with(self),
+              });
+            }
             None => stmt,
-          }
+          },
+          None => stmt,
         }
-        _ => stmt,
-      },
+      }
 
       _ => stmt,
     };
@@ -84,10 +81,8 @@ impl Fold for ArgsModuleTransformVisitor {
   }
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
-    // println!("!!!!!expr: {:?}", expr);
     let evaluate_result =
       evaluate_stylex_create_arg(&Box::new(expr), &mut self.state, &self.functions);
-    // println!("!!!!!evaluate_result: {:?}", evaluate_result);
 
     match evaluate_result.value {
       Some(value) => match value.as_ref() {
@@ -125,7 +120,6 @@ impl Fold for ArgsModuleTransformVisitor {
           let mut props = vec![];
 
           for (key, value) in map.iter() {
-            // dbg!(&key, &value);
             let prop = prop_or_spread_expression_creator(
               expr_to_str(key, &mut self.state, &FunctionMap::default()).as_str(),
               Box::new(

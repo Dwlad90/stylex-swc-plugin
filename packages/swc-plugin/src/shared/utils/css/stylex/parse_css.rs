@@ -44,15 +44,9 @@ pub fn _format_quoted_string(string: &str) -> String {
 // }
 
 pub fn parse_css_inner<'a>(
-  // cache: &mut HashMap<String, Vec<u8>>,
-  // client: &Client,
-  // document_url: &Url,
   parser: &mut Parser,
-  // options: &Options,
-  // depth: u32,
   rule_name: &str,
   prop_name: &str,
-  // func_name: &str,
 ) -> Result<Vec<String>, ParseError<'a, Vec<String>>> {
   let mut result: Vec<String> = vec![];
 
@@ -343,7 +337,6 @@ pub fn parse_css_inner<'a>(
         //   }
         //   result.push_str(")");
       }
-      // =
       Token::Delim(ref value) => iter_result.push_str(&value.to_string()),
       Token::Function(ref name) => {
         let function_name: &str = &name.clone();
@@ -352,17 +345,7 @@ pub fn parse_css_inner<'a>(
 
         let block_css: Vec<String> = parser
           .parse_nested_block(|parser| {
-            parse_css_inner(
-              // cache,
-              // client,
-              // document_url,
-              parser,
-              // options,
-              // depth,
-              curr_rule.as_str(),
-              curr_prop.as_str(),
-              // function_name,
-            )
+            parse_css_inner(parser, curr_rule.as_str(), curr_prop.as_str())
           })
           .unwrap();
 
@@ -370,7 +353,6 @@ pub fn parse_css_inner<'a>(
 
         iter_result.push(')');
       }
-      // Token::BadUrl(_) | Token::BadString(_) => {}
       _ => {}
     }
 
@@ -379,61 +361,32 @@ pub fn parse_css_inner<'a>(
       iter_result = iter_result.trim().to_string()
     }
 
-   // dbg!(&iter_result);
     if !iter_result.is_empty() {
       result.push(iter_result);
     }
   }
 
- // dbg!(&result);
   Ok(result)
 }
 
-pub fn parse_css(
-  css_string: &str,
-  // cache: &mut HashMap<String, Vec<u8>>,
-  // client: &Client,
-  // document_url: &Url,
-  // parser: &mut Parser,
-  // options: &Options,
-  // depth: u32,
-  // rule_name: &str,
-  // prop_name: &str,
-  // func_name: &str,
-) -> Vec<String> {
+pub fn parse_css(css_string: &str) -> Vec<String> {
   let mut input = ParserInput::new(css_string);
 
   let mut parser = Parser::new(&mut input);
-  // let mut cache = HashMap::new();
-
-  // let depth = 1;
   let rule_name = "";
   let prop_name = "";
-  // let func_name = "";
 
-  match parse_css_inner(
-    // &mut cache,
-    &mut parser,
-    // depth,
-    rule_name,
-    prop_name,
-    // func_name,
-  ) {
-    Ok(nodes) => {
-     // dbg!(&nodes);
-      let nodes = nodes
-        .into_iter()
-        .filter_map(|s| {
-          if !s.is_empty() && s != "," {
-            Option::Some(s)
-          } else {
-            Option::None
-          }
-        })
-        .collect::<Vec<String>>();
-     // dbg!(&nodes);
-      nodes
-    }
+  match parse_css_inner(&mut parser, rule_name, prop_name) {
+    Ok(nodes) => nodes
+      .into_iter()
+      .filter_map(|s| {
+        if !s.is_empty() && s != "," {
+          Option::Some(s)
+        } else {
+          Option::None
+        }
+      })
+      .collect::<Vec<String>>(),
     Err(_) => todo!(),
   }
 }

@@ -33,27 +33,15 @@ where
       let import_sources = self.state.import_sources_stringified();
 
       self.state.top_imports.push(import_decl.clone());
-      // dbg!(&import_decl, &import_sources, &declaration);
-      // println!(
-      //   "!!!self.state.stylex_import: {:?}",
-      //   self.state.stylex_import
-      // );
-      // println!("!!!import_sources: {:?}", import_sources);
 
       if import_sources.contains(&declaration.to_string()) {
         let source_path = import_decl.src.value.to_string();
 
         for specifier in &import_decl.specifiers {
-          // println!("!!!! specifier: {:?}", specifier);
-
-
           match &specifier {
             ImportSpecifier::Default(import_specifier) => {
               if self.state.import_as(&import_decl.src.value).is_none() {
                 let local_name = import_specifier.local.sym.to_string();
-
-                // println!("!!!! import_decl: {:?}", source_path);
-                // println!("!!!! import_specifier: {:?}", local_name);
 
                 self.state.import_paths.insert(source_path.clone());
 
@@ -64,7 +52,6 @@ where
               };
             }
             ImportSpecifier::Namespace(import_specifier) => {
-              // println!("!!!! import_decl.src.value: {:?}", import_decl.src.value);
               if self.state.import_as(&import_decl.src.value).is_none() {
                 let local_name = import_specifier.local.sym.to_string();
 
@@ -92,32 +79,6 @@ where
                     &local_name,
                     import_specifier,
                   );
-
-                  // panic!(
-                  //     "!!!imported_name: {:?}, local_name: {:?}",
-                  //     imported_name, local_name
-                  // );
-
-                  // match imported {
-                  //     ModuleExportName::Ident(ident) => {
-                  //         if ident.sym.as_str() == "create" {
-                  //             self.state
-                  //                 .stylex_create_import
-                  //                 .insert(import_specifier.local.to_id());
-                  //         } else {
-                  //             panic!(
-                  //                 "{}",
-                  //                 constants::messages::MUST_BE_DEFAULT_IMPORT
-                  //             )
-                  //         }
-                  //     }
-                  //     ModuleExportName::Str(_) => {
-                  //         panic!(
-                  //             "{}",
-                  //             constants::messages::MUST_BE_DEFAULT_IMPORT
-                  //         )
-                  //     }
-                  // }
                 }
                 None => {
                   let imported_name = import_specifier.local.sym.to_string();
@@ -128,54 +89,6 @@ where
                     &local_name,
                     import_specifier,
                   );
-
-                  // let named_custom_imports = self
-                  //     .state
-                  //     .stylex_import
-                  //     .clone()
-                  //     .into_iter()
-                  //     .filter(|import| import.is_named_export())
-                  //     .map(|import| match import {
-                  //         ImportSources::Named(named) => named,
-                  //         _ => panic!("Not named import"),
-                  //     })
-                  //     .collect::<Vec<NamedImportSource>>();
-
-                  // let mut found_custom_import = false;
-
-                  // if named_custom_imports.len() > 0 {
-                  //     let named_import = named_custom_imports
-                  //         .iter()
-                  //         .find(|import| import.from.eq(&declaration.to_string()))
-                  //         .unwrap();
-
-                  //     if named_import
-                  //         .r#as
-                  //         .eq(&import_specifier.local.sym.as_str())
-                  //     {
-                  //         self.state
-                  //             .stylex_create_import
-                  //             .insert(import_specifier.local.to_id());
-                  //     }
-
-                  //     found_custom_import = true;
-                  // }
-
-                  // if !found_custom_import {
-                  //     match import_specifier.local.sym.as_str() {
-                  //         "create" => {
-                  //             self.state
-                  //                 .stylex_create_import
-                  //                 .insert(import_specifier.local.to_id());
-                  //         }
-                  //         _ => {
-                  //             panic!(
-                  //                 "{}",
-                  //                 constants::messages::MUST_BE_DEFAULT_IMPORT
-                  //             )
-                  //         }
-                  //     };
-                  // }
                 }
               }
             }
@@ -183,9 +96,7 @@ where
         }
       }
 
-      // dbg!(&self.state.import_paths);
-
-      if self.state.import_paths.len() == 0 {
+      if self.state.import_paths.is_empty() {
         import_decl
       } else {
         import_decl.fold_children_with(self)
@@ -197,9 +108,9 @@ where
 
   fn fill_stylex_create_import(
     &mut self,
-    source_path: &String,
+    source_path: &str,
     imported_name: String,
-    local_name: &String,
+    local_name: &str,
     import_specifier: &ImportNamedSpecifier,
   ) {
     if let Some(source_path) = self.state.import_as(source_path) {
@@ -209,12 +120,12 @@ where
         self
           .state
           .stylex_import
-          .insert(Box::new(ImportSources::Regular(local_name.clone())));
+          .insert(Box::new(ImportSources::Regular(local_name.to_string())));
       }
     }
 
     if self.state.import_as(source_path).is_none() {
-      self.state.import_paths.insert(source_path.clone());
+      self.state.import_paths.insert(source_path.to_string());
 
       let local_name_ident = import_specifier.local.to_id();
 

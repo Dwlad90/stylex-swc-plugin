@@ -93,7 +93,6 @@ fn is_unit(input: &str) -> bool {
 }
 
 fn flip_shadow(value: &str) -> Option<String> {
-  eprint!("logic of flip_shadow is not implemented yet");
   let defs: Vec<&str> = value.split(',').collect();
   let mut built_defs = Vec::new();
 
@@ -106,7 +105,6 @@ fn flip_shadow(value: &str) -> Option<String> {
     // NOTE: temporary solution, need to implement unit parser
     let index = if is_unit(parts[0].as_str()) { 0 } else { 1 };
 
-   // dbg!(&def, &index, &parts);
     if index < parts.len() {
       let flipped = flip_sign(parts[index].clone());
       parts[index] = flipped;
@@ -116,18 +114,11 @@ fn flip_shadow(value: &str) -> Option<String> {
 
   let rtl = built_defs.join(", ");
   if rtl != value {
-   // dbg!(&value, &rtl);
-
     Some(rtl)
   } else {
     None
   }
 }
-
-// fn flip_shadow(val: &str) -> Option<String> {
-//   // Implement your flip_shadow function here
-//   None
-// }
 
 fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
   match key {
@@ -286,8 +277,6 @@ fn _flip_value(value: &PreRules) -> Option<PreRules> {
 pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
   let result = property_to_rtl(pair.key.as_str(), pair.value.as_str());
 
- // dbg!(&pair, &result);
-
   result
 }
 
@@ -313,8 +302,6 @@ pub(crate) fn flat_map_expanded_shorthands(
   } else {
     key
   };
-
- // dbg!(&options.style_resolution);
 
   let expansion_fn = match &options.style_resolution {
     StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.clone()),

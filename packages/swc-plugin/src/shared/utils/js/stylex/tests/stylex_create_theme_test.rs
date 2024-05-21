@@ -150,7 +150,6 @@ mod stylex_create_theme {
       .unwrap();
 
     let injectable_rule = css_output.get(key).unwrap();
-    // dbg!(&injectable_rule, &key);
 
     assert_eq!(
       injectable_rule,
@@ -201,8 +200,6 @@ mod stylex_create_theme {
       ],
       &[("fgColor", "coral")],
     );
-
-    // dbg!(&created_theme);
 
     let created_theme_2 = style_object_factory(
       &[

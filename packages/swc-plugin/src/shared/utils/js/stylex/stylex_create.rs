@@ -5,11 +5,11 @@ use crate::shared::{
   enums::FlatCompiledStylesValue,
   structures::{
     evaluate_result::EvaluateResultValue,
-    flat_compiled_styles::FlatCompiledStyles,
     functions::FunctionMap,
     injectable_style::InjectableStyle,
     pre_rule::{CompiledResult, PreRule, PreRules},
     state_manager::StateManager,
+    types::FlatCompiledStyles,
   },
   utils::{
     common::expr_to_str, css::stylex::flatten_raw_style_object::flatten_raw_style_object,
@@ -36,7 +36,6 @@ pub(crate) fn stylex_create_set(
 
     let flattened_namespace =
       flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
-    // dbg!(&flattened_namespace);
 
     let compiled_namespace_tuples = flattened_namespace
       .iter()

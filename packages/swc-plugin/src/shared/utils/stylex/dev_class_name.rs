@@ -6,16 +6,18 @@ use crate::shared::{
   constants::common::COMPILED_KEY,
   enums::FlatCompiledStylesValue,
   regex::SANITIZE_CLASS_NAME_REGEX,
-  structures::{flat_compiled_styles::FlatCompiledStyles, state_manager::StateManager},
+  structures::{
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, StylesObjectMap},
+  },
 };
 
 pub(crate) fn inject_dev_class_names(
-  obj: &IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>>,
+  obj: &StylesObjectMap,
   var_name: &Option<String>,
   state: &StateManager,
-) -> IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>> {
-  let mut result: IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>> =
-    IndexMap::new();
+) -> StylesObjectMap {
+  let mut result: StylesObjectMap = IndexMap::new();
 
   for (key, value) in obj.iter() {
     let dev_class_name =

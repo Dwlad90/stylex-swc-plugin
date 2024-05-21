@@ -1,4 +1,4 @@
-use std::{default, ops::Mul};
+use std::ops::Mul;
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};
@@ -18,13 +18,11 @@ pub(crate) fn construct_css_variables_string(
   theme_name_hash: &String,
   typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
 ) -> IndexMap<String, Box<InjectableStyle>> {
-  let mut rules_by_at_rule: IndexMap<String, Box<Vec<String>>> = IndexMap::new();
+  let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
   for (key, value) in variables.iter() {
-    collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &vec![], typed_variables);
+    collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &[], typed_variables);
   }
-
-  // dbg!(&rules_by_at_rule);
 
   let mut result: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
 
@@ -57,19 +55,16 @@ pub(crate) fn construct_css_variables_string(
 pub(crate) fn collect_vars_by_at_rules(
   key: &String,
   value: &FlatCompiledStylesValue,
-  collection: &mut IndexMap<String, Box<Vec<String>>>,
-  at_rules: &Vec<String>,
+  collection: &mut IndexMap<String, Vec<String>>,
+  at_rules: &[String],
   typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
 ) {
   let Some((hash_name, value, css_type)) = value.as_tuple() else {
     panic!("Props must be an key value pair")
   };
 
-  // dbg!(&hash_name, &value, css_type);
-
   if let Some(css_type) = css_type {
     let values = css_type.value.as_map().expect("Value must be an map");
-    // dbg!(&values);
 
     let initial_value = get_nitial_value_of_css_type(values);
 
@@ -83,7 +78,7 @@ pub(crate) fn collect_vars_by_at_rules(
     );
   }
 
-  match value.as_ref() {
+  match value {
     Expr::Array(_) => panic!("Array is not supported in stylex.defineVars"),
     Expr::Lit(lit) => {
       if let Lit::Null(_) = lit {
@@ -95,7 +90,7 @@ pub(crate) fn collect_vars_by_at_rules(
       let key = if at_rules.is_empty() {
         "default".to_string()
       } else {
-        let mut keys = at_rules.clone();
+        let mut keys = at_rules.to_vec().clone();
         keys.sort();
         keys.join(SPLIT_TOKEN)
       };
@@ -107,8 +102,6 @@ pub(crate) fn collect_vars_by_at_rules(
     }
     Expr::Object(obj) => {
       let key_values = get_key_values_from_object(obj);
-
-      // dbg!(&key_values);
 
       if !key_values.iter().any(|key_value| {
         let key = get_key_str(key_value);
@@ -124,9 +117,9 @@ pub(crate) fn collect_vars_by_at_rules(
         let value = key_value.value.clone();
 
         let extended_at_rules = if at_rule == "default" {
-          at_rules.clone()
+          at_rules.to_vec().clone()
         } else {
-          let mut new_at_rule = at_rules.clone();
+          let mut new_at_rule = at_rules.to_vec().clone();
           new_at_rule.push(at_rule.clone());
           new_at_rule
         };

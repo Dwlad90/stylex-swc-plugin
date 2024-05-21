@@ -1,13 +1,8 @@
 use crate::shared::{
-  constants::common::CSS_TYPE_KEY,
   structures::functions::{FunctionConfig, FunctionType},
-  utils::{
-    common::{
-      get_key_str, get_key_values_from_object, get_string_val_from_lit,
-      prop_or_spread_expression_creator, prop_or_spread_string_creator,
-      transform_shorthand_to_key_values,
-    },
-    css::factories::object_expression_factory,
+  utils::common::{
+    get_key_str, get_key_values_from_object, get_string_val_from_lit,
+    prop_or_spread_expression_creator, prop_or_spread_string_creator,
   },
 };
 use indexmap::IndexMap;
@@ -16,8 +11,7 @@ use std::fmt;
 use std::rc::Rc;
 use swc_core::{
   common::DUMMY_SP,
-  css,
-  ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropOrSpread},
+  ecma::ast::{Expr, ObjectLit, PropOrSpread},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -50,7 +44,7 @@ impl ValueWithDefault {
     }
   }
 
-  pub(crate) fn as_string(&self) -> Option<&String> {
+  fn _as_string(&self) -> Option<&String> {
     match self {
       ValueWithDefault::String(s) => Option::Some(s),
       _ => Option::None,
@@ -145,13 +139,10 @@ impl BaseCSSType {
         props
       }
       ValueWithDefault::Map(map) => {
-       // dbg!(&map);
-
         let mut local_props = vec![];
 
         for (key, val) in map {
           let props_to_extend = BaseCSSType::value_to_props(val, Some(key.clone()));
-         // dbg!(&key, &props_to_extend);
 
           local_props.extend(props_to_extend);
         }
@@ -169,21 +160,12 @@ impl BaseCSSType {
       }
     };
 
-    // value.push(prop_or_spread_string_creator(
-    //   CSS_TYPE_KEY.to_string(),
-    //   "true".to_string(),
-    // ));
-
-    //// dbg!(&value);
-
     value
   }
 }
 
 impl From<ObjectLit> for BaseCSSType {
   fn from(obj: ObjectLit) -> BaseCSSType {
-   // dbg!(&obj);
-
     let key_values = get_key_values_from_object(&obj);
     let mut syntax: Option<CSSSyntax> = Option::None;
 
@@ -191,7 +173,6 @@ impl From<ObjectLit> for BaseCSSType {
 
     for key_value in key_values {
       let key = get_key_str(&key_value);
-     // dbg!(&key);
 
       match key.as_str() {
         "syntax" => {
@@ -209,7 +190,7 @@ impl From<ObjectLit> for BaseCSSType {
 
               let prop = prop_or_spread_string_creator("default", value.as_str());
 
-            ObjectLit {
+              ObjectLit {
                 span: DUMMY_SP,
                 props: vec![prop],
               }
@@ -223,13 +204,10 @@ impl From<ObjectLit> for BaseCSSType {
           //   .expect("Value must be an object");
 
           for key_value in get_key_values_from_object(&obj_value) {
-           // dbg!(&key_value);
             let key = get_key_str(&key_value);
 
             match key_value.value.as_ref() {
               Expr::Object(obj) => {
-               // dbg!(&key, &obj);
-
                 let mut obj_map = IndexMap::new();
 
                 let key_values = get_key_values_from_object(obj);
@@ -261,15 +239,12 @@ impl From<ObjectLit> for BaseCSSType {
           }
         }
         _ => {
-         // dbg!(&obj);
           panic!(r#"Key "{}" not support by BaseCSSType"#, key)
         }
       }
     }
 
     assert!(!values.is_empty(), "Invalid value in stylex.defineVars");
-
-   // dbg!(&values);
 
     assert!(
       values.contains_key("default"),
@@ -282,33 +257,6 @@ impl From<ObjectLit> for BaseCSSType {
     }
   }
 }
-
-// pub(crate) trait CSSType {
-//   fn value(&self) -> &ValueWithDefault;
-//   fn syntax(&self) -> &CSSSyntaxType;
-// }
-
-// fn _is_css_type(value: &dyn CSSType) -> bool {
-// // println!("isCSSType {:?}", value.value());
-
-//   match value.syntax() {
-//     CSSSyntax::Asterisk => true,
-//     CSSSyntax::Length => true,
-//     CSSSyntax::Number => true,
-//     CSSSyntax::Percentage => true,
-//     CSSSyntax::LengthPercentage => true,
-//     CSSSyntax::Color => true,
-//     CSSSyntax::Image => true,
-//     CSSSyntax::Url => true,
-//     CSSSyntax::Integer => true,
-//     CSSSyntax::Angle => true,
-//     CSSSyntax::Time => true,
-//     CSSSyntax::Resolution => true,
-//     CSSSyntax::TransformFunction => true,
-//     CSSSyntax::CustomIdent => true,
-//     CSSSyntax::TransformList => true,
-//   }
-// }
 
 pub trait HasBase {
   fn new(value: ValueWithDefault) -> Self
@@ -346,16 +294,6 @@ impl HasBase for Color {
   }
 }
 
-// impl CSSType for Color {
-//   fn value(&self) -> &ValueWithDefault {
-//     &self.base.value
-//   }
-
-//   fn syntax(&self) -> &CSSSyntaxType {
-//     &self.base.syntax
-//   }
-// }
-
 struct Url {
   base: BaseCSSType,
 }
@@ -371,16 +309,6 @@ impl HasBase for Url {
   }
 }
 
-// impl CSSType for Url {
-//   fn value(&self) -> &ValueWithDefault {
-//     &self.value
-//   }
-
-//   fn syntax(&self) -> &CSSSyntaxType {
-//     &self.syntax
-//   }
-// }
-
 struct Image {
   base: BaseCSSType,
 }
@@ -395,16 +323,6 @@ impl HasBase for Image {
     }
   }
 }
-
-// impl CSSType for Image {
-//   fn value(&self) -> &ValueWithDefault {
-//     &self.value
-//   }
-
-//   fn syntax(&self) -> &CSSSyntaxType {
-//     &self.syntax
-//   }
-// }
 
 struct Integer {
   base: BaseCSSType,
@@ -424,16 +342,6 @@ impl HasBase for Integer {
   }
 }
 
-// impl CSSType for Integer {
-//   fn value(&self) -> &ValueWithDefault {
-//     &self.value
-//   }
-
-//   fn syntax(&self) -> &CSSSyntaxType {
-//     &self.syntax
-//   }
-// }
-
 struct LengthPercentage {
   base: BaseCSSType,
 }
@@ -449,16 +357,6 @@ impl HasBase for LengthPercentage {
   }
 }
 
-// impl CSSType for LengthPercentage {
-//   fn value(&self) -> &ValueWithDefault {
-//     &self.value
-//   }
-
-//   fn syntax(&self) -> &CSSSyntaxType {
-//     &self.syntax
-//   }
-// }
-
 struct Length {
   base: BaseCSSType,
 }
@@ -473,16 +371,6 @@ impl HasBase for Length {
     }
   }
 }
-
-// impl CSSType for Length {
-//   fn value(&self) -> &ValueWithDefault {
-//     &self.base.value
-//   }
-
-//   fn syntax(&self) -> &CSSSyntaxType {
-//     &self.base.syntax
-//   }
-// }
 
 pub struct Percentage {
   base: BaseCSSType,
@@ -592,8 +480,6 @@ fn convert_number_to_string_using(
           );
         }
 
-       // dbg!(&result);
-
         ValueWithDefault::Map(result)
       }
     }
@@ -610,8 +496,6 @@ fn convert_number_to_bare_string(value: ValueWithDefault) -> ValueWithDefault {
 fn convert_number_to_length(value: ValueWithDefault) -> ValueWithDefault {
   convert_number_to_string_using(
     |value: f64| {
-     // dbg!(&value);
-
       if value == 0.0 {
         ValueWithDefault::String("0".to_string())
       } else {
@@ -717,14 +601,10 @@ impl From<BaseCSSType> for Expr {
   fn from(instance: BaseCSSType) -> Self {
     let syntax_prop =
       prop_or_spread_string_creator("syntax", format!("{}", instance.syntax).as_str());
-   // dbg!(&syntax_prop);
 
     let mut props = vec![syntax_prop];
 
     props.extend(BaseCSSType::value_to_props(instance.value, Option::None));
-    //// dbg!(&props);
-
-    // panic!();
 
     Expr::Object(ObjectLit {
       span: DUMMY_SP,
@@ -740,7 +620,6 @@ fn angle(value: ValueWithDefault) -> Expr {
 
 fn color(value: ValueWithDefault) -> Expr {
   let base_css_type: BaseCSSType = Color::new(value).into();
- // dbg!(&base_css_type);
 
   base_css_type.into()
 }
@@ -832,7 +711,6 @@ pub(crate) fn get_types_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexFnsFactory(
       |prop_name| -> Rc<dyn Fn(ValueWithDefault) -> Expr + 'static> {
-       // dbg!(&prop_name);
         // let orig_args: Vec<Pat> = params.clone();
 
         // let arrow_closure_fabric = |orig_args: Vec<Pat>| move |expr: Expr| expr.clone();

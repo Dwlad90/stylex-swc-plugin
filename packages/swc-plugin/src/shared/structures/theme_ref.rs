@@ -27,24 +27,19 @@ impl ThemeRef {
       return (value.clone(), self.state.clone());
     }
 
-    // dbg!(&self.file_name);
-
     let str_to_hash = if key == "__themeName__" {
       gen_file_based_identifier(&self.file_name, &self.export_name, None)
     } else {
       gen_file_based_identifier(&self.file_name, &self.export_name, Option::Some(key))
     };
-    // println!("!!!!!Themeref: str_to_hash: {}", &str_to_hash);
 
     let var_name = format!(
       "{}{}",
       self.state.options.class_name_prefix,
       create_hash(&str_to_hash)
     );
-    // dbg!(&var_name);
 
     let value = format!("var(--{})", var_name);
-    // println!("!!!!!Themeref: key: {}, str_to_hash: {}, value: {}, file_name: {}, export_name: {}", &key, &str_to_hash, &value, &self.file_name, &self.export_name);
 
     self.map.insert(key.to_string(), value.clone());
     (value, self.state.clone())

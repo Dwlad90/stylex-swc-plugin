@@ -6,7 +6,7 @@ use swc_core::{
 
 use crate::shared::{
   enums::FlatCompiledStylesValue,
-  structures::flat_compiled_styles::FlatCompiledStyles,
+  structures::types::FlatCompiledStyles,
   utils::{
     common::{prop_or_spread_expression_creator, prop_or_spread_string_creator},
     css::factories::object_expression_factory,
@@ -95,8 +95,6 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
           FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
         };
-
-        // dbg!(&prop);
 
         props.push(prop);
       }

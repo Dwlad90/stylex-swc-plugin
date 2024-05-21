@@ -10,7 +10,6 @@ use swc_core::ecma::ast::{
   VarDeclarator,
 };
 
-
 use swc_core::ecma::transforms::base::{fixer, hygiene};
 use swc_core::ecma::transforms::testing::{HygieneVisualizer, Tester};
 use swc_core::ecma::utils::{quote_ident, quote_str, DropSpan, ExprFactory};
@@ -152,7 +151,7 @@ where
           &actual.clone().fold_with(&mut HygieneVisualizer),
           &tester.comments.clone(),
         );
-      // println!("----- Hygiene -----\n{}", hygiene_src);
+        println!("----- Hygiene -----\n{}", hygiene_src);
       }
       _ => {}
     }

@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 walkdir = { version = "2.5.0" }
-serde = "1.0.201"
-swc_core = { version = "0.92.2", features = [
+serde = "1.0.202"
+swc_core = { version = "0.92.5", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -33,6 +33,9 @@ swc_core = { version = "0.92.2", features = [
   # "base_concurrent",
 ] }
 
-clap = {version = "4.5.4", features = ["derive"]}
+# TODO: remove this dependency after fixing dependencies of swc_core
+swc_ecma_ast = { version = "0.113.2" }
+
+clap = { version = "4.5.4", features = ["derive"] }
 
 serde_json = "1.0.117"

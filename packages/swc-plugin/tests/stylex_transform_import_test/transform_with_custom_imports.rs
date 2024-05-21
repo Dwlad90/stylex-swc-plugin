@@ -1,6 +1,6 @@
 use stylex_swc_plugin::{
   shared::structures::{
-    named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
+    named_import_source::{ImportSources, NamedImportSource},
     plugin_pass::PluginPass,
     stylex_options::StyleXOptionsParams,
   },
@@ -17,10 +17,11 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
-    config.runtime_injection = Option::Some(true);
+    let mut config = StyleXOptionsParams {
+      import_sources: Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]),
+      runtime_injection: Option::Some(true),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
@@ -47,10 +48,11 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    config.import_sources = Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]);
-    config.runtime_injection = Option::Some(true);
+    let mut config = StyleXOptionsParams {
+      import_sources: Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]),
+      runtime_injection: Option::Some(true),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
@@ -77,14 +79,14 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-    //{ from: 'react-strict-dom', as: 'css' }
-
-    config.import_sources = Option::Some(vec![ImportSources::Named(NamedImportSource {
-      from: "react-strict-dom".to_string(),
-      r#as: "css".to_string(),
-    })]);
-    config.runtime_injection = Option::Some(true);
+    let mut config = StyleXOptionsParams {
+      import_sources: Option::Some(vec![ImportSources::Named(NamedImportSource {
+        from: "react-strict-dom".to_string(),
+        r#as: "css".to_string(),
+      })]),
+      runtime_injection: Option::Some(true),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
@@ -111,14 +113,14 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-    //{ from: 'react-strict-dom', as: 'css' }
-
-    config.import_sources = Option::Some(vec![ImportSources::Named(NamedImportSource {
-      from: "react-strict-dom".to_string(),
-      r#as: "css".to_string(),
-    })]);
-    config.runtime_injection = Option::Some(true);
+    let mut config = StyleXOptionsParams {
+      import_sources: Option::Some(vec![ImportSources::Named(NamedImportSource {
+        from: "react-strict-dom".to_string(),
+        r#as: "css".to_string(),
+      })]),
+      runtime_injection: Option::Some(true),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),

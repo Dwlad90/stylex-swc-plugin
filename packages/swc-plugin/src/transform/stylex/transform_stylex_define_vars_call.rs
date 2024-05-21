@@ -1,14 +1,16 @@
 use std::{collections::HashMap, panic};
 
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Id, Ident};
+use swc_core::ecma::ast::Ident;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::named_import_source::ImportSources;
+use crate::shared::structures::{
+  functions::FunctionMap,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
 use crate::shared::utils::common::gen_file_based_identifier;
 use crate::shared::utils::css::stylex::evaluate::evaluate;
 use crate::shared::utils::js::stylex::stylex_define_vars::stylex_define_vars;
@@ -38,15 +40,8 @@ where
         None => Option::Some(first_arg.expr.clone()),
       })?;
 
-      // let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> = IndexMap::new();
-
-      // let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
-
-      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
-      let mut member_expressions: HashMap<
-        Box<ImportSources>,
-        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
-      > = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
+      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();
@@ -94,8 +89,6 @@ where
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      // dbg!(evaluated_arg.clone());
-
       assert!(
         evaluated_arg.confident,
         "{}",
@@ -118,14 +111,10 @@ where
           panic!("{}", constants::messages::NON_STATIC_VALUE)
         }
       };
-      // dbg!(&evaluated_arg.confident, &value);
 
       let Some(file_name) = self.state.get_filename_for_hashing() else {
         panic!("No filename found for generating theme name.")
       };
-    // println!("!!!!!file_name: {}",&file_name);
-
-      // todo!();
 
       let export_expr = self
         .state
@@ -142,17 +131,11 @@ where
         Option::None,
       ));
 
-      // dbg!(&self.state.theme_name);
-
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);
 
-      // dbg!(&variables_obj, &injected_styles_sans_keyframes);
-
       let mut injected_styles = self.state.injected_keyframes.clone();
       injected_styles.extend(injected_styles_sans_keyframes);
-
-      // dbg!(&variables_obj);
 
       let (var_name, _) = self.get_call_var_name(call);
 

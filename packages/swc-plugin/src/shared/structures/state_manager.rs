@@ -1,10 +1,10 @@
 use core::panic;
+use std::option::Option;
+use std::path::Path;
 use std::{
   collections::{HashMap, HashSet},
   path::PathBuf,
 };
-use std::{fs, path::Path};
-use std::{option::Option, str::FromStr};
 
 use indexmap::{IndexMap, IndexSet};
 use swc_core::common::{EqIgnoreSpan, FileName, DUMMY_SP};
@@ -23,19 +23,19 @@ use crate::shared::{
 };
 use crate::shared::{
   enums::{
-    FlatCompiledStylesValue, ImportPathResolution, ImportPathResolutionType, StyleVarsToKeep,
-    TopLevelExpression, TopLevelExpressionKind,
+    ImportPathResolution, ImportPathResolutionType, StyleVarsToKeep, TopLevelExpression,
+    TopLevelExpressionKind,
   },
   utils::common::resolve_file_path,
 };
 
-use super::meta_data::MetaData;
 use super::named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState};
 use super::plugin_pass::PluginPass;
 use super::stylex_options::{CheckModuleResolution, StyleXOptions};
 use super::stylex_state_options::StyleXStateOptions;
 use super::uid_generator::UidGenerator;
 use super::{injectable_style::InjectableStyle, stylex_options::ModuleResolution};
+use super::{meta_data::MetaData, types::StylesObjectMap};
 
 #[derive(Clone, Debug)]
 pub struct StateManager {
@@ -63,8 +63,7 @@ pub struct StateManager {
   pub(crate) seen: HashMap<Box<Expr>, Box<SeenValue>>, // Assuming the values are strings
 
   // `stylex.create` calls
-  pub(crate) style_map:
-    HashMap<String, Box<IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>>>>, // Assuming CompiledNamespaces is a struct in your code
+  pub(crate) style_map: HashMap<String, Box<StylesObjectMap>>, // Assuming CompiledNamespaces is a struct in your code
   pub(crate) style_vars: HashMap<String, Box<VarDeclarator>>, // Assuming NodePath is a struct in your code
 
   // results of `stylex.create` calls that should be kept
@@ -96,7 +95,7 @@ impl StateManager {
     let options = Box::new(StyleXStateOptions::from(stylex_options));
 
     Self {
-      _state: Box::new(PluginPass::default()),
+      _state: Box::<PluginPass>::default(),
       import_paths: HashSet::new(),
       stylex_import: HashSet::new(),
       stylex_props_import: HashSet::new(),
@@ -142,8 +141,6 @@ impl StateManager {
       match import_source {
         ImportSources::Regular(_) => {}
         ImportSources::Named(named) => {
-          // println!("named: {:?}", named);
-          // println!("import: {:?}", import);
           if named.from.eq(import) {
             return Option::Some(named.r#as.clone());
           }
@@ -199,12 +196,10 @@ impl StateManager {
     extract_filename_from_path(self._state.filename.clone())
   }
   pub(crate) fn get_filename(&self) -> String {
-    // dbg!(&self._state.filename);
     extract_path(self._state.filename.clone())
   }
   pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
     let filename = self.get_filename();
-    // dbg!(&filename);
 
     let unstable_module_resolution = self
       .options
@@ -227,22 +222,11 @@ impl StateManager {
       }) => theme_file_extension,
     }
     .unwrap_or(".stylex".to_string());
-    // dbg!(
-    // &theme_file_extension.as_str(), &filename,
-    // !matches_file_suffix(theme_file_extension.as_str(), &filename),
-    // );
 
     if filename.is_empty()
       || !matches_file_suffix(theme_file_extension.as_str(), &filename)
       || self.options.unstable_module_resolution.is_none()
     {
-      // dbg!(
-      //   &filename,
-      //   &theme_file_extension.as_str(),
-      //   &matches_file_suffix(theme_file_extension.as_str(), &filename),
-      //   &self.options.unstable_module_resolution
-      // );
-
       return Option::None;
     }
 
@@ -261,12 +245,7 @@ impl StateManager {
 
         let filename = Path::new(&filename);
 
-        let filename_for_hashing = relative_path(root_dir, filename)
-          // .unwrap_or(filename.to_path_buf())
-          // .expect("filename does not start with root_dir")
-          .display()
-          .to_string();
-        // println!("!!!!filename_for_hashingfilename_for_hashing {}", &filename_for_hashing);
+        let filename_for_hashing = relative_path(root_dir, filename).display().to_string();
 
         Option::Some(filename_for_hashing)
       }
@@ -275,9 +254,6 @@ impl StateManager {
 
   pub(crate) fn import_path_resolver(&self, import_path: &str) -> ImportPathResolution {
     let source_file_path = self.get_filename();
-    // println!("!!!source_file_path: {}", &source_file_path);
-
-    // dbg!(&self.options.unstable_module_resolution);
 
     if source_file_path.is_empty() {
       return ImportPathResolution::False;
@@ -295,14 +271,11 @@ impl StateManager {
           .expect("root_dir is required for CommonJS");
 
         let root_dir_path = Path::new(root_dir.as_str());
-        // dbg!(&root_dir);
 
         let theme_file_extension = module_resolution
           .theme_file_extension
           .clone()
           .unwrap_or(".stylex".to_string());
-
-        // dbg!(&theme_file_extension);
 
         if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
           return ImportPathResolution::False;
@@ -310,30 +283,22 @@ impl StateManager {
 
         let resolved_file_path =
           file_path_resolver(import_path, source_file_path, root_dir.as_str());
-        // println!("!!!resolved_file_path: {}", &resolved_file_path);
 
-        // dbg!(&root_dir, &resolved_file_path);
-        let res = ImportPathResolution::Tuple(
+        ImportPathResolution::Tuple(
           ImportPathResolutionType::ThemeNameRef,
           relative_path(
             Path::new(root_dir_path),
             Path::new(resolved_file_path.as_str()),
           )
-          // .unwrap()
           .display()
           .to_string(),
-        );
-        // dbg!(&res);
-
-        res
+        )
       }
       CheckModuleResolution::Haste(module_resolution) => {
         let theme_file_extension = module_resolution
           .theme_file_extension
           .clone()
           .unwrap_or(".stylex".to_string());
-
-        // dbg!(&theme_file_extension);
 
         if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
           return ImportPathResolution::False;
@@ -359,9 +324,6 @@ impl StateManager {
       .into_iter()
       .find(|tpe| kind.eq(&tpe.0) && tpe.1.eq(&Box::new(Expr::Call(call.clone()))))
   }
-  // pub(crate) fn css_vars(&self) -> HashMap<String, String> {
-  //     self.options.defined_stylex_css_variables.clone()
-  // }
 
   pub(crate) fn register_styles(
     &mut self,
@@ -419,8 +381,6 @@ impl StateManager {
           ]
         }
       };
-
-      // dbg!(&self.prepend_include_module_items);
 
       self.prepend_include_module_items.extend(first_module_items);
     }
@@ -486,7 +446,7 @@ impl StateManager {
   }
 
   fn add_style(&mut self, var_name: String, metadata: MetaData) {
-    let value = self.metadata.entry(var_name).or_insert_with(Vec::new);
+    let value = self.metadata.entry(var_name).or_default();
 
     if !value
       .iter()
@@ -497,17 +457,14 @@ impl StateManager {
   }
 
   fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, ast: &Expr) {
-    // dbg!(&metadata);
     let priority = &metadata.get_priority();
 
     let css = &metadata.get_css();
     let css_rtl = &metadata.get_css_rtl();
 
-    // dbg!(&css);
-
     let mut stylex_inject_args = vec![
       expr_or_spread_string_expression_creator(css.as_str()),
-      expr_or_spread_number_expression_creator(round_f64(f64::from(**priority), 1)),
+      expr_or_spread_number_expression_creator(round_f64(**priority, 1)),
     ];
 
     if let Some(rtl) = css_rtl {
@@ -530,15 +487,14 @@ impl StateManager {
       expr: Box::new(stylex_call),
     }));
 
-    // self.styles_to_inject.insert(ast.clone(), module);
     self
       .styles_to_inject
       .entry(Box::new(ast.clone()))
-      .or_insert_with(Vec::new)
+      .or_default()
       .push(module);
   }
 
-  pub(crate) fn get_css_vars(&self) -> HashMap<String, String> {
+  pub(crate) fn _get_css_vars(&self) -> HashMap<String, String> {
     self.options.defined_stylex_css_variables.clone()
   }
 
@@ -547,12 +503,8 @@ impl StateManager {
   }
 
   pub fn combine(self, other: Self) -> Self {
-    // dbg!(
-    //   &self.prepend_include_module_items,
-    //   &other.prepend_include_module_items,
-    // );
     // Now you can use these helper functions to simplify your function
-    let combined_state = StateManager {
+    StateManager {
       _state: self._state,
       import_paths: union_hash_set(&self.import_paths, &other.import_paths),
       stylex_import: union_hash_set(&self.stylex_import, &other.stylex_import),
@@ -612,10 +564,7 @@ impl StateManager {
         other.injected_keyframes,
       ),
       top_imports: chain_collect(self.top_imports, other.top_imports),
-    };
-    // dbg!(&combined_state.prepend_include_module_items);
-
-    combined_state
+    }
   }
 }
 
@@ -653,7 +602,7 @@ pub(crate) fn add_import_expression(path: &str) -> ModuleItem {
 }
 
 fn add_inject_named_import_expression(ident: &Ident, imported_ident: &Ident) -> ModuleItem {
-  let inject_import_stmt = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+  ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
     specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
       span: DUMMY_SP,
@@ -669,13 +618,11 @@ fn add_inject_named_import_expression(ident: &Ident, imported_ident: &Ident) -> 
     type_only: false,
     with: Option::None,
     phase: ImportPhase::Evaluation,
-  }));
-
-  inject_import_stmt
+  }))
 }
 
 fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> ModuleItem {
-  let inject_import_stmt = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+  ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
     declare: false,
     decls: vec![VarDeclarator {
       definite: true,
@@ -688,8 +635,7 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
     }],
     kind: VarDeclKind::Var,
     span: DUMMY_SP,
-  }))));
-  inject_import_stmt
+  }))))
 }
 
 pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
@@ -714,15 +660,17 @@ fn add_file_extension(imported_file_path: &str, source_file: &str) -> String {
   {
     return imported_file_path.to_string();
   }
+
   let file_extension = Path::new(source_file)
     .extension()
     .and_then(std::ffi::OsStr::to_str)
     .unwrap_or("");
-  return format!("{}.{}", imported_file_path, file_extension);
+
+  format!("{}.{}", imported_file_path, file_extension)
 }
 
 fn chain_collect<T: Clone>(vec1: Vec<T>, vec2: Vec<T>) -> Vec<T> {
-  vec1.into_iter().chain(vec2.into_iter()).collect()
+  vec1.into_iter().chain(vec2).collect()
 }
 
 fn union_hash_set<T: Clone + Eq + std::hash::Hash>(
@@ -764,20 +712,12 @@ fn file_path_resolver(
     todo!("file_path_resolver")
   }
 
-  // let paths = fs::read_dir("/cwd").unwrap();
-
-  // for path in paths {
-  //   println!("Name: {}", path.unwrap().path().display())
-  // }
-
   for ext in EXTENSIONS.iter() {
     let import_path_str = if file_to_look_for.starts_with('.') {
       format!("{}{}", file_to_look_for, ext)
     } else {
       file_to_look_for.to_string()
     };
-
-    // println!("!!!! file_to_look_for: {}, import_path_str: {}", &file_to_look_for, import_path_str);
 
     let resolved_file_path = resolve_file_path(&import_path_str, &source_file_path, ext, root_path);
 

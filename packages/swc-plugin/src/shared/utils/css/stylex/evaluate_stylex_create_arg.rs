@@ -17,6 +17,7 @@ use crate::shared::{
     evaluate_result::{EvaluateResult, EvaluateResultValue},
     functions::FunctionMap,
     state_manager::StateManager,
+    types::EvaluateResultFns,
   },
   utils::{
     common::{
@@ -31,27 +32,23 @@ use crate::shared::{
 use super::evaluate::{evaluate, evaluate_obj_key};
 
 pub fn evaluate_stylex_create_arg(
-  path: &Box<Expr>,
+  path: &Expr,
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Box<EvaluateResult> {
-  // dbg!(&path);
-
-  match path.as_ref() {
+  match path {
     Expr::Object(object) => {
       let mut style_object = object.clone();
 
       let mut result_value: IndexMap<Box<Expr>, Vec<KeyValueProp>> = IndexMap::new();
 
-      let mut fns: IndexMap<String, (Vec<BindingIdent>, IndexMap<String, Box<Expr>>)> =
-        IndexMap::new();
+      let mut fns: EvaluateResultFns = IndexMap::new();
 
       for prop in &mut style_object.props {
         match prop {
           PropOrSpread::Spread(_) => todo!("Spread not implemented yet"),
           PropOrSpread::Prop(prop) => {
             let mut prop = prop.clone();
-            // dbg!(&prop);
 
             transform_shorthand_to_key_values(&mut prop);
 
@@ -84,12 +81,10 @@ pub fn evaluate_stylex_create_arg(
                       .into_iter()
                       .filter_map(|param| param.as_ident().cloned())
                       .collect::<Vec<BindingIdent>>();
-                    // dbg!(&params);
 
                     let fn_body = fn_path.body.clone();
                     if let BlockStmtOrExpr::Expr(expr) = fn_body.as_ref() {
                       if let Expr::Object(fn_body_object) = normalize_expr(expr) {
-                        // dbg!(&object, fn_body_object);
 
                         let eval_result = evaluate_partial_object_recursively(
                           fn_body_object,
@@ -108,7 +103,6 @@ pub fn evaluate_stylex_create_arg(
                           });
                         }
 
-                        // dbg!(&eval_result);
 
                         let value = eval_result
                           .value
@@ -117,7 +111,6 @@ pub fn evaluate_stylex_create_arg(
                           .and_then(|expr| expr.as_object().cloned())
                           .expect("Value not an object");
 
-                        // dbg!(&value);
 
                         let key = expr_to_str(key_expr, traversal_state, functions);
 
@@ -134,7 +127,6 @@ pub fn evaluate_stylex_create_arg(
                             .collect(),
                         );
 
-                        // dbg!(&result_value);
 
                         // return EvaluateResult {
                         //   confident: true,
@@ -188,7 +180,6 @@ pub fn evaluate_stylex_create_arg(
 
                     result_value.insert(Box::new(key_expr.as_expr().clone()), value_to_insert);
 
-                    // dbg!(&result_value);
 
                     continue;
                   }
@@ -201,7 +192,6 @@ pub fn evaluate_stylex_create_arg(
           }
         }
       }
-      // dbg!(&result_value);
 
       Box::new(EvaluateResult {
         confident: true,
@@ -216,7 +206,6 @@ pub fn evaluate_stylex_create_arg(
       })
     }
     _ => {
-      // dbg!(path);
       evaluate(path, traversal_state, functions)
     }
   }
@@ -252,10 +241,8 @@ fn evaluate_partial_object_recursively(
 
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {
-            // dbg!(&key_value);
 
             let key_result = evaluate_obj_key(key_value, traversal_state, functions);
-            // dbg!(&key_result);
 
             if !key_result.confident {
               return Box::new(EvaluateResult {
@@ -276,15 +263,12 @@ fn evaluate_partial_object_recursively(
             };
 
             let mut key = expr_to_str(key, traversal_state, functions);
-            // dbg!(&key);
 
             if key.starts_with("var(") && key.ends_with(')') {
               key = key[4..key.len() - 1].to_string();
             }
-            // dbg!(&key);
 
             let value_path = &key_value.value;
-            // dbg!(&value_path);
 
             match normalize_expr(value_path.as_ref()) {
               Expr::Object(object) => {
@@ -298,7 +282,6 @@ fn evaluate_partial_object_recursively(
                   Option::Some(extended_key_path),
                 );
 
-                // dbg!(&result);
 
                 if !result.confident {
                   return Box::new(EvaluateResult {
@@ -338,7 +321,6 @@ fn evaluate_partial_object_recursively(
                   } else {
                     format!("--{}", key)
                   };
-                  // dbg!(&var_name);
 
                   let new_prop = prop_or_spread_expression_creator(
                     key.as_str(),
@@ -359,7 +341,6 @@ fn evaluate_partial_object_recursively(
                     String::new()
                   };
 
-                  // dbg!(&unit);
                   let result_expression = if !unit.is_empty() {
                     Expr::Call(CallExpr {
                       span: DUMMY_SP,

@@ -1,6 +1,5 @@
 use stylex_swc_plugin::{
   shared::structures::{
-    named_import_source::RuntimeInjection,
     plugin_pass::PluginPass,
     stylex_options::{StyleResolution, StyleXOptionsParams},
   },
@@ -649,9 +648,10 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    config.style_resolution = Option::Some(StyleResolution::PropertySpecificity);
+    let mut config = StyleXOptionsParams {
+      style_resolution: Option::Some(StyleResolution::PropertySpecificity),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test(
       tr.comments.clone(),

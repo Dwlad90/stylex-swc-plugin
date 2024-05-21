@@ -20,8 +20,8 @@ opt-level = "z"
 strip = "symbols"
 
 [dependencies]
-serde = "1.0.201"
-swc_core = { version = "0.92.2", features = [
+serde = "1.0.202"
+swc_core = { version = "0.92.5", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -47,7 +47,7 @@ swc_core = { version = "0.92.2", features = [
 ] }
 
 # TODO: remove this dependency after fixing dependencies of swc_core
-swc_ecma_ast = { version = "0.113.2" }
+swc_ecma_ast = { version = "0.113.4" }
 
 # swc_css_parser = {version = "0.150.20"}
 lazy_static = "1.4.0"
@@ -72,12 +72,12 @@ path-clean = { version = "1.0.1" }
 cssparser = { version = "0.34.0" }
 
 [dev-dependencies]
-swc_core = { version = "0.92.2", features = [
+swc_core = { version = "0.92.5", features = [
   "testing_transform",
   "ecma_parser",
 ] }
-testing = "0.35.24"
-insta = { version = "1.38.0", features = ["yaml"] }
+testing = "0.35.25"
+insta = { version = "1.39.0", features = ["yaml"] }
 
 
 # .cargo/config defines few alias to build plugin.

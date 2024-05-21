@@ -3,17 +3,16 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
-  ArrayLit, ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Id, Ident, ObjectLit, Pat, PropName,
+  ArrayLit, ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Ident, ObjectLit, Pat, PropName,
 };
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::structures::flat_compiled_styles::FlatCompiledStyles;
-use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::named_import_source::ImportSources;
+use crate::shared::structures::types::{FlatCompiledStyles, FunctionMapMemberExpression};
+use crate::shared::structures::{functions::FunctionConfigType, types::FunctionMapIdentifiers};
 use crate::shared::utils::common::{
   get_key_str, get_key_values_from_object, prop_or_spread_expression_creator,
 };
@@ -52,11 +51,8 @@ where
 
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
 
-      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
-      let mut member_expressions: HashMap<
-        Box<ImportSources>,
-        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
-      > = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
+      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
 
       let include_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_include),
@@ -133,7 +129,7 @@ where
       );
 
       let (mut compiled_styles, injected_styles_sans_keyframes) =
-      stylex_create_set(&value, &mut self.state, &function_map);
+        stylex_create_set(&value, &mut self.state, &function_map);
 
       compiled_styles
         .clone()
@@ -148,7 +144,6 @@ where
       let mut injected_styles = self.state.injected_keyframes.clone();
 
       injected_styles.extend(injected_styles_sans_keyframes);
-      // dbg!(&injected_styles);
 
       let (var_name, parent_var_decl) = &self.get_call_var_name(call);
 
@@ -177,8 +172,6 @@ where
       let mut result_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
 
-      // println!("result_ast: {:?}", result_ast);
-
       if let Some(fns) = evaluated_arg.fns {
         if let Some(object) = result_ast.as_object() {
           let key_values = get_key_values_from_object(object);
@@ -200,7 +193,6 @@ where
 
               if let Some(key) = key {
                 if let Some((params, inline_styles)) = fns.get(&key) {
-                  // dbg!(&value);
                   let value = Expr::Arrow(ArrowExpr {
                     span: DUMMY_SP,
                     params: params.clone().into_iter().map(Pat::Ident).collect(), // replace with your parameters
@@ -247,7 +239,6 @@ where
 
           result_ast = object_expression_factory(props).unwrap_or(result_ast);
         }
-        //// dbg!(&result_ast);
       };
 
       self

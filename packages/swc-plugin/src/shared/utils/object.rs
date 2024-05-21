@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, KeyValueProp, Lit, PropName};
+use swc_core::ecma::ast::{Expr, KeyValueProp};
 
 use crate::shared::{
   enums::{FlatCompiledStylesValue, ObjMapType},
@@ -45,7 +45,6 @@ where
     }
   }
 
-  // dbg!(&variables_map);
   variables_map
 }
 
@@ -88,7 +87,6 @@ pub(crate) fn obj_entries(obj: &Expr) -> Vec<KeyValueProp> {
   ret_val
 }
 
-// fn obj_from_entries<K: Eq + std::hash::Hash + Clone, V: Clone>(entries: &Vec<(K, V)>) -> HashMap<K, V> {
 pub(crate) fn obj_from_entries(entries: &Vec<OrderPair>) -> IndexMap<String, String> {
   let mut map = IndexMap::new();
 
@@ -119,7 +117,7 @@ pub(crate) fn obj_map_keys(
   map
 }
 
-pub(crate) fn obj_map_entries(
+pub(crate) fn _obj_map_entries(
   entries: &IndexMap<String, String>,
   mapper: fn((&str, &str)) -> Pair,
 ) -> IndexMap<String, FlatCompiledStylesValue> {

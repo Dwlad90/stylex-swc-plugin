@@ -76,7 +76,6 @@ mod stylex_define_vars {
           })
           .collect::<Vec<PropOrSpread>>();
 
-        // dbg!(&types_props);
 
         props.extend(types_props);
 
@@ -463,21 +462,16 @@ mod stylex_define_vars {
       ValueWithDefault::String("pink".to_string()),
     );
 
-    //// dbg!(&bg_color_map);
 
     // #endregion fgColor
 
     let bg_color = type_fabric(&color_fn, ValueWithDefault::Map(bg_color_map));
-    //// dbg!(&bg_color);
     let bg_color_disabled = type_fabric(&color_fn, ValueWithDefault::Map(bg_color_disabled_map));
-    //// dbg!(&bg_color_disabled);
 
     let corner_radius = type_fabric(&length_fn, ValueWithDefault::String("10px".to_string()));
-    //// dbg!(&corner_radius);
 
     let fg_color = type_fabric(&color_fn, ValueWithDefault::Map(fg_color_map));
 
-    // dbg!(&bg_color, &bg_color_disabled, &corner_radius, &fg_color);
 
     let default_vars = default_vars_factory(
       &[
@@ -489,7 +483,6 @@ mod stylex_define_vars {
       &[],
     );
 
-    // dbg!(&default_vars);
 
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {

@@ -59,7 +59,7 @@ impl PreRule for PreRuleSet {
     CompiledResult::ComputedStyles(style_tuple)
   }
   fn get_value(&self) -> Option<PreRuleValue> {
-    let rule = self.rules.get(0).unwrap();
+    let rule = self.rules.first().unwrap();
 
     match &rule {
       PreRules::PreRuleSet(rule_set) => rule_set.get_value(),

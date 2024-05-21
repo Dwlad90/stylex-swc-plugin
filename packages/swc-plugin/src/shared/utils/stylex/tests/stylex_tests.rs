@@ -10,7 +10,7 @@ mod tests {
       common::{get_string_val_from_lit, string_to_expression},
       stylex::{
         parse_nullable_style::{ResolvedArg, StyleObject},
-        stylex::stylex,
+        common::stylex,
       },
     },
   };

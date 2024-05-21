@@ -2,11 +2,13 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Id, Ident, VarDeclarator};
+use swc_core::ecma::ast::{Ident, VarDeclarator};
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::named_import_source::ImportSources;
+use crate::shared::structures::{
+  functions::{FunctionConfig, FunctionMap, FunctionType},
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
 use crate::shared::utils::common::string_to_expression;
 use crate::shared::utils::css::stylex::evaluate::evaluate;
 use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
@@ -40,11 +42,8 @@ where
         None => Option::Some(first_arg.expr.clone()),
       })?;
 
-      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
-      let mut member_expressions: HashMap<
-        Box<ImportSources>,
-        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
-      > = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
+      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
 
       let include_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_include),
@@ -92,8 +91,6 @@ where
       });
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
-
-      // dbg!(evaluated_arg.clone());
 
       assert!(
         evaluated_arg.confident,
@@ -143,8 +140,6 @@ where
     } else {
       None
     };
-
-    // dbg!(&result);
 
     result
   }

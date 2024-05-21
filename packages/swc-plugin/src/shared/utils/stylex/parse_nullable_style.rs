@@ -56,7 +56,7 @@ pub(crate) fn parse_nullable_style(
       if let Some(obj_ident) = member.obj.as_ident() {
         if state
           .style_map
-          .contains_key(&obj_ident.sym.as_str().to_string())
+          .contains_key(obj_ident.sym.as_str())
         {
           if should_reduce_count {
             if let Some(member_ident) = member.obj.as_ident() {

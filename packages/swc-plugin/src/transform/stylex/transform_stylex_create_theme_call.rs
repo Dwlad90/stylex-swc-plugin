@@ -4,33 +4,30 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use swc_core::{
   common::{comments::Comments, DUMMY_SP},
-  ecma::ast::{CallExpr, Expr, Id, Ident},
+  ecma::ast::{CallExpr, Expr, Ident},
 };
 
+use crate::shared::utils::stylex::js_to_expr::{convert_object_to_ast, NestedStringObject};
 use crate::shared::utils::{
-  stylex::dev_class_name::convert_theme_to_dev_styles,
-  validators::{
-    is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
-  },
+  js::stylex::stylex_create_theme::stylex_create_theme,
+  stylex::dev_class_name::convert_theme_to_test_styles,
 };
 use crate::shared::{
-  constants, structures::functions::FunctionMap, utils::css::stylex::evaluate::evaluate,
+  constants,
+  structures::{functions::FunctionMap, types::FunctionMapIdentifiers},
+  utils::css::stylex::evaluate::evaluate,
 };
 use crate::shared::{
   structures::functions::FunctionConfigType,
-  utils::js::stylex::{
-    stylex_include::stylex_include, stylex_keyframes::get_keyframes_fn, stylex_types::get_types_fn,
-  },
+  utils::js::stylex::{stylex_keyframes::get_keyframes_fn, stylex_types::get_types_fn},
 };
 use crate::shared::{
-  structures::functions::{FunctionConfig, FunctionType},
-  utils::stylex::js_to_expr::{convert_object_to_ast, NestedStringObject},
-};
-use crate::shared::{
-  structures::named_import_source::ImportSources,
+  structures::types::FunctionMapMemberExpression,
   utils::{
-    js::stylex::stylex_create_theme::stylex_create_theme,
-    stylex::dev_class_name::convert_theme_to_test_styles,
+    stylex::dev_class_name::convert_theme_to_dev_styles,
+    validators::{
+      is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
+    },
   },
 };
 use crate::ModuleTransformVisitor;
@@ -60,15 +57,8 @@ where
         None => Option::Some(second_arg.expr.clone()),
       })?;
 
-      // let mut resolved_namespaces: IndexMap<String, FlatCompiledStyles> = IndexMap::new();
-
-      // let injected_keyframes: IndexMap<String, InjectableStyle> = IndexMap::new();
-
-      let mut identifiers: HashMap<Box<Id>, Box<FunctionConfigType>> = HashMap::new();
-      let mut member_expressions: HashMap<
-        Box<ImportSources>,
-        Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
-      > = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
+      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();
@@ -108,7 +98,6 @@ where
           );
         }
       }
-      // dbg!(&second_arg, &identifiers);
 
       let function_map: Box<FunctionMap> = Box::new(FunctionMap {
         identifiers,
@@ -116,7 +105,6 @@ where
       });
 
       let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &function_map);
-      // dbg!(&evaluated_arg1);
 
       assert!(
         evaluated_arg1.confident,
@@ -125,8 +113,6 @@ where
       );
 
       let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
-
-      // dbg!(&evaluated_arg2);
 
       assert!(
         evaluated_arg2.confident,
@@ -169,8 +155,6 @@ where
         &mut IndexMap::default(),
       );
 
-      // dbg!(&overrides_obj, &inject_styles);
-
       let (var_name, _) = self.get_call_var_name(call);
 
       if self.state.is_test() {
@@ -183,7 +167,6 @@ where
 
       let result_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(overrides_obj));
-      // dbg!(&result_ast);
 
       self
         .state
@@ -193,8 +176,6 @@ where
     } else {
       None
     };
-
-    // dbg!(&result);
 
     result
   }

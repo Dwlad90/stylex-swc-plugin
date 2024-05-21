@@ -1,12 +1,4 @@
-use std::collections::HashMap;
-
-use stylex_swc_plugin::{
-  shared::structures::{
-    named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-    stylex_options::StyleXOptionsParams,
-  },
-  ModuleTransformVisitor,
-};
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
   transforms::testing::test,
@@ -48,8 +40,6 @@ test!(
     export const styles = stylex.create({});
     "#
 );
-
-
 
 test!(
   Syntax::Typescript(TsConfig {

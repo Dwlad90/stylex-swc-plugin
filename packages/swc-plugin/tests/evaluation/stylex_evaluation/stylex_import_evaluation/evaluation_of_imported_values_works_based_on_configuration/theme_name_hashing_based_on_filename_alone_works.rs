@@ -1,9 +1,6 @@
-// use insta::assert_snapshot;
-
 use std::env;
 
 use insta::assert_snapshot;
-use stylex_swc_plugin::shared::structures::named_import_source::RuntimeInjection;
 use stylex_swc_plugin::shared::structures::stylex_options::{StyleXOptions, StyleXOptionsParams};
 use stylex_swc_plugin::shared::utils::common::create_hash;
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
@@ -31,13 +28,15 @@ fn tranform(input: &str) -> String {
       ..Default::default()
     }),
     |tr| {
-      let mut config = StyleXOptionsParams::default();
-
-      config.class_name_prefix = Option::Some("__hashed_var__".to_string());
-      config.runtime_injection = Option::Some(true);
-      config.treeshake_compensation = Option::Some(true);
-      config.unstable_module_resolution =
-        Option::Some(StyleXOptions::get_haste_module_resolution(Option::None));
+      let mut config = StyleXOptionsParams {
+        class_name_prefix: Option::Some("__hashed_var__".to_string()),
+        runtime_injection: Option::Some(true),
+        treeshake_compensation: Option::Some(true),
+        unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
+          Option::None,
+        )),
+        ..Default::default()
+      };
 
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),

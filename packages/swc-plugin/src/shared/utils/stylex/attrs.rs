@@ -10,12 +10,9 @@ use super::{parse_nullable_style::ResolvedArg, props::props};
 pub(crate) fn attrs(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
   let props = props(styles);
 
-  let Some(props) = props
+  let props = props
     .and_then(|props| props.as_props().cloned())
-    .and_then(|props| props.as_values().cloned())
-  else {
-    return None;
-  };
+    .and_then(|props| props.as_values().cloned())?;
 
   let mut attrs_map: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
 
@@ -27,7 +24,7 @@ pub(crate) fn attrs(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
     panic!("Implement inline style");
   };
 
-  return Some(FnResult::Attrs(
+  Some(FnResult::Attrs(
     NestedStringObject::FlatCompiledStylesValues(attrs_map),
-  ));
+  ))
 }

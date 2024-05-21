@@ -22,7 +22,6 @@ pub(crate) fn stylex_include(args: Vec<Expr>) -> Expr {
     key: PropName::Ident(Ident::from(uuid().as_str())),
     value: Box::new(first_arg.clone()),
   });
- // dbg!(&prop, &args);
 
   object_expression_factory(vec![PropOrSpread::Prop(Box::new(prop))]).unwrap()
 }

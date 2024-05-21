@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use dashmap::DashMap;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
@@ -8,11 +7,9 @@ use swc_core::{
 
 use crate::{
   shared::{
-    constants::common::DEFAULT_INJECT_PATH,
     enums::ModuleCycle,
     structures::{
-      meta_data::MetaData,
-      named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
+      named_import_source::{ImportSources, RuntimeInjection},
       plugin_pass::PluginPass,
       state_manager::StateManager,
       stylex_options::StyleXOptions,
@@ -31,7 +28,6 @@ where
   C: Comments,
 {
   comments: C,
-  // declaration: Option<Id>,
   cycle: ModuleCycle,
   props_declaration: Option<Id>,
   pub(crate) state: Box<StateManager>,
@@ -67,21 +63,6 @@ where
     }
   }
 
-  // pub fn new_test_classname(comments: C, config: Option<StyleXOptionsParams>) -> Self {
-  //     panic!("new_test_classname");
-  //     let stylex_imports = fill_stylex_imports(&config);
-  //     let mut state = StateManager::new(config.unwrap_or(StyleXOptionsParams::default()).into());
-
-  //     state.stylex_import = stylex_imports;
-
-  //     ModuleTransformVisitor {
-  //         comments,
-  //         cycle: ModuleCycle::Initializing,
-  //         props_declaration: Option::None,
-  //         css_output: vec![],
-  //         state,
-  //     }
-  // }
   pub fn new_test_styles(
     comments: C,
     plugin_pass: &PluginPass,
@@ -97,16 +78,16 @@ where
         StateManager::new(config.clone().clone().into())
       }
       None => {
-        let mut config = StyleXOptions::default();
-
-        config.runtime_injection = RuntimeInjection::Boolean(true);
-        config.treeshake_compensation = Option::Some(true);
+        let config = StyleXOptions {
+          runtime_injection: RuntimeInjection::Boolean(true),
+          treeshake_compensation: Option::Some(true),
+          ..Default::default()
+        };
 
         StateManager::new(config)
       }
     });
 
-    // state.stylex_import = stylex_imports.clone();
     state.options.import_sources = stylex_imports
       .into_iter()
       .map(|stylex_import| *stylex_import)
@@ -134,17 +115,17 @@ where
     let mut state = Box::new(match &config {
       Some(config) => StateManager::new((*config).clone().into()), // Convert &&mut StyleXOptionsParams into StyleXOptionsParams
       None => {
-        let mut config = StyleXOptions::default();
-
-        config.runtime_injection = RuntimeInjection::Boolean(false);
-        config.treeshake_compensation = Option::Some(true);
-        config.class_name_prefix = "x".to_string();
+        let config = StyleXOptions {
+          runtime_injection: RuntimeInjection::Boolean(false),
+          treeshake_compensation: Option::Some(true),
+          class_name_prefix: "x".to_string(),
+          ..Default::default()
+        };
 
         StateManager::new(config)
       }
     });
 
-    // state.stylex_import = stylex_imports.clone();
     state.options.import_sources = stylex_imports.into_iter().map(|s_i| *s_i).collect();
 
     let plugin_pass = plugin_pass.clone();
@@ -161,13 +142,10 @@ where
 
   pub(crate) fn process_declaration(&mut self, call_expr: &CallExpr) -> Option<(Id, String)> {
     let stylex_imports = self.state.stylex_import_stringified();
-
-    match &mut call_expr.callee.clone() {
-      Callee::Expr(callee) => match callee.as_ref() {
+    if let Callee::Expr(callee) = &mut call_expr.callee.clone() {
+      match callee.as_ref() {
         Expr::Ident(ident) => {
           let ident_id = ident.to_id();
-
-          // dbg!(&ident_id);
 
           if stylex_imports.contains(&ident.sym.to_string())
             || (self.cycle == ModuleCycle::TransformEnter
@@ -190,13 +168,13 @@ where
                 .contains(&ident.to_id())
               || self.state.stylex_attrs_import.contains(&ident.to_id()))
           {
-            increase_ident_count(&mut self.state, &ident);
+            increase_ident_count(&mut self.state, ident);
 
             return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
           }
         }
-        Expr::Member(member) => match member.obj.as_ref() {
-          Expr::Ident(ident) => {
+        Expr::Member(member) => {
+          if let Expr::Ident(ident) = member.obj.as_ref() {
             let ident_id = ident.to_id();
 
             if stylex_imports.contains(&ident.sym.to_string())
@@ -220,51 +198,28 @@ where
                   .contains(&ident.to_id())
                 || self.state.stylex_attrs_import.contains(&ident.to_id()))
             {
-              match member.prop.clone() {
-                MemberProp::Ident(ident) => {
-                  increase_ident_count(&mut self.state, &ident);
-
-                  return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
-                }
-                _ => {}
+              if let MemberProp::Ident(ident) = member.prop.clone() {
+                return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
               }
             }
           }
-          _ => {}
-        },
+        }
         _ => {}
-      },
-      _ => {}
+      }
     }
+
     Option::None
   }
 
   pub(crate) fn transform_call_expression(&mut self, expr: &Expr) -> Option<Expr> {
-    match expr {
-      Expr::Call(ex) => {
-        let declaration = self.process_declaration(&ex);
+    if let Expr::Call(ex) = expr {
+      let declaration = self.process_declaration(ex);
 
-        // dbg!(&declaration, &ex);
-
-        if let Some(_) = declaration {
-          let value = self.transform_call_expression_to_stylex_expr(&ex);
-          // let value = if self.state.options.runtime_injection.is_some() {
-          // } else {
-          //     self.transform_call_expression_to_css_map_expr(&ex)
-          // };
-
-          // match value {
-          //     Some(value) => {
-          //         return Some(value);
-          //     }
-          //     None => {}
-          // }
-
-          return value;
-        }
+      if declaration.is_some() {
+        return self.transform_call_expression_to_stylex_expr(ex);
       }
-      _ => {}
     }
+
     None
   }
 

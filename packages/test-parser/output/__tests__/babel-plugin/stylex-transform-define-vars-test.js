@@ -26,7 +26,7 @@ function transform(source, opts = defaultOpts) {
 }
 describe('@stylexjs/babel-plugin', ()=>{
     describe('[transform] stylex.defineVars()', ()=>{
-        test.skip('transforms variables object', ()=>{
+        test('transforms variables object', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({
@@ -55,7 +55,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables object with import *', ()=>{
+        test('transforms variables object with import *', ()=>{
             expect(transform(`
           import * as foo from 'stylex';
           export const buttonTheme = foo.defineVars({
@@ -84,7 +84,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables object with named import', ()=>{
+        test('transforms variables object with named import', ()=>{
             expect(transform(`
           import {defineVars} from 'stylex';
           export const buttonTheme = defineVars({
@@ -113,7 +113,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms referenced local variables object', ()=>{
+        test('transforms referenced local variables object', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           const defaultButtonTokens = {
@@ -158,7 +158,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables object and add stylex.inject in dev mode', ()=>{
+        test('transforms variables object and add stylex.inject in dev mode', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({
@@ -195,7 +195,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables object in non-haste env', ()=>{
+        test('transforms variables object in non-haste env', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({
@@ -227,7 +227,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables object in non-haste dev env', ()=>{
+        test('transforms variables object in non-haste dev env', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({
@@ -265,7 +265,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms multiple variables objects in a single file', ()=>{
+        test('transforms multiple variables objects in a single file', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({
@@ -308,7 +308,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms multiple variables objects in a single file in dev mode', ()=>{
+        test('transforms multiple variables objects in a single file in dev mode', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({
@@ -361,7 +361,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables objects with references to local variables', ()=>{
+        test('transforms variables objects with references to local variables', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           const RADIUS = 10;
@@ -400,7 +400,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('allows references to local variables with static values', ()=>{
+        test('allows references to local variables with static values', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           const color = 'blue';
@@ -439,7 +439,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('allows template literal references', ()=>{
+        test('allows template literal references', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           const name = 'light';
@@ -478,7 +478,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('allows pure complex expressions', ()=>{
+        test('allows pure complex expressions', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           const RADIUS = 2;
@@ -517,7 +517,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables object in commonJS with nested filePath', ()=>{
+        test('transforms variables object in commonJS with nested filePath', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({
@@ -558,7 +558,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };"
       `);
         });
-        test.skip('transforms variables object with stylex.types wrapper', ()=>{
+        test('transforms variables object with stylex.types wrapper', ()=>{
             expect(transform(`
           import stylex from 'stylex';
           export const buttonTheme = stylex.defineVars({

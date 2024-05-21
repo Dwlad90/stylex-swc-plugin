@@ -2,24 +2,20 @@ use std::rc::Rc;
 use std::{collections::HashMap, fmt};
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{BindingIdent, Expr, Id, KeyValueProp, Lit};
+use swc_core::ecma::ast::{Expr, Id, KeyValueProp, Lit};
 
-use super::{functions::FunctionConfig, theme_ref::ThemeRef};
-
-#[derive(Debug, Hash, PartialEq, Clone)]
-pub(crate) enum ArrayJS {
-  Map,
-  Filter,
-}
+use super::{
+  functions::FunctionConfig,
+  theme_ref::ThemeRef,
+  types::{EvaluateResultFns, EvaluationCallback},
+};
 
 pub enum EvaluateResultValue {
   Expr(Box<Expr>),
   Vec(Vec<Option<EvaluateResultValue>>),
   Map(IndexMap<Box<Expr>, Vec<KeyValueProp>>),
   Entries(IndexMap<Box<Lit>, Box<Lit>>),
-  Callback(
-    Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>, // Expr,
-  ),
+  Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
   FunctionConfigMap(HashMap<Id, FunctionConfig>),
   ThemeRef(ThemeRef),
@@ -79,7 +75,7 @@ pub struct EvaluateResult {
   pub value: Option<Box<EvaluateResultValue>>,
   pub(crate) deopt: Option<Box<Expr>>,
   pub(crate) inline_styles: Option<IndexMap<String, Box<Expr>>>,
-  pub(crate) fns: Option<IndexMap<String, (Vec<BindingIdent>, IndexMap<String, Box<Expr>>)>>,
+  pub(crate) fns: Option<EvaluateResultFns>,
 }
 
 impl EvaluateResultValue {
@@ -125,12 +121,7 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_callback(
-    &self,
-  ) -> Option<
-    &Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>,
-    // &Expr,
-  > {
+  pub fn as_callback(&self) -> Option<&EvaluationCallback> {
     match self {
       EvaluateResultValue::Callback(value) => Option::Some(value),
       _ => Option::None,

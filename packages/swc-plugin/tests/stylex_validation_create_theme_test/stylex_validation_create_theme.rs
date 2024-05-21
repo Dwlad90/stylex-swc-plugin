@@ -1,11 +1,4 @@
-
-
-use stylex_swc_plugin::{
-  shared::structures::{
-    plugin_pass::PluginPass,
-  },
-  ModuleTransformVisitor,
-};
+use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
   parser::{Syntax, TsConfig},
   transforms::testing::{test, test_transform},

@@ -9,6 +9,4 @@ pub(crate) enum EXPANSIONS {
   ApplicationOrder(ApplicationOrder),
   PropertySpecificity(PropertySpecificity),
   ShorthandsOfShorthands(ShorthandsOfShorthands),
-  // "property-specificity" => ApplicationOrder,
-  // "shorthands-of-shorthands" => ApplicationOrder,
 }

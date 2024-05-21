@@ -146,8 +146,6 @@ pub(crate) fn flatten_raw_style_object(
           for OrderPair(property, pre_rule) in pairs.iter() {
             let property = property.to_string();
 
-            // dbg!("{:#?}", &pseudos);
-
             if let Some(pair_value) = pre_rule {
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
                 property.as_str(),
@@ -189,9 +187,6 @@ pub(crate) fn flatten_raw_style_object(
             let inner_flattened =
               flatten_raw_style_object(&[k], pseudos, at_rules, state, functions);
 
-            // println!("!!before_updated_flattened: {:?}", flattened);
-            // println!("!!updated_flattened: {:?}", updated_flattened);
-
             flattened.extend(inner_flattened);
           }
           None => {
@@ -203,7 +198,7 @@ pub(crate) fn flatten_raw_style_object(
         let result = transform_bin_expr_to_number(bin, state);
 
         let mut k = property.clone();
-        k.value = Box::new(number_to_expression(result as f64).unwrap());
+        k.value = Box::new(number_to_expression(result).unwrap());
 
         let inner_flattened = flatten_raw_style_object(&[k], pseudos, at_rules, state, functions);
 
@@ -213,80 +208,60 @@ pub(crate) fn flatten_raw_style_object(
       Expr::Object(obj) => {
         if !key.starts_with(':') && !key.starts_with('@') {
           if obj.props.is_empty() {
-            // println!("!!obj.props.is_empty(): {:?}", flattened);
             return flattened;
           }
           let mut equivalent_pairs: IndexMap<String, IndexMap<String, PreRules>> = IndexMap::new();
 
-          obj.props.clone().into_iter().for_each(|prop| {
-            match prop {
-              PropOrSpread::Prop(mut prop) => {
-                transform_shorthand_to_key_values(&mut prop);
+          obj.props.clone().into_iter().for_each(|prop| match prop {
+            PropOrSpread::Prop(mut prop) => {
+              transform_shorthand_to_key_values(&mut prop);
 
-                match prop.as_ref() {
-                  Prop::KeyValue(key_value) => {
-                    let mut inner_key_value: KeyValueProp = key_value.clone();
-                    // validate_conditional_styles(&inner_key_value);
+              match prop.as_ref() {
+                Prop::KeyValue(key_value) => {
+                  let mut inner_key_value: KeyValueProp = key_value.clone();
 
-                    let condition = get_key_str(&inner_key_value);
-                    let mut pseudos_to_pass_down = pseudos.clone();
-                    let mut at_rules_to_pass_down = at_rules.clone();
+                  let condition = get_key_str(&inner_key_value);
+                  let mut pseudos_to_pass_down = pseudos.clone();
+                  let mut at_rules_to_pass_down = at_rules.clone();
 
-                    if condition.starts_with(':') {
-                      // dbg!("{:?}", &pseudos_to_pass_down);
-                      pseudos_to_pass_down.push(condition.clone());
-                    } else if condition.starts_with('@') {
-                      at_rules_to_pass_down.push(condition.clone());
-                    }
+                  if condition.starts_with(':') {
+                    pseudos_to_pass_down.push(condition.clone());
+                  } else if condition.starts_with('@') {
+                    at_rules_to_pass_down.push(condition.clone());
+                  }
 
-                    inner_key_value.key = PropName::Str(Str {
-                      span: DUMMY_SP,
-                      value: css_property_key.clone().into(),
-                      raw: Option::None,
-                    });
+                  inner_key_value.key = PropName::Str(Str {
+                    span: DUMMY_SP,
+                    value: css_property_key.clone().into(),
+                    raw: Option::None,
+                  });
 
-                    // println!(
-                    //   "!!condition: {:#?}, inner_key, {:#?}",
-                    //   condition, inner_key_value.key
-                    // );
+                  let pairs = flatten_raw_style_object(
+                    &[inner_key_value],
+                    &mut pseudos_to_pass_down,
+                    &mut at_rules_to_pass_down,
+                    state,
+                    functions,
+                  );
 
-                    let pairs = flatten_raw_style_object(
-                      &[inner_key_value],
-                      &mut pseudos_to_pass_down,
-                      &mut at_rules_to_pass_down,
-                      state,
-                      functions,
-                    );
-
-                    // println!("!!pairs: {:#?}", pairs);
-                    // equivalent_pairs.extend(pairs);
-                    // for (key, value) in pairs {
-                    //     equivalent_pairs.insert(key, value);
-                    // }
-                    for (property, pre_rule) in pairs {
-                      // if let Some(pre_rule) = pre_rule.downcast_ref::<PreIncludedStylesRule>() {
-                      //     // NOT POSSIBLE, but needed for Flow
-                      //     panic!("stylex.include can only be used at the top-level");
-                      // }
-                      if equivalent_pairs.get(&property).is_none() {
-                        let mut inner_map = IndexMap::new();
-                        inner_map.insert(condition.clone(), pre_rule);
-                        equivalent_pairs.insert(property, inner_map);
-                      } else {
-                        let inner_map = equivalent_pairs.get_mut(&property).unwrap();
-                        inner_map.insert(condition.clone(), pre_rule);
-                      }
+                  for (property, pre_rule) in pairs {
+                    if equivalent_pairs.get(&property).is_none() {
+                      let mut inner_map = IndexMap::new();
+                      inner_map.insert(condition.clone(), pre_rule);
+                      equivalent_pairs.insert(property, inner_map);
+                    } else {
+                      let inner_map = equivalent_pairs.get_mut(&property).unwrap();
+                      inner_map.insert(condition.clone(), pre_rule);
                     }
                   }
-                  _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
                 }
+                _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
               }
-              _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
             }
+            _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
           });
           for (property, obj) in equivalent_pairs.iter() {
             let sorted_keys: Vec<&String> = obj.keys().collect();
-            // sorted_keys.sort(); // Uncomment this line if you want to sort the keys
 
             let mut rules: Vec<PreRules> = Vec::new();
             for condition in sorted_keys {
@@ -323,7 +298,6 @@ pub(crate) fn flatten_raw_style_object(
         }
       }
       _ => {
-        // dbg!(value);
         panic!("{}", constants::messages::ILLEGAL_PROP_VALUE)
       }
     };

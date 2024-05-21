@@ -22,13 +22,6 @@ pub(crate) enum ModuleCycle {
   Initializing,
   Skip,
   InjectStyles,
-  InjectClassName,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum InjectedStylesDeclarationType {
-  NamedDeclarationExport,
-  NamedPropertyOrDefaultExport,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -70,12 +63,6 @@ pub(crate) struct TopLevelExpression(
   pub(crate) Option<Id>,
 );
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub(crate) enum ConditionPermutationsValue {
-  Single(String),
-  Triple((String, String, String)),
-}
-
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum FnResult {
   Attrs(NestedStringObject),
@@ -91,6 +78,7 @@ impl FnResult {
     }
   }
 
+  #[cfg(test)]
   pub(crate) fn as_stylex(&self) -> Option<&Expr> {
     match self {
       FnResult::Stylex(expr) => Some(expr),
@@ -98,19 +86,13 @@ impl FnResult {
     }
   }
 
-  pub(crate) fn as_attrs(&self) -> Option<&NestedStringObject> {
+  pub(crate) fn _as_attrs(&self) -> Option<&NestedStringObject> {
     match self {
       FnResult::Attrs(attrs) => Some(attrs),
       _ => None,
     }
   }
 }
-
-// #[derive(Debug, PartialEq, Eq, Clone)]
-// pub(crate) enum FlatCompiledStylesValueNested {
-//     String(String),
-//     Object(IndexMap<String, String>),
-// }
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub(crate) enum FlatCompiledStylesValue {
@@ -125,13 +107,14 @@ pub(crate) enum FlatCompiledStylesValue {
 }
 
 impl FlatCompiledStylesValue {
-  pub(crate) fn as_tuple(&self) -> Option<(&String, &Box<Expr>, &Option<BaseCSSType>)> {
+  pub(crate) fn as_tuple(&self) -> Option<(&String, &Expr, &Option<BaseCSSType>)> {
     match self {
       FlatCompiledStylesValue::Tuple(key, value, css_type) => Some((key, value, css_type)),
       _ => None,
     }
   }
 
+  #[cfg(test)]
   pub(crate) fn as_string(&self) -> Option<&String> {
     match self {
       FlatCompiledStylesValue::String(value) => Some(value),
@@ -146,21 +129,21 @@ impl FlatCompiledStylesValue {
     }
   }
 
-  pub(crate) fn as_bool(&self) -> Option<&bool> {
+  pub(crate) fn _as_bool(&self) -> Option<&bool> {
     match self {
       FlatCompiledStylesValue::Bool(value) => Some(value),
       _ => None,
     }
   }
 
-  pub(crate) fn as_null(&self) -> Option<()> {
+  pub(crate) fn _as_null(&self) -> Option<()> {
     match self {
       FlatCompiledStylesValue::Null => Some(()),
       _ => None,
     }
   }
 
-  pub(crate) fn as_included_style(&self) -> Option<&IncludedStyle> {
+  pub(crate) fn _as_included_style(&self) -> Option<&IncludedStyle> {
     match self {
       FlatCompiledStylesValue::IncludedStyle(value) => Some(value),
       _ => None,
@@ -190,5 +173,5 @@ pub(crate) enum ImportPathResolution {
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum ImportPathResolutionType {
   ThemeNameRef,
-  FilePath,
+  // FilePath,
 }

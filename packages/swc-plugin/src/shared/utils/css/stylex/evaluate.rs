@@ -1,39 +1,21 @@
 use core::panic;
-// use sha2::{Digest, Sha256};
 use std::{
   collections::{HashMap, HashSet},
-  env, fs,
-  ops::Deref,
   rc::Rc,
 };
 
-use chrono::format;
-use colored::Colorize;
 use indexmap::IndexMap;
 use swc_core::{
-  common::{EqIgnoreSpan, Span, Spanned, DUMMY_SP},
+  common::{EqIgnoreSpan, DUMMY_SP},
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Id, Ident,
-      ImportDecl, ImportNamedSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number,
-      ObjectLit, Pat, Prop, PropName, PropOrSpread, Str, TplElement, VarDeclarator,
+      KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName,
+      PropOrSpread, Str, TplElement, VarDeclarator,
     },
     utils::{drop_span, ident::IdentLike, ExprExt},
-    visit::{Fold, FoldWith},
   },
 };
-
-struct SpanReplacer;
-
-impl Fold for SpanReplacer {
-  fn fold_span(&mut self, n: Span) -> Span {
-    DUMMY_SP
-  }
-}
-
-fn replace_spans(expr: &mut Expr) -> Expr {
-  expr.clone().fold_children_with(&mut SpanReplacer)
-}
 
 use crate::shared::{
   constants::{
@@ -44,20 +26,17 @@ use crate::shared::{
   structures::{
     evaluate_result::{EvaluateResult, EvaluateResultValue},
     functions::{CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    injectable_style::InjectableStyle,
     named_import_source::ImportSources,
     state_manager::{add_import_expression, StateManager},
-    stylex_options::StyleXOptions,
-    stylex_state_options::StyleXStateOptions,
-    theme_ref::{self, ThemeRef},
+    theme_ref::ThemeRef,
+    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
   utils::{
     common::{
-      binary_expr_to_num, create_hash, deep_merge_props, expr_to_num, expr_to_str,
-      gen_file_based_identifier, get_import_by_ident, get_key_str, get_string_val_from_lit,
-      get_var_decl_by_ident, get_var_decl_from, hash_f64, lit_to_num, normalize_expr,
-      number_to_expression, reduce_member_expression_count, remove_duplicates,
-      string_to_expression, transform_shorthand_to_key_values,
+      binary_expr_to_num, deep_merge_props, expr_to_num, expr_to_str, get_import_by_ident,
+      get_key_str, get_string_val_from_lit, get_var_decl_by_ident, get_var_decl_from,
+      normalize_expr, number_to_expression, remove_duplicates, string_to_expression,
+      transform_shorthand_to_key_values,
     },
     css::factories::object_expression_factory,
     js::{
@@ -65,7 +44,6 @@ use crate::shared::{
       native_functions::{evaluate_filter, evaluate_map},
       stylex::stylex_types::ValueWithDefault,
     },
-    object,
   },
 };
 
@@ -113,17 +91,6 @@ impl State {
     }
   }
 }
-
-// enum KeyResult {
-//     ConfidentTrue {
-//         confident: bool,
-//         value: String,
-//     },
-//     ConfidentFalse {
-//         confident: bool,
-//         deopt: Option<Expr>,
-//     },
-// }
 
 pub(crate) fn evaluate_obj_key(
   prop_kv: &KeyValueProp,
@@ -228,19 +195,9 @@ fn deopt(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>> {
   Option::None
 }
 
-// fn evaluate_arror_function(
-//     arrow: ArrowExpr,
-//     state: &mut State,
-//     declarations: &Vec<VarDeclarator>,
-//     var_dec_count_map: &mut HashMap<Id, i8>,
-// ) -> Option<FunctionConfig> {
-
-// }
-
 fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>> {
   if !state.confident {
-    panic!("Should not be here");
-    // return Option::None;
+    return Option::None;
   }
 
   let path = normalize_expr(path);
@@ -265,25 +222,15 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
       match body.as_ref() {
         BlockStmtOrExpr::Expr(body_expr) => {
           if ident_params.len() == params.len() {
-            let orig_args: Vec<Pat> = params.clone();
-
             let arrow_closure_fabric =
-              |orig_args: Vec<Pat>,
-               functions: HashMap<Box<Id>, Box<FunctionConfigType>>,
+              |functions: FunctionMapIdentifiers,
                ident_params: Vec<Id>,
                body_expr: Box<Expr>,
                traversal_state: StateManager| {
                 move |cb_args: Vec<Option<EvaluateResultValue>>| {
                   let mut functions = functions.clone();
 
-                  let mut member_expressions: HashMap<
-                    Box<ImportSources>,
-                    Box<HashMap<Box<Id>, Box<FunctionConfigType>>>,
-                  > = HashMap::new();
-                  // println!(
-                  //   "!!!!__ orig_args: {:#?}, functions: {:#?}, cb_args: {:#?}",
-                  //   orig_args, functions, cb_args
-                  // );
+                  let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
 
                   ident_params.iter().enumerate().for_each(|(index, ident)| {
                     if let Some(arg) = cb_args.get(index) {
@@ -292,7 +239,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
                       let cl = |arg: Expr| move || arg.clone();
 
-                      // panic!("Check what's happening here, expr: {:#?}", expr);
                       let result = (cl)(expr.clone());
                       let function = FunctionConfig {
                         fn_ptr: FunctionType::Mapper(Rc::new(result)),
@@ -310,7 +256,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     }
                   });
 
-                  // panic!("Check what's happening here, body_expr: {:#?} ident_params: {:#?}", body_expr, ident_params);
                   let result = evaluate(
                     &body_expr,
                     &mut traversal_state.clone(),
@@ -332,7 +277,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
             let functions = state.functions.identifiers.clone();
 
             let arrow_closure = Rc::new(arrow_closure_fabric(
-              orig_args,
               functions,
               ident_params,
               Box::new(*body_expr.clone()),
@@ -353,11 +297,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
     Expr::Ident(ident) => {
       let ident_id = ident.to_id();
 
-      // dbg!(&ident_id, &state.functions.identifiers);
-
       if state.functions.identifiers.contains_key(&ident_id) {
         let func = state.functions.identifiers.get(&ident_id)?;
-        // dbg!(&ident_id, &func);
 
         match func.as_ref() {
           FunctionConfigType::Regular(func) => {
@@ -375,9 +316,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
         }
       }
 
-      // let ident_binding =
-      //     get_binding(&Expr::Ident(ident.clone()), &mut state.traversal_state);
-
       Option::None
     }
     Expr::TsAs(_) => todo!("TsAs not implemented yet"),
@@ -387,32 +325,28 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
       lit_path.clone(),
     ))))),
     Expr::Tpl(tpl) => evaluate_quasis(&Expr::Tpl(tpl.clone()), &tpl.quasis, false, state),
-    Expr::TaggedTpl(tagged_tpl) => {
+    #[allow(dead_code)]
+    Expr::TaggedTpl(_tagged_tpl) => {
       todo!("TaggedTpl");
-      evaluate_quasis(
-        &Expr::TaggedTpl(tagged_tpl.clone()),
-        &tagged_tpl.tpl.quasis,
-        false,
-        state,
-      )
+      // TODO: Uncomment this for implementation of TaggedTpl
+      // evaluate_quasis(
+      //   &Expr::TaggedTpl(_tagged_tpl.clone()),
+      //   &_tagged_tpl.tpl.quasis,
+      //   false,
+      //   state,
+      // )
     }
     Expr::Cond(_) => todo!("Cond not implemented yet"),
     Expr::Paren(_) => {
       panic!("Paren must be normalized before evaluation")
-      // let result = evaluate_cached(&paren.expr, state);
-
-      // result
     }
     Expr::Member(member) => {
-      // dbg!(&member);
-
       let parent_is_call_expr = state
         .traversal_state
         .all_call_expressions
         .clone()
         .into_iter()
         .any(|call_expr| {
-          // dbg!(&call_expr.callee, &member.obj);
           if let Some(callee) = call_expr.callee.as_expr() {
             callee
               .as_ref()
@@ -421,7 +355,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
             false
           }
         });
-      // dbg!(&parent_is_call_expr, &member.obj);
 
       let evaluated_value = if parent_is_call_expr {
         Option::None
@@ -429,24 +362,12 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
         evaluate_cached(&member.obj, state)
       };
 
-      // dbg!(&evaluated_value);
-
       if let Some(object) = evaluated_value {
         if !state.confident {
           return Option::None;
         };
 
-        // let Some(ArrayLit { elems, .. }) = expr.as_array() else {
-        //     if let Some(object) = expr.as_object() {
-        //         return Some(EvaluateResultValue::Expr(Expr::Object(object.clone())));
-        //     } else {
-        //        // dbg!(&expr);
-        //         todo!("Expression");
-        //     }
-        // };
-
         let prop_path = &member.prop;
-        // dbg!(&prop_path);
 
         let propery = match prop_path {
           MemberProp::Ident(ident) => Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(
@@ -526,7 +447,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 .clone();
 
               if let PropOrSpread::Prop(prop) = property {
-                // dbg!(&prop, ident);
                 return Some(Box::new(EvaluateResultValue::Expr(Box::new(
                   *prop
                     .key_value()
@@ -545,8 +465,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
           EvaluateResultValue::Callback(_) => todo!("EvaluateResultValue::Callback"),
           EvaluateResultValue::FunctionConfig(_) => todo!("EvaluateResultValue::FunctionConfig"),
           EvaluateResultValue::FunctionConfigMap(fc_map) => {
-            // dbg!(&fc_map, &propery);
-
             let key = match propery {
               Some(propery) => match propery.as_ref() {
                 EvaluateResultValue::Expr(expr) => match expr.as_ref() {
@@ -590,7 +508,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
             state.traversal_state = state.traversal_state.clone().combine(updated_state.clone());
 
-            // dbg!(
             //   &value,
             //   &state.traversal_state.prepend_include_module_items,
             //   &updated_state.prepend_include_module_items
@@ -655,8 +572,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
             transform_shorthand_to_key_values(&mut prop);
 
-            // dbg!(&prop);
-
             match prop.as_ref() {
               Prop::KeyValue(path_key_value) => {
                 let key_path = path_key_value.key.clone();
@@ -677,7 +592,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                       return Option::None;
                     }
 
-                    // panic!("Check what's happening here");
                     Option::Some(expr_to_str(
                       evaluated_result.value.unwrap().as_expr().unwrap(),
                       &mut state.traversal_state,
@@ -688,8 +602,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 };
 
                 let value_path = path_key_value.value.clone();
-
-                // dbg!(&value_path);
 
                 let value = evaluate(&value_path, &mut state.traversal_state, &state.functions);
 
@@ -702,19 +614,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 }
 
                 let value = value.value.unwrap();
-                // props = deep_merge_props(
-                //     props,
-                //     vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(
-                //         KeyValueProp {
-                //             key: PropName::Ident(Ident {
-                //                 sym: key.unwrap().into(),
-                //                 span: DUMMY_SP,
-                //                 optional: false,
-                //             }),
-                //             value: Box::new(value.as_expr().unwrap().clone()),
-                //         },
-                //     )))],
-                // );
 
                 let value = match value.as_ref() {
                   EvaluateResultValue::Expr(expr) => expr.clone(),
@@ -729,14 +628,12 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                             .map(|vec| {
                               let mut elems = vec![];
 
-                              for item in vec {
-                                if let Some(item) = item {
-                                  let item = item.as_expr().unwrap();
-                                  elems.push(Some(ExprOrSpread {
-                                    spread: Option::None,
-                                    expr: Box::new(item.clone()),
-                                  }));
-                                }
+                              for item in vec.iter().flatten() {
+                                let item = item.as_expr().unwrap();
+                                elems.push(Some(ExprOrSpread {
+                                  spread: Option::None,
+                                  expr: Box::new(item.clone()),
+                                }));
                               }
 
                               Expr::Array(ArrayLit {
@@ -767,15 +664,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
                     Box::new(Expr::Array(array))
                   }
-                  EvaluateResultValue::Callback(cb) => {
-                    let a = cb(vec![]);
-
-                    // dbg!(&a);
-
-                    panic!();
+                  EvaluateResultValue::Callback(_cb) => {
+                    todo!("EvaluateResultValue::Callback");
                   }
                   _ => {
-                    // dbg!(&value);
                     panic!("Property value must be an expression")
                   }
                 };
@@ -806,9 +698,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
       )))));
     }
     Expr::Bin(bin) => {
-      // dbg!(&bin);
       if let Some(result) = binary_expr_to_num(bin, state) {
-        let result = number_to_expression(result as f64).unwrap();
+        let result = number_to_expression(result).unwrap();
 
         return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(result))));
       } else {
@@ -861,12 +752,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     };
 
                     if first_arg.spread.is_some() {
-                      panic!("Spread not implemented yet")
+                      todo!("Spread")
                     }
-
-                    // if method_name == "ceil"{
-                    //   panic!("Math.round not implemented yet")
-                    // }
 
                     match method_name.as_ref() {
                       "pow" => {
@@ -880,7 +767,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         };
 
                         if second_arg.spread.is_some() {
-                          panic!("Spread not implemented yet")
+                          todo!("Spread")
                         }
                         let cached_first_arg = evaluate_cached(&first_arg.expr, state);
                         let cached_second_arg = evaluate_cached(&second_arg.expr, state);
@@ -907,7 +794,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         // let a = cached_first_arg.unwrap();
 
                         let cached_first_arg = evaluate_cached(&first_arg.expr, state);
-                        // dbg!(&cached_first_arg, &first_arg.expr);
 
                         context = Option::Some(Box::new(vec![Option::Some(
                           EvaluateResultValue::Expr(Box::new(
@@ -942,7 +828,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                             .skip(1)
                             .map(|arg| {
                               if arg.spread.is_some() {
-                                panic!("Spread not implemented yet")
+                                todo!("Spread")
                               }
 
                               evaluate_cached(&arg.expr, state)
@@ -976,7 +862,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     };
 
                     if arg.spread.is_some() {
-                      panic!("Spread not implemented yet")
+                      todo!("Spread")
                     }
 
                     let cached_arg = evaluate_cached(&arg.expr, state);
@@ -1006,7 +892,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                               .elems
                               .into_iter()
                               .flatten()
-                              // .and_then(|items| items.flatten())
                               .collect::<Vec<ExprOrSpread>>();
 
                             for entry in entries {
@@ -1018,7 +903,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                                 .elems
                                 .clone()
                                 .into_iter()
-                                .filter_map(|item| item)
+                                .flatten()
                                 .collect::<Vec<ExprOrSpread>>();
 
                               let key = elems
@@ -1219,17 +1104,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   ),
                 }
               } else {
-                // let memberExpressionFn = state
-                //     .functions
-                //     .member_expressions
-                //     .get(&ImportSources::Regular(obj_ident.sym.to_string()));
-
-                // if let Some(memberExpressionFn) = memberExpressionFn {
-
-                // }
-
-                //// dbg!(&state.functions.member_expressions);
-                // panic!("{}", constants::messages::BUILT_IN_FUNCTION);
                 let prop_ident = property.as_ident().unwrap();
 
                 let obj_name = obj_ident.sym.to_string();
@@ -1243,13 +1117,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 if let Some(member_expr) = member_expressions {
                   let member_expr = member_expr.clone();
                   if let Some(member_expr_fn) = member_expr.get(&prop_id) {
-                    // dbg!(&member_expr, &member_expr_fn,);
-
-                    // panic!();
-                    // context = Option::Some(vec![Option::Some(EvaluateResultValue::Expr(
-                    //     member_expr_fn.clone(),
-                    // ))]);
-
                     match member_expr_fn.as_ref() {
                       FunctionConfigType::Regular(fc) => {
                         func = Option::Some(Box::new(fc.clone()));
@@ -1280,12 +1147,14 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   todo!("Check what's happening here");
 
                   // context = Option::Some(member_expr.clone());
-                  match member_expr.get(&prop_id).unwrap().as_ref() {
-                    FunctionConfigType::Regular(fc) => {
-                      func = Option::Some(Box::new(fc.clone()));
-                    }
-                    FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
-                  }
+
+                  // TODO: uncomment this for implementation of member expressions
+                  // match member_expr.get(&prop_id).unwrap().as_ref() {
+                  //   FunctionConfigType::Regular(fc) => {
+                  //     func = Option::Some(Box::new(fc.clone()));
+                  //   }
+                  //   FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+                  // }
                 }
               }
             }
@@ -1295,9 +1164,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
             let obj_lit = object.as_lit().unwrap();
 
             if property.is_ident() {
-              let prop_ident = property.as_ident().unwrap();
-              let prop_name = prop_ident.sym.to_string();
-
               match obj_lit {
                 Lit::Str(_) => todo!("{}", constants::messages::BUILT_IN_FUNCTION),
                 Lit::Bool(_) => todo!("{}", constants::messages::BUILT_IN_FUNCTION),
@@ -1308,10 +1174,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
           if func.is_none() {
             let parsed_obj = evaluate(&object, &mut state.traversal_state, &state.functions);
-
-            // println!("!!!!__ obj: {:#?}, parsed_obj: {:#?}", object, parsed_obj);
-
-            // panic!("Member not implemented yet");
 
             if parsed_obj.confident {
               if property.is_ident() {
@@ -1325,40 +1187,32 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     let result_fn = map.get(&Expr::Ident(prop_ident.clone()));
 
                     func = match result_fn {
-                      Some(_) => panic!("Not implemented yet"),
+                      Some(_) => todo!("EvaluateResultValue::Map"),
                       None => Option::None,
                     };
                   }
                   EvaluateResultValue::Vec(expr) => {
                     func = Option::Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(
-                        Box::new(match prop_name.as_str() {
-                          "map" => CallbackType::Array(ArrayJS::Map),
-                          "filter" => CallbackType::Array(ArrayJS::Filter),
-                          "entries" => CallbackType::Object(ObjectJS::Entries),
-                          _ => todo!("Array method '{}' implemented yet", prop_name),
-                        }),
-                        // obj.clone(),
-                      ),
+                      fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
+                        "map" => CallbackType::Array(ArrayJS::Map),
+                        "filter" => CallbackType::Array(ArrayJS::Filter),
+                        "entries" => CallbackType::Object(ObjectJS::Entries),
+                        _ => todo!("Array method '{}' implemented yet", prop_name),
+                      })),
                       takes_path: false,
                     }));
-
-                    // panic!("Array method not implemented yet, {:#?}",expr);
 
                     context = Option::Some(Box::new(expr.clone()))
                   }
                   EvaluateResultValue::Expr(expr) => {
                     if let Some(ArrayLit { elems, .. }) = expr.as_array() {
                       func = Option::Some(Box::new(FunctionConfig {
-                        fn_ptr: FunctionType::Callback(
-                          Box::new(match prop_name.as_str() {
-                            "map" => CallbackType::Array(ArrayJS::Map),
-                            "filter" => CallbackType::Array(ArrayJS::Filter),
-                            "entries" => CallbackType::Object(ObjectJS::Entries),
-                            _ => todo!("Method '{}' implemented yet", prop_name),
-                          }),
-                          // obj.clone(),
-                        ),
+                        fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
+                          "map" => CallbackType::Array(ArrayJS::Map),
+                          "filter" => CallbackType::Array(ArrayJS::Filter),
+                          "entries" => CallbackType::Object(ObjectJS::Entries),
+                          _ => todo!("Method '{}' implemented yet", prop_name),
+                        })),
                         takes_path: false,
                       }));
 
@@ -1370,37 +1224,31 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                           )))
                         })
                         .collect::<Vec<Option<EvaluateResultValue>>>();
-                      // panic!("Array method not implemented yet, {:#?}",expr);
 
                       context =
                         Option::Some(Box::new(vec![Option::Some(EvaluateResultValue::Vec(expr))]));
                     }
                   }
-                  EvaluateResultValue::FunctionConfig(fc) => {
-                    match fc.fn_ptr {
-                      FunctionType::ArrayArgs(_) => todo!(),
-                      FunctionType::StylexFnsFactory(sfns) => {
-                        // dbg!(&sfns);
-                        let fc = sfns(prop_name);
+                  EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
+                    FunctionType::ArrayArgs(_) => todo!(),
+                    FunctionType::StylexFnsFactory(sfns) => {
+                      let fc = sfns(prop_name);
 
-                        func = Option::Some(Box::new(FunctionConfig {
-                          fn_ptr: FunctionType::StylexTypeFn(fc),
-                          takes_path: false,
-                        }));
+                      func = Option::Some(Box::new(FunctionConfig {
+                        fn_ptr: FunctionType::StylexTypeFn(fc),
+                        takes_path: false,
+                      }));
 
-                        context = Option::Some(Box::new(vec![Option::Some(
-                          EvaluateResultValue::Entries(IndexMap::default()),
-                        )]));
-                      }
-                      FunctionType::StylexExprFn(_) => todo!(),
-                      FunctionType::StylexTypeFn(_) => todo!(),
-                      FunctionType::Mapper(_) => todo!(),
-                      FunctionType::Callback(_) => todo!(),
+                      context = Option::Some(Box::new(vec![Option::Some(
+                        EvaluateResultValue::Entries(IndexMap::default()),
+                      )]));
                     }
-                    // func = Option::Some(fc);
-                  }
+                    FunctionType::StylexExprFn(_) => todo!(),
+                    FunctionType::StylexTypeFn(_) => todo!(),
+                    FunctionType::Mapper(_) => todo!(),
+                    FunctionType::Callback(_) => todo!(),
+                  },
                   _ => {
-                    // println!("!!!!__ Evaluation result value: {:#?}", value);
                     panic!("Evaluation result not implemented yet")
                   }
                 }
@@ -1416,7 +1264,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 })));
 
                 func = match result_fn {
-                  Some(_) => panic!("Not implemented yet"),
+                  Some(_) => todo!(),
                   None => Option::None,
                 };
               }
@@ -1438,7 +1286,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
             FunctionType::ArrayArgs(func) => {
               let func_result = (func)(args.clone());
 
-              // dbg!(&func_result, &args);
               return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(func_result))));
             }
             FunctionType::StylexExprFn(func) => {
@@ -1455,13 +1302,9 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
             }
             FunctionType::Callback(_) => {
               panic!("Arrow function not implemented yet");
-              // let func_result = (cb)(args.get(0).unwrap().clone());
-              // return Option::Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::Mapper(_) => {
               panic!("Mapper not implemented yet");
-              // let func_result = (cb)(args.get(0).unwrap().clone());
-              // return Option::Some(EvaluateResultValue::Expr(func_result));
             }
           }
         } else {
@@ -1469,12 +1312,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
             .args
             .clone()
             .into_iter()
-            .filter_map(|arg| {
-              let cached_arg = evaluate_cached(&arg.expr, state);
-
-              // println!("!!!!__ cached_arg: {:#?}, arg: {:#?}", cached_arg, arg);
-              cached_arg
-            })
+            .filter_map(|arg| evaluate_cached(&arg.expr, state))
             .collect();
 
           if !state.confident {
@@ -1502,8 +1340,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
               return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(func_result.0))));
             }
             FunctionType::StylexTypeFn(func) => {
-              // dbg!(&args);
-
               let mut fn_args = IndexMap::default();
 
               let expr = args
@@ -1520,8 +1356,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     let key = key_value.key.as_ident().unwrap().sym.to_string();
                     let value = key_value.value.as_lit().unwrap();
 
-                    // dbg!(&key, &value);
-
                     fn_args.insert(
                       key,
                       ValueWithDefault::String(get_string_val_from_lit(value).unwrap()),
@@ -1529,7 +1363,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   }
                 }
                 Expr::Lit(lit) => {
-                  // dbg!(&lit);
                   fn_args.insert(
                     "default".to_string(),
                     ValueWithDefault::String(get_string_val_from_lit(lit).unwrap()),
@@ -1538,12 +1371,9 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 _ => {}
               }
 
-              // dbg!(&fn_args);
-
               let func_result = (func)(ValueWithDefault::Map(fn_args));
 
               let css_type = func_result;
-              // dbg!(&css_type);
 
               return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(css_type))));
             }
@@ -1721,18 +1551,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
         }
       }
 
-      // let args = call
-      //     .args
-      //     .clone()
-      //     .into_iter()
-      //     .map(|a| a.expr.as_ref().clone())
-      //     .collect();
-      // let elems = (state.functions.identifiers.get("makeArray").unwrap().fn_ptr)(args);
       return deopt(path, state);
     }
     _ => {
-      // println!("!!!!__ path_not_implemented: {:#?}", path);
-      panic!("Not implemented yet, return something");
+      panic!("_evaluate not implemented this type of expression");
     }
   };
 
@@ -1746,26 +1568,19 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
       VarDeclAction::Reduce,
     );
 
-    // dbg!(&binding);
-
     match binding {
       Some(binding) => {
         if path.eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
-          todo!("Check what's happening here")
+          todo!("Binding")
         }
-        // eprintln!("{}", Colorize::yellow("!!!! binding: {:#?} !!!!"));
-        // dbg!(&binding.init);
 
         let result = evaluate_cached(
           &Box::new(*binding.init.expect("Binding nof found").clone()),
           state,
         );
-        // dbg!(&result);
         return result;
       }
       None => {
-        // dbg!(&state.traversal_state.top_imports);
-
         let name = ident.sym.to_string();
 
         if name == "undefined" || name == "infinity" || name == "NaN" {
@@ -1787,87 +1602,58 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
             }
           });
 
-        match binding {
-          Some(import_path) => {
-            let import_specifier = import_path
-              .specifiers
-              .iter()
-              .find_map(|import| {
-                // dbg!(&import);
-                if let Some(name_import) = import.as_named() {
-                  if name_import.local.sym.to_string() == ident.sym.to_string() {
-                    return Option::Some(name_import.clone());
-                  }
-
-                  // match name_import
-                  //     .imported
-                  //     .clone()
-                  //     .unwrap_or(ModuleExportName::Ident(ident.clone()))
-                  // {
-                  //     ModuleExportName::Ident(import_ident) => {
-                  //        // dbg!(&import_ident.sym.to_string(), &ident.sym.to_string());
-                  //         if import_ident.sym.to_string() == ident.sym.to_string()
-                  //         {
-                  //             return Option::Some(name_import.clone());
-                  //         }
-                  //     }
-                  //     ModuleExportName::Str(str) => {
-                  //        // dbg!(&str.value, &ident.sym.to_string());
-                  //         if str.value == ident.sym.to_string() {
-                  //             return Option::Some(name_import.clone());
-                  //         }
-                  //     }
-                  // }
+        if let Some(import_path) = binding {
+          let import_specifier = import_path
+            .specifiers
+            .iter()
+            .find_map(|import| {
+              if let Some(name_import) = import.as_named() {
+                if ident.sym == name_import.local.sym {
+                  return Option::Some(name_import.clone());
                 }
-                Option::None
-              })
-              .expect("Import specifier not found");
-            let imported = import_specifier
-              .imported
-              .clone()
-              .unwrap_or(ModuleExportName::Ident(import_specifier.local.clone()));
-
-            let abs_path = &state
-              .traversal_state
-              .import_path_resolver(&import_path.src.value);
-
-            // println!("!!!!!_valuate import_path.src.value: {}, abs_path: {:?}",&import_path.src.value, &abs_path);
-
-            let imported_name = match imported {
-              ModuleExportName::Ident(ident) => ident.sym.to_string(),
-              ModuleExportName::Str(str) => str.value.clone().to_string(),
-            };
-
-            let return_value = match abs_path {
-              ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, value) => {
-                evaluate_theme_ref(value, imported_name, &state.traversal_state)
               }
-              _ => {
-                return deopt(path, state);
-              }
-            };
+              Option::None
+            })
+            .expect("Import specifier not found");
+          let imported = import_specifier
+            .imported
+            .clone()
+            .unwrap_or(ModuleExportName::Ident(import_specifier.local.clone()));
 
-            // dbg!(&abs_path, &return_value);
+          let abs_path = &state
+            .traversal_state
+            .import_path_resolver(&import_path.src.value);
 
-            if state.confident {
-              let import_path_src = import_path.src.value.to_string();
+          let imported_name = match imported {
+            ModuleExportName::Ident(ident) => ident.sym.to_string(),
+            ModuleExportName::Str(str) => str.value.clone().to_string(),
+          };
 
-              if !state.added_imports.contains(&import_path_src)
-                && state.traversal_state.get_treeshake_compensation()
-              {
-                state
-                  .traversal_state
-                  .prepend_import_module_items
-                  .push(add_import_expression(&import_path_src));
-
-                // dbg!(&state.traversal_state.prepend_include_module_items);
-                state.added_imports.insert(import_path_src);
-              }
-
-              return Option::Some(Box::new(EvaluateResultValue::ThemeRef(return_value)));
+          let return_value = match abs_path {
+            ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, value) => {
+              evaluate_theme_ref(value, imported_name, &state.traversal_state)
             }
+            _ => {
+              return deopt(path, state);
+            }
+          };
+
+          if state.confident {
+            let import_path_src = import_path.src.value.to_string();
+
+            if !state.added_imports.contains(&import_path_src)
+              && state.traversal_state.get_treeshake_compensation()
+            {
+              state
+                .traversal_state
+                .prepend_import_module_items
+                .push(add_import_expression(&import_path_src));
+
+              state.added_imports.insert(import_path_src);
+            }
+
+            return Option::Some(Box::new(EvaluateResultValue::ThemeRef(return_value)));
           }
-          None => (),
         }
       }
     }
@@ -1880,15 +1666,15 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
   result
 }
 
-fn get_binding(callee: &Box<Expr>, state: &mut StateManager) -> Option<VarDeclarator> {
-  match callee.as_ref() {
+fn get_binding(callee: &Expr, state: &mut StateManager) -> Option<VarDeclarator> {
+  match callee {
     Expr::Ident(ident) => get_var_decl_from(state, ident).cloned(),
     _ => Option::None,
   }
 }
 
-fn is_valid_callee(callee: &Box<Expr>) -> bool {
-  match callee.as_ref() {
+fn is_valid_callee(callee: &Expr) -> bool {
+  match callee {
     Expr::Ident(ident) => {
       let name = ident.sym.to_string();
       VALID_CALLEES.contains(name.as_str())
@@ -1930,7 +1716,7 @@ fn is_id_prop(prop: &MemberProp) -> Option<Id> {
 
 pub(crate) fn evaluate_quasis(
   tpl_expr: &Expr,
-  quasis: &Vec<TplElement>,
+  quasis: &[TplElement],
   raw: bool,
   state: &mut State,
 ) -> Option<Box<EvaluateResultValue>> {
@@ -1987,26 +1773,19 @@ pub(crate) fn evaluate_quasis(
 }
 
 pub(crate) fn evaluate_cached(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>> {
-  // dbg!(&state.seen);
   let cleaned_path = drop_span(path.clone());
   let existing = state.traversal_state.seen.get(&cleaned_path);
 
   match existing {
     Some(value) => {
-      // dbg!(&cleaned_path, value);
       if value.resolved {
         let resolved = value.value.clone();
 
         return resolved;
       }
       deopt(path, state)
-      // value.value.unwrap().clone()
     }
     None => {
-      // if cleaned_path.is_bin() {
-      // // dbg!(&cleaned_path);
-      // }
-
       let val = _evaluate(&cleaned_path, state);
 
       if state.confident {

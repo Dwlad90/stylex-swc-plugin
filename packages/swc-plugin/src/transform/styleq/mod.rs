@@ -1,1 +1,1 @@
-pub(crate) mod styleq;
+pub(crate) mod common;

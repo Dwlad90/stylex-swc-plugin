@@ -12,6 +12,7 @@ pub struct PluginPass {
   pub filename: FileName,
 }
 
+#[allow(dead_code)]
 trait TraitName {
   fn get(&self, key: &str) -> Option<&str>; // Assuming the key is a string and the value is a string
   fn set(&mut self, key: &str, value: &str); // Assuming the key is a string and the value is a string

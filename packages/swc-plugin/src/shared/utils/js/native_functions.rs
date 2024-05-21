@@ -6,31 +6,27 @@ use swc_core::{
 };
 
 pub(crate) fn evaluate_map(
-  funcs: &Vec<Box<EvaluateResultValue>>,
-  args: &Vec<Option<EvaluateResultValue>>,
+  funcs: &[Box<EvaluateResultValue>],
+  args: &[Option<EvaluateResultValue>],
 ) -> Option<Box<EvaluateResultValue>> {
-  let cb = funcs.get(0)?.clone();
+  let cb = funcs.first()?.clone();
 
-  let Some(cb) = cb.as_callback() else {
-    return Option::None;
-  };
+  let cb = cb.as_callback()?;
 
   let func_result = args
-    .into_iter()
+    .iter()
     .filter_map(|arg| {
-      let Some(result) = &arg else {
-        return Option::None;
-      };
+      let result = arg.as_ref()?;
 
       match result {
-        EvaluateResultValue::Expr(_) => Option::Some(evaluate_map_cb(cb, &arg)),
+        EvaluateResultValue::Expr(_) => Option::Some(evaluate_map_cb(cb, arg)),
         EvaluateResultValue::Vec(vec) => {
           let func_result = vec
-            .into_iter()
-            .filter_map(|expr| {
+            .iter()
+            .map(|expr| {
               let expr = evaluate_map_cb(cb, &expr.clone());
 
-              Option::Some(EvaluateResultValue::Expr(Box::new(expr)))
+              EvaluateResultValue::Expr(Box::new(expr))
             })
             .collect::<Vec<EvaluateResultValue>>();
 
@@ -54,7 +50,7 @@ pub(crate) fn evaluate_map(
     })
     .collect::<Vec<Expr>>();
 
-  match func_result.get(0) {
+  match func_result.first() {
     Some(Expr::Array(array)) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Array(
       array.clone(),
     ))))),
@@ -76,27 +72,23 @@ pub(crate) fn evaluate_map(
 }
 
 pub(crate) fn evaluate_filter(
-  funcs: &Vec<Box<EvaluateResultValue>>,
-  args: &Vec<Option<EvaluateResultValue>>,
+  funcs: &[Box<EvaluateResultValue>],
+  args: &[Option<EvaluateResultValue>],
 ) -> Option<Box<EvaluateResultValue>> {
-  let cb = funcs.get(0)?.clone();
+  let cb = funcs.first()?;
 
-  let Some(cb) = cb.as_callback() else {
-    return Option::None;
-  };
+  let cb = cb.as_callback()?;
 
   let func_result = args
-    .into_iter()
+    .iter()
     .filter_map(|arg| {
-      let Some(result) = &arg else {
-        return Option::None;
-      };
+      let result = arg.as_ref()?;
 
       match result {
-        EvaluateResultValue::Expr(expr) => evaluate_filter_cb(cb, &arg, expr.as_ref()),
+        EvaluateResultValue::Expr(expr) => evaluate_filter_cb(cb, arg, expr.as_ref()),
         EvaluateResultValue::Vec(vec) => {
           let func_result = vec
-            .into_iter()
+            .iter()
             .filter_map(|expr| {
               let result = evaluate_filter_cb(
                 cb,
@@ -128,7 +120,7 @@ pub(crate) fn evaluate_filter(
     })
     .collect::<Vec<Expr>>();
 
-  match func_result.get(0) {
+  match func_result.first() {
     Some(Expr::Array(array)) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Array(
       array.clone(),
     ))))),
@@ -167,15 +159,9 @@ pub(crate) fn evaluate_filter_cb(
     panic!("Expr is not a literal");
   };
 
-  if lit_to_num(&lit) == 0.0 {
+  if lit_to_num(lit) == 0.0 {
     Option::None
   } else {
     Option::Some(item.clone())
   }
-
-  // Option::Some(Expr::Lit(Lit::Num(Number {
-  //     span: DUMMY_SP,
-  //     value: ,
-  //     raw: Option::None,
-  // })));
 }

@@ -2,6 +2,7 @@ use swc_core::{
   common::{comments::Comments, util::take::Take},
   ecma::{
     ast::{Decl, Stmt},
+    utils::IsDirective,
     visit::FoldWith,
   },
 };
@@ -20,18 +21,15 @@ where
     if self.cycle == ModuleCycle::Cleaning {
       let mut stmt = stmt.fold_children_with(self);
 
-      match &stmt {
-        Stmt::Decl(Decl::Var(var)) => {
-         // dbg!(&var);
-          if var.decls.is_empty() {
-            // Variable declaration without declarator is invalid.
-            //
-            // After this, `stmt` becomes `Stmt::Empty`.
-            stmt.take();
-          }
+      if let Some(Stmt::Decl(Decl::Var(var))) = stmt.as_ref() {
+        if var.decls.is_empty() {
+          // Variable declaration without declarator is invalid.
+          //
+          // After this, `stmt` becomes `Stmt::Empty`.
+          stmt.take();
         }
-        _ => {}
       }
+
       stmt
     } else {
       stmt.fold_children_with(self)

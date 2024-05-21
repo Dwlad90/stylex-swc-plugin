@@ -21,16 +21,13 @@ where
     }
 
     if self.cycle == ModuleCycle::Initializing {
-      match &export_decl.decl {
-        Decl::Var(var_decl) => {
-          for decl in &var_decl.decls {
-            if let Some(ident) = decl.name.as_ident() {
-              // HACK: For preventing removing named export declarations need to increase the count by 2.
-              increase_ident_count_by_count(&mut self.state, ident, 2);
-            }
+      if let Decl::Var(var_decl) = &export_decl.decl {
+        for decl in &var_decl.decls {
+          if let Some(ident) = decl.name.as_ident() {
+            // HACK: For preventing removing named export declarations need to increase the count by 2.
+            increase_ident_count_by_count(&mut self.state, ident, 2);
           }
         }
-        _ => {}
       }
     }
 

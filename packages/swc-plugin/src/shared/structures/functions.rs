@@ -7,7 +7,10 @@ use crate::shared::utils::js::{
   stylex::stylex_types::ValueWithDefault,
 };
 
-use super::{named_import_source::ImportSources, state_manager::StateManager};
+use super::{
+  state_manager::StateManager,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
 
 #[derive(Debug, Hash, PartialEq, Clone)]
 pub enum CallbackType {
@@ -123,14 +126,14 @@ pub enum FunctionConfigType {
 }
 
 impl FunctionConfigType {
-  pub(crate) fn as_function_config(&self) -> Option<&FunctionConfig> {
+  pub(crate) fn _as_function_config(&self) -> Option<&FunctionConfig> {
     match self {
       Self::Regular(config) => Option::Some(config),
       Self::Map(_) => Option::None,
     }
   }
 
-  pub(crate) fn as_map(&self) -> Option<&HashMap<Id, FunctionConfig>> {
+  pub(crate) fn _as_map(&self) -> Option<&HashMap<Id, FunctionConfig>> {
     match self {
       Self::Regular(_) => Option::None,
       Self::Map(map) => Option::Some(map),
@@ -144,7 +147,7 @@ impl FunctionConfigType {
     }
   }
 
-  pub(crate) fn as_function_config_mut(&mut self) -> Option<&mut FunctionConfig> {
+  pub(crate) fn _as_function_config_mut(&mut self) -> Option<&mut FunctionConfig> {
     match self {
       Self::Regular(config) => Option::Some(config),
       Self::Map(_) => Option::None,
@@ -152,18 +155,8 @@ impl FunctionConfigType {
   }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct FunctionMap {
-  pub identifiers: HashMap<Box<Id>, Box<FunctionConfigType>>,
-  pub member_expressions:
-    HashMap<Box<ImportSources>, Box<HashMap<Box<Id>, Box<FunctionConfigType>>>>,
-}
-
-impl Default for FunctionMap {
-  fn default() -> Self {
-    Self {
-      identifiers: HashMap::new(),
-      member_expressions: HashMap::new(),
-    }
-  }
+  pub identifiers: FunctionMapIdentifiers,
+  pub member_expressions: FunctionMapMemberExpression,
 }

@@ -157,8 +157,6 @@ test!(
 
     config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
 
-  // dbg!(&config.runtime_injection);
-
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),

@@ -32,8 +32,6 @@ where
     }
 
     if self.cycle == ModuleCycle::PreCleaning {
-      // dbg!(&self.state.member_object_ident_count_map);
-
       let object = member_expression.obj.as_ref();
       let property = &member_expression.prop;
 
@@ -52,16 +50,13 @@ where
         }
       }
 
-      // dbg!(&self.state.style_map);
       if let Some(obj_name) = obj_name {
         if let Some(prop_name) = prop_name {
           if let Some(count) = self.state.member_object_ident_count_map.get(&obj_name) {
             if self.state.style_map.contains_key(obj_name.0.as_str()) && count > &0 {
-              // dbg!(
               //   &self.state.member_object_ident_count_map,
               //   &member_expression
               // );
-              // dbg!(
               //   &obj_name,
               //   &prop_name,
               //   &count,
@@ -78,8 +73,6 @@ where
                 NonNullProp::Id(prop_name),
                 NonNullProps::True,
               );
-
-              // dbg!(&style_var_to_keep);
 
               self
                 .state

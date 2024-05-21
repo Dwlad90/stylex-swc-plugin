@@ -1,16 +1,13 @@
 use stylex_swc_plugin::{
   shared::structures::{
-    named_import_source::{ImportSources, RuntimeInjection},
-    plugin_pass::PluginPass,
+    named_import_source::ImportSources, plugin_pass::PluginPass,
     stylex_options::StyleXOptionsParams,
   },
   ModuleTransformVisitor,
 };
-use swc_core::{
-  ecma::{
-    parser::{Syntax, TsConfig},
-    transforms::testing::test,
-  },
+use swc_core::ecma::{
+  parser::{Syntax, TsConfig},
+  transforms::testing::test,
 };
 
 test!(
@@ -19,14 +16,13 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-    //{ from: 'react-strict-dom', as: 'css' }
-
-    config.import_sources = Option::Some(vec![ImportSources::Regular(
-      "custom-stylex-path".to_string(),
-    )]);
-
-    config.runtime_injection = Option::Some(true);
+    let mut config = StyleXOptionsParams {
+      import_sources: Option::Some(vec![ImportSources::Regular(
+        "custom-stylex-path".to_string(),
+      )]),
+      runtime_injection: Option::Some(true),
+      ..StyleXOptionsParams::default()
+    };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),

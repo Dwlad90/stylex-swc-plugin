@@ -7,7 +7,7 @@ use std::hash::{Hash, Hasher};
 use crate::shared::constants::common::COMPILED_KEY;
 use crate::shared::enums::FlatCompiledStylesValue;
 use crate::shared::{
-  structures::flat_compiled_styles::FlatCompiledStyles,
+  structures::types::FlatCompiledStyles,
   utils::stylex::parse_nullable_style::{ResolvedArg, StyleObject},
 };
 
@@ -15,8 +15,6 @@ pub(crate) struct StyleQResult {
   pub(crate) class_name: String,
   pub(crate) inline_style: Option<FlatCompiledStyles>,
 }
-
-// pub(crate) static CACHE: phf::Map<&'static IndexMap<String, FlatCompiledStylesValue>, &'static str> = phf_map! {};
 
 fn get_hash<T>(obj: T) -> u64
 where
@@ -27,25 +25,7 @@ where
   hasher.finish()
 }
 
-// lazy_static! {
-//     static ref CACHE: HashMap<IndexMap<String, FlatCompiledStylesValue>, String> = HashMap::new();
-// }
 pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
-  // let mut next_cache: HashMap<String, (String, Vec<String>, HashMap<String, String>)> = HashMap::new();
-  // let mut weak_map: HashMap<String, String> = HashMap::new();
-
-  // let style = "style".to_string();
-  // let class_name_chunk = "classNameChunk".to_string();
-  // let defined_properties_chunk: Vec<String> = vec!["property1".to_string(), "property2".to_string()];
-
-  // next_cache.insert(style.clone(), (class_name_chunk, defined_properties_chunk, weak_map.clone()));
-
-  // // If you want to use weak_map later, you can retrieve it from next_cache
-  // let weak_map_retrieved = next_cache.get(&style).unwrap().2.clone();
-
-  // Keep track of property commits to the className
-  // dbg!(&arguments);
-
   let mut class_name = "".to_string();
 
   if arguments.is_empty() {
@@ -68,9 +48,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
     styles.push(arg);
   }
 
-  // let mut styles: Vec<Vec<ResolvedArg>> = arguments.clone();
-
-  while styles.len() > 0 {
+  while !styles.is_empty() {
     let possible_style = match styles.pop() {
       Some(possible_style) => match possible_style {
         ResolvedArg::StyleObject(_, _, _) => possible_style,
@@ -84,10 +62,6 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
       },
       None => continue,
     };
-
-    // dbg!(&possible_style, &styles);
-
-    // let style = possible_style.clone();
 
     match possible_style {
       ResolvedArg::StyleObject(style, _, _) => match style {
@@ -104,22 +78,17 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
             // Build up the class names defined by this object
             let mut class_name_chunk = "".to_string(); // Check the cache to see if we've already done this work
 
-            if let Some(cache_entry) = next_cache
+            if next_cache
               .clone()
               .and_then(|cache| cache.get(&style_hash).cloned())
+              .is_some()
             {
               todo!("Cache entry found");
-              class_name_chunk = cache_entry.0;
-
-              defined_properties.extend(cache_entry.1);
-
-              // class_name_chunk = cache_entry.clone();
             } else {
               // The properties defined by this object
               let mut defined_properties_chunk: Vec<String> = vec![];
 
               for (prop, value) in style.iter() {
-                // dbg!(&prop, &value);
                 if prop.eq(COMPILED_KEY) {
                   continue;
                 }
@@ -127,8 +96,8 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
                 match value.as_ref() {
                   FlatCompiledStylesValue::IncludedStyle(_) => {
                     eprintln!(
-                      "styleq: {} typeof {} is not \"string\" or \"null\".",
-                      prop, "IncludedStyle"
+                      "styleq: {} typeof IncludedStyle is not \"string\" or \"null\".",
+                      prop
                     )
                   }
                   FlatCompiledStylesValue::Bool(_) => {
@@ -144,7 +113,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
                 if !defined_properties.contains(prop) {
                   defined_properties.push(prop.clone());
 
-                  if let Some(_) = next_cache {
+                  if next_cache.is_some() {
                     defined_properties_chunk.push(prop.clone())
                   }
 
@@ -174,8 +143,6 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
               } else {
                 class_name
               };
-
-              // dbg!(&class_name);
             }
           } else {
             todo!("DYNAMIC: Process inline style object")
@@ -187,7 +154,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
       ResolvedArg::ConditionalStyle(_, _, _, _, _) => todo!("ConditionalStyle"),
     };
   }
-  // dbg!(&class_name);
+
   StyleQResult {
     class_name,
     inline_style,

@@ -67,8 +67,6 @@ pub(crate) fn stylex_keyframes(
     result
   });
 
-  // dbg!(&extended_object);
-
   let ltr_styles = obj_map(ObjMapType::Map(extended_object.clone()), |frame| {
     let Some(pair) = frame.as_key_value() else {
       panic!("Values must be an object")
@@ -91,12 +89,9 @@ pub(crate) fn stylex_keyframes(
     ))
   });
 
-  // dbg!(&ltr_styles, &rtl_styles);
-
   let ltr_string = construct_keyframes_obj(&ltr_styles);
   let rtl_string = construct_keyframes_obj(&rtl_styles);
 
-  // dbg!(&ltr_string, &rtl_string);
   let animation_name = format!(
     "{}{}-B",
     class_name_prefix,
@@ -124,11 +119,9 @@ fn construct_keyframes_obj(frames: &IndexMap<String, Box<FlatCompiledStylesValue
   frames
     .into_iter()
     .map(|(key, value)| {
-      let key = format!("{}", key);
       let value = match value.as_ref() {
         FlatCompiledStylesValue::KeyValue(pair) => {
-          let key = pair.key.clone();
-          let value = pair.value.clone();
+          let Pair { key, value } = pair;
 
           if key.is_empty() || value.is_empty() {
             "".to_string()
@@ -150,29 +143,22 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
     .clone()
     .iter()
     .flat_map(|pair| {
-      let key = get_key_str(&pair);
+      let key = get_key_str(pair);
       let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default());
 
-      let expanded =
-        flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)
-          .into_iter()
-          .filter_map(|pair| {
-            if pair.1.is_none() {
-              return Option::None;
-            }
+      flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)
+        .into_iter()
+        .filter_map(|pair| {
+          pair.1.as_ref()?;
 
-            Option::Some(pair)
-          })
-          .collect::<Vec<OrderPair>>();
-
-      expanded
+          Option::Some(pair)
+        })
+        .collect::<Vec<OrderPair>>()
     })
     .filter(|item| item.1.is_some())
     .collect::<Vec<OrderPair>>();
 
-  let res = obj_from_entries(&res);
-
-  res
+  obj_from_entries(&res)
 }
 
 pub(crate) fn get_keyframes_fn() -> FunctionConfig {

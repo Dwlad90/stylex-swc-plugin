@@ -21,15 +21,11 @@ pub(crate) fn stylex_define_vars(
   IndexMap<String, Box<FlatCompiledStylesValue>>,
   IndexMap<String, Box<InjectableStyle>>,
 ) {
-  // dbg!(&variables);
-
   let theme_name_hash = format!(
     "{}{}",
     state.options.class_name_prefix,
     create_hash(state.theme_name.clone().unwrap().as_str())
   );
-
-  // dbg!(&theme_name_hash, state.theme_name.clone().unwrap().as_str());
 
   let mut typed_variables: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
 
@@ -46,10 +42,7 @@ pub(crate) fn stylex_define_vars(
           panic!("InjectableStyle is not supported")
         }
         FlatCompiledStylesValue::Tuple(key, value, _) => {
-          // dbg!(&value);
-
           let str_to_hash = format!("{}.{}", state.theme_name.clone().unwrap(), key);
-          // println!("!!!!!vardecl str_to_hash: {:?}", str_to_hash);
 
           // Created hashed variable names with fileName//themeName//key
           let name_hash = format!(
@@ -57,8 +50,6 @@ pub(crate) fn stylex_define_vars(
             state.options.class_name_prefix,
             create_hash(str_to_hash.as_str())
           );
-
-          // println!("!!!!!vardecl, key:{}\n, value:{:?}\n, str_to_hash: {}\n,  name_hash: {:?}", key, value, str_to_hash, name_hash);
 
           let (css_value, css_type) = get_css_value(KeyValueProp {
             key: PropName::Str(key.clone().into()),
@@ -78,9 +69,6 @@ pub(crate) fn stylex_define_vars(
     },
   );
 
-  // dbg!(&variables_map);
-  // println!("!!!!!stylex_define_vars: variables_map: {:?}", &variables_map);
-
   let theme_variables_objects = obj_map(ObjMapType::Map(variables_map.clone()), |item| match item
     .as_ref()
   {
@@ -98,13 +86,8 @@ pub(crate) fn stylex_define_vars(
     FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
   });
 
-  // dbg!(&variables_map, &theme_variables_objects,);
-
   let injectable_styles =
     construct_css_variables_string(&variables_map, &theme_name_hash, &mut typed_variables);
-
-  // dbg!(&injectable_styles);
-  // dbg!(&typed_variables);
 
   let injectable_types = obj_map(
     ObjMapType::Map(typed_variables),

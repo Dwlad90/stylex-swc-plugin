@@ -49,24 +49,21 @@ impl Fold for EvaluationModuleTransformVisitor {
 
   fn fold_stmt(&mut self, stmt: Stmt) -> Stmt {
     let stmt = match &stmt {
-      Stmt::Decl(decl) => match decl {
-        Decl::Var(decl_var) => {
-          let decl = decl_var.decls.first();
-          match decl {
-            Some(decl) => match decl.init.as_ref() {
-              Some(expr) => {
-                return Stmt::Expr(ExprStmt {
-                  span: DUMMY_SP,
-                  expr: expr.clone().fold_with(self),
-                });
-              }
-              None => stmt,
-            },
+      Stmt::Decl(Decl::Var(decl_var)) => {
+        let decl = decl_var.decls.first();
+        match decl {
+          Some(decl) => match decl.init.as_ref() {
+            Some(expr) => {
+              return Stmt::Expr(ExprStmt {
+                span: DUMMY_SP,
+                expr: expr.clone().fold_with(self),
+              });
+            }
             None => stmt,
-          }
+          },
+          None => stmt,
         }
-        _ => stmt,
-      },
+      }
 
       _ => stmt,
     };
@@ -76,7 +73,6 @@ impl Fold for EvaluationModuleTransformVisitor {
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
     let evaluate_result = evaluate(&Box::new(expr), &mut self.state, &self.functions);
-    // println!("!!!!!evaluate_result: {:?}", evaluate_result);
 
     match evaluate_result.value {
       Some(value) => match value.as_ref() {

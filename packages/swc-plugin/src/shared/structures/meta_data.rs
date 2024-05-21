@@ -13,7 +13,7 @@ where
     return serializer.serialize_i32(*priority as i32);
   }
 
-  serializer.serialize_f64(*priority as f64)
+  serializer.serialize_f64(*priority)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

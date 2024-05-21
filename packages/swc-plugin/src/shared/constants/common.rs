@@ -20,7 +20,6 @@ pub(crate) static INVALID_METHODS: phf::Set<&'static str> = phf_set! {
 };
 
 pub(crate) static COMPILED_KEY: &str = "$$css";
-pub(crate) static CSS_TYPE_KEY: &str = "$$css_type";
 
 pub(crate) static SPLIT_TOKEN: &str = "__$$__";
 

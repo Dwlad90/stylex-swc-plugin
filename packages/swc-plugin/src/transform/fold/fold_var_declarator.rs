@@ -41,7 +41,6 @@ where
     {
       if self.cycle == ModuleCycle::Cleaning {
         let mut vars_to_keep: HashMap<Id, NonNullProps> = HashMap::new();
-        // dbg!(&self.state.style_vars_to_keep);
 
         for StyleVarsToKeep(var_name, namespace_name, _) in self
           .state
@@ -68,13 +67,10 @@ where
           }
         }
 
-        // dbg!(&self.state.style_vars_to_keep, &vars_to_keep);
-
         for (_, var_name) in self.state.style_vars.clone().into_iter() {
           if var_declarator.name != var_name.name {
             continue;
           };
-          // dbg!(&var_name);
 
           let var_decl = self.state.top_level_expressions.clone().into_iter().find(
             |TopLevelExpression(_, expr, _)| {
@@ -85,8 +81,6 @@ where
             if TopLevelExpressionKind::Stmt == kind {
               if let Some(object) = var_declarator.init.as_mut() {
                 if let Some(mut object) = object.as_object().cloned() {
-                  // dbg!(&var_name.name, &vars_to_keep);
-
                   let namespaces_to_keep =
                     match vars_to_keep.get(&var_name.name.as_ident().unwrap().to_id()) {
                       Some(e) => match e {
@@ -96,7 +90,6 @@ where
                       None => vec![],
                     };
 
-                  // dbg!(
                   //   &namespaces_to_keep,
                   //   &vars_to_keep,
                   //   &var_name.name,
@@ -106,9 +99,8 @@ where
                   // todo!();
 
                   if !namespaces_to_keep.is_empty() {
-                    let props = self.retain_object_props(&object, namespaces_to_keep, var_name);
-
-                    // dbg!(&props);
+                    let props =
+                      self.retain_object_props(&object, namespaces_to_keep, var_name.as_ref());
 
                     // if props.is_empty(){
                     //   panic!("No properties to keep");
@@ -162,9 +154,8 @@ where
     &mut self,
     object: &ObjectLit,
     namespace_to_keep: Vec<Id>,
-    var_name: Box<VarDeclarator>,
+    var_name: &VarDeclarator,
   ) -> Vec<PropOrSpread> {
-    // dbg!(&object, &namespace_to_keep);
     let props = object
       .props
       .clone()
@@ -173,7 +164,6 @@ where
         assert!(object_prop.is_prop(), "Spread properties are not supported");
 
         let prop = object_prop.as_mut_prop().unwrap().as_mut();
-        // dbg!(&prop);
 
         if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
           let key_as_ident = match key {
@@ -190,7 +180,6 @@ where
             // }
             _ => None,
           };
-          // dbg!(&key_as_ident);
 
           if let Some(key_as_string) = key_as_ident {
             if namespace_to_keep.contains(&key_as_string.to_id()) {
@@ -205,18 +194,8 @@ where
                   var_name.name.clone().as_ident().unwrap().to_id().eq(v)
                     && namespace_name.eq(&NonNullProp::Id(key_as_ident.unwrap().to_id()))
                 })
-                .map(|a| {
-                  // dbg!(&a);
-
-                  a.2
-                })
+                .map(|a| a.2)
                 .collect::<Vec<NonNullProps>>();
-
-              // dbg!(&self.state.style_vars_to_keep, &all_nulls_to_keep);
-              // println!(
-              //   "!!!! all_nulls_to_keep:{:#?},\n key_as_ident: {:3?}",
-              //   &all_nulls_to_keep, &key_as_ident
-              // );
 
               if !all_nulls_to_keep.contains(&NonNullProps::True) {
                 let nulls_to_keep = all_nulls_to_keep
@@ -227,7 +206,6 @@ where
                   })
                   .flatten()
                   .collect::<Vec<Id>>();
-                // dbg!(&nulls_to_keep, &key_as_ident);
 
                 if let Some(style_object) = prop
                   .as_mut_key_value()
@@ -253,7 +231,6 @@ where
 }
 
 fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Id>) {
-  // dbg!(&style_object, &nulls_to_keep);
   style_object.props.retain(|prop| match prop {
     PropOrSpread::Prop(prop) => {
       let mut prop = prop.clone();

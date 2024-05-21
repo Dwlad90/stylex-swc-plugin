@@ -1,9 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{
-    ast::{ExportDefaultExpr, Expr},
-    visit::FoldWith,
-  },
+  ecma::{ast::ExportDefaultExpr, visit::FoldWith},
 };
 
 use crate::{

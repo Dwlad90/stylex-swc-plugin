@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-plugin",
   "description": "Stylex next plugin with swc plugin",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "license": "UNLICENSED",
   "sideEffects": true,
   "files": [

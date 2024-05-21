@@ -14,23 +14,8 @@ swc_core = { version = "0.92.5", features = [
   "ecma_utils",
   "ecma_parser",
   "ecma_codegen",
-  # "swc_ecma_parser",
-  # "ecma_ast",
-
-  # "allocator_node",
   "ecma_codegen",
-  # "ecma_ast_serde",
-  # "common_concurrent",
-  # "bundler",
-  # "ecma_loader",
-  # "ecma_transforms",
-  # "ecma_visit",
-  # "css_codegen",
-  # "css_visit",
   "base_node",
-  # "css_parser",
-  # "css_ast",
-  # "base_concurrent",
 ] }
 
 # TODO: remove this dependency after fixing dependencies of swc_core

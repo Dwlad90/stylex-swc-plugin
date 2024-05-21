@@ -1,6 +1,6 @@
 [package]
 name = "stylex_swc_plugin"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.77.2"
 
@@ -27,23 +27,10 @@ swc_core = { version = "0.92.5", features = [
   "ecma_utils",
   "ecma_parser",
   "ecma_codegen",
-  # "swc_ecma_parser",
-  # "ecma_ast",
-
-  # "allocator_node",
-  # "ecma_codegen",
-  # "ecma_ast_serde",
-  # "common_concurrent",
-  # "bundler",
-  # "ecma_loader",
-  # "ecma_transforms",
-  # "ecma_visit",
   "css_codegen",
   "css_visit",
-  # "base_node",
   "css_parser",
   "css_ast",
-  # "base_concurrent",
 ] }
 
 # TODO: remove this dependency after fixing dependencies of swc_core

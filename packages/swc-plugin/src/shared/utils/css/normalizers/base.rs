@@ -2,8 +2,8 @@ use swc_core::{
   common::DUMMY_SP,
   css::{
     ast::{
-      ComponentValue, Declaration, DeclarationName, Dimension, Function, Ident,
-      Length, ListOfComponentValues, Number, Stylesheet,
+      ComponentValue, Declaration, DeclarationName, Dimension, Function, Ident, Length,
+      ListOfComponentValues, Number, Stylesheet,
     },
     visit::{Fold, FoldWith},
   },
@@ -53,6 +53,7 @@ impl Fold for CssFolder {
 
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
     let dimension = timing_normalizer(&mut dimension);
+    let dimension = zero_demention_normalizer(dimension);
 
     dimension.clone().fold_children_with(self)
   }
@@ -156,4 +157,103 @@ pub(crate) fn base_normalizer(ast: Stylesheet, use_rem_for_font_size: bool) -> S
   ast.fold_with(&mut folder)
 }
 
+fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
+  match dimension {
+    Dimension::Length(length) => {
+      if length.value.value != 0.0 {
+        return dimension;
+      }
 
+      length.value = get_zero_demansion_value();
+      length.unit = get_zero_demansion_unit();
+
+      dimension
+    }
+    Dimension::Angle(angle) => {
+      if angle.value.value != 0.0 {
+        return dimension;
+      }
+
+      angle.value = get_zero_demansion_value();
+
+      angle.unit = Ident {
+        span: DUMMY_SP,
+        value: "deg".into(),
+        raw: Option::None,
+      };
+
+      dimension
+    }
+    Dimension::Time(time) => {
+      if time.value.value != 0.0 {
+        return dimension;
+      }
+
+      time.value = get_zero_demansion_value();
+
+      time.unit = Ident {
+        span: DUMMY_SP,
+        value: "s".into(),
+        raw: Option::None,
+      };
+
+      dimension
+    }
+    Dimension::Frequency(frequency) => {
+      if frequency.value.value != 0.0 {
+        return dimension;
+      }
+
+      frequency.value = get_zero_demansion_value();
+      frequency.unit = get_zero_demansion_unit();
+
+      dimension
+    }
+    Dimension::Resolution(resolution) => {
+      if resolution.value.value != 0.0 {
+        return dimension;
+      }
+
+      resolution.value = get_zero_demansion_value();
+      resolution.unit = get_zero_demansion_unit();
+
+      dimension
+    }
+    Dimension::Flex(flex) => {
+      if flex.value.value != 0.0 {
+        return dimension;
+      }
+
+      flex.value = get_zero_demansion_value();
+      flex.unit = get_zero_demansion_unit();
+
+      dimension
+    }
+    Dimension::UnknownDimension(unknown) => {
+      if unknown.value.value != 0.0 {
+        return dimension;
+      }
+
+      unknown.value = get_zero_demansion_value();
+      unknown.unit = get_zero_demansion_unit();
+
+      dimension
+    }
+  }
+}
+
+fn get_zero_demansion_value() -> Number {
+  Number {
+    value: 0.0,
+    raw: Option::None,
+    span: DUMMY_SP,
+  }
+}
+
+fn get_zero_demansion_unit() -> Ident {
+  Ident {
+    value: "".into(),
+    raw: Option::None,
+    span: DUMMY_SP,
+  }
+}

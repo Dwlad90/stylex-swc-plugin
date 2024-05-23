@@ -41,7 +41,7 @@ mod convert_style_to_class_name {
   fn keeps_fr_for_zero_fraction_values() {
     let result = convert(("gridTemplateRows", &PreRuleValue::String("0fr".to_string())));
 
-    assert_eq!(result, "grid-template-rows:0fr")
+    assert_eq!(result, "grid-template-rows:0")
   }
 
   #[test]

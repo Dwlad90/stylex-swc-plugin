@@ -82,9 +82,9 @@ mod stylex_keyframes {
     let (key, result) = stylex_keyframes(&keyframes, &StateManager::default());
 
     let expected_result = exprected_css_result_factory(&[(
-      "x1id2van-B",
+      "x1jkcf39-B",
       (
-        "@keyframes x1id2van-B{from{inset-inline-start:0px;}to{inset-inline-start:500px;}}",
+        "@keyframes x1jkcf39-B{from{inset-inline-start:0;}to{inset-inline-start:500px;}}",
         1.0,
       ),
     )]);

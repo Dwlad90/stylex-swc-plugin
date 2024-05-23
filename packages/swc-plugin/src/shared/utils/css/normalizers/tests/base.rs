@@ -23,7 +23,7 @@ mod normalizers {
           .unwrap(),
         false
       )),
-      "*{{boxshadow:0px 2px 4px var(--shadow-1)}}"
+      "*{{boxshadow:0 2px 4px var(--shadow-1)}}"
     );
 
     assert_eq!(

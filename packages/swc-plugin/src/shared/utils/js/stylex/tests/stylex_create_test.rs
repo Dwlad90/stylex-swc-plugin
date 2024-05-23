@@ -331,7 +331,7 @@ mod stylex_create {
           ("paddingLeft", "null"),
           ("paddingRight", "null"),
           ("paddingStart", "null"),
-          ("paddingTop", "x1uu4ab4"),
+          ("paddingTop", "xexx8yu"),
         ],
       )],
       &[(
@@ -344,7 +344,7 @@ mod stylex_create {
               1000.0,
             ),
           ),
-          ("x1uu4ab4", (".x1uu4ab4{padding-top:0px}", 4000.0)),
+          ("xexx8yu", (".xexx8yu{padding-top:0}", 4000.0)),
         ],
       )],
     );

@@ -2,6 +2,7 @@
 pub enum ArrayJS {
   Map,
   Filter,
+  Join,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]

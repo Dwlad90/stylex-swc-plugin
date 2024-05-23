@@ -41,7 +41,7 @@ use crate::shared::{
     css::factories::object_expression_factory,
     js::{
       enums::{ArrayJS, MathJS, ObjectJS},
-      native_functions::{evaluate_filter, evaluate_map},
+      native_functions::{evaluate_filter, evaluate_join, evaluate_map},
       stylex::stylex_types::ValueWithDefault,
     },
   },
@@ -1196,6 +1196,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                       fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
                         "map" => CallbackType::Array(ArrayJS::Map),
                         "filter" => CallbackType::Array(ArrayJS::Filter),
+                        "join" => CallbackType::Array(ArrayJS::Join),
                         "entries" => CallbackType::Object(ObjectJS::Entries),
                         _ => todo!("Array method '{}' implemented yet", prop_name),
                       })),
@@ -1386,6 +1387,14 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 }
                 CallbackType::Array(ArrayJS::Filter) => {
                   return evaluate_filter(&args, &context);
+                }
+                CallbackType::Array(ArrayJS::Join) => {
+                  return evaluate_join(
+                    &args,
+                    &context,
+                    &mut state.traversal_state,
+                    &state.functions,
+                  );
                 }
                 CallbackType::Object(ObjectJS::Entries) => {
                   let Some(Some(eval_result)) = context.first() else {

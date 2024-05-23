@@ -80,6 +80,26 @@ fn array_filter() {
 }
 
 #[test]
+fn array_join() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+            const x = [1, 2, 3].join(", ");
+            const x = ['a', 'b', 'c'].join(":");
+        "#,
+    r#"
+            "1, 2, 3";
+            "a:b:c";
+        "#,
+    false,
+  )
+}
+
+#[test]
 fn array_map_and_filter() {
   test_transform(
     Syntax::Typescript(TsConfig {

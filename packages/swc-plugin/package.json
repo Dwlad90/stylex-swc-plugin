@@ -14,7 +14,7 @@
     "build": "cargo build --lib --release --target=wasm32-wasi",
     "clean": "del-cli dist",
     "precommit": "lint-staged",
-    "prepublishOnly": "cargo build-wasi --release",
+    "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
     "test": "NODE_ENV=test cargo test --lib --bins --tests",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"

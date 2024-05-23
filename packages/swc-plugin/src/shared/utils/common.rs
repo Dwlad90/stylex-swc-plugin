@@ -1135,7 +1135,7 @@ pub(crate) fn resolve_file_path(
 ) -> std::io::Result<PathBuf> {
   let source_dir = Path::new(source_file_path).parent().unwrap();
 
-  let mut resolved_file_path = (if import_path_str.starts_with("./") {
+  let mut resolved_file_path = (if import_path_str.starts_with('.') {
     source_dir
       .join(import_path_str)
       .strip_prefix(root_path)

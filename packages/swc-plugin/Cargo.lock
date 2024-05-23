@@ -1573,7 +1573,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_swc_plugin"
-version = "0.2.0"
+version = "0.1.0"
 dependencies = [
  "chrono",
  "colored",

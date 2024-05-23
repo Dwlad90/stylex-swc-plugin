@@ -1,4 +1,9 @@
-use crate::shared::{structures::evaluate_result::EvaluateResultValue, utils::common::lit_to_num};
+use crate::shared::{
+  structures::{
+    evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
+  },
+  utils::common::{expr_to_str, lit_to_num, string_to_expression},
+};
 use std::rc::Rc;
 use swc_core::{
   common::DUMMY_SP,
@@ -69,6 +74,35 @@ pub(crate) fn evaluate_map(
       },
     ))))),
   }
+}
+
+pub(crate) fn evaluate_join(
+  funcs: &[Box<EvaluateResultValue>],
+  args: &[Option<EvaluateResultValue>],
+  state: &mut StateManager,
+  functions: &FunctionMap,
+) -> Option<Box<EvaluateResultValue>> {
+  let join_arg = funcs.first()?.clone();
+
+  let join_arg = expr_to_str(join_arg.as_expr()?, state, functions);
+
+  let result = args
+    .iter()
+    .map(|arg_ref| {
+      let str_arg = arg_ref
+        .as_ref()
+        .and_then(|arg| arg.as_expr())
+        .map(|arg| expr_to_str(arg, state, functions))
+        .expect("Failed parsing \"join\" argument to string");
+
+      str_arg
+    })
+    .collect::<Vec<String>>()
+    .join(&join_arg);
+
+  Some(Box::new(EvaluateResultValue::Expr(Box::new(
+    string_to_expression(&result).unwrap(),
+  ))))
 }
 
 pub(crate) fn evaluate_filter(

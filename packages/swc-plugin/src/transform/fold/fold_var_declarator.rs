@@ -90,21 +90,9 @@ where
                       None => vec![],
                     };
 
-                  //   &namespaces_to_keep,
-                  //   &vars_to_keep,
-                  //   &var_name.name,
-                  //   &self.state.style_vars_to_keep
-                  // );
-
-                  // todo!();
-
                   if !namespaces_to_keep.is_empty() {
                     let props =
                       self.retain_object_props(&object, namespaces_to_keep, var_name.as_ref());
-
-                    // if props.is_empty(){
-                    //   panic!("No properties to keep");
-                    // }
 
                     object.props = props;
 
@@ -234,27 +222,27 @@ fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Id>) {
   style_object.props.retain(|prop| match prop {
     PropOrSpread::Prop(prop) => {
       let mut prop = prop.clone();
+
       transform_shorthand_to_key_values(&mut prop);
 
-      match prop.deref() {
-        Prop::KeyValue(key_value) => {
-          let value = key_value.value.clone();
-
-          if let Some(Lit::Null(_)) = value.as_lit() {
-            let style_key_as_ident = match key_value.key.clone() {
-              PropName::Ident(ident) => Option::Some(ident),
-              _ => todo!("PropName not an ident"),
-            };
-
-            style_key_as_ident.map_or(false, |style_key_as_string| {
-              nulls_to_keep.contains(&style_key_as_string.to_id())
-            })
-          } else {
-            true
+      if let Prop::KeyValue(key_value) = &*prop {
+        if key_value
+          .value
+          .as_lit()
+          .and_then(|lit| match lit {
+            Lit::Null(_) => Some(()),
+            _ => None,
+          })
+          .is_some()
+          && matches!(key_value.key, PropName::Ident(_))
+        {
+          if let PropName::Ident(ident) = &key_value.key {
+            return nulls_to_keep.contains(&ident.to_id());
           }
         }
-        _ => true,
       }
+
+      true
     }
     PropOrSpread::Spread(_) => true,
   });

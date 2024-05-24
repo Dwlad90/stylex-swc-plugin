@@ -35,7 +35,10 @@ pub(crate) fn member_expression(
           prop_name = Option::Some(ident.to_id());
         }
         MemberProp::Computed(computed) => {
-          assert!(!computed.expr.is_lit(), "Computed not implemented yet");
+          assert!(
+            !computed.expr.is_lit(),
+            "Computed not implemented yet for non literal expressions"
+          );
         }
         _ => {}
       }
@@ -71,7 +74,7 @@ pub(crate) fn member_expression(
             let namespaces = props
               .iter()
               .filter_map(|item| match item {
-                PropOrSpread::Spread(_) => todo!("Spread not implemented yet"),
+                PropOrSpread::Spread(_) => unimplemented!("Spread"),
                 PropOrSpread::Prop(prop) => match prop.as_ref() {
                   Prop::KeyValue(key_value) => match key_value.value.as_ref() {
                     Expr::Lit(Lit::Null(_)) => Option::None,
@@ -84,7 +87,7 @@ pub(crate) fn member_expression(
                         .clone(),
                     ),
                   },
-                  _ => todo!("Not implemented yet"),
+                  _ => unimplemented!(),
                 },
               })
               .collect::<Vec<Id>>();

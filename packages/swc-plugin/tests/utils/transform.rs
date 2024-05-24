@@ -140,7 +140,7 @@ where
   F: FnOnce(&mut Tester) -> P,
   P: Fold,
 {
-  let res = Tester::run(|tester| {
+  Tester::run(|tester| {
     let tr = make_tr(tr, tester);
 
     let actual = tester.apply_transform(tr, "input.js", syntax, input)?;
@@ -164,17 +164,5 @@ where
       .fold_with(&mut fixer::fixer(Some(&tester.comments)));
 
     Result::Ok(tester.print(&actual, &tester.comments.clone()))
-  });
-
-  res
-
-  // let cm: Arc<SourceMap> = Default::default();
-
-  // let tester = Tester {
-  //     cm,
-  //     handler: todo!(),
-  //     comments: Option::None,
-  // };
-
-  // tester.print(module, comments)
+  })
 }

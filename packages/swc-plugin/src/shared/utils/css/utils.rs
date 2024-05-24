@@ -373,13 +373,6 @@ pub(crate) fn normalize_css_property_value(
     format!("* {{ {0}: {1} }}", css_property, css_property_value)
   };
 
-  // let stylesheet = StyleSheet::parse(&css_rule, ParserOptions::default()).unwrap();
-
-  // let a = stylesheet.to_css(PrinterOptions {
-  //   minify: true,
-  //   ..Default::default()
-  // });
-
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
   if !errors.is_empty() {

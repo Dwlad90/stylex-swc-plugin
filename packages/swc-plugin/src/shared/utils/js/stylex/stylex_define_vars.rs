@@ -37,7 +37,6 @@ pub(crate) fn stylex_define_vars(
     ObjMapType::Object(variables.clone()),
     |item| -> Box<FlatCompiledStylesValue> {
       let reuslt = match item.as_ref() {
-        FlatCompiledStylesValue::String(_) => panic!("String is not supported"),
         FlatCompiledStylesValue::InjectableStyle(_) => {
           panic!("InjectableStyle is not supported")
         }
@@ -58,11 +57,7 @@ pub(crate) fn stylex_define_vars(
 
           FlatCompiledStylesValue::Tuple(name_hash.clone(), css_value, css_type)
         }
-        FlatCompiledStylesValue::Null => todo!("Null"),
-        FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
-        FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
-        FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
-        FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
+        _ => unimplemented!(),
       };
 
       Box::new(reuslt)
@@ -72,18 +67,14 @@ pub(crate) fn stylex_define_vars(
   let theme_variables_objects = obj_map(ObjMapType::Map(variables_map.clone()), |item| match item
     .as_ref()
   {
-    FlatCompiledStylesValue::String(_) => panic!("String is not supported"),
     FlatCompiledStylesValue::InjectableStyle(_) => {
       panic!("InjectableStyle is not supported")
     }
     FlatCompiledStylesValue::Tuple(key, _, _) => {
       Box::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
     }
-    FlatCompiledStylesValue::Null => todo!("Null"),
-    FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
-    FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
-    FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
-    FlatCompiledStylesValue::CSSType(_, _, _) => todo!("CSSType"),
+
+    _ => unreachable!("Unsupported value type"),
   });
 
   let injectable_styles =
@@ -93,11 +84,6 @@ pub(crate) fn stylex_define_vars(
     ObjMapType::Map(typed_variables),
     |item| -> Box<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
-        FlatCompiledStylesValue::String(_) => panic!("String is not supported"),
-        FlatCompiledStylesValue::Null => todo!("Null"),
-        FlatCompiledStylesValue::IncludedStyle(_) => todo!("IncludedStyle"),
-        FlatCompiledStylesValue::Bool(_) => todo!("Bool"),
-        FlatCompiledStylesValue::KeyValue(_) => todo!("KeyValue"),
         FlatCompiledStylesValue::CSSType(name_hash, syntax, initial_value) => {
           let property = format!(
             "@property --{} {{ syntax: \"{}\"; inherits: true; initial-value: {} }}",
@@ -110,8 +96,7 @@ pub(crate) fn stylex_define_vars(
             priority: Option::Some(0.0),
           })
         }
-        FlatCompiledStylesValue::InjectableStyle(_) => todo!("InjectableStyle"),
-        FlatCompiledStylesValue::Tuple(_, _, _) => todo!("Tuple"),
+        _ => unreachable!("Unsupported value type"),
       };
 
       Box::new(result)

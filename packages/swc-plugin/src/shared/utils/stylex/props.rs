@@ -26,7 +26,7 @@ pub(crate) fn props(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
   }
 
   if let Some(_inline_style) = inline_style {
-    todo!("Implement inline style");
+    unimplemented!("Inline style");
   }
 
   Some(FnResult::Props(

@@ -319,7 +319,7 @@ pub fn get_var_decl_by_ident<'a>(
                 _ => panic!("Function type not supported"),
               }
             }
-            FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+            FunctionConfigType::Map(_) => unimplemented!(),
           }
         }
         None => Option::None,
@@ -962,7 +962,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
   for prop in obj.props.clone().into_iter() {
     match prop {
-      PropOrSpread::Spread(_) => todo!("Spread in not supported"),
+      PropOrSpread::Spread(_) => unimplemented!("Spread"),
       PropOrSpread::Prop(mut prop) => {
         transform_shorthand_to_key_values(&mut prop);
 
@@ -972,7 +972,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               if ident.sym == "syntax" {
                 let value = obj.props.iter().find(|prop| {
                   match prop {
-                    PropOrSpread::Spread(_) => todo!("Spread in not supported"),
+                    PropOrSpread::Spread(_) => unimplemented!("Spread"),
                     PropOrSpread::Prop(prop) => {
                       let mut prop = prop.clone();
                       transform_shorthand_to_key_values(&mut prop);
@@ -983,7 +983,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                             return ident.sym == "value";
                           }
                         }
-                        _ => todo!(),
+                        _ => unimplemented!(),
                       }
                     }
                   }
@@ -994,16 +994,12 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                 if let Some(value) = value {
                   let result_key_value = value.as_prop().unwrap().clone().key_value().unwrap();
 
-                  // let value = value.value.object().unwrap().props.first().unwrap().clone();
-
-                  // let value = value.as_prop().unwrap().clone().key_value().unwrap();
-
                   return (result_key_value.value, Option::Some(obj.clone().into()));
                 }
               }
             }
           }
-          _ => todo!(),
+          _ => unimplemented!(),
         }
       }
     }
@@ -1016,10 +1012,8 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
   let mut key_values = vec![];
 
   for prop in object.props.iter() {
-    assert!(prop.is_prop(), "Spread in not supported");
-
     match prop {
-      PropOrSpread::Spread(_) => todo!("Spread in not supported"),
+      PropOrSpread::Spread(_) => unimplemented!("Spread"),
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
 

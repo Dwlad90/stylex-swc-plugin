@@ -83,7 +83,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
               .and_then(|cache| cache.get(&style_hash).cloned())
               .is_some()
             {
-              todo!("Cache entry found");
+              unimplemented!("Cache entry");
             } else {
               // The properties defined by this object
               let mut defined_properties_chunk: Vec<String> = vec![];
@@ -145,13 +145,13 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
               };
             }
           } else {
-            todo!("DYNAMIC: Process inline style object")
+            unimplemented!("DYNAMIC: Process inline style object")
           }
         }
         StyleObject::Nullable => panic!("Nullable style object is not allowed in styleq"),
         StyleObject::Other => panic!("Other style object is not allowed in styleq"),
       },
-      ResolvedArg::ConditionalStyle(_, _, _, _, _) => todo!("ConditionalStyle"),
+      _ => unreachable!(),
     };
   }
 

@@ -40,7 +40,7 @@ pub(crate) fn stylex_keyframes(
     let Some((_, frame, _)) = frame.as_tuple() else {
       panic!("Values must be an object")
     };
-    let a = Pipe::create(frame.clone())
+    let pipe_result = Pipe::create(frame.clone())
       .pipe(|frame| expand_frame_shorthands(&frame, &mut state.clone()))
       .pipe(|entries| obj_map_keys(&entries, dashify))
       .pipe(|entries| {
@@ -56,7 +56,7 @@ pub(crate) fn stylex_keyframes(
       })
       .done();
 
-    let (_, result) = a.into_iter().next().unwrap_or((
+    let (_, result) = pipe_result.into_iter().next().unwrap_or((
       "".to_string(),
       Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
         "".to_string(),

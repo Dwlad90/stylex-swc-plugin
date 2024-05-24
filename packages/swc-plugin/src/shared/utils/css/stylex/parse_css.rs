@@ -144,7 +144,7 @@ pub fn parse_css_inner<'a>(
         iter_result.push_str(value);
       }
       Token::QuotedString(ref _value) => {
-        todo!("Handle QuotedString");
+        unimplemented!("QuotedString");
         // if curr_rule == "import" {
         //   // Reset current at-rule value
         //   curr_rule = "".to_string();
@@ -267,7 +267,7 @@ pub fn parse_css_inner<'a>(
       }
       // url()
       Token::UnquotedUrl(ref _value) => {
-        todo!("Handle UnquotedUrl");
+        unimplemented!("UnquotedUrl");
         //   let is_import: bool = curr_rule == "import";
 
         //   if is_import {
@@ -387,7 +387,7 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
         }
       })
       .collect::<Vec<String>>(),
-    Err(_) => todo!(),
+    Err(_) => unreachable!(),
   }
 }
 

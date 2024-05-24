@@ -309,7 +309,7 @@ impl StateManager {
           add_file_extension(import_path, &source_file_path),
         )
       }
-      CheckModuleResolution::CrossFileParsing(_) => todo!("CrossFileParsing"),
+      _ => unimplemented!("Module resolution is not supported"),
     }
   }
 
@@ -709,7 +709,7 @@ fn file_path_resolver(
   let file_to_look_for = relative_file_path;
 
   if EXTENSIONS.iter().any(|ext| file_to_look_for.ends_with(ext)) {
-    todo!("file_path_resolver")
+    unimplemented!("file_path_resolver")
   }
 
   for ext in EXTENSIONS.iter() {

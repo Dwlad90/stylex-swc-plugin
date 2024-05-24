@@ -46,7 +46,7 @@ pub fn evaluate_stylex_create_arg(
 
       for prop in &mut style_object.props {
         match prop {
-          PropOrSpread::Spread(_) => todo!("Spread not implemented yet"),
+          PropOrSpread::Spread(_) => unimplemented!("Spread"),
           PropOrSpread::Prop(prop) => {
             let mut prop = prop.clone();
 
@@ -85,7 +85,6 @@ pub fn evaluate_stylex_create_arg(
                     let fn_body = fn_path.body.clone();
                     if let BlockStmtOrExpr::Expr(expr) = fn_body.as_ref() {
                       if let Expr::Object(fn_body_object) = normalize_expr(expr) {
-
                         let eval_result = evaluate_partial_object_recursively(
                           fn_body_object,
                           traversal_state,
@@ -103,14 +102,12 @@ pub fn evaluate_stylex_create_arg(
                           });
                         }
 
-
                         let value = eval_result
                           .value
                           .clone()
                           .and_then(|value| value.as_expr().cloned())
                           .and_then(|expr| expr.as_object().cloned())
                           .expect("Value not an object");
-
 
                         let key = expr_to_str(key_expr, traversal_state, functions);
 
@@ -126,20 +123,11 @@ pub fn evaluate_stylex_create_arg(
                             })
                             .collect(),
                         );
-
-
-                        // return EvaluateResult {
-                        //   confident: true,
-                        //   deopt: Option::None,
-                        //   value: Option::Some(EvaluateResultValue::Map(result_value)),
-                        //   inline_styles: Option::None,
-                        //   fns: Option::Some(fns),
-                        // };
                       } else {
                         return evaluate(path, traversal_state, functions);
                       }
                     } else {
-                      todo!("BlockStmt not implemented yet")
+                      unimplemented!("Block statement")
                     }
                   }
                   _ => {
@@ -156,7 +144,7 @@ pub fn evaluate_stylex_create_arg(
 
                           for prop in obj_expr.clone().props {
                             match prop {
-                              PropOrSpread::Spread(_) => todo!(),
+                              PropOrSpread::Spread(_) => unimplemented!("Spread"),
                               PropOrSpread::Prop(mut prop) => {
                                 transform_shorthand_to_key_values(&mut prop);
 
@@ -165,7 +153,7 @@ pub fn evaluate_stylex_create_arg(
                                     obj_expr_props.push(obj_expr_prop_kv.clone())
                                   }
 
-                                  _ => todo!(),
+                                  _ => unimplemented!(),
                                 }
                               }
                             }
@@ -179,7 +167,6 @@ pub fn evaluate_stylex_create_arg(
                     };
 
                     result_value.insert(Box::new(key_expr.as_expr().clone()), value_to_insert);
-
 
                     continue;
                   }
@@ -205,9 +192,7 @@ pub fn evaluate_stylex_create_arg(
         },
       })
     }
-    _ => {
-      evaluate(path, traversal_state, functions)
-    }
+    _ => evaluate(path, traversal_state, functions),
   }
 }
 
@@ -234,14 +219,13 @@ fn evaluate_partial_object_recursively(
           return result;
         }
 
-        todo!("Check what to do with spread");
+        unimplemented!();
       }
       PropOrSpread::Prop(mut prop) => {
         transform_shorthand_to_key_values(&mut prop);
 
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {
-
             let key_result = evaluate_obj_key(key_value, traversal_state, functions);
 
             if !key_result.confident {
@@ -281,7 +265,6 @@ fn evaluate_partial_object_recursively(
                   functions,
                   Option::Some(extended_key_path),
                 );
-
 
                 if !result.confident {
                   return Box::new(EvaluateResult {

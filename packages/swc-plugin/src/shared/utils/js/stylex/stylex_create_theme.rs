@@ -69,17 +69,8 @@ pub(crate) fn stylex_create_theme(
 
         theme_vars_str_value
       }
-      EvaluateResultValue::Vec(_) => todo!("Vec"),
-      EvaluateResultValue::Map(_) => todo!("Map"),
-      EvaluateResultValue::Entries(_) => todo!("Entries"),
-      EvaluateResultValue::Callback(_) => todo!("Callback"),
-      EvaluateResultValue::FunctionConfig(_) => todo!("FunctionConfig"),
-      EvaluateResultValue::FunctionConfigMap(_) => todo!("FunctionConfigMap"),
-      EvaluateResultValue::ThemeRef(theme_ref) => {
-        let a = theme_ref.clone().get(key.as_str()).0.clone();
-
-        a
-      }
+      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.clone().get(key.as_str()).0.clone(),
+      _ => unimplemented!("Unsupported theme vars type"),
     };
 
     let name_hash = theme_vars_str_value[6..theme_vars_str_value.len() - 1].to_string();
@@ -166,13 +157,8 @@ pub(crate) fn stylex_create_theme(
       state,
       &FunctionMap::default(),
     ),
-    EvaluateResultValue::Vec(_) => todo!("Vec"),
-    EvaluateResultValue::Map(_) => todo!("Map"),
-    EvaluateResultValue::Entries(_) => todo!("Entries"),
-    EvaluateResultValue::Callback(_) => todo!("Callback"),
-    EvaluateResultValue::FunctionConfig(_) => todo!("FunctionConfig"),
-    EvaluateResultValue::FunctionConfigMap(_) => todo!("FunctionConfigMap"),
     EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.clone().get(THEME_NAME_KEY).0,
+    _ => unimplemented!("Unsupported theme vars type"),
   };
 
   resolved_theme_vars.insert(

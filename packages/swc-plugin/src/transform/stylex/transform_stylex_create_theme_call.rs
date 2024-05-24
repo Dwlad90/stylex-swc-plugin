@@ -47,14 +47,14 @@ where
       let first_arg = call.args.first();
       let second_arg = call.args.get(1);
 
-      let first_arg = first_arg.and_then(|first_arg| match &first_arg.spread {
-        Some(_) => todo!(),
-        None => Option::Some(first_arg.expr.clone()),
+      let first_arg = first_arg.map(|first_arg| match &first_arg.spread {
+        Some(_) => unimplemented!("Spread"),
+        None => first_arg.expr.clone(),
       })?;
 
-      let second_arg = second_arg.and_then(|second_arg| match &second_arg.spread {
-        Some(_) => todo!(),
-        None => Option::Some(second_arg.expr.clone()),
+      let second_arg = second_arg.map(|second_arg| match &second_arg.spread {
+        Some(_) => unimplemented!("Spread"),
+        None => second_arg.expr.clone(),
       })?;
 
       let mut identifiers: FunctionMapIdentifiers = HashMap::new();
@@ -120,7 +120,6 @@ where
         constants::messages::NON_STATIC_VALUE
       );
 
-      // let variables = match evaluated_arg2.value.clone() {
       let variables = match evaluated_arg1.value {
         Some(value) => {
           validate_theme_variables(&value, &mut self.state);

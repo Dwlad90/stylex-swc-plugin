@@ -50,7 +50,7 @@ pub(crate) fn evaluate_map(
             elems,
           }))
         }
-        _ => todo!("Not implemented yet"),
+        _ => unimplemented!(),
       }
     })
     .collect::<Vec<Expr>>();
@@ -149,7 +149,7 @@ pub(crate) fn evaluate_filter(
             elems,
           }))
         }
-        _ => todo!("Not implemented yet"),
+        _ => unimplemented!(),
       }
     })
     .collect::<Vec<Expr>>();

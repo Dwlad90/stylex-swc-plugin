@@ -161,7 +161,10 @@ where
             .insert(Box::new(local_name_ident));
         }
         "firstThatWorks" => {
-          todo!("firstThatWorks");
+          self
+            .state
+            .stylex_first_that_works_import
+            .insert(Box::new(local_name_ident));
         }
         "defineVars" => {
           self
@@ -182,7 +185,7 @@ where
             .insert(Box::new(local_name_ident));
         }
         _ => {
-          panic!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
+          unreachable!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
         }
       }
     }

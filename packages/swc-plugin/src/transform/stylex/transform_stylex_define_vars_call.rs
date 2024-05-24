@@ -35,9 +35,9 @@ where
 
       let first_arg = call.args.first();
 
-      let first_arg = first_arg.and_then(|first_arg| match &first_arg.spread {
-        Some(_) => todo!(),
-        None => Option::Some(first_arg.expr.clone()),
+      let first_arg = first_arg.map(|first_arg| match &first_arg.spread {
+        Some(_) => unimplemented!("Spread"),
+        None => first_arg.expr.clone(),
       })?;
 
       let mut identifiers: FunctionMapIdentifiers = HashMap::new();

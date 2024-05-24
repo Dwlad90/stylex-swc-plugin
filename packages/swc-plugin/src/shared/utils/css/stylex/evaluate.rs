@@ -268,8 +268,11 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   let value = result.value;
 
                   match value {
-                    Some(res) => res.as_expr().unwrap().clone(),
-                    None => todo!(),
+                    Some(res) => res
+                      .as_expr()
+                      .expect("Evaluation result must be an expression")
+                      .clone(),
+                    None => unreachable!("Evaluation result must be non optional"),
                   }
                 }
               };
@@ -318,16 +321,16 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
       Option::None
     }
-    Expr::TsAs(_) => todo!("TsAs not implemented yet"),
-    Expr::TsSatisfies(_) => todo!("TsSatisfies not implemented yet"),
-    Expr::Seq(_) => todo!("Seq not implemented yet"),
+    Expr::TsAs(_) => unimplemented!("TsAs"),
+    Expr::TsSatisfies(_) => unimplemented!("TsSatisfies"),
+    Expr::Seq(_) => unimplemented!("Seq"),
     Expr::Lit(lit_path) => Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Lit(
       lit_path.clone(),
     ))))),
     Expr::Tpl(tpl) => evaluate_quasis(&Expr::Tpl(tpl.clone()), &tpl.quasis, false, state),
     #[allow(dead_code)]
     Expr::TaggedTpl(_tagged_tpl) => {
-      todo!("TaggedTpl");
+      unimplemented!("TaggedTpl");
       // TODO: Uncomment this for implementation of TaggedTpl
       // evaluate_quasis(
       //   &Expr::TaggedTpl(_tagged_tpl.clone()),
@@ -336,7 +339,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
       //   state,
       // )
     }
-    Expr::Cond(_) => todo!("Cond not implemented yet"),
+    Expr::Cond(_) => unimplemented!("Cond"),
     Expr::Paren(_) => {
       panic!("Paren must be normalized before evaluation")
     }
@@ -427,7 +430,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 .iter()
                 .find(|prop| match prop {
                   PropOrSpread::Spread(_) => {
-                    todo!("Spread not implemented yet");
+                    unimplemented!("Spread");
                   }
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
@@ -440,7 +443,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
                         ident.sym == key
                       }
-                      _ => todo!("Prop not implemented yet"),
+                      _ => unimplemented!("Prop"),
                     }
                   }
                 })?
@@ -457,13 +460,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 panic!("Member not found");
               }
             }
-            _ => todo!("Expression"),
+            _ => unimplemented!("Expression"),
           },
-          EvaluateResultValue::Vec(_) => todo!("EvaluateResultValue::Vec"),
-          EvaluateResultValue::Map(_) => todo!("EvaluateResultValue::Map"),
-          EvaluateResultValue::Entries(_) => todo!("EvaluateResultValue::Entries"),
-          EvaluateResultValue::Callback(_) => todo!("EvaluateResultValue::Callback"),
-          EvaluateResultValue::FunctionConfig(_) => todo!("EvaluateResultValue::FunctionConfig"),
           EvaluateResultValue::FunctionConfigMap(fc_map) => {
             let key = match propery {
               Some(propery) => match propery.as_ref() {
@@ -471,13 +469,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   Expr::Ident(ident) => Box::new(ident.clone()),
                   _ => panic!("Member not found"),
                 },
-                EvaluateResultValue::Vec(_) => todo!(),
-                EvaluateResultValue::Map(_) => todo!(),
-                EvaluateResultValue::Entries(_) => todo!(),
-                EvaluateResultValue::Callback(_) => todo!(),
-                EvaluateResultValue::FunctionConfig(_) => todo!(),
-                EvaluateResultValue::FunctionConfigMap(_) => todo!(),
-                EvaluateResultValue::ThemeRef(_) => todo!(),
+                _ => unimplemented!(),
               },
               None => panic!("Member not found"),
             };
@@ -493,13 +485,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   Expr::Ident(Ident { sym, .. }) => sym.to_string().clone(),
                   _ => panic!("Member not found"),
                 },
-                EvaluateResultValue::Vec(_) => todo!(),
-                EvaluateResultValue::Map(_) => todo!(),
-                EvaluateResultValue::Entries(_) => todo!(),
-                EvaluateResultValue::Callback(_) => todo!(),
-                EvaluateResultValue::FunctionConfig(_) => todo!(),
-                EvaluateResultValue::FunctionConfigMap(_) => todo!(),
-                EvaluateResultValue::ThemeRef(_) => todo!(),
+                _ => unimplemented!(),
               },
               None => panic!("Member not found"),
             };
@@ -517,12 +503,13 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
               string_to_expression(value.as_str()).unwrap(),
             ))));
           }
+          _ => unimplemented!("EvaluateResultValue"),
         }
       } else {
         Option::None
       }
     }
-    Expr::Unary(_) => todo!("Unary not implemented yet"),
+    Expr::Unary(_) => unimplemented!("Unary"),
     Expr::Array(arr_path) => {
       let elems = arr_path.elems.clone();
 
@@ -665,7 +652,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     Box::new(Expr::Array(array))
                   }
                   EvaluateResultValue::Callback(_cb) => {
-                    todo!("EvaluateResultValue::Callback");
+                    unimplemented!("EvaluateResultValue::Callback");
                   }
                   _ => {
                     panic!("Property value must be an expression")
@@ -682,7 +669,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 }))));
               }
 
-              _ => todo!(),
+              _ => unimplemented!(),
             }
           }
         }
@@ -724,7 +711,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
           if state.functions.identifiers.contains_key(&ident_id) {
             match state.functions.identifiers.get(&ident_id).unwrap().as_ref() {
-              FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+              FunctionConfigType::Map(_) => unimplemented!("FunctionConfigType::Map"),
               FunctionConfigType::Regular(fc) => func = Option::Some(Box::new(fc.clone())),
             }
           }
@@ -752,7 +739,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     };
 
                     if first_arg.spread.is_some() {
-                      todo!("Spread")
+                      unimplemented!("Spread")
                     }
 
                     match method_name.as_ref() {
@@ -767,7 +754,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         };
 
                         if second_arg.spread.is_some() {
-                          todo!("Spread")
+                          unimplemented!("Spread")
                         }
                         let cached_first_arg = evaluate_cached(&first_arg.expr, state);
                         let cached_second_arg = evaluate_cached(&second_arg.expr, state);
@@ -791,7 +778,6 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                           ))),
                           takes_path: false,
                         }));
-                        // let a = cached_first_arg.unwrap();
 
                         let cached_first_arg = evaluate_cached(&first_arg.expr, state);
 
@@ -828,7 +814,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                             .skip(1)
                             .map(|arg| {
                               if arg.spread.is_some() {
-                                todo!("Spread")
+                                unimplemented!("Spread")
                               }
 
                               evaluate_cached(&arg.expr, state)
@@ -862,7 +848,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     };
 
                     if arg.spread.is_some() {
-                      todo!("Spread")
+                      unimplemented!("Spread")
                     }
 
                     let cached_arg = evaluate_cached(&arg.expr, state);
@@ -895,7 +881,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                               .collect::<Vec<ExprOrSpread>>();
 
                             for entry in entries {
-                              assert!(entry.spread.is_none(), "Spread not implemented yet");
+                              assert!(entry.spread.is_none(), "Spread");
 
                               let array = entry.expr.as_array().expect("Entry must be an array");
 
@@ -970,10 +956,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         let mut keys = vec![];
 
                         for prop in &object.props {
-                          let expr = prop
-                            .as_prop()
-                            .map(|prop| *prop.clone())
-                            .expect("Spread not implemented yet");
+                          let expr = prop.as_prop().map(|prop| *prop.clone()).expect("Spread");
 
                           let key_values = expr
                             .as_key_value()
@@ -1014,10 +997,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         let mut values = vec![];
 
                         for prop in &object.props {
-                          let expr = prop
-                            .as_prop()
-                            .map(|prop| *prop.clone())
-                            .expect("Spread not implemented yet");
+                          let expr = prop.as_prop().map(|prop| *prop.clone()).expect("Spread");
 
                           let key_values = expr
                             .as_key_value()
@@ -1057,10 +1037,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         let mut entries: IndexMap<Box<Lit>, Box<Lit>> = IndexMap::new();
 
                         for prop in &object.props {
-                          let expr = prop
-                            .as_prop()
-                            .map(|prop| *prop.clone())
-                            .expect("Spread not implemented yet");
+                          let expr = prop.as_prop().map(|prop| *prop.clone()).expect("Spread");
 
                           let key_values = expr
                             .as_key_value()
@@ -1121,7 +1098,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                       FunctionConfigType::Regular(fc) => {
                         func = Option::Some(Box::new(fc.clone()));
                       }
-                      FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+                      FunctionConfigType::Map(_) => unimplemented!("FunctionConfigType::Map"),
                     }
                   }
                 }
@@ -1144,7 +1121,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 let member_expr = member_expr.clone();
 
                 if member_expr.contains_key(&prop_id) {
-                  todo!("Check what's happening here");
+                  unimplemented!("Check what's happening here");
 
                   // context = Option::Some(member_expr.clone());
 
@@ -1153,7 +1130,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                   //   FunctionConfigType::Regular(fc) => {
                   //     func = Option::Some(Box::new(fc.clone()));
                   //   }
-                  //   FunctionConfigType::Map(_) => todo!("FunctionConfigType::Map"),
+                  //   FunctionConfigType::Map(_) => unimplemented!("FunctionConfigType::Map"),
                   // }
                 }
               }
@@ -1165,8 +1142,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
 
             if property.is_ident() {
               match obj_lit {
-                Lit::Str(_) => todo!("{}", constants::messages::BUILT_IN_FUNCTION),
-                Lit::Bool(_) => todo!("{}", constants::messages::BUILT_IN_FUNCTION),
+                Lit::Str(_) => unimplemented!("{}", constants::messages::BUILT_IN_FUNCTION),
+                Lit::Bool(_) => unimplemented!("{}", constants::messages::BUILT_IN_FUNCTION),
                 _ => {}
               }
             }
@@ -1187,7 +1164,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     let result_fn = map.get(&Expr::Ident(prop_ident.clone()));
 
                     func = match result_fn {
-                      Some(_) => todo!("EvaluateResultValue::Map"),
+                      Some(_) => unimplemented!("EvaluateResultValue::Map"),
                       None => Option::None,
                     };
                   }
@@ -1198,7 +1175,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         "filter" => CallbackType::Array(ArrayJS::Filter),
                         "join" => CallbackType::Array(ArrayJS::Join),
                         "entries" => CallbackType::Object(ObjectJS::Entries),
-                        _ => todo!("Array method '{}' implemented yet", prop_name),
+                        _ => unimplemented!("Array method '{}' implemented yet", prop_name),
                       })),
                       takes_path: false,
                     }));
@@ -1212,7 +1189,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                           "map" => CallbackType::Array(ArrayJS::Map),
                           "filter" => CallbackType::Array(ArrayJS::Filter),
                           "entries" => CallbackType::Object(ObjectJS::Entries),
-                          _ => todo!("Method '{}' implemented yet", prop_name),
+                          _ => unimplemented!("Method '{}' implemented yet", prop_name),
                         })),
                         takes_path: false,
                       }));
@@ -1231,9 +1208,8 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                     }
                   }
                   EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
-                    FunctionType::ArrayArgs(_) => todo!(),
-                    FunctionType::StylexFnsFactory(sfns) => {
-                      let fc = sfns(prop_name);
+                    FunctionType::StylexFnsFactory(sxfns) => {
+                      let fc = sxfns(prop_name);
 
                       func = Option::Some(Box::new(FunctionConfig {
                         fn_ptr: FunctionType::StylexTypeFn(fc),
@@ -1244,13 +1220,10 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                         EvaluateResultValue::Entries(IndexMap::default()),
                       )]));
                     }
-                    FunctionType::StylexExprFn(_) => todo!(),
-                    FunctionType::StylexTypeFn(_) => todo!(),
-                    FunctionType::Mapper(_) => todo!(),
-                    FunctionType::Callback(_) => todo!(),
+                    _ => unimplemented!(),
                   },
                   _ => {
-                    panic!("Evaluation result not implemented yet")
+                    panic!("Evaluation result")
                   }
                 }
               } else if let Option::Some(prop_id) = is_id_prop(property) {
@@ -1265,7 +1238,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 })));
 
                 func = match result_fn {
-                  Some(_) => todo!(),
+                  Some(_) => unimplemented!(),
                   None => Option::None,
                 };
               }
@@ -1296,16 +1269,16 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
               return Option::Some(Box::new(EvaluateResultValue::Expr(Box::new(func_result.0))));
             }
             FunctionType::StylexTypeFn(_) => {
-              panic!("StylexTypeFn not implemented yet");
+              panic!("StylexTypeFn");
             }
             FunctionType::StylexFnsFactory(_) => {
-              panic!("StylexFnsFactory not implemented yet");
+              panic!("StylexFnsFactory");
             }
             FunctionType::Callback(_) => {
-              panic!("Arrow function not implemented yet");
+              panic!("Arrow function");
             }
             FunctionType::Mapper(_) => {
-              panic!("Mapper not implemented yet");
+              panic!("Mapper");
             }
           }
         } else {
@@ -1555,7 +1528,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
                 }
               }
             }
-            _ => panic!("Function type not implemented yet"),
+            _ => panic!("Function type"),
           }
         }
       }
@@ -1580,7 +1553,7 @@ fn _evaluate(path: &Expr, state: &mut State) -> Option<Box<EvaluateResultValue>>
     match binding {
       Some(binding) => {
         if path.eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
-          todo!("Binding")
+          unimplemented!("Binding")
         }
 
         let result = evaluate_cached(

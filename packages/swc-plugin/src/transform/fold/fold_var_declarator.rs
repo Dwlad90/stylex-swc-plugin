@@ -1,7 +1,4 @@
-use std::{
-  collections::{hash_map::Entry, HashMap},
-  ops::Deref,
-};
+use std::collections::{hash_map::Entry, HashMap};
 
 use swc_core::{
   common::{comments::Comments, EqIgnoreSpan},
@@ -14,10 +11,13 @@ use swc_core::{
 use crate::{
   shared::{
     enums::{
-      ModuleCycle, NonNullProp, NonNullProps, StyleVarsToKeep, TopLevelExpression,
-      TopLevelExpressionKind,
+      core::ModuleCycle,
+      data_structures::{
+        style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
+        top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+      },
     },
-    utils::common::transform_shorthand_to_key_values,
+    utils::ast::convertors::transform_shorthand_to_key_values,
   },
   ModuleTransformVisitor,
 };
@@ -30,10 +30,6 @@ where
     &mut self,
     mut var_declarator: VarDeclarator,
   ) -> VarDeclarator {
-    // Get the declarations from the VarDecl struct
-    // let var_declarator_id = var_declarator.clone().name.as_ident().unwrap().to_id();
-    // let stylex_var_declarator = self.declaration.clone().unwrap();
-
     if self.cycle != ModuleCycle::Initializing
       && self.cycle != ModuleCycle::TransformEnter
       && self.cycle != ModuleCycle::TransformExit
@@ -156,16 +152,6 @@ where
         if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
           let key_as_ident = match key {
             PropName::Ident(ident) => Option::Some(ident),
-            // PropName::Str(str) => {
-            //     Option::Some(str.value.to_string())
-            // }
-            // PropName::Num(num) => {
-            //     Option::Some(num.value.to_string())
-            // }
-            // PropName::Computed(_) => Option::None,
-            // PropName::BigInt(big_int) => {
-            //     Option::Some(big_int.value.to_string())
-            // }
             _ => None,
           };
 

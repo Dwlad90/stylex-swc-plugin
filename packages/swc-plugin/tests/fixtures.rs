@@ -47,7 +47,7 @@ fn fixture(input: PathBuf) {
             filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
           },
           Option::Some(&mut config)
-        ) // ModuleTransformVisitor::new_test(tr.comments.clone())
+        )
       )
     },
     &input,

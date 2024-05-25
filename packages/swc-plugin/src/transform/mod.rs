@@ -7,7 +7,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::ModuleCycle,
+    enums::core::ModuleCycle,
     structures::{
       named_import_source::{ImportSources, RuntimeInjection},
       plugin_pass::PluginPass,
@@ -113,7 +113,7 @@ where
     let stylex_imports = fill_stylex_imports(&config);
 
     let mut state = Box::new(match &config {
-      Some(config) => StateManager::new((*config).clone().into()), // Convert &&mut StyleXOptionsParams into StyleXOptionsParams
+      Some(config) => StateManager::new((*config).clone().into()),
       None => {
         let config = StyleXOptions {
           runtime_injection: RuntimeInjection::Boolean(false),
@@ -275,12 +275,3 @@ fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> HashSet<Box
 
   stylex_imports
 }
-
-// static COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-// fn generate_unique_identifier(name: &str) -> Ident {
-//     let mark = Mark::fresh(Mark::root());
-//     let count = COUNTER.fetch_add(1, Ordering::SeqCst);
-//     let unique_name = format!("_{}_{}", name, count);
-//     Ident::new(unique_name.into(), DUMMY_SP.apply_mark(mark))
-// }

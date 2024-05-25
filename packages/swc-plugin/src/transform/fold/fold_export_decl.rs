@@ -7,7 +7,7 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::ModuleCycle, utils::common::increase_ident_count_by_count},
+  shared::{enums::core::ModuleCycle, utils::common::increase_ident_count_by_count},
   ModuleTransformVisitor,
 };
 

@@ -1,5 +1,3 @@
-use core::panic;
-
 use swc_core::{
   common::comments::Comments,
   ecma::{
@@ -9,7 +7,10 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{constants, enums::ModuleCycle, structures::named_import_source::ImportSources},
+  shared::{
+    constants::messages::MUST_BE_DEFAULT_IMPORT, enums::core::ModuleCycle,
+    structures::named_import_source::ImportSources,
+  },
   ModuleTransformVisitor,
 };
 
@@ -185,7 +186,7 @@ where
             .insert(Box::new(local_name_ident));
         }
         _ => {
-          unreachable!("{}", constants::messages::MUST_BE_DEFAULT_IMPORT)
+          unreachable!("{}", MUST_BE_DEFAULT_IMPORT)
         }
       }
     }

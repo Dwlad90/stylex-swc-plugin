@@ -6,13 +6,25 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::{self, common::THEME_NAME_KEY},
-  enums::{TopLevelExpression, TopLevelExpressionKind},
+  constants::{
+    common::THEME_NAME_KEY,
+    messages::{
+      DUPLICATE_CONDITIONAL, ILLEGAL_ARGUMENT_LENGTH, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+      INVALID_PSEUDO_OR_AT_RULE, NON_EXPORT_NAMED_DECLARATION, NON_OBJECT_FOR_STYLEX_CALL,
+      NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, NON_OBJECT_KEYFRAME, NON_STATIC_KEYFRAME_VALUE,
+      NON_STATIC_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS, ONLY_TOP_LEVEL_INCLUDES,
+      UNBOUND_STYLEX_CALL_VALUE,
+    },
+  },
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+  },
   regex::INCLUDED_IDENT_REGEX,
-  structures::{evaluate_result::EvaluateResultValue, state_manager::StateManager},
-  utils::common::{
-    get_string_val_from_lit, get_var_decl_by_ident_or_member, key_value_creator,
-    string_to_expression,
+  structures::state_manager::StateManager,
+  utils::{
+    ast::{convertors::string_to_expression, factories::key_value_factory},
+    common::{get_string_val_from_lit, get_var_decl_by_ident_or_member},
   },
 };
 
@@ -31,31 +43,24 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
         |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(call.clone()))) }
       ),
     "{}",
-    constants::messages::UNBOUND_STYLEX_CALL_VALUE
+    UNBOUND_STYLEX_CALL_VALUE
   );
 
-  assert!(
-    call.args.len() == 1,
-    "{}",
-    constants::messages::ILLEGAL_ARGUMENT_LENGTH
-  );
+  assert!(call.args.len() == 1, "{}", ILLEGAL_ARGUMENT_LENGTH);
 
   let first_args = &call.args[0];
 
   assert!(
     first_args.expr.is_object(),
     "{}",
-    constants::messages::NON_OBJECT_FOR_STYLEX_CALL
+    NON_OBJECT_FOR_STYLEX_CALL
   )
 }
 
 pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &mut StateManager) {
   let init = match &var_decl.init {
-    Some(init) => init
-      .clone()
-      .call()
-      .expect(constants::messages::NON_STATIC_KEYFRAME_VALUE),
-    None => panic!("{}", constants::messages::NON_STATIC_KEYFRAME_VALUE),
+    Some(init) => init.clone().call().expect(NON_STATIC_KEYFRAME_VALUE),
+    None => panic!("{}", NON_STATIC_KEYFRAME_VALUE),
   };
 
   if !is_keyframes_call(var_decl, state) {
@@ -70,21 +75,17 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
         |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(init.clone()))) }
       ),
     "{}",
-    constants::messages::UNBOUND_STYLEX_CALL_VALUE
+    UNBOUND_STYLEX_CALL_VALUE
   );
 
-  assert!(
-    init.args.len() == 1,
-    "{}",
-    constants::messages::ILLEGAL_ARGUMENT_LENGTH
-  );
+  assert!(init.args.len() == 1, "{}", ILLEGAL_ARGUMENT_LENGTH);
 
   let first_args = &init.args[0];
 
   assert!(
     first_args.expr.is_object(),
     "{}",
-    constants::messages::NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
+    NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
   )
 }
 
@@ -94,15 +95,12 @@ pub(crate) fn validate_stylex_create_theme_indent(
   state: &mut StateManager,
 ) {
   let Some(var_decl) = var_decl else {
-    panic!("{}", constants::messages::UNBOUND_STYLEX_CALL_VALUE)
+    panic!("{}", UNBOUND_STYLEX_CALL_VALUE)
   };
 
   let init = match &var_decl.init {
-    Some(init) => init
-      .clone()
-      .call()
-      .expect(constants::messages::NON_STATIC_KEYFRAME_VALUE),
-    None => panic!("{}", constants::messages::NON_STATIC_KEYFRAME_VALUE),
+    Some(init) => init.clone().call().expect(NON_STATIC_KEYFRAME_VALUE),
+    None => panic!("{}", NON_STATIC_KEYFRAME_VALUE),
   };
 
   if !is_create_theme_call(call, state) {
@@ -117,14 +115,10 @@ pub(crate) fn validate_stylex_create_theme_indent(
         |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(init.clone()))) }
       ),
     "{}",
-    constants::messages::UNBOUND_STYLEX_CALL_VALUE
+    UNBOUND_STYLEX_CALL_VALUE
   );
 
-  assert!(
-    init.args.len() == 2,
-    "{}",
-    constants::messages::ILLEGAL_ARGUMENT_LENGTH
-  );
+  assert!(init.args.len() == 2, "{}", ILLEGAL_ARGUMENT_LENGTH);
 }
 
 pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateManager) {
@@ -140,30 +134,18 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateMana
         |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(call.clone()))) }
       ),
     "{}",
-    constants::messages::UNBOUND_STYLEX_CALL_VALUE
+    UNBOUND_STYLEX_CALL_VALUE
   );
 
-  assert!(
-    call.args.len() == 1,
-    "{}",
-    constants::messages::ILLEGAL_ARGUMENT_LENGTH
-  );
+  assert!(call.args.len() == 1, "{}", ILLEGAL_ARGUMENT_LENGTH);
 
   assert!(
     state
       .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call)
       .is_some(),
     "{}",
-    constants::messages::NON_EXPORT_NAMED_DECLARATION
+    NON_EXPORT_NAMED_DECLARATION
   );
-
-  // let first_args = &call.args[0];
-
-  // assert!(
-  //     first_args.expr.is_object(),
-  //     "{}",
-  //     constants::messages::NON_OBJECT_FOR_STYLEX_CALL
-  // )
 }
 
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
@@ -244,18 +226,18 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
           || key.value == "default"
           || namespace.value.is_lit())
         {
-          panic!("{}", constants::messages::INVALID_PSEUDO_OR_AT_RULE)
+          panic!("{}", INVALID_PSEUDO_OR_AT_RULE)
         }
         key.value.to_string()
       }
-      _ => panic!("{}", constants::messages::NON_STATIC_VALUE),
+      _ => panic!("{}", NON_STATIC_VALUE),
     };
 
     match namespace.value.as_ref() {
       Expr::Lit(lit) => {
         if let Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_) = lit {
         } else {
-          panic!("{}", constants::messages::ILLEGAL_PROP_VALUE);
+          panic!("{}", ILLEGAL_PROP_VALUE);
         }
       }
       Expr::Array(array) => {
@@ -269,7 +251,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
           if let Expr::Lit(_) = elem.expr.as_ref() {
             // Do nothing
           } else {
-            panic!("{}", constants::messages::ILLEGAL_PROP_ARRAY_VALUE);
+            panic!("{}", ILLEGAL_PROP_ARRAY_VALUE);
           }
         }
       }
@@ -278,7 +260,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
 
         if key.starts_with('@') || key.starts_with(':') {
           if conditions.contains(&key) {
-            panic!("{}", constants::messages::DUPLICATE_CONDITIONAL);
+            panic!("{}", DUPLICATE_CONDITIONAL);
           }
 
           let nested_key_values = get_key_values_from_object(object);
@@ -297,11 +279,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
       }
       _ => {
         if INCLUDED_IDENT_REGEX.is_match(&key) {
-          assert!(
-            conditions.is_empty(),
-            "{}",
-            constants::messages::ONLY_TOP_LEVEL_INCLUDES
-          )
+          assert!(conditions.is_empty(), "{}", ONLY_TOP_LEVEL_INCLUDES)
         }
       }
     }
@@ -310,10 +288,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
 
 pub(crate) fn validate_dynamic_style_params(params: &[Pat]) {
   if params.iter().any(|param| !param.is_ident()) {
-    panic!(
-      "{}",
-      constants::messages::ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS
-    );
+    panic!("{}", ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS);
   }
 }
 
@@ -324,11 +299,11 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
   assert!(
     (inner_key.starts_with(':') || inner_key.starts_with('@') || inner_key == "default"),
     "{}",
-    constants::messages::INVALID_PSEUDO_OR_AT_RULE,
+    INVALID_PSEUDO_OR_AT_RULE,
   );
 
   if conditions.contains(&inner_key) {
-    panic!("{}", constants::messages::DUPLICATE_CONDITIONAL);
+    panic!("{}", DUPLICATE_CONDITIONAL);
   }
 
   match inner_value.as_ref() {
@@ -338,7 +313,7 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
         match elem {
           Some(elem) => match elem.expr.as_ref() {
             Expr::Lit(_) => {}
-            _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+            _ => panic!("{}", ILLEGAL_PROP_VALUE),
           },
           None => {}
         }
@@ -356,10 +331,10 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
     }
     Expr::Ident(_) => {
       if INCLUDED_IDENT_REGEX.is_match(&inner_key) {
-        panic!("{}", constants::messages::ONLY_TOP_LEVEL_INCLUDES);
+        panic!("{}", ONLY_TOP_LEVEL_INCLUDES);
       }
     }
-    _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+    _ => panic!("{}", ILLEGAL_PROP_VALUE),
   }
 }
 
@@ -372,19 +347,13 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
         for key_value in key_values.iter() {
           match key_value.value.as_ref() {
             Expr::Object(_) => {}
-            _ => panic!("{}", constants::messages::NON_OBJECT_KEYFRAME),
+            _ => panic!("{}", NON_OBJECT_KEYFRAME),
           }
         }
       }
-      _ => panic!(
-        "{}",
-        constants::messages::NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
-      ),
+      _ => panic!("{}", NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL),
     },
-    _ => panic!(
-      "{}",
-      constants::messages::NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
-    ),
+    _ => panic!("{}", NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL),
   }
 }
 
@@ -397,7 +366,7 @@ pub(crate) fn validate_theme_variables(
 
     *state = state.clone().combine(updated_state);
 
-    let key_value = key_value_creator(
+    let key_value = key_value_factory(
       THEME_NAME_KEY,
       string_to_expression(value.as_str()).unwrap(),
     );

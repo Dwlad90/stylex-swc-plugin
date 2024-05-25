@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod css_tests {
   use crate::shared::{
-    structures::state_manager::StateManager, utils::css::utils::transform_value,
+    structures::state_manager::StateManager, utils::css::common::transform_value,
   };
 
   #[test]
@@ -146,11 +146,7 @@ mod css_tests {
     );
 
     assert_eq!(
-      transform_value(
-        "--span-t",
-        r#"translateX(4px)"#,
-        &StateManager::default()
-      ),
+      transform_value("--span-t", r#"translateX(4px)"#, &StateManager::default()),
       r#"translateX(4px)"#
     );
   }

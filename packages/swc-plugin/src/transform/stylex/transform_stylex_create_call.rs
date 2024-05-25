@@ -10,25 +10,33 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::types::{FlatCompiledStyles, FunctionMapMemberExpression};
-use crate::shared::structures::{functions::FunctionConfigType, types::FunctionMapIdentifiers};
-use crate::shared::utils::common::{
-  get_key_str, get_key_values_from_object, prop_or_spread_expression_creator,
-};
-use crate::shared::utils::css::factories::object_expression_factory;
-use crate::shared::utils::css::stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
-use crate::shared::utils::js::stylex::stylex_create::stylex_create_set;
-use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
-use crate::shared::utils::js::stylex::stylex_include::stylex_include;
-use crate::shared::utils::stylex::dev_class_name::{
-  convert_to_test_styles, inject_dev_class_names,
-};
-use crate::shared::utils::stylex::js_to_expr::{
+use crate::shared::utils::core::js_to_expr::{
   convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
 };
 use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
-use crate::shared::{constants, utils::js::stylex::stylex_keyframes::get_keyframes_fn};
+use crate::shared::utils::{
+  ast::factories::object_expression_factory,
+  common::{get_key_str, get_key_values_from_object},
+};
+use crate::shared::{
+  constants::messages::NON_STATIC_VALUE,
+  utils::core::dev_class_name::{convert_to_test_styles, inject_dev_class_names},
+};
+use crate::shared::{
+  structures::functions::{FunctionConfig, FunctionMap, FunctionType},
+  transformers::{
+    stylex_create::stylex_create_set, stylex_first_that_works::stylex_first_that_works,
+    stylex_include::stylex_include, stylex_keyframes::get_keyframes_fn,
+  },
+};
+use crate::shared::{
+  structures::types::{FlatCompiledStyles, FunctionMapMemberExpression},
+  utils::core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
+};
+use crate::shared::{
+  structures::{functions::FunctionConfigType, types::FunctionMapIdentifiers},
+  utils::ast::factories::prop_or_spread_expression_factory,
+};
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -118,15 +126,11 @@ where
       let value = match evaluated_arg.value {
         Some(value) => value,
         None => {
-          panic!("{}", constants::messages::NON_STATIC_VALUE)
+          panic!("{}", NON_STATIC_VALUE)
         }
       };
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        constants::messages::NON_STATIC_VALUE
-      );
+      assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
 
       let (mut compiled_styles, injected_styles_sans_keyframes) =
         stylex_create_set(&value, &mut self.state, &function_map);
@@ -195,7 +199,7 @@ where
                 if let Some((params, inline_styles)) = fns.get(&key) {
                   let value = Expr::Arrow(ArrowExpr {
                     span: DUMMY_SP,
-                    params: params.clone().into_iter().map(Pat::Ident).collect(), // replace with your parameters
+                    params: params.clone().into_iter().map(Pat::Ident).collect(),
                     body: Box::new(BlockStmtOrExpr::Expr(Box::new(Expr::Array(ArrayLit {
                       span: DUMMY_SP,
                       elems: vec![
@@ -207,10 +211,10 @@ where
                           spread: None,
                           expr: Box::new(Expr::Object(ObjectLit {
                             span: DUMMY_SP,
-                            props: inline_styles // replace with your inline_styles
+                            props: inline_styles
                               .iter()
                               .map(|(key, value)| {
-                                prop_or_spread_expression_creator(key.as_str(), value.clone())
+                                prop_or_spread_expression_factory(key.as_str(), value.clone())
                               })
                               .collect(),
                           })),
@@ -223,7 +227,7 @@ where
                     return_type: None,
                   });
 
-                  prop = Option::Some(prop_or_spread_expression_creator(
+                  prop = Option::Some(prop_or_spread_expression_factory(
                     orig_key.as_str(),
                     Box::new(value),
                   ));
@@ -231,7 +235,7 @@ where
               }
 
               let prop =
-                prop.unwrap_or(prop_or_spread_expression_creator(orig_key.as_str(), value));
+                prop.unwrap_or(prop_or_spread_expression_factory(orig_key.as_str(), value));
 
               prop
             })

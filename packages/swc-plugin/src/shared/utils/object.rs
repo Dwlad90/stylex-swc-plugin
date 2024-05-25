@@ -2,7 +2,9 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, KeyValueProp};
 
 use crate::shared::{
-  enums::{FlatCompiledStylesValue, ObjMapType},
+  enums::data_structures::{
+    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
+  },
   structures::{order_pair::OrderPair, pair::Pair},
   utils::common::{get_key_str, get_key_values_from_object},
 };

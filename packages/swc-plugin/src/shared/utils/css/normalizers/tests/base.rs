@@ -1,8 +1,8 @@
 #[cfg(test)]
 
 mod normalizers {
+  use crate::shared::utils::css::common::{stringify, swc_parse_css};
   use crate::shared::utils::css::normalizers::base::base_normalizer;
-  use crate::shared::utils::css::utils::{stringify, swc_parse_css};
 
   #[test]
   fn should_normalize() {

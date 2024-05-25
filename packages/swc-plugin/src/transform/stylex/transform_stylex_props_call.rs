@@ -5,7 +5,7 @@ use swc_core::{
 
 use crate::{
   shared::utils::{
-    stylex::{props::props, stylex_merge::stylex_merge},
+    core::{props::props, stylex_merge::stylex_merge},
     validators::is_props_call,
   },
   ModuleTransformVisitor,

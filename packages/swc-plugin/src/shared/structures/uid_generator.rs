@@ -3,10 +3,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use swc_core::{common::DUMMY_SP, ecma::ast::Ident};
 
-// lazy_static! {
-//     static ref COUNTERS: DashMap<String, AtomicUsize> = DashMap::new();
-// }
-
 /// A thread-safe generator for unique identifiers.
 pub(crate) struct UidGenerator {
   prefix: String,
@@ -29,18 +25,16 @@ impl UidGenerator {
     self.counters.remove(&self.prefix);
   }
   pub fn generate(&self) -> String {
-    // let mark = Mark::fresh(Mark::root());
     let counter = self.counters.get(&self.prefix).unwrap();
     let count = counter.fetch_add(1, Ordering::SeqCst);
-    let unique_name = format!(
-      "_{}{}",
-      self.prefix,
-      if count < 2 {
-        "".to_string()
-      } else {
-        count.to_string()
-      }
-    );
+
+    let count_string = if count < 2 {
+      String::default()
+    } else {
+      count.to_string()
+    };
+
+    let unique_name = format!("_{}{}", self.prefix, count_string);
     unique_name
   }
 

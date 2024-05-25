@@ -5,7 +5,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::ModuleCycle, structures::meta_data::MetaData, utils::common::fill_top_level_expressions,
+    enums::core::ModuleCycle, structures::meta_data::MetaData, utils::common::fill_top_level_expressions,
   },
   ModuleTransformVisitor,
 };

@@ -1,20 +1,12 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- *
- */
-
 import path from "path";
 import stylexBabelPlugin from "@stylexjs/babel-plugin";
-import type { Rule } from "@stylexjs/babel-plugin";
 import webpack from "webpack";
-import type { Compiler, WebpackError } from "webpack";
-
 import fs from "fs/promises";
 import { PluginRule } from "./types";
+
+import type { Rule } from "@stylexjs/babel-plugin";
+import type { Compiler, WebpackError } from "webpack";
+
 const { NormalModule, Compilation } = webpack;
 
 const PLUGIN_NAME = "stylex";

@@ -7,28 +7,30 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, Ident},
 };
 
-use crate::shared::utils::stylex::js_to_expr::{convert_object_to_ast, NestedStringObject};
-use crate::shared::utils::{
-  js::stylex::stylex_create_theme::stylex_create_theme,
-  stylex::dev_class_name::convert_theme_to_test_styles,
-};
+use crate::shared::structures::{functions::FunctionMap, types::FunctionMapIdentifiers};
 use crate::shared::{
-  constants,
-  structures::{functions::FunctionMap, types::FunctionMapIdentifiers},
-  utils::css::stylex::evaluate::evaluate,
+  constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
+  utils::{
+    core::js_to_expr::{convert_object_to_ast, NestedStringObject},
+    js::evaluate::evaluate,
+  },
 };
 use crate::shared::{
   structures::functions::FunctionConfigType,
-  utils::js::stylex::{stylex_keyframes::get_keyframes_fn, stylex_types::get_types_fn},
+  transformers::{stylex_keyframes::get_keyframes_fn, stylex_types::get_types_fn},
 };
 use crate::shared::{
   structures::types::FunctionMapMemberExpression,
   utils::{
-    stylex::dev_class_name::convert_theme_to_dev_styles,
+    core::dev_class_name::convert_theme_to_dev_styles,
     validators::{
       is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
     },
   },
+};
+use crate::shared::{
+  transformers::stylex_create_theme::stylex_create_theme,
+  utils::core::dev_class_name::convert_theme_to_test_styles,
 };
 use crate::ModuleTransformVisitor;
 
@@ -106,19 +108,11 @@ where
 
       let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg1.confident,
-        "{}",
-        constants::messages::NON_STATIC_VALUE
-      );
+      assert!(evaluated_arg1.confident, "{}", NON_STATIC_VALUE);
 
       let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg2.confident,
-        "{}",
-        constants::messages::NON_STATIC_VALUE
-      );
+      assert!(evaluated_arg2.confident, "{}", NON_STATIC_VALUE);
 
       let variables = match evaluated_arg1.value {
         Some(value) => {
@@ -138,12 +132,12 @@ where
               .map(|expr| expr.is_object())
               .unwrap_or(false),
             "{}",
-            constants::messages::NON_OBJECT_FOR_STYLEX_CALL
+            NON_OBJECT_FOR_STYLEX_CALL
           );
           value
         }
         None => {
-          panic!("{}", constants::messages::NON_OBJECT_FOR_STYLEX_CALL)
+          panic!("{}", NON_OBJECT_FOR_STYLEX_CALL)
         }
       };
 

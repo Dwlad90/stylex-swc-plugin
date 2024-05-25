@@ -244,15 +244,6 @@ fn handles_camel_cased_transition_properties() {
       Option::None
     )
   ));
-
-  // assert_eq!(
-  //     stringify_js(&camel_cased),
-  //     r#"import _inject from "@stylexjs/stylex/lib/stylex-inject";
-  //     var _inject2 = _inject;
-  //     import stylex from 'stylex';
-  //     _inject2(".x1cfch2b{transition-property:margin-top}", 3000);
-  //     "#
-  // );
 }
 
 test!(

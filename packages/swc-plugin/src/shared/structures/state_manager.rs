@@ -15,31 +15,37 @@ use swc_core::ecma::ast::{
 };
 
 use crate::shared::utils::common::{
-  expr_or_spread_number_expression_creator, expr_or_spread_string_expression_creator,
   extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
 };
 use crate::shared::{
-  constants::common::DEFAULT_INJECT_PATH, utils::css::stylex::evaluate::SeenValue,
+  constants::common::DEFAULT_INJECT_PATH,
+  utils::ast::factories::{
+    expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
+  },
 };
 use crate::shared::{
-  enums::{
-    ImportPathResolution, ImportPathResolutionType, StyleVarsToKeep, TopLevelExpression,
-    TopLevelExpressionKind,
+  enums::data_structures::{
+    import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
+    style_vars_to_keep::StyleVarsToKeep,
+    top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
   },
   utils::common::resolve_file_path,
 };
 
-use super::named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState};
 use super::plugin_pass::PluginPass;
 use super::stylex_options::{CheckModuleResolution, StyleXOptions};
 use super::stylex_state_options::StyleXStateOptions;
 use super::uid_generator::UidGenerator;
 use super::{injectable_style::InjectableStyle, stylex_options::ModuleResolution};
 use super::{meta_data::MetaData, types::StylesObjectMap};
+use super::{
+  named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
+  seen_value::SeenValue,
+};
 
 #[derive(Clone, Debug)]
 pub struct StateManager {
-  pub(crate) _state: Box<PluginPass>, // Assuming PluginPass is a struct in your code
+  pub(crate) _state: Box<PluginPass>,
 
   // Imports
   pub(crate) import_paths: HashSet<String>,
@@ -53,18 +59,18 @@ pub struct StateManager {
   pub(crate) stylex_define_vars_import: HashSet<Box<Id>>,
   pub(crate) stylex_create_theme_import: HashSet<Box<Id>>,
   pub(crate) stylex_types_import: HashSet<Box<Id>>,
-  pub(crate) inject_import_inserted: Option<(Box<Ident>, Box<Ident>)>, // Assuming this is a string identifier
-  pub(crate) theme_name: Option<String>, // Assuming this is a string identifier
+  pub(crate) inject_import_inserted: Option<(Box<Ident>, Box<Ident>)>,
+  pub(crate) theme_name: Option<String>,
 
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) all_call_expressions: Vec<CallExpr>,
   pub(crate) var_decl_count_map: HashMap<Id, i8>,
-  pub(crate) seen: HashMap<Box<Expr>, Box<SeenValue>>, // Assuming the values are strings
+  pub(crate) seen: HashMap<Box<Expr>, Box<SeenValue>>,
 
   // `stylex.create` calls
-  pub(crate) style_map: HashMap<String, Box<StylesObjectMap>>, // Assuming CompiledNamespaces is a struct in your code
-  pub(crate) style_vars: HashMap<String, Box<VarDeclarator>>, // Assuming NodePath is a struct in your code
+  pub(crate) style_map: HashMap<String, Box<StylesObjectMap>>,
+  pub(crate) style_vars: HashMap<String, Box<VarDeclarator>>,
 
   // results of `stylex.create` calls that should be kept
   pub(crate) style_vars_to_keep: HashSet<Box<StyleVarsToKeep>>,
@@ -74,7 +80,7 @@ pub struct StateManager {
 
   pub(crate) styles_vars_to_inject: Vec<String>,
 
-  pub(crate) options: Box<StyleXStateOptions>, // Assuming StyleXStateOptions is a struct in your code
+  pub(crate) options: Box<StyleXStateOptions>,
   pub(crate) metadata: IndexMap<String, Vec<MetaData>>,
   pub(crate) styles_to_inject: IndexMap<Box<Expr>, Vec<ModuleItem>>,
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
@@ -124,7 +130,7 @@ impl StateManager {
       var_decl_count_map: HashMap::new(),
 
       in_stylex_create: false,
-      options, // Assuming StyleXStateOptions has a new function
+      options,
 
       styles_vars_to_inject: vec![],
       metadata: IndexMap::new(),
@@ -463,12 +469,12 @@ impl StateManager {
     let css_rtl = &metadata.get_css_rtl();
 
     let mut stylex_inject_args = vec![
-      expr_or_spread_string_expression_creator(css.as_str()),
-      expr_or_spread_number_expression_creator(round_f64(**priority, 1)),
+      expr_or_spread_string_expression_factory(css.as_str()),
+      expr_or_spread_number_expression_factory(round_f64(**priority, 1)),
     ];
 
     if let Some(rtl) = css_rtl {
-      stylex_inject_args.push(expr_or_spread_string_expression_creator(rtl.as_str()));
+      stylex_inject_args.push(expr_or_spread_string_expression_factory(rtl.as_str()));
     }
 
     let _inject = Expr::Ident(inject_var_ident.clone());

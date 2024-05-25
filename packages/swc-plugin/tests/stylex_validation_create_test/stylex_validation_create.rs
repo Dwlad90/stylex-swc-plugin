@@ -475,22 +475,6 @@ test!(
     "#
 );
 
-// test!(
-//     Default::default(),
-//     |tr| { ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), Option::None) },
-//     pseudo_classes_must_start_with_colon_character,
-//     r#"
-//     import stylex from "@stylexjs/stylex";
-
-//     const styles = stylex.create({
-//         root: {
-//             borderRadius: '2rem',
-//             padding: '1rem',
-//         },
-//     });
-//     "#
-// );
-
 test!(
   Default::default(),
   |tr| {

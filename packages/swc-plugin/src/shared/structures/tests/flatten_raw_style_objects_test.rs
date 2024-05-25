@@ -13,8 +13,11 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       stylex_options::StyleResolution,
     },
     utils::{
-      common::{create_array, key_value_creator, string_to_expression},
-      css::stylex::flatten_raw_style_object::flatten_raw_style_object,
+      ast::{
+        convertors::string_to_expression,
+        factories::{create_array, key_value_factory},
+      },
+      core::flatten_raw_style_object::flatten_raw_style_object,
     },
   };
 
@@ -89,8 +92,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn converts_style_to_class_name() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator("color", string_to_expression("red").unwrap()),
-        key_value_creator("marginStart", string_to_expression("10").unwrap()),
+        key_value_factory("color", string_to_expression("red").unwrap()),
+        key_value_factory("marginStart", string_to_expression("10").unwrap()),
       ],
       &mut vec![],
       &mut vec![],
@@ -116,7 +119,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_shorthands() {
     let result = flatten_raw_style_object(
-      &[key_value_creator(
+      &[key_value_factory(
         "margin",
         string_to_expression("10").unwrap(),
       )],
@@ -148,8 +151,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_simple_shorthands_extended() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator("margin", string_to_expression("10").unwrap()),
-        key_value_creator("marginBottom", string_to_expression("20").unwrap()),
+        key_value_factory("margin", string_to_expression("10").unwrap()),
+        key_value_factory("marginBottom", string_to_expression("20").unwrap()),
       ],
       &mut vec![],
       &mut vec![],
@@ -184,8 +187,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_shorthands_with_space_separated_values() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator("margin", string_to_expression("10px 20px").unwrap()),
-        key_value_creator("borderColor", string_to_expression("red").unwrap()),
+        key_value_factory("margin", string_to_expression("10px 20px").unwrap()),
+        key_value_factory("borderColor", string_to_expression("red").unwrap()),
       ],
       &mut vec![],
       &mut vec![],
@@ -237,7 +240,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_shorthands_with_fallbacks() {
     let result = flatten_raw_style_object(
-      &[key_value_creator(
+      &[key_value_factory(
         "margin",
         Expr::Array(
           create_array(&[
@@ -291,11 +294,7 @@ mod nested_objects {
       },
     },
     utils::{
-      common::{key_value_creator, prop_or_spread_string_creator, string_to_expression},
-      css::{
-        factories::object_expression_factory,
-        stylex::flatten_raw_style_object::flatten_raw_style_object,
-      },
+      ast::{convertors::string_to_expression, factories::{key_value_factory, object_expression_factory, prop_or_spread_string_factory}, }, core::flatten_raw_style_object::flatten_raw_style_object,
     },
   };
 
@@ -303,13 +302,13 @@ mod nested_objects {
   fn legacy_pseudo_classes() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator("color", string_to_expression("blue").unwrap()),
-        key_value_creator("marginStart", string_to_expression("0").unwrap()),
-        key_value_creator(
+        key_value_factory("color", string_to_expression("blue").unwrap()),
+        key_value_factory("marginStart", string_to_expression("0").unwrap()),
+        key_value_factory(
           ":hover",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("color", "red"),
-            prop_or_spread_string_creator("marginStart", "10"),
+            prop_or_spread_string_factory("color", "red"),
+            prop_or_spread_string_factory("marginStart", "10"),
           ])
           .unwrap(),
         ),
@@ -352,19 +351,19 @@ mod nested_objects {
   fn modern_pseudo_classes() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator(
+        key_value_factory(
           "color",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "blue"),
-            prop_or_spread_string_creator(":hover", "red"),
+            prop_or_spread_string_factory("default", "blue"),
+            prop_or_spread_string_factory(":hover", "red"),
           ])
           .unwrap(),
         ),
-        key_value_creator(
+        key_value_factory(
           "marginStart",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "0"),
-            prop_or_spread_string_creator(":hover", "10"),
+            prop_or_spread_string_factory("default", "0"),
+            prop_or_spread_string_factory(":hover", "10"),
           ])
           .unwrap(),
         ),
@@ -412,19 +411,19 @@ mod nested_objects {
   fn modern_pseudo_classes_with_shorthands() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator(
+        key_value_factory(
           "color",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "blue"),
-            prop_or_spread_string_creator(":hover", "red"),
+            prop_or_spread_string_factory("default", "blue"),
+            prop_or_spread_string_factory(":hover", "red"),
           ])
           .unwrap(),
         ),
-        key_value_creator(
+        key_value_factory(
           "margin",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "0"),
-            prop_or_spread_string_creator(":hover", "10"),
+            prop_or_spread_string_factory("default", "0"),
+            prop_or_spread_string_factory(":hover", "10"),
           ])
           .unwrap(),
         ),
@@ -486,19 +485,19 @@ mod nested_objects {
   fn modern_pseudo_classes_with_complex_shorthands() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator(
+        key_value_factory(
           "color",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "blue"),
-            prop_or_spread_string_creator(":hover", "red"),
+            prop_or_spread_string_factory("default", "blue"),
+            prop_or_spread_string_factory(":hover", "red"),
           ])
           .unwrap(),
         ),
-        key_value_creator(
+        key_value_factory(
           "margin",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "1px 2px 3px 4px"),
-            prop_or_spread_string_creator(":hover", "10px 20px"),
+            prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
+            prop_or_spread_string_factory(":hover", "10px 20px"),
           ])
           .unwrap(),
         ),
@@ -560,20 +559,20 @@ mod nested_objects {
   fn modern_pseudo_and_at_rules() {
     let result = flatten_raw_style_object(
       &[
-        key_value_creator(
+        key_value_factory(
           "color",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "blue"),
-            prop_or_spread_string_creator(":hover", "red"),
-            prop_or_spread_string_creator("@media (min-width: 300px)", "green"),
+            prop_or_spread_string_factory("default", "blue"),
+            prop_or_spread_string_factory(":hover", "red"),
+            prop_or_spread_string_factory("@media (min-width: 300px)", "green"),
           ])
           .unwrap(),
         ),
-        key_value_creator(
+        key_value_factory(
           "marginStart",
           object_expression_factory(vec![
-            prop_or_spread_string_creator("default", "0"),
-            prop_or_spread_string_creator(":hover", "10"),
+            prop_or_spread_string_factory("default", "0"),
+            prop_or_spread_string_factory(":hover", "10"),
           ])
           .unwrap(),
         ),
@@ -632,25 +631,18 @@ mod multiple_levels_of_nesting {
       },
     },
     utils::{
-      common::{
-        key_value_creator, prop_or_spread_array_string_creator, prop_or_spread_expr_creator,
-        prop_or_spread_string_creator,
-      },
-      css::{
-        factories::object_expression_factory,
-        stylex::flatten_raw_style_object::flatten_raw_style_object,
-      },
+       ast::factories::{key_value_factory, object_expression_factory, prop_or_spread_array_string_factory, prop_or_spread_expr_factory, prop_or_spread_string_factory}, core::flatten_raw_style_object::flatten_raw_style_object
     },
   };
 
   #[test]
   fn fallback_styles_within_nested_objects() {
     let result = flatten_raw_style_object(
-      &[key_value_creator(
+      &[key_value_factory(
         "margin",
         object_expression_factory(vec![
-          prop_or_spread_string_creator("default", "1px 2px 3px 4px"),
-          prop_or_spread_array_string_creator(":hover", &["10px 20px", "1dvh 2dvh"]),
+          prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
+          prop_or_spread_array_string_factory(":hover", &["10px 20px", "1dvh 2dvh"]),
         ])
         .unwrap(),
       )],
@@ -702,11 +694,11 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_within_a_media_query_legacy_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_creator(
+      &[key_value_factory(
         "@media (min-width: 300px)",
-        object_expression_factory(vec![prop_or_spread_expr_creator(
+        object_expression_factory(vec![prop_or_spread_expr_factory(
           ":hover",
-          vec![prop_or_spread_string_creator("color", "red")],
+          vec![prop_or_spread_string_factory("color", "red")],
         )])
         .unwrap(),
       )],
@@ -736,15 +728,15 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_with_a_pseudo_within_a_media_query_legacy_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_creator(
+      &[key_value_factory(
         "@media (min-width: 300px)",
-        object_expression_factory(vec![prop_or_spread_expr_creator(
+        object_expression_factory(vec![prop_or_spread_expr_factory(
           ":hover",
           vec![
-            prop_or_spread_string_creator("color", "pink"),
-            prop_or_spread_expr_creator(
+            prop_or_spread_string_factory("color", "pink"),
+            prop_or_spread_expr_factory(
               ":active",
-              vec![prop_or_spread_string_creator("color", "red")],
+              vec![prop_or_spread_string_factory("color", "red")],
             ),
           ],
         )])
@@ -786,13 +778,13 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_within_a_media_query_modern_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_creator(
+      &[key_value_factory(
         "color",
         object_expression_factory(vec![
-          prop_or_spread_string_creator("default", "blue"),
-          prop_or_spread_expr_creator(
+          prop_or_spread_string_factory("default", "blue"),
+          prop_or_spread_expr_factory(
             "@media (min-width: 300px)",
-            vec![prop_or_spread_string_creator(":hover", "red")],
+            vec![prop_or_spread_string_factory(":hover", "red")],
           ),
         ])
         .unwrap(),
@@ -821,17 +813,17 @@ mod multiple_levels_of_nesting {
   #[test]
   fn extra_deep_pseudo_within_a_media_query_modern_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_creator(
+      &[key_value_factory(
         "color",
         object_expression_factory(vec![
-          prop_or_spread_string_creator("default", "blue"),
-          prop_or_spread_expr_creator(
+          prop_or_spread_string_factory("default", "blue"),
+          prop_or_spread_expr_factory(
             "@media (min-width: 300px)",
-            vec![prop_or_spread_expr_creator(
+            vec![prop_or_spread_expr_factory(
               ":hover",
               vec![
-                prop_or_spread_string_creator("default", "red"),
-                prop_or_spread_string_creator(":active", "maroon"),
+                prop_or_spread_string_factory("default", "red"),
+                prop_or_spread_string_factory(":active", "maroon"),
               ],
             )],
           ),

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod ensure_css_values_are_split_correctly {
-  use crate::shared::utils::css::stylex::split_css_value::split_value;
+  use crate::shared::utils::css::common::split_value;
 
   #[test]
   fn simple_space_separated_numbers() {

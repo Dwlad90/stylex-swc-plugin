@@ -1,8 +1,7 @@
 use crate::shared::{
-  structures::{
-    evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
-  },
-  utils::common::{expr_to_str, lit_to_num, string_to_expression},
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{functions::FunctionMap, state_manager::StateManager},
+  utils::ast::convertors::{expr_to_str, lit_to_num, string_to_expression},
 };
 use std::rc::Rc;
 use swc_core::{

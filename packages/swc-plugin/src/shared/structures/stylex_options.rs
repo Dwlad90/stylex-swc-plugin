@@ -81,7 +81,7 @@ pub struct StyleXOptions {
   pub test: bool,
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
-  pub defined_stylex_css_variables: HashMap<String, String>, // Assuming the values are strings
+  pub defined_stylex_css_variables: HashMap<String, String>,
   pub style_resolution: StyleResolution,
   pub runtime_injection: RuntimeInjection,
   pub import_sources: Vec<ImportSources>,
@@ -132,8 +132,6 @@ impl Default for StyleXOptions {
 
 impl From<StyleXOptionsParams> for StyleXOptions {
   fn from(options: StyleXOptionsParams) -> Self {
-    // let aliases: Option<HashMap<String, Vec<String>>> = Option::None;
-
     let unstable_module_resolution = match options.unstable_module_resolution {
       Some(module_resolution) => match module_resolution.r#type.to_lowercase().as_str() {
         "haste" => Option::Some(CheckModuleResolution::Haste(module_resolution)),

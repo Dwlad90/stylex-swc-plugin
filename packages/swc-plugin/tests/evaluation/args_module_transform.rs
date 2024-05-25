@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
 use stylex_swc_plugin::shared::{
-  structures::{
-    evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
-  },
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    common::{expr_to_str, prop_or_spread_expression_creator},
-    css::{
-      factories::object_expression_factory,
-      stylex::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
+    ast::{
+      convertors::expr_to_str,
+      factories::{object_expression_factory, prop_or_spread_expression_factory},
     },
+    core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
   },
 };
 use swc_core::{
@@ -120,7 +119,7 @@ impl Fold for ArgsModuleTransformVisitor {
           let mut props = vec![];
 
           for (key, value) in map.iter() {
-            let prop = prop_or_spread_expression_creator(
+            let prop = prop_or_spread_expression_factory(
               expr_to_str(key, &mut self.state, &FunctionMap::default()).as_str(),
               Box::new(
                 object_expression_factory(

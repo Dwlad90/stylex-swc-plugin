@@ -5,19 +5,25 @@ use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Ident, VarDeclarator};
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use crate::shared::structures::{
-  functions::{FunctionConfig, FunctionMap, FunctionType},
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+use crate::shared::structures::functions::FunctionConfigType;
+use crate::shared::utils::{
+  ast::convertors::string_to_expression,
+  validators::{assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent},
 };
-use crate::shared::utils::common::string_to_expression;
-use crate::shared::utils::css::stylex::evaluate::evaluate;
-use crate::shared::utils::js::stylex::stylex_first_that_works::stylex_first_that_works;
-use crate::shared::utils::js::stylex::stylex_include::stylex_include;
-use crate::shared::utils::js::stylex::stylex_keyframes::stylex_keyframes;
-use crate::shared::utils::validators::{
-  assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent,
+use crate::shared::{
+  constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
+  transformers::stylex_first_that_works::stylex_first_that_works,
 };
-use crate::shared::{constants, structures::functions::FunctionConfigType};
+use crate::shared::{
+  structures::{
+    functions::{FunctionConfig, FunctionMap, FunctionType},
+    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+  },
+  transformers::stylex_include::stylex_include,
+};
+use crate::shared::{
+  transformers::stylex_keyframes::stylex_keyframes, utils::js::evaluate::evaluate,
+};
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -92,11 +98,7 @@ where
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        constants::messages::NON_STATIC_VALUE
-      );
+      assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
 
       let value = match evaluated_arg.value {
         Some(value) => {
@@ -106,12 +108,12 @@ where
               .map(|expr| expr.is_object())
               .unwrap_or(false),
             "{}",
-            constants::messages::NON_OBJECT_FOR_STYLEX_CALL
+            NON_OBJECT_FOR_STYLEX_CALL
           );
           value
         }
         None => {
-          panic!("{}", constants::messages::NON_STATIC_VALUE)
+          panic!("{}", NON_STATIC_VALUE)
         }
       };
 

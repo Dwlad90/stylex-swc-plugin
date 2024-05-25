@@ -1,6 +1,7 @@
 pub mod common;
+pub mod core;
 pub mod css;
-pub(crate) mod js;
+pub mod ast;
+pub mod js;
 pub mod object;
-pub(crate) mod stylex;
 pub(crate) mod validators;

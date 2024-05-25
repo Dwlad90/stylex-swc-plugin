@@ -66,23 +66,6 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
   }
 }
 
-// fn module_to_string(module: &Module, cm: Arc<SourceMap>) -> String {
-//     Tester::print(&mut self, module, comments)
-//     let mut buf = Vec::new();
-//     {
-//         let mut emitter = Emitter {
-//             cfg: Default::default(),
-//             cm: cm.clone(),
-//             wr: Box::new(JsWriter::new(cm.clone(), "\n", &mut buf, None)),
-//             comments: Option::None,
-//         };
-
-//         emitter.emit_module(module).unwrap();
-//     }
-//     let s = String::from_utf8_lossy(&buf);
-//     s.to_string()
-// }
-
 struct RegeneratorHandler;
 
 impl VisitMut for RegeneratorHandler {

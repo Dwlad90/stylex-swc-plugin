@@ -2,9 +2,9 @@ use std::{collections::HashMap, rc::Rc};
 
 use swc_core::ecma::ast::{Expr, Id};
 
-use crate::shared::utils::js::{
-  enums::{ArrayJS, MathJS, ObjectJS},
-  stylex::stylex_types::ValueWithDefault,
+use crate::shared::enums::{
+  data_structures::value_with_default::ValueWithDefault,
+  js::{ArrayJS, MathJS, ObjectJS},
 };
 
 use super::{
@@ -25,19 +25,9 @@ pub enum FunctionType {
   ArrayArgs(fn(Vec<Expr>) -> Expr),
   StylexExprFn(fn(Expr, StateManager) -> (Expr, StateManager)),
   StylexTypeFn(StylexTypeFn),
-  // StylexTypeFn(StylexTypeFn),
   StylexFnsFactory(fn(input: String) -> StylexTypeFn),
-  // OneArg(
-  //     Rc<
-  //         dyn Fn(
-  //                 Expr,
-  //                 StateManager,
-  //             ) -> (Expr, StateManager)
-  //             + 'static,
-  //     >,
-  // ), // Expr,
+
   Mapper(Rc<dyn Fn() -> Expr + 'static>),
-  // Callback(CallbackType, Expr),
   Callback(Box<CallbackType>),
 }
 

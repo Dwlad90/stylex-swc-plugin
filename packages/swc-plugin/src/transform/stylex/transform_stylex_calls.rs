@@ -4,7 +4,7 @@ use swc_core::{
   ecma::ast::{CallExpr, Callee, Expr, MemberProp},
 };
 
-use crate::shared::enums::ModuleCycle;
+use crate::shared::enums::core::ModuleCycle;
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>

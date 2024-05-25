@@ -1,7 +1,7 @@
 use swc_core::{common::comments::Comments, ecma::ast::Ident};
 
 use crate::{
-  shared::{enums::ModuleCycle, utils::common::increase_ident_count},
+  shared::{enums::core::ModuleCycle, utils::common::increase_ident_count},
   ModuleTransformVisitor,
 };
 

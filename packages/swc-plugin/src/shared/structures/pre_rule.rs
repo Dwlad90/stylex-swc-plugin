@@ -2,7 +2,9 @@ use std::fmt::Debug;
 
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::utils::{common::type_of, css::utils::convert_style_to_class_name};
+use crate::shared::utils::{
+  common::type_of, core::convert_style_to_class_name::convert_style_to_class_name,
+};
 
 use super::{
   included_style::IncludedStyle, injectable_style::InjectableStyle, null_pre_rule::NullPreRule,

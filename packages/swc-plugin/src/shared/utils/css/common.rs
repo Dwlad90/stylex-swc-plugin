@@ -1,20 +1,49 @@
+use core::panic;
+
+use crate::shared::{
+  constants::{
+    long_hand_logical::LONG_HAND_LOGICAL,
+    long_hand_physical::LONG_HAND_PHYSICAL,
+    messages::LINT_UNCLOSED_FUNCTION,
+    number_properties::NUMBER_PROPERTY_SUFFIXIES,
+    priorities::{
+      AT_RULE_PRIORITIES, CAMEL_CASE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
+    },
+    shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
+    shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
+    unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
+  },
+  structures::{
+    injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
+    stylex_state_options::StyleXStateOptions,
+  },
+  utils::css::{
+    normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
+    validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
+  },
+};
+
+use regex::Regex;
+use swc_core::{
+  common::{input::StringInput, source_map::Pos, BytePos},
+  css::{
+    ast::{Ident, Stylesheet},
+    codegen::{
+      writer::basic::{BasicCssWriter, BasicCssWriterConfig},
+      CodeGenerator, CodegenConfig, Emit,
+    },
+    parser::{error::Error, parse_string_input, parser::ParserConfig},
+  },
+};
+
 use std::collections::HashMap;
 
 use crate::shared::{
-  constants::cursor_flip::CURSOR_FLIP,
-  regex::LENGTH_UNIT_TESTER_REGEX,
-  structures::{
-    application_order::ApplicationOrder,
-    legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
-    order::Order,
-    order_pair::OrderPair,
-    pair::Pair,
-    pre_rule::{PreRuleValue, PreRules},
-    property_specificity_order::PropertySpecificityOrder,
-    stylex_options::StyleResolution,
-    stylex_state_options::StyleXStateOptions,
-  },
+  constants::cursor_flip::CURSOR_FLIP, regex::LENGTH_UNIT_TESTER_REGEX,
+  structures::pre_rule::PreRules,
 };
+
+use super::parser::parse_css;
 
 fn logical_to_physical(input: &str) -> &str {
   match input {
@@ -251,23 +280,6 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
   }
 }
 
-// fn generate_rtl(pair: Pair) -> Option<Pair> {
-//   let property_to_rtl: HashMap<String, fn(&str) -> Option<String>> = [
-//       ("margin-start".to_string(), flip_value),
-//       // ... other properties ...
-//   ].iter().cloned().collect();
-
-//   if let Some(func) = property_to_rtl.get(&pair.key) {
-//       if let Some(value) = func(&pair.value) {
-//           Some(Pair { key: pair.key, value })
-//       } else {
-//           None
-//       }
-//   } else {
-//       None
-//   }
-// }
-
 fn _flip_value(value: &PreRules) -> Option<PreRules> {
   // Implement your logic here to flip the value
   // For now, I'm just returning the same value
@@ -280,44 +292,369 @@ pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
   result
 }
 
-pub(crate) fn flat_map_expanded_shorthands(
-  obj_entry: (String, PreRuleValue),
-  options: &StyleXStateOptions,
-) -> Vec<OrderPair> {
-  let (key, raw_value) = obj_entry.clone();
+pub(crate) fn split_value_required(str: Option<&str>) -> (String, String, String, String) {
+  let values = split_value(str);
 
-  let value = match raw_value {
-    PreRuleValue::String(value) => Some(value),
-    PreRuleValue::Vec(_) => {
-      panic!("Cannot use fallbacks for shorthands. Use the expansion instead.")
-    }
-    PreRuleValue::Expr(_) => {
-      panic!("Cannot use expressions for shorthands. Use the expansion instead.")
-    }
-    PreRuleValue::Null => None,
-  };
+  let top = values.0;
+  let right = values.1.unwrap_or(top.clone());
+  let bottom = values.2.unwrap_or(top.clone());
+  let left = values.3.unwrap_or(right.clone());
 
-  let key = if key.starts_with("var(") && key.ends_with(')') {
-    key[4..key.len() - 1].to_string()
-  } else {
-    key
-  };
+  (top, right, bottom, left)
+}
 
-  let expansion_fn = match &options.style_resolution {
-    StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.clone()),
-    StyleResolution::LegacyExpandShorthands => {
-      LegacyExpandShorthandsOrder::get_expansion_fn(key.clone())
-    }
-    StyleResolution::PropertySpecificity => PropertySpecificityOrder::get_expansion_fn(key.clone()),
-  };
+pub(crate) fn split_value(
+  str: Option<&str>,
+) -> (String, Option<String>, Option<String>, Option<String>) {
+  let nodes = parse_css(str.unwrap_or(""));
 
-  if let Some(expansion_fn) = expansion_fn {
-    return (expansion_fn)(value.clone());
+  let top = nodes.first().cloned().unwrap_or(String::default());
+  let right = nodes.get(1).cloned();
+  let bottom = nodes.get(2).cloned();
+  let left = nodes.get(3).cloned();
+
+  (top, right, bottom, left)
+}
+
+const THUMB_VARIANTS: [&str; 3] = [
+  "::-webkit-slider-thumb",
+  "::-moz-range-thumb",
+  "::-ms-thumb",
+];
+
+pub(crate) fn generate_css_rule(
+  class_name: &str,
+  decls: String,
+  pseudos: &mut [String],
+  at_rules: &mut [String],
+) -> String {
+  let pseudo = pseudos
+    .iter()
+    .filter(|&p| p != "::thumb")
+    .collect::<Vec<&String>>();
+  let pseudo_strs: Vec<&str> = pseudo.iter().map(|s| s.as_str()).collect();
+  let pseudo = pseudo_strs.join("");
+  let mut selector_for_at_rules = format!(
+    ".{}{}{}",
+    class_name,
+    at_rules
+      .iter()
+      .map(|_| format!(".{}", class_name))
+      .collect::<Vec<String>>()
+      .join(""),
+    pseudo
+  );
+
+  if pseudos.contains(&"::thumb".to_string()) {
+    selector_for_at_rules = THUMB_VARIANTS
+      .iter()
+      .map(|suffix| format!("{}{}", selector_for_at_rules, suffix))
+      .collect::<Vec<String>>()
+      .join(", ");
   }
 
-  let order_pair = OrderPair(key, value);
+  at_rules.iter().fold(
+    format!("{}{{{}}}", selector_for_at_rules, decls),
+    |acc, at_rule| format!("{}{{{}}}", at_rule, acc),
+  )
+}
 
-  let vec_order_pair: Vec<OrderPair> = vec![order_pair];
+pub(crate) fn generate_rule(
+  class_name: &str,
+  key: &str,
+  values: &Vec<String>,
+  pseudos: &mut [String],
+  at_rules: &mut [String],
+) -> InjectableStyle {
+  let mut pairs: Vec<Pair> = vec![];
 
-  vec_order_pair
+  for value in values {
+    pairs.push(Pair {
+      key: key.to_string(),
+      value: value.clone(),
+    });
+  }
+
+  let ltr_pairs: Vec<Pair> = pairs
+    .iter()
+    .map(|pair| generate_ltr(pair.clone()))
+    .collect::<Vec<Pair>>();
+
+  let rtl_pairs: Vec<Pair> = pairs
+    .iter()
+    .filter_map(|pair| generate_rtl(pair.clone()))
+    .collect::<Vec<Pair>>();
+
+  let ltr_decls = ltr_pairs
+    .iter()
+    .map(|pair| format!("{}:{}", pair.key, pair.value))
+    .collect::<Vec<String>>()
+    .join(";");
+
+  let rtl_decls = rtl_pairs
+    .iter()
+    .map(|pair| format!("{}:{}", pair.key, pair.value))
+    .collect::<Vec<String>>()
+    .join(";");
+
+  let ltr_rule = generate_css_rule(class_name, ltr_decls, pseudos, at_rules);
+  let rtl_rule = if rtl_decls.is_empty() {
+    Option::None
+  } else {
+    Option::Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
+  };
+
+  let priority = get_priority(key)
+    + pseudos.iter().map(|p| get_priority(p)).sum::<f64>()
+    + at_rules.iter().map(|a| get_priority(a)).sum::<f64>();
+
+  InjectableStyle {
+    priority: Option::Some(priority),
+    rtl: rtl_rule,
+    ltr: ltr_rule,
+  }
+}
+
+pub(crate) fn get_priority(key: &str) -> f64 {
+  if key.starts_with("--") {
+    return 1.0;
+  };
+
+  if key.starts_with("@supports") {
+    return **AT_RULE_PRIORITIES
+      .get("@supports")
+      .expect("No priority found");
+  };
+
+  if key.starts_with("@media") {
+    return **AT_RULE_PRIORITIES.get("@media").expect("No priority found");
+  };
+
+  if key.starts_with("@container") {
+    return **AT_RULE_PRIORITIES
+      .get("@container")
+      .expect("No priority found");
+  };
+
+  if key.starts_with("::") {
+    return PSEUDO_ELEMENT_PRIORITY;
+  };
+
+  if key.starts_with(':') {
+    let prop: &str = if key.starts_with(':') && key.contains('(') {
+      let index = key.chars().position(|c| c == '(').unwrap();
+
+      &key[0..index]
+    } else {
+      key
+    };
+
+    return **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0);
+  };
+
+  if LONG_HAND_PHYSICAL.contains(key) {
+    return 4000.0;
+  }
+
+  if LONG_HAND_LOGICAL.contains(key) {
+    return 3000.0;
+  }
+
+  if SHORTHANDS_OF_LONGHANDS.contains(key) {
+    return 2000.0;
+  }
+
+  if SHORTHANDS_OF_SHORTHANDS.contains(key) {
+    return 1000.0;
+  }
+
+  3000.0
+}
+
+pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
+  let css_property_value = value.trim();
+
+  let value = match &css_property_value.parse::<f64>() {
+    Ok(value) => format!(
+      "{0}{1}",
+      ((value * 10000.0).round() / 10000.0),
+      get_number_suffix(key)
+    ),
+    Err(_) => css_property_value.to_string(),
+  };
+
+  if key == "content" || key == "hyphenateCharacter" || key == "hyphenate-character" {
+    let val = value.trim();
+    if Regex::new(r"^attr\([a-zA-Z0-9-]+\)$")
+      .unwrap()
+      .is_match(val)
+    {
+      return val.to_string();
+    }
+    if !(val.starts_with('"') && val.ends_with('"') || val.starts_with('\'') && val.ends_with('\''))
+    {
+      return format!("\"{}\"", val);
+    }
+
+    return val.to_string();
+  }
+
+  let result = normalize_css_property_value(key, value.as_ref(), &state.options);
+
+  result
+}
+pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
+  let config = ParserConfig {
+    allow_wrong_line_comments: false,
+    css_modules: false,
+    legacy_nesting: false,
+    legacy_ie: false,
+  };
+
+  let input = StringInput::new(
+    source,
+    BytePos::from_usize(0),
+    BytePos::from_usize(source.len()),
+  );
+  let mut errors: Vec<Error> = vec![];
+
+  (
+    parse_string_input(input, Option::None, config, &mut errors),
+    errors,
+  )
+}
+
+pub(crate) fn normalize_css_property_value(
+  css_property: &str,
+  css_property_value: &str,
+  options: &StyleXStateOptions,
+) -> String {
+  let css_property = if css_property.starts_with("--") {
+    "color"
+  } else {
+    css_property
+  };
+
+  let css_rule = if css_property.starts_with(':') {
+    format!("{0} {1}", css_property, css_property_value)
+  } else {
+    format!("* {{ {0}: {1} }}", css_property, css_property_value)
+  };
+
+  let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
+
+  if !errors.is_empty() {
+    let mut error_message = errors.first().unwrap().message().to_string();
+
+    if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {
+      error_message = LINT_UNCLOSED_FUNCTION.to_string();
+    }
+
+    panic!("{}", error_message)
+  }
+
+  let ast_normalized = match parsed_css {
+    Ok(ast) => {
+      let (parsed_css_property_value, _) = swc_parse_css(css_rule.as_str());
+
+      let validators: Vec<Validator> = vec![
+        unprefixed_custom_properties_validator,
+        // Add other validator functions here...
+      ];
+
+      let normalizers: Vec<Normalizer> = vec![
+        base_normalizer,
+        // Add other normalizer functions here...
+      ];
+
+      for validator in validators {
+        validator(ast.clone());
+      }
+
+      let mut parsed_ast = parsed_css_property_value.unwrap();
+
+      for normalizer in normalizers {
+        parsed_ast = normalizer(parsed_ast, options.use_rem_for_font_size);
+      }
+
+      let mut result = stringify(&parsed_ast);
+
+      result = whitespace_normalizer(result);
+
+      convert_css_function_to_camel_case(result.as_str())
+    }
+    Err(err) => {
+      panic!("{}", err.message())
+    }
+  };
+
+  ast_normalized
+}
+
+type Normalizer = fn(Stylesheet, bool) -> Stylesheet;
+type Validator = fn(Stylesheet);
+
+pub(crate) fn get_number_suffix(key: &str) -> String {
+  if UNITLESS_NUMBER_PROPERTIES.contains(key) {
+    return String::default();
+  }
+
+  let result = match NUMBER_PROPERTY_SUFFIXIES.get(key) {
+    Some(suffix) => suffix,
+    None => "px",
+  };
+
+  result.to_string()
+}
+
+pub(crate) fn get_value_from_ident(ident: &Ident) -> String {
+  ident.value.to_string()
+}
+
+fn convert_css_function_to_camel_case(function: &str) -> String {
+  let Some(items) = function.find('(') else {
+    return function.to_string();
+  };
+
+  let (name, args) = function.split_at(items);
+
+  let Some(camel_case_name) = CAMEL_CASE_PRIORITIES.get(name) else {
+    return function.to_string();
+  };
+
+  format!("{}{}", camel_case_name, args)
+}
+
+pub fn stringify(node: &Stylesheet) -> String {
+  let mut buf = String::new();
+  let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
+  let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
+
+  codegen.emit(&node).unwrap();
+
+  let mut result = buf.replace('\'', "");
+
+  if result.contains("--\\") {
+    /*
+     * In CSS, identifiers (including element names, classes, and IDs in selectors)
+     * can contain only the characters [a-zA-Z0-9] and ISO 10646 characters U+00A0 and higher,
+     * plus the hyphen (-) and the underscore (_);
+     * they cannot start with a digit, two hyphens, or a hyphen followed by a digit.
+     *
+     * https://stackoverflow.com/a/27882887/6717252
+     *
+     * HACK: Replace `--\3{number}` with `--{number}` to simulate original behavior of StyleX
+     */
+    let re = Regex::new(r"\\3(\d) ").unwrap();
+
+    result = re
+      .replace_all(buf.as_str(), |caps: &regex::Captures| {
+        caps
+          .get(1)
+          .map_or(String::default(), |m| m.as_str().to_string())
+      })
+      .to_string();
+  }
+
+  result
 }

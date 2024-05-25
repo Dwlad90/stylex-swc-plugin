@@ -1,5 +1,6 @@
 pub mod constants;
-pub(crate) mod enums;
+pub mod enums;
 pub mod regex;
 pub mod structures;
+pub(crate) mod transformers;
 pub mod utils;

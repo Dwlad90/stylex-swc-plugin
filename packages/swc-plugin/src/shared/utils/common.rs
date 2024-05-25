@@ -10,147 +10,29 @@ use std::{
 use path_clean::PathClean;
 use radix_fmt::radix;
 use swc_core::{
-  common::{FileName, Span, DUMMY_SP},
+  common::{FileName, DUMMY_SP},
   ecma::ast::{
-    ArrayLit, BinExpr, BinaryOp, BindingIdent, Bool, Decl, Expr, ExprOrSpread, Id, Ident,
-    ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr, Module, ModuleDecl,
-    ModuleExportName, ModuleItem, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt, Str,
-    Tpl, UnaryExpr, UnaryOp, VarDeclarator,
+    BinaryOp, BindingIdent, Decl, Expr, Id, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit,
+    MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName,
+    PropOrSpread, Stmt, VarDeclarator,
   },
 };
 
 use crate::shared::{
-  constants::{self, messages::ILLEGAL_PROP_VALUE},
-  enums::{TopLevelExpression, TopLevelExpressionKind, VarDeclAction},
-  regex::{DASHIFY_REGEX, IDENT_PROP_REGEX},
+  constants::messages::ILLEGAL_PROP_VALUE,
+  enums::{
+    data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+    misc::VarDeclAction,
+  },
+  regex::DASHIFY_REGEX,
   structures::{
+    base_css_type::BaseCSSType,
     functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::{StateManager, EXTENSIONS},
   },
 };
 
-use super::{
-  css::stylex::evaluate::{evaluate_cached, State},
-  js::stylex::stylex_types::BaseCSSType,
-};
-
-pub fn prop_or_spread_expression_creator(key: &str, value: Box<Expr>) -> PropOrSpread {
-  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-    key: string_to_prop_name(key).unwrap(),
-    value,
-  })))
-}
-
-// NOTE: Tests only using this function
-#[allow(dead_code)]
-pub(crate) fn prop_or_spread_expr_creator(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
-  let object = ObjectLit {
-    span: DUMMY_SP,
-    props: values,
-  };
-
-  prop_or_spread_expression_creator(key, Box::new(Expr::Object(object)))
-}
-
-pub fn key_value_creator(key: &str, value: Expr) -> KeyValueProp {
-  KeyValueProp {
-    key: PropName::Ident(Ident::new(key.into(), DUMMY_SP)),
-    value: Box::new(value),
-  }
-}
-
-pub(crate) fn prop_or_spread_string_creator(key: &str, value: &str) -> PropOrSpread {
-  let value = string_to_expression(value);
-
-  match value {
-    Some(value) => prop_or_spread_expression_creator(key, Box::new(value)),
-    None => panic!("Value is not a string"),
-  }
-}
-
-// NOTE: Tests only using this function
-#[allow(dead_code)]
-pub(crate) fn prop_or_spread_array_string_creator(key: &str, value: &[&str]) -> PropOrSpread {
-  let array = ArrayLit {
-    span: DUMMY_SP,
-    elems: value
-      .iter()
-      .map(|v| Option::Some(expr_or_spread_string_expression_creator(v)))
-      .collect::<Vec<Option<ExprOrSpread>>>(),
-  };
-
-  prop_or_spread_expression_creator(key, Box::new(Expr::Array(array)))
-}
-
-pub(crate) fn _prop_or_spread_boolean_creator(key: &str, value: Option<bool>) -> PropOrSpread {
-  match value {
-    Some(value) => prop_or_spread_expression_creator(
-      key,
-      Box::new(Expr::Lit(Lit::Bool(Bool {
-        span: DUMMY_SP,
-        value,
-      }))),
-    ),
-    None => panic!("Value is not a boolean"),
-  }
-}
-
-// Converts a string to an expression.
-pub(crate) fn string_to_expression(value: &str) -> Option<Expr> {
-  Option::Some(Expr::Lit(Lit::Str(value.into())))
-}
-
-// NOTE: Tests only using this function
-#[allow(dead_code)]
-fn array_fabric(values: &[Expr], spread: Option<Span>) -> Option<ArrayLit> {
-  let array = ArrayLit {
-    span: DUMMY_SP,
-    elems: values
-      .iter()
-      .map(|value| {
-        Some(ExprOrSpread {
-          spread,
-          expr: Box::new(value.clone()),
-        })
-      })
-      .collect(),
-  };
-
-  Option::Some(array)
-}
-
-// NOTE: Tests only using this function
-#[allow(dead_code)]
-pub(crate) fn create_array(values: &[Expr]) -> Option<ArrayLit> {
-  array_fabric(values, Option::None)
-}
-
-pub(crate) fn _create_spreaded_array(values: &[Expr]) -> Option<ArrayLit> {
-  array_fabric(values, Option::Some(DUMMY_SP))
-}
-
-// Converts a string to an expression.
-pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
-  if IDENT_PROP_REGEX.is_match(value) && value.parse::<i64>().is_err() {
-    Some(PropName::Ident(Ident::new(value.into(), DUMMY_SP)))
-  } else {
-    Some(PropName::Str(Str {
-      span: DUMMY_SP,
-      value: value.into(),
-      raw: None,
-    }))
-  }
-}
-
-// Converts a number to an expression.
-pub(crate) fn number_to_expression(value: f64) -> Option<Expr> {
-  Option::Some(Expr::Lit(Lit::Num(Number {
-    span: DUMMY_SP,
-    value,
-    // value: trancate_f64(value),
-    raw: Option::None,
-  })))
-}
+use super::ast::convertors::transform_shorthand_to_key_values;
 
 pub(crate) fn extract_filename_from_path(path: FileName) -> String {
   match path {
@@ -184,7 +66,7 @@ pub(crate) fn get_string_val_from_lit(value: &Lit) -> Option<String> {
     Lit::Str(str) => Option::Some(format!("{}", str.value)),
     Lit::Num(num) => Option::Some(format!("{}", num.value)),
     Lit::BigInt(big_int) => Option::Some(format!("{}", big_int.value)),
-    _ => Option::None, // _ => panic!("{}", ILLEGAL_PROP_VALUE),
+    _ => Option::None,
   }
 }
 
@@ -210,24 +92,6 @@ pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: &bool) -> Str
     format!("\"{}\"", key)
   } else {
     key.to_string()
-  }
-}
-
-pub(crate) fn expr_or_spread_string_expression_creator(value: &str) -> ExprOrSpread {
-  let expr = Box::new(string_to_expression(value).expect(constants::messages::NON_STATIC_VALUE));
-
-  ExprOrSpread {
-    expr,
-    spread: Option::None,
-  }
-}
-
-pub(crate) fn expr_or_spread_number_expression_creator(value: f64) -> ExprOrSpread {
-  let expr = Box::new(number_to_expression(value).unwrap());
-
-  ExprOrSpread {
-    expr,
-    spread: Option::None,
   }
 }
 
@@ -401,453 +265,6 @@ pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> Expr {
   }
 }
 
-pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f64 {
-  match &expr_num {
-    Expr::Ident(ident) => ident_to_number(ident, traversal_state, &FunctionMap::default()),
-    Expr::Lit(lit) => lit_to_num(lit),
-    Expr::Unary(unary) => unari_to_num(unary, traversal_state),
-    Expr::Bin(lit) => {
-      let mut state = Box::new(State::new(traversal_state));
-
-      match binary_expr_to_num(lit, &mut state) {
-        Some(result) => result,
-        None => panic!("Binary expression is not a number"),
-      }
-    }
-    _ => panic!("Expression in not a number {:?}", expr_num),
-  }
-}
-
-fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> String {
-  let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
-
-  match &var_decl {
-    Some(var_decl) => {
-      let var_decl_expr = get_expr_from_var_decl(var_decl);
-
-      match &var_decl_expr {
-        Expr::Lit(lit) => get_string_val_from_lit(lit).expect(ILLEGAL_PROP_VALUE),
-        Expr::Ident(ident) => ident_to_string(ident, state, functions),
-        _ => panic!("{}", ILLEGAL_PROP_VALUE),
-      }
-    }
-    None => panic!("{}", ILLEGAL_PROP_VALUE),
-  }
-}
-
-pub fn expr_to_str(
-  expr_string: &Expr,
-  state: &mut StateManager,
-  functions: &FunctionMap,
-) -> String {
-  match &expr_string {
-    Expr::Ident(ident) => ident_to_string(ident, state, functions),
-    Expr::Lit(lit) => get_string_val_from_lit(lit).expect("Value is not a string"),
-    _ => panic!("Expression in not a string {:?}", expr_string),
-  }
-}
-
-pub fn unari_to_num(unary_expr: &UnaryExpr, state: &mut StateManager) -> f64 {
-  let arg = unary_expr.arg.as_ref();
-  let op = unary_expr.op;
-
-  match &op {
-    UnaryOp::Minus => expr_to_num(arg, state) * -1.0,
-    UnaryOp::Plus => expr_to_num(arg, state),
-    _ => panic!("Union operation '{}' is invalid", op),
-  }
-}
-
-pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut State) -> Option<f64> {
-  let binary_expr = binary_expr.clone();
-
-  let op = binary_expr.op;
-  let Some(left) = evaluate_cached(&binary_expr.left, state) else {
-    if !state.confident {
-      return Option::None;
-    }
-
-    panic!("Left expression is not a number")
-  };
-
-  let Some(right) = evaluate_cached(&binary_expr.right, state) else {
-    if !state.confident {
-      return Option::None;
-    }
-
-    panic!("Right expression is not a number")
-  };
-
-  let result = match &op {
-    BinaryOp::Add => {
-      expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        + expr_to_num(right.as_expr()?, &mut state.traversal_state)
-    }
-    BinaryOp::Sub => {
-      expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        - expr_to_num(right.as_expr()?, &mut state.traversal_state)
-    }
-    BinaryOp::Mul => {
-      expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        * expr_to_num(right.as_expr()?, &mut state.traversal_state)
-    }
-    BinaryOp::Div => {
-      expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        / expr_to_num(right.as_expr()?, &mut state.traversal_state)
-    }
-    BinaryOp::Mod => {
-      expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        % expr_to_num(right.as_expr()?, &mut state.traversal_state)
-    }
-    BinaryOp::Exp => expr_to_num(left.as_expr()?, &mut state.traversal_state)
-      .powf(expr_to_num(right.as_expr()?, &mut state.traversal_state)),
-    BinaryOp::RShift => {
-      ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        >> expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
-    }
-    BinaryOp::LShift => {
-      ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        << expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
-    }
-    BinaryOp::BitAnd => {
-      ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        & expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
-    }
-    BinaryOp::BitOr => {
-      ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        | expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
-    }
-    BinaryOp::BitXor => {
-      ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        ^ expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
-    }
-    BinaryOp::In => {
-      if expr_to_num(right.as_expr()?, &mut state.traversal_state) == 0.0 {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::InstanceOf => {
-      if expr_to_num(right.as_expr()?, &mut state.traversal_state) == 0.0 {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::EqEq => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        == expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::NotEq => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        != expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::EqEqEq => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        == expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::NotEqEq => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        != expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::Lt => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        < expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::LtEq => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        <= expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::Gt => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        > expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    BinaryOp::GtEq => {
-      if expr_to_num(left.as_expr()?, &mut state.traversal_state)
-        >= expr_to_num(right.as_expr()?, &mut state.traversal_state)
-      {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    // #region Logical
-    BinaryOp::LogicalOr => {
-      let was_confident = state.confident;
-
-      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
-
-      let left = result.unwrap();
-      let left = left.as_expr().unwrap();
-
-      let left_confident = state.confident;
-
-      state.confident = was_confident;
-
-      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
-
-      let right = result.unwrap();
-      let right = right.as_expr().unwrap();
-      let right_confident = state.confident;
-
-      let left = expr_to_num(left, &mut state.traversal_state);
-      let right = expr_to_num(right, &mut state.traversal_state);
-
-      state.confident = left_confident && (left != 0.0 || right_confident);
-
-      if !state.confident {
-        return Option::None;
-      }
-
-      if left != 0.0 {
-        left
-      } else {
-        right
-      }
-    }
-    BinaryOp::LogicalAnd => {
-      let was_confident = state.confident;
-
-      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
-
-      let left = result.unwrap();
-      let left = left.as_expr().unwrap();
-
-      let left_confident = state.confident;
-
-      state.confident = was_confident;
-
-      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
-
-      let right = result.unwrap();
-      let right = right.as_expr().unwrap();
-      let right_confident = state.confident;
-
-      let left = expr_to_num(left, &mut state.traversal_state);
-      let right = expr_to_num(right, &mut state.traversal_state);
-
-      state.confident = left_confident && (left == 0.0 || right_confident);
-
-      if !state.confident {
-        return Option::None;
-      }
-
-      if left != 0.0 {
-        right
-      } else {
-        left
-      }
-    }
-    BinaryOp::NullishCoalescing => {
-      let was_confident = state.confident;
-
-      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
-
-      let left = result.unwrap();
-      let left = left.as_expr().unwrap();
-
-      let left_confident = state.confident;
-
-      state.confident = was_confident;
-
-      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
-
-      let right = result.unwrap();
-      let right = right.as_expr().unwrap();
-      let right_confident = state.confident;
-
-      let left = expr_to_num(left, &mut state.traversal_state);
-      let right = expr_to_num(right, &mut state.traversal_state);
-
-      state.confident = left_confident && !!(left == 0.0 || right_confident);
-
-      if !state.confident {
-        return Option::None;
-      }
-
-      if left == 0.0 {
-        right
-      } else {
-        left
-      }
-    }
-    // #endregion Logical
-    BinaryOp::ZeroFillRShift => {
-      ((expr_to_num(left.as_expr()?, &mut state.traversal_state) as i32)
-        >> expr_to_num(right.as_expr()?, &mut state.traversal_state) as i32) as f64
-    }
-  };
-
-  // Option::Some(trancate_f64(result))
-  Option::Some(result)
-}
-
-pub fn ident_to_number(
-  ident: &Ident,
-  traveral_state: &mut StateManager,
-  functions: &FunctionMap,
-) -> f64 {
-  // 1. Get the variable declaration
-  let var_decl = get_var_decl_by_ident(ident, traveral_state, functions, VarDeclAction::Reduce);
-
-  // 2. Check if it is a variable
-  match &var_decl {
-    Some(var_decl) => {
-      // 3. Do the correct conversion according to the expression
-      let var_decl_expr = get_expr_from_var_decl(var_decl);
-
-      let mut state: State = State::new(traveral_state);
-
-      match &var_decl_expr {
-        Expr::Bin(bin_expr) => match binary_expr_to_num(bin_expr, &mut state) {
-          Some(result) => result,
-          None => panic!("Binary expression is not a number"),
-        },
-        Expr::Unary(unary_expr) => unari_to_num(unary_expr, traveral_state),
-        Expr::Lit(lit) => lit_to_num(lit),
-        _ => panic!("Varable {:?} is not a number", var_decl_expr),
-      }
-    }
-    None => panic!("Variable {} is not declared", ident.sym),
-  }
-}
-
-pub fn lit_to_num(lit_num: &Lit) -> f64 {
-  match &lit_num {
-    Lit::Bool(Bool { value, .. }) => {
-      if value == &true {
-        1.0
-      } else {
-        0.0
-      }
-    }
-    Lit::Num(num) => num.value,
-    Lit::Str(str) => {
-      let Result::Ok(num) = str.value.parse::<f64>() else {
-        panic!("Value in not a number");
-      };
-
-      num
-    }
-    _ => {
-      panic!("Value in not a number");
-    }
-  }
-}
-
-pub fn handle_tpl_to_expression(
-  tpl: &swc_core::ecma::ast::Tpl,
-  state: &mut StateManager,
-  functions: &FunctionMap,
-) -> Expr {
-  // Clone the template, so we can work on it
-  let mut tpl = tpl.clone();
-
-  // Loop through each expression in the template
-  for expr in tpl.exprs.iter_mut() {
-    // Check if the expression is an identifier
-    if let Expr::Ident(ident) = expr.as_ref() {
-      // Find the variable declaration for this identifier in the AST
-      let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
-
-      // If a variable declaration was found
-      match &var_decl {
-        Some(var_decl) => {
-          // Swap the placeholder expression in the template with the variable declaration's initializer
-          std::mem::swap(
-            expr,
-            &mut var_decl
-              .init
-              .clone()
-              .expect("Variable declaration has no initializer"),
-          );
-        }
-        None => {}
-      }
-    };
-  }
-
-  Expr::Tpl(tpl.clone())
-}
-
-pub fn expr_tpl_to_string(tpl: &Tpl, state: &mut StateManager, functions: &FunctionMap) -> String {
-  let mut tpl_str: String = String::new();
-
-  for (i, quasi) in tpl.quasis.iter().enumerate() {
-    tpl_str.push_str(quasi.raw.as_ref());
-
-    if i < tpl.exprs.len() {
-      match &tpl.exprs[i].as_ref() {
-        Expr::Ident(ident) => {
-          let ident = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
-
-          match ident {
-            Some(var_decl) => {
-              let var_decl_expr = get_expr_from_var_decl(&var_decl);
-
-              let value = match &var_decl_expr {
-                Expr::Lit(lit) => {
-                  get_string_val_from_lit(lit).expect(constants::messages::ILLEGAL_PROP_VALUE)
-                }
-                _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
-              };
-
-              tpl_str.push_str(value.as_str());
-            }
-            None => panic!("{}", constants::messages::NON_STATIC_VALUE),
-          }
-        }
-        Expr::Bin(bin) => tpl_str.push_str(
-          transform_bin_expr_to_number(bin, state)
-            .to_string()
-            .as_str(),
-        ),
-        Expr::Lit(lit) => tpl_str
-          .push_str(&get_string_val_from_lit(lit).expect(constants::messages::ILLEGAL_PROP_VALUE)),
-        _ => panic!("Value not suppported"), // Handle other expression types as needed
-      }
-    }
-  }
-
-  tpl_str
-}
-
 pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
   match &op {
     BinaryOp::Add => left + right,
@@ -856,22 +273,6 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
     BinaryOp::Div => left / right,
     _ => panic!("Operator '{}' is not supported", op),
   }
-}
-
-pub fn transform_bin_expr_to_number(bin: &BinExpr, traversal_state: &mut StateManager) -> f64 {
-  let mut state = Box::new(State::new(traversal_state));
-  let op = bin.op;
-  let Some(left) = evaluate_cached(&bin.left, &mut state) else {
-    panic!("Left expression is not a number")
-  };
-
-  let Some(right) = evaluate_cached(&bin.right, &mut state) else {
-    panic!("Left expression is not a number")
-  };
-  let left = expr_to_num(left.as_expr().unwrap(), traversal_state);
-  let right = expr_to_num(right.as_expr().unwrap(), traversal_state);
-
-  evaluate_bin_expr(op, left, right)
 }
 
 pub(crate) fn type_of<T>(_: T) -> &'static str {
@@ -1023,7 +424,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
           Prop::KeyValue(key_value) => {
             key_values.push(key_value.clone());
           }
-          _ => panic!("{}", constants::messages::ILLEGAL_PROP_VALUE),
+          _ => panic!("{}", ILLEGAL_PROP_VALUE),
         }
       }
     }
@@ -1173,14 +574,5 @@ pub(crate) fn normalize_expr(expr: &Expr) -> &Expr {
   match expr {
     Expr::Paren(paren) => normalize_expr(paren.expr.as_ref()),
     _ => expr,
-  }
-}
-
-pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
-  if let Some(ident) = prop.as_shorthand() {
-    *prop = Box::new(Prop::KeyValue(KeyValueProp {
-      key: PropName::Ident(ident.clone()),
-      value: Box::new(Expr::Ident(ident.clone())),
-    }));
   }
 }

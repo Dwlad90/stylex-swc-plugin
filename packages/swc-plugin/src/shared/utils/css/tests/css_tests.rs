@@ -2,7 +2,7 @@
 mod common_css_tests {
   use crate::shared::{
     structures::state_manager::StateManager,
-    utils::css::utils::{get_number_suffix, transform_value},
+    utils::css::common::{get_number_suffix, transform_value},
   };
 
   #[test]

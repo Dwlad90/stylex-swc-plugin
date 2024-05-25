@@ -2,21 +2,17 @@ use swc_core::css::ast::{
   ComponentValue, Declaration, Function, FunctionName, QualifiedRule, Rule, Stylesheet,
 };
 
+use crate::shared::constants::messages::UNPREFIXED_CUSTOM_PROPERTIES;
+use crate::shared::utils::css::common::get_value_from_ident;
 #[cfg(test)]
-use crate::shared::utils::css::utils::swc_parse_css;
-use crate::shared::{constants::messages, utils::css::utils::get_value_from_ident};
-
+use crate::shared::utils::css::common::swc_parse_css;
 fn process_function(func: &Function) {
   if let FunctionName::Ident(func_name_ident) = &func.name {
     let func_name = get_value_from_ident(func_name_ident);
     if func_name == "var" {
       if let Some(ComponentValue::Ident(ident)) = func.value.first() {
         let value = get_value_from_ident(ident.as_ref());
-        assert!(
-          value.starts_with("--"),
-          "{}",
-          messages::UNPREFIXED_CUSTOM_PROPERTIES
-        );
+        assert!(value.starts_with("--"), "{}", UNPREFIXED_CUSTOM_PROPERTIES);
       }
     }
   }

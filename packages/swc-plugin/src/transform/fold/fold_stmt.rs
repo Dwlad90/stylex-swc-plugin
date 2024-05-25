@@ -7,7 +7,7 @@ use swc_core::{
   },
 };
 
-use crate::{shared::enums::ModuleCycle, ModuleTransformVisitor};
+use crate::{shared::enums::core::ModuleCycle, ModuleTransformVisitor};
 
 impl<C> ModuleTransformVisitor<C>
 where

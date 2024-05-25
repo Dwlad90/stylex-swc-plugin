@@ -15,7 +15,7 @@ pub struct StyleXStateOptions {
   pub test: bool,
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
-  pub defined_stylex_css_variables: HashMap<String, String>, // Assuming the values are strings
+  pub defined_stylex_css_variables: HashMap<String, String>,
   pub style_resolution: StyleResolution,
   pub import_sources: Vec<ImportSources>,
   pub runtime_injection: Option<RuntimeInjectionState>,
@@ -30,7 +30,7 @@ impl StyleXStateOptions {
     StyleXStateOptions {
       style_resolution: StyleResolution::ApplicationOrder,
       use_rem_for_font_size: false,
-      runtime_injection: Option::None, // HERERE
+      runtime_injection: Option::None,
       class_name_prefix: "x".to_string(),
       defined_stylex_css_variables: HashMap::new(),
       import_sources: vec![],

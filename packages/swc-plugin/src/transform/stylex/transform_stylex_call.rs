@@ -5,8 +5,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    structures::named_import_source::ImportSources,
-    utils::stylex::{common::stylex, stylex_merge::stylex_merge},
+    structures::named_import_source::ImportSources, utils::core::{stylex::stylex, stylex_merge::stylex_merge},
   },
   ModuleTransformVisitor,
 };

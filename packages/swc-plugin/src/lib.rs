@@ -16,31 +16,6 @@ use swc_core::{
   },
 };
 
-// #[derive(Deserialize, Clone, Debug)]
-// #[serde(rename_all = "camelCase")]
-// pub struct StylexConfigParams {
-//     pub use_rem_for_font_size: Option<bool>,
-//     pub runtime_injection: Option<bool>,
-//     pub class_name_prefix: Option<String>,
-//     pub defined_stylex_css_variables: Option<HashMap<String, String>>,
-//     pub import_sources: Option<Vec<ImportSources>>,
-// }
-
-// impl From<StyleXOptionsParams> for StyleXOptions {
-//     fn from(config: StyleXOptionsParams) -> Self {
-//         StyleXOptions {
-//             style_resolution: Option::Some("application-order".to_string()),
-//             use_rem_for_font_size: config.use_rem_for_font_size.unwrap_or(false),
-//             runtime_injection: config.runtime_injection.unwrap_or(false),
-//             class_name_prefix: config.class_name_prefix.unwrap_or("x".to_string()),
-//             defined_stylex_css_variables: config
-//                 .defined_stylex_css_variables
-//                 .unwrap_or(HashMap::new()),
-//             import_sources: config.import_sources,
-//         }
-//     }
-// }
-
 #[plugin_transform]
 pub(crate) fn process_transform(
   program: Program,
@@ -64,12 +39,7 @@ pub(crate) fn process_transform(
     Err(e) => panic!("Error getting current directory: {}", e),
   };
 
-  let plugin_pass = Box::new(PluginPass {
-    // key: "key".to_string(),
-    // opts: Default::default(),
-    cwd,
-    filename,
-  });
+  let plugin_pass = Box::new(PluginPass { cwd, filename });
 
   let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
     ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config);

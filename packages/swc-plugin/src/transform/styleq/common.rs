@@ -4,11 +4,13 @@ use indexmap::IndexMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use crate::shared::constants::common::COMPILED_KEY;
-use crate::shared::enums::FlatCompiledStylesValue;
+use crate::shared::{
+  constants::common::COMPILED_KEY,
+  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
+};
 use crate::shared::{
   structures::types::FlatCompiledStyles,
-  utils::stylex::parse_nullable_style::{ResolvedArg, StyleObject},
+  utils::core::parse_nullable_style::{ResolvedArg, StyleObject},
 };
 
 pub(crate) struct StyleQResult {
@@ -26,7 +28,7 @@ where
 }
 
 pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
-  let mut class_name = "".to_string();
+  let mut class_name = String::default();
 
   if arguments.is_empty() {
     // Early return if there are no arguments
@@ -76,7 +78,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
             let style_hash = get_hash(btree_map);
 
             // Build up the class names defined by this object
-            let mut class_name_chunk = "".to_string(); // Check the cache to see if we've already done this work
+            let mut class_name_chunk = String::default(); // Check the cache to see if we've already done this work
 
             if next_cache
               .clone()

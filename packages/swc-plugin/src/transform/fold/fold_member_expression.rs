@@ -8,7 +8,10 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::{ModuleCycle, NonNullProp, NonNullProps, StyleVarsToKeep},
+    enums::{
+      core::ModuleCycle,
+      data_structures::style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
+    },
     utils::common::{increase_ident_count, increase_member_ident_count},
   },
   ModuleTransformVisitor,
@@ -54,15 +57,6 @@ where
         if let Some(prop_name) = prop_name {
           if let Some(count) = self.state.member_object_ident_count_map.get(&obj_name) {
             if self.state.style_map.contains_key(obj_name.0.as_str()) && count > &0 {
-              //   &self.state.member_object_ident_count_map,
-              //   &member_expression
-              // );
-              //   &obj_name,
-              //   &prop_name,
-              //   &count,
-              //   &self.state.var_decl_count_map
-              // );
-
               increase_ident_count(
                 &mut self.state,
                 object.as_ident().expect("Object not an ident"),

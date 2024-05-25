@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use stylex_swc_plugin::shared::{
-  structures::{
-    evaluate_result::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
-  },
-  utils::css::stylex::evaluate::evaluate,
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{functions::FunctionMap, state_manager::StateManager},
+  utils::js::evaluate::evaluate,
 };
 use swc_core::{
   common::DUMMY_SP,

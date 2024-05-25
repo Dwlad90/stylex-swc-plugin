@@ -1,12 +1,3 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- *
- */
-
 import WebpackPluginStylex from "./custom-webpack-plugin";
 
 import type { Configuration } from "webpack";
@@ -61,13 +52,6 @@ function StylexNextJSPlugin({
         }
 
         const webpackPluginOptions = {
-          babelConfig: {
-            babelrc: true,
-            buildId,
-            isServer,
-            count,
-            dev,
-          },
           rootDir,
           appendTo: (name: string) => name.endsWith(".css"),
           filename,

@@ -1,6 +1,4 @@
-use crate::shared::{
-  structures::order_pair::OrderPair, utils::css::stylex::split_css_value::split_value_required,
-};
+use crate::shared::{structures::order_pair::OrderPair, utils::css::common::split_value_required};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct Shorthands;
@@ -17,7 +15,7 @@ impl Shorthands {
   }
 
   fn border_color(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref()); // Assuming split_value returns a Vec<String>
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
 
     vec![
       OrderPair("borderTopColor".into(), Some(top)),
@@ -33,7 +31,7 @@ impl Shorthands {
     ]
   }
   fn border_style(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref()); // Assuming split_value returns a Vec<String>
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
 
     vec![
       OrderPair("borderTopStyle".into(), Some(top)),
@@ -49,7 +47,7 @@ impl Shorthands {
     ]
   }
   fn border_width(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref()); // Assuming split_value returns a Vec<String>
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
 
     vec![
       OrderPair("borderTopWidth".into(), Some(top)),
@@ -97,7 +95,7 @@ impl Shorthands {
   }
 
   fn border_radius(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref()); // Assuming split_value returns a Vec<String>
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
 
     vec![
       OrderPair("borderTopStartRadius".into(), Some(top)),
@@ -167,7 +165,7 @@ impl Shorthands {
     ]
   }
   fn margin(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref()); // Assuming split_value returns a Vec<String>
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
 
     vec![
       OrderPair("marginTop".into(), Some(top)),
@@ -227,7 +225,7 @@ impl Shorthands {
     ]
   }
   fn padding(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref()); // Assuming split_value returns a Vec<String>
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
 
     vec![
       OrderPair("paddingTop".into(), Some(top)),

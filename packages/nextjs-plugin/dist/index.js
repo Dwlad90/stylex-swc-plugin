@@ -45,13 +45,6 @@ function StylexNextJSPlugin({ rootDir, filename = "stylex-bundle.css", ...plugin
                     }
                 }
                 const webpackPluginOptions = {
-                    babelConfig: {
-                        babelrc: true,
-                        buildId,
-                        isServer,
-                        count,
-                        dev,
-                    },
                     rootDir,
                     appendTo: (name) => name.endsWith(".css"),
                     filename,

@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::ModuleCycle, utils::common::normalize_expr},
+  shared::{enums::core::ModuleCycle, utils::common::normalize_expr},
   ModuleTransformVisitor,
 };
 

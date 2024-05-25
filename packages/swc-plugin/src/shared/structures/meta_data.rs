@@ -53,10 +53,6 @@ impl MetaData {
     &self.priority
   }
 
-  // fn set_priority(key: &str) -> u16 {
-  //     get_priority(key)
-  // }
-
   pub(crate) fn convert_from_injected_styles_map(
     injected_styles_map: IndexMap<String, Box<InjectableStyle>>,
   ) -> Vec<MetaData> {

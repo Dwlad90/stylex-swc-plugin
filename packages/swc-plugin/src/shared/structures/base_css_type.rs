@@ -1,11 +1,13 @@
 use indexmap::IndexMap;
-use swc_core::common::DUMMY_SP;
 use swc_ecma_ast::{Expr, ObjectLit, PropOrSpread};
 
 use crate::shared::{
   enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
   utils::{
-    ast::factories::{prop_or_spread_expression_factory, prop_or_spread_string_factory},
+    ast::factories::{
+      object_lit_factory, object_expression_factory, prop_or_spread_expression_factory,
+      prop_or_spread_string_factory,
+    },
     common::{get_key_str, get_key_values_from_object, get_string_val_from_lit},
   },
 };
@@ -43,18 +45,15 @@ impl BaseCSSType {
         let mut local_props = vec![];
 
         for (key, val) in map {
-          let props_to_extend = BaseCSSType::value_to_props(val, Some(key.clone()));
+          let props_to_extend = BaseCSSType::value_to_props(val, Some(key));
 
           local_props.extend(props_to_extend);
         }
 
-        let object_expr = Expr::Object(ObjectLit {
-          span: DUMMY_SP,
-          props: local_props,
-        });
+        let object_expr = object_expression_factory(local_props);
         let prop = prop_or_spread_expression_factory(
           top_key.unwrap_or("value".to_string()).as_str(),
-          Box::new(object_expr),
+          object_expr,
         );
 
         vec![prop]
@@ -68,7 +67,7 @@ impl BaseCSSType {
 impl From<ObjectLit> for BaseCSSType {
   fn from(obj: ObjectLit) -> BaseCSSType {
     let key_values = get_key_values_from_object(&obj);
-    let mut syntax: Option<CSSSyntax> = Option::None;
+    let mut syntax: Option<CSSSyntax> = None;
 
     let mut values: IndexMap<String, ValueWithDefault> = IndexMap::new();
 
@@ -91,10 +90,7 @@ impl From<ObjectLit> for BaseCSSType {
 
               let prop = prop_or_spread_string_factory("default", value.as_str());
 
-              ObjectLit {
-                span: DUMMY_SP,
-                props: vec![prop],
-              }
+              object_lit_factory(vec![prop])
             }
             _ => panic!("Value must be an object or string"),
           };

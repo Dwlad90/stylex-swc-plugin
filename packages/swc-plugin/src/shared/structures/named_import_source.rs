@@ -62,23 +62,23 @@ impl RuntimeInjection {
 
   pub(crate) fn _as_boolean(&self) -> Option<&bool> {
     match self {
-      RuntimeInjection::Boolean(value) => Option::Some(value),
-      RuntimeInjection::Regular(_) => Option::None,
-      RuntimeInjection::Named(_named) => Option::None,
+      RuntimeInjection::Boolean(value) => Some(value),
+      RuntimeInjection::Regular(_) => None,
+      RuntimeInjection::Named(_named) => None,
     }
   }
   pub(crate) fn _as_regular(&self) -> Option<&String> {
     match self {
-      RuntimeInjection::Boolean(_) => Option::None,
-      RuntimeInjection::Regular(value) => Option::Some(value),
-      RuntimeInjection::Named(_) => Option::None,
+      RuntimeInjection::Boolean(_) => None,
+      RuntimeInjection::Regular(value) => Some(value),
+      RuntimeInjection::Named(_) => None,
     }
   }
   pub(crate) fn _as_named(&self) -> Option<&NamedImportSource> {
     match self {
-      RuntimeInjection::Boolean(_) => Option::None,
-      RuntimeInjection::Regular(_) => Option::None,
-      RuntimeInjection::Named(value) => Option::Some(value),
+      RuntimeInjection::Boolean(_) => None,
+      RuntimeInjection::Regular(_) => None,
+      RuntimeInjection::Named(value) => Some(value),
     }
   }
 }

@@ -23,7 +23,7 @@ pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
 
 pub enum FunctionType {
   ArrayArgs(fn(Vec<Expr>) -> Expr),
-  StylexExprFn(fn(Expr, StateManager) -> (Expr, StateManager)),
+  StylexExprFn(fn(Expr, &mut StateManager) -> Expr),
   StylexTypeFn(StylexTypeFn),
   StylexFnsFactory(fn(input: String) -> StylexTypeFn),
 
@@ -118,29 +118,29 @@ pub enum FunctionConfigType {
 impl FunctionConfigType {
   pub(crate) fn _as_function_config(&self) -> Option<&FunctionConfig> {
     match self {
-      Self::Regular(config) => Option::Some(config),
-      Self::Map(_) => Option::None,
+      Self::Regular(config) => Some(config),
+      Self::Map(_) => None,
     }
   }
 
   pub(crate) fn _as_map(&self) -> Option<&HashMap<Id, FunctionConfig>> {
     match self {
-      Self::Regular(_) => Option::None,
-      Self::Map(map) => Option::Some(map),
+      Self::Regular(_) => None,
+      Self::Map(map) => Some(map),
     }
   }
 
   pub(crate) fn as_map_mut(&mut self) -> Option<&mut HashMap<Id, FunctionConfig>> {
     match self {
-      Self::Regular(_) => Option::None,
-      Self::Map(map) => Option::Some(map),
+      Self::Regular(_) => None,
+      Self::Map(map) => Some(map),
     }
   }
 
   pub(crate) fn _as_function_config_mut(&mut self) -> Option<&mut FunctionConfig> {
     match self {
-      Self::Regular(config) => Option::Some(config),
-      Self::Map(_) => Option::None,
+      Self::Regular(config) => Some(config),
+      Self::Map(_) => None,
     }
   }
 }

@@ -53,7 +53,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
       module.fold_with(&mut ModuleTransformVisitor::new_test_styles(
         PluginCommentsProxy,
         &PluginPass::default(),
-        Option::None,
+        None,
       ))
     }
     Err(err) => {

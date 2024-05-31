@@ -39,7 +39,11 @@ where
     let result = if is_keyframes_call {
       validate_stylex_keyframes_indent(var_decl, &mut self.state);
 
-      let call = &var_decl.init.clone().unwrap().call().unwrap();
+      let call = &var_decl
+        .init
+        .clone()
+        .and_then(|decl| decl.call())
+        .expect("Expected call expression");
 
       let first_arg = call.args.first();
 
@@ -121,7 +125,7 @@ where
 
       assert_valid_keyframes(&plain_object);
 
-      let (animation_name, injectable_style) = stylex_keyframes(&plain_object, &self.state);
+      let (animation_name, injectable_style) = stylex_keyframes(&plain_object, &mut self.state);
 
       let (var_name, _) = &self.get_call_var_name(call);
 
@@ -131,14 +135,11 @@ where
 
       let result_ast = string_to_expression(animation_name.as_str());
 
-      self.state.register_styles(
-        call,
-        &injected_styles,
-        &result_ast.clone().expect("No result ast"),
-        var_name,
-      );
+      self
+        .state
+        .register_styles(call, &injected_styles, &result_ast, var_name);
 
-      result_ast
+      Some(result_ast)
     } else {
       None
     };

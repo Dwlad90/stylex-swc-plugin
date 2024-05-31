@@ -5,16 +5,17 @@ use crate::shared::{
   enums::data_structures::{
     flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
   },
-  structures::{order_pair::OrderPair, pair::Pair},
+  structures::{order_pair::OrderPair, pair::Pair, state_manager::StateManager},
   utils::common::{get_key_str, get_key_values_from_object},
 };
 
 pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,
+  state: &mut StateManager,
   mapper: F,
 ) -> IndexMap<String, Box<FlatCompiledStylesValue>>
 where
-  F: Fn(Box<FlatCompiledStylesValue>) -> Box<FlatCompiledStylesValue>,
+  F: Fn(Box<FlatCompiledStylesValue>, &mut StateManager) -> Box<FlatCompiledStylesValue>,
 {
   let mut variables_map = IndexMap::new();
 
@@ -27,11 +28,10 @@ where
 
         let value = key_value.value.clone();
 
-        let result = mapper(Box::new(FlatCompiledStylesValue::Tuple(
-          key.clone(),
-          value,
-          Option::None,
-        )));
+        let result = mapper(
+          Box::new(FlatCompiledStylesValue::Tuple(key.clone(), value, None)),
+          state,
+        );
 
         variables_map.insert(key, result);
       }
@@ -40,7 +40,7 @@ where
     ObjMapType::Map(map) => {
       for (key, value) in map {
         // Created hashed variable names with fileName//themeName//key
-        let result = mapper(value);
+        let result = mapper(value, state);
 
         variables_map.insert(key, result);
       }

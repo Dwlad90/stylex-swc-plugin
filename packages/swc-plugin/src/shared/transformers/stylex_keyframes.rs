@@ -25,7 +25,7 @@ use crate::shared::{
 
 pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
-  state: &StateManager,
+  state: &mut StateManager,
 ) -> (String, InjectableStyle) {
   let mut class_name_prefix = state.options.class_name_prefix.clone();
 
@@ -37,23 +37,28 @@ pub(crate) fn stylex_keyframes(
     panic!("Values must be an object")
   };
 
-  let extended_object = obj_map(ObjMapType::Object(frames.clone()), |frame| {
+  let extended_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
     let Some((_, frame, _)) = frame.as_tuple() else {
       panic!("Values must be an object")
     };
-    let pipe_result = Pipe::create(frame.clone())
-      .pipe(|frame| expand_frame_shorthands(&frame, &mut state.clone()))
+
+    let pipe_result = Pipe::create(frame)
+      .pipe(|frame| expand_frame_shorthands(frame, state))
       .pipe(|entries| obj_map_keys(&entries, dashify))
       .pipe(|entries| {
-        obj_map(ObjMapType::Map(entries), |entry| match entry.as_ref() {
-          FlatCompiledStylesValue::KeyValue(pair) => {
-            Box::new(FlatCompiledStylesValue::KeyValue(Pair {
-              key: pair.key.clone(),
-              value: transform_value(pair.key.as_str(), pair.value.as_str(), state),
-            }))
-          }
-          _ => panic!("Entry must be a tuple of key and value"),
-        })
+        obj_map(
+          ObjMapType::Map(entries),
+          state,
+          |entry, state| match entry.as_ref() {
+            FlatCompiledStylesValue::KeyValue(pair) => {
+              Box::new(FlatCompiledStylesValue::KeyValue(Pair {
+                key: pair.key.clone(),
+                value: transform_value(pair.key.as_str(), pair.value.as_str(), state),
+              }))
+            }
+            _ => panic!("Entry must be a tuple of key and value"),
+          },
+        )
       })
       .done();
 
@@ -68,27 +73,35 @@ pub(crate) fn stylex_keyframes(
     result
   });
 
-  let ltr_styles = obj_map(ObjMapType::Map(extended_object.clone()), |frame| {
-    let Some(pair) = frame.as_key_value() else {
-      panic!("Values must be an object")
-    };
+  let ltr_styles = obj_map(
+    ObjMapType::Map(extended_object.clone()),
+    state,
+    |frame, _| {
+      let Some(pair) = frame.as_key_value() else {
+        panic!("Values must be an object")
+      };
 
-    let ltr_value = generate_ltr(pair.clone());
+      let ltr_value = generate_ltr(pair.clone());
 
-    Box::new(FlatCompiledStylesValue::KeyValue(ltr_value))
-  });
+      Box::new(FlatCompiledStylesValue::KeyValue(ltr_value))
+    },
+  );
 
-  let rtl_styles = obj_map(ObjMapType::Map(extended_object.clone()), |frame| {
-    let Some(pair) = frame.as_key_value() else {
-      panic!("Values must be an object")
-    };
+  let rtl_styles = obj_map(
+    ObjMapType::Map(extended_object.clone()),
+    state,
+    |frame, _| {
+      let Some(pair) = frame.as_key_value() else {
+        panic!("Values must be an object")
+      };
 
-    let rtl_value = generate_rtl(pair.clone());
+      let rtl_value = generate_rtl(pair.clone());
 
-    Box::new(FlatCompiledStylesValue::KeyValue(
-      rtl_value.unwrap_or(pair.clone()),
-    ))
-  });
+      Box::new(FlatCompiledStylesValue::KeyValue(
+        rtl_value.unwrap_or(pair.clone()),
+      ))
+    },
+  );
 
   let ltr_string = construct_keyframes_obj(&ltr_styles);
   let rtl_string = construct_keyframes_obj(&rtl_styles);
@@ -111,7 +124,7 @@ pub(crate) fn stylex_keyframes(
     InjectableStyle {
       ltr,
       rtl,
-      priority: Option::Some(1.0),
+      priority: Some(1.0),
     },
   )
 }
@@ -141,7 +154,6 @@ fn construct_keyframes_obj(frames: &IndexMap<String, Box<FlatCompiledStylesValue
 
 fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<String, String> {
   let res: Vec<_> = obj_entries(&frame.clone())
-    .clone()
     .iter()
     .flat_map(|pair| {
       let key = get_key_str(pair);
@@ -152,7 +164,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
         .filter_map(|pair| {
           pair.1.as_ref()?;
 
-          Option::Some(pair)
+          Some(pair)
         })
         .collect::<Vec<OrderPair>>()
     })
@@ -164,22 +176,18 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
 
 pub(crate) fn get_keyframes_fn() -> FunctionConfig {
   FunctionConfig {
-    fn_ptr: FunctionType::StylexExprFn(
-      |expr: Expr, local_state: StateManager| -> (Expr, StateManager) {
-        let (animation_name, injected_style) =
-          stylex_keyframes(&EvaluateResultValue::Expr(Box::new(expr)), &local_state);
+    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, local_state: &mut StateManager| -> Expr {
+      let (animation_name, injected_style) =
+        stylex_keyframes(&EvaluateResultValue::Expr(Box::new(expr)), local_state);
 
-        let mut local_state = local_state.clone();
+      local_state
+        .injected_keyframes
+        .insert(animation_name.clone(), Box::new(injected_style));
 
-        local_state
-          .injected_keyframes
-          .insert(animation_name.clone(), Box::new(injected_style));
+      let result = string_to_expression(animation_name.as_str());
 
-        let result = string_to_expression(animation_name.as_str());
-
-        (result.unwrap(), local_state)
-      },
-    ),
+      result
+    }),
     takes_path: false,
   }
 }

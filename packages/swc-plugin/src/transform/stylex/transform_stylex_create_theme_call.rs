@@ -7,7 +7,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, Ident},
 };
 
-use crate::shared::structures::{functions::FunctionMap, types::FunctionMapIdentifiers};
 use crate::shared::{
   constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
   utils::{
@@ -27,6 +26,10 @@ use crate::shared::{
       is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
     },
   },
+};
+use crate::shared::{
+  structures::{functions::FunctionMap, types::FunctionMapIdentifiers},
+  utils::ast::factories::ident_factory,
 };
 use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
@@ -89,15 +92,12 @@ where
 
         let identifier = identifiers
           .entry(Box::new(
-            Ident::new(name.get_import_str().into(), DUMMY_SP).to_id(),
+            ident_factory(name.get_import_str().as_str()).to_id(),
           ))
           .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(
-            Ident::new("types".into(), DUMMY_SP).to_id(),
-            types_fn.clone(),
-          );
+          identifier_map.insert(ident_factory("types").to_id(), types_fn.clone());
         }
       }
 
@@ -114,7 +114,7 @@ where
 
       assert!(evaluated_arg2.confident, "{}", NON_STATIC_VALUE);
 
-      let variables = match evaluated_arg1.value {
+      let mut variables = match evaluated_arg1.value {
         Some(value) => {
           validate_theme_variables(&value, &mut self.state);
 
@@ -142,7 +142,7 @@ where
       };
 
       let (mut overrides_obj, inject_styles) = stylex_create_theme(
-        &variables,
+        &mut variables,
         &overrides,
         &mut self.state,
         &mut IndexMap::default(),
@@ -165,7 +165,7 @@ where
         .state
         .register_styles(call, &inject_styles, &result_ast, &var_name);
 
-      return Option::Some(result_ast);
+      return Some(result_ast);
     } else {
       None
     };

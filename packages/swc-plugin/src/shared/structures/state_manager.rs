@@ -9,13 +9,16 @@ use std::{
 use indexmap::{IndexMap, IndexSet};
 use swc_core::common::{EqIgnoreSpan, FileName, DUMMY_SP};
 use swc_core::ecma::ast::{
-  BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
-  ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl,
-  ModuleExportName, ModuleItem, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+  CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
+  ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
+  Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
 };
 
-use crate::shared::utils::common::{
-  extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
+use crate::shared::utils::{
+  ast::factories::binding_ident_factory,
+  common::{
+    extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
+  },
 };
 use crate::shared::{
   constants::common::DEFAULT_INJECT_PATH,
@@ -118,7 +121,7 @@ impl StateManager {
       style_vars: HashMap::new(),
       style_vars_to_keep: HashSet::new(),
       member_object_ident_count_map: HashMap::new(),
-      theme_name: Option::None,
+      theme_name: None,
 
       seen: HashMap::new(),
 
@@ -148,13 +151,13 @@ impl StateManager {
         ImportSources::Regular(_) => {}
         ImportSources::Named(named) => {
           if named.from.eq(import) {
-            return Option::Some(named.r#as.clone());
+            return Some(named.r#as.clone());
           }
         }
       }
     }
 
-    Option::None
+    None
   }
 
   pub fn import_sources(&self) -> Vec<ImportSources> {
@@ -199,10 +202,10 @@ impl StateManager {
   }
 
   pub(crate) fn get_short_filename(&self) -> String {
-    extract_filename_from_path(self._state.filename.clone())
+    extract_filename_from_path(&self._state.filename)
   }
   pub(crate) fn get_filename(&self) -> String {
-    extract_path(self._state.filename.clone())
+    extract_path(&self._state.filename)
   }
   pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
     let filename = self.get_filename();
@@ -233,13 +236,13 @@ impl StateManager {
       || !matches_file_suffix(theme_file_extension.as_str(), &filename)
       || self.options.unstable_module_resolution.is_none()
     {
-      return Option::None;
+      return None;
     }
 
     match unstable_module_resolution {
       CheckModuleResolution::Haste(_) => {
         let filename = FileName::Real(filename.into());
-        extract_filename_with_ext_from_path(filename)
+        extract_filename_with_ext_from_path(&filename)
       }
       CheckModuleResolution::CommonJS(module_resolution)
       | CheckModuleResolution::CrossFileParsing(module_resolution) => {
@@ -253,7 +256,7 @@ impl StateManager {
 
         let filename_for_hashing = relative_path(root_dir, filename).display().to_string();
 
-        Option::Some(filename_for_hashing)
+        Some(filename_for_hashing)
       }
     }
   }
@@ -367,8 +370,7 @@ impl StateManager {
           }
         });
 
-        self.inject_import_inserted =
-          Option::Some((inject_module_ident.clone(), inject_var_ident.clone()));
+        self.inject_import_inserted = Some((inject_module_ident.clone(), inject_var_ident.clone()));
 
         (inject_module_ident, inject_var_ident)
       }
@@ -411,7 +413,7 @@ impl StateManager {
         .unwrap()
         .eq(&Box::new(Expr::Call(call.clone())))
     }) {
-      item.init = Option::Some(Box::new(ast.clone()));
+      item.init = Some(Box::new(ast.clone()));
 
       let var_id = item.name.as_ident().unwrap().sym.to_string();
 
@@ -427,7 +429,7 @@ impl StateManager {
         .unwrap()
         .eq(&Box::new(Expr::Call(call.clone())))
     }) {
-      item.init = Option::Some(Box::new(ast.clone()));
+      item.init = Some(Box::new(ast.clone()));
     };
 
     if let Some(TopLevelExpression(_, item, _)) = self
@@ -481,7 +483,7 @@ impl StateManager {
 
     let stylex_call_expr = CallExpr {
       span: DUMMY_SP,
-      type_args: Option::None,
+      type_args: None,
       callee: Callee::Expr(Box::new(_inject.clone())),
       args: stylex_inject_args,
     };
@@ -508,69 +510,80 @@ impl StateManager {
     self.options.treeshake_compensation.unwrap_or(false)
   }
 
-  pub fn combine(self, other: Self) -> Self {
+  pub fn combine(&mut self, other: Self) {
     // Now you can use these helper functions to simplify your function
-    StateManager {
-      _state: self._state,
-      import_paths: union_hash_set(&self.import_paths, &other.import_paths),
-      stylex_import: union_hash_set(&self.stylex_import, &other.stylex_import),
-      stylex_props_import: union_hash_set(&self.stylex_props_import, &other.stylex_props_import),
-      stylex_attrs_import: union_hash_set(&self.stylex_attrs_import, &other.stylex_attrs_import),
-      stylex_create_import: union_hash_set(&self.stylex_create_import, &other.stylex_create_import),
-      stylex_include_import: union_hash_set(
-        &self.stylex_include_import,
-        &other.stylex_include_import,
-      ),
-      stylex_first_that_works_import: union_hash_set(
-        &self.stylex_first_that_works_import,
-        &other.stylex_first_that_works_import,
-      ),
-      stylex_keyframes_import: union_hash_set(
-        &self.stylex_keyframes_import,
-        &other.stylex_keyframes_import,
-      ),
-      stylex_define_vars_import: union_hash_set(
-        &self.stylex_define_vars_import,
-        &other.stylex_define_vars_import,
-      ),
-      stylex_create_theme_import: union_hash_set(
-        &self.stylex_create_theme_import,
-        &other.stylex_create_theme_import,
-      ),
-      stylex_types_import: union_hash_set(&self.stylex_types_import, &other.stylex_types_import),
-      inject_import_inserted: self.inject_import_inserted.or(other.inject_import_inserted),
-      theme_name: self.theme_name.or(other.theme_name),
-      declarations: chain_collect(self.declarations, other.declarations),
-      top_level_expressions: chain_collect(self.top_level_expressions, other.top_level_expressions),
-      all_call_expressions: chain_collect(self.all_call_expressions, other.all_call_expressions),
-      var_decl_count_map: chain_collect_hash_map(self.var_decl_count_map, other.var_decl_count_map),
-      style_map: chain_collect_hash_map(self.style_map, other.style_map),
-      style_vars: chain_collect_hash_map(self.style_vars, other.style_vars),
-      style_vars_to_keep: union_hash_set(&self.style_vars_to_keep, &other.style_vars_to_keep),
-      member_object_ident_count_map: chain_collect_hash_map(
-        self.member_object_ident_count_map,
-        other.member_object_ident_count_map,
-      ),
-      in_stylex_create: self.in_stylex_create || other.in_stylex_create,
-      styles_vars_to_inject: chain_collect(self.styles_vars_to_inject, other.styles_vars_to_inject),
-      options: self.options,
-      metadata: chain_collect_index_map(self.metadata, other.metadata),
-      seen: chain_collect_hash_map(self.seen, other.seen),
-      styles_to_inject: chain_collect_index_map(self.styles_to_inject, other.styles_to_inject),
-      prepend_include_module_items: chain_collect(
-        self.prepend_include_module_items,
-        other.prepend_include_module_items,
-      ),
-      prepend_import_module_items: chain_collect(
-        self.prepend_import_module_items,
-        other.prepend_import_module_items,
-      ),
-      injected_keyframes: chain_collect_index_map(
-        self.injected_keyframes,
-        other.injected_keyframes,
-      ),
-      top_imports: chain_collect(self.top_imports, other.top_imports),
-    }
+    self.import_paths = union_hash_set(&self.import_paths, &other.import_paths);
+    self.stylex_import = union_hash_set(&self.stylex_import, &other.stylex_import);
+    self.stylex_props_import =
+      union_hash_set(&self.stylex_props_import, &other.stylex_props_import);
+    self.stylex_attrs_import =
+      union_hash_set(&self.stylex_attrs_import, &other.stylex_attrs_import);
+    self.stylex_create_import =
+      union_hash_set(&self.stylex_create_import, &other.stylex_create_import);
+    self.stylex_include_import =
+      union_hash_set(&self.stylex_include_import, &other.stylex_include_import);
+    self.stylex_first_that_works_import = union_hash_set(
+      &self.stylex_first_that_works_import,
+      &other.stylex_first_that_works_import,
+    );
+    self.stylex_keyframes_import = union_hash_set(
+      &self.stylex_keyframes_import,
+      &other.stylex_keyframes_import,
+    );
+    self.stylex_define_vars_import = union_hash_set(
+      &self.stylex_define_vars_import,
+      &other.stylex_define_vars_import,
+    );
+    self.stylex_create_theme_import = union_hash_set(
+      &self.stylex_create_theme_import,
+      &other.stylex_create_theme_import,
+    );
+    self.stylex_types_import =
+      union_hash_set(&self.stylex_types_import, &other.stylex_types_import);
+    self.inject_import_inserted = self
+      .inject_import_inserted
+      .clone()
+      .or(other.inject_import_inserted);
+    self.theme_name = self.theme_name.clone().or(other.theme_name);
+    self.declarations = chain_collect(self.declarations.clone(), other.declarations);
+    self.top_level_expressions = chain_collect(
+      self.top_level_expressions.clone(),
+      other.top_level_expressions,
+    );
+    self.all_call_expressions = chain_collect(
+      self.all_call_expressions.clone(),
+      other.all_call_expressions,
+    );
+    self.var_decl_count_map =
+      chain_collect_hash_map(self.var_decl_count_map.clone(), other.var_decl_count_map);
+    self.style_map = chain_collect_hash_map(self.style_map.clone(), other.style_map);
+    self.style_vars = chain_collect_hash_map(self.style_vars.clone(), other.style_vars);
+    self.style_vars_to_keep =
+      union_hash_set(&self.style_vars_to_keep.clone(), &other.style_vars_to_keep);
+    self.member_object_ident_count_map = chain_collect_hash_map(
+      self.member_object_ident_count_map.clone(),
+      other.member_object_ident_count_map,
+    );
+    self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
+    self.styles_vars_to_inject = chain_collect(
+      self.styles_vars_to_inject.clone(),
+      other.styles_vars_to_inject,
+    );
+
+    self.metadata = chain_collect_index_map(self.metadata.clone(), other.metadata);
+    self.seen = chain_collect_hash_map(self.seen.clone(), other.seen);
+    self.styles_to_inject = chain_collect_index_map(self.styles_to_inject.clone(), other.styles_to_inject);
+    self.prepend_include_module_items = chain_collect(
+      self.prepend_include_module_items.clone(),
+      other.prepend_include_module_items,
+    );
+    self.prepend_import_module_items = chain_collect(
+      self.prepend_import_module_items.clone(),
+      other.prepend_import_module_items,
+    );
+    self.injected_keyframes =
+      chain_collect_index_map(self.injected_keyframes.clone(), other.injected_keyframes);
+    self.top_imports = chain_collect(self.top_imports.clone(), other.top_imports);
   }
 }
 
@@ -583,11 +596,11 @@ fn add_inject_default_import_expression(ident: &Ident) -> ModuleItem {
     })],
     src: Box::new(Str {
       span: DUMMY_SP,
-      raw: Option::None,
+      raw: None,
       value: DEFAULT_INJECT_PATH.into(),
     }),
     type_only: false,
-    with: Option::None,
+    with: None,
     phase: ImportPhase::Evaluation,
   }))
 }
@@ -598,11 +611,11 @@ pub(crate) fn add_import_expression(path: &str) -> ModuleItem {
     specifiers: vec![],
     src: Box::new(Str {
       span: DUMMY_SP,
-      raw: Option::None,
+      raw: None,
       value: path.into(),
     }),
     type_only: false,
-    with: Option::None,
+    with: None,
     phase: ImportPhase::Evaluation,
   }))
 }
@@ -613,16 +626,16 @@ fn add_inject_named_import_expression(ident: &Ident, imported_ident: &Ident) -> 
     specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
       span: DUMMY_SP,
       local: ident.clone(),
-      imported: Option::Some(ModuleExportName::Ident(imported_ident.clone())),
+      imported: Some(ModuleExportName::Ident(imported_ident.clone())),
       is_type_only: false,
     })],
     src: Box::new(Str {
       span: DUMMY_SP,
-      raw: Option::None,
+      raw: None,
       value: DEFAULT_INJECT_PATH.into(),
     }),
     type_only: false,
-    with: Option::None,
+    with: None,
     phase: ImportPhase::Evaluation,
   }))
 }
@@ -633,11 +646,8 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
     decls: vec![VarDeclarator {
       definite: true,
       span: DUMMY_SP,
-      name: Pat::Ident(BindingIdent {
-        id: decl_ident.clone(),
-        type_ann: None,
-      }),
-      init: Option::Some(Box::new(Expr::Ident(value_ident.clone()))),
+      name: Pat::from(binding_ident_factory(decl_ident.clone())),
+      init: Some(Box::new(Expr::from(value_ident.clone()))),
     }],
     kind: VarDeclKind::Var,
     span: DUMMY_SP,

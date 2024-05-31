@@ -46,6 +46,7 @@ function StylexNextJSPlugin({
             config.optimization.splitChunks.cacheGroups.stylex = {
               name: "stylex",
               chunks: "all",
+              test: /\.css$/,
               enforce: true,
             };
           }

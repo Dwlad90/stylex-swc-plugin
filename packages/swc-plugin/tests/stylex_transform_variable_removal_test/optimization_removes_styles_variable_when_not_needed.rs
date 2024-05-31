@@ -16,7 +16,7 @@ test!(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(true),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -42,7 +42,7 @@ test!(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(true),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

@@ -1,10 +1,11 @@
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
-    BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Number, Prop, PropName, Str, Tpl,
-    UnaryExpr, UnaryOp,
+    BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Str, Tpl, UnaryExpr,
+    UnaryOp,
   },
 };
+use swc_ecma_ast::BigInt;
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
@@ -17,6 +18,11 @@ use crate::shared::{
     },
     js::evaluate::evaluate_cached,
   },
+};
+
+use super::factories::{
+  ident_factory, lit_big_int_factory, lit_boolean_factory, lit_null_factory, lit_number_factory,
+  lit_str_factory,
 };
 
 pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager) -> f64 {
@@ -77,12 +83,10 @@ pub fn unari_to_num(unary_expr: &UnaryExpr, state: &mut StateManager) -> f64 {
 }
 
 pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) -> Option<f64> {
-  let binary_expr = binary_expr.clone();
-
   let op = binary_expr.op;
   let Some(left) = evaluate_cached(&binary_expr.left, state) else {
     if !state.confident {
-      return Option::None;
+      return None;
     }
 
     panic!("Left expression is not a number")
@@ -90,7 +94,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
 
   let Some(right) = evaluate_cached(&binary_expr.right, state) else {
     if !state.confident {
-      return Option::None;
+      return None;
     }
 
     panic!("Right expression is not a number")
@@ -229,7 +233,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
     BinaryOp::LogicalOr => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
+      let result = evaluate_cached(&Box::new(left.as_expr()?), state);
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -238,7 +242,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
+      let result = evaluate_cached(&Box::new(right.as_expr()?), state);
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
@@ -250,7 +254,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
       state.confident = left_confident && (left != 0.0 || right_confident);
 
       if !state.confident {
-        return Option::None;
+        return None;
       }
 
       if left != 0.0 {
@@ -262,7 +266,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
     BinaryOp::LogicalAnd => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
+      let result = evaluate_cached(&Box::new(left.as_expr()?), state);
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -271,7 +275,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
+      let result = evaluate_cached(&Box::new(right.as_expr()?), state);
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
@@ -283,7 +287,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
       state.confident = left_confident && (left == 0.0 || right_confident);
 
       if !state.confident {
-        return Option::None;
+        return None;
       }
 
       if left != 0.0 {
@@ -295,7 +299,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
     BinaryOp::NullishCoalescing => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(&Box::new(left.as_expr()?.clone()), state);
+      let result = evaluate_cached(&Box::new(left.as_expr()?), state);
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -304,7 +308,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(&Box::new(right.as_expr()?.clone()), state);
+      let result = evaluate_cached(&Box::new(right.as_expr()?), state);
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
@@ -316,7 +320,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
       state.confident = left_confident && !!(left == 0.0 || right_confident);
 
       if !state.confident {
-        return Option::None;
+        return None;
       }
 
       if left == 0.0 {
@@ -332,7 +336,7 @@ pub fn binary_expr_to_num(binary_expr: &BinExpr, state: &mut EvaluationState) ->
     }
   };
 
-  Option::Some(result)
+  Some(result)
 }
 
 pub fn ident_to_number(
@@ -417,7 +421,7 @@ pub fn handle_tpl_to_expression(
     };
   }
 
-  Expr::Tpl(tpl.clone())
+  Expr::Tpl(tpl)
 }
 
 pub fn expr_tpl_to_string(tpl: &Tpl, state: &mut StateManager, functions: &FunctionMap) -> String {
@@ -477,17 +481,28 @@ pub fn transform_bin_expr_to_number(bin: &BinExpr, traversal_state: &mut StateMa
   evaluate_bin_expr(op, left, right)
 }
 
-pub(crate) fn number_to_expression(value: f64) -> Option<Expr> {
-  Option::Some(Expr::Lit(Lit::Num(Number {
-    span: DUMMY_SP,
-    value,
-    // value: trancate_f64(value),
-    raw: Option::None,
-  })))
+pub fn number_to_expression(value: f64) -> Expr {
+  Expr::from(lit_number_factory(value))
 }
 
-pub(crate) fn string_to_expression(value: &str) -> Option<Expr> {
-  Option::Some(Expr::Lit(Lit::Str(value.into())))
+pub(crate) fn big_int_to_expression(value: BigInt) -> Expr {
+  Expr::from(lit_big_int_factory(value))
+}
+
+pub fn string_to_expression(value: &str) -> Expr {
+  Expr::Lit(lit_str_factory(value))
+}
+
+pub(crate) fn bool_to_expression(value: bool) -> Expr {
+  Expr::Lit(lit_boolean_factory(value))
+}
+
+pub fn ident_to_expression(value: &str) -> Expr {
+  Expr::Ident(ident_factory(value))
+}
+
+pub(crate) fn null_to_expression() -> Expr {
+  Expr::Lit(lit_null_factory())
 }
 
 pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
@@ -504,7 +519,7 @@ pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
 
 pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
   if let Some(ident) = prop.as_shorthand() {
-    *prop = Box::new(Prop::KeyValue(KeyValueProp {
+    *prop = Box::new(Prop::from(KeyValueProp {
       key: PropName::Ident(ident.clone()),
       value: Box::new(Expr::Ident(ident.clone())),
     }));

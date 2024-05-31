@@ -13,7 +13,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   ignore_non_stylex_imports,
@@ -31,7 +31,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   support_named_export_of_stylex_create,
@@ -50,7 +50,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   support_default_export_of_stylex_create,

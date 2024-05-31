@@ -13,7 +13,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   line_clamp,
@@ -32,7 +32,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   pointer_events,
@@ -56,7 +56,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   scrollbar_width,

@@ -21,16 +21,14 @@ mod stylex_keyframes {
       .map(|(key, values)| {
         let props = values
           .iter()
-          .map(|(key, value)| {
-            prop_or_spread_expression_factory(key, Box::new(string_to_expression(value).unwrap()))
-          })
+          .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
           .collect::<Vec<PropOrSpread>>();
 
         prop_or_spread_expr_factory(key, props)
       })
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
   }
 
   fn exprected_css_result_factory(
@@ -44,8 +42,8 @@ mod stylex_keyframes {
         key.to_string(),
         InjectableStyle {
           ltr: value.0.to_string(),
-          rtl: Option::None,
-          priority: Option::Some(value.1),
+          rtl: None,
+          priority: Some(value.1),
         },
       );
     }
@@ -59,7 +57,7 @@ mod stylex_keyframes {
       ("to", &[("backgroundColor", "blue")]),
     ]);
 
-    let (key, result) = stylex_keyframes(&keyframes, &StateManager::default());
+    let (key, result) = stylex_keyframes(&keyframes, &mut StateManager::default());
 
     let expected_result = exprected_css_result_factory(&[(
       "xbopttm-B",
@@ -77,7 +75,7 @@ mod stylex_keyframes {
     let keyframes =
       default_vars_factory(&[("from", &[("start", "0")]), ("to", &[("start", "500")])]);
 
-    let (key, result) = stylex_keyframes(&keyframes, &StateManager::default());
+    let (key, result) = stylex_keyframes(&keyframes, &mut StateManager::default());
 
     let expected_result = exprected_css_result_factory(&[(
       "x1jkcf39-B",

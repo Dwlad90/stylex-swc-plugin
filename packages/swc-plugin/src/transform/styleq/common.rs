@@ -34,7 +34,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
     // Early return if there are no arguments
     return StyleQResult {
       class_name,
-      inline_style: Option::None,
+      inline_style: None,
     };
   }
 
@@ -42,7 +42,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
 
   let inline_style: Option<FlatCompiledStyles> = None;
 
-  let mut next_cache: Option<IndexMap<u64, (String, Vec<String>)>> = Option::Some(IndexMap::new()); // This way of creating an array from arguments is fastest
+  let mut next_cache: Option<IndexMap<u64, (String, Vec<String>)>> = Some(IndexMap::new()); // This way of creating an array from arguments is fastest
 
   let mut styles = vec![];
 
@@ -73,7 +73,7 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
           };
 
           if let FlatCompiledStylesValue::Bool(_) = a.as_ref() {
-            let btree_map: BTreeMap<_, _> = style.clone().into_iter().collect();
+            let btree_map: BTreeMap<_, _> = style.iter().collect();
 
             let style_hash = get_hash(btree_map);
 

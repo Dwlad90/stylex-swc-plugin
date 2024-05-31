@@ -12,7 +12,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_computed_key_access,
   r#"
@@ -37,7 +37,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_keeps_spaces_around_operators,
   r#"
@@ -59,7 +59,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_composition_of_external_styles,
   r#"
@@ -81,7 +81,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_exported_styles_with_pseudo_selectors_and_queries,
   r#"
@@ -108,7 +108,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_exported_styles_with_pseudo_selectors_and_queries_within_props,
   r#"

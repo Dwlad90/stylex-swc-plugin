@@ -89,9 +89,9 @@ impl Fold for TestsTransformer {
 
         if !black_list.contains(&fn_name) {
             self.module_items
-                .push(ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+                .push(ModuleItem::Stmt(Stmt::from(ExprStmt {
                     span: DUMMY_SP,
-                    expr: Box::new(Expr::Call(call_expression.clone())),
+                    expr: Box::new(Expr::from(call_expression.clone())),
                 })));
         }
         call_expression
@@ -142,7 +142,7 @@ fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
             EsVersion::EsNext,
             Syntax::Typescript(Default::default()),
             IsModule::Bool(true),
-            Option::None,
+            None,
         )
         .unwrap();
 

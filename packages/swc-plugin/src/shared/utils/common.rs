@@ -12,9 +12,9 @@ use radix_fmt::radix;
 use swc_core::{
   common::{FileName, DUMMY_SP},
   ecma::ast::{
-    BinaryOp, BindingIdent, Decl, Expr, Id, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit,
-    MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName,
-    PropOrSpread, Stmt, VarDeclarator,
+    BinaryOp, Decl, Expr, Id, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr,
+    Module, ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName, PropOrSpread,
+    Stmt, VarDeclarator,
   },
 };
 
@@ -32,28 +32,26 @@ use crate::shared::{
   },
 };
 
-use super::ast::convertors::transform_shorthand_to_key_values;
+use super::ast::{convertors::transform_shorthand_to_key_values, factories::binding_ident_factory};
 
-pub(crate) fn extract_filename_from_path(path: FileName) -> String {
+pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
     FileName::Real(path_buf) => path_buf.file_stem().unwrap().to_str().unwrap().to_string(),
     _ => "UnknownFile".to_string(),
   }
 }
 
-pub(crate) fn extract_path(path: FileName) -> String {
+pub(crate) fn extract_path(path: &FileName) -> String {
   match path {
     FileName::Real(path_buf) => path_buf.to_str().unwrap().to_string(),
     _ => "UnknownFile".to_string(),
   }
 }
 
-pub(crate) fn extract_filename_with_ext_from_path(path: FileName) -> Option<String> {
+pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<String> {
   match path {
-    FileName::Real(path_buf) => {
-      Option::Some(path_buf.file_name().unwrap().to_str().unwrap().to_string())
-    }
-    _ => Option::None,
+    FileName::Real(path_buf) => Some(path_buf.file_name().unwrap().to_str().unwrap().to_string()),
+    _ => None,
   }
 }
 
@@ -63,10 +61,10 @@ pub fn create_hash(value: &str) -> String {
 
 pub(crate) fn get_string_val_from_lit(value: &Lit) -> Option<String> {
   match value {
-    Lit::Str(str) => Option::Some(format!("{}", str.value)),
-    Lit::Num(num) => Option::Some(format!("{}", num.value)),
-    Lit::BigInt(big_int) => Option::Some(format!("{}", big_int.value)),
-    _ => Option::None,
+    Lit::Str(str) => Some(format!("{}", str.value)),
+    Lit::Num(num) => Some(format!("{}", num.value)),
+    Lit::BigInt(big_int) => Some(format!("{}", big_int.value)),
+    _ => None,
   }
 }
 
@@ -159,34 +157,25 @@ pub fn get_var_decl_by_ident<'a>(
       let func = functions.identifiers.get(&ident.to_id());
 
       match func {
-        Some(func) => {
-          let func = func.clone();
-          match func.as_ref() {
-            FunctionConfigType::Regular(func) => {
-              match func.fn_ptr.clone() {
-                FunctionType::Mapper(func) => {
-                  let result = func();
+        Some(func) => match func.as_ref() {
+          FunctionConfigType::Regular(func) => match func.fn_ptr.clone() {
+            FunctionType::Mapper(func) => {
+              let result = func();
 
-                  let var_decl = VarDeclarator {
-                    span: DUMMY_SP,
-                    name: Pat::Ident(BindingIdent {
-                      id: ident.clone(),
-                      type_ann: Option::None,
-                    }),
-                    init: Option::Some(Box::new(result)), // Clone the result
-                    definite: false,
-                  };
+              let var_decl = VarDeclarator {
+                span: DUMMY_SP,
+                name: Pat::from(binding_ident_factory(ident.clone())),
+                init: Some(Box::new(result)),
+                definite: false,
+              };
 
-                  let var_declarator = var_decl.clone();
-                  Option::Some(var_declarator)
-                }
-                _ => panic!("Function type not supported"),
-              }
+              Some(var_decl)
             }
-            FunctionConfigType::Map(_) => unimplemented!(),
-          }
-        }
-        None => Option::None,
+            _ => panic!("Function type not supported"),
+          },
+          FunctionConfigType::Map(_) => unimplemented!(),
+        },
+        None => None,
       }
     }
   }
@@ -297,11 +286,11 @@ pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
 
   for prop in props.into_iter().rev() {
     let key = match &prop {
-      PropOrSpread::Prop(prop) => match prop.as_ref().clone() {
+      PropOrSpread::Prop(prop) => match prop.as_ref() {
         Prop::Shorthand(ident) => ident.sym.clone(),
-        Prop::KeyValue(kv) => match kv.clone().key {
+        Prop::KeyValue(kv) => match &kv.key {
           PropName::Ident(ident) => ident.sym.clone(),
-          PropName::Str(str_) => str_.value.clone(),
+          PropName::Str(str) => str.value.clone(),
           _ => continue,
         },
         _ => continue,
@@ -328,18 +317,18 @@ pub(crate) fn deep_merge_props(
       PropOrSpread::Prop(prop) => match *prop {
         Prop::KeyValue(mut kv) => {
           if new_props.iter().any(|p| match p {
-            PropOrSpread::Prop(p) => match **p {
+            PropOrSpread::Prop(p) => match p.as_ref() {
               Prop::KeyValue(ref existing_kv) => prop_name_eq(&kv.key, &existing_kv.key),
               _ => false,
             },
             _ => false,
           }) {
-            if let Expr::Object(ref mut obj1) = *kv.value {
-              new_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+            if let Expr::Object(ref mut obj) = *kv.value {
+              new_props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
                 key: kv.key.clone(),
                 value: Box::new(Expr::Object(ObjectLit {
                   span: DUMMY_SP,
-                  props: deep_merge_props(obj1.props.clone(), obj1.props.clone()),
+                  props: obj.props.clone(),
                 })),
               }))));
             }
@@ -358,7 +347,7 @@ pub(crate) fn deep_merge_props(
 
 pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {
   let Some(obj) = key_value.value.as_object() else {
-    return (key_value.value, Option::None);
+    return (key_value.value, None);
   };
 
   for prop in obj.props.clone().into_iter() {
@@ -393,9 +382,12 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                 });
 
                 if let Some(value) = value {
-                  let result_key_value = value.as_prop().unwrap().clone().key_value().unwrap();
+                  let result_key_value = value
+                    .as_prop()
+                    .and_then(|prop| prop.as_key_value())
+                    .unwrap();
 
-                  return (result_key_value.value, Option::Some(obj.clone().into()));
+                  return (result_key_value.value.clone(), Some(obj.clone().into()));
                 }
               }
             }
@@ -406,7 +398,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
     }
   }
 
-  (key_value.value, Option::None)
+  (key_value.value, None)
 }
 
 pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
@@ -446,7 +438,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
               *decl_init.clone(),
-              Option::Some(decl.name.as_ident().unwrap().to_id()),
+              Some(decl.name.as_ident().unwrap().to_id()),
             ));
             state.declarations.push(decl.clone());
           }
@@ -474,7 +466,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::Stmt,
             *decl_init.clone(),
-            Option::Some(decl.name.as_ident().unwrap().to_id()),
+            Some(decl.name.as_ident().unwrap().to_id()),
           ));
           state.declarations.push(decl.clone());
         }

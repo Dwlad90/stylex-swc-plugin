@@ -12,7 +12,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   empty_stylex_props_call,
   r#"
@@ -29,7 +29,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   basic_stylex_call,
   r#"
@@ -51,7 +51,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_number,
   r#"
@@ -76,7 +76,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_computed_number,
   r#"
@@ -101,7 +101,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_computed_string,
   r#"
@@ -123,7 +123,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_multiple_namespaces,
   r#"
@@ -150,7 +150,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_within_variable_declarations,
   r#"
@@ -172,7 +172,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_styles_variable_assignment,
   r#"
@@ -198,7 +198,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_within_export_declarations,
   r#"
@@ -223,7 +223,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_short_form_properties,
   r#"
@@ -245,7 +245,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_with_exported_short_form_properties,
   r#"
@@ -267,7 +267,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_styles_with_pseudo_selectors,
   r#"
@@ -292,7 +292,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_styles_with_pseudo_selectors_within_property,
   r#"
@@ -317,7 +317,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_styles_with_media_queries,
   r#"
@@ -345,7 +345,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_styles_with_media_queries_within_property,
   r#"
@@ -371,7 +371,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_styles_with_support_queries,
   r#"
@@ -399,7 +399,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   stylex_call_using_styles_with_support_queries_within_property,
   r#"

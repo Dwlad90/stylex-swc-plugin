@@ -30,7 +30,7 @@ impl ThemeRef {
     let str_to_hash = if key == "__themeName__" {
       gen_file_based_identifier(&self.file_name, &self.export_name, None)
     } else {
-      gen_file_based_identifier(&self.file_name, &self.export_name, Option::Some(key))
+      gen_file_based_identifier(&self.file_name, &self.export_name, Some(key))
     };
 
     let var_name = format!(

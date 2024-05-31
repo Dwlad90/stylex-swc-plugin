@@ -18,7 +18,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
     Some(&mut StyleXOptionsParams {
@@ -46,7 +46,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
     Some(&mut StyleXOptionsParams {
@@ -80,7 +80,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
     Some(&mut StyleXOptionsParams {
@@ -113,7 +113,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
     Some(&mut StyleXOptionsParams {
@@ -145,7 +145,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
     Some(&mut StyleXOptionsParams {

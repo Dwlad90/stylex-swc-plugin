@@ -15,10 +15,10 @@ use swc_core::{
 
 fn get_default_opts() -> StyleXOptionsParams {
   StyleXOptionsParams {
-    unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-      Option::None,
+    unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+      None,
     )),
-    class_name_prefix: Option::Some("x".to_string()),
+    class_name_prefix: Some("x".to_string()),
     ..StyleXOptionsParams::default()
   }
 }
@@ -31,11 +31,11 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
+      runtime_injection: Some(false),
       ..get_default_opts()
     })
   ),

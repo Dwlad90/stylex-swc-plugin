@@ -12,7 +12,7 @@ mod converting_pre_rule_to_css {
 
     state_manager.options.class_name_prefix = "x".to_string();
     state_manager.options.style_resolution = StyleResolution::LegacyExpandShorthands;
-    state_manager.options.runtime_injection = Option::None;
+    state_manager.options.runtime_injection = None;
     state_manager.options.use_rem_for_font_size = true;
     state_manager.options.dev = false;
     state_manager.options.test = false;
@@ -25,8 +25,8 @@ mod converting_pre_rule_to_css {
     let result = StylesPreRule::new(
       "color",
       PreRuleValue::String("red".to_string()),
-      Option::None,
-      Option::None,
+      None,
+      None,
     )
     .compiled(&get_state());
 
@@ -36,8 +36,8 @@ mod converting_pre_rule_to_css {
         "x1e2nbdu".to_string(),
         InjectableStyle {
           ltr: ".x1e2nbdu{color:red}".to_string(),
-          rtl: Option::None,
-          priority: Option::Some(3000.0)
+          rtl: None,
+          priority: Some(3000.0)
         }
       )])
     );

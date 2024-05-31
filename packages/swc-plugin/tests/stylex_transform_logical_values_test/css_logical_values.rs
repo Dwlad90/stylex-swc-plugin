@@ -14,7 +14,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   value_inline_end_for_clear_property,
@@ -34,7 +34,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   value_inline_start_for_clear_property,
@@ -54,7 +54,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   value_inline_end_for_float_property,
@@ -74,7 +74,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   value_inline_start_for_float_property,
@@ -94,7 +94,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   value_end_for_text_align_property,
@@ -114,7 +114,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   value_start_for_text_align_property,
@@ -136,7 +136,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   non_standard_value_end_aka_inline_end_for_clear_property,
@@ -156,7 +156,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   non_standard_value_start_aka_inline_start_for_clear_property,
@@ -176,7 +176,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   non_standard_value_end_aka_inline_end_for_float_property,
@@ -196,7 +196,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   non_standard_value_start_aka_inline_start_for_float_property,
@@ -218,7 +218,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_e_resize_for_cursor_property,
@@ -238,7 +238,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_w_resize_for_cursor_property,
@@ -258,7 +258,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_ne_resize_for_cursor_property,
@@ -278,7 +278,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_nw_resize_for_cursor_property,
@@ -298,7 +298,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_se_resize_for_cursor_property,
@@ -318,7 +318,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_sw_resize_for_cursor_property,
@@ -343,7 +343,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_animation_name_property,
@@ -363,7 +363,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_background_position_property_top_end,
@@ -383,7 +383,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_background_position_property_top_start,
@@ -403,7 +403,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_box_shadow_property_none,
@@ -423,7 +423,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_box_shadow_property_positive_value,
@@ -443,7 +443,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_box_shadow_property_negative_value,
@@ -463,7 +463,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_box_shadow_property_inset_short_positive_value,
@@ -483,7 +483,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_box_shadow_property_full_positive_value,
@@ -503,7 +503,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_box_shadow_property_inset_full_positive_value,
@@ -523,7 +523,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_box_shadow_property_inset_full_positive_value_double,
@@ -543,7 +543,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_text_shadow_property_none,
@@ -563,7 +563,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_text_shadow_property_positive_value,
@@ -583,7 +583,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_text_shadow_property_negative_value,
@@ -603,7 +603,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_text_shadow_property_short_positive_value,
@@ -623,7 +623,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_text_shadow_property_full_positive_value,
@@ -643,7 +643,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_text_shadow_property_inset_full_positive_value,
@@ -663,7 +663,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   legacy_value_of_text_shadow_property_inset_full_positive_value_double,

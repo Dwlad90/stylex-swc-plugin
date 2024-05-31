@@ -42,7 +42,7 @@ where
     plugin_pass: Box<PluginPass>,
     config: &mut StyleXOptionsParams,
   ) -> Self {
-    let stylex_imports = fill_stylex_imports(&Option::Some(config));
+    let stylex_imports = fill_stylex_imports(&Some(config));
 
     let mut state = Box::new(StateManager::new(config.clone().into()));
 
@@ -58,7 +58,7 @@ where
     ModuleTransformVisitor {
       comments,
       cycle: ModuleCycle::Initializing,
-      props_declaration: Option::None,
+      props_declaration: None,
       state,
     }
   }
@@ -72,15 +72,15 @@ where
 
     let mut state = Box::new(match config {
       Some(config) => {
-        config.runtime_injection = Option::Some(true);
-        config.treeshake_compensation = Option::Some(true);
+        config.runtime_injection = Some(true);
+        config.treeshake_compensation = Some(true);
 
-        StateManager::new(config.clone().clone().into())
+        StateManager::new(config.clone().into())
       }
       None => {
         let config = StyleXOptions {
           runtime_injection: RuntimeInjection::Boolean(true),
-          treeshake_compensation: Option::Some(true),
+          treeshake_compensation: Some(true),
           ..Default::default()
         };
 
@@ -100,7 +100,7 @@ where
     ModuleTransformVisitor {
       comments,
       cycle: ModuleCycle::Initializing,
-      props_declaration: Option::None,
+      props_declaration: None,
       state,
     }
   }
@@ -112,12 +112,12 @@ where
   ) -> Self {
     let stylex_imports = fill_stylex_imports(&config);
 
-    let mut state = Box::new(match &config {
-      Some(config) => StateManager::new((*config).clone().into()),
+    let mut state = Box::new(match config {
+      Some(config) => StateManager::new(config.clone().into()),
       None => {
         let config = StyleXOptions {
           runtime_injection: RuntimeInjection::Boolean(false),
-          treeshake_compensation: Option::Some(true),
+          treeshake_compensation: Some(true),
           class_name_prefix: "x".to_string(),
           ..Default::default()
         };
@@ -135,14 +135,14 @@ where
     ModuleTransformVisitor {
       comments,
       cycle: ModuleCycle::Initializing,
-      props_declaration: Option::None,
+      props_declaration: None,
       state,
     }
   }
 
-  pub(crate) fn process_declaration(&mut self, call_expr: &CallExpr) -> Option<(Id, String)> {
+  pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
     let stylex_imports = self.state.stylex_import_stringified();
-    if let Callee::Expr(callee) = &mut call_expr.callee.clone() {
+    if let Callee::Expr(callee) = &mut call_expr.callee {
       match callee.as_ref() {
         Expr::Ident(ident) => {
           let ident_id = ident.to_id();
@@ -170,7 +170,7 @@ where
           {
             increase_ident_count(&mut self.state, ident);
 
-            return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
+            return Some((ident_id.clone(), format!("{}", ident.sym)));
           }
         }
         Expr::Member(member) => {
@@ -198,8 +198,8 @@ where
                   .contains(&ident.to_id())
                 || self.state.stylex_attrs_import.contains(&ident.to_id()))
             {
-              if let MemberProp::Ident(ident) = member.prop.clone() {
-                return Option::Some((ident_id.clone(), format!("{}", ident.sym)));
+              if let MemberProp::Ident(ident) = &member.prop {
+                return Some((ident_id.clone(), format!("{}", ident.sym)));
               }
             }
           }
@@ -208,10 +208,10 @@ where
       }
     }
 
-    Option::None
+    None
   }
 
-  pub(crate) fn transform_call_expression(&mut self, expr: &Expr) -> Option<Expr> {
+  pub(crate) fn transform_call_expression(&mut self, expr: &mut Expr) -> Option<Expr> {
     if let Expr::Call(ex) = expr {
       let declaration = self.process_declaration(ex);
 
@@ -227,7 +227,7 @@ where
     &mut self,
     call: &CallExpr,
   ) -> (Option<String>, Option<Box<VarDeclarator>>) {
-    let mut var_name: Option<String> = Option::None;
+    let mut var_name: Option<String> = None;
 
     let parent_var_decl = self
       .state
@@ -245,7 +245,7 @@ where
 
     if let Some(parent_var_decl) = &parent_var_decl {
       if let Some(ident) = parent_var_decl.name.as_ident() {
-        var_name = Option::Some(ident.sym.clone().to_string());
+        var_name = Some(ident.sym.to_string());
       }
     }
 
@@ -263,7 +263,7 @@ fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> HashSet<Box
 
   if let Some(stylex_imports_extends) = match config {
     Some(ref config) => config.import_sources.clone(),
-    None => Option::None,
+    None => None,
   } {
     stylex_imports.extend(
       stylex_imports_extends

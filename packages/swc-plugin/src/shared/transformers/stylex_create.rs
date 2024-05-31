@@ -35,21 +35,20 @@ pub(crate) fn stylex_create_set(
     let mut pseudos = vec![];
     let mut at_rules = vec![];
 
-    let flattened_namespace =
+    let mut flattened_namespace =
       flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
 
     let compiled_namespace_tuples = flattened_namespace
-      .iter()
+      .iter_mut()
       .map(|(key, value)| match value {
-        PreRules::PreRuleSet(rule_set) => (key.to_string(), rule_set.clone().compiled(state)),
+        PreRules::PreRuleSet(rule_set) => (key.to_string(), rule_set.compiled(state)),
         PreRules::StylesPreRule(styles_pre_rule) => {
-          (key.to_string(), styles_pre_rule.clone().compiled(state))
+          (key.to_string(), styles_pre_rule.compiled(state))
         }
-        PreRules::NullPreRule(rule_set) => (key.to_string(), rule_set.clone().compiled(state)),
-        PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => (
-          key.to_string(),
-          pre_included_tyles_rule.clone().compiled(state),
-        ),
+        PreRules::NullPreRule(rule_set) => (key.to_string(), rule_set.compiled(state)),
+        PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
+          (key.to_string(), pre_included_tyles_rule.compiled(state))
+        }
       })
       .collect::<Vec<(String, CompiledResult)>>();
 
@@ -83,9 +82,7 @@ pub(crate) fn stylex_create_set(
             included_styles.clone(),
           )),
         );
-      } else if let Some(styles) = value.as_computed_styles() {
-        let class_name_tuples = styles.clone();
-
+      } else if let Some(class_name_tuples) = value.as_computed_styles() {
         let class_name = &class_name_tuples
           .iter()
           .map(|computed_style| computed_style.0.clone())
@@ -97,11 +94,11 @@ pub(crate) fn stylex_create_set(
           Box::new(FlatCompiledStylesValue::String(class_name.clone())),
         );
 
-        for item in &class_name_tuples {
-          let class_name = item.0.clone();
-          let injectable_styles = item.1.clone();
-          if !injected_styles_map.contains_key(class_name.as_str()) {
-            injected_styles_map.insert(class_name.clone(), Box::new(injectable_styles.clone()));
+        for item in class_name_tuples {
+          let class_name = item.0.as_str();
+          let injectable_styles = &item.1;
+          if !injected_styles_map.contains_key(class_name) {
+            injected_styles_map.insert(class_name.to_string(), Box::new(injectable_styles.clone()));
           }
         }
       } else {

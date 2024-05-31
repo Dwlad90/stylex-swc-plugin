@@ -12,7 +12,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   empty_stylex_props_call,
   r#"
@@ -29,7 +29,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   converts_keyframes_to_css,
   r#"
@@ -53,7 +53,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   converts_keyframes_to_css_with_import_wildcard,
   r#"
@@ -78,7 +78,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   converts_keyframes_to_css_with_named_import,
   r#"
@@ -103,7 +103,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   allows_template_literal_references_to_keyframes,
   r#"
@@ -133,7 +133,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   allows_inline_references_to_keyframes,
   r#"
@@ -162,7 +162,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   generates_rtl_specific_keyframes,
   r#"

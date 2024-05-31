@@ -12,7 +12,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_before_and_after,
   r#"
@@ -38,7 +38,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_placeholder,
   r#"
@@ -61,7 +61,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_thumb,
   r#"

@@ -29,11 +29,11 @@ fn tranform(input: &str) -> String {
     }),
     |tr| {
       let mut config = StyleXOptionsParams {
-        class_name_prefix: Option::Some("__hashed_var__".to_string()),
-        runtime_injection: Option::Some(true),
-        treeshake_compensation: Option::Some(true),
-        unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-          Option::None,
+        class_name_prefix: Some("__hashed_var__".to_string()),
+        runtime_injection: Some(true),
+        treeshake_compensation: Some(true),
+        unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+          None,
         )),
         ..Default::default()
       };
@@ -46,7 +46,7 @@ fn tranform(input: &str) -> String {
           ),
           ..Default::default()
         },
-        Option::Some(&mut config),
+        Some(&mut config),
       )
     },
   )

@@ -29,8 +29,8 @@ impl MetaData {
   pub(crate) fn new(class_name: String, injectable_style: InjectableStyle) -> Self {
     Self {
       class_name,
-      style: InjectableStyleBase::from(injectable_style.clone()),
       priority: injectable_style.priority.unwrap(),
+      style: InjectableStyleBase::from(injectable_style),
     }
   }
   pub(crate) fn _get_style(&self) -> &InjectableStyleBase {
@@ -58,7 +58,7 @@ impl MetaData {
   ) -> Vec<MetaData> {
     injected_styles_map
       .into_iter()
-      .map(|(class_name, injectable_style)| MetaData::new(class_name.clone(), *injectable_style))
+      .map(|(class_name, injectable_style)| MetaData::new(class_name, *injectable_style))
       .collect::<Vec<MetaData>>()
   }
 }

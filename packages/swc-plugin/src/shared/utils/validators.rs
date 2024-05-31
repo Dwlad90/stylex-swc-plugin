@@ -1,9 +1,6 @@
 use std::collections::HashSet;
 
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::ast::{CallExpr, Expr, Id, Ident, KeyValueProp, Lit, Pat, PropName, VarDeclarator},
-};
+use swc_core::ecma::ast::{CallExpr, Expr, Id, KeyValueProp, Lit, Pat, PropName, VarDeclarator};
 
 use crate::shared::{
   constants::{
@@ -23,7 +20,10 @@ use crate::shared::{
   regex::INCLUDED_IDENT_REGEX,
   structures::state_manager::StateManager,
   utils::{
-    ast::{convertors::string_to_expression, factories::key_value_factory},
+    ast::{
+      convertors::string_to_expression,
+      factories::{ident_factory, key_value_factory},
+    },
     common::{get_string_val_from_lit, get_var_decl_by_ident_or_member},
   },
 };
@@ -35,12 +35,12 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
     return;
   }
 
-  let ident = Ident::new("create".into(), DUMMY_SP);
+  let ident = ident_factory("create");
 
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(call.clone()))) }
+      || state.top_level_expressions.iter().any(
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(call.clone()))) }
       ),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
@@ -67,12 +67,12 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
     return;
   }
 
-  let ident = Ident::new("keyframes".into(), DUMMY_SP);
+  let ident = ident_factory("keyframes");
 
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(init.clone()))) }
+      || state.top_level_expressions.iter().any(
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(init.clone()))) }
       ),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
@@ -107,12 +107,12 @@ pub(crate) fn validate_stylex_create_theme_indent(
     return;
   }
 
-  let ident = Ident::new("keyframes".into(), DUMMY_SP);
+  let ident = ident_factory("keyframes");
 
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(init.clone()))) }
+      || state.top_level_expressions.iter().any(
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(init.clone()))) }
       ),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
@@ -126,12 +126,12 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateMana
     return;
   }
 
-  let ident = Ident::new("defineVars".into(), DUMMY_SP);
+  let ident = ident_factory("defineVars");
 
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.clone().into_iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::Call(call.clone()))) }
+      || state.top_level_expressions.iter().any(
+        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(call.clone()))) }
       ),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
@@ -163,7 +163,7 @@ pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
 pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
   let init = match &var_decl.init {
     Some(init) => init.clone().call(),
-    None => Option::None,
+    None => None,
   };
 
   if let Some(call) = init {
@@ -364,17 +364,13 @@ pub(crate) fn validate_theme_variables(
   if let Some(theme_ref) = variables.as_theme_ref() {
     let (value, updated_state) = theme_ref.clone().get(THEME_NAME_KEY);
 
-    *state = state.clone().combine(updated_state);
+    state.combine(updated_state);
 
-    let key_value = key_value_factory(
-      THEME_NAME_KEY,
-      string_to_expression(value.as_str()).unwrap(),
-    );
+    let key_value = key_value_factory(THEME_NAME_KEY, string_to_expression(value.as_str()));
 
     return key_value;
   }
 
-  // return Option::None;
   assert!(
     variables
       .as_expr()
@@ -398,22 +394,16 @@ pub(crate) fn validate_theme_variables(
             let value = get_string_val_from_lit(lit);
 
             if value
-              .and_then(|value| {
-                if value.is_empty() {
-                  Option::None
-                } else {
-                  Option::Some(value)
-                }
-              })
+              .and_then(|value| if value.is_empty() { None } else { Some(value) })
               .is_some()
             {
-              return Option::Some(key_value);
+              return Some(key_value);
             }
           }
         }
       }
 
-      Option::None
+      None
     })
     .expect("Can only override variables theme created with stylex.defineVars().")
 }

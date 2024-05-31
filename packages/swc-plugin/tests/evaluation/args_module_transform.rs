@@ -5,8 +5,10 @@ use stylex_swc_plugin::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
     ast::{
-      convertors::expr_to_str,
-      factories::{object_expression_factory, prop_or_spread_expression_factory},
+      convertors::{expr_to_str, number_to_expression},
+      factories::{
+        array_expression_factory, object_expression_factory, prop_or_spread_expression_factory,
+      },
     },
     core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
   },
@@ -14,10 +16,7 @@ use stylex_swc_plugin::shared::{
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{
-      ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Lit, Number, Pat, Prop, PropOrSpread, Stmt,
-      VarDeclarator,
-    },
+    ast::{Decl, Expr, ExprOrSpread, ExprStmt, Pat, Prop, PropOrSpread, Stmt, VarDeclarator},
     visit::{Fold, FoldWith},
   },
 };
@@ -44,10 +43,8 @@ impl Fold for ArgsModuleTransformVisitor {
   fn fold_var_declarators(&mut self, var_declarators: Vec<VarDeclarator>) -> Vec<VarDeclarator> {
     var_declarators.iter().for_each(|decl| {
       if let Pat::Ident(_) = &decl.name {
-        let var = decl.clone();
-
-        if !self.declarations.contains(&var) {
-          self.declarations.push(var);
+        if !self.declarations.contains(decl) {
+          self.declarations.push(decl.clone());
         }
       }
     });
@@ -81,14 +78,13 @@ impl Fold for ArgsModuleTransformVisitor {
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
     let evaluate_result =
-      evaluate_stylex_create_arg(&Box::new(expr), &mut self.state, &self.functions);
+      evaluate_stylex_create_arg(&mut Box::new(expr), &mut self.state, &self.functions);
 
     match evaluate_result.value {
       Some(value) => match value.as_ref() {
         EvaluateResultValue::Expr(expr) => *expr.clone(), //.fold_children_with(self),
-        EvaluateResultValue::Vec(vec) => Expr::Array(ArrayLit {
-          span: DUMMY_SP,
-          elems: vec
+        EvaluateResultValue::Vec(vec) => array_expression_factory(
+          vec
             .iter()
             .map(|value| match value {
               Some(value) => value.as_expr().map(|expr| ExprOrSpread {
@@ -98,22 +94,14 @@ impl Fold for ArgsModuleTransformVisitor {
               None => None,
             })
             .collect(),
-        }),
+        ),
         EvaluateResultValue::Callback(func) => func(vec![
-          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
-            Number {
-              span: DUMMY_SP,
-              value: 2.0,
-              raw: Option::None,
-            },
-          ))))),
-          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
-            Number {
-              span: DUMMY_SP,
-              value: 7.0,
-              raw: Option::None,
-            },
-          ))))),
+          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
+            2.0,
+          )))),
+          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
+            7.0,
+          )))),
         ]),
         EvaluateResultValue::Map(map) => {
           let mut props = vec![];
@@ -121,23 +109,18 @@ impl Fold for ArgsModuleTransformVisitor {
           for (key, value) in map.iter() {
             let prop = prop_or_spread_expression_factory(
               expr_to_str(key, &mut self.state, &FunctionMap::default()).as_str(),
-              Box::new(
-                object_expression_factory(
-                  value
-                    .iter()
-                    .map(|key_value| {
-                      PropOrSpread::Prop(Box::new(Prop::KeyValue(key_value.clone())))
-                    })
-                    .collect(),
-                )
-                .unwrap(),
+              object_expression_factory(
+                value
+                  .iter()
+                  .map(|key_value| PropOrSpread::from(Prop::from(key_value.clone())))
+                  .collect(),
               ),
             );
 
             props.push(prop);
           }
 
-          object_expression_factory(props).unwrap()
+          object_expression_factory(props)
         }
         _ => panic!("Failed to evaluate expression"),
       },

@@ -17,17 +17,17 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      import_sources: Option::Some(vec![ImportSources::Regular(
+      import_sources: Some(vec![ImportSources::Regular(
         "custom-stylex-path".to_string(),
       )]),
-      runtime_injection: Option::Some(true),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   basic_stylex_call,

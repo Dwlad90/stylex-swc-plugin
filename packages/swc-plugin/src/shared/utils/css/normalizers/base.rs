@@ -20,7 +20,7 @@ impl CssFolder {
   fn convert_font_size_to_rem_normalizer<'a>(
     &'a mut self,
     declaration: &'a mut Declaration,
-  ) -> Declaration {
+  ) -> &'a mut Declaration {
     if let DeclarationName::Ident(ident) = &declaration.name {
       if ident.value.eq("fontSize") || self.parent_key.as_deref() == Some("fontSize") {
         self.parent_key = Some("fontSize".into());
@@ -29,7 +29,7 @@ impl CssFolder {
       }
     }
 
-    declaration.clone()
+    declaration
   }
 }
 
@@ -42,13 +42,13 @@ impl Fold for CssFolder {
   }
 
   fn fold_declaration(&mut self, mut declaration: Declaration) -> Declaration {
-    let mut declaration = kebab_case_normalizer(&mut declaration).clone();
+    let declaration = kebab_case_normalizer(&mut declaration);
 
     if self.use_rem_for_font_size {
-      declaration = self.convert_font_size_to_rem_normalizer(&mut declaration);
+      self.convert_font_size_to_rem_normalizer(declaration);
     }
 
-    declaration.fold_children_with(self)
+    declaration.clone().fold_children_with(self)
   }
 
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
@@ -59,19 +59,19 @@ impl Fold for CssFolder {
   }
 
   fn fold_length(&mut self, mut length: Length) -> Length {
-    if self.parent_key == Option::Some("fontSize".into())
+    if self.parent_key == Some("fontSize".into())
       && length.unit.value.eq("px")
       && length.value.value != 0.0
     {
       length = Length {
         value: Number {
           value: length.value.value / ROOT_FONT_SIZE as f64,
-          raw: Option::None,
+          raw: None,
           span: length.span,
         },
         unit: Ident {
           value: "rem".into(),
-          raw: Option::None,
+          raw: None,
           span: length.span,
         },
         span: DUMMY_SP,
@@ -102,14 +102,14 @@ fn timing_normalizer(dimension: &mut Dimension) -> &mut Dimension {
 
       time.value = Number {
         value: time.value.value / 1000.0,
-        raw: Option::None,
+        raw: None,
         span: DUMMY_SP,
       };
 
       time.unit = Ident {
         span: DUMMY_SP,
         value: "s".into(),
-        raw: Option::None,
+        raw: None,
       };
 
       dimension
@@ -136,7 +136,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
       ComponentValue::Ident(ident) => {
         let ident = Ident {
           value: dashify(ident.value.as_str()).into(),
-          raw: Option::None,
+          raw: None,
           span: ident.span,
         };
 
@@ -152,7 +152,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
 pub(crate) fn base_normalizer(ast: Stylesheet, use_rem_for_font_size: bool) -> Stylesheet {
   let mut folder = CssFolder {
     use_rem_for_font_size,
-    parent_key: Option::None,
+    parent_key: None,
   };
   ast.fold_with(&mut folder)
 }
@@ -179,7 +179,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       angle.unit = Ident {
         span: DUMMY_SP,
         value: "deg".into(),
-        raw: Option::None,
+        raw: None,
       };
 
       dimension
@@ -194,7 +194,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       time.unit = Ident {
         span: DUMMY_SP,
         value: "s".into(),
-        raw: Option::None,
+        raw: None,
       };
 
       dimension
@@ -245,7 +245,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
 fn get_zero_demansion_value() -> Number {
   Number {
     value: 0.0,
-    raw: Option::None,
+    raw: None,
     span: DUMMY_SP,
   }
 }
@@ -253,7 +253,7 @@ fn get_zero_demansion_value() -> Number {
 fn get_zero_demansion_unit() -> Ident {
   Ident {
     value: "".into(),
-    raw: Option::None,
+    raw: None,
     span: DUMMY_SP,
   }
 }

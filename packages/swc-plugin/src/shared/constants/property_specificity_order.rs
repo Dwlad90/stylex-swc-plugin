@@ -56,8 +56,8 @@ impl Shorthands {
     );
   }
 
-  pub(crate) fn get(name: String) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
-    match name.as_str() {
+  pub(crate) fn get(name: &str) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
+    match name {
       "animation" => Some(Shorthands::animation),
       "background" => Some(Shorthands::background),
       "border" => Some(Shorthands::border),
@@ -69,7 +69,7 @@ impl Shorthands {
       "border_bottom" => Some(Shorthands::border_bottom),
       "border_inline_start" => Some(Shorthands::border_inline_start),
       "border_left" => Some(Shorthands::border_left),
-      _ => Option::None,
+      _ => None,
     }
   }
 }
@@ -240,20 +240,20 @@ impl Aliases {
     vec![OrderPair("insetInlineEnd".to_string(), val)]
   }
 
-  pub(crate) fn get(name: String) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
-    match name.as_str() {
+  pub(crate) fn get(name: &str) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
+    match name {
       // @Deprecated
-      "borderHorizontal" => Shorthands::get("borderHorizontal".to_string()),
+      "borderHorizontal" => Shorthands::get("borderHorizontal"),
       // @Deprecated
-      "borderVertical" => Shorthands::get("borderVertical".to_string()),
+      "borderVertical" => Shorthands::get("borderVertical"),
       // @Deprecated
-      "borderBlockStart" => Shorthands::get("borderBlockStart".to_string()),
+      "borderBlockStart" => Shorthands::get("borderBlockStart"),
       // @Deprecated
-      "borderEnd" => Shorthands::get("borderEnd".to_string()),
+      "borderEnd" => Shorthands::get("borderEnd"),
       // @Deprecated
-      "borderBlockEnd" => Shorthands::get("borderBlockEnd".to_string()),
+      "borderBlockEnd" => Shorthands::get("borderBlockEnd"),
       // @Deprecated
-      "borderStart" => Shorthands::get("borderStart".to_string()),
+      "borderStart" => Shorthands::get("borderStart"),
 
       "blockSize" => Some(Aliases::block_size),
       "inlineSize" => Some(Aliases::inline_size),
@@ -305,7 +305,7 @@ impl Aliases {
       "insetBlockEnd" => Some(Aliases::inset_block_end),
       "start" => Some(Aliases::start),
       "end" => Some(Aliases::end),
-      _ => Option::None,
+      _ => None,
     }
   }
 }

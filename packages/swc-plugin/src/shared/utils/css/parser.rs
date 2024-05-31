@@ -339,8 +339,7 @@ pub fn parse_css_inner<'a>(
       }
       Token::Delim(ref value) => iter_result.push_str(&value.to_string()),
       Token::Function(ref name) => {
-        let function_name: &str = &name.clone();
-        iter_result.push_str(function_name);
+        iter_result.push_str(name);
         iter_result.push('(');
 
         let block_css: Vec<String> = parser
@@ -381,9 +380,9 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
       .into_iter()
       .filter_map(|s| {
         if !s.is_empty() && s != "," {
-          Option::Some(s)
+          Some(s)
         } else {
-          Option::None
+          None
         }
       })
       .collect::<Vec<String>>(),

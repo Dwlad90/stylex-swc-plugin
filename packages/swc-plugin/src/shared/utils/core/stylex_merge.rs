@@ -16,14 +16,14 @@ use crate::shared::{
 };
 
 pub(crate) fn stylex_merge(
-  call: &CallExpr,
+  call: &mut CallExpr,
   transform: fn(&Vec<ResolvedArg>) -> Option<FnResult>,
   state: &mut StateManager,
 ) -> Option<Expr> {
   let mut bail_out = false;
   let mut conditional = 0;
   let mut current_index = -1;
-  let mut bail_out_index = Option::None;
+  let mut bail_out_index = None;
   let mut resolved_args = vec![];
 
   let args = call
@@ -47,13 +47,13 @@ pub(crate) fn stylex_merge(
 
     let arg = arg.expr.as_ref();
 
-    match arg.clone() {
+    match &arg {
       Expr::Member(member) => {
         let resolved = parse_nullable_style(arg, state, false);
 
         match resolved {
           StyleObject::Other => {
-            bail_out_index = Option::Some(current_index);
+            bail_out_index = Some(current_index);
             bail_out = true;
           }
           StyleObject::Style(_) => {
@@ -83,34 +83,30 @@ pub(crate) fn stylex_merge(
       Expr::Cond(CondExpr {
         test, cons, alt, ..
       }) => {
-        let primary = parse_nullable_style(&cons, state, true);
-        let fallback = parse_nullable_style(&alt, state, true);
+        let primary = parse_nullable_style(cons, state, true);
+        let fallback = parse_nullable_style(alt, state, true);
 
         if primary.eq(&StyleObject::Other) || fallback.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
           bail_out = true;
         } else {
           let ident = match alt.as_ref() {
-            Expr::Ident(ident) => ident.clone(),
-            Expr::Member(meber) => meber
-              .obj
-              .as_ident()
-              .expect("Member obj is not an ident")
-              .clone(),
+            Expr::Ident(ident) => ident,
+            Expr::Member(meber) => meber.obj.as_ident().expect("Member obj is not an ident"),
             _ => panic!("Illegal argument"),
           };
 
           let member = match alt.as_ref() {
-            Expr::Member(meber) => meber.clone(),
+            Expr::Member(meber) => meber,
             _ => panic!("Illegal argument"),
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(
-            test,
+            test.clone(),
             Some(primary),
             Some(fallback),
-            ident,
-            member,
+            ident.clone(),
+            member.clone(),
           ));
 
           conditional += 1;
@@ -125,34 +121,30 @@ pub(crate) fn stylex_merge(
           break;
         }
 
-        let left_resolved = parse_nullable_style(&left, state, true);
-        let right_resolved = parse_nullable_style(&right, state, true);
+        let left_resolved = parse_nullable_style(left, state, true);
+        let right_resolved = parse_nullable_style(right, state, true);
 
         if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
           bail_out = true;
         } else {
           let ident = match right.as_ref() {
-            Expr::Ident(ident) => ident.clone(),
-            Expr::Member(meber) => meber
-              .obj
-              .as_ident()
-              .expect("Member obj is not an ident")
-              .clone(),
+            Expr::Ident(ident) => ident,
+            Expr::Member(meber) => meber.obj.as_ident().expect("Member obj is not an ident"),
             _ => panic!("Illegal argument"),
           };
 
           let member = match right.as_ref() {
-            Expr::Member(meber) => meber.clone(),
+            Expr::Member(meber) => meber,
             _ => panic!("Illegal argument"),
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(
-            left,
+            left.clone(),
             Some(right_resolved),
             None,
-            ident,
-            member,
+            ident.clone(),
+            member.clone(),
           ));
 
           conditional += 1;
@@ -160,7 +152,7 @@ pub(crate) fn stylex_merge(
       }
 
       _ => {
-        bail_out_index = Option::Some(current_index);
+        bail_out_index = Some(current_index);
         bail_out = true;
       }
     }
@@ -178,13 +170,11 @@ pub(crate) fn stylex_merge(
   }
 
   if bail_out {
-    let arguments_path = call.args.clone();
-
     let mut non_null_props: NonNullProps = NonNullProps::Vec(vec![]);
 
     let mut index = -1;
 
-    for mut arg_path in arguments_path.into_iter() {
+    for arg_path in call.args.iter_mut() {
       index += 1;
 
       assert!(arg_path.spread.is_none(), "Spread not implemented yet");

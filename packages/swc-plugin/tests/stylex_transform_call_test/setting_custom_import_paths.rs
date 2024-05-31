@@ -18,8 +18,8 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Option::Some(true),
-      import_sources: Option::Some(vec![ImportSources::Regular(
+      runtime_injection: Some(true),
+      import_sources: Some(vec![ImportSources::Regular(
         "custom-stylex-path".to_string(),
       )]),
       ..StyleXOptionsParams::default()
@@ -28,7 +28,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   basic_stylex_call,
@@ -50,8 +50,8 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Option::Some(true),
-      import_sources: Option::Some(vec![ImportSources::Named(NamedImportSource {
+      runtime_injection: Some(true),
+      import_sources: Some(vec![ImportSources::Named(NamedImportSource {
         from: "custom-stylex-path".to_string(),
         r#as: "css".to_string(),
       })]),
@@ -61,7 +61,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   named_import_from_custom_source,
@@ -83,8 +83,8 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Option::Some(true),
-      import_sources: Option::Some(vec![ImportSources::Named(NamedImportSource {
+      runtime_injection: Some(true),
+      import_sources: Some(vec![ImportSources::Named(NamedImportSource {
         from: "custom-stylex-path".to_string(),
         r#as: "css".to_string(),
       })]),
@@ -94,7 +94,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   named_import_with_other_name_from_custom_source,

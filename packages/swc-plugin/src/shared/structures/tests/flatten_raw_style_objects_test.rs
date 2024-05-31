@@ -26,7 +26,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     state_manager.options.class_name_prefix = "x".to_string();
     state_manager.options.style_resolution = StyleResolution::LegacyExpandShorthands;
-    state_manager.options.runtime_injection = Option::None;
+    state_manager.options.runtime_injection = None;
     state_manager.options.use_rem_for_font_size = true;
     state_manager.options.dev = false;
     state_manager.options.test = false;
@@ -38,8 +38,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
       PreRuleValue::String(value.to_string()),
-      Option::None,
-      Option::None,
+      None,
+      None,
     ))
   }
 
@@ -60,8 +60,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
       PreRuleValue::String(value.to_string()),
-      Option::Some(pseudos.iter().map(|s| s.to_string()).collect()),
-      Option::Some(at_rules.iter().map(|s| s.to_string()).collect()),
+      Some(pseudos.iter().map(|s| s.to_string()).collect()),
+      Some(at_rules.iter().map(|s| s.to_string()).collect()),
     ))
   }
 
@@ -69,8 +69,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
       PreRuleValue::Vec(value.iter().map(|x| x.to_string()).collect()),
-      Option::None,
-      Option::None,
+      None,
+      None,
     ))
   }
 
@@ -83,8 +83,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
       PreRuleValue::Vec(value.iter().map(|x| x.to_string()).collect()),
-      Option::Some(pseudos.iter().map(|s| s.to_string()).collect()),
-      Option::Some(at_rules.iter().map(|s| s.to_string()).collect()),
+      Some(pseudos.iter().map(|s| s.to_string()).collect()),
+      Some(at_rules.iter().map(|s| s.to_string()).collect()),
     ))
   }
 
@@ -92,8 +92,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn converts_style_to_class_name() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("color", string_to_expression("red").unwrap()),
-        key_value_factory("marginStart", string_to_expression("10").unwrap()),
+        key_value_factory("color", string_to_expression("red")),
+        key_value_factory("marginStart", string_to_expression("10")),
       ],
       &mut vec![],
       &mut vec![],
@@ -119,10 +119,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_shorthands() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
-        "margin",
-        string_to_expression("10").unwrap(),
-      )],
+      &[key_value_factory("margin", string_to_expression("10"))],
       &mut vec![],
       &mut vec![],
       &mut get_state(),
@@ -151,8 +148,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_simple_shorthands_extended() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("margin", string_to_expression("10").unwrap()),
-        key_value_factory("marginBottom", string_to_expression("20").unwrap()),
+        key_value_factory("margin", string_to_expression("10")),
+        key_value_factory("marginBottom", string_to_expression("20")),
       ],
       &mut vec![],
       &mut vec![],
@@ -187,8 +184,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_shorthands_with_space_separated_values() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("margin", string_to_expression("10px 20px").unwrap()),
-        key_value_factory("borderColor", string_to_expression("red").unwrap()),
+        key_value_factory("margin", string_to_expression("10px 20px")),
+        key_value_factory("borderColor", string_to_expression("red")),
       ],
       &mut vec![],
       &mut vec![],
@@ -242,13 +239,10 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let result = flatten_raw_style_object(
       &[key_value_factory(
         "margin",
-        Expr::Array(
-          create_array(&[
-            string_to_expression("10vh 20px").unwrap(),
-            string_to_expression("10dvh 20px").unwrap(),
-          ])
-          .unwrap(),
-        ),
+        Expr::from(create_array(&[
+          string_to_expression("10vh 20px"),
+          string_to_expression("10dvh 20px"),
+        ])),
       )],
       &mut vec![],
       &mut vec![],
@@ -302,15 +296,14 @@ mod nested_objects {
   fn legacy_pseudo_classes() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("color", string_to_expression("blue").unwrap()),
-        key_value_factory("marginStart", string_to_expression("0").unwrap()),
+        key_value_factory("color", string_to_expression("blue")),
+        key_value_factory("marginStart", string_to_expression("0")),
         key_value_factory(
           ":hover",
           object_expression_factory(vec![
             prop_or_spread_string_factory("color", "red"),
             prop_or_spread_string_factory("marginStart", "10"),
-          ])
-          .unwrap(),
+          ]),
         ),
       ],
       &mut vec![],
@@ -356,16 +349,14 @@ mod nested_objects {
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "blue"),
             prop_or_spread_string_factory(":hover", "red"),
-          ])
-          .unwrap(),
+          ]),
         ),
         key_value_factory(
           "marginStart",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "0"),
             prop_or_spread_string_factory(":hover", "10"),
-          ])
-          .unwrap(),
+          ]),
         ),
       ],
       &mut vec![],
@@ -416,16 +407,14 @@ mod nested_objects {
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "blue"),
             prop_or_spread_string_factory(":hover", "red"),
-          ])
-          .unwrap(),
+          ]),
         ),
         key_value_factory(
           "margin",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "0"),
             prop_or_spread_string_factory(":hover", "10"),
-          ])
-          .unwrap(),
+          ]),
         ),
       ],
       &mut vec![],
@@ -490,16 +479,14 @@ mod nested_objects {
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "blue"),
             prop_or_spread_string_factory(":hover", "red"),
-          ])
-          .unwrap(),
+          ]),
         ),
         key_value_factory(
           "margin",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
             prop_or_spread_string_factory(":hover", "10px 20px"),
-          ])
-          .unwrap(),
+          ]),
         ),
       ],
       &mut vec![],
@@ -565,16 +552,14 @@ mod nested_objects {
             prop_or_spread_string_factory("default", "blue"),
             prop_or_spread_string_factory(":hover", "red"),
             prop_or_spread_string_factory("@media (min-width: 300px)", "green"),
-          ])
-          .unwrap(),
+          ]),
         ),
         key_value_factory(
           "marginStart",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "0"),
             prop_or_spread_string_factory(":hover", "10"),
-          ])
-          .unwrap(),
+          ]),
         ),
       ],
       &mut vec![],
@@ -643,8 +628,7 @@ mod multiple_levels_of_nesting {
         object_expression_factory(vec![
           prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
           prop_or_spread_array_string_factory(":hover", &["10px 20px", "1dvh 2dvh"]),
-        ])
-        .unwrap(),
+        ]),
       )],
       &mut vec![],
       &mut vec![],
@@ -699,8 +683,7 @@ mod multiple_levels_of_nesting {
         object_expression_factory(vec![prop_or_spread_expr_factory(
           ":hover",
           vec![prop_or_spread_string_factory("color", "red")],
-        )])
-        .unwrap(),
+        )]),
       )],
       &mut vec![],
       &mut vec![],
@@ -739,8 +722,7 @@ mod multiple_levels_of_nesting {
               vec![prop_or_spread_string_factory("color", "red")],
             ),
           ],
-        )])
-        .unwrap(),
+        )]),
       )],
       &mut vec![],
       &mut vec![],
@@ -786,8 +768,7 @@ mod multiple_levels_of_nesting {
             "@media (min-width: 300px)",
             vec![prop_or_spread_string_factory(":hover", "red")],
           ),
-        ])
-        .unwrap(),
+        ]),
       )],
       &mut vec![],
       &mut vec![],
@@ -827,8 +808,7 @@ mod multiple_levels_of_nesting {
               ],
             )],
           ),
-        ])
-        .unwrap(),
+        ]),
       )],
       &mut vec![],
       &mut vec![],

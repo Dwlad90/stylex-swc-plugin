@@ -45,7 +45,7 @@ where
           .into_iter()
           .map(|item| *item)
         {
-          match vars_to_keep.entry(var_name.clone()) {
+          match vars_to_keep.entry(var_name) {
             Entry::Occupied(mut entry) => {
               if let NonNullProps::Vec(vec) = entry.get_mut() {
                 if let NonNullProp::Id(id) = &namespace_name {
@@ -73,7 +73,7 @@ where
               var_name.init.clone().unwrap().eq(&Box::new(expr.clone()))
             },
           );
-          if let Option::Some(TopLevelExpression(kind, _, _)) = var_decl {
+          if let Some(TopLevelExpression(kind, _, _)) = var_decl {
             if TopLevelExpressionKind::Stmt == kind {
               if let Some(object) = var_declarator.init.as_mut() {
                 if let Some(mut object) = object.as_object().cloned() {
@@ -88,11 +88,11 @@ where
 
                   if !namespaces_to_keep.is_empty() {
                     let props =
-                      self.retain_object_props(&object, namespaces_to_keep, var_name.as_ref());
+                      self.retain_object_props(&mut object, namespaces_to_keep, var_name.as_ref());
 
                     object.props = props;
 
-                    var_declarator.init = Option::Some(Box::new(Expr::Object(object)));
+                    var_declarator.init = Some(Box::new(Expr::from(object)));
                   }
                 }
               }
@@ -104,7 +104,7 @@ where
       return var_declarator;
     }
 
-    if let Some(Expr::Call(call)) = var_declarator.init.as_deref() {
+    if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
       if let Some((declaration, member)) = self.process_declaration(call) {
         let stylex_imports = self.state.stylex_import_stringified();
 
@@ -136,69 +136,64 @@ where
 
   fn retain_object_props(
     &mut self,
-    object: &ObjectLit,
+    object: &mut ObjectLit,
     namespace_to_keep: Vec<Id>,
     var_name: &VarDeclarator,
   ) -> Vec<PropOrSpread> {
-    let props = object
-      .props
-      .clone()
-      .into_iter()
-      .filter_map(|mut object_prop| {
-        assert!(object_prop.is_prop(), "Spread properties are not supported");
+    let mut props: Vec<PropOrSpread> = vec![];
 
-        let prop = object_prop.as_mut_prop().unwrap().as_mut();
+    for object_prop in object.props.iter_mut() {
+      assert!(object_prop.is_prop(), "Spread properties are not supported");
 
-        if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
-          let key_as_ident = match key {
-            PropName::Ident(ident) => Option::Some(ident),
-            _ => None,
-          };
+      let prop = object_prop.as_mut_prop().unwrap().as_mut();
 
-          if let Some(key_as_string) = key_as_ident {
-            if namespace_to_keep.contains(&key_as_string.to_id()) {
-              let all_nulls_to_keep = self
-                .state
-                .style_vars_to_keep
-                .clone()
+      if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
+        let key_as_ident = match key {
+          PropName::Ident(ident) => Some(ident),
+          _ => None,
+        };
+
+        if let Some(key_as_string) = key_as_ident {
+          if namespace_to_keep.contains(&key_as_string.to_id()) {
+            let all_nulls_to_keep = self
+              .state
+              .style_vars_to_keep
+              .clone()
+              .into_iter()
+              .filter(|top_level_expression| {
+                let StyleVarsToKeep(var, namespace_name, _) = top_level_expression.as_ref();
+
+                var_name.name.clone().as_ident().unwrap().to_id().eq(var)
+                  && namespace_name.eq(&NonNullProp::Id(key_as_ident.unwrap().to_id()))
+              })
+              .map(|a| a.2)
+              .collect::<Vec<NonNullProps>>();
+
+            if !all_nulls_to_keep.contains(&NonNullProps::True) {
+              let nulls_to_keep = all_nulls_to_keep
                 .into_iter()
-                .filter(|top_level_expression| {
-                  let StyleVarsToKeep(v, namespace_name, _) = top_level_expression.as_ref();
-
-                  var_name.name.clone().as_ident().unwrap().to_id().eq(v)
-                    && namespace_name.eq(&NonNullProp::Id(key_as_ident.unwrap().to_id()))
+                .filter_map(|item| match item {
+                  NonNullProps::Vec(vec) => Some(vec),
+                  NonNullProps::True => None,
                 })
-                .map(|a| a.2)
-                .collect::<Vec<NonNullProps>>();
+                .flatten()
+                .collect::<Vec<Id>>();
 
-              if !all_nulls_to_keep.contains(&NonNullProps::True) {
-                let nulls_to_keep = all_nulls_to_keep
-                  .into_iter()
-                  .filter_map(|item| match item {
-                    NonNullProps::Vec(vec) => Option::Some(vec),
-                    NonNullProps::True => Option::None,
-                  })
-                  .flatten()
-                  .collect::<Vec<Id>>();
-
-                if let Some(style_object) = prop
-                  .as_mut_key_value()
-                  .expect("Prop not a key value")
-                  .value
-                  .as_mut_object()
-                {
-                  retain_style_props(style_object, nulls_to_keep);
-                }
+              if let Some(style_object) = prop
+                .as_mut_key_value()
+                .expect("Prop not a key value")
+                .value
+                .as_mut_object()
+              {
+                retain_style_props(style_object, nulls_to_keep);
               }
-
-              return Some(object_prop);
             }
+
+            props.push(object_prop.clone())
           }
         }
-
-        Option::None
-      })
-      .collect::<Vec<PropOrSpread>>();
+      }
+    }
 
     props
   }

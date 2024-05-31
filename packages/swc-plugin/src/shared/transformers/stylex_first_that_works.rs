@@ -7,12 +7,12 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
     .into_iter()
     .rev()
     .map(|arg| {
-      Option::Some(ExprOrSpread {
-        spread: Option::None,
+      Some(ExprOrSpread {
+        spread: None,
         expr: Box::new(arg),
       })
     })
     .collect::<Vec<Option<ExprOrSpread>>>();
 
-  array_expression_factory(elems).unwrap()
+  array_expression_factory(elems)
 }

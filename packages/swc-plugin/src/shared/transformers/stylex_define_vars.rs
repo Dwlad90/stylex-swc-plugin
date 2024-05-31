@@ -9,8 +9,8 @@ use crate::shared::{
   structures::{injectable_style::InjectableStyle, state_manager::StateManager},
   utils::{
     common::{create_hash, get_css_value},
-    object::obj_map,
     core::define_vars_utils::construct_css_variables_string,
+    object::obj_map,
   },
 };
 
@@ -35,7 +35,8 @@ pub(crate) fn stylex_define_vars(
 
   let variables_map = obj_map(
     ObjMapType::Object(variables.clone()),
-    |item| -> Box<FlatCompiledStylesValue> {
+    state,
+    |item, state| -> Box<FlatCompiledStylesValue> {
       let reuslt = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
           panic!("InjectableStyle is not supported")
@@ -64,25 +65,28 @@ pub(crate) fn stylex_define_vars(
     },
   );
 
-  let theme_variables_objects = obj_map(ObjMapType::Map(variables_map.clone()), |item| match item
-    .as_ref()
-  {
-    FlatCompiledStylesValue::InjectableStyle(_) => {
-      panic!("InjectableStyle is not supported")
-    }
-    FlatCompiledStylesValue::Tuple(key, _, _) => {
-      Box::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
-    }
+  let mut theme_variables_objects = obj_map(
+    ObjMapType::Map(variables_map.clone()),
+    state,
+    |item, _| match item.as_ref() {
+      FlatCompiledStylesValue::InjectableStyle(_) => {
+        panic!("InjectableStyle is not supported")
+      }
+      FlatCompiledStylesValue::Tuple(key, _, _) => {
+        Box::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
+      }
 
-    _ => unreachable!("Unsupported value type"),
-  });
+      _ => unreachable!("Unsupported value type"),
+    },
+  );
 
   let injectable_styles =
     construct_css_variables_string(&variables_map, &theme_name_hash, &mut typed_variables);
 
   let injectable_types = obj_map(
     ObjMapType::Map(typed_variables),
-    |item| -> Box<FlatCompiledStylesValue> {
+    state,
+    |item, _| -> Box<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
         FlatCompiledStylesValue::CSSType(name_hash, syntax, initial_value) => {
           let property = format!(
@@ -92,8 +96,8 @@ pub(crate) fn stylex_define_vars(
 
           FlatCompiledStylesValue::InjectableStyle(InjectableStyle {
             ltr: property,
-            rtl: Option::None,
-            priority: Option::Some(0.0),
+            rtl: None,
+            priority: Some(0.0),
           })
         }
         _ => unreachable!("Unsupported value type"),
@@ -110,11 +114,9 @@ pub(crate) fn stylex_define_vars(
         return Some((key.clone(), Box::new(inj_style.clone())));
       }
 
-      Option::None
+      None
     })
     .collect();
-
-  let mut theme_variables_objects = theme_variables_objects.clone();
 
   theme_variables_objects.insert(
     "__themeName__".to_string(),

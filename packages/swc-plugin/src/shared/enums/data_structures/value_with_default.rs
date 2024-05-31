@@ -25,15 +25,15 @@ impl std::hash::Hash for ValueWithDefault {
 impl ValueWithDefault {
   pub(crate) fn as_map(&self) -> Option<&IndexMap<String, ValueWithDefault>> {
     match self {
-      ValueWithDefault::Map(map) => Option::Some(map),
-      _ => Option::None,
+      ValueWithDefault::Map(map) => Some(map),
+      _ => None,
     }
   }
 
   fn _as_string(&self) -> Option<&String> {
     match self {
-      ValueWithDefault::String(s) => Option::Some(s),
-      _ => Option::None,
+      ValueWithDefault::String(s) => Some(s),
+      _ => None,
     }
   }
 }

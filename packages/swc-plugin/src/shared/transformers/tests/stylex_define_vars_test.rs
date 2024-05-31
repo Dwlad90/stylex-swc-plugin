@@ -42,9 +42,7 @@ mod stylex_define_vars {
       .map(|(key, values, nested_values, types_values)| {
         let mut props = values
           .iter()
-          .map(|val| {
-            prop_or_spread_expression_factory(val.0, Box::new(string_to_expression(val.1).unwrap()))
-          })
+          .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
           .collect::<Vec<PropOrSpread>>();
 
         let nested_props = nested_values
@@ -53,18 +51,12 @@ mod stylex_define_vars {
             let props = val
               .1
               .iter()
-              .map(|val| {
-                prop_or_spread_expression_factory(
-                  val.0,
-                  Box::new(string_to_expression(val.1).unwrap()),
-                )
+              .map(|(key, value)| {
+                prop_or_spread_expression_factory(key, string_to_expression(value))
               })
               .collect::<Vec<PropOrSpread>>();
 
-            prop_or_spread_expression_factory(
-              val.0,
-              Box::new(object_expression_factory(props).unwrap()),
-            )
+            prop_or_spread_expression_factory(val.0, object_expression_factory(props))
           })
           .collect::<Vec<PropOrSpread>>();
 
@@ -85,7 +77,7 @@ mod stylex_define_vars {
       props.push(prop_or_spread_string_factory(key, value));
     }
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
   }
 
   fn exprected_css_result_factory(
@@ -99,8 +91,8 @@ mod stylex_define_vars {
         key.to_string(),
         Box::new(InjectableStyle {
           ltr: value.0.to_string(),
-          rtl: Option::None,
-          priority: Option::Some(value.1),
+          rtl: None,
+          priority: Some(value.1),
         }),
       );
     }
@@ -154,7 +146,7 @@ mod stylex_define_vars {
     );
 
     let mut state = Box::new(StateManager {
-      theme_name: Option::Some(theme_name.to_string()),
+      theme_name: Some(theme_name.to_string()),
       ..StateManager::default()
     });
 
@@ -278,7 +270,7 @@ mod stylex_define_vars {
     );
 
     let mut state = Box::new(StateManager {
-      theme_name: Option::Some(theme_name.to_string()),
+      theme_name: Some(theme_name.to_string()),
       ..StateManager::default()
     });
 
@@ -481,7 +473,7 @@ mod stylex_define_vars {
 
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
-      theme_name: Option::Some(theme_name.to_string()),
+      theme_name: Some(theme_name.to_string()),
       options: Box::new(StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
         ..*state.options

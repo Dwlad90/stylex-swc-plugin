@@ -2,18 +2,17 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{
-  ArrayLit, ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Ident, ObjectLit, Pat, PropName,
-};
+use swc_core::ecma::ast::{ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Ident, Pat, PropName};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::utils::core::js_to_expr::{
-  convert_object_to_ast, remove_objects_with_spreads, NestedStringObject,
-};
 use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
+use crate::shared::utils::{
+  ast::factories::array_expression_factory,
+  core::js_to_expr::{convert_object_to_ast, remove_objects_with_spreads, NestedStringObject},
+};
 use crate::shared::utils::{
   ast::factories::object_expression_factory,
   common::{get_key_str, get_key_values_from_object},
@@ -52,7 +51,7 @@ where
 
       let first_arg = call.args.first();
 
-      let first_arg = first_arg.map(|first_arg| match &first_arg.spread {
+      let mut first_arg = first_arg.map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!(),
         None => first_arg.expr.clone(),
       })?;
@@ -121,7 +120,8 @@ where
         member_expressions,
       });
 
-      let evaluated_arg = evaluate_stylex_create_arg(&first_arg, &mut self.state, &function_map);
+      let evaluated_arg =
+        evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
       let value = match evaluated_arg.value {
         Some(value) => value,
@@ -135,15 +135,12 @@ where
       let (mut compiled_styles, injected_styles_sans_keyframes) =
         stylex_create_set(&value, &mut self.state, &function_map);
 
-      compiled_styles
-        .clone()
-        .into_iter()
-        .for_each(|(namespace, properties)| {
-          resolved_namespaces
-            .entry(namespace)
-            .or_default()
-            .extend(*properties);
-        });
+      for (namespace, properties) in compiled_styles.iter() {
+        resolved_namespaces
+          .entry(namespace.clone())
+          .or_default()
+          .extend(*properties.clone());
+      }
 
       let mut injected_styles = self.state.injected_keyframes.clone();
 
@@ -159,7 +156,7 @@ where
         compiled_styles = inject_dev_class_names(&compiled_styles, var_name, &self.state);
       }
 
-      if let Option::Some(var_name) = var_name.clone() {
+      if let Some(var_name) = var_name.as_ref() {
         let styles_to_remember = Box::new(remove_objects_with_spreads(&compiled_styles));
 
         self
@@ -170,7 +167,7 @@ where
         self
           .state
           .style_vars
-          .insert(var_name.clone(), parent_var_decl.clone().unwrap().clone());
+          .insert(var_name.clone(), parent_var_decl.clone().unwrap());
       }
 
       let mut result_ast =
@@ -181,67 +178,61 @@ where
           let key_values = get_key_values_from_object(object);
 
           let props = key_values
-            .clone()
-            .into_iter()
+            .iter()
             .map(|key_value| {
-              let orig_key = get_key_str(&key_value);
+              let orig_key = get_key_str(key_value);
               let value = key_value.value.clone();
 
               let key = match &key_value.key {
-                PropName::Ident(ident) => Some(ident.sym.as_ref().to_string()),
-                PropName::Str(str) => Some(str.value.as_ref().to_string()),
+                PropName::Ident(ident) => Some(ident.sym.to_string()),
+                PropName::Str(str) => Some(str.value.to_string()),
                 _ => None,
               };
 
-              let mut prop: Option<PropOrSpread> = Option::None;
+              let mut prop: Option<PropOrSpread> = None;
 
               if let Some(key) = key {
                 if let Some((params, inline_styles)) = fns.get(&key) {
-                  let value = Expr::Arrow(ArrowExpr {
+                  let value = Expr::from(ArrowExpr {
                     span: DUMMY_SP,
-                    params: params.clone().into_iter().map(Pat::Ident).collect(),
-                    body: Box::new(BlockStmtOrExpr::Expr(Box::new(Expr::Array(ArrayLit {
-                      span: DUMMY_SP,
-                      elems: vec![
+                    params: params.iter().map(|arg| Pat::Ident(arg.clone())).collect(),
+                    body: Box::new(BlockStmtOrExpr::from(Box::new(array_expression_factory(
+                      vec![
                         Some(ExprOrSpread {
                           spread: None,
-                          expr: Box::new(value.as_ref().clone()),
+                          expr: Box::new(*value.clone()),
                         }),
                         Some(ExprOrSpread {
                           spread: None,
-                          expr: Box::new(Expr::Object(ObjectLit {
-                            span: DUMMY_SP,
-                            props: inline_styles
+                          expr: Box::new(object_expression_factory(
+                            inline_styles
                               .iter()
                               .map(|(key, value)| {
-                                prop_or_spread_expression_factory(key.as_str(), value.clone())
+                                prop_or_spread_expression_factory(key.as_str(), *value.clone())
                               })
                               .collect(),
-                          })),
+                          )),
                         }),
                       ],
-                    })))),
+                    )))),
                     is_async: false,
                     is_generator: false,
                     type_params: None,
                     return_type: None,
                   });
 
-                  prop = Option::Some(prop_or_spread_expression_factory(
-                    orig_key.as_str(),
-                    Box::new(value),
-                  ));
+                  prop = Some(prop_or_spread_expression_factory(orig_key.as_str(), value));
                 }
               }
 
               let prop =
-                prop.unwrap_or(prop_or_spread_expression_factory(orig_key.as_str(), value));
+                prop.unwrap_or(prop_or_spread_expression_factory(orig_key.as_str(), *value));
 
               prop
             })
             .collect::<Vec<PropOrSpread>>();
 
-          result_ast = object_expression_factory(props).unwrap_or(result_ast);
+          result_ast = object_expression_factory(props);
         }
       };
 
@@ -249,7 +240,7 @@ where
         .state
         .register_styles(call, &injected_styles, &result_ast, var_name);
 
-      Option::Some(result_ast)
+      Some(result_ast)
     } else {
       None
     };

@@ -12,7 +12,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_style_object_with_function,
   r#"
@@ -34,7 +34,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   adds_units_for_numbers_in_style_object_with_function,
   r#"
@@ -56,7 +56,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_mix_of_objects_and_functions,
   r#"
@@ -81,7 +81,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_styles_that_set_css_vars,
   r#"
@@ -102,7 +102,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_functions_with_nested_dynamic_values,
   r#"

@@ -19,7 +19,7 @@ use crate::shared::{
 };
 
 pub(crate) fn stylex_create_theme(
-  theme_vars: &EvaluateResultValue,
+  theme_vars: &mut EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
   typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
@@ -50,10 +50,9 @@ pub(crate) fn stylex_create_theme(
 
     let theme_vars_str_value = match theme_vars {
       EvaluateResultValue::Expr(expr) => {
-        let theme_vars_key_values = get_key_values_from_object(&expr.clone().object().unwrap());
+        let theme_vars_key_values = get_key_values_from_object(expr.as_object().unwrap());
         let theme_vars_item = theme_vars_key_values
-          .clone()
-          .into_iter()
+          .iter()
           .find(|key_value| {
             let local_key = get_key_str(key_value);
 
@@ -69,7 +68,7 @@ pub(crate) fn stylex_create_theme(
 
         theme_vars_str_value
       }
-      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.clone().get(key.as_str()).0.clone(),
+      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str()).0.clone(),
       _ => unimplemented!("Unsupported theme vars type"),
     };
 
@@ -97,10 +96,9 @@ pub(crate) fn stylex_create_theme(
   });
 
   let at_rules_string_for_hash = sorted_at_rules
-    .clone()
-    .into_iter()
+    .iter()
     .map(|at_rule| {
-      let rult_by_at_rule = rules_by_at_rule.get(at_rule).unwrap().join("");
+      let rult_by_at_rule = rules_by_at_rule.get(*at_rule).unwrap().join("");
 
       wrap_with_at_rules(rult_by_at_rule.as_str(), at_rule)
     })
@@ -119,13 +117,13 @@ pub(crate) fn stylex_create_theme(
 
   for at_rule in sorted_at_rules.into_iter() {
     let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
-    let rule = format!(".{}{{{}}}", override_class_name.clone(), decls);
+    let rule = format!(".{}{{{}}}", override_class_name, decls);
 
     if at_rule == "default" {
       styles_to_inject.insert(
         override_class_name.clone(),
         Box::new(InjectableStyle {
-          ltr: rule.clone(),
+          ltr: rule,
           rtl: None,
           priority: Some(0.5),
         }),
@@ -157,7 +155,7 @@ pub(crate) fn stylex_create_theme(
       state,
       &FunctionMap::default(),
     ),
-    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.clone().get(THEME_NAME_KEY).0,
+    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY).0,
     _ => unimplemented!("Unsupported theme vars type"),
   };
 

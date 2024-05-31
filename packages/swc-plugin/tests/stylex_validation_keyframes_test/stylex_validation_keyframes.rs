@@ -22,7 +22,7 @@ fn only_argument_must_be_an_object_of_objects_null() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -46,7 +46,7 @@ fn only_argument_must_be_an_object_of_objects_non_keyframe() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -68,7 +68,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   only_argument_must_be_an_object_of_objects_valid,
   r#"
@@ -88,7 +88,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   only_argument_must_be_an_object_of_objects_valid_filled,
   r#"
@@ -116,14 +116,14 @@ test!(
 
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
 
-    config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
+    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    config.runtime_injection = Option::Some(true);
+    config.runtime_injection = Some(true);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   allow_defined_css_variables_in_keyframes,

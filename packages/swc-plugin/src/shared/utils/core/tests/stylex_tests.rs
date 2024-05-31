@@ -10,7 +10,7 @@ mod tests {
   use crate::shared::{
     enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
     utils::{
-      ast::convertors::string_to_expression,
+      ast::{convertors::string_to_expression, factories::ident_factory},
       common::get_string_val_from_lit,
       core::{
         parse_nullable_style::{ResolvedArg, StyleObject},
@@ -31,10 +31,10 @@ mod tests {
 
       result_args.push(ResolvedArg::StyleObject(
         StyleObject::Style(object),
-        Ident::new("test".into(), DUMMY_SP),
+        ident_factory("test"),
         MemberExpr {
           span: DUMMY_SP,
-          obj: Box::new(string_to_expression("test").unwrap()),
+          obj: Box::new(string_to_expression("test")),
           prop: MemberProp::Ident(Ident::new("test".into(), DUMMY_SP)),
         },
       ))

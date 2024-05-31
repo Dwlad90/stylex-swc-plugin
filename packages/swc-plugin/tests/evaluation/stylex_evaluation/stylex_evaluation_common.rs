@@ -1,16 +1,19 @@
 use std::collections::HashMap;
 
-use stylex_swc_plugin::shared::structures::{
-  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-  named_import_source::ImportSources,
-  state_manager::StateManager,
+use stylex_swc_plugin::shared::{
+  structures::{
+    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+    named_import_source::ImportSources,
+    state_manager::StateManager,
+  },
+  utils::ast::convertors::{ident_to_expression, string_to_expression},
 };
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, Lit, NewExpr, ObjectLit, Prop, PropName,
-      PropOrSpread, Str,
+      ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, NewExpr, ObjectLit, Prop, PropName,
+      PropOrSpread,
     },
     parser::{Syntax, TsConfig},
     transforms::testing::{test, test_transform},
@@ -212,10 +215,10 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       let mut identifiers = HashMap::new();
 
       let make_class = FunctionConfig {
-        fn_ptr: FunctionType::StylexExprFn(|arg, local_state| {
+        fn_ptr: FunctionType::StylexExprFn(|arg, _| {
           let new_expr = NewExpr {
             span: DUMMY_SP,
-            callee: Box::new(Expr::Ident(Ident::new("MyClass".into(), DUMMY_SP))),
+            callee: Box::new(ident_to_expression("MyClass")),
             args: Some(vec![ExprOrSpread {
               spread: None,
               expr: Box::new(arg),
@@ -223,7 +226,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
             type_args: None,
           };
 
-          (Expr::New(new_expr), local_state)
+          Expr::New(new_expr)
         }),
         takes_path: false,
       };
@@ -263,16 +266,16 @@ fn evaluates_custom_functions_used_as_spread_values() {
       let mut identifiers = HashMap::new();
 
       let make_obj = FunctionConfig {
-        fn_ptr: FunctionType::StylexExprFn(|arg, local_state| {
+        fn_ptr: FunctionType::StylexExprFn(|arg, _| {
           let object_lit = ObjectLit {
             span: DUMMY_SP,
-            props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+            props: vec![PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
               key: PropName::Ident(Ident::new("spreadValue".into(), DUMMY_SP)),
               value: Box::new(arg),
             })))],
           };
 
-          (Expr::Object(object_lit), local_state)
+          Expr::Object(object_lit)
         }),
         takes_path: false,
       };
@@ -312,26 +315,22 @@ fn evaluates_custom_functions_that_take_paths() {
       let mut identifiers = HashMap::new();
 
       let get_node = FunctionConfig {
-        fn_ptr: FunctionType::StylexExprFn(|arg, local_state| {
+        fn_ptr: FunctionType::StylexExprFn(|arg, _| {
           let object_lit = ObjectLit {
             span: DUMMY_SP,
             props: vec![
-              PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+              PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
                 key: PropName::Ident(Ident::new("type".into(), DUMMY_SP)),
-                value: Box::new(Expr::Lit(Lit::Str(Str {
-                  span: DUMMY_SP,
-                  value: "StringLiteral".into(),
-                  raw: Option::None,
-                }))),
+                value: Box::new(string_to_expression("StringLiteral")),
               }))),
-              PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+              PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
                 key: PropName::Ident(Ident::new("value".into(), DUMMY_SP)),
                 value: Box::new(arg),
               }))),
             ],
           };
 
-          (Expr::Object(object_lit), local_state)
+          Expr::Object(object_lit)
         }),
         takes_path: true,
       };

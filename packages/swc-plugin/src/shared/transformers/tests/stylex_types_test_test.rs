@@ -21,7 +21,6 @@ mod class_methods {
       prop_or_spread_string_factory("syntax", format!("<{}>", syntax).as_str()),
       prop_or_spread_string_factory("value", value),
     ])
-    .unwrap()
   }
 
   #[test]

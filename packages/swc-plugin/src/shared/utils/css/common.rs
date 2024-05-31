@@ -399,9 +399,9 @@ pub(crate) fn generate_rule(
 
   let ltr_rule = generate_css_rule(class_name, ltr_decls, pseudos, at_rules);
   let rtl_rule = if rtl_decls.is_empty() {
-    Option::None
+    None
   } else {
-    Option::Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
+    Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
   };
 
   let priority = get_priority(key)
@@ -409,7 +409,7 @@ pub(crate) fn generate_rule(
     + at_rules.iter().map(|a| get_priority(a)).sum::<f64>();
 
   InjectableStyle {
-    priority: Option::Some(priority),
+    priority: Some(priority),
     rtl: rtl_rule,
     ltr: ltr_rule,
   }
@@ -518,10 +518,7 @@ pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
   );
   let mut errors: Vec<Error> = vec![];
 
-  (
-    parse_string_input(input, Option::None, config, &mut errors),
-    errors,
-  )
+  (parse_string_input(input, None, config, &mut errors), errors)
 }
 
 pub(crate) fn normalize_css_property_value(
@@ -557,29 +554,32 @@ pub(crate) fn normalize_css_property_value(
     Ok(ast) => {
       let (parsed_css_property_value, _) = swc_parse_css(css_rule.as_str());
 
-      let validators: Vec<Validator> = vec![
-        unprefixed_custom_properties_validator,
-        // Add other validator functions here...
-      ];
+      // let validators: Vec<Validator> = vec![
+      //   unprefixed_custom_properties_validator,
+      //   // Add other validator functions here...
+      // ];
 
-      let normalizers: Vec<Normalizer> = vec![
-        base_normalizer,
-        // Add other normalizer functions here...
-      ];
+      // let normalizers: Vec<Normalizer> = vec![
+      //   base_normalizer,
+      //   // Add other normalizer functions here...
+      // ];
 
-      for validator in validators {
-        validator(ast.clone());
-      }
+      // for validator in validators {
+      //   validator(ast.clone());
+      // }
 
-      let mut parsed_ast = parsed_css_property_value.unwrap();
+      unprefixed_custom_properties_validator(ast);
 
-      for normalizer in normalizers {
-        parsed_ast = normalizer(parsed_ast, options.use_rem_for_font_size);
-      }
+      let parsed_ast = base_normalizer(
+        parsed_css_property_value.unwrap(),
+        options.use_rem_for_font_size,
+      );
 
-      let mut result = stringify(&parsed_ast);
+      // for normalizer in normalizers {
+      //   parsed_ast = normalizer(parsed_ast, options.use_rem_for_font_size);
+      // }
 
-      result = whitespace_normalizer(result);
+      let result = whitespace_normalizer(stringify(&parsed_ast));
 
       convert_css_function_to_camel_case(result.as_str())
     }
@@ -591,8 +591,8 @@ pub(crate) fn normalize_css_property_value(
   ast_normalized
 }
 
-type Normalizer = fn(Stylesheet, bool) -> Stylesheet;
-type Validator = fn(Stylesheet);
+// type Normalizer = fn(Stylesheet, bool) -> Stylesheet;
+// type Validator = fn(Stylesheet);
 
 pub(crate) fn get_number_suffix(key: &str) -> String {
   if UNITLESS_NUMBER_PROPERTIES.contains(key) {

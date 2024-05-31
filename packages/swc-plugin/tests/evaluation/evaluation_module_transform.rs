@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use stylex_swc_plugin::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::js::evaluate::evaluate,
+  utils::{ast::convertors::number_to_expression, js::evaluate::evaluate},
 };
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Lit, Number, Pat, Stmt, VarDeclarator},
+    ast::{ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Pat, Stmt, VarDeclarator},
     visit::{Fold, FoldWith},
   },
 };
@@ -35,10 +35,8 @@ impl Fold for EvaluationModuleTransformVisitor {
   fn fold_var_declarators(&mut self, var_declarators: Vec<VarDeclarator>) -> Vec<VarDeclarator> {
     var_declarators.iter().for_each(|decl| {
       if let Pat::Ident(_) = &decl.name {
-        let var = decl.clone();
-
-        if !self.declarations.contains(&var) {
-          self.declarations.push(var);
+        if !self.declarations.contains(decl) {
+          self.declarations.push(decl.clone());
         }
       }
     });
@@ -75,8 +73,8 @@ impl Fold for EvaluationModuleTransformVisitor {
 
     match evaluate_result.value {
       Some(value) => match value.as_ref() {
-        EvaluateResultValue::Expr(expr) => *expr.clone(), //.fold_children_with(self),
-        EvaluateResultValue::Vec(vec) => Expr::Array(ArrayLit {
+        EvaluateResultValue::Expr(expr) => *expr.clone(),
+        EvaluateResultValue::Vec(vec) => Expr::from(ArrayLit {
           span: DUMMY_SP,
           elems: vec
             .iter()
@@ -90,20 +88,12 @@ impl Fold for EvaluationModuleTransformVisitor {
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(vec![
-          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
-            Number {
-              span: DUMMY_SP,
-              value: 2.0,
-              raw: Option::None,
-            },
-          ))))),
-          Option::Some(EvaluateResultValue::Expr(Box::new(Expr::Lit(Lit::Num(
-            Number {
-              span: DUMMY_SP,
-              value: 7.0,
-              raw: Option::None,
-            },
-          ))))),
+          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
+            2.0,
+          )))),
+          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
+            7.0,
+          )))),
         ]),
         _ => panic!("Failed to evaluate expression"),
       },

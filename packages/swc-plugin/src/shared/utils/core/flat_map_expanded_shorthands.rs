@@ -9,7 +9,7 @@ pub(crate) fn flat_map_expanded_shorthands(
   obj_entry: (String, PreRuleValue),
   options: &StyleXStateOptions,
 ) -> Vec<OrderPair> {
-  let (key, raw_value) = obj_entry.clone();
+  let (key, raw_value) = obj_entry;
 
   let value = match raw_value {
     PreRuleValue::String(value) => Some(value),
@@ -29,15 +29,15 @@ pub(crate) fn flat_map_expanded_shorthands(
   };
 
   let expansion_fn = match &options.style_resolution {
-    StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.clone()),
+    StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.as_str()),
     StyleResolution::LegacyExpandShorthands => {
-      LegacyExpandShorthandsOrder::get_expansion_fn(key.clone())
+      LegacyExpandShorthandsOrder::get_expansion_fn(key.as_str())
     }
-    StyleResolution::PropertySpecificity => PropertySpecificityOrder::get_expansion_fn(key.clone()),
+    StyleResolution::PropertySpecificity => PropertySpecificityOrder::get_expansion_fn(key.as_str()),
   };
 
   if let Some(expansion_fn) = expansion_fn {
-    return (expansion_fn)(value.clone());
+    return (expansion_fn)(value);
   }
 
   let order_pair = OrderPair(key, value);

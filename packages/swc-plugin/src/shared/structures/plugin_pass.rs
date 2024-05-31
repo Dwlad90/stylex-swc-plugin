@@ -11,7 +11,7 @@ pub struct PluginPass {
 impl Default for PluginPass {
   fn default() -> Self {
     Self {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Anon,
     }
   }

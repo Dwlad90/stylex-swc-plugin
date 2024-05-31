@@ -7,7 +7,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::utils::{common::gen_file_based_identifier, js::evaluate::evaluate};
 use crate::shared::{
   constants::messages::NON_OBJECT_FOR_STYLEX_CALL,
@@ -27,6 +26,9 @@ use crate::shared::{
     stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
     stylex_types::get_types_fn,
   },
+};
+use crate::shared::{
+  structures::functions::FunctionConfigType, utils::ast::factories::ident_factory,
 };
 
 use crate::ModuleTransformVisitor;
@@ -78,15 +80,12 @@ where
 
         let identifier = identifiers
           .entry(Box::new(
-            Ident::new(name.get_import_str().into(), DUMMY_SP).to_id(),
+            ident_factory(name.get_import_str().as_str()).to_id(),
           ))
           .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(
-            Ident::new("types".into(), DUMMY_SP).to_id(),
-            types_fn.clone(),
-          );
+          identifier_map.insert(ident_factory("types").to_id(), types_fn.clone());
         }
       }
 
@@ -129,11 +128,7 @@ where
         .map(|decl| decl.0.to_string())
         .expect("Export variable not found");
 
-      self.state.theme_name = Option::Some(gen_file_based_identifier(
-        &file_name,
-        &export_name,
-        Option::None,
-      ));
+      self.state.theme_name = Some(gen_file_based_identifier(&file_name, &export_name, None));
 
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);
@@ -150,9 +145,9 @@ where
         .state
         .register_styles(call, &injected_styles, &result_ast, &var_name);
 
-      return Option::Some(result_ast);
+      return Some(result_ast);
     } else {
-      Option::None
+      None
     };
 
     result

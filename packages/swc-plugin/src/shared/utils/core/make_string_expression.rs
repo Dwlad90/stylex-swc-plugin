@@ -1,14 +1,17 @@
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
-    BinExpr, BinaryOp, ComputedPropName, Expr, Ident, KeyValueProp, Lit, MemberExpr, MemberProp,
-    Number, Prop, PropName, PropOrSpread, UnaryExpr, UnaryOp,
+    BinExpr, BinaryOp, ComputedPropName, Expr, Ident, KeyValueProp, MemberExpr, MemberProp, Prop,
+    PropName, PropOrSpread, UnaryExpr, UnaryOp,
   },
 };
 
 use crate::shared::{
   enums::data_structures::fn_result::FnResult,
-  utils::ast::{convertors::string_to_expression, factories::object_expression_factory},
+  utils::ast::{
+    convertors::{number_to_expression, string_to_expression},
+    factories::object_expression_factory,
+  },
 };
 
 use super::{js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg};
@@ -26,11 +29,10 @@ pub(crate) fn make_string_expression(
   transform: fn(&Vec<ResolvedArg>) -> Option<FnResult>,
 ) -> Option<Expr> {
   let conditions = values
-    .clone()
-    .into_iter()
+    .iter()
     .filter_map(|value| match value {
-      ResolvedArg::ConditionalStyle(expr, _, _, _, _) => Option::Some(*expr),
-      _ => Option::None,
+      ResolvedArg::ConditionalStyle(expr, _, _, _, _) => Some(*expr.clone()),
+      _ => None,
     })
     .collect::<Vec<Expr>>();
 
@@ -38,7 +40,7 @@ pub(crate) fn make_string_expression(
     if let Some(value) = transform(values) {
       return fn_result_to_expression(&value);
     } else {
-      return string_to_expression("");
+      return Some(string_to_expression(""));
     }
   }
 
@@ -51,8 +53,8 @@ pub(crate) fn make_string_expression(
 
       let args = values
         .iter()
-        .filter_map(|v| match v {
-          ResolvedArg::StyleObject(_, _, _) => Some(v.clone()),
+        .filter_map(|arg| match arg {
+          ResolvedArg::StyleObject(_, _, _) => Some(arg.clone()),
           ResolvedArg::ConditionalStyle(_test, primary, fallback, ident, member) => {
             let result = if permutation.get(i).unwrap_or(&false) == &true {
               primary
@@ -74,22 +76,22 @@ pub(crate) fn make_string_expression(
         .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
 
       if let Some(result) = fn_result_to_expression(&transform(&args).unwrap()) {
-        let prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-          key: PropName::Ident(Ident::new(key.to_string().clone().into(), DUMMY_SP)),
+        let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
+          key: PropName::Ident(Ident::new(key.to_string().into(), DUMMY_SP)),
           value: Box::new(result),
         })));
 
         return Some(prop);
       }
 
-      Option::None
+      None
     })
     .collect::<Vec<PropOrSpread>>();
 
-  let obj_expressions = object_expression_factory(obj_entries).unwrap();
+  let obj_expressions = object_expression_factory(obj_entries);
   let conditions_to_key = gen_bitwise_or_of_conditions(conditions);
 
-  Some(Expr::Member(MemberExpr {
+  Some(Expr::from(MemberExpr {
     span: DUMMY_SP,
     obj: Box::new(obj_expressions),
     prop: MemberProp::Computed(ComputedPropName {
@@ -106,22 +108,18 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
     .map(|(i, condition)| {
       let shift = conditions.len() - i - 1;
 
-      Expr::Bin(BinExpr {
-        left: Box::new(Expr::Unary(UnaryExpr {
+      Expr::from(BinExpr {
+        left: Box::new(Expr::from(UnaryExpr {
           span: DUMMY_SP,
           op: UnaryOp::Bang,
-          arg: Box::new(Expr::Unary(UnaryExpr {
+          arg: Box::new(Expr::from(UnaryExpr {
             span: DUMMY_SP,
             op: UnaryOp::Bang,
             arg: Box::new(condition.clone()),
           })),
         })),
         op: BinaryOp::LShift,
-        right: Box::new(Expr::Lit(Lit::Num(Number {
-          value: shift as f64,
-          span: DUMMY_SP,
-          raw: None,
-        }))),
+        right: Box::new(number_to_expression(shift as f64)),
         span: DUMMY_SP,
       })
     })
@@ -131,7 +129,7 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
     binary_expressions
       .into_iter()
       .reduce(|acc, expr| {
-        Expr::Bin(BinExpr {
+        Expr::from(BinExpr {
           span: DUMMY_SP,
           op: BinaryOp::BitOr,
           left: Box::new(acc),

@@ -1,12 +1,15 @@
 use swc_core::{
   common::{comments::Comments, DUMMY_SP},
   ecma::{
-    ast::{BindingIdent, Decl, Expr, Ident, Lit, ModuleDecl, ModuleItem, Pat, Stmt, VarDeclarator},
+    ast::{Decl, Expr, Ident, Lit, ModuleDecl, ModuleItem, Pat, Stmt, VarDeclarator},
     visit::FoldWith,
   },
 };
 
-use crate::{shared::enums::core::ModuleCycle, ModuleTransformVisitor};
+use crate::{
+  shared::{enums::core::ModuleCycle, utils::ast::factories::binding_ident_factory},
+  ModuleTransformVisitor,
+};
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -20,22 +23,20 @@ where
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
             var_decl.decls.iter().for_each(|decl| {
               if let Pat::Ident(_) = &decl.name {
-                let var = decl.clone();
-
-                if !self.state.declarations.contains(&Box::new(var.clone())) {
-                  self.state.declarations.push(var);
+                if !self.state.declarations.contains(&Box::new(&decl)) {
+                  self.state.declarations.push(decl.clone());
                 }
               }
             });
           }
         });
 
-        let transformed_module_items = module_items.clone().fold_children_with(self);
+        let transformed_module_items = module_items.fold_children_with(self);
 
         if self.state.import_paths.is_empty() {
           self.cycle = ModuleCycle::Skip;
 
-          return module_items;
+          return transformed_module_items;
         }
 
         transformed_module_items
@@ -63,9 +64,9 @@ where
         }
 
         for module_item in module_items.iter().skip(items_to_skip) {
-          if let Some(decls) = match module_item.clone() {
+          if let Some(decls) = match &module_item {
             ModuleItem::ModuleDecl(decl) => match decl {
-              ModuleDecl::ExportDecl(export_decl) => export_decl.decl.var().map(|var_decl| {
+              ModuleDecl::ExportDecl(export_decl) => export_decl.decl.as_var().map(|var_decl| {
                 var_decl
                   .decls
                   .clone()
@@ -78,21 +79,18 @@ where
                   .collect::<Vec<VarDeclarator>>()
               }),
               ModuleDecl::ExportDefaultExpr(export_default_expr) => {
-                export_default_expr.expr.object().map(|obj| {
+                export_default_expr.expr.as_object().map(|obj| {
                   vec![VarDeclarator {
                     definite: true,
                     span: DUMMY_SP,
-                    name: Pat::Ident(BindingIdent {
-                      id: Ident::new("default".into(), DUMMY_SP),
-                      type_ann: None,
-                    }),
-                    init: Option::Some(Box::new(Expr::Object(obj))),
+                    name: Pat::Ident(binding_ident_factory(Ident::from("default"))),
+                    init: Some(Box::new(Expr::from(obj.clone()))),
                   }]
                 })
               }
-              _ => Option::None,
+              _ => None,
             },
-            ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Option::Some(
+            ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(
               var_decl
                 .decls
                 .clone()
@@ -104,10 +102,10 @@ where
                 })
                 .collect::<Vec<VarDeclarator>>(),
             ),
-            _ => Option::None,
+            _ => None,
           } {
             for decl in decls {
-              let key = decl.clone().init.clone().unwrap();
+              let key = decl.init.clone().unwrap();
 
               if let Some(metadata_items) = self.state.styles_to_inject.get(key.as_ref()) {
                 for module_item in metadata_items.iter() {
@@ -123,7 +121,7 @@ where
       }
       ModuleCycle::Cleaning => {
         // We need it twice for a clear dead code after declaration transforms
-        let mut module_items = module_items.clone().fold_children_with(self);
+        let mut module_items = module_items.fold_children_with(self);
 
         // We remove `Stmt::Empty` from the statement list.
         // This is optional, but it's required if you don't want extra `;` in output.

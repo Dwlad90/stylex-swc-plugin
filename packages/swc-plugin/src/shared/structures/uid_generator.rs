@@ -1,7 +1,9 @@
 use dashmap::DashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use swc_core::{common::DUMMY_SP, ecma::ast::Ident};
+use swc_core::ecma::ast::Ident;
+
+use crate::shared::utils::ast::factories::ident_factory;
 
 /// A thread-safe generator for unique identifiers.
 pub(crate) struct UidGenerator {
@@ -42,6 +44,6 @@ impl UidGenerator {
   pub fn generate_ident(&self) -> Ident {
     let unique_name = self.generate();
 
-    Ident::new(unique_name.into(), DUMMY_SP)
+    ident_factory(unique_name.as_str())
   }
 }

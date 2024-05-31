@@ -79,41 +79,45 @@ impl StylesPreRule {
   ) -> Self {
     let pseudos = pseudos.unwrap_or_default();
     let at_rules = at_rules.unwrap_or_default();
-    let property = property.to_string();
+    let property_str = property.to_string();
+
+    let pseudos = if property_str.starts_with(':') {
+      let mut extended_pseudos = vec![property_str.clone()];
+      extended_pseudos.extend(pseudos);
+      extended_pseudos
+    } else {
+      pseudos
+    };
+
+    let at_rules = if property_str.starts_with('@') {
+      let mut extender_at_rules = vec![property_str.clone()];
+      extender_at_rules.extend(at_rules);
+      extender_at_rules
+    } else {
+      at_rules
+    };
 
     StylesPreRule {
-      property: property.clone(),
+      property: property_str,
       value,
-      pseudos: if property.as_str().starts_with(':') {
-        let mut extended_pseudos = vec![property.clone()];
-        extended_pseudos.extend(pseudos);
-        extended_pseudos
-      } else {
-        pseudos
-      },
-      at_rules: if property.as_str().starts_with('@') {
-        let mut extender_at_rules = vec![property];
-        extender_at_rules.extend(at_rules);
-        extender_at_rules
-      } else {
-        at_rules
-      },
+      pseudos,
+      at_rules,
     }
   }
-  pub(crate) fn _get_property(&self) -> Option<String> {
-    Option::Some(self.property.clone())
+  pub(crate) fn _get_property(&self) -> Option<&str> {
+    Some(&self.property)
   }
   pub(crate) fn _get_pseudos(&self) -> Option<Vec<String>> {
-    Option::Some(self.pseudos.clone())
+    Some(self.pseudos.clone())
   }
   pub(crate) fn _get_at_rules(&self) -> Option<Vec<String>> {
-    Option::Some(self.at_rules.clone())
+    Some(self.at_rules.clone())
   }
 }
 
 impl PreRule for StylesPreRule {
   fn get_value(&self) -> Option<PreRuleValue> {
-    Option::Some(self.value.clone())
+    Some(self.value.clone())
   }
 
   fn compiled(&mut self, state: &StateManager) -> CompiledResult {

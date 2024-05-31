@@ -20,11 +20,11 @@ mod stylex_first_that_works {
 
     let expected_args = vec!["c", "b", "a"]
       .into_iter()
-      .map(|val| Option::Some(expr_or_spread_string_expression_factory(val)))
+      .map(|val| Some(expr_or_spread_string_expression_factory(val)))
       .collect::<Vec<Option<ExprOrSpread>>>();
 
-    let result = stylex_first_that_works(args.into_iter().flatten().collect());
-    let expected_result = array_expression_factory(expected_args).unwrap();
+    let result = stylex_first_that_works(args.into_iter().collect());
+    let expected_result = array_expression_factory(expected_args);
 
     assert_eq!(result, expected_result);
   }

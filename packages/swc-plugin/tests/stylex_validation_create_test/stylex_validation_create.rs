@@ -16,7 +16,7 @@ fn must_be_bound_to_a_variable() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -41,7 +41,7 @@ fn must_be_called_at_top_level() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -68,7 +68,7 @@ fn its_only_argument_must_be_a_single_object_non_object() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -93,7 +93,7 @@ fn its_only_argument_must_be_a_single_object_argument() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -118,7 +118,7 @@ fn its_only_argument_must_be_a_single_object_illegal_argument_length() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -137,7 +137,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   its_only_argument_must_be_a_single_object_correct_argument_length,
@@ -164,7 +164,7 @@ fn namespace_values_must_be_an_object() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -191,7 +191,7 @@ fn namespace_keys_must_be_a_static_value() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -220,7 +220,7 @@ fn properties_must_be_a_static_value() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -243,7 +243,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   namespace_values_can_be_an_empty_object,
@@ -262,7 +262,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   values_can_be_static_arrays_of_number_or_string_in_stylex_create,
@@ -298,7 +298,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -327,7 +327,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_illegal_pro
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -356,7 +356,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -385,7 +385,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -408,7 +408,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   values_can_reference_local_bindings_in_stylex_create,
@@ -435,7 +435,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   values_can_be_pure_complex_expressions_in_stylex_create,
@@ -458,7 +458,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   values_can_be_template_literal_expressions_in_stylex_create,
@@ -481,7 +481,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   pseudo_classes_must_start_with_colon_character,
@@ -504,7 +504,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   pseudo_classes_invalid_pseudo,
@@ -534,7 +534,7 @@ fn pseudo_classes_throw_invalid_pseudo() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -560,7 +560,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   pseudo_classes_cannot_be_nested,

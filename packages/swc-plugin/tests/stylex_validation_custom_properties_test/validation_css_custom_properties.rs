@@ -24,12 +24,12 @@ fn disallow_unclosed_style_value_functions() {
 
       defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
 
-      config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
+      config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::Some(&mut config),
+        Some(&mut config),
       )
     },
     r#"
@@ -56,12 +56,12 @@ fn disallow_unprefixed_custom_properties() {
 
       defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
 
-      config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
+      config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::Some(&mut config),
+        Some(&mut config),
       )
     },
     r#"
@@ -85,12 +85,12 @@ test!(
 
     defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
 
-    config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
+    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   allow_defined_custom_properties_simple,
@@ -113,12 +113,12 @@ test!(
     defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
 
-    config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
+    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   allow_defined_custom_properties_double,
@@ -136,7 +136,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None,
+    None,
   ),
   allow_undefined_custom_properties_regular,
   r#"
@@ -155,12 +155,12 @@ test!(
 
     let defined_stylex_css_variables = HashMap::new();
 
-    config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
+    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   allow_undefined_custom_properties_not_defined,
@@ -183,12 +183,12 @@ test!(
     defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
 
-    config.defined_stylex_css_variables = Option::Some(defined_stylex_css_variables);
+    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   allow_undefined_custom_properties_double_not_defined,

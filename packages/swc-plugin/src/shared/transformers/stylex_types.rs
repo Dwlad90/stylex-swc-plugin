@@ -4,15 +4,12 @@ use crate::shared::{
     base_css_type::BaseCSSType,
     functions::{FunctionConfig, FunctionType},
   },
-  utils::ast::factories::prop_or_spread_string_factory,
+  utils::ast::factories::{object_expression_factory, prop_or_spread_string_factory},
 };
 use indexmap::IndexMap;
 use phf::phf_map;
 use std::rc::Rc;
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::ast::{Expr, ObjectLit},
-};
+use swc_core::ecma::ast::Expr;
 
 pub trait HasBase {
   fn new(value: ValueWithDefault) -> Self
@@ -360,12 +357,9 @@ impl From<BaseCSSType> for Expr {
 
     let mut props = vec![syntax_prop];
 
-    props.extend(BaseCSSType::value_to_props(instance.value, Option::None));
+    props.extend(BaseCSSType::value_to_props(instance.value, None));
 
-    Expr::Object(ObjectLit {
-      span: DUMMY_SP,
-      props,
-    })
+    object_expression_factory(props)
   }
 }
 fn angle(value: ValueWithDefault) -> Expr {

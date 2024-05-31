@@ -83,8 +83,8 @@ fn namespace_to_dev_class_name(
     "{}__{}{}",
     basename,
     var_name
-      .clone()
-      .map(|var_name| format!("{}.", var_name))
+    .clone()
+    .map(|var_name| format!("{}.", var_name))
       .unwrap_or_default(),
     namespace
   );

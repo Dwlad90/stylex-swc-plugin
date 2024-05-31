@@ -18,15 +18,15 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      import_sources: Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]),
-      runtime_injection: Option::Some(true),
+      import_sources: Some(vec![ImportSources::Regular("foo-bar".to_string())]),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   handles_custom_default_imports,
@@ -49,15 +49,15 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      import_sources: Option::Some(vec![ImportSources::Regular("foo-bar".to_string())]),
-      runtime_injection: Option::Some(true),
+      import_sources: Some(vec![ImportSources::Regular("foo-bar".to_string())]),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   handles_custom_as_all_imports,
@@ -80,18 +80,18 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      import_sources: Option::Some(vec![ImportSources::Named(NamedImportSource {
+      import_sources: Some(vec![ImportSources::Named(NamedImportSource {
         from: "react-strict-dom".to_string(),
         r#as: "css".to_string(),
       })]),
-      runtime_injection: Option::Some(true),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   handles_custom_named_imports,
@@ -114,18 +114,18 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      import_sources: Option::Some(vec![ImportSources::Named(NamedImportSource {
+      import_sources: Some(vec![ImportSources::Named(NamedImportSource {
         from: "react-strict-dom".to_string(),
         r#as: "css".to_string(),
       })]),
-      runtime_injection: Option::Some(true),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     };
 
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   handles_custom_named_imports_with_other_named_imports,

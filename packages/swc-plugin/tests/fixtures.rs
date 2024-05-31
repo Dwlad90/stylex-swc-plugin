@@ -30,10 +30,10 @@ fn fixture(input: PathBuf) {
       let top_level_mark = Mark::new();
 
       let mut config = StyleXOptionsParams {
-        dev: Option::Some(true),
-        treeshake_compensation: Option::Some(true),
-        unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-          Option::None,
+        dev: Some(true),
+        treeshake_compensation: Some(true),
+        unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+          None,
         )),
         ..StyleXOptionsParams::default()
       };
@@ -43,10 +43,10 @@ fn fixture(input: PathBuf) {
         ModuleTransformVisitor::new_test_styles(
           PluginCommentsProxy,
           &PluginPass {
-            cwd: Option::None,
+            cwd: None,
             filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
           },
-          Option::Some(&mut config)
+          Some(&mut config)
         )
       )
     },

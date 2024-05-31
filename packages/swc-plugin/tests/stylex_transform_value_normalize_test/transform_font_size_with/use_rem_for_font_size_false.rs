@@ -16,8 +16,8 @@ test!(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(true),
-      use_rem_for_font_size: Option::Some(false),
+      runtime_injection: Some(true),
+      use_rem_for_font_size: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -50,8 +50,8 @@ test!(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(true),
-      use_rem_for_font_size: Option::Some(false),
+      runtime_injection: Some(true),
+      use_rem_for_font_size: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),

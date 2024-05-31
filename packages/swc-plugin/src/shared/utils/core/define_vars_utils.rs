@@ -41,9 +41,9 @@ pub(crate) fn construct_css_variables_string(
     result.insert(
       format!("{}{}", theme_name_hash, suffix),
       Box::new(InjectableStyle {
-        priority: Option::Some(priority_for_at_rule(at_rule).mul(0.1)),
+        priority: Some(priority_for_at_rule(at_rule).mul(0.1)),
         ltr,
-        rtl: Option::None,
+        rtl: None,
       }),
     );
   }
@@ -89,7 +89,7 @@ pub(crate) fn collect_vars_by_at_rules(
       let key = if at_rules.is_empty() {
         "default".to_string()
       } else {
-        let mut keys = at_rules.to_vec().clone();
+        let mut keys = at_rules.to_vec();
         keys.sort();
         keys.join(SPLIT_TOKEN)
       };
@@ -113,19 +113,19 @@ pub(crate) fn collect_vars_by_at_rules(
       for key_value in key_values.iter() {
         let at_rule = get_key_str(key_value);
 
-        let value = key_value.value.clone();
-
         let extended_at_rules = if at_rule == "default" {
-          at_rules.to_vec().clone()
+          at_rules.to_vec()
         } else {
-          let mut new_at_rule = at_rules.to_vec().clone();
+          let mut new_at_rule = at_rules.to_vec();
           new_at_rule.push(at_rule.clone());
           new_at_rule
         };
 
+        let value = key_value.value.clone();
+
         collect_vars_by_at_rules(
           &at_rule,
-          &FlatCompiledStylesValue::Tuple(hash_name.clone(), value, Option::None),
+          &FlatCompiledStylesValue::Tuple(hash_name.clone(), value, None),
           collection,
           &extended_at_rules,
           typed_variables,
@@ -140,7 +140,7 @@ fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> 
   let initial_value = values
     .get("default")
     .map(|value| match value {
-      ValueWithDefault::Number(num) => num.clone().to_string(),
+      ValueWithDefault::Number(num) => num.to_string(),
       ValueWithDefault::String(str) => str.clone(),
       ValueWithDefault::Map(map) => get_nitial_value_of_css_type(map),
     })

@@ -38,14 +38,14 @@ impl PreRule for PreRuleSet {
   fn compiled(&mut self, state: &StateManager) -> CompiledResult {
     let style_tuple = self
       .rules
-      .iter()
+      .iter_mut()
       .flat_map(|rule| {
         let compiled_rule = match rule {
-          PreRules::PreRuleSet(rule_set) => rule_set.clone().compiled(state),
-          PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.clone().compiled(state),
-          PreRules::NullPreRule(null_pre_rule) => null_pre_rule.clone().compiled(state),
+          PreRules::PreRuleSet(rule_set) => rule_set.compiled(state),
+          PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.compiled(state),
+          PreRules::NullPreRule(null_pre_rule) => null_pre_rule.compiled(state),
           PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
-            pre_included_tyles_rule.clone().compiled(state)
+            pre_included_tyles_rule.compiled(state)
           }
         };
 

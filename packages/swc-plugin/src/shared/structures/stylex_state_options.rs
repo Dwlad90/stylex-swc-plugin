@@ -30,23 +30,23 @@ impl StyleXStateOptions {
     StyleXStateOptions {
       style_resolution: StyleResolution::ApplicationOrder,
       use_rem_for_font_size: false,
-      runtime_injection: Option::None,
+      runtime_injection: None,
       class_name_prefix: "x".to_string(),
       defined_stylex_css_variables: HashMap::new(),
       import_sources: vec![],
       dev: false,
       test: false,
-      treeshake_compensation: Option::None,
+      treeshake_compensation: None,
       gen_conditional_classes: false,
-      aliases: Option::None,
-      unstable_module_resolution: Option::None,
+      aliases: None,
+      unstable_module_resolution: None,
     }
   }
 }
 
 impl Default for CheckModuleResolution {
   fn default() -> Self {
-    CheckModuleResolution::Haste(StyleXOptions::get_haste_module_resolution(Option::None))
+    CheckModuleResolution::Haste(StyleXOptions::get_haste_module_resolution(None))
   }
 }
 impl From<StyleXOptions> for StyleXStateOptions {
@@ -58,7 +58,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
             DEFAULT_INJECT_PATH.to_string(),
           ))
         } else {
-          Option::None
+          None
         }
       }
       RuntimeInjection::Named(n) => Some(RuntimeInjectionState::Named(n)),
@@ -75,11 +75,11 @@ impl From<StyleXOptions> for StyleXStateOptions {
             aliases_map.insert(key, vec);
           }
 
-          Option::Some(aliases_map)
+          Some(aliases_map)
         }
-        stylex_options::Aliases::StringVec(aliases) => Option::Some(aliases),
+        stylex_options::Aliases::StringVec(aliases) => Some(aliases),
       },
-      None => Option::None,
+      None => None,
     };
 
     StyleXStateOptions {

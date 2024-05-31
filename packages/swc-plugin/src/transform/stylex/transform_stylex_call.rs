@@ -14,7 +14,7 @@ impl<C> ModuleTransformVisitor<C>
 where
   C: Comments,
 {
-  pub(crate) fn transform_stylex_call(&mut self, call: &CallExpr) -> Option<Expr> {
+  pub(crate) fn transform_stylex_call(&mut self, call: &mut CallExpr) -> Option<Expr> {
     match &call.callee {
       Callee::Expr(expr) => match expr.as_ref() {
         Expr::Ident(ident) => {
@@ -27,11 +27,11 @@ where
               return Some(value);
             }
           }
-          Option::None
+          None
         }
-        _ => Option::None,
+        _ => None,
       },
-      _ => Option::None,
+      _ => None,
     }
   }
 }

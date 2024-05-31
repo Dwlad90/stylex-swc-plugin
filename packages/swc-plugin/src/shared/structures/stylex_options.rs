@@ -27,18 +27,18 @@ pub struct StyleXOptionsParams {
 impl Default for StyleXOptionsParams {
   fn default() -> Self {
     StyleXOptionsParams {
-      style_resolution: Option::Some(StyleResolution::ApplicationOrder),
-      use_rem_for_font_size: Option::Some(false),
-      runtime_injection: Option::Some(false),
-      class_name_prefix: Option::Some("x".to_string()),
-      defined_stylex_css_variables: Option::Some(HashMap::new()),
-      import_sources: Option::None,
-      treeshake_compensation: Option::Some(true),
-      gen_conditional_classes: Option::Some(false),
-      dev: Option::Some(false),
-      test: Option::Some(false),
-      aliases: Option::None,
-      unstable_module_resolution: Option::None,
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      use_rem_for_font_size: Some(false),
+      runtime_injection: Some(false),
+      class_name_prefix: Some("x".to_string()),
+      defined_stylex_css_variables: Some(HashMap::new()),
+      import_sources: None,
+      treeshake_compensation: Some(true),
+      gen_conditional_classes: Some(false),
+      dev: Some(false),
+      test: Some(false),
+      aliases: None,
+      unstable_module_resolution: None,
     }
   }
 }
@@ -96,7 +96,7 @@ impl StyleXOptions {
     ModuleResolution {
       r#type: "haste".to_string(),
       root_dir,
-      theme_file_extension: Option::None,
+      theme_file_extension: None,
     }
   }
 
@@ -104,7 +104,7 @@ impl StyleXOptions {
     ModuleResolution {
       r#type: "commonjs".to_string(),
       root_dir,
-      theme_file_extension: Option::None,
+      theme_file_extension: None,
     }
   }
 }
@@ -120,11 +120,11 @@ impl Default for StyleXOptions {
       import_sources: vec![],
       dev: false,
       test: false,
-      treeshake_compensation: Option::None,
+      treeshake_compensation: None,
       gen_conditional_classes: false,
-      aliases: Option::None,
-      unstable_module_resolution: Option::Some(CheckModuleResolution::Haste(
-        StyleXOptions::get_haste_module_resolution(Option::None),
+      aliases: None,
+      unstable_module_resolution: Some(CheckModuleResolution::Haste(
+        StyleXOptions::get_haste_module_resolution(None),
       )),
     }
   }
@@ -134,13 +134,11 @@ impl From<StyleXOptionsParams> for StyleXOptions {
   fn from(options: StyleXOptionsParams) -> Self {
     let unstable_module_resolution = match options.unstable_module_resolution {
       Some(module_resolution) => match module_resolution.r#type.to_lowercase().as_str() {
-        "haste" => Option::Some(CheckModuleResolution::Haste(module_resolution)),
-        "cross-file-parsing" => {
-          Option::Some(CheckModuleResolution::CrossFileParsing(module_resolution))
-        }
-        _ => Option::Some(CheckModuleResolution::CommonJS(module_resolution)),
+        "haste" => Some(CheckModuleResolution::Haste(module_resolution)),
+        "cross-file-parsing" => Some(CheckModuleResolution::CrossFileParsing(module_resolution)),
+        _ => Some(CheckModuleResolution::CommonJS(module_resolution)),
       },
-      None => Option::None,
+      None => None,
     };
 
     let runtime_injection = match options.runtime_injection {

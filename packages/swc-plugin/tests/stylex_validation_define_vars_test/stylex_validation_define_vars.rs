@@ -21,7 +21,7 @@ fn must_be_bound_to_a_named_export_const() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -45,7 +45,7 @@ fn must_be_bound_to_a_named_export() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -69,7 +69,7 @@ fn its_only_argument_must_be_a_single_object_fn() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -93,7 +93,7 @@ fn its_only_argument_must_be_a_single_object_number() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -117,7 +117,7 @@ fn its_only_argument_must_be_a_single_object_empty() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -141,7 +141,7 @@ fn its_only_argument_must_be_a_single_object_two_args() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -161,10 +161,10 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Option::None
+    None
   ),
   its_only_argument_must_be_a_single_object_valid,
   r#"
@@ -185,7 +185,7 @@ fn variable_keys_must_be_a_static_value() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -207,10 +207,10 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
-    Option::None
+    None
   ),
   values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars,
   r#"
@@ -244,7 +244,7 @@ fn values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars_var
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -270,7 +270,7 @@ fn values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars_fn(
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"

@@ -1,12 +1,4 @@
 "use strict";
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- *
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -40,6 +32,7 @@ function StylexNextJSPlugin({ rootDir, filename = "stylex-bundle.css", ...plugin
                         config.optimization.splitChunks.cacheGroups.stylex = {
                             name: "stylex",
                             chunks: "all",
+                            test: /\.css$/,
                             enforce: true,
                         };
                     }

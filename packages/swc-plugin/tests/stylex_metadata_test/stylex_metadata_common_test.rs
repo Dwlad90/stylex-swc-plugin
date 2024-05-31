@@ -10,7 +10,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), Option::None)
+    ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), None)
   },
   stylex_metadata_is_correctly_set,
   r#"

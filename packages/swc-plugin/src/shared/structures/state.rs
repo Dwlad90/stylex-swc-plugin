@@ -17,7 +17,7 @@ impl Default for EvaluationState {
   fn default() -> Self {
     EvaluationState {
       confident: true,
-      deopt_path: Option::None,
+      deopt_path: None,
       added_imports: HashSet::new(),
       functions: FunctionMap {
         identifiers: HashMap::new(),
@@ -32,7 +32,7 @@ impl EvaluationState {
   pub(crate) fn new(traversal_state: &StateManager) -> Self {
     EvaluationState {
       confident: true,
-      deopt_path: Option::None,
+      deopt_path: None,
       added_imports: HashSet::new(),
       functions: FunctionMap {
         identifiers: HashMap::new(),

@@ -12,7 +12,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transform_import_aliases,
   r#"
@@ -40,7 +40,7 @@ fn throw_when_named_import() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -61,7 +61,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   can_import_with_a_different_name,
   r#"
@@ -85,7 +85,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   can_import_wildcard,
   r#"
@@ -110,7 +110,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   can_import_just_create,
   r#"
@@ -135,7 +135,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   can_import_just_create_with_alias,
   r#"

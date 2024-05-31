@@ -23,13 +23,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
       ..StyleXOptionsParams::default()
     })
@@ -63,13 +63,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
       ..StyleXOptionsParams::default()
     })
@@ -103,13 +103,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
       ..StyleXOptionsParams::default()
     })
@@ -143,13 +143,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
       ..StyleXOptionsParams::default()
     })
@@ -184,12 +184,12 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
       dev: Some(true),
       ..StyleXOptionsParams::default()
@@ -224,13 +224,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
-        Option::Some(ROOT_DIR.to_string())
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
+        Some(ROOT_DIR.to_string())
       )),
       ..StyleXOptionsParams::default()
     })
@@ -264,15 +264,15 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
-        Option::Some(ROOT_DIR.to_string())
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
+        Some(ROOT_DIR.to_string())
       )),
-      dev: Option::Some(true),
+      dev: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -305,13 +305,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
-        Option::Some(ROOT_DIR.to_string())
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
+        Some(ROOT_DIR.to_string())
       )),
       ..StyleXOptionsParams::default()
     })
@@ -353,14 +353,14 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Option::Some(false),
-      dev: Option::Some(true),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      runtime_injection: Some(false),
+      dev: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
       ..StyleXOptionsParams::default()
     })
@@ -402,14 +402,14 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
-      dev: Option::Some(true),
+      dev: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -443,14 +443,14 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
-      dev: Option::Some(true),
+      dev: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -484,14 +484,14 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
-      dev: Option::Some(true),
+      dev: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -525,14 +525,14 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Option::Some(StyleXOptions::get_haste_module_resolution(
-        Option::None
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
+        None
       )),
-      dev: Option::Some(true),
+      dev: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -566,13 +566,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/utils/NestedTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      dev: Option::Some(true),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
-        Option::Some(ROOT_DIR.to_string())
+      dev: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
+        Some(ROOT_DIR.to_string())
       )),
       ..StyleXOptionsParams::default()
     })
@@ -606,13 +606,13 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/utils/NestedTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      dev: Option::Some(true),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
-        Option::Some(ROOT_DIR.to_string())
+      dev: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
+        Some(ROOT_DIR.to_string())
       )),
       ..StyleXOptionsParams::default()
     })
@@ -646,16 +646,16 @@ test!(
   |tr| ModuleTransformVisitor::new_test(
     tr.comments.clone(),
     &PluginPass {
-      cwd: Option::None,
+      cwd: None,
       filename: FileName::Real("/stylex/packages/utils/NestedTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      dev: Option::Some(false),
-      runtime_injection: Option::Some(false),
-      gen_conditional_classes: Option::Some(true),
-      treeshake_compensation: Option::Some(true),
-      unstable_module_resolution: Option::Some(StyleXOptions::get_common_js_module_resolution(
-        Option::Some(ROOT_DIR.to_string())
+      dev: Some(false),
+      runtime_injection: Some(false),
+      gen_conditional_classes: Some(true),
+      treeshake_compensation: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
+        Some(ROOT_DIR.to_string())
       )),
       ..StyleXOptionsParams::default()
     })

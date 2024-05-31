@@ -16,7 +16,7 @@ fn must_be_bound_to_a_variable() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -40,7 +40,7 @@ fn it_must_have_two_arguments_no_args() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -64,7 +64,7 @@ fn it_must_have_two_arguments_one_args() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -88,7 +88,7 @@ fn it_must_have_two_arguments_fn_args() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -112,7 +112,7 @@ fn it_must_have_two_arguments_empty_object_args() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -130,7 +130,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   it_must_have_two_arguments_valid,
@@ -155,7 +155,7 @@ fn variable_keys_must_be_a_static_value() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -176,7 +176,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   values_must_be_static_number_or_string_in_stylex_create_theme_v1,
@@ -195,7 +195,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   values_must_be_static_number_or_string_in_stylex_create_theme_v2,
@@ -220,7 +220,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -247,7 +247,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"

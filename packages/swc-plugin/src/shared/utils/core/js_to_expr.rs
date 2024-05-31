@@ -1,14 +1,17 @@
 use indexmap::IndexMap;
 use swc_core::{
   common::DUMMY_SP,
-  ecma::ast::{Bool, Expr, Lit, Null, PropOrSpread, SpreadElement},
+  ecma::ast::{Expr, PropOrSpread, SpreadElement},
 };
 
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::types::FlatCompiledStyles,
-  utils::ast::factories::{
-    object_expression_factory, prop_or_spread_expression_factory, prop_or_spread_string_factory,
+  utils::ast::{
+    convertors::{bool_to_expression, null_to_expression},
+    factories::{
+      object_expression_factory, prop_or_spread_expression_factory, prop_or_spread_string_factory,
+    },
   },
 };
 
@@ -61,7 +64,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           *value.clone(),
         ));
 
-        let prop = prop_or_spread_expression_factory(key.as_str(), Box::new(expr));
+        let prop = prop_or_spread_expression_factory(key.as_str(), expr);
 
         props.push(prop);
       }
@@ -72,23 +75,18 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           FlatCompiledStylesValue::String(value) => {
             prop_or_spread_string_factory(key.as_str(), value.as_str())
           }
-          FlatCompiledStylesValue::Null => prop_or_spread_expression_factory(
-            key.as_str(),
-            Box::new(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))),
-          ),
+          FlatCompiledStylesValue::Null => {
+            prop_or_spread_expression_factory(key.as_str(), null_to_expression())
+          }
           FlatCompiledStylesValue::IncludedStyle(include_style) => {
             PropOrSpread::Spread(SpreadElement {
               dot3_token: DUMMY_SP,
               expr: Box::new(include_style.get_expr().clone()),
             })
           }
-          FlatCompiledStylesValue::Bool(value) => prop_or_spread_expression_factory(
-            key.as_str(),
-            Box::new(Expr::Lit(Lit::Bool(Bool {
-              span: DUMMY_SP,
-              value: *value,
-            }))),
-          ),
+          FlatCompiledStylesValue::Bool(value) => {
+            prop_or_spread_expression_factory(key.as_str(), bool_to_expression(*value))
+          }
           _ => unreachable!("Unsupported value type"),
         };
 
@@ -97,5 +95,5 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
     }
   }
 
-  object_expression_factory(props).unwrap()
+  object_expression_factory(props)
 }

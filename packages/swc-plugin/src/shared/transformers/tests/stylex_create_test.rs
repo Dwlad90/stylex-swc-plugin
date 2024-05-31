@@ -29,10 +29,10 @@ mod stylex_create {
 
     for (key, value) in args {
       object.insert(
-        Box::new(string_to_expression(key).unwrap()),
+        Box::new(string_to_expression(key)),
         value
           .iter()
-          .map(|(key, value)| key_value_factory(key, string_to_expression(value).unwrap()))
+          .map(|(key, value)| key_value_factory(key, string_to_expression(value)))
           .collect(),
       );
     }
@@ -49,7 +49,7 @@ mod stylex_create {
 
     for (key, value) in args {
       object.insert(
-        Box::new(string_to_expression(key).unwrap()),
+        Box::new(string_to_expression(key)),
         value
           .iter()
           .map(|(key, value)| {
@@ -60,8 +60,7 @@ mod stylex_create {
                   .iter()
                   .map(|(key, value)| prop_or_spread_string_factory(key, value))
                   .collect(),
-              )
-              .unwrap(),
+              ),
             )
           })
           .collect(),
@@ -79,21 +78,21 @@ mod stylex_create {
 
     for (key, value) in args {
       object.insert(
-        Box::new(string_to_expression(key).unwrap()),
+        Box::new(string_to_expression(key)),
         value
           .iter()
           .map(|(key, value)| {
             let elems = value
               .iter()
               .map(|arg| {
-                Option::Some(ExprOrSpread {
-                  spread: Option::None,
-                  expr: Box::new(string_to_expression(arg).unwrap()),
+                Some(ExprOrSpread {
+                  spread: None,
+                  expr: Box::new(string_to_expression(arg)),
                 })
               })
               .collect::<Vec<Option<ExprOrSpread>>>();
 
-            key_value_factory(key, array_expression_factory(elems).unwrap())
+            key_value_factory(key, array_expression_factory(elems))
           })
           .collect(),
       );
@@ -143,8 +142,8 @@ mod stylex_create {
           key.to_string(),
           Box::new(InjectableStyle {
             ltr: value.to_string(),
-            rtl: Option::None,
-            priority: Option::Some(*priority),
+            rtl: None,
+            priority: Some(*priority),
           }),
         );
       }
@@ -567,13 +566,11 @@ mod stylex_create {
       ],
     )]);
 
-    let def = object
-      .get_mut(&string_to_expression("default").unwrap())
-      .unwrap();
+    let def = object.get_mut(&string_to_expression("default")).unwrap();
 
     def.push(key_value_factory(
       "backgroundColor",
-      string_to_expression("red").unwrap(),
+      string_to_expression("red"),
     ));
 
     let (resolved_namespaces, injected_styles) = stylex_create(object);

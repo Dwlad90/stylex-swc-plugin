@@ -20,7 +20,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_style_object,
   r#"
@@ -42,7 +42,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_style_object_with_import_wildcard,
   r#"
@@ -64,7 +64,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_style_object_with_named_imports,
   r#"
@@ -86,7 +86,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_style_object_with_custom_property,
   r#"
@@ -107,7 +107,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_style_object_with_custom_property_as_value,
   r#"
@@ -128,7 +128,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_multiple_namespaces,
   r#"
@@ -152,7 +152,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   does_not_transform_attr_fn_value,
   r#"
@@ -173,7 +173,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_style_object_with_gradient,
   r#"
@@ -215,7 +215,7 @@ fn handles_camel_cased_transition_properties() {
       |tr| ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None
+        None
       )
     ),
     stringify_js(
@@ -227,7 +227,7 @@ fn handles_camel_cased_transition_properties() {
       |tr| ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None
+        None
       )
     )
   );
@@ -241,7 +241,7 @@ fn handles_camel_cased_transition_properties() {
     |tr| ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None
+      None
     )
   ));
 }
@@ -254,7 +254,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   leaves_transition_properties_of_custom_properties_alone,
   r#"
@@ -275,7 +275,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_nested_pseudo_class_to_css,
   r#"
@@ -299,7 +299,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_nested_pseudo_class_within_properties_to_css,
   r#"
@@ -325,7 +325,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_array_values_as_fallbacks,
   r#"
@@ -346,7 +346,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_array_values_as_fallbacks_within_media_query,
   r#"
@@ -371,7 +371,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_properties_requiring_vendor_prefixes,
   r#"
@@ -392,7 +392,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_valid_shorthands,
   r#"
@@ -424,7 +424,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   uses_stylex_include_correctly_with_member_expressions,
   r#"
@@ -445,7 +445,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   using_stylex_include_keeps_the_compiled_object,
   r#"
@@ -477,7 +477,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   uses_stylex_first_that_works_correctly,
   r#"
@@ -498,7 +498,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   transforms_complex_property_values_containing_custom_properties_variables,
   r#"
@@ -519,7 +519,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   auto_expands_shorthands,
   r#"
@@ -564,7 +564,7 @@ test!(
   |tr| ModuleTransformVisitor::new_test_styles(
     tr.comments.clone(),
     &PluginPass::default(),
-    Option::None
+    None
   ),
   last_property_wins_even_if_shorthand,
   r#"
@@ -592,7 +592,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), Option::None)
+    ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), None)
   },
   adds_null_for_constituent_properties_of_shorthands,
   r#"
@@ -640,14 +640,14 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      style_resolution: Option::Some(StyleResolution::PropertySpecificity),
+      style_resolution: Some(StyleResolution::PropertySpecificity),
       ..StyleXOptionsParams::default()
     };
 
     ModuleTransformVisitor::new_test(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::Some(&mut config),
+      Some(&mut config),
     )
   },
   can_leave_shorthands_as_is_when_configured,

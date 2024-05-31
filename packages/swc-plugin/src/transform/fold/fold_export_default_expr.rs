@@ -1,7 +1,4 @@
-use swc_core::{
-  common::comments::Comments,
-  ecma::{ast::ExportDefaultExpr, visit::FoldWith},
-};
+use swc_core::{common::comments::Comments, ecma::ast::ExportDefaultExpr};
 
 use crate::{
   shared::{enums::core::ModuleCycle, utils::common::normalize_expr},
@@ -21,13 +18,13 @@ where
     }
 
     if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {
-      if let Some(value) =
-        self.transform_call_expression(normalize_expr(export_default_expr.expr.as_ref()))
-      {
+      let normalized_expr = normalize_expr(&export_default_expr.expr);
+
+      if let Some(value) = self.transform_call_expression(&mut normalized_expr.clone()) {
         *export_default_expr.expr = value;
       }
     }
 
-    export_default_expr.fold_children_with(self)
+    export_default_expr
   }
 }

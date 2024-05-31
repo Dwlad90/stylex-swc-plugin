@@ -22,7 +22,7 @@ mod stylex_create_theme {
       .map(|(key, value)| prop_or_spread_string_factory(key, value))
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
   }
 
   fn exprected_result_factory(
@@ -36,8 +36,8 @@ mod stylex_create_theme {
         key.to_string(),
         Box::new(InjectableStyle {
           ltr: value.0.to_string(),
-          rtl: Option::None,
-          priority: Option::Some(value.1),
+          rtl: None,
+          priority: Some(value.1),
         }),
       );
     }
@@ -59,9 +59,7 @@ mod stylex_create_theme {
       .map(|(key, values, nested_values)| {
         let mut props = values
           .iter()
-          .map(|val| {
-            prop_or_spread_expression_factory(val.0, Box::new(string_to_expression(val.1).unwrap()))
-          })
+          .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
           .collect::<Vec<PropOrSpread>>();
 
         let nested_props = nested_values
@@ -70,18 +68,12 @@ mod stylex_create_theme {
             let props = val
               .1
               .iter()
-              .map(|val| {
-                prop_or_spread_expression_factory(
-                  val.0,
-                  Box::new(string_to_expression(val.1).unwrap()),
-                )
+              .map(|(key, value)| {
+                prop_or_spread_expression_factory(key, string_to_expression(value))
               })
               .collect::<Vec<PropOrSpread>>();
 
-            prop_or_spread_expression_factory(
-              val.0,
-              Box::new(object_expression_factory(props).unwrap()),
-            )
+            prop_or_spread_expression_factory(val.0, object_expression_factory(props))
           })
           .collect::<Vec<PropOrSpread>>();
 
@@ -95,14 +87,14 @@ mod stylex_create_theme {
       props.push(prop_or_spread_string_factory(key, value));
     }
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props).unwrap()))
+    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
   }
 
   #[test]
   fn overrides_set_of_vars_with_css_class() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
 
-    let default_vars = default_vars_factory(&[
+    let mut default_vars = default_vars_factory(&[
       ("__themeName__", theme_name),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
@@ -135,7 +127,7 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &default_vars,
+      &mut default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -167,7 +159,7 @@ mod stylex_create_theme {
   fn variables_order_does_not_change_the_hash() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
 
-    let default_vars = default_vars_factory(&[
+    let mut default_vars = default_vars_factory(&[
       ("__themeName__", theme_name),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
@@ -224,14 +216,14 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &default_vars,
+      &mut default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
     );
 
     let (class_name_output_2, css_output_2) = stylex_create_theme(
-      &default_vars,
+      &mut default_vars,
       &created_theme_2,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -261,7 +253,7 @@ mod stylex_create_theme {
   fn adding_an_at_rule_changes_the_hash() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
 
-    let default_vars =
+    let mut default_vars =
       default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
 
     let created_theme = style_object_factory(&[], &[("bgColor", "green")]);
@@ -279,14 +271,14 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &default_vars,
+      &mut default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
     );
 
     let (class_name_output_2, css_output_2) = stylex_create_theme(
-      &default_vars,
+      &mut default_vars,
       &created_theme_2,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -316,7 +308,7 @@ mod stylex_create_theme {
   fn generates_styles_for_nested_at_rules() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
 
-    let default_vars =
+    let mut default_vars =
       default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
 
     let created_theme = style_object_factory(
@@ -338,7 +330,7 @@ mod stylex_create_theme {
     );
 
     let (_class_name_output, css_output) = stylex_create_theme(
-      &default_vars,
+      &mut default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -358,7 +350,7 @@ mod stylex_create_theme {
   fn generates_styles_for_typed_nested_at_rules() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
 
-    let default_vars =
+    let mut default_vars =
       default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
 
     let created_theme = style_object_factory(
@@ -386,7 +378,7 @@ mod stylex_create_theme {
     );
 
     let (_class_name_output, css_output) = stylex_create_theme(
-      &default_vars,
+      &mut default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),

@@ -45,28 +45,27 @@ pub(crate) fn flatten_raw_style_object(
     let key = get_key_str(property);
 
     let key_regex = Regex::new(r"var\(--[a-z0-9]+\)").unwrap();
-    let css_property_key = if key_regex.is_match(&key.clone()) {
+    let css_property_key = if key_regex.is_match(&key) {
       key[4..key.len() - 1].to_string()
     } else {
       key.clone()
     };
 
-    let value = property.value.as_ref();
     if INCLUDED_IDENT_REGEX.is_match(key.as_str()) {
       flattened.insert(
         key.clone(),
-        PreRules::PreIncludedStylesRule(PreIncludedStylesRule::new(value.clone())),
+        PreRules::PreIncludedStylesRule(PreIncludedStylesRule::new(*property.value.clone())),
       );
 
       continue;
     }
 
-    match value {
+    match property.value.as_ref() {
       Expr::Array(property_array) => {
         let mut equivalent_pairs: IndexMap<String, Vec<String>> = IndexMap::new();
 
         property_array.elems.iter().for_each(|each_val| {
-          if let Option::Some(property) = each_val {
+          if let Some(property) = each_val {
             match property.expr.as_ref() {
               Expr::Lit(property_lit) => {
                 let pairs = flat_map_expanded_shorthands(
@@ -102,7 +101,6 @@ pub(crate) fn flatten_raw_style_object(
         for (property, values) in equivalent_pairs {
           // Remove nulls and deduplicate
           let mut values = values
-            .clone()
             .into_iter()
             .filter(|v| !v.is_empty())
             .collect::<Vec<String>>();
@@ -154,8 +152,8 @@ pub(crate) fn flatten_raw_style_object(
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
                 property.as_str(),
                 PreRuleValue::String(pair_value.to_string()),
-                Option::Some(pseudos.clone()),
-                Option::Some(at_rules.clone()),
+                Some(pseudos.clone()),
+                Some(at_rules.clone()),
               ));
 
               flattened.insert(property, pre_rule);
@@ -172,8 +170,8 @@ pub(crate) fn flatten_raw_style_object(
         let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
           css_property_key.as_str(),
           PreRuleValue::String(result),
-          Option::Some(pseudos.clone()),
-          Option::Some(at_rules.clone()),
+          Some(pseudos.clone()),
+          Some(at_rules.clone()),
         ));
 
         flattened.insert(css_property_key, pre_rule);
@@ -185,11 +183,11 @@ pub(crate) fn flatten_raw_style_object(
           Some(var_decl) => {
             let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
-            let mut k = property.clone();
-            k.value = Box::new(var_decl_expr);
+            let mut property_cloned = property.clone();
+            property_cloned.value = Box::new(var_decl_expr);
 
             let inner_flattened =
-              flatten_raw_style_object(&[k], pseudos, at_rules, state, functions);
+              flatten_raw_style_object(&[property_cloned], pseudos, at_rules, state, functions);
 
             flattened.extend(inner_flattened);
           }
@@ -201,10 +199,11 @@ pub(crate) fn flatten_raw_style_object(
       Expr::Bin(bin) => {
         let result = transform_bin_expr_to_number(bin, state);
 
-        let mut k = property.clone();
-        k.value = Box::new(number_to_expression(result).unwrap());
+        let mut property_cloned = property.clone();
+        property_cloned.value = Box::new(number_to_expression(result));
 
-        let inner_flattened = flatten_raw_style_object(&[k], pseudos, at_rules, state, functions);
+        let inner_flattened =
+          flatten_raw_style_object(&[property_cloned], pseudos, at_rules, state, functions);
 
         flattened.extend(inner_flattened)
       }
@@ -237,7 +236,7 @@ pub(crate) fn flatten_raw_style_object(
                   inner_key_value.key = PropName::Str(Str {
                     span: DUMMY_SP,
                     value: css_property_key.clone().into(),
-                    raw: Option::None,
+                    raw: None,
                   });
 
                   let pairs = flatten_raw_style_object(

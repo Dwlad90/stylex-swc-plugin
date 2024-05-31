@@ -50,8 +50,8 @@ pub(crate) fn parse_nullable_style(
       }
     }
     Expr::Member(member) => {
-      let mut obj_name: Option<String> = Option::None;
-      let mut prop_name: Option<String> = Option::None;
+      let mut obj_name: Option<String> = None;
+      let mut prop_name: Option<String> = None;
 
       if let Some(obj_ident) = member.obj.as_ident() {
         if state.style_map.contains_key(obj_ident.sym.as_str()) {
@@ -63,12 +63,12 @@ pub(crate) fn parse_nullable_style(
 
           match &member.prop {
             MemberProp::Ident(prop_ident) => {
-              obj_name = Option::Some(obj_ident.clone().sym.as_str().to_string());
-              prop_name = Option::Some(prop_ident.clone().sym.as_str().to_string());
+              obj_name = Some(obj_ident.sym.as_str().to_string());
+              prop_name = Some(prop_ident.sym.as_str().to_string());
             }
             MemberProp::Computed(computed) => {
               if let Some(lit) = computed.expr.as_lit() {
-                obj_name = Option::Some(obj_ident.clone().sym.as_str().to_string());
+                obj_name = Some(obj_ident.sym.as_str().to_string());
                 prop_name = get_string_val_from_lit(lit);
               }
             }

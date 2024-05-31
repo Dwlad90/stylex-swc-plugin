@@ -38,17 +38,17 @@ where
       let object = member_expression.obj.as_ref();
       let property = &member_expression.prop;
 
-      let mut obj_name: Option<Id> = Option::None;
-      let mut prop_name: Option<Id> = Option::None;
+      let mut obj_name: Option<Id> = None;
+      let mut prop_name: Option<Id> = None;
 
       if let Expr::Ident(ident) = object {
         let obj_ident_name = ident.sym.to_string();
 
-        obj_name = Option::Some(ident.to_id());
+        obj_name = Some(ident.to_id());
 
         if self.state.style_map.contains_key(&obj_ident_name) {
           if let MemberProp::Ident(ident) = property {
-            prop_name = Option::Some(ident.to_id());
+            prop_name = Some(ident.to_id());
           }
         }
       }
@@ -63,7 +63,7 @@ where
               );
 
               let style_var_to_keep = StyleVarsToKeep(
-                obj_name.clone(),
+                obj_name,
                 NonNullProp::Id(prop_name),
                 NonNullProps::True,
               );

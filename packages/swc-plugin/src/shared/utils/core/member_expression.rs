@@ -20,18 +20,18 @@ pub(crate) fn member_expression(
   let object = member.obj.as_ref();
   let property = &member.prop;
 
-  let mut obj_name: Option<Id> = Option::None;
-  let mut prop_name: Option<Id> = Option::None;
+  let mut obj_name: Option<Id> = None;
+  let mut prop_name: Option<Id> = None;
 
   if let Expr::Ident(ident) = object {
     let obj_ident_name = ident.sym.to_string();
 
-    obj_name = Option::Some(ident.to_id());
+    obj_name = Some(ident.to_id());
 
     if state.style_map.contains_key(&obj_ident_name) {
       match property {
         MemberProp::Ident(ident) => {
-          prop_name = Option::Some(ident.to_id());
+          prop_name = Some(ident.to_id());
         }
         MemberProp::Computed(computed) => {
           assert!(
@@ -76,14 +76,13 @@ pub(crate) fn member_expression(
                 PropOrSpread::Spread(_) => unimplemented!("Spread"),
                 PropOrSpread::Prop(prop) => match prop.as_ref() {
                   Prop::KeyValue(key_value) => match key_value.value.as_ref() {
-                    Expr::Lit(Lit::Null(_)) => Option::None,
-                    _ => Option::Some(
+                    Expr::Lit(Lit::Null(_)) => None,
+                    _ => Some(
                       key_value
                         .key
                         .as_ident()
-                        .expect("Key not an ident")
-                        .to_id()
-                        .clone(),
+                        .map(|ident| ident.to_id())
+                        .expect("Key not an ident"),
                     ),
                   },
                   _ => unimplemented!(),

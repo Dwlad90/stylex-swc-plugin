@@ -18,7 +18,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -48,7 +48,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -78,7 +78,7 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -108,7 +108,7 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
       ModuleTransformVisitor::new_test_styles(
         tr.comments.clone(),
         &PluginPass::default(),
-        Option::None,
+        None,
       )
     },
     r#"
@@ -130,7 +130,7 @@ test!(
     ModuleTransformVisitor::new_test_styles(
       tr.comments.clone(),
       &PluginPass::default(),
-      Option::None,
+      None,
     )
   },
   dynamic_style_function_only_accepts_named_parameters_valid,

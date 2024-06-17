@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
 use serde::Deserialize;
 
 use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
-  stylex_options::{self, CheckModuleResolution, StyleResolution, StyleXOptions},
+  stylex_options::{CheckModuleResolution, StyleResolution, StyleXOptions},
 };
 
 #[derive(Deserialize, Clone, Debug)]
@@ -15,13 +13,13 @@ pub struct StyleXStateOptions {
   pub test: bool,
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
-  pub defined_stylex_css_variables: HashMap<String, String>,
+  // pub defined_stylex_css_variables: HashMap<String, String>,
   pub style_resolution: StyleResolution,
   pub import_sources: Vec<ImportSources>,
   pub runtime_injection: Option<RuntimeInjectionState>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
-  pub aliases: Option<HashMap<String, Vec<String>>>,
+  // pub aliases: Option<HashMap<String, Vec<String>>>,
   pub unstable_module_resolution: Option<CheckModuleResolution>,
 }
 
@@ -32,13 +30,13 @@ impl StyleXStateOptions {
       use_rem_for_font_size: false,
       runtime_injection: None,
       class_name_prefix: "x".to_string(),
-      defined_stylex_css_variables: HashMap::new(),
+      // defined_stylex_css_variables: HashMap::new(),
       import_sources: vec![],
       dev: false,
       test: false,
       treeshake_compensation: None,
       gen_conditional_classes: false,
-      aliases: None,
+      // aliases: None,
       unstable_module_resolution: None,
     }
   }
@@ -65,35 +63,35 @@ impl From<StyleXOptions> for StyleXStateOptions {
       RuntimeInjection::Regular(s) => Some(RuntimeInjectionState::Regular(s)),
     };
 
-    let aliases = match options.aliases {
-      Some(aliases) => match aliases {
-        stylex_options::Aliases::String(aliases) => {
-          let mut aliases_map = HashMap::new();
-          for (key, value) in aliases {
-            let vec = vec![value];
+    // let aliases = match options.aliases {
+    //   Some(aliases) => match aliases {
+    //     stylex_options::Aliases::String(aliases) => {
+    //       let mut aliases_map = HashMap::new();
+    //       for (key, value) in aliases {
+    //         let vec = vec![value];
 
-            aliases_map.insert(key, vec);
-          }
+    //         aliases_map.insert(key, vec);
+    //       }
 
-          Some(aliases_map)
-        }
-        stylex_options::Aliases::StringVec(aliases) => Some(aliases),
-      },
-      None => None,
-    };
+    //       Some(aliases_map)
+    //     }
+    //     stylex_options::Aliases::StringVec(aliases) => Some(aliases),
+    //   },
+    //   None => None,
+    // };
 
     StyleXStateOptions {
       style_resolution: options.style_resolution,
       use_rem_for_font_size: options.use_rem_for_font_size,
       runtime_injection,
       class_name_prefix: options.class_name_prefix,
-      defined_stylex_css_variables: options.defined_stylex_css_variables,
+      // defined_stylex_css_variables: options.defined_stylex_css_variables,
       import_sources: options.import_sources,
       dev: options.dev,
       test: options.test,
       treeshake_compensation: options.treeshake_compensation,
       gen_conditional_classes: options.gen_conditional_classes,
-      aliases,
+      // aliases,
       unstable_module_resolution: options.unstable_module_resolution,
     }
   }

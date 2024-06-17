@@ -20,8 +20,8 @@ opt-level = "z"
 strip = "symbols"
 
 [dependencies]
-serde = "1.0.202"
-swc_core = { version = "0.92.5", features = [
+serde = "1.0.203"
+swc_core = { version = "0.95.2", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -34,18 +34,14 @@ swc_core = { version = "0.92.5", features = [
 ] }
 
 # TODO: remove this dependency after fixing dependencies of swc_core
-swc_ecma_ast = { version = "0.113.4" }
+swc_ecma_ast = { version = "0.115.0" }
 
 lazy_static = "1.4.0"
 serde_json = "1.0.117"
-regex = "1.10.4"
-snailquote = "0.3.1"
+regex = "1.10.5"
 dashmap = "5.5.3"
 indexmap = "2.2.6"
-getrandom = { version = "0.2.15", features = ["js"] }
-rand = { version = "0.8.5" }
-chrono = { version = "0.4.38" }
-derive_more = { version = "0.99.17" }
+derive_more = { version = "0.99.18" }
 convert_case = { version = "0.6.0" }
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }
@@ -58,11 +54,11 @@ path-clean = { version = "1.0.1" }
 cssparser = { version = "0.34.0" }
 
 [dev-dependencies]
-swc_core = { version = "0.92.5", features = [
+swc_core = { version = "0.95.2", features = [
   "testing_transform",
   "ecma_parser",
 ] }
-testing = "0.35.25"
+testing = "0.36.0"
 insta = { version = "1.39.0", features = ["yaml"] }
 
 

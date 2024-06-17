@@ -502,9 +502,9 @@ impl StateManager {
       .push(module);
   }
 
-  pub(crate) fn _get_css_vars(&self) -> HashMap<String, String> {
-    self.options.defined_stylex_css_variables.clone()
-  }
+  // pub(crate) fn _get_css_vars(&self) -> HashMap<String, String> {
+  //   self.options.defined_stylex_css_variables.clone()
+  // }
 
   pub(crate) fn get_treeshake_compensation(&self) -> bool {
     self.options.treeshake_compensation.unwrap_or(false)

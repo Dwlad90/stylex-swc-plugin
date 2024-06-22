@@ -319,6 +319,30 @@ fn math_min() {
 }
 
 #[test]
+fn math_max() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+          const x = Math.max(2);
+          const x = Math.max(2,3,1);
+          const x = Math.max(3,1,2, [5], 0.5);
+          const x = Math.max(3,1,2, ...[5, 0.1, 0.3], 4);
+        "#,
+    r#"
+            2;
+            3;
+            5;
+            5;
+        "#,
+    false,
+  )
+}
+
+#[test]
 fn math_complicated() {
   env::set_var("RUST_MIN_STACK", "8388608"); // 8MB
 

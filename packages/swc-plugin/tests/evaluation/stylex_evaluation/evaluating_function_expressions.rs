@@ -304,15 +304,15 @@ fn math_min() {
     |_| EvaluationModuleTransformVisitor::default(),
     r#"
           const x = Math.min(2);
-          // const x = Math.min(3,1,2);
-          // const x = Math.min(3,1,2, [0.5], 5);
-          // const x = Math.min(3,1,2, ...[0.5, 0.1, 0.3]);
+          const x = Math.min(3,1,2);
+          const x = Math.min(3,1,2, [0.5], 5);
+          const x = Math.min(3,1,2, ...[0.5, 0.1, 0.3]);
         "#,
     r#"
             2;
-            // 1;
-            // 0.5;
-            // 0.1;
+            1;
+            0.5;
+            0.1;
         "#,
     false,
   )

@@ -756,13 +756,7 @@ fn _evaluate(path: &Expr, state: &mut EvaluationState) -> Option<Box<EvaluateRes
                             .args
                             .iter()
                             .skip(1)
-                            .map(|arg| {
-                              if arg.spread.is_some() {
-                                unimplemented!("Spread")
-                              }
-
-                              evaluate_cached(&arg.expr, state)
-                            })
+                            .map(|arg| evaluate_cached(&arg.expr, state))
                             .collect::<Vec<Option<Box<EvaluateResultValue>>>>(),
                         );
 
@@ -1392,8 +1386,6 @@ fn _evaluate(path: &Expr, state: &mut EvaluationState) -> Option<Box<EvaluateRes
                     _ => unreachable!("Invalid function type"),
                   };
 
-                  // let trancated_num = trancate_f64(result);
-
                   return Some(Box::new(EvaluateResultValue::Expr(Box::new(
                     number_to_expression(result),
                   ))));
@@ -1403,16 +1395,7 @@ fn _evaluate(path: &Expr, state: &mut EvaluationState) -> Option<Box<EvaluateRes
                     panic!("Math.pow requires an argument")
                   };
 
-                  let num_args = args
-                    .iter()
-                    .flatten()
-                    .map(|arg| {
-                      arg
-                        .as_expr()
-                        .map(|expr| expr_to_num(expr, &mut state.traversal_state))
-                        .expect("All arguments must be a number")
-                    })
-                    .collect::<Vec<f64>>();
+                  let num_args = args_to_numbers(args, state);
 
                   let result = match func.as_ref() {
                     CallbackType::Math(MathJS::Min) => num_args
@@ -1463,10 +1446,7 @@ fn _evaluate(path: &Expr, state: &mut EvaluationState) -> Option<Box<EvaluateRes
           unimplemented!("Binding")
         }
 
-        let result = evaluate_cached(
-          &Box::new(*binding.init.expect("Binding nof found")),
-          state,
-        );
+        let result = evaluate_cached(&Box::new(*binding.init.expect("Binding not found")), state);
         return result;
       }
       None => {
@@ -1553,6 +1533,22 @@ fn _evaluate(path: &Expr, state: &mut EvaluationState) -> Option<Box<EvaluateRes
   }
 
   result
+}
+
+fn args_to_numbers(args: &[Option<EvaluateResultValue>], state: &mut EvaluationState) -> Vec<f64> {
+  args
+    .iter()
+    .flat_map(|arg| match arg {
+      Some(arg) => match arg {
+        EvaluateResultValue::Expr(expr) => {
+          vec![expr_to_num(expr, &mut state.traversal_state)]
+        }
+        EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state),
+        _ => unreachable!("Math.min/max requires a number"),
+      },
+      None => vec![],
+    })
+    .collect::<Vec<f64>>()
 }
 
 fn get_binding(callee: &Expr, state: &mut StateManager) -> Option<VarDeclarator> {

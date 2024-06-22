@@ -568,3 +568,7 @@ pub(crate) fn normalize_expr(expr: &Expr) -> &Expr {
     _ => expr,
   }
 }
+
+pub(crate) fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Ordering {
+  |a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+}

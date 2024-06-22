@@ -54,6 +54,7 @@ use crate::shared::{
     common::{
       deep_merge_props, get_import_by_ident, get_key_str, get_string_val_from_lit,
       get_var_decl_by_ident, get_var_decl_from, normalize_expr, remove_duplicates,
+      sort_numbers_factory,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
@@ -1398,19 +1399,15 @@ fn _evaluate(path: &Expr, state: &mut EvaluationState) -> Option<Box<EvaluateRes
                   let num_args = args_to_numbers(args, state);
 
                   let result = match func.as_ref() {
-                    CallbackType::Math(MathJS::Min) => num_args
-                      .iter()
-                      .cloned()
-                      .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)),
-                    CallbackType::Math(MathJS::Max) => num_args
-                      .iter()
-                      .cloned()
-                      .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)),
+                    CallbackType::Math(MathJS::Min) => {
+                      num_args.iter().cloned().min_by(sort_numbers_factory())
+                    }
+                    CallbackType::Math(MathJS::Max) => {
+                      num_args.iter().cloned().max_by(sort_numbers_factory())
+                    }
                     _ => unreachable!("Invalid function type"),
                   }
                   .unwrap();
-
-                  // let trancated_num = trancate_f64(result);
 
                   return Some(Box::new(EvaluateResultValue::Expr(Box::new(
                     number_to_expression(result),

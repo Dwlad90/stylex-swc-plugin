@@ -155,6 +155,72 @@ mod stylex_create_theme {
     )
   }
 
+
+  #[test]
+  fn overrides_set_of_literal_vars_with_css_class() {
+    let theme_name = "TestTheme.stylex.js//buttonTheme";
+
+    let mut default_vars = default_vars_factory(&[
+      ("__themeName__", theme_name),
+      ("--bgColor", "var(--bgColor)"),
+      ("--bgColorDisabled", "var(--bgColorDisabled)"),
+      ("--cornerRadius", "var(--cornerRadius)"),
+      ("--fgColor", "var(--fgColor)"),
+    ]);
+
+    let created_theme = style_object_factory(
+      &[
+        (
+          "--bgColor",
+          &[
+            ("default", "green"),
+            ("@media (prefers-color-scheme: dark)", "lightgreen"),
+            ("@media print", "transparent"),
+          ],
+          &[],
+        ),
+        (
+          "--bgColorDisabled",
+          &[
+            ("default", "antiquewhite"),
+            ("@media (prefers-color-scheme: dark)", "floralwhite"),
+          ],
+          &[],
+        ),
+        ("--cornerRadius", &[("default", "6px")], &[]),
+      ],
+      &[("--fgColor", "coral")],
+    );
+
+    let (class_name_output, css_output) = stylex_create_theme(
+      &mut default_vars,
+      &created_theme,
+      &mut StateManager::default(),
+      &mut IndexMap::default(),
+    );
+
+    let key = class_name_output
+      .get(theme_name)
+      .unwrap()
+      .as_string()
+      .unwrap();
+
+    let injectable_rule = css_output.get(key).unwrap();
+
+    assert_eq!(
+      injectable_rule,
+      exprected_result_factory(&[(
+        theme_name,
+        (
+          ".x4znj40{--bgColor:green;--bgColorDisabled:antiquewhite;--cornerRadius:6px;--fgColor:coral;}",
+          0.5
+        )
+      )])
+      .get(theme_name)
+      .unwrap()
+    )
+  }
+
   #[test]
   fn variables_order_does_not_change_the_hash() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";

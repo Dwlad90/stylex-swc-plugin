@@ -45,18 +45,22 @@ pub(crate) fn stylex_define_vars(
           let str_to_hash = format!("{}.{}", state.theme_name.clone().unwrap(), key);
 
           // Created hashed variable names with fileName//themeName//key
-          let name_hash = format!(
-            "{}{}",
-            state.options.class_name_prefix,
-            create_hash(str_to_hash.as_str())
-          );
+          let name_hash = if key.starts_with("--") {
+            key.get(2..).unwrap_or("")
+          } else {
+            &format!(
+              "{}{}",
+              &state.options.class_name_prefix,
+              create_hash(str_to_hash.as_str())
+            )
+          };
 
           let (css_value, css_type) = get_css_value(KeyValueProp {
             key: PropName::Str(key.clone().into()),
             value: value.clone(),
           });
 
-          FlatCompiledStylesValue::Tuple(name_hash.clone(), css_value, css_type)
+          FlatCompiledStylesValue::Tuple(name_hash.to_string(), css_value, css_type)
         }
         _ => unimplemented!(),
       };

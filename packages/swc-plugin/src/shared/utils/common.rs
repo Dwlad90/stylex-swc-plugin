@@ -272,7 +272,7 @@ fn prop_name_eq(a: &PropName, b: &PropName) -> bool {
   match (a, b) {
     (PropName::Ident(a), PropName::Ident(b)) => a.sym == b.sym,
     (PropName::Str(a), PropName::Str(b)) => a.value == b.value,
-    (PropName::Num(a), PropName::Num(b)) => (a.value - b.value).abs() < std::f64::EPSILON,
+    (PropName::Num(a), PropName::Num(b)) => (a.value - b.value).abs() < f64::EPSILON,
 
     (PropName::BigInt(a), PropName::BigInt(b)) => a.value == b.value,
     // Add more cases as needed

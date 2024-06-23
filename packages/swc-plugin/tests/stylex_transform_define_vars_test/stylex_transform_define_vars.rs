@@ -28,9 +28,7 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -68,9 +66,45 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transforms_variables_object_variables_object,
+  r#"
+        import stylex from 'stylex';
+          export const buttonTheme = stylex.defineVars({
+            '--bgColor': {
+              default: 'blue',
+              '@media (prefers-color-scheme: dark)': 'lightblue',
+              '@media print': 'white',
+            },
+            '--bgColorDisabled': {
+              default: 'grey',
+              '@media (prefers-color-scheme: dark)': 'rgba(0, 0, 0, 0.8)',
+            },
+            '--cornerRadius': 10,
+            '--fgColor': {
+              default: 'pink',
+            },
+          });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsConfig {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test(
+    tr.comments.clone(),
+    &PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -108,9 +142,7 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -148,9 +180,7 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -188,9 +218,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -229,9 +257,9 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
-        Some(ROOT_DIR.to_string())
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        ROOT_DIR.to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -269,9 +297,9 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
-        Some(ROOT_DIR.to_string())
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        ROOT_DIR.to_string()
+      ))),
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -310,9 +338,9 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
-        Some(ROOT_DIR.to_string())
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        ROOT_DIR.to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -359,9 +387,7 @@ test!(
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(false),
       dev: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -406,9 +432,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -447,9 +471,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -488,9 +510,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -529,9 +549,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-        None
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })
@@ -571,9 +589,9 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
-        Some(ROOT_DIR.to_string())
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        ROOT_DIR.to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -611,9 +629,9 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
-        Some(ROOT_DIR.to_string())
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        ROOT_DIR.to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -654,9 +672,9 @@ test!(
       runtime_injection: Some(false),
       gen_conditional_classes: Some(true),
       treeshake_compensation: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(
-        Some(ROOT_DIR.to_string())
-      )),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        ROOT_DIR.to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),

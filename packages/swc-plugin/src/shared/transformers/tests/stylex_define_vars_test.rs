@@ -115,7 +115,7 @@ mod stylex_define_vars {
   }
 
   #[test]
-  fn overrides_set_of_vars_with_css_class() {
+  fn converts_set_of_vars_to_css() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
@@ -218,6 +218,84 @@ mod stylex_define_vars {
         "x568ih9-bdddrq",
         (
           "@media print{:root{--xgck17p:white;}}",
+          0.1
+        )
+      )])
+    )
+  }
+
+  #[test]
+  fn maintains_literal_var_names_in_css() {
+    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let class_name_prefix = 'x';
+
+    let default_vars = default_vars_factory(
+      &[
+        (
+          "--bgColor",
+          &[
+            ("default", "blue"),
+            ("@media (prefers-color-scheme: dark)", "lightblue"),
+            ("@media print", "white"),
+          ],
+          &[],
+          &[],
+        ),
+        (
+          "--bgColorDisabled",
+          &[
+            ("default", "grey"),
+            ("@media (prefers-color-scheme: dark)", "rgba(0, 0, 0, 0.8)"),
+          ],
+          &[],
+          &[],
+        ),
+        ("--fgColor", &[("default", "pink")], &[], &[]),
+      ],
+      &[("--cornerRadius", "10px")],
+    );
+
+    let mut state = Box::new(StateManager {
+      theme_name: Some(theme_name.to_string()),
+      ..StateManager::default()
+    });
+
+    let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
+
+    assert_eq!(
+      js_output,
+      exprected_js_result_factory(&[
+        (
+          "__themeName__",
+          format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
+        ),
+        ("--bgColor", "var(--bgColor)"),
+        ("--bgColorDisabled", "var(--bgColorDisabled)"),
+        ("--cornerRadius", "var(--cornerRadius)"),
+        ("--fgColor", "var(--fgColor)"),
+      ])
+    );
+
+    assert_eq!(
+      css_output,
+      exprected_css_result_factory(&[(
+        "x568ih9",
+        (
+          ":root{--bgColor:blue;--bgColorDisabled:grey;--fgColor:pink;--cornerRadius:10px;}",
+          0.0
+        )
+      ),
+      (
+        "x568ih9-1lveb7",
+        (
+          "@media (prefers-color-scheme: dark){:root{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
+          0.1
+        )
+      ),
+      (
+        "x568ih9-bdddrq",
+        (
+          "@media print{:root{--bgColor:white;}}",
           0.1
         )
       )])

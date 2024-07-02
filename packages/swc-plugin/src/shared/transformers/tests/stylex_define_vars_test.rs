@@ -631,6 +631,195 @@ mod stylex_define_vars {
     )
   }
 
+  #[test]
+  fn preserves_names_of_literals_with_double_dash_prefix() {
+    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let class_name_prefix = 'x';
+
+    let types_fn = match get_types_fn().fn_ptr {
+      FunctionType::StylexFnsFactory(func) => func,
+      _ => unreachable!(),
+    };
+
+    let color_fn = types_fn("color".into());
+    let length_fn = types_fn("length".into());
+
+    // #region bgColor
+    let mut bg_color_map = IndexMap::new();
+
+    bg_color_map.insert(
+      "default".to_string(),
+      ValueWithDefault::String("blue".to_string()),
+    );
+
+    let mut bg_color_mq_map = IndexMap::new();
+
+    bg_color_mq_map.insert(
+      "default".to_string(),
+      ValueWithDefault::String("lightblue".to_string()),
+    );
+    bg_color_mq_map.insert(
+      "@supports (color: oklab(0 0 0))".to_string(),
+      ValueWithDefault::String("oklab(0.7 -0.3 -0.4)".to_string()),
+    );
+
+    bg_color_map.insert(
+      "@media (prefers-color-scheme: dark)".to_string(),
+      ValueWithDefault::Map(bg_color_mq_map),
+    );
+
+    bg_color_map.insert(
+      "@media print".to_string(),
+      ValueWithDefault::String("white".to_string()),
+    );
+    // #endregion bgColor
+
+    // #region bgColorDisabled
+    let mut bg_color_disabled_map = IndexMap::new();
+
+    let mut bg_color_disabled_default_map = IndexMap::new();
+
+    bg_color_disabled_default_map.insert(
+      "default".to_string(),
+      ValueWithDefault::String("grey".to_string()),
+    );
+
+    bg_color_disabled_default_map.insert(
+      "@supports (color: oklab(0 0 0))".to_string(),
+      ValueWithDefault::String("oklab(0.7 -0.3 -0.4)".to_string()),
+    );
+
+    bg_color_disabled_map.insert(
+      "default".to_string(),
+      ValueWithDefault::Map(bg_color_disabled_default_map),
+    );
+
+    let mut bg_color_disabled_mq_map = IndexMap::new();
+
+    bg_color_disabled_mq_map.insert(
+      "default".to_string(),
+      ValueWithDefault::String("rgba(0, 0, 0, 0.8)".to_string()),
+    );
+
+    bg_color_disabled_mq_map.insert(
+      "@supports (color: oklab(0 0 0))".to_string(),
+      ValueWithDefault::String("oklab(0.7 -0.3 -0.4)".to_string()),
+    );
+
+    bg_color_disabled_map.insert(
+      "@media (prefers-color-scheme: dark)".to_string(),
+      ValueWithDefault::Map(bg_color_disabled_mq_map),
+    );
+    // #endregion bgColorDisabled
+
+    // #region fgColor
+    let mut fg_color_map = IndexMap::new();
+
+    fg_color_map.insert(
+      "default".to_string(),
+      ValueWithDefault::String("pink".to_string()),
+    );
+
+    // #endregion fgColor
+
+    let bg_color = type_fabric(&color_fn, ValueWithDefault::Map(bg_color_map));
+    let bg_color_disabled = type_fabric(&color_fn, ValueWithDefault::Map(bg_color_disabled_map));
+
+    let corner_radius = type_fabric(&length_fn, ValueWithDefault::String("10px".to_string()));
+
+    let fg_color = type_fabric(&color_fn, ValueWithDefault::Map(fg_color_map));
+
+    let default_vars = default_vars_factory(
+      &[
+        ("--bgColor", &[], &[], &[bg_color.into()]),
+        ("--bgColorDisabled", &[], &[], &[bg_color_disabled.into()]),
+        ("--cornerRadius", &[], &[], &[corner_radius.into()]),
+        ("--fgColor", &[], &[], &[fg_color.into()]),
+      ],
+      &[],
+    );
+
+    let state = Box::<StateManager>::default();
+    let mut state = Box::new(StateManager {
+      theme_name: Some(theme_name.to_string()),
+      options: Box::new(StyleXStateOptions {
+        class_name_prefix: class_name_prefix.to_string(),
+        ..*state.options
+      }),
+      ..*state
+    });
+
+    let (_, css_output) = stylex_define_vars(&default_vars, &mut state);
+
+    assert_eq!(
+      css_output,
+      exprected_css_result_factory(&[(
+        "bgColor",
+        (
+          r#"@property --bgColor { syntax: "<color>"; inherits: true; initial-value: blue }"#,
+          0.0
+        )
+      ),
+      (
+        "bgColorDisabled",
+        (
+          r#"@property --bgColorDisabled { syntax: "<color>"; inherits: true; initial-value: grey }"#,
+          0.0
+        )
+      ),
+      (
+        "cornerRadius",
+        (
+          r#"@property --cornerRadius { syntax: "<length>"; inherits: true; initial-value: 10px }"#,
+          0.0
+        )
+      ),
+      (
+        "fgColor",
+        (
+          r#"@property --fgColor { syntax: "<color>"; inherits: true; initial-value: pink }"#,
+          0.0
+        )
+      ),
+      (
+        "x568ih9",
+        (
+          ":root{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
+          0.0
+        )
+      ),
+      (
+        "x568ih9-1e6ryz3",
+        (
+          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root{--bgColor:oklab(0.7 -0.3 -0.4);--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}}",
+          0.2
+        )
+      ),
+      (
+        "x568ih9-1lveb7",
+        (
+          "@media (prefers-color-scheme: dark){:root{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
+          0.1
+        )
+      ),
+      (
+        "x568ih9-bdddrq",
+        (
+          "@media print{:root{--bgColor:white;}}",
+          0.1
+        )
+      ),
+      (
+        "x568ih9-kpd015",
+        (
+          "@supports (color: oklab(0 0 0)){:root{--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}",
+          0.1
+        )
+      ),
+      ])
+    )
+  }
+
   fn type_fabric(
     func: &Rc<dyn Fn(ValueWithDefault) -> Expr>,
     types: ValueWithDefault,

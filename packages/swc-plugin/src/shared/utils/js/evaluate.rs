@@ -443,7 +443,12 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
               Some(propery) => match propery.as_ref() {
                 EvaluateResultValue::Expr(expr) => match expr.as_ref() {
                   Expr::Ident(Ident { sym, .. }) => sym.to_string(),
-                  _ => panic!("Member not found"),
+                  Expr::Lit(lit) => {
+                    get_string_val_from_lit(lit).expect("Property must be a string")
+                  }
+                  _ => {
+                    panic!("Member not found")
+                  }
                 },
                 _ => unimplemented!(),
               },

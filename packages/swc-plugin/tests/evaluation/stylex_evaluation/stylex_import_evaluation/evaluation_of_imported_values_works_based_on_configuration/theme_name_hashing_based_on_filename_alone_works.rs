@@ -32,9 +32,7 @@ fn tranform(input: &str) -> String {
         class_name_prefix: Some("__hashed_var__".to_string()),
         runtime_injection: Some(true),
         treeshake_compensation: Some(true),
-        unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(
-          None,
-        )),
+        unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
         ..Default::default()
       };
 
@@ -74,6 +72,28 @@ fn importing_file_with_stylex_suffix_works() {
   assert_eq!(expected_var_name, "var(--__hashed_var__1jqb1tb)");
 
   assert!(transformation.contains(&expected_var_name));
+
+  assert_snapshot!(transformation);
+}
+
+#[test]
+fn maintains_variable_names_that_start_with_double_dash_from_stylex_files() {
+  let input = r#"import stylex from 'stylex';
+        import { MyTheme } from 'otherFile.stylex';
+        const styles = stylex.create({
+          red: {
+            color: MyTheme['--foreground'],
+          }
+        });
+        stylex(styles.red);"#;
+
+  let transformation = tranform(input);
+
+  let expected_var_name = "var(--foreground)";
+
+  assert_eq!(expected_var_name, "var(--foreground)");
+
+  assert!(transformation.contains(expected_var_name));
 
   assert_snapshot!(transformation);
 }

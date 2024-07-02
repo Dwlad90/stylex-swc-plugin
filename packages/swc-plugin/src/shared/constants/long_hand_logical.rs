@@ -47,11 +47,8 @@ pub(crate) static LONG_HAND_LOGICAL: phf::Set<&'static str> = phf_set! {
   "border-block-stylex", // Logical Properties
   "border-block-width", // Logical Properties
   "border-block-start-color", // Logical Properties
-  "border-top-color",
   "border-block-start-style", // Logical Properties
-  "border-top-style",
   "border-block-start-width", // Logical Properties
-  "border-top-width",
   "border-block-end-color", // Logical Properties
   "border-block-end-style", // Logical Properties
   "border-block-end-width", // Logical Properties

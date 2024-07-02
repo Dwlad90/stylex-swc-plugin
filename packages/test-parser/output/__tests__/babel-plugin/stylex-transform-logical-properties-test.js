@@ -39,7 +39,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
-        _inject2(".x4q076{border-top-color:0}", 3000);
+        _inject2(".x4q076{border-top-color:0}", 4000);
         const classnames = "x4q076";"
       `);
         });
@@ -117,7 +117,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
-        _inject2(".x1d917x0{border-top-style:0}", 3000);
+        _inject2(".x1d917x0{border-top-style:0}", 4000);
         const classnames = "x1d917x0";"
       `);
         });
@@ -195,7 +195,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
-        _inject2(".x972fbf{border-top-width:0}", 3000);
+        _inject2(".x972fbf{border-top-width:0}", 4000);
         const classnames = "x972fbf";"
       `);
         });

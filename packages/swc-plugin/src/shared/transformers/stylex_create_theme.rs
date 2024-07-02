@@ -155,7 +155,7 @@ pub(crate) fn stylex_create_theme(
       state,
       &FunctionMap::default(),
     ),
-    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY).0,
+    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY).0.to_owned(),
     _ => unimplemented!("Unsupported theme vars type"),
   };
 

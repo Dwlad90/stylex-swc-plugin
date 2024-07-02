@@ -37,12 +37,12 @@ impl MetaData {
     &self.style
   }
 
-  pub(crate) fn get_css(&self) -> String {
-    self.style.ltr.clone()
+  pub(crate) fn get_css(&self) -> &str {
+    self.style.ltr.as_str()
   }
 
-  pub(crate) fn get_css_rtl(&self) -> Option<String> {
-    self.style.rtl.clone()
+  pub(crate) fn get_css_rtl(&self) -> Option<&String> {
+    self.style.rtl.as_ref()
   }
 
   pub(crate) fn get_class_name(&self) -> &str {
@@ -54,11 +54,13 @@ impl MetaData {
   }
 
   pub(crate) fn convert_from_injected_styles_map(
-    injected_styles_map: IndexMap<String, Box<InjectableStyle>>,
+    injected_styles_map: &IndexMap<String, Box<InjectableStyle>>,
   ) -> Vec<MetaData> {
     injected_styles_map
       .into_iter()
-      .map(|(class_name, injectable_style)| MetaData::new(class_name, *injectable_style))
+      .map(|(class_name, injectable_style)| {
+        MetaData::new(class_name.clone(), *injectable_style.clone())
+      })
       .collect::<Vec<MetaData>>()
   }
 }

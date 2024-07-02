@@ -50,7 +50,7 @@ pub fn evaluate_stylex_create_arg(
 
             transform_shorthand_to_key_values(&mut prop);
 
-            match prop.as_ref() {
+            match prop.as_mut() {
               Prop::KeyValue(key_value_prop) => {
                 let key_result = evaluate_obj_key(key_value_prop, traversal_state, functions);
 
@@ -68,9 +68,9 @@ pub fn evaluate_stylex_create_arg(
 
                 let key_expr = key.as_expr().unwrap();
 
-                let value_path = &key_value_prop.value;
+                let value_path = &mut key_value_prop.value;
 
-                match value_path.as_ref() {
+                match value_path.as_mut() {
                   Expr::Arrow(fn_path) => {
                     let all_params = fn_path.params.clone();
                     validate_dynamic_style_params(&all_params);
@@ -80,7 +80,7 @@ pub fn evaluate_stylex_create_arg(
                       .filter_map(|param| param.as_ident().cloned())
                       .collect::<Vec<BindingIdent>>();
 
-                    if let BlockStmtOrExpr::Expr(expr) = fn_path.body.as_ref() {
+                    if let BlockStmtOrExpr::Expr(expr) = fn_path.body.as_mut() {
                       if let Expr::Object(fn_body_object) = normalize_expr(expr) {
                         let eval_result = evaluate_partial_object_recursively(
                           fn_body_object,
@@ -214,7 +214,7 @@ fn evaluate_partial_object_recursively(
       PropOrSpread::Prop(mut prop) => {
         transform_shorthand_to_key_values(&mut prop);
 
-        match prop.as_ref() {
+        match prop.as_mut() {
           Prop::KeyValue(key_value) => {
             let key_result = evaluate_obj_key(key_value, traversal_state, functions);
 
@@ -242,9 +242,9 @@ fn evaluate_partial_object_recursively(
               key = key[4..key.len() - 1].to_string();
             }
 
-            let value_path = &key_value.value;
+            let value_path = &mut key_value.value;
 
-            match normalize_expr(value_path.as_ref()) {
+            match normalize_expr(value_path.as_mut()) {
               Expr::Object(object) => {
                 key_path.push(key.clone());
 

@@ -18,9 +18,9 @@ where
     }
 
     if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {
-      let normalized_expr = normalize_expr(&export_default_expr.expr);
+      let normalized_expr = normalize_expr(&mut export_default_expr.expr);
 
-      if let Some(value) = self.transform_call_expression(&mut normalized_expr.clone()) {
+      if let Some(value) = self.transform_call_expression(normalized_expr) {
         *export_default_expr.expr = value;
       }
     }

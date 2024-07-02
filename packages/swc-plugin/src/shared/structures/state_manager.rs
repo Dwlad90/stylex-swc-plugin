@@ -81,8 +81,6 @@ pub struct StateManager {
 
   pub(crate) in_stylex_create: bool,
 
-  pub(crate) styles_vars_to_inject: Vec<String>,
-
   pub(crate) options: Box<StyleXStateOptions>,
   pub(crate) metadata: IndexMap<String, Vec<MetaData>>,
   pub(crate) styles_to_inject: IndexMap<Box<Expr>, Vec<ModuleItem>>,
@@ -135,7 +133,6 @@ impl StateManager {
       in_stylex_create: false,
       options,
 
-      styles_vars_to_inject: vec![],
       metadata: IndexMap::new(),
       styles_to_inject: IndexMap::new(),
       prepend_include_module_items: vec![],
@@ -216,7 +213,7 @@ impl StateManager {
       .clone()
       .unwrap_or_default();
 
-    let theme_file_extension = match unstable_module_resolution.clone() {
+    let theme_file_extension = match &unstable_module_resolution {
       CheckModuleResolution::CommonJS(ModuleResolution {
         theme_file_extension,
         ..
@@ -230,6 +227,7 @@ impl StateManager {
         ..
       }) => theme_file_extension,
     }
+    .clone()
     .unwrap_or(".stylex".to_string());
 
     if filename.is_empty()
@@ -274,14 +272,14 @@ impl StateManager {
 
     match unstable_module_resolution {
       CheckModuleResolution::CommonJS(module_resolution) => {
-        let root_dir = module_resolution
+        let root_dir = &module_resolution
           .clone()
           .root_dir
           .expect("root_dir is required for CommonJS");
 
         let root_dir_path = Path::new(root_dir.as_str());
 
-        let theme_file_extension = module_resolution
+        let theme_file_extension = &module_resolution
           .theme_file_extension
           .clone()
           .unwrap_or(".stylex".to_string());
@@ -345,27 +343,27 @@ impl StateManager {
       return;
     }
 
-    let metadatas = MetaData::convert_from_injected_styles_map(style.clone());
+    let metadatas = MetaData::convert_from_injected_styles_map(style);
 
-    let uid_generator_inject = UidGenerator::new("inject");
+    let mut uid_generator_inject = UidGenerator::new("inject");
+
+    let runtime_injection_default = &RuntimeInjectionState::Regular(String::default());
 
     let runtime_injection = self
       .options
       .runtime_injection
       .as_ref()
-      .unwrap_or(&RuntimeInjectionState::Regular(String::default()))
-      .clone();
+      .unwrap_or(runtime_injection_default);
 
-    let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.as_ref() {
-      Some(idents) => idents.clone(),
+    let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
+      Some(idents) => idents,
       None => {
         let inject_module_ident = Box::new(uid_generator_inject.generate_ident());
 
-        let inject_var_ident = Box::new(match runtime_injection.clone() {
+        let inject_var_ident = Box::new(match &runtime_injection {
           RuntimeInjectionState::Regular(_) => uid_generator_inject.generate_ident(),
           RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
-            let uid_generator_inject = UidGenerator::new(&r#as);
-
+            uid_generator_inject = UidGenerator::new(r#as);
             uid_generator_inject.generate_ident()
           }
         });
@@ -406,60 +404,58 @@ impl StateManager {
       return;
     }
 
-    if let Some(item) = self.declarations.iter_mut().find(|decl| {
-      decl
-        .init
-        .as_ref()
-        .unwrap()
-        .eq(&Box::new(Expr::Call(call.clone())))
-    }) {
-      item.init = Some(Box::new(ast.clone()));
-
-      let var_id = item.name.as_ident().unwrap().sym.to_string();
-
-      if !self.styles_vars_to_inject.contains(&var_id) {
-        self.styles_vars_to_inject.push(var_id);
-      }
+    if let Some(item) = self
+      .declarations
+      .iter_mut()
+      .find(|decl| match decl.init.as_ref() {
+        Some(boxed_expr) => {
+          matches!(**boxed_expr, Expr::Call(ref existing_call) if existing_call == call)
+        }
+        None => false,
+      })
+    {
+      item.init = Some(Box::new(ast.clone())); // Only clone ast here
     };
 
-    if let Some((_, item)) = self.style_vars.iter_mut().find(|(_, decl)| {
-      decl
-        .init
-        .as_ref()
-        .unwrap()
-        .eq(&Box::new(Expr::Call(call.clone())))
-    }) {
-      item.init = Some(Box::new(ast.clone()));
+    if let Some((_, item)) = self
+      .style_vars
+      .iter_mut()
+      .find(|(_, decl)| match decl.init.as_ref() {
+        Some(expr) => matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
+        None => false,
+      })
+    {
+      item.init = Some(Box::new(ast.clone())); // Clone `ast` only when necessary
     };
 
     if let Some(TopLevelExpression(_, item, _)) = self
       .top_level_expressions
       .iter_mut()
-      .find(|TopLevelExpression(_, decl, _)| decl.eq(&Expr::Call(call.clone())))
+      .find(|TopLevelExpression(_, decl, _)| matches!(decl, Expr::Call(c) if c == call))
     {
       *item = ast.clone();
     };
 
-    if let Some(index) = self
+    if let Some((index, _)) = self
       .all_call_expressions
       .iter()
-      .position(|expr| expr.eq_ignore_span(&Box::new(call.clone())))
+      .enumerate()
+      .find(|(_, expr)| expr.eq_ignore_span(&call))
     {
-      if let Some(call_expr) = ast.as_call() {
-        self.all_call_expressions[index] = call_expr.clone();
-      } else {
-        self.all_call_expressions.remove(index);
+      match ast.as_call() {
+        Some(call_expr) => self.all_call_expressions[index] = call_expr.clone(),
+        None => {
+          self.all_call_expressions.remove(index);
+        }
       }
     }
   }
 
   fn add_style(&mut self, var_name: String, metadata: MetaData) {
     let value = self.metadata.entry(var_name).or_default();
+    let class_name = metadata.get_class_name(); // Cache the class name
 
-    if !value
-      .iter()
-      .any(|item| item.get_class_name() == metadata.get_class_name())
-    {
+    if !value.iter().any(|item| item.get_class_name() == class_name) {
       value.push(metadata);
     }
   }
@@ -471,7 +467,7 @@ impl StateManager {
     let css_rtl = &metadata.get_css_rtl();
 
     let mut stylex_inject_args = vec![
-      expr_or_spread_string_expression_factory(css.as_str()),
+      expr_or_spread_string_expression_factory(css),
       expr_or_spread_number_expression_factory(round_f64(**priority, 1)),
     ];
 
@@ -510,8 +506,8 @@ impl StateManager {
     self.options.treeshake_compensation.unwrap_or(false)
   }
 
-  pub fn combine(&mut self, other: Self) {
-    // Now you can use these helper functions to simplify your function
+  // Now you can use these helper functions to simplify your function
+  pub fn combine(&mut self, other: &Self) {
     self.import_paths = union_hash_set(&self.import_paths, &other.import_paths);
     self.stylex_import = union_hash_set(&self.stylex_import, &other.stylex_import);
     self.stylex_props_import =
@@ -543,47 +539,44 @@ impl StateManager {
     self.inject_import_inserted = self
       .inject_import_inserted
       .clone()
-      .or(other.inject_import_inserted);
-    self.theme_name = self.theme_name.clone().or(other.theme_name);
-    self.declarations = chain_collect(self.declarations.clone(), other.declarations);
+      .or(other.inject_import_inserted.clone());
+    self.theme_name = self.theme_name.clone().or(other.theme_name.clone());
+    self.declarations = chain_collect(self.declarations.clone(), other.declarations.clone());
     self.top_level_expressions = chain_collect(
       self.top_level_expressions.clone(),
-      other.top_level_expressions,
+      other.top_level_expressions.clone(),
     );
     self.all_call_expressions = chain_collect(
       self.all_call_expressions.clone(),
-      other.all_call_expressions,
+      other.all_call_expressions.clone(),
     );
     self.var_decl_count_map =
-      chain_collect_hash_map(self.var_decl_count_map.clone(), other.var_decl_count_map);
-    self.style_map = chain_collect_hash_map(self.style_map.clone(), other.style_map);
-    self.style_vars = chain_collect_hash_map(self.style_vars.clone(), other.style_vars);
+      chain_collect_hash_map(self.var_decl_count_map.clone(), other.var_decl_count_map.clone());
+    self.style_map = chain_collect_hash_map(self.style_map.clone(), other.style_map.clone());
+    self.style_vars = chain_collect_hash_map(self.style_vars.clone(), other.style_vars.clone());
     self.style_vars_to_keep =
       union_hash_set(&self.style_vars_to_keep.clone(), &other.style_vars_to_keep);
     self.member_object_ident_count_map = chain_collect_hash_map(
       self.member_object_ident_count_map.clone(),
-      other.member_object_ident_count_map,
+      other.member_object_ident_count_map.clone(),
     );
     self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
-    self.styles_vars_to_inject = chain_collect(
-      self.styles_vars_to_inject.clone(),
-      other.styles_vars_to_inject,
-    );
 
-    self.metadata = chain_collect_index_map(self.metadata.clone(), other.metadata);
-    self.seen = chain_collect_hash_map(self.seen.clone(), other.seen);
-    self.styles_to_inject = chain_collect_index_map(self.styles_to_inject.clone(), other.styles_to_inject);
+    self.metadata = chain_collect_index_map(self.metadata.clone(), other.metadata.clone());
+    self.seen = chain_collect_hash_map(self.seen.clone(), other.seen.clone());
+    self.styles_to_inject =
+      chain_collect_index_map(self.styles_to_inject.clone(), other.styles_to_inject.clone());
     self.prepend_include_module_items = chain_collect(
       self.prepend_include_module_items.clone(),
-      other.prepend_include_module_items,
+      other.prepend_include_module_items.clone(),
     );
     self.prepend_import_module_items = chain_collect(
       self.prepend_import_module_items.clone(),
-      other.prepend_import_module_items,
+      other.prepend_import_module_items.clone(),
     );
     self.injected_keyframes =
-      chain_collect_index_map(self.injected_keyframes.clone(), other.injected_keyframes);
-    self.top_imports = chain_collect(self.top_imports.clone(), other.top_imports);
+      chain_collect_index_map(self.injected_keyframes.clone(), other.injected_keyframes.clone());
+    self.top_imports = chain_collect(self.top_imports.clone(), other.top_imports.clone());
   }
 }
 
@@ -654,20 +647,23 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
   }))))
 }
 
-pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
-  filename.ends_with(&format!("{}.js", allowed_suffix))
-    || filename.ends_with(&format!("{}.ts", allowed_suffix))
-    || filename.ends_with(&format!("{}.tsx", allowed_suffix))
-    || filename.ends_with(&format!("{}.jsx", allowed_suffix))
-    || filename.ends_with(&format!("{}.mdx", allowed_suffix))
-    || filename.ends_with(&format!("{}.md", allowed_suffix))
-    || filename.ends_with(&format!("{}.mjs", allowed_suffix))
-    || filename.ends_with(&format!("{}.cjs", allowed_suffix))
-    || filename.ends_with(allowed_suffix)
-}
-
 pub(crate) const EXTENSIONS: [&str; 8] =
   [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".mdx", ".md"];
+
+pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
+  if filename.ends_with(allowed_suffix) {
+    return true;
+  }
+
+  EXTENSIONS.iter().any(|&suffix| {
+    let suffix = if allowed_suffix.is_empty() {
+      suffix
+    } else {
+      &format!("{}{}", allowed_suffix, suffix)[..]
+    };
+    filename.ends_with(suffix)
+  })
+}
 
 fn add_file_extension(imported_file_path: &str, source_file: &str) -> String {
   if EXTENSIONS
@@ -680,7 +676,11 @@ fn add_file_extension(imported_file_path: &str, source_file: &str) -> String {
   let file_extension = Path::new(source_file)
     .extension()
     .and_then(std::ffi::OsStr::to_str)
-    .unwrap_or("");
+    .unwrap_or_default();
+
+  if file_extension.is_empty() {
+    return imported_file_path.to_string();
+  }
 
   format!("{}.{}", imported_file_path, file_extension)
 }
@@ -722,26 +722,29 @@ fn file_path_resolver(
   source_file_path: String,
   root_path: &str,
 ) -> String {
-  let file_to_look_for = relative_file_path;
-
-  if EXTENSIONS.iter().any(|ext| file_to_look_for.ends_with(ext)) {
-    unimplemented!("file_path_resolver")
+  if EXTENSIONS
+    .iter()
+    .any(|ext| relative_file_path.ends_with(ext))
+  {
+    unimplemented!("Extension match found, but handling is unimplemented");
   }
 
   for ext in EXTENSIONS.iter() {
-    let import_path_str = if file_to_look_for.starts_with('.') {
-      format!("{}{}", file_to_look_for, ext)
+    let import_path_str = if relative_file_path.starts_with('.') {
+      format!("{}{}", relative_file_path, ext)
     } else {
-      file_to_look_for.to_string()
+      relative_file_path.to_string()
     };
 
     let resolved_file_path = resolve_file_path(&import_path_str, &source_file_path, ext, root_path);
 
     if let Ok(resolved_path) = resolved_file_path {
-      return resolved_path
-        .display()
-        .to_string()
-        .replace("/app/@", "/node_modules1/@");
+      let resolved_path_str = resolved_path.display().to_string();
+      if resolved_path_str.contains("/app/@") {
+        return resolved_path_str.replace("/app/@", "/node_modules/@");
+      } else {
+        return resolved_path_str;
+      }
     }
   }
 
@@ -749,10 +752,8 @@ fn file_path_resolver(
 }
 
 fn relative_path(root: &Path, file_path: &Path) -> PathBuf {
-  let rel_path = file_path
+  file_path
     .strip_prefix(root)
-    .ok()
-    .map_or(file_path.to_path_buf(), PathBuf::from);
-
-  rel_path
+    .unwrap_or(file_path)
+    .to_path_buf()
 }

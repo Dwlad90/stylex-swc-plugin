@@ -184,7 +184,7 @@ pub(crate) fn flatten_raw_style_object(
             let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
             let mut property_cloned = property.clone();
-            property_cloned.value = Box::new(var_decl_expr);
+            property_cloned.value = Box::new(var_decl_expr.clone());
 
             let inner_flattened =
               flatten_raw_style_object(&[property_cloned], pseudos, at_rules, state, functions);

@@ -34,3 +34,13 @@ impl From<InjectableStyle> for InjectableStyleBase {
     }
   }
 }
+
+impl Default for InjectableStyle {
+  fn default() -> Self {
+    InjectableStyle {
+      ltr: "".to_string(),
+      rtl: None,
+      priority: Some(0.0),
+    }
+  }
+}

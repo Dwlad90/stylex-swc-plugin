@@ -23,7 +23,7 @@ impl Fold for MemberTransform {
   noop_fold_type!();
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
-    self.parents.push(expr.clone());
+    self.parents.push(expr.to_owned());
     expr.fold_children_with(self)
   }
 

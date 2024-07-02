@@ -12,7 +12,7 @@ use super::{
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
-#[derive(Debug, Hash, PartialEq, Clone)]
+#[derive(Debug, Hash, PartialEq, Clone, Copy)]
 pub enum CallbackType {
   Array(ArrayJS),
   Object(ObjectJS),

@@ -71,7 +71,7 @@ pub(crate) fn collect_vars_by_at_rules(
       hash_name.clone(),
       Box::new(FlatCompiledStylesValue::CSSType(
         hash_name.clone(),
-        css_type.syntax.clone(),
+        css_type.syntax,
         initial_value.clone(),
       )),
     );

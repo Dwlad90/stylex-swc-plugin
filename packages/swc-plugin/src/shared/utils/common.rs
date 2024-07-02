@@ -247,9 +247,9 @@ pub(crate) fn get_var_decl_by_ident_or_member<'a>(
   })
 }
 
-pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> Expr {
+pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   match &var_decl.init {
-    Some(var_decl_init) => *var_decl_init.clone(),
+    Some(var_decl_init) => var_decl_init,
     None => panic!("Variable declaration is not an expression"),
   }
 }
@@ -562,9 +562,9 @@ pub(crate) fn resolve_file_path(
   }
 }
 
-pub(crate) fn normalize_expr(expr: &Expr) -> &Expr {
+pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   match expr {
-    Expr::Paren(paren) => normalize_expr(paren.expr.as_ref()),
+    Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
     _ => expr,
   }
 }

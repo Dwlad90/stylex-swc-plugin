@@ -4,7 +4,7 @@ pub(crate) enum ImportPathResolution {
   Tuple(ImportPathResolutionType, String),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) enum ImportPathResolutionType {
   ThemeNameRef,
   // FilePath,

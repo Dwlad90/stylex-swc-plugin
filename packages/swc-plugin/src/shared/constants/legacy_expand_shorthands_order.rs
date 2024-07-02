@@ -7,9 +7,9 @@ pub(crate) struct Shorthands;
 impl Shorthands {
   fn border(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderTop".into(), raw_value.clone()),
-      OrderPair("borderEnd".into(), raw_value.clone()),
-      OrderPair("borderBottom".into(), raw_value.clone()),
+      OrderPair("borderTop".into(), raw_value.to_owned()),
+      OrderPair("borderEnd".into(), raw_value.to_owned()),
+      OrderPair("borderBottom".into(), raw_value.to_owned()),
       OrderPair("borderStart".into(), raw_value),
     ]
   }
@@ -26,7 +26,7 @@ impl Shorthands {
   }
   fn border_horizontal(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderStart".into(), raw_value.clone()),
+      OrderPair("borderStart".into(), raw_value.to_owned()),
       OrderPair("borderEnd".into(), raw_value),
     ]
   }
@@ -42,7 +42,7 @@ impl Shorthands {
   }
   fn border_vertical(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderTop".into(), raw_value.clone()),
+      OrderPair("borderTop".into(), raw_value.to_owned()),
       OrderPair("borderBottom".into(), raw_value),
     ]
   }
@@ -59,37 +59,37 @@ impl Shorthands {
 
   fn border_horizontal_color(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderStartColor".into(), raw_value.clone()),
+      OrderPair("borderStartColor".into(), raw_value.to_owned()),
       OrderPair("borderEndColor".into(), raw_value),
     ]
   }
   fn border_horizontal_style(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderStartStyle".into(), raw_value.clone()),
+      OrderPair("borderStartStyle".into(), raw_value.to_owned()),
       OrderPair("borderEndStyle".into(), raw_value),
     ]
   }
   fn border_horizontal_width(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderStartWidth".into(), raw_value.clone()),
+      OrderPair("borderStartWidth".into(), raw_value.to_owned()),
       OrderPair("borderEndWidth".into(), raw_value),
     ]
   }
   fn border_vertical_color(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderTopColor".into(), raw_value.clone()),
+      OrderPair("borderTopColor".into(), raw_value.to_owned()),
       OrderPair("borderBottomColor".into(), raw_value),
     ]
   }
   fn border_vertical_style(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderTopStyle".into(), raw_value.clone()),
+      OrderPair("borderTopStyle".into(), raw_value.to_owned()),
       OrderPair("borderBottomStyle".into(), raw_value),
     ]
   }
   fn border_vertical_width(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("borderTopWidth".into(), raw_value.clone()),
+      OrderPair("borderTopWidth".into(), raw_value.to_owned()),
       OrderPair("borderBottomWidth".into(), raw_value),
     ]
   }
@@ -107,23 +107,23 @@ impl Shorthands {
 
   fn inset(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("top".into(), raw_value.clone()),
-      OrderPair("end".into(), raw_value.clone()),
-      OrderPair("bottom".into(), raw_value.clone()),
+      OrderPair("top".into(), raw_value.to_owned()),
+      OrderPair("end".into(), raw_value.to_owned()),
+      OrderPair("bottom".into(), raw_value.to_owned()),
       OrderPair("start".into(), raw_value),
     ]
   }
   fn inset_inline(raw_value: Option<String>) -> Vec<OrderPair> {
     let mut result = vec![];
 
-    result.extend(Shorthands::start(raw_value.clone()));
+    result.extend(Shorthands::start(raw_value.to_owned()));
     result.extend(Shorthands::end(raw_value));
 
     result
   }
   fn inset_block(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("top".into(), raw_value.clone()),
+      OrderPair("top".into(), raw_value.to_owned()),
       OrderPair("bottom".into(), raw_value),
     ]
   }
@@ -177,7 +177,7 @@ impl Shorthands {
   fn margin_horizontal(raw_value: Option<String>) -> Vec<OrderPair> {
     let mut result = vec![];
 
-    result.extend(Shorthands::margin_start(raw_value.clone()));
+    result.extend(Shorthands::margin_start(raw_value.to_owned()));
     result.extend(Shorthands::margin_end(raw_value));
 
     result
@@ -212,7 +212,7 @@ impl Shorthands {
   }
   fn margin_vertical(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("marginTop".into(), raw_value.clone()),
+      OrderPair("marginTop".into(), raw_value.to_owned()),
       OrderPair("marginBottom".into(), raw_value),
     ]
   }
@@ -237,7 +237,7 @@ impl Shorthands {
   fn padding_horizontal(val: Option<String>) -> Vec<OrderPair> {
     let mut result = vec![];
 
-    result.extend(Shorthands::padding_start(val.clone()));
+    result.extend(Shorthands::padding_start(val.to_owned()));
     result.extend(Shorthands::padding_end(val));
 
     result
@@ -272,7 +272,7 @@ impl Shorthands {
   }
   fn padding_vertical(val: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("paddingTop".into(), val.clone()),
+      OrderPair("paddingTop".into(), val.to_owned()),
       OrderPair("paddingBottom".into(), val),
     ]
   }

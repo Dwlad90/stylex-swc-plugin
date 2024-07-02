@@ -24,7 +24,7 @@ pub(crate) fn stylex_define_vars(
   let theme_name_hash = format!(
     "{}{}",
     state.options.class_name_prefix,
-    create_hash(state.theme_name.clone().unwrap().as_str())
+    create_hash(state.theme_name.as_ref().unwrap())
   );
 
   let mut typed_variables: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
@@ -46,7 +46,7 @@ pub(crate) fn stylex_define_vars(
 
           // Created hashed variable names with fileName//themeName//key
           let name_hash = if key.starts_with("--") {
-            key.get(2..).unwrap_or("")
+            key.get(2..).unwrap_or_default()
           } else {
             &format!(
               "{}{}",
@@ -100,8 +100,7 @@ pub(crate) fn stylex_define_vars(
 
           FlatCompiledStylesValue::InjectableStyle(InjectableStyle {
             ltr: property,
-            rtl: None,
-            priority: Some(0.0),
+            ..Default::default()
           })
         }
         _ => unreachable!("Unsupported value type"),
@@ -114,11 +113,9 @@ pub(crate) fn stylex_define_vars(
   let mut injectable_types: IndexMap<String, Box<InjectableStyle>> = injectable_types
     .iter()
     .filter_map(|(key, value)| {
-      if let Some(inj_style) = value.as_injectable_style() {
-        return Some((key.clone(), Box::new(inj_style.clone())));
-      }
-
-      None
+      value
+        .as_injectable_style()
+        .map(|inj_style| (key.to_owned(), Box::new(inj_style.clone())))
     })
     .collect();
 

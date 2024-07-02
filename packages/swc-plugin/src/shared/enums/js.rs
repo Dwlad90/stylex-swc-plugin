@@ -1,11 +1,11 @@
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum ArrayJS {
   Map,
   Filter,
   Join,
 }
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum ObjectJS {
   Entries,
   Keys,
@@ -13,7 +13,7 @@ pub enum ObjectJS {
   FromEntries,
 }
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum MathJS {
   Pow,
   Round,

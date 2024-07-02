@@ -1,8 +1,8 @@
-use swc_core::ecma::ast::Ident;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Callee, Expr, MemberProp},
 };
+use swc_ecma_ast::Id;
 
 use crate::shared::enums::core::ModuleCycle;
 use crate::ModuleTransformVisitor;
@@ -16,10 +16,10 @@ where
       match callee.as_ref() {
         Expr::Member(member) => {
           if let MemberProp::Ident(ident) = &member.prop {
-            return self.transform_stylex_fns(ident.clone(), ex);
+            return self.transform_stylex_fns(&ident.to_id(), ex);
           }
         }
-        Expr::Ident(ident) => return self.transform_stylex_fns(ident.clone(), ex),
+        Expr::Ident(ident) => return self.transform_stylex_fns(&ident.to_id(), ex),
         _ => {}
       }
     }
@@ -27,7 +27,7 @@ where
     None
   }
 
-  fn transform_stylex_fns(&mut self, ident: Ident, call_expr: &mut CallExpr) -> Option<Expr> {
+  fn transform_stylex_fns(&mut self, id: &Id, call_expr: &mut CallExpr) -> Option<Expr> {
     if self.cycle == ModuleCycle::TransformEnter {
       let (_, parent_var_decl) = &self.get_call_var_name(call_expr);
 
@@ -55,13 +55,13 @@ where
     }
 
     if self.cycle == ModuleCycle::TransformExit {
-      if self.state.stylex_props_import.contains(&ident.to_id()) {
+      if self.state.stylex_props_import.contains(id) {
         if let Some(value) = self.transform_stylex_props_call(call_expr) {
           return Some(value);
         }
       }
 
-      if self.state.stylex_attrs_import.contains(&ident.to_id()) {
+      if self.state.stylex_attrs_import.contains(id) {
         if let Some(value) = self.transform_stylex_attrs_call(call_expr) {
           return Some(value);
         }

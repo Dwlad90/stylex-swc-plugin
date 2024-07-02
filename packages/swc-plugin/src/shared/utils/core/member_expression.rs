@@ -55,7 +55,7 @@ pub(crate) fn member_expression(
   if let NonNullProps::True = non_null_props {
     style_non_null_props = NonNullProps::True;
   } else {
-    let evaluate_result = evaluate(&Box::new(Expr::Member(member.clone())), state, fns);
+    let evaluate_result = evaluate(&Box::new(Expr::from(member.clone())), state, fns);
 
     if !evaluate_result.confident {
       *non_null_props = NonNullProps::True;

@@ -103,7 +103,7 @@ fn property_to_ltr(pair: (&str, &str)) -> Pair {
   }
 }
 
-pub(crate) fn generate_ltr(pair: Pair) -> Pair {
+pub(crate) fn generate_ltr(pair: &Pair) -> Pair {
   property_to_ltr((pair.key.as_str(), pair.value.as_str()))
 }
 
@@ -286,7 +286,7 @@ fn _flip_value(value: &PreRules) -> Option<PreRules> {
   Some(value.clone())
 }
 
-pub(crate) fn generate_rtl(pair: Pair) -> Option<Pair> {
+pub(crate) fn generate_rtl(pair: &Pair) -> Option<Pair> {
   let result = property_to_rtl(pair.key.as_str(), pair.value.as_str());
 
   result
@@ -377,12 +377,12 @@ pub(crate) fn generate_rule(
 
   let ltr_pairs: Vec<Pair> = pairs
     .iter()
-    .map(|pair| generate_ltr(pair.clone()))
+    .map(generate_ltr)
     .collect::<Vec<Pair>>();
 
   let rtl_pairs: Vec<Pair> = pairs
     .iter()
-    .filter_map(|pair| generate_rtl(pair.clone()))
+    .filter_map(generate_rtl)
     .collect::<Vec<Pair>>();
 
   let ltr_decls = ltr_pairs

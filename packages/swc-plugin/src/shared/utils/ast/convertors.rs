@@ -390,7 +390,7 @@ pub fn lit_to_num(lit_num: &Lit) -> f64 {
 }
 
 pub fn handle_tpl_to_expression(
-  tpl: &swc_core::ecma::ast::Tpl,
+  tpl: &Tpl,
   state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Expr {

@@ -37,11 +37,14 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
 
   let ident = ident_factory("create");
 
+  let call_expr = Expr::from(call.clone());
+
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(call.clone()))) }
-      ),
+      || state
+        .top_level_expressions
+        .iter()
+        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&call_expr) }),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -69,11 +72,14 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let ident = ident_factory("keyframes");
 
+  let expr = Expr::from(init.clone());
+
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(init.clone()))) }
-      ),
+      || state
+        .top_level_expressions
+        .iter()
+        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&expr) }),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -109,11 +115,14 @@ pub(crate) fn validate_stylex_create_theme_indent(
 
   let ident = ident_factory("keyframes");
 
+  let expr = Expr::from(init.clone());
+
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(init.clone()))) }
-      ),
+      || state
+        .top_level_expressions
+        .iter()
+        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&expr) }),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -128,11 +137,14 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateMana
 
   let ident = ident_factory("defineVars");
 
+  let expr = Expr::from(call.clone());
+
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state.top_level_expressions.iter().any(
-        |TopLevelExpression(_, call_item, _)| { call_item.eq(&Box::new(Expr::from(call.clone()))) }
-      ),
+      || state
+        .top_level_expressions
+        .iter()
+        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&expr) }),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -194,11 +206,11 @@ pub(crate) fn is_target_call(
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
-  let is_create_ident = call
-    .callee
-    .as_expr()
-    .and_then(|expr| expr.as_ident())
-    .map_or(false, |ident| imports_map.contains(&ident.to_id()));
+  let is_create_ident = call.callee.as_expr().map_or(false, |expr| {
+    expr
+      .as_ident()
+      .map_or(false, |ident| imports_map.contains(&ident.to_id()))
+  });
 
   let is_create_member = call
     .callee
@@ -208,9 +220,14 @@ pub(crate) fn is_target_call(
       member.obj.is_ident()
         && member.prop.as_ident().map_or(false, |ident| {
           ident.sym.eq(call_name)
-            && state
-              .stylex_import_stringified()
-              .contains(&member.obj.as_ident().unwrap().sym.to_string())
+            && state.stylex_import_stringified().contains(
+              &member
+                .obj
+                .as_ident()
+                .expect("Member epression is not an ident")
+                .sym
+                .to_string(),
+            )
         })
     });
 
@@ -362,7 +379,9 @@ pub(crate) fn validate_theme_variables(
   state: &mut StateManager,
 ) -> KeyValueProp {
   if let Some(theme_ref) = variables.as_theme_ref() {
-    let (value, updated_state) = theme_ref.clone().get(THEME_NAME_KEY);
+    let mut cloned_theme_ref = theme_ref.clone();
+
+    let (value, updated_state) = cloned_theme_ref.get(THEME_NAME_KEY);
 
     state.combine(updated_state);
 

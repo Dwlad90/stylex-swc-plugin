@@ -55,21 +55,19 @@ pub(crate) fn convert_style_to_class_name(
     PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
-  let value = match value.clone() {
-    PreRuleValue::String(value) => vec![value],
+  let value = match &value {
+    PreRuleValue::String(value) => vec![value.to_owned()],
     PreRuleValue::Vec(values) => {
       if values
         .iter()
         .any(|value| value.starts_with("var(") && value.ends_with(')'))
       {
-        variable_fallbacks(values)
+        variable_fallbacks(values.clone())
       } else {
-        values
+        values.clone()
       }
     }
-    PreRuleValue::Expr(_) | PreRuleValue::Null => {
-      panic!("{}", ILLEGAL_PROP_VALUE)
-    }
+    PreRuleValue::Expr(_) | PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
   let string_to_hash = format!(

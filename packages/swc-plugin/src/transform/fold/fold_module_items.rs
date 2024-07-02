@@ -5,6 +5,7 @@ use swc_core::{
     visit::FoldWith,
   },
 };
+use swc_ecma_ast::ExportDecl;
 
 use crate::{
   shared::{enums::core::ModuleCycle, utils::ast::factories::binding_ident_factory},
@@ -69,13 +70,14 @@ where
               ModuleDecl::ExportDecl(export_decl) => export_decl.decl.as_var().map(|var_decl| {
                 var_decl
                   .decls
-                  .clone()
-                  .into_iter()
+                  .iter() // Use iter() to avoid cloning the entire collection
                   .filter(|decl| {
-                    let init = decl.init.clone().unwrap();
-
-                    init.is_object() || init.is_lit()
+                    decl
+                      .init
+                      .as_ref() // Use as_ref to convert Option<T> to Option<&T>
+                      .map_or(false, |init| init.is_object() || init.is_lit())
                   })
+                  .cloned() // Clone only the filtered elements
                   .collect::<Vec<VarDeclarator>>()
               }),
               ModuleDecl::ExportDefaultExpr(export_default_expr) => {
@@ -93,13 +95,14 @@ where
             ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(
               var_decl
                 .decls
-                .clone()
-                .into_iter()
+                .iter()
                 .filter(|decl| {
-                  let init = decl.init.clone().unwrap();
-
-                  init.is_object() || init.is_lit()
+                  decl
+                    .init
+                    .as_ref()
+                    .map_or(false, |init| init.is_object() || init.is_lit())
                 })
+                .cloned()
                 .collect::<Vec<VarDeclarator>>(),
             ),
             _ => None,
@@ -127,15 +130,7 @@ where
         // This is optional, but it's required if you don't want extra `;` in output.
         module_items.retain(|module_item| {
           !matches!(module_item, ModuleItem::Stmt(Stmt::Empty(..)))
-            && module_item
-              .clone()
-              .module_decl()
-              .and_then(|module_decl| match module_decl {
-                ModuleDecl::ExportDecl(import_decl) => import_decl.decl.var(),
-                _ => None,
-              })
-              .filter(|var| var.decls.is_empty())
-              .is_none()
+            && !matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl { decl: Decl::Var(var), .. })) if var.decls.is_empty())
         });
 
         module_items

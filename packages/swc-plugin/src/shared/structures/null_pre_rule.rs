@@ -3,7 +3,7 @@ use super::{
   state_manager::StateManager,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub(crate) struct NullPreRule {}
 
 impl NullPreRule {

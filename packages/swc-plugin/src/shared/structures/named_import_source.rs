@@ -20,10 +20,10 @@ impl ImportSources {
     }
   }
 
-  pub fn get_import_str(&self) -> String {
+  pub fn get_import_str(&self) -> &str {
     match self {
-      ImportSources::Regular(regular) => regular.clone(),
-      ImportSources::Named(named) => named.r#as.clone(),
+      ImportSources::Regular(regular) => regular,
+      ImportSources::Named(named) => named.r#as.as_str(),
     }
   }
 }

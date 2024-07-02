@@ -1,4 +1,3 @@
-
 var classNamePrefix = 'x';
 var defaultOpts = {
     unstable_moduleResolution: {

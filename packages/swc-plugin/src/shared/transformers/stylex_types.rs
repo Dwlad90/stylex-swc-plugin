@@ -229,7 +229,7 @@ fn convert_number_to_string_using(
         for (key, val) in o {
           result.insert(
             key,
-            convert_number_to_string_using(transform_number, default_str.clone())(val),
+            convert_number_to_string_using(transform_number, default_str.to_owned())(val),
           );
         }
 

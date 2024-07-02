@@ -22,27 +22,24 @@ impl ThemeRef {
     }
   }
 
-  pub(crate) fn get(&mut self, key: &str) -> (String, StateManager) {
-    if let Some(value) = self.map.get(key) {
-      return (value.clone(), self.state.clone());
-    }
+  pub(crate) fn get(&mut self, key: &str) -> (&String, &StateManager) {
+    let entry = self.map.entry(key.to_string()).or_insert_with(|| {
+      let str_to_hash = gen_file_based_identifier(
+        &self.file_name,
+        &self.export_name,
+        if key == "__themeName__" { None } else { Some(key) },
+      );
 
-    let str_to_hash = if key == "__themeName__" {
-      gen_file_based_identifier(&self.file_name, &self.export_name, None)
-    } else {
-      gen_file_based_identifier(&self.file_name, &self.export_name, Some(key))
-    };
+      let var_name = format!(
+        "{}{}",
+        self.state.options.class_name_prefix,
+        create_hash(&str_to_hash)
+      );
 
-    let var_name = format!(
-      "{}{}",
-      self.state.options.class_name_prefix,
-      create_hash(&str_to_hash)
-    );
+      format!("var(--{})", var_name)
+    });
 
-    let value = format!("var(--{})", var_name);
-
-    self.map.insert(key.to_string(), value.clone());
-    (value, self.state.clone())
+    (entry, &self.state)
   }
 
   fn _set(&self, key: &str, value: &str) {

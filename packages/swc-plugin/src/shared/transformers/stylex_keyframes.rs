@@ -81,7 +81,7 @@ pub(crate) fn stylex_keyframes(
         panic!("Values must be an object")
       };
 
-      let ltr_value = generate_ltr(pair.clone());
+      let ltr_value = generate_ltr(pair);
 
       Box::new(FlatCompiledStylesValue::KeyValue(ltr_value))
     },
@@ -95,7 +95,7 @@ pub(crate) fn stylex_keyframes(
         panic!("Values must be an object")
       };
 
-      let rtl_value = generate_rtl(pair.clone());
+      let rtl_value = generate_rtl(pair);
 
       Box::new(FlatCompiledStylesValue::KeyValue(
         rtl_value.unwrap_or(pair.clone()),

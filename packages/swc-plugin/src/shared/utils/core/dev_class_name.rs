@@ -83,8 +83,8 @@ fn namespace_to_dev_class_name(
     "{}__{}{}",
     basename,
     var_name
-    .clone()
-    .map(|var_name| format!("{}.", var_name))
+      .as_ref()
+      .map(|var_name| format!("{}.", var_name))
       .unwrap_or_default(),
     namespace
   );
@@ -126,13 +126,12 @@ pub(crate) fn convert_theme_to_dev_styles(
   overrides_obj: &IndexMap<String, Box<FlatCompiledStylesValue>>,
   filename: &str,
 ) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
-  let mut overrides_obj_extended = convert_theme_to_base_styles(
-    variable_name
-      .clone()
-      .expect("Variable name not found.")
-      .as_str(),
-    filename,
-  );
+  let variable_name_str = variable_name
+    .as_ref()
+    .expect("Variable name not found.")
+    .as_str();
+
+  let mut overrides_obj_extended = convert_theme_to_base_styles(variable_name_str, filename);
 
   overrides_obj_extended.extend(overrides_obj.clone());
 
@@ -144,14 +143,8 @@ pub(crate) fn convert_theme_to_test_styles(
   overrides_obj: &IndexMap<String, Box<FlatCompiledStylesValue>>,
   filename: &str,
 ) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
-  let mut overrides_obj_extended = convert_theme_to_base_styles(
-    variable_name
-      .clone()
-      .expect("Variable name not found.")
-      .as_str(),
-    filename,
-  );
-  overrides_obj_extended.extend(overrides_obj.clone());
+  let mut overrides_obj_extended =
+    convert_theme_to_dev_styles(variable_name, overrides_obj, filename);
 
   overrides_obj_extended.insert(
     COMPILED_KEY.to_string(),

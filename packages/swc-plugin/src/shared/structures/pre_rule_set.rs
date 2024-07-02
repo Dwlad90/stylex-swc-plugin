@@ -25,7 +25,10 @@ impl PreRuleSet {
 
     match flat_rules.len() {
       0 => PreRules::NullPreRule(NullPreRule::new()),
-      1 => flat_rules.first().unwrap().clone(),
+      1 => flat_rules
+        .first()
+        .expect("First rule item not exist")
+        .to_owned(),
       _ => PreRules::PreRuleSet(PreRuleSet { rules: flat_rules }),
     }
   }

@@ -1,6 +1,6 @@
 use swc_ecma_ast::{Expr, Id};
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub(crate) enum TopLevelExpressionKind {
   NamedExport,
   DefaultExport,

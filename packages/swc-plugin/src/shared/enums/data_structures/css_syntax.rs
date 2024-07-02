@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Clone, Hash)]
+#[derive(Debug, PartialEq, Clone, Hash, Copy)]
 pub enum CSSSyntax {
   Length,
   Number,

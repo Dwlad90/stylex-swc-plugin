@@ -8,7 +8,7 @@ use crate::shared::{
   structures::{
     functions::FunctionMap,
     injectable_style::InjectableStyle,
-    pre_rule::{CompiledResult, PreRule, PreRules},
+    pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
     state_manager::StateManager,
     types::FlatCompiledStyles,
   },
@@ -83,10 +83,10 @@ pub(crate) fn stylex_create_set(
           )),
         );
       } else if let Some(class_name_tuples) = value.as_computed_styles() {
-        let class_name = &class_name_tuples
+        let class_name = class_name_tuples
           .iter()
-          .map(|computed_style| computed_style.0.clone())
-          .collect::<Vec<String>>()
+          .map(|ComputedStyle(name, _)| name.as_str())
+          .collect::<Vec<&str>>()
           .join(" ");
 
         namespace_obj.insert(
@@ -94,28 +94,23 @@ pub(crate) fn stylex_create_set(
           Box::new(FlatCompiledStylesValue::String(class_name.clone())),
         );
 
-        for item in class_name_tuples {
-          let class_name = item.0.as_str();
-          let injectable_styles = &item.1;
-          if !injected_styles_map.contains_key(class_name) {
-            injected_styles_map.insert(class_name.to_string(), Box::new(injectable_styles.clone()));
-          }
+        for ComputedStyle(class_name, injectable_styles) in class_name_tuples.iter() {
+          injected_styles_map
+            .entry(class_name.clone())
+            .or_insert_with(|| Box::new(injectable_styles.clone()));
         }
       } else {
         namespace_obj.insert(key.clone(), Box::new(FlatCompiledStylesValue::Null));
       }
     }
-
     let resolved_namespace_name = expr_to_str(namespace_name, state, functions);
 
-    let mut namespace_obj = namespace_obj.clone();
-
     namespace_obj.insert(
-      COMPILED_KEY.to_string(),
+      COMPILED_KEY.to_owned(),
       Box::new(FlatCompiledStylesValue::Bool(true)),
     );
 
-    resolved_namespaces.insert(resolved_namespace_name.clone(), Box::new(namespace_obj));
+    resolved_namespaces.insert(resolved_namespace_name, Box::new(namespace_obj));
   }
 
   (resolved_namespaces, injected_styles_map)

@@ -48,8 +48,8 @@ where
           match vars_to_keep.entry(var_name) {
             Entry::Occupied(mut entry) => {
               if let NonNullProps::Vec(vec) = entry.get_mut() {
-                if let NonNullProp::Id(id) = &namespace_name {
-                  vec.push(id.clone());
+                if let NonNullProp::Id(id) = namespace_name {
+                  vec.push(id);
                 }
               }
             }
@@ -155,18 +155,22 @@ where
 
         if let Some(key_as_string) = key_as_ident {
           if namespace_to_keep.contains(&key_as_string.to_id()) {
+            let var_id = var_name.name.as_ident().unwrap().to_id();
+            let key_id = NonNullProp::Id(key_as_ident.unwrap().to_id());
+
             let all_nulls_to_keep = self
               .state
               .style_vars_to_keep
-              .clone()
-              .into_iter()
-              .filter(|top_level_expression| {
-                let StyleVarsToKeep(var, namespace_name, _) = top_level_expression.as_ref();
+              .iter()
+              .filter_map(|top_level_expression| {
+                let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression.as_ref();
 
-                var_name.name.clone().as_ident().unwrap().to_id().eq(var)
-                  && namespace_name.eq(&NonNullProp::Id(key_as_ident.unwrap().to_id()))
+                if var_id.eq(var) && namespace_name.eq(&key_id.clone()) {
+                  Some(prop.clone())
+                } else {
+                  None
+                }
               })
-              .map(|a| a.2)
               .collect::<Vec<NonNullProps>>();
 
             if !all_nulls_to_keep.contains(&NonNullProps::True) {

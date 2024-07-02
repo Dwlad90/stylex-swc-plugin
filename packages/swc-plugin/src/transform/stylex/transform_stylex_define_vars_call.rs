@@ -80,7 +80,7 @@ where
 
         let identifier = identifiers
           .entry(Box::new(
-            ident_factory(name.get_import_str().as_str()).to_id(),
+            ident_factory(name.get_import_str()).to_id(),
           ))
           .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 

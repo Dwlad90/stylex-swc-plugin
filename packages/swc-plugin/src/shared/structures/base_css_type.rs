@@ -84,18 +84,18 @@ impl From<ObjectLit> for BaseCSSType {
         }
         "value" => {
           let obj_value = match key_value.value.as_ref() {
-            Expr::Object(obj) => obj.clone(),
+            Expr::Object(obj) => obj,
             Expr::Lit(obj) => {
               let value = get_string_val_from_lit(obj).expect("Value must be a string");
 
               let prop = prop_or_spread_string_factory("default", value.as_str());
 
-              object_lit_factory(vec![prop])
+              &object_lit_factory(vec![prop])
             }
             _ => panic!("Value must be an object or string"),
           };
 
-          for key_value in get_key_values_from_object(&obj_value) {
+          for key_value in get_key_values_from_object(obj_value) {
             let key = get_key_str(&key_value);
 
             match key_value.value.as_ref() {

@@ -37,7 +37,7 @@ pub(crate) fn flatten_raw_style_object(
   pseudos: &mut Vec<String>,
   at_rules: &mut Vec<String>,
   state: &mut StateManager,
-  functions: &FunctionMap,
+  fns: &FunctionMap,
 ) -> IndexMap<String, PreRules> {
   let mut flattened: IndexMap<String, PreRules> = IndexMap::new();
 
@@ -164,8 +164,8 @@ pub(crate) fn flatten_raw_style_object(
         }
       }
       Expr::Tpl(tpl) => {
-        let handled_tpl = handle_tpl_to_expression(tpl, state, functions);
-        let result = expr_tpl_to_string(handled_tpl.as_tpl().unwrap(), state, functions);
+        let handled_tpl = handle_tpl_to_expression(tpl, state, fns);
+        let result = expr_tpl_to_string(handled_tpl.as_tpl().unwrap(), state, fns);
 
         let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
           css_property_key.as_str(),
@@ -177,7 +177,7 @@ pub(crate) fn flatten_raw_style_object(
         flattened.insert(css_property_key, pre_rule);
       }
       Expr::Ident(ident) => {
-        let ident = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
+        let ident = get_var_decl_by_ident(ident, state, fns, VarDeclAction::Reduce);
 
         match ident {
           Some(var_decl) => {
@@ -187,7 +187,7 @@ pub(crate) fn flatten_raw_style_object(
             property_cloned.value = Box::new(var_decl_expr.clone());
 
             let inner_flattened =
-              flatten_raw_style_object(&[property_cloned], pseudos, at_rules, state, functions);
+              flatten_raw_style_object(&[property_cloned], pseudos, at_rules, state, fns);
 
             flattened.extend(inner_flattened);
           }
@@ -197,13 +197,13 @@ pub(crate) fn flatten_raw_style_object(
         }
       }
       Expr::Bin(bin) => {
-        let result = transform_bin_expr_to_number(bin, state);
+        let result = transform_bin_expr_to_number(bin, state, fns);
 
         let mut property_cloned = property.clone();
         property_cloned.value = Box::new(number_to_expression(result));
 
         let inner_flattened =
-          flatten_raw_style_object(&[property_cloned], pseudos, at_rules, state, functions);
+          flatten_raw_style_object(&[property_cloned], pseudos, at_rules, state, fns);
 
         flattened.extend(inner_flattened)
       }
@@ -244,7 +244,7 @@ pub(crate) fn flatten_raw_style_object(
                     &mut pseudos_to_pass_down,
                     &mut at_rules_to_pass_down,
                     state,
-                    functions,
+                    fns,
                   );
 
                   for (property, pre_rule) in pairs {
@@ -292,7 +292,7 @@ pub(crate) fn flatten_raw_style_object(
             &mut pseudos_to_pass_down,
             &mut at_rules_to_pass_down,
             state,
-            functions,
+            fns,
           );
 
           for (property, pre_rule) in pairs {

@@ -1,5 +1,5 @@
 describe('stylex-first-that-works test', ()=>{
-    test.skip('reverses simple array of values', ()=>{
+    test('reverses simple array of values', ()=>{
         expect(firstThatWorks('a', 'b')).toEqual([
             'b',
             'a'
@@ -12,14 +12,19 @@ describe('stylex-first-that-works test', ()=>{
     });
     test('creates fallbacks for variables', ()=>{
         expect(firstThatWorks('var(--accent)', 'blue')).toEqual('var(--accent, blue)');
+        expect(firstThatWorks('blue', 'var(--accent)')).toEqual([
+            'var(--accent)',
+            'blue'
+        ]);
+        expect(firstThatWorks('var(--primary)', 'var(--accent)')).toEqual('var(--primary, var(--accent))');
     });
-    test.skip('Allow variables to be fallbacks too', ()=>{
+    test('Allow variables to be fallbacks too', ()=>{
         expect(firstThatWorks('color-mix(in srgb, currentColor 20%, transparent)', 'var(--accent)', 'blue')).toEqual([
             'var(--accent, blue)',
             'color-mix(in srgb, currentColor 20%, transparent)'
         ]);
     });
-    test.skip('Omit all but first fallback after the last variable', ()=>{
+    test('Omit all but first fallback after the last variable', ()=>{
         expect(firstThatWorks('color-mix(in oklch, currentColor 20%, transparent)', 'color-mix(in srgb, currentColor 20%, transparent)', 'var(--accent)', 'var(--primary)', 'var(--secondary)', 'red', 'blue', 'green')).toEqual([
             'var(--accent, var(--primary, var(--secondary, red)))',
             'color-mix(in srgb, currentColor 20%, transparent)',

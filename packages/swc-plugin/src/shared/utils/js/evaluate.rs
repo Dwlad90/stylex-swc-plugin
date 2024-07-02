@@ -28,7 +28,7 @@ use crate::shared::{
       import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
       value_with_default::ValueWithDefault,
     },
-    js::{ArrayJS, MathJS, ObjectJS},
+    js::{ArrayJS, MathJS, ObjectJS, StringJS},
     misc::VarDeclAction,
   },
   structures::{
@@ -52,7 +52,7 @@ use crate::shared::{
       },
     },
     common::{
-      deep_merge_props, get_import_by_ident, get_key_str, get_string_val_from_lit,
+      char_code_at, deep_merge_props, get_import_by_ident, get_key_str, get_string_val_from_lit,
       get_var_decl_by_ident, get_var_decl_from, normalize_expr, remove_duplicates,
       sort_numbers_factory,
     },
@@ -128,7 +128,7 @@ pub fn evaluate(
     traversal_state: traversal_state.clone(),
   });
 
-  let mut value = evaluate_cached(path, &mut state);
+  let mut value = evaluate_cached(path, &mut state, fns);
 
   if !state.confident {
     value = None;
@@ -154,7 +154,11 @@ fn deopt(path: &Expr, state: &mut EvaluationState) -> Option<Box<EvaluateResultV
   None
 }
 
-fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<EvaluateResultValue>> {
+fn _evaluate(
+  path: &mut Expr,
+  state: &mut EvaluationState,
+  fns: &FunctionMap,
+) -> Option<Box<EvaluateResultValue>> {
   if !state.confident {
     return None;
   }
@@ -289,7 +293,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
     Expr::Lit(lit_path) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Lit(
       lit_path.clone(),
     ))))),
-    Expr::Tpl(tpl) => evaluate_quasis(&Expr::Tpl(tpl.clone()), &tpl.quasis, false, state),
+    Expr::Tpl(tpl) => evaluate_quasis(&Expr::Tpl(tpl.clone()), &tpl.quasis, false, state, fns),
     #[allow(dead_code)]
     Expr::TaggedTpl(_tagged_tpl) => {
       unimplemented!("TaggedTpl");
@@ -324,7 +328,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
       let evaluated_value = if parent_is_call_expr {
         None
       } else {
-        evaluate_cached(&member.obj, state)
+        evaluate_cached(&member.obj, state, fns)
       };
 
       if let Some(object) = evaluated_value {
@@ -339,7 +343,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
             Expr::from(ident.clone()),
           )))),
           MemberProp::Computed(ComputedPropName { expr, .. }) => {
-            let result = evaluate_cached(&expr.clone(), state);
+            let result = evaluate_cached(&expr.clone(), state, fns);
 
             if !state.confident {
               return None;
@@ -493,7 +497,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
       for prop in &obj_path.props {
         match prop {
           PropOrSpread::Spread(prop) => {
-            let spread_expression = evaluate_cached(&prop.expr, state);
+            let spread_expression = evaluate_cached(&prop.expr, state, fns);
 
             if !state.confident {
               return deopt(path, state);
@@ -648,7 +652,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
       )))));
     }
     Expr::Bin(bin) => {
-      if let Some(result) = binary_expr_to_num(bin, state) {
+      if let Some(result) = binary_expr_to_num(bin, state, fns) {
         let result = number_to_expression(result);
 
         return Some(Box::new(EvaluateResultValue::Expr(Box::new(result))));
@@ -713,8 +717,8 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                         if second_arg.spread.is_some() {
                           unimplemented!("Spread")
                         }
-                        let cached_first_arg = evaluate_cached(&first_arg.expr, state);
-                        let cached_second_arg = evaluate_cached(&second_arg.expr, state);
+                        let cached_first_arg = evaluate_cached(&first_arg.expr, state, fns);
+                        let cached_second_arg = evaluate_cached(&second_arg.expr, state, fns);
 
                         context = Some(Box::new(vec![Some(EvaluateResultValue::Vec(vec![
                           cached_first_arg.map(|arg| *arg),
@@ -734,7 +738,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                           takes_path: false,
                         }));
 
-                        let cached_first_arg = evaluate_cached(&first_arg.expr, state);
+                        let cached_first_arg = evaluate_cached(&first_arg.expr, state, fns);
 
                         context = Some(Box::new(vec![Some(EvaluateResultValue::Expr(Box::new(
                           cached_first_arg
@@ -755,7 +759,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                           takes_path: false,
                         }));
 
-                        let cached_first_arg = evaluate_cached(&first_arg.expr, state);
+                        let cached_first_arg = evaluate_cached(&first_arg.expr, state, fns);
 
                         let mut result = vec![cached_first_arg];
 
@@ -764,7 +768,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                             .args
                             .iter()
                             .skip(1)
-                            .map(|arg| evaluate_cached(&arg.expr, state))
+                            .map(|arg| evaluate_cached(&arg.expr, state, fns))
                             .collect::<Vec<Option<Box<EvaluateResultValue>>>>(),
                         );
 
@@ -791,7 +795,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                       unimplemented!("Spread")
                     }
 
-                    let cached_arg = evaluate_cached(&arg.expr, state);
+                    let cached_arg = evaluate_cached(&arg.expr, state, fns);
 
                     match method_name.as_ref() {
                       "fromEntries" => {
@@ -1056,10 +1060,8 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
             let obj_lit = object.as_lit().unwrap();
 
             if property.is_ident() {
-              match obj_lit {
-                Lit::Str(_) => unimplemented!("{}", BUILT_IN_FUNCTION),
-                Lit::Bool(_) => unimplemented!("{}", BUILT_IN_FUNCTION),
-                _ => {}
+              if let Lit::Bool(_) = obj_lit {
+                unimplemented!("{}", BUILT_IN_FUNCTION)
               }
             }
           }
@@ -1097,8 +1099,8 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
 
                     context = Some(Box::new(expr.clone()))
                   }
-                  EvaluateResultValue::Expr(expr) => {
-                    if let Some(ArrayLit { elems, .. }) = expr.as_array() {
+                  EvaluateResultValue::Expr(expr) => match expr.as_ref() {
+                    Expr::Array(ArrayLit { elems, .. }) => {
                       func = Some(Box::new(FunctionConfig {
                         fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
                           "map" => CallbackType::Array(ArrayJS::Map),
@@ -1120,7 +1122,22 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
 
                       context = Some(Box::new(vec![Some(EvaluateResultValue::Vec(expr))]));
                     }
-                  }
+                    Expr::Lit(Lit::Str(_)) => {
+                      func = Some(Box::new(FunctionConfig {
+                        fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
+                          "concat" => CallbackType::String(StringJS::Concat),
+                          "charCodeAt" => CallbackType::String(StringJS::CharCodeAt),
+                          _ => unimplemented!("Method '{}' implemented yet", prop_name),
+                        })),
+                        takes_path: false,
+                      }));
+
+                      context = Some(Box::new(vec![Some(EvaluateResultValue::Expr(
+                        expr.clone(),
+                      ))]));
+                    }
+                    _ => unimplemented!("Expression evaluation not implemented"),
+                  },
                   EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
                     FunctionType::StylexFnsFactory(sxfns) => {
                       let fc = sxfns(prop_name);
@@ -1192,7 +1209,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
           let args: Vec<Box<EvaluateResultValue>> = call
             .args
             .iter()
-            .filter_map(|arg| evaluate_cached(&arg.expr, state))
+            .filter_map(|arg| evaluate_cached(&arg.expr, state, fns))
             .collect();
 
           if !state.confident {
@@ -1367,7 +1384,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                     .map(|arg| {
                       arg
                         .as_expr()
-                        .map(|expr| expr_to_num(expr, &mut state.traversal_state))
+                        .map(|expr| expr_to_num(expr, &mut state.traversal_state, fns))
                         .expect("All arguments must be a number")
                     })
                     .collect::<Vec<f64>>();
@@ -1385,7 +1402,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                     panic!("Math.(round | ceil | floor) requires an argument")
                   };
 
-                  let num = expr_to_num(expr.as_ref(), &mut state.traversal_state);
+                  let num = expr_to_num(expr.as_ref(), &mut state.traversal_state, fns);
 
                   let result = match func.as_ref() {
                     CallbackType::Math(MathJS::Round) => num.round(),
@@ -1403,7 +1420,7 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
                     panic!("Math.pow requires an argument")
                   };
 
-                  let num_args = args_to_numbers(args, state);
+                  let num_args = args_to_numbers(args, state, fns);
 
                   let result = match func.as_ref() {
                     CallbackType::Math(MathJS::Min) => {
@@ -1418,6 +1435,56 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
 
                   return Some(Box::new(EvaluateResultValue::Expr(Box::new(
                     number_to_expression(result),
+                  ))));
+                }
+                CallbackType::String(StringJS::Concat) => {
+                  let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
+                    panic!("String concat requires an argument")
+                  };
+
+                  let str_args = args
+                    .iter()
+                    .map(|arg| {
+                      arg
+                        .as_expr()
+                        .map(|expr| expr_to_str(expr, &mut state.traversal_state, fns))
+                        .expect("All arguments must be a string")
+                    })
+                    .collect::<Vec<String>>()
+                    .join("");
+
+                  let base_str = expr_to_str(base_str, &mut state.traversal_state, fns);
+
+                  return Some(Box::new(EvaluateResultValue::Expr(Box::new(
+                    string_to_expression(format!("{}{}", base_str, str_args).as_str()),
+                  ))));
+                }
+                CallbackType::String(StringJS::CharCodeAt) => {
+                  let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
+                    panic!("String concat requires an argument")
+                  };
+
+                  let base_str = expr_to_str(base_str, &mut state.traversal_state, fns);
+
+                  let num_args = args
+                    .iter()
+                    .map(|arg| {
+                      arg
+                        .as_expr()
+                        .map(|expr| expr_to_num(expr, &mut state.traversal_state, fns))
+                        .expect("First argument must be a number")
+                    })
+                    .collect::<Vec<f64>>();
+
+                  let char_index = num_args
+                    .first()
+                    .expect("First argument of 'charCodeAt' method must be a number");
+
+                  let char_code = char_code_at(&base_str, *char_index as usize)
+                    .expect("Char code not found for index");
+
+                  return Some(Box::new(EvaluateResultValue::Expr(Box::new(
+                    number_to_expression(char_code as f64),
                   ))));
                 }
               }
@@ -1450,7 +1517,11 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
           unimplemented!("Binding")
         }
 
-        let result = evaluate_cached(&Box::new(*binding.init.expect("Binding not found")), state);
+        let result = evaluate_cached(
+          &Box::new(*binding.init.expect("Binding not found")),
+          state,
+          fns,
+        );
         return result;
       }
       None => {
@@ -1539,15 +1610,19 @@ fn _evaluate(path: &mut Expr, state: &mut EvaluationState) -> Option<Box<Evaluat
   result
 }
 
-fn args_to_numbers(args: &[Option<EvaluateResultValue>], state: &mut EvaluationState) -> Vec<f64> {
+fn args_to_numbers(
+  args: &[Option<EvaluateResultValue>],
+  state: &mut EvaluationState,
+  fns: &FunctionMap,
+) -> Vec<f64> {
   args
     .iter()
     .flat_map(|arg| match arg {
       Some(arg) => match arg {
         EvaluateResultValue::Expr(expr) => {
-          vec![expr_to_num(expr, &mut state.traversal_state)]
+          vec![expr_to_num(expr, &mut state.traversal_state, fns)]
         }
-        EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state),
+        EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, fns),
         _ => unreachable!("Math.min/max requires a number"),
       },
       None => vec![],
@@ -1608,6 +1683,7 @@ pub(crate) fn evaluate_quasis(
   quasis: &[TplElement],
   raw: bool,
   state: &mut EvaluationState,
+  fns: &FunctionMap,
 ) -> Option<Box<EvaluateResultValue>> {
   let mut str = String::default();
 
@@ -1636,7 +1712,7 @@ pub(crate) fn evaluate_quasis(
     let expr = exprs.get(i);
 
     if let Some(expr) = expr {
-      let evaluated_expr = evaluate_cached(expr, state);
+      let evaluated_expr = evaluate_cached(expr, state, fns);
 
       if let Some(expr) = evaluated_expr {
         let expr = expr.as_expr().expect("Expression not found");
@@ -1664,6 +1740,7 @@ pub(crate) fn evaluate_quasis(
 pub(crate) fn evaluate_cached(
   path: &Expr,
   state: &mut EvaluationState,
+  fns: &FunctionMap,
 ) -> Option<Box<EvaluateResultValue>> {
   let mut cleaned_path = drop_span(path.clone());
   let existing = state.traversal_state.seen.get(&cleaned_path);
@@ -1678,7 +1755,7 @@ pub(crate) fn evaluate_cached(
       deopt(path, state)
     }
     None => {
-      let val = _evaluate(&mut cleaned_path, state);
+      let val = _evaluate(&mut cleaned_path, state, fns);
 
       if state.confident {
         state.traversal_state.seen.insert(

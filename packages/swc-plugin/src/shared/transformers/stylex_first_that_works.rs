@@ -14,8 +14,6 @@ fn is_var(arg: &Expr) -> bool {
 
 pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
   let first_var = args.iter().position(is_var);
-  dbg!(&args);
-  dbg!(&first_var);
 
   match first_var {
     None => {

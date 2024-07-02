@@ -572,3 +572,7 @@ pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
 pub(crate) fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Ordering {
   |a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
 }
+
+pub(crate) fn char_code_at(s: &str, index: usize) -> Option<u32> {
+  s.chars().nth(index).map(|c| c as u32)
+}

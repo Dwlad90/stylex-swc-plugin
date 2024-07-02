@@ -22,3 +22,10 @@ pub enum MathJS {
   Max,
   Min
 }
+
+
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
+pub enum StringJS {
+  Concat,
+  CharCodeAt
+}

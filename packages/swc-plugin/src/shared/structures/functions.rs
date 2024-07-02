@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{Expr, Id};
 
 use crate::shared::enums::{
   data_structures::value_with_default::ValueWithDefault,
-  js::{ArrayJS, MathJS, ObjectJS},
+  js::{ArrayJS, MathJS, ObjectJS, StringJS},
 };
 
 use super::{
@@ -17,6 +17,7 @@ pub enum CallbackType {
   Array(ArrayJS),
   Object(ObjectJS),
   Math(MathJS),
+  String(StringJS),
 }
 
 pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;

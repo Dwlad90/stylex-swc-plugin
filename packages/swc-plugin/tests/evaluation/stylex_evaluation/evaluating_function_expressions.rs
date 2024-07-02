@@ -199,6 +199,29 @@ fn object_entries() {
 }
 
 #[test]
+fn methods_called_by_string_should_be_bind() {
+  test_transform(
+    Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+            const x = "".concat("10px"," ").concat("10px");
+            const x = "abc".charCodeAt(0);
+            const x = "abc".charCodeAt(2);
+        "#,
+    r#"
+            "10px 10px";
+
+            97;
+            99;
+        "#,
+    false,
+  )
+}
+
+#[test]
 fn math_pow() {
   test_transform(
     Syntax::Typescript(TsConfig {

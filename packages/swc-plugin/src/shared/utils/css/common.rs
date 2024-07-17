@@ -88,7 +88,6 @@ fn property_to_ltr(pair: (&str, &str)) -> Pair {
     "border-bottom-start-radius" => ("border-bottom-left-radius", pair.1),
     "border-top-end-radius" => ("border-top-right-radius", pair.1),
     "border-bottom-end-radius" => ("border-bottom-right-radius", pair.1),
-    "text-align" => (pair.0, logical_to_physical(pair.1)),
     "float" => (pair.0, logical_to_physical(pair.1)),
     "clear" => (pair.0, logical_to_physical(pair.1)),
     "start" => ("left", pair.1),
@@ -240,7 +239,7 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
       value: val.to_string(),
     }),
 
-    "text-align" | "float" | "clear" => logical_to_physical.get(val).map(|&physical_val| Pair {
+    "float" | "clear" => logical_to_physical.get(val).map(|&physical_val| Pair {
       key: key.to_string(),
       value: physical_val.to_string(),
     }),

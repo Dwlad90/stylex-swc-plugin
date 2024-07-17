@@ -78,7 +78,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
-        _inject2(".xp4054r{text-align:right}", 3000, ".xp4054r{text-align:left}");
+        _inject2(".xp4054r{text-align:end}", 3000);
         const classnames = "xp4054r";"
       `);
         });
@@ -91,7 +91,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
-        _inject2(".x1yc453h{text-align:left}", 3000, ".x1yc453h{text-align:right}");
+        _inject2(".x1yc453h{text-align:start}", 3000);
         const classnames = "x1yc453h";"
       `);
         });

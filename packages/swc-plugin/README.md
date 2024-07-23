@@ -1,10 +1,10 @@
-# SWC plugin for StyleX
+# SWC plugin for StyleX (**unofficial)
 
 StyleX is a JavaScript library for defining styles for optimized user interfaces, developed by Meta. The official repo is [here](https://www.github.com/facebook/stylex).
 
 **This is an unofficial plugin** for StyleX. It uses SWC instead of Babel for build step, which allows us to completely ditch Babel and make StyleX faster.
 
-This plugin passes 100% of tests of the offical StyleX library. It is intended as a drop-in replacement for the official Babel-based StyleX library.
+This plugin passes almost 100% of tests of the official StyleX library. It is intended as a drop-in replacement for the official Babel-based StyleX library.
 
 **The usage of StyleX does not change**, all changes are internal.
 

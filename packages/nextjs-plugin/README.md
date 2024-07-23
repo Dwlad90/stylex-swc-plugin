@@ -1,6 +1,6 @@
 # SWC Stylex plugin for Next.js
 
-Next.js plugin for an unofficial StyleX SWC plugin.
+Next.js plugin for an unofficial [`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/swc-plugin) plugin.
 
 ## Why SWC instead of Babel
 
@@ -14,9 +14,9 @@ This plugin allows us to use StyleX and take advantage of SWC Compiler.
 
 ## Installation
 
-Install the package by using:
+Install the package and SWC plugin by using:
 
-`pnpm add -D @stylexswc/nextjs-plugin`.
+`pnpm add -D @stylexswc/nextjs-plugin @stylexswc/swc-plugin`.
 
 Modify Next.js config. For example:
 
@@ -60,4 +60,4 @@ module.exports = stylexPlugin({
 ## Documentation
 
 - [StyleX Documentation](https://stylexjs.com)
-- [SWC plugin for StyleX](https://github.com/Dwlad90/stylex-swc-plugin)
+- [SWC plugin for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/master/packages/swc-plugin)

@@ -11,7 +11,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "cargo build --lib --release --target=wasm32-wasi",
+    "build": "cargo build --lib --release",
     "clean": "del-cli dist",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",

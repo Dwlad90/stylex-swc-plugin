@@ -8,7 +8,7 @@ use stylex_swc_plugin::{
 use swc_core::{
   common::FileName,
   ecma::{
-    parser::{Syntax, TsConfig},
+    parser::{Syntax, TsSyntax},
     transforms::testing::test,
   },
 };
@@ -33,7 +33,7 @@ export const buttonTheme = {
 "#;
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),

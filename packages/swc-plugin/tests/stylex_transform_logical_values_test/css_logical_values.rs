@@ -1,12 +1,12 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
 /* CSS logical values transform */
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -26,7 +26,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -46,7 +46,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -66,7 +66,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -86,7 +86,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -106,7 +106,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -128,7 +128,7 @@ test!(
 /* Non-standard values */
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -148,7 +148,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -168,7 +168,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -188,7 +188,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -210,7 +210,7 @@ test!(
 /* Non-standard bidi transforms */
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -230,7 +230,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -250,7 +250,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -270,7 +270,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -290,7 +290,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -310,7 +310,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -335,7 +335,7 @@ test!(
  */
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -355,7 +355,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -375,7 +375,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -395,7 +395,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -415,7 +415,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -435,7 +435,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -455,7 +455,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -475,7 +475,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -495,7 +495,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -515,7 +515,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -535,7 +535,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -555,7 +555,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -575,7 +575,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -595,7 +595,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -615,7 +615,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -635,7 +635,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -655,7 +655,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),

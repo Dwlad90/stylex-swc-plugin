@@ -2,7 +2,7 @@
 name = "stylex_swc_plugin"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.80.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -20,8 +20,8 @@ opt-level = "z"
 strip = "symbols"
 
 [dependencies]
-serde = "1.0.203"
-swc_core = { version = "0.95.2", features = [
+serde = "1.0.204"
+swc_core = { version = "0.96.9", features = [
   "common",
   "ecma_plugin_transform",
   "ecma_utils",
@@ -33,13 +33,10 @@ swc_core = { version = "0.95.2", features = [
   "css_ast",
 ] }
 
-# TODO: remove this dependency after fixing dependencies of swc_core
-swc_ecma_ast = { version = "0.115.0" }
-
-lazy_static = "1.4.0"
-serde_json = "1.0.117"
+lazy_static = "1.5.0"
+serde_json = "1.0.120"
 regex = "1.10.5"
-dashmap = "5.5.3"
+dashmap = "6.0.1"
 indexmap = "2.2.6"
 derive_more = { version = "0.99.18" }
 convert_case = { version = "0.6.0" }
@@ -54,11 +51,11 @@ path-clean = { version = "1.0.1" }
 cssparser = { version = "0.34.0" }
 
 [dev-dependencies]
-swc_core = { version = "0.95.2", features = [
+swc_core = { version = "0.96.9", features = [
   "testing_transform",
   "ecma_parser",
 ] }
-testing = "0.36.0"
+testing = "0.38.1"
 insta = { version = "1.39.0", features = ["yaml"] }
 
 

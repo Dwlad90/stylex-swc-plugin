@@ -132,7 +132,7 @@ fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
     let file_path_string = file_path.to_string_lossy().into_owned();
     let file_name = FileName::Custom(file_path_string);
 
-    let fm = cm.new_source_file(Arc::from(file_name), source_code);
+    let fm = cm.new_source_file(file_name, source_code);
     let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
 
     let mut program = compiler

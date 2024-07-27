@@ -1,6 +1,6 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
 };
 
@@ -8,7 +8,7 @@ use swc_core::ecma::{
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
 fn must_be_bound_to_a_variable() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -32,7 +32,7 @@ fn must_be_bound_to_a_variable() {
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn it_must_have_two_arguments_no_args() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -56,7 +56,7 @@ fn it_must_have_two_arguments_no_args() {
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn it_must_have_two_arguments_one_args() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -80,7 +80,7 @@ fn it_must_have_two_arguments_one_args() {
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn it_must_have_two_arguments_fn_args() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -104,7 +104,7 @@ fn it_must_have_two_arguments_fn_args() {
 #[should_panic(expected = "Can only override variables theme created with stylex.defineVars().")]
 fn it_must_have_two_arguments_empty_object_args() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -147,7 +147,7 @@ test!(
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn variable_keys_must_be_a_static_value() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -212,7 +212,7 @@ test!(
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -239,7 +239,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

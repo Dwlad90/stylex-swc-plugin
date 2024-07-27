@@ -6,12 +6,12 @@ use stylex_swc_plugin::{
   ModuleTransformVisitor,
 };
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -41,7 +41,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -77,7 +77,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),

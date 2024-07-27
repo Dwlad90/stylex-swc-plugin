@@ -1,11 +1,11 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
 };
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -32,7 +32,7 @@ test!(
 #[should_panic(expected = "Must be default import")]
 fn throw_when_named_import() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -54,7 +54,7 @@ fn throw_when_named_import() {
 }
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -78,7 +78,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -103,7 +103,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -128,7 +128,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),

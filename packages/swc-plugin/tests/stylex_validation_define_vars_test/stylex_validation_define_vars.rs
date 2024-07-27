@@ -2,7 +2,7 @@ use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTrans
 use swc_core::{
   common::FileName,
   ecma::{
-    parser::{Syntax, TsConfig},
+    parser::{Syntax, TsSyntax},
     transforms::testing::{test, test_transform},
   },
 };
@@ -13,7 +13,7 @@ use swc_core::{
 )]
 fn must_be_bound_to_a_named_export_const() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -37,7 +37,7 @@ fn must_be_bound_to_a_named_export_const() {
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
 fn must_be_bound_to_a_named_export() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -61,7 +61,7 @@ fn must_be_bound_to_a_named_export() {
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn its_only_argument_must_be_a_single_object_fn() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -85,7 +85,7 @@ fn its_only_argument_must_be_a_single_object_fn() {
 #[should_panic(expected = "stylex.create() can only accept a style object.")]
 fn its_only_argument_must_be_a_single_object_number() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -109,7 +109,7 @@ fn its_only_argument_must_be_a_single_object_number() {
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn its_only_argument_must_be_a_single_object_empty() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -133,7 +133,7 @@ fn its_only_argument_must_be_a_single_object_empty() {
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn its_only_argument_must_be_a_single_object_two_args() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -154,7 +154,7 @@ fn its_only_argument_must_be_a_single_object_two_args() {
 }
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -177,7 +177,7 @@ test!(
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn variable_keys_must_be_a_static_value() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -200,7 +200,7 @@ fn variable_keys_must_be_a_static_value() {
 }
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -236,7 +236,7 @@ test!(
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars_var() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -262,7 +262,7 @@ fn values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars_var
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars_fn() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

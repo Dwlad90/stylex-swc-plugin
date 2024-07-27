@@ -1,7 +1,7 @@
 use std::env;
 
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::test_transform,
 };
 
@@ -10,7 +10,7 @@ use crate::evaluation::evaluation_module_transform::EvaluationModuleTransformVis
 #[test]
 fn function_with_a_single_params() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -28,7 +28,7 @@ fn function_with_a_single_params() {
 #[test]
 fn function_with_a_two_params() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -46,7 +46,7 @@ fn function_with_a_two_params() {
 #[test]
 fn array_map() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -64,7 +64,7 @@ fn array_map() {
 #[test]
 fn array_filter() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -82,7 +82,7 @@ fn array_filter() {
 #[test]
 fn array_join() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -102,7 +102,7 @@ fn array_join() {
 #[test]
 fn array_map_and_filter() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -124,7 +124,7 @@ fn array_map_and_filter() {
 #[test]
 fn array_methods() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -146,7 +146,7 @@ fn array_methods() {
 #[test]
 fn object_methods() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -174,7 +174,7 @@ fn object_methods() {
 #[test]
 fn object_entries() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -201,7 +201,7 @@ fn object_entries() {
 #[test]
 fn methods_called_by_string_should_be_bind() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -224,7 +224,7 @@ fn methods_called_by_string_should_be_bind() {
 #[test]
 fn math_pow() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -244,7 +244,7 @@ fn math_pow() {
 #[test]
 fn math_round() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -268,7 +268,7 @@ fn math_round() {
 #[test]
 fn math_ceil() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -292,7 +292,7 @@ fn math_ceil() {
 #[test]
 fn math_floor() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -320,7 +320,7 @@ fn math_floor() {
 #[test]
 fn math_min() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -344,7 +344,7 @@ fn math_min() {
 #[test]
 fn math_max() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -370,7 +370,7 @@ fn math_complicated() {
   env::set_var("RUST_MIN_STACK", "8388608"); // 8MB
 
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

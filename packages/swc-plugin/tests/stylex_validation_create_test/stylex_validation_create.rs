@@ -1,6 +1,6 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
 };
 
@@ -8,7 +8,7 @@ use swc_core::ecma::{
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
 fn must_be_bound_to_a_variable() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -33,7 +33,7 @@ fn must_be_bound_to_a_variable() {
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
 fn must_be_called_at_top_level() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -60,7 +60,7 @@ fn must_be_called_at_top_level() {
 #[should_panic(expected = "stylex.create() can only accept a style object.")]
 fn its_only_argument_must_be_a_single_object_non_object() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -85,7 +85,7 @@ fn its_only_argument_must_be_a_single_object_non_object() {
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn its_only_argument_must_be_a_single_object_argument() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -110,7 +110,7 @@ fn its_only_argument_must_be_a_single_object_argument() {
 #[should_panic(expected = "stylex() should have 1 argument.")]
 fn its_only_argument_must_be_a_single_object_illegal_argument_length() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -156,7 +156,7 @@ test!(
 #[should_panic(expected = "A stylex namespace must be an object.")]
 fn namespace_values_must_be_an_object() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -183,7 +183,7 @@ fn namespace_values_must_be_an_object() {
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn namespace_keys_must_be_a_static_value() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -212,7 +212,7 @@ fn namespace_keys_must_be_a_static_value() {
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn properties_must_be_a_static_value() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -290,7 +290,7 @@ test!(
 #[should_panic(expected = "A style array value can only contain strings or numbers.")]
 fn values_must_be_static_arrays_of_number_or_string_in_stylex_create() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -319,7 +319,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create() {
 #[should_panic(expected = "A style value can only contain an array, string or number.")]
 fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_illegal_prop() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -348,7 +348,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_illegal_pro
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_var() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -377,7 +377,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
 fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_fn() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -526,7 +526,7 @@ test!(
 #[should_panic(expected = "Invalid pseudo or at-rule.")]
 fn pseudo_classes_throw_invalid_pseudo() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

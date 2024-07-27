@@ -1,6 +1,6 @@
 use stylex_swc_plugin::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
 };
 
@@ -10,7 +10,7 @@ use swc_core::ecma::{
 )]
 fn dynamic_style_function_only_accepts_named_parameters_default_value() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -40,7 +40,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
 )]
 fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -70,7 +70,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
 )]
 fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -100,7 +100,7 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
 )]
 fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

@@ -1,11 +1,11 @@
-use swc_core::ecma::{parser::{Syntax, TsConfig}, transforms::testing::test_transform};
+use swc_core::ecma::{parser::{Syntax, TsSyntax}, transforms::testing::test_transform};
 
 use crate::evaluation::args_module_transform::ArgsModuleTransformVisitor;
 
 #[test]
 fn evaluates_empty_object() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -23,7 +23,7 @@ fn evaluates_empty_object() {
 #[test]
 fn evaluates_static_style_object() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -53,7 +53,7 @@ fn evaluates_static_style_object() {
 #[test]
 fn evaluates_object_with_function_styles_identifier() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -83,7 +83,7 @@ fn evaluates_object_with_function_styles_identifier() {
 #[test]
 fn evaluates_object_with_function_styles_binary_expression() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

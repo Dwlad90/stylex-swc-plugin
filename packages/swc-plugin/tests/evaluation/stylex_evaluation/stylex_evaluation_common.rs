@@ -15,7 +15,7 @@ use swc_core::{
     ast::{
       ArrayLit, Expr, ExprOrSpread, KeyValueProp, NewExpr, ObjectLit, Prop, PropName, PropOrSpread,
     },
-    parser::{Syntax, TsConfig},
+    parser::{Syntax, TsSyntax},
     transforms::testing::{test, test_transform},
   },
 };
@@ -25,7 +25,7 @@ use crate::evaluation::evaluation_module_transform::EvaluationModuleTransformVis
 #[test]
 fn evaluates_primitive_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -79,7 +79,7 @@ fn evaluates_primitive_value_expressions() {
 #[test]
 fn evaluates_simple_arrays_and_objects() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -105,7 +105,7 @@ fn evaluates_simple_arrays_and_objects() {
 #[test]
 fn evaluates_objects_with_spreads() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -128,7 +128,7 @@ fn evaluates_objects_with_spreads() {
 #[should_panic(expected = "Evaluation built-in functions not supported")]
 fn evaluates_built_in_functions() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -144,7 +144,7 @@ fn evaluates_built_in_functions() {
 #[test]
 fn evaluates_customs_functions() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -207,7 +207,7 @@ fn evaluates_customs_functions() {
 #[test]
 fn evaluates_custom_functions_that_return_non_static_values() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -258,7 +258,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
 #[test]
 fn evaluates_custom_functions_used_as_spread_values() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -307,7 +307,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
 #[test]
 fn evaluates_custom_functions_that_take_paths() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

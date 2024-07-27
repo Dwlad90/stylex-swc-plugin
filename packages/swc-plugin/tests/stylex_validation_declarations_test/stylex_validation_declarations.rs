@@ -5,7 +5,7 @@ use stylex_swc_plugin::{
   ModuleTransformVisitor,
 };
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
 
@@ -26,7 +26,7 @@ fn validation_stylex_invalid_properties() {
   let result = panic::catch_unwind(|| {
     stringify_js(
       camel_cased.as_str(),
-      Syntax::Typescript(TsConfig {
+      Syntax::Typescript(TsSyntax {
         tsx: true,
         ..Default::default()
       }),
@@ -60,7 +60,7 @@ fn stylex_invalid_property_values() {
   let result = panic::catch_unwind(|| {
     stringify_js(
       camel_cased.as_str(),
-      Syntax::Typescript(TsConfig {
+      Syntax::Typescript(TsSyntax {
         tsx: true,
         ..Default::default()
       }),

@@ -10,7 +10,7 @@ use stylex_swc_plugin::{
 use swc_core::{
   common::{chain, FileName, Mark},
   ecma::{
-    parser::{Syntax, TsConfig},
+    parser::{Syntax, TsSyntax},
     transforms::{base::resolver, testing::test_fixture},
   },
   plugin::proxies::PluginCommentsProxy,
@@ -21,7 +21,7 @@ fn fixture(input: PathBuf) {
   let output = input.parent().unwrap().join("output.js");
 
   test_fixture(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),

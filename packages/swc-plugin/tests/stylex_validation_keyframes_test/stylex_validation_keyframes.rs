@@ -5,7 +5,7 @@ use stylex_swc_plugin::{
   ModuleTransformVisitor,
 };
 use swc_core::ecma::{
-  parser::{Syntax, TsConfig},
+  parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
 };
 
@@ -14,7 +14,7 @@ use swc_core::ecma::{
 #[should_panic(expected = "stylex.keyframes() can only accept an object.")]
 fn only_argument_must_be_an_object_of_objects_null() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -38,7 +38,7 @@ fn only_argument_must_be_an_object_of_objects_null() {
 #[should_panic(expected = "Every frame within a stylex.keyframes() call must be an object.")]
 fn only_argument_must_be_an_object_of_objects_non_keyframe() {
   test_transform(
-    Syntax::Typescript(TsConfig {
+    Syntax::Typescript(TsSyntax {
       tsx: true,
       ..Default::default()
     }),
@@ -61,7 +61,7 @@ fn only_argument_must_be_an_object_of_objects_non_keyframe() {
 }
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -81,7 +81,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),
@@ -105,7 +105,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsConfig {
+  Syntax::Typescript(TsSyntax {
     tsx: true,
     ..Default::default()
   }),

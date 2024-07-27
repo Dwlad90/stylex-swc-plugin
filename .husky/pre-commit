@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+set -e
+
+exec < /dev/tty
+
+# lint staged files in root of monorepo.
+pnpm exec lint-staged

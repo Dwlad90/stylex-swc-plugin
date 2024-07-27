@@ -5,6 +5,11 @@ module.exports = {
   extends: ["@stylexswc/eslint-config/library.js"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
-    project: true,
+    ecmaVersion: 2021,
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true,
+    },
+    warnOnUnsupportedTypeScriptVersion: true,
   },
 };

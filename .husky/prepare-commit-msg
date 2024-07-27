@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+#COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA=$3
+
+#############################
+#  Commit using Commitizen  #
+#############################
+# Only run commitizen when
+# 1. Not amending an existing commit
+if [ -z "$SHA" ]; then
+  # 2. There's no commit source at all, we're good to go
+  if [ -z $COMMIT_SOURCE ]; then
+    exec </dev/tty && node_modules/.bin/cz --hook || true
+  # 3. Not in the middle of a rebase, handling a merge commit,
+  #    or as result of a squash, and no message was sent manually
+  elif ! [ "$COMMIT_SOURCE" = "message" ] && ! [ "$COMMIT_SOURCE" = "merge" ] && ! [ "$COMMIT_SOURCE" = "squash" ]; then
+    exec </dev/tty && node_modules/.bin/cz --hook || true
+  fi
+fi

@@ -40,3 +40,6 @@ yarn-error.log*
 
 # Build files
 *.tgz
+
+# Project scripts
+!scripts/**

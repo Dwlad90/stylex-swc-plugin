@@ -1,17 +1,29 @@
 {
   "name": "@stylexswc/swc-plugin",
   "description": "SWC plugin for transforming StyleX code",
-  "version": "0.1.0",
-  "license": "UNLICENSED",
-  "sideEffects": false,
+  "version": "0.0.1",
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
   "files": [
     "dist"
   ],
+  "keywords": [
+    "stylex",
+    "swc-plugin"
+  ],
+  "license": "MIT",
+  "main": "./dist/stylex_swc_plugin.wasm",
+  "preferUnplugged": true,
+  "private": true,
   "publishConfig": {
     "access": "public"
   },
+  "repository": "dwlad90/stylex-swc-plugin",
   "scripts": {
-    "build": "cargo build --lib --release",
+    "build": "scripty --rust",
     "clean": "del-cli dist",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
@@ -19,10 +31,5 @@
     "test": "NODE_ENV=test cargo test --lib --bins --tests",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
-
-  "keywords": [
-    "swc-plugin"
-  ],
-  "main": "target/wasm32-wasi/release/stylex_swc_plugin.wasm",
-  "preferUnplugged": true
+  "sideEffects": false
 }

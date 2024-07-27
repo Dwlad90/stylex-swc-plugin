@@ -1,22 +1,41 @@
 {
   "name": "@stylexswc/stylexswc",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
     "clean": "turbo clean",
+    "dev": "turbo dev",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "prepare": "husky"
+  },
+  "config": {
+    "scripty": {
+      "path": "./scripts/workspace"
+    }
+  },
+  "dependencies": {
+    "scripty": "^2.1.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.3.0",
     "@stylexswc/eslint-config": "workspace:*",
     "@stylexswc/typescript-config": "workspace:*",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "del-cli": "^5.1.0",
+    "eslint": "^8.57.0",
+    "husky": "^9.1.2",
+    "lint-staged": "^15.2.7",
     "prettier": "^3.2.5",
-    "turbo": "^2.0.9"
+    "shellcheck": "^3.0.0",
+    "syncpack": "^12.4.0",
+    "turbo": "^2.0.9",
+    "typescript": "^5.4.5"
   },
-  "packageManager": "pnpm@9.0.6",
   "engines": {
     "node": ">=20"
-  }
+  },
+  "packageManager": "pnpm@9.0.6"
 }

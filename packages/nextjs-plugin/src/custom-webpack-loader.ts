@@ -1,6 +1,6 @@
-import type * as webpack from "webpack";
+import type * as webpack from 'webpack';
 
-import { PLUGIN_NAME, type SupplementedLoaderContext } from "./constants";
+import { PLUGIN_NAME, type SupplementedLoaderContext } from './constants';
 
 export type WebpackLoaderOptions = {
   /**
@@ -10,19 +10,14 @@ export type WebpackLoaderOptions = {
     transformCode: (
       code: string,
       filePath: string,
-      logger?: ReturnType<webpack.Compiler["getInfrastructureLogger"]>,
+      logger?: ReturnType<webpack.Compiler['getInfrastructureLogger']>
     ) => Promise<{ code: string; map: string }>;
   };
 };
 
-type WebpackLoaderParams = Parameters<
-  webpack.LoaderDefinitionFunction<WebpackLoaderOptions>
->;
+type WebpackLoaderParams = Parameters<webpack.LoaderDefinitionFunction<WebpackLoaderOptions>>;
 
-function stylexLoader(
-  this: SupplementedLoaderContext<WebpackLoaderOptions>,
-  inputCode: string,
-) {
+function stylexLoader(this: SupplementedLoaderContext<WebpackLoaderOptions>, inputCode: string) {
   const callback = this.async();
 
   const { stylexPlugin } = this.getOptions();
@@ -34,7 +29,7 @@ function stylexLoader(
     },
     (error: Error) => {
       callback(error);
-    },
+    }
   );
 }
 

@@ -10,7 +10,7 @@ This plugin passes almost 100% of tests of the official StyleX library. It is in
 
 This is specifically useful for Next.js projets as it allows us to use [SWC Next.js Compiler](https://nextjs.org/docs/architecture/nextjs-compiler).
 
-- [Next.js plugin](https://github.com/talovski/stylex-swc-plugin/tree/master/packages/nextjs-plugin)
+- [Next.js plugin](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin)
 - [StyleX Documentation](https://stylexjs.com)
 
 ## Example

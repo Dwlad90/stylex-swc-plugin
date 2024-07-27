@@ -16,7 +16,6 @@
   ],
   "license": "MIT",
   "main": "./dist/stylex_swc_plugin.wasm",
-  "preferUnplugged": true,
   "private": true,
   "publishConfig": {
     "access": "public"

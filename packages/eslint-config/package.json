@@ -18,5 +18,6 @@
     "next.js",
     "react-internal.js"
   ],
-  "private": true
+  "private": true,
+  "repository": "dwlad90/stylex-swc-plugin"
 }

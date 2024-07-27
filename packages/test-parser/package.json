@@ -14,8 +14,7 @@
     "swc-plugin"
   ],
   "license": "MIT",
-  "main": "target/wasm32-wasi/release/stylex_swc_plugin.wasm",
-  "preferUnplugged": true,
+  "main": "./dist/test-parser",
   "private": true,
   "publishConfig": {
     "access": "public"
@@ -26,6 +25,7 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
+    "start": "./dist/test-parser",
     "test": "NODE_ENV=test cargo test --lib --bins --tests"
   },
   "sideEffects": false

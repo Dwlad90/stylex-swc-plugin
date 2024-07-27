@@ -24,7 +24,7 @@
     "build": "scripty --rust",
     "clean": "del-cli dist",
     "precommit": "lint-staged",
-    "prepublishOnly": "cargo build-wasi --release",
+    "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
     "test": "NODE_ENV=test cargo test --lib --bins --tests"
   },

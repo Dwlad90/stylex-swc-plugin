@@ -42,7 +42,7 @@
     "build": "scripty --ts",
     "clean": "del-cli dist",
     "precommit": "lint-staged",
-    "prepublishOnly": "cargo build-wasi --release",
+    "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
     "test": "echo \"Error: no test specified\" && exit 0"
   },

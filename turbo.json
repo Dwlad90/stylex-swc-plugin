@@ -4,10 +4,11 @@
     "^node",
     "^pnpm"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "clean"
       ],
       "outputs": [
         "dist/**/*",

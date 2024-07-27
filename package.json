@@ -1,6 +1,7 @@
 {
   "name": "@stylexswc/stylexswc",
   "private": true,
+  "version": "0.0.1",
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -12,7 +13,7 @@
     "@stylexswc/eslint-config": "workspace:*",
     "@stylexswc/typescript-config": "workspace:*",
     "prettier": "^3.2.5",
-    "turbo": "^1.13.3"
+    "turbo": "^2.0.9"
   },
   "packageManager": "pnpm@9.0.6",
   "engines": {

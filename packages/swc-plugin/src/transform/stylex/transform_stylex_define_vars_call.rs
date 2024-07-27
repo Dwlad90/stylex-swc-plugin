@@ -1,12 +1,11 @@
 use std::{collections::HashMap, panic};
 
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::Ident;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
 };
 
+use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::utils::{common::gen_file_based_identifier, js::evaluate::evaluate};
 use crate::shared::{
   constants::messages::NON_OBJECT_FOR_STYLEX_CALL,
@@ -26,9 +25,6 @@ use crate::shared::{
     stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
     stylex_types::get_types_fn,
   },
-};
-use crate::shared::{
-  structures::functions::FunctionConfigType, utils::ast::factories::ident_factory,
 };
 
 use crate::ModuleTransformVisitor;
@@ -74,18 +70,16 @@ where
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          Box::new(Ident::new("keyframes".into(), DUMMY_SP).to_id()),
+          Box::new("keyframes".into()),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
         let identifier = identifiers
-          .entry(Box::new(
-            ident_factory(name.get_import_str()).to_id(),
-          ))
+          .entry(Box::new(name.get_import_str().into()))
           .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(ident_factory("types").to_id(), types_fn.clone());
+          identifier_map.insert("types".into(), types_fn.clone());
         }
       }
 
@@ -125,7 +119,7 @@ where
 
       let export_name = export_expr
         .and_then(|expr| expr.2)
-        .map(|decl| decl.0.to_string())
+        .map(|decl| decl.to_string())
         .expect("Export variable not found");
 
       self.state.theme_name = Some(gen_file_based_identifier(&file_name, &export_name, None));

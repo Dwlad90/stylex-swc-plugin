@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Ident, Pat, PropName};
+use swc_core::ecma::ast::{ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Pat, PropName};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr, PropOrSpread},
@@ -100,17 +100,17 @@ where
         let member_expression = member_expressions.get_mut(name).unwrap();
 
         member_expression.insert(
-          Box::new(Ident::new("include".into(), DUMMY_SP).to_id()),
+          Box::new("include".into()),
           Box::new(FunctionConfigType::Regular(include_fn.clone())),
         );
 
         member_expression.insert(
-          Box::new(Ident::new("firstThatWorks".into(), DUMMY_SP).to_id()),
+          Box::new("firstThatWorks".into()),
           Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
 
         member_expression.insert(
-          Box::new(Ident::new("keyframes".into(), DUMMY_SP).to_id()),
+          Box::new("keyframes".into()),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }

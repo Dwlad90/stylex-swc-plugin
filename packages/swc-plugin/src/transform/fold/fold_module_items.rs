@@ -5,7 +5,7 @@ use swc_core::{
     visit::FoldWith,
   },
 };
-use swc_ecma_ast::ExportDecl;
+use swc_core::ecma::ast::ExportDecl;
 
 use crate::{
   shared::{enums::core::ModuleCycle, utils::ast::factories::binding_ident_factory},

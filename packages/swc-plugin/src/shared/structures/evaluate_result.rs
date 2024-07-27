@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, Id, KeyValueProp, Lit};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{Expr, KeyValueProp, Lit},
+};
 
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 
@@ -56,7 +59,7 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_function_map(&self) -> Option<&HashMap<Id, FunctionConfig>> {
+  pub fn as_function_map(&self) -> Option<&HashMap<Atom, FunctionConfig>> {
     match self {
       EvaluateResultValue::FunctionConfigMap(value) => Some(value),
       _ => None,

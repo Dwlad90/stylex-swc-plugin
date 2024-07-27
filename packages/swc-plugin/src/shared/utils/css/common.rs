@@ -374,15 +374,9 @@ pub(crate) fn generate_rule(
     });
   }
 
-  let ltr_pairs: Vec<Pair> = pairs
-    .iter()
-    .map(generate_ltr)
-    .collect::<Vec<Pair>>();
+  let ltr_pairs: Vec<Pair> = pairs.iter().map(generate_ltr).collect::<Vec<Pair>>();
 
-  let rtl_pairs: Vec<Pair> = pairs
-    .iter()
-    .filter_map(generate_rtl)
-    .collect::<Vec<Pair>>();
+  let rtl_pairs: Vec<Pair> = pairs.iter().filter_map(generate_rtl).collect::<Vec<Pair>>();
 
   let ltr_decls = ltr_pairs
     .iter()

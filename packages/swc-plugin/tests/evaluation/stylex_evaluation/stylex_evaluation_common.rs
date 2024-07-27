@@ -9,11 +9,11 @@ use stylex_swc_plugin::shared::{
   utils::ast::convertors::{ident_to_expression, string_to_expression},
 };
 use swc_core::{
+  atoms::Atom,
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, Expr, ExprOrSpread, Ident, KeyValueProp, NewExpr, ObjectLit, Prop, PropName,
-      PropOrSpread,
+      ArrayLit, Expr, ExprOrSpread, KeyValueProp, NewExpr, ObjectLit, Prop, PropName, PropOrSpread,
     },
     parser::{Syntax, TsConfig},
     transforms::testing::{test, test_transform},
@@ -172,7 +172,7 @@ fn evaluates_customs_functions() {
       };
 
       identifiers.insert(
-        Box::new(Ident::from("makeArray").to_id()),
+        Box::new(Atom::from("makeArray")),
         Box::new(FunctionConfigType::Regular(make_array)),
       );
 
@@ -232,7 +232,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       };
 
       identifiers.insert(
-        Box::new(Ident::from("makeClass").to_id()),
+        Box::new(Atom::from("makeClass")),
         Box::new(FunctionConfigType::Regular(make_class)),
       );
 
@@ -270,7 +270,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
           let object_lit = ObjectLit {
             span: DUMMY_SP,
             props: vec![PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-              key: PropName::Ident(Ident::new("spreadValue".into(), DUMMY_SP)),
+              key: PropName::Ident("spreadValue".into()),
               value: Box::new(arg),
             })))],
           };
@@ -281,7 +281,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
       };
 
       identifiers.insert(
-        Box::new(Ident::from("makeObj").to_id()),
+        Box::new(Atom::from("makeObj")),
         Box::new(FunctionConfigType::Regular(make_obj)),
       );
 
@@ -320,11 +320,11 @@ fn evaluates_custom_functions_that_take_paths() {
             span: DUMMY_SP,
             props: vec![
               PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                key: PropName::Ident(Ident::new("type".into(), DUMMY_SP)),
+                key: PropName::Ident("type".into()),
                 value: Box::new(string_to_expression("StringLiteral")),
               }))),
               PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                key: PropName::Ident(Ident::new("value".into(), DUMMY_SP)),
+                key: PropName::Ident("value".into()),
                 value: Box::new(arg),
               }))),
             ],
@@ -336,7 +336,7 @@ fn evaluates_custom_functions_that_take_paths() {
       };
 
       identifiers.insert(
-        Box::new(Ident::from("getNode").to_id()),
+        Box::new(Atom::from("getNode")),
         Box::new(FunctionConfigType::Regular(get_node)),
       );
 

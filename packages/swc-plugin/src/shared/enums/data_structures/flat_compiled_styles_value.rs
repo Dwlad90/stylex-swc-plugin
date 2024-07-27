@@ -1,8 +1,7 @@
-use swc_ecma_ast::Expr;
+use swc_core::ecma::ast::Expr;
 
 use crate::shared::structures::{
-  base_css_type::BaseCSSType, included_style::IncludedStyle, injectable_style::InjectableStyle,
-  pair::Pair,
+  base_css_type::BaseCSSType, included_style::IncludedStyle, injectable_style::InjectableStyle, pair::Pair
 };
 
 use super::css_syntax::CSSSyntax;

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use swc_ecma_ast::Expr;
+use swc_core::ecma::ast::Expr;
 
 use super::{functions::FunctionMap, state_manager::StateManager};
 

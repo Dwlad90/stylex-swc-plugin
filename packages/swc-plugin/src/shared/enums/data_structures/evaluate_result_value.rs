@@ -1,7 +1,10 @@
 use std::{collections::HashMap, fmt, rc::Rc};
 
 use indexmap::IndexMap;
-use swc_ecma_ast::{Expr, Id, KeyValueProp, Lit};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{Expr, KeyValueProp, Lit},
+};
 
 use crate::shared::structures::{
   functions::FunctionConfig, theme_ref::ThemeRef, types::EvaluationCallback,
@@ -14,7 +17,7 @@ pub enum EvaluateResultValue {
   Entries(IndexMap<Box<Lit>, Box<Lit>>),
   Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
-  FunctionConfigMap(HashMap<Id, FunctionConfig>),
+  FunctionConfigMap(HashMap<Atom, FunctionConfig>),
   ThemeRef(ThemeRef),
 }
 

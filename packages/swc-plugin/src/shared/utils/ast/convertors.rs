@@ -1,3 +1,4 @@
+use swc_core::ecma::ast::BigInt;
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
@@ -5,7 +6,6 @@ use swc_core::{
     UnaryOp,
   },
 };
-use swc_ecma_ast::BigInt;
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
@@ -21,8 +21,8 @@ use crate::shared::{
 };
 
 use super::factories::{
-  ident_factory, lit_big_int_factory, lit_boolean_factory, lit_null_factory, lit_number_factory,
-  lit_str_factory,
+  ident_factory, ident_name_factory, lit_big_int_factory, lit_boolean_factory, lit_null_factory,
+  lit_number_factory, lit_str_factory,
 };
 
 pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager, fns: &FunctionMap) -> f64 {
@@ -512,7 +512,7 @@ pub(crate) fn null_to_expression() -> Expr {
 
 pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
   if IDENT_PROP_REGEX.is_match(value) && value.parse::<i64>().is_err() {
-    Some(PropName::Ident(Ident::new(value.into(), DUMMY_SP)))
+    Some(PropName::Ident(ident_name_factory(value)))
   } else {
     Some(PropName::Str(Str {
       span: DUMMY_SP,
@@ -525,7 +525,7 @@ pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
 pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
   if let Some(ident) = prop.as_shorthand() {
     *prop = Box::new(Prop::from(KeyValueProp {
-      key: PropName::Ident(ident.clone()),
+      key: PropName::Ident(ident_name_factory(&ident.sym)),
       value: Box::new(Expr::Ident(ident.clone())),
     }));
   }

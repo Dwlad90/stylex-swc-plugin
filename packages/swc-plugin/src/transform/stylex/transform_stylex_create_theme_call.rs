@@ -3,10 +3,11 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use swc_core::{
-  common::{comments::Comments, DUMMY_SP},
-  ecma::ast::{CallExpr, Expr, Ident},
+  common::comments::Comments,
+  ecma::ast::{CallExpr, Expr},
 };
 
+use crate::shared::structures::{functions::FunctionMap, types::FunctionMapIdentifiers};
 use crate::shared::{
   constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
   utils::{
@@ -26,10 +27,6 @@ use crate::shared::{
       is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
     },
   },
-};
-use crate::shared::{
-  structures::{functions::FunctionMap, types::FunctionMapIdentifiers},
-  utils::ast::factories::ident_factory,
 };
 use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
@@ -86,18 +83,16 @@ where
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          Box::new(Ident::new("keyframes".into(), DUMMY_SP).to_id()),
+          Box::new("keyframes".into()),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
         let identifier = identifiers
-          .entry(Box::new(
-            ident_factory(name.get_import_str()).to_id(),
-          ))
+          .entry(Box::new(name.get_import_str().into()))
           .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(ident_factory("types").to_id(), types_fn.clone());
+          identifier_map.insert("types".into(), types_fn.clone());
         }
       }
 

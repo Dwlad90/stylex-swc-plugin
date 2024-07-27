@@ -1,9 +1,10 @@
 use std::collections::{hash_map::Entry, HashMap};
 
 use swc_core::{
+  atoms::Atom,
   common::{comments::Comments, EqIgnoreSpan},
   ecma::{
-    ast::{Expr, Id, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread, VarDeclarator},
+    ast::{Expr, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread, VarDeclarator},
     visit::FoldWith,
   },
 };
@@ -36,7 +37,7 @@ where
       && self.cycle != ModuleCycle::PreCleaning
     {
       if self.cycle == ModuleCycle::Cleaning {
-        let mut vars_to_keep: HashMap<Id, NonNullProps> = HashMap::new();
+        let mut vars_to_keep: HashMap<Atom, NonNullProps> = HashMap::new();
 
         for StyleVarsToKeep(var_name, namespace_name, _) in self
           .state
@@ -48,14 +49,14 @@ where
           match vars_to_keep.entry(var_name) {
             Entry::Occupied(mut entry) => {
               if let NonNullProps::Vec(vec) = entry.get_mut() {
-                if let NonNullProp::Id(id) = namespace_name {
+                if let NonNullProp::Atom(id) = namespace_name {
                   vec.push(id);
                 }
               }
             }
             Entry::Vacant(entry) => {
               let value = match namespace_name {
-                NonNullProp::Id(namespace_name) => NonNullProps::Vec(vec![namespace_name]),
+                NonNullProp::Atom(namespace_name) => NonNullProps::Vec(vec![namespace_name]),
                 NonNullProp::True => NonNullProps::True,
               };
               entry.insert(value);
@@ -78,7 +79,7 @@ where
               if let Some(object) = var_declarator.init.as_mut() {
                 if let Some(mut object) = object.as_object().cloned() {
                   let namespaces_to_keep =
-                    match vars_to_keep.get(&var_name.name.as_ident().unwrap().to_id()) {
+                    match vars_to_keep.get(&var_name.name.as_ident().unwrap().sym) {
                       Some(e) => match e {
                         NonNullProps::Vec(vec) => vec.clone(),
                         NonNullProps::True => vec![],
@@ -116,8 +117,8 @@ where
               .state
               .stylex_create_import
               .iter()
-              .find(|decl| decl.eq_ignore_span(&&Box::new(declaration.clone())))
-              .map(|decl| decl.0.to_string())
+              .find(|decl| decl.eq_ignore_span(&&Box::new(declaration.0.clone())))
+              .map(|decl| decl.to_string())
           });
 
         if let Some(declaration_string) = declaration_string {
@@ -137,7 +138,7 @@ where
   fn retain_object_props(
     &mut self,
     object: &mut ObjectLit,
-    namespace_to_keep: Vec<Id>,
+    namespace_to_keep: Vec<Atom>,
     var_name: &VarDeclarator,
   ) -> Vec<PropOrSpread> {
     let mut props: Vec<PropOrSpread> = vec![];
@@ -154,9 +155,9 @@ where
         };
 
         if let Some(key_as_string) = key_as_ident {
-          if namespace_to_keep.contains(&key_as_string.to_id()) {
-            let var_id = var_name.name.as_ident().unwrap().to_id();
-            let key_id = NonNullProp::Id(key_as_ident.unwrap().to_id());
+          if namespace_to_keep.contains(&key_as_string.sym) {
+            let var_id = &var_name.name.as_ident().unwrap().sym;
+            let key_id = NonNullProp::Atom(key_as_ident.unwrap().clone().sym);
 
             let all_nulls_to_keep = self
               .state
@@ -181,7 +182,7 @@ where
                   NonNullProps::True => None,
                 })
                 .flatten()
-                .collect::<Vec<Id>>();
+                .collect::<Vec<Atom>>();
 
               if let Some(style_object) = prop
                 .as_mut_key_value()
@@ -203,7 +204,7 @@ where
   }
 }
 
-fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Id>) {
+fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Atom>) {
   style_object.props.retain(|prop| match prop {
     PropOrSpread::Prop(prop) => {
       let mut prop = prop.clone();
@@ -222,7 +223,7 @@ fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Id>) {
           && matches!(key_value.key, PropName::Ident(_))
         {
           if let PropName::Ident(ident) = &key_value.key {
-            return nulls_to_keep.contains(&ident.to_id());
+            return nulls_to_keep.contains(&ident.sym);
           }
         }
       }

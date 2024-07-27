@@ -1,4 +1,7 @@
-use swc_core::ecma::ast::{Expr, Id, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},
+};
 
 use crate::shared::{
   enums::data_structures::{
@@ -20,18 +23,18 @@ pub(crate) fn member_expression(
   let object = member.obj.as_ref();
   let property = &member.prop;
 
-  let mut obj_name: Option<Id> = None;
-  let mut prop_name: Option<Id> = None;
+  let mut obj_name: Option<Atom> = None;
+  let mut prop_name: Option<&Atom> = None;
 
   if let Expr::Ident(ident) = object {
     let obj_ident_name = ident.sym.to_string();
 
-    obj_name = Some(ident.to_id());
+    obj_name = Some(ident.sym.clone());
 
     if state.style_map.contains_key(&obj_ident_name) {
       match property {
         MemberProp::Ident(ident) => {
-          prop_name = Some(ident.to_id());
+          prop_name = Some(&ident.sym);
         }
         MemberProp::Computed(computed) => {
           assert!(
@@ -81,14 +84,14 @@ pub(crate) fn member_expression(
                       key_value
                         .key
                         .as_ident()
-                        .map(|ident| ident.to_id())
+                        .map(|ident| ident.sym.clone())
                         .expect("Key not an ident"),
                     ),
                   },
                   _ => unimplemented!(),
                 },
               })
-              .collect::<Vec<Id>>();
+              .collect::<Vec<Atom>>();
 
             vec.extend(namespaces);
           }
@@ -103,7 +106,7 @@ pub(crate) fn member_expression(
     let style_var_to_keep = StyleVarsToKeep(
       obj_name,
       match prop_name {
-        Some(prop_name) => NonNullProp::Id(prop_name.clone()),
+        Some(prop_name) => NonNullProp::Atom(prop_name.clone()),
         None => NonNullProp::True,
       },
       style_non_null_props,

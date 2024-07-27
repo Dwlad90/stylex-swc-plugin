@@ -16,8 +16,6 @@ export default function Home() {
         className: "Page__s.main x1e2nbdu x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 x1lmef92 Page__s.title x1swossr xif65rj"
     };
     return <main className={className} style={style}>
-
       Main
-
     </main>;
 }

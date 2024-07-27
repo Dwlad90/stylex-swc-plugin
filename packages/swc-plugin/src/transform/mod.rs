@@ -149,24 +149,24 @@ where
 
           if stylex_imports.contains(&ident.sym.to_string())
             || (self.cycle == ModuleCycle::TransformEnter
-              && (self.state.stylex_create_import.contains(&ident.to_id()))
-              || self.state.stylex_props_import.contains(&ident.to_id())
-              || self.state.stylex_keyframes_import.contains(&ident.to_id())
+              && (self.state.stylex_create_import.contains(&ident.sym))
+              || self.state.stylex_props_import.contains(&ident.sym)
+              || self.state.stylex_keyframes_import.contains(&ident.sym)
               || self
                 .state
                 .stylex_first_that_works_import
-                .contains(&ident.to_id())
-              || self.state.stylex_include_import.contains(&ident.to_id())
-              || self.state.stylex_types_import.contains(&ident.to_id())
+                .contains(&ident.sym)
+              || self.state.stylex_include_import.contains(&ident.sym)
+              || self.state.stylex_types_import.contains(&ident.sym)
               || self
                 .state
                 .stylex_create_theme_import
-                .contains(&ident.to_id())
+                .contains(&ident.sym)
               || self
                 .state
                 .stylex_define_vars_import
-                .contains(&ident.to_id())
-              || self.state.stylex_attrs_import.contains(&ident.to_id()))
+                .contains(&ident.sym)
+              || self.state.stylex_attrs_import.contains(&ident.sym))
           {
             increase_ident_count(&mut self.state, ident);
 
@@ -179,24 +179,24 @@ where
 
             if stylex_imports.contains(&ident.sym.to_string())
               || (self.cycle == ModuleCycle::TransformEnter
-                && (self.state.stylex_create_import.contains(&ident.to_id()))
-                || self.state.stylex_props_import.contains(&ident.to_id())
-                || self.state.stylex_keyframes_import.contains(&ident.to_id())
+                && (self.state.stylex_create_import.contains(&ident.sym))
+                || self.state.stylex_props_import.contains(&ident.sym)
+                || self.state.stylex_keyframes_import.contains(&ident.sym)
                 || self
                   .state
                   .stylex_first_that_works_import
-                  .contains(&ident.to_id())
-                || self.state.stylex_include_import.contains(&ident.to_id())
+                  .contains(&ident.sym)
+                || self.state.stylex_include_import.contains(&ident.sym)
                 || self
                   .state
                   .stylex_create_theme_import
-                  .contains(&ident.to_id())
-                || self.state.stylex_types_import.contains(&ident.to_id())
+                  .contains(&ident.sym)
+                || self.state.stylex_types_import.contains(&ident.sym)
                 || self
                   .state
                   .stylex_define_vars_import
-                  .contains(&ident.to_id())
-                || self.state.stylex_attrs_import.contains(&ident.to_id()))
+                  .contains(&ident.sym)
+                || self.state.stylex_attrs_import.contains(&ident.sym))
             {
               if let MemberProp::Ident(ident) = &member.prop {
                 return Some((ident_id.clone(), format!("{}", ident.sym)));

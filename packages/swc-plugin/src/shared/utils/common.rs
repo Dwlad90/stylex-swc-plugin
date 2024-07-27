@@ -10,9 +10,10 @@ use std::{
 use path_clean::PathClean;
 use radix_fmt::radix;
 use swc_core::{
+  atoms::Atom,
   common::{FileName, DUMMY_SP},
   ecma::ast::{
-    BinaryOp, Decl, Expr, Id, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr,
+    BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr,
     Module, ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName, PropOrSpread,
     Stmt, VarDeclarator,
   },
@@ -94,25 +95,28 @@ pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: &bool) -> Str
 }
 
 pub fn reduce_ident_count<'a>(state: &'a mut StateManager, ident: &'a Ident) {
-  *state.var_decl_count_map.entry(ident.to_id()).or_insert(0) -= 1;
+  *state
+    .var_decl_count_map
+    .entry(ident.sym.clone())
+    .or_insert(0) -= 1;
 }
 
 pub fn increase_member_ident(state: &mut StateManager, member_obj: &MemberExpr) {
   if let Some(obj_ident) = member_obj.obj.as_ident() {
-    increase_member_ident_count(state, &obj_ident.to_id());
+    increase_member_ident_count(state, &obj_ident.sym);
   }
 }
 
 pub fn reduce_member_expression_count(state: &mut StateManager, member_expression: &MemberExpr) {
   if let Some(obj_ident) = member_expression.obj.as_ident() {
-    reduce_member_ident_count(state, &obj_ident.to_id());
+    reduce_member_ident_count(state, &obj_ident.sym);
   }
 }
 
-pub fn reduce_member_ident_count(state: &mut StateManager, obj_ident: &Id) {
+pub fn reduce_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
   *state
     .member_object_ident_count_map
-    .entry(obj_ident.clone())
+    .entry(ident_atom.clone())
     .or_insert(0) -= 1;
 }
 
@@ -120,22 +124,27 @@ pub fn increase_ident_count(state: &mut StateManager, ident: &Ident) {
   increase_ident_count_by_count(state, ident, 1);
 }
 
-pub fn increase_member_ident_count(state: &mut StateManager, obj_ident: &Id) {
-  increase_member_ident_count_by_count(state, obj_ident, 1);
+pub fn increase_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
+  increase_member_ident_count_by_count(state, ident_atom, 1);
 }
 
 pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, count: i8) {
-  let ident_id = &ident.to_id();
+  let ident_id = &ident.sym;
+
   *state
     .var_decl_count_map
     .entry(ident_id.clone())
     .or_insert(0) += count;
 }
 
-pub fn increase_member_ident_count_by_count(state: &mut StateManager, obj_ident: &Id, count: i8) {
+pub fn increase_member_ident_count_by_count(
+  state: &mut StateManager,
+  ident_atom: &Atom,
+  count: i8,
+) {
   *state
     .member_object_ident_count_map
-    .entry(obj_ident.clone())
+    .entry(ident_atom.clone())
     .or_insert(0) += count;
 }
 
@@ -154,7 +163,7 @@ pub fn get_var_decl_by_ident<'a>(
   match get_var_decl_from(state, ident) {
     Some(var_decl) => Some(var_decl.clone()),
     None => {
-      let func = functions.identifiers.get(&ident.to_id());
+      let func = functions.identifiers.get(&ident.sym);
 
       match func {
         Some(func) => match func.as_ref() {
@@ -438,7 +447,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
               *decl_init.clone(),
-              Some(decl.name.as_ident().unwrap().to_id()),
+              Some(decl.name.as_ident().unwrap().sym.clone()),
             ));
             state.declarations.push(decl.clone());
           }
@@ -466,7 +475,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::Stmt,
             *decl_init.clone(),
-            Some(decl.name.as_ident().unwrap().to_id()),
+            Some(decl.name.as_ident().unwrap().sym.clone()),
           ));
           state.declarations.push(decl.clone());
         }

@@ -1,11 +1,11 @@
 use indexmap::IndexMap;
-use swc_ecma_ast::{Expr, ObjectLit, PropOrSpread};
+use swc_core::ecma::ast::{Expr, ObjectLit, PropOrSpread};
 
 use crate::shared::{
   enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
   utils::{
     ast::factories::{
-      object_lit_factory, object_expression_factory, prop_or_spread_expression_factory,
+      object_expression_factory, object_lit_factory, prop_or_spread_expression_factory,
       prop_or_spread_string_factory,
     },
     common::{get_key_str, get_key_values_from_object, get_string_val_from_lit},

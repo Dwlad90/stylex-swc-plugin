@@ -1,4 +1,4 @@
-use swc_ecma_ast::Expr;
+use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::core::js_to_expr::NestedStringObject;
 

@@ -7,11 +7,14 @@ use std::{
 };
 
 use indexmap::{IndexMap, IndexSet};
-use swc_core::common::{EqIgnoreSpan, FileName, DUMMY_SP};
 use swc_core::ecma::ast::{
-  CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
+  CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
   ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
   Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+};
+use swc_core::{
+  atoms::Atom,
+  common::{EqIgnoreSpan, FileName, DUMMY_SP},
 };
 
 use crate::shared::utils::{
@@ -53,22 +56,22 @@ pub struct StateManager {
   // Imports
   pub(crate) import_paths: HashSet<String>,
   pub(crate) stylex_import: HashSet<Box<ImportSources>>,
-  pub(crate) stylex_props_import: HashSet<Box<Id>>,
-  pub(crate) stylex_attrs_import: HashSet<Box<Id>>,
-  pub(crate) stylex_create_import: HashSet<Box<Id>>,
-  pub(crate) stylex_include_import: HashSet<Box<Id>>,
-  pub(crate) stylex_first_that_works_import: HashSet<Box<Id>>,
-  pub(crate) stylex_keyframes_import: HashSet<Box<Id>>,
-  pub(crate) stylex_define_vars_import: HashSet<Box<Id>>,
-  pub(crate) stylex_create_theme_import: HashSet<Box<Id>>,
-  pub(crate) stylex_types_import: HashSet<Box<Id>>,
+  pub(crate) stylex_props_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_attrs_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_create_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_include_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_first_that_works_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_keyframes_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_define_vars_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_create_theme_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_types_import: HashSet<Box<Atom>>,
   pub(crate) inject_import_inserted: Option<(Box<Ident>, Box<Ident>)>,
   pub(crate) theme_name: Option<String>,
 
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) all_call_expressions: Vec<CallExpr>,
-  pub(crate) var_decl_count_map: HashMap<Id, i8>,
+  pub(crate) var_decl_count_map: HashMap<Atom, i8>,
   pub(crate) seen: HashMap<Box<Expr>, Box<SeenValue>>,
 
   // `stylex.create` calls
@@ -77,7 +80,7 @@ pub struct StateManager {
 
   // results of `stylex.create` calls that should be kept
   pub(crate) style_vars_to_keep: HashSet<Box<StyleVarsToKeep>>,
-  pub(crate) member_object_ident_count_map: HashMap<Id, i8>,
+  pub(crate) member_object_ident_count_map: HashMap<Atom, i8>,
 
   pub(crate) in_stylex_create: bool,
 
@@ -550,8 +553,10 @@ impl StateManager {
       self.all_call_expressions.clone(),
       other.all_call_expressions.clone(),
     );
-    self.var_decl_count_map =
-      chain_collect_hash_map(self.var_decl_count_map.clone(), other.var_decl_count_map.clone());
+    self.var_decl_count_map = chain_collect_hash_map(
+      self.var_decl_count_map.clone(),
+      other.var_decl_count_map.clone(),
+    );
     self.style_map = chain_collect_hash_map(self.style_map.clone(), other.style_map.clone());
     self.style_vars = chain_collect_hash_map(self.style_vars.clone(), other.style_vars.clone());
     self.style_vars_to_keep =
@@ -564,8 +569,10 @@ impl StateManager {
 
     self.metadata = chain_collect_index_map(self.metadata.clone(), other.metadata.clone());
     self.seen = chain_collect_hash_map(self.seen.clone(), other.seen.clone());
-    self.styles_to_inject =
-      chain_collect_index_map(self.styles_to_inject.clone(), other.styles_to_inject.clone());
+    self.styles_to_inject = chain_collect_index_map(
+      self.styles_to_inject.clone(),
+      other.styles_to_inject.clone(),
+    );
     self.prepend_include_module_items = chain_collect(
       self.prepend_include_module_items.clone(),
       other.prepend_include_module_items.clone(),
@@ -574,8 +581,10 @@ impl StateManager {
       self.prepend_import_module_items.clone(),
       other.prepend_import_module_items.clone(),
     );
-    self.injected_keyframes =
-      chain_collect_index_map(self.injected_keyframes.clone(), other.injected_keyframes.clone());
+    self.injected_keyframes = chain_collect_index_map(
+      self.injected_keyframes.clone(),
+      other.injected_keyframes.clone(),
+    );
     self.top_imports = chain_collect(self.top_imports.clone(), other.top_imports.clone());
   }
 }

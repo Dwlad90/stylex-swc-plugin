@@ -1,7 +1,7 @@
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
-    BinExpr, BinaryOp, ComputedPropName, Expr, Ident, KeyValueProp, MemberExpr, MemberProp, Prop,
+    BinExpr, BinaryOp, ComputedPropName, Expr, KeyValueProp, MemberExpr, MemberProp, Prop,
     PropName, PropOrSpread, UnaryExpr, UnaryOp,
   },
 };
@@ -10,7 +10,7 @@ use crate::shared::{
   enums::data_structures::fn_result::FnResult,
   utils::ast::{
     convertors::{number_to_expression, string_to_expression},
-    factories::object_expression_factory,
+    factories::{ident_name_factory, object_expression_factory},
   },
 };
 
@@ -77,7 +77,7 @@ pub(crate) fn make_string_expression(
 
       if let Some(result) = fn_result_to_expression(&transform(&args).unwrap()) {
         let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-          key: PropName::Ident(Ident::new(key.to_string().into(), DUMMY_SP)),
+          key: PropName::Ident(ident_name_factory(key.to_string().as_str())),
           value: Box::new(result),
         })));
 

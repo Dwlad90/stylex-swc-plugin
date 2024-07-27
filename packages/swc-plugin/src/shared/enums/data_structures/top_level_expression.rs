@@ -1,4 +1,4 @@
-use swc_ecma_ast::{Expr, Id};
+use swc_core::{atoms::Atom, ecma::ast::Expr};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub(crate) enum TopLevelExpressionKind {
@@ -11,5 +11,5 @@ pub(crate) enum TopLevelExpressionKind {
 pub(crate) struct TopLevelExpression(
   pub(crate) TopLevelExpressionKind,
   pub(crate) Expr,
-  pub(crate) Option<Id>,
+  pub(crate) Option<Atom>,
 );

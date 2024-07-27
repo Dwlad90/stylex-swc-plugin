@@ -11,8 +11,6 @@ export default function Home() {
         className: "x1e2nbdu x15hxx75 x7z7khe"
     };
     return <main className={className} style={style}>
-
           Main
-
         </main>;
 }

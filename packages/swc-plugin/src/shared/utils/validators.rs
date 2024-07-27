@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
-use swc_core::ecma::ast::{CallExpr, Expr, Id, KeyValueProp, Lit, Pat, PropName, VarDeclarator};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{CallExpr, Expr, KeyValueProp, Lit, Pat, PropName, VarDeclarator},
+};
 
 use crate::shared::{
   constants::{
@@ -202,14 +205,14 @@ pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool
 }
 
 pub(crate) fn is_target_call(
-  (call_name, imports_map): (&str, &HashSet<Box<Id>>),
+  (call_name, imports_map): (&str, &HashSet<Box<Atom>>),
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
   let is_create_ident = call.callee.as_expr().map_or(false, |expr| {
     expr
       .as_ident()
-      .map_or(false, |ident| imports_map.contains(&ident.to_id()))
+      .map_or(false, |ident| imports_map.contains(&ident.sym))
   });
 
   let is_create_member = call

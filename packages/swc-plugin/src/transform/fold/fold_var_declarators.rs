@@ -24,7 +24,7 @@ where
       ModuleCycle::Cleaning => {
         var_declarators.retain(|decl| {
           if let Pat::Ident(bind_ident) = &decl.name {
-            let decl_id = &bind_ident.to_id();
+            let decl_id = &bind_ident.sym;
 
             if self.state.var_decl_count_map.contains_key(decl_id) {
               let count = self.state.var_decl_count_map.get(decl_id).unwrap();

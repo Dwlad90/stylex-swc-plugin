@@ -12,48 +12,28 @@ export default function ButtonsDemo(_props) {
     return <div {...{
         className: "Page__styles.container x78zum5 xdt5ytf x6s0dn4 xl56j7k xou54vl xzk7aed"
     }}>
-
       <ThemeableButton onClick={onClick}>Vanilla Button</ThemeableButton>
 
-
-
       <ThemeableButton onClick={onClick} style={styles.bordered}>
-
         Bordered Button
-
       </ThemeableButton>
-
-
 
       <ThemeableButton onClick={onClick} theme={redTheme}>
-
         Red Button
-
       </ThemeableButton>
 
-
-
       <div {...stylex.props(redTheme)}>
-
         <ThemeableButton onClick={onClick}>
-
           Red Button By inheritance
-
         </ThemeableButton>
-
       </div>
-
-
 
       <ThemeableButton onClick={onClick} style={[
         styles.bordered,
         styles.greenBorder
     ]} theme={redTheme}>
-
         Red - Bordered Button
-
       </ThemeableButton>
-
     </div>;
 }
 _inject2(".x8j0i83{--x1tvn83n:red;--xlb9c25:4px;--xk30bbq:4px;--xkhjxis:8px;--xte9ugm:white;}", 0.5);

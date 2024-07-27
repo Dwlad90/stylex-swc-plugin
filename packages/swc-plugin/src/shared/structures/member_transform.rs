@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
-use swc_ecma_ast::{Expr, MemberExpr};
+use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use crate::shared::{
   enums::data_structures::style_vars_to_keep::NonNullProps,

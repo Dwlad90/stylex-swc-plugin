@@ -1,8 +1,8 @@
+use swc_core::ecma::ast::{BigInt, BindingIdent, Ident, KeyValueProp, Lit, Null, Prop, PropName};
 use swc_core::{
   common::{Span, DUMMY_SP},
   ecma::ast::{ArrayLit, Expr, ExprOrSpread, ObjectLit, PropOrSpread},
 };
-use swc_ecma_ast::{BigInt, BindingIdent, Ident, KeyValueProp, Lit, Null, Prop, PropName};
 
 use super::convertors::{
   bool_to_expression, number_to_expression, string_to_expression, string_to_prop_name,
@@ -63,6 +63,12 @@ pub(crate) fn lit_null_factory() -> Lit {
 
 pub(crate) fn ident_factory(name: &str) -> Ident {
   Ident::from(name)
+}
+
+pub(crate) fn ident_name_factory(name: &str) -> Ident {
+  ident_factory(name)
+  // TODO: Uncomment this line to use after migration to swc_core >= 0.99.*
+  // IdentName::from(name)
 }
 
 // NOTE: Tests only using this function

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use swc_core::ecma::ast::{Expr, Id};
+use swc_core::{atoms::Atom, ecma::ast::Expr};
 
 use crate::shared::enums::{
   data_structures::value_with_default::ValueWithDefault,
@@ -113,7 +113,7 @@ pub struct Functions {
 #[derive(Debug, PartialEq, Clone)]
 pub enum FunctionConfigType {
   Regular(FunctionConfig),
-  Map(HashMap<Id, FunctionConfig>),
+  Map(HashMap<Atom, FunctionConfig>),
 }
 
 impl FunctionConfigType {
@@ -124,14 +124,14 @@ impl FunctionConfigType {
     }
   }
 
-  pub(crate) fn _as_map(&self) -> Option<&HashMap<Id, FunctionConfig>> {
+  pub(crate) fn _as_map(&self) -> Option<&HashMap<Atom, FunctionConfig>> {
     match self {
       Self::Regular(_) => None,
       Self::Map(map) => Some(map),
     }
   }
 
-  pub(crate) fn as_map_mut(&mut self) -> Option<&mut HashMap<Id, FunctionConfig>> {
+  pub(crate) fn as_map_mut(&mut self) -> Option<&mut HashMap<Atom, FunctionConfig>> {
     match self {
       Self::Regular(_) => None,
       Self::Map(map) => Some(map),

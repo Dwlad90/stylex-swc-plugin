@@ -6,12 +6,13 @@ use std::{
 
 use indexmap::IndexMap;
 use swc_core::{
+  atoms::Atom,
   common::{EqIgnoreSpan, DUMMY_SP},
   ecma::{
     ast::{
-      ArrayLit, BlockStmtOrExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Id, Ident,
-      KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName,
-      PropOrSpread, TplElement, VarDeclarator,
+      ArrayLit, BlockStmtOrExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, KeyValueProp,
+      Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName, PropOrSpread,
+      TplElement, VarDeclarator,
     },
     utils::{drop_span, ident::IdentLike, ExprExt},
   },
@@ -48,7 +49,7 @@ use crate::shared::{
         string_to_expression, transform_shorthand_to_key_values,
       },
       factories::{
-        array_expression_factory, ident_factory, lit_str_factory, object_expression_factory,
+        array_expression_factory, ident_name_factory, lit_str_factory, object_expression_factory,
       },
     },
     common::{
@@ -175,19 +176,19 @@ fn _evaluate(
         .into_iter()
         .filter_map(|param| {
           if param.is_ident() {
-            Some(param.as_ident().unwrap().to_id())
+            Some(param.as_ident().unwrap().sym.clone())
           } else {
             None
           }
         })
-        .collect::<Vec<Id>>();
+        .collect::<Vec<Atom>>();
 
       match body.as_ref() {
         BlockStmtOrExpr::Expr(body_expr) => {
           if ident_params.len() == params.len() {
             let arrow_closure_fabric =
               |functions: FunctionMapIdentifiers,
-               ident_params: Vec<Id>,
+               ident_params: Vec<Atom>,
                body_expr: Box<Expr>,
                traversal_state: StateManager| {
                 move |cb_args: Vec<Option<EvaluateResultValue>>| {
@@ -264,10 +265,10 @@ fn _evaluate(
       }
     }
     Expr::Ident(ident) => {
-      let ident_id = ident.to_id();
+      let atom_ident_id = &ident.sym;
 
-      if state.functions.identifiers.contains_key(&ident_id) {
-        let func = state.functions.identifiers.get(&ident_id)?;
+      if state.functions.identifiers.contains_key(atom_ident_id) {
+        let func = state.functions.identifiers.get(atom_ident_id)?;
 
         match func.as_ref() {
           FunctionConfigType::Regular(func) => {
@@ -438,7 +439,7 @@ fn _evaluate(
               None => panic!("Member not found"),
             };
 
-            let fc = fc_map.get(&key.into_id()).unwrap();
+            let fc = fc_map.get(&key.sym).unwrap();
 
             return Some(Box::new(EvaluateResultValue::FunctionConfig(fc.clone())));
           }
@@ -627,11 +628,7 @@ fn _evaluate(
                 };
 
                 props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                  key: PropName::Ident(Ident {
-                    sym: key.unwrap().into(),
-                    span: DUMMY_SP,
-                    optional: false,
-                  }),
+                  key: PropName::Ident(ident_name_factory(key.unwrap().as_str())),
                   value: value.clone(),
                 }))));
               }
@@ -672,8 +669,14 @@ fn _evaluate(
         } else if let Expr::Ident(ident) = callee_expr.as_ref() {
           let ident_id = ident.to_id();
 
-          if state.functions.identifiers.contains_key(&ident_id) {
-            match state.functions.identifiers.get(&ident_id).unwrap().as_ref() {
+          if state.functions.identifiers.contains_key(&ident_id.0) {
+            match state
+              .functions
+              .identifiers
+              .get(&ident_id.0)
+              .unwrap()
+              .as_ref()
+            {
               FunctionConfigType::Map(_) => unimplemented!("FunctionConfigType::Map"),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
             }
@@ -1005,7 +1008,7 @@ fn _evaluate(
                 let prop_ident = property.as_ident().unwrap();
 
                 let obj_name = obj_ident.sym.to_string();
-                let prop_id = prop_ident.to_id();
+                let prop_id = prop_ident.sym.to_id();
 
                 let member_expressions = state
                   .functions
@@ -1013,7 +1016,7 @@ fn _evaluate(
                   .get(&ImportSources::Regular(obj_name));
 
                 if let Some(member_expr) = member_expressions {
-                  if let Some(member_expr_fn) = member_expr.get(&prop_id) {
+                  if let Some(member_expr_fn) = member_expr.get(&prop_id.0) {
                     match member_expr_fn.as_ref() {
                       FunctionConfigType::Regular(fc) => {
                         func = Some(Box::new(fc.clone()));
@@ -1161,7 +1164,7 @@ fn _evaluate(
                 let value = parsed_obj.value.unwrap();
                 let map = value.as_map().unwrap();
 
-                let result_fn = map.get(&string_to_expression(prop_id.clone().0.as_str()));
+                let result_fn = map.get(&string_to_expression(prop_id.as_str()));
 
                 func = match result_fn {
                   Some(_) => unimplemented!(),
@@ -1355,14 +1358,14 @@ fn _evaluate(
                   let mut entry_elems = vec![];
 
                   for (key, value) in entries {
-                    let ident = if let Lit::Str(lit_str) = key.as_ref() {
-                      ident_factory(lit_str.value.as_str())
+                    let ident_name = if let Lit::Str(lit_str) = key.as_ref() {
+                      ident_name_factory(lit_str.value.as_str())
                     } else {
                       panic!("Expected a string literal")
                     };
 
                     let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                      key: PropName::Ident(ident),
+                      key: PropName::Ident(ident_name),
                       value: Box::new(Expr::from(*value.clone())),
                     })));
 
@@ -1668,10 +1671,10 @@ fn get_method_name(prop: &MemberProp) -> String {
   }
 }
 
-fn is_id_prop(prop: &MemberProp) -> Option<Id> {
+fn is_id_prop(prop: &MemberProp) -> Option<Atom> {
   match prop {
     MemberProp::Computed(comp_prop) => match comp_prop.expr.as_ref() {
-      Expr::Lit(Lit::Str(str)) => Some(str.value.to_id()),
+      Expr::Lit(Lit::Str(str)) => Some(str.value.clone()),
       _ => None,
     },
     _ => None,

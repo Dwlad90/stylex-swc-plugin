@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod stylex_first_that_works {
   use swc_core::ecma::ast::ExprOrSpread;
-  use swc_ecma_ast::Expr;
+  use swc_core::ecma::ast::Expr;
 
   use crate::shared::{
     transformers::stylex_first_that_works::stylex_first_that_works,

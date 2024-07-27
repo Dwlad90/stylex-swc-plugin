@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use swc_ecma_ast::ObjectLit;
+use swc_core::ecma::ast::ObjectLit;
 
 use super::flat_compiled_styles_value::FlatCompiledStylesValue;
 

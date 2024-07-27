@@ -1,7 +1,10 @@
 use std::{collections::HashMap, rc::Rc};
 
 use indexmap::IndexMap;
-use swc_ecma_ast::{BindingIdent, Expr, Id};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{BindingIdent, Expr},
+};
 
 use crate::shared::enums::data_structures::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
@@ -14,7 +17,7 @@ pub(crate) type EvaluateResultFns =
   IndexMap<String, (Vec<BindingIdent>, IndexMap<String, Box<Expr>>)>;
 pub(crate) type EvaluationCallback = Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>;
 pub(crate) type FunctionMapMemberExpression =
-  HashMap<Box<ImportSources>, Box<HashMap<Box<Id>, Box<FunctionConfigType>>>>;
-pub(crate) type FunctionMapIdentifiers = HashMap<Box<Id>, Box<FunctionConfigType>>;
+  HashMap<Box<ImportSources>, Box<HashMap<Box<Atom>, Box<FunctionConfigType>>>>;
+pub(crate) type FunctionMapIdentifiers = HashMap<Box<Atom>, Box<FunctionConfigType>>;
 pub(crate) type StylesObjectMap =
   IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>>;

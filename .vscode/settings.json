@@ -9,8 +9,8 @@
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
   },
   "rust-analyzer.linkedProjects": [
-    "./packages/swc-plugin/Cargo.toml",
-    "./packages/test-parser/Cargo.toml",
+    "${workspaceFolder}/packages/swc-plugin/Cargo.toml",
+    "${workspaceFolder}/packages/test-parser/Cargo.toml",
   ],
   "[toml]": {
     "editor.defaultFormatter": "tamasfe.even-better-toml"

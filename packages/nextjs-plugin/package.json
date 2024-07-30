@@ -22,8 +22,9 @@
     "dist"
   ],
   "keywords": [
-    "next-plugin",
+    "next",
     "nextjs",
+    "nextjs-plugin",
     "stylex"
   ],
   "license": "MIT",
@@ -32,7 +33,7 @@
     "@stylexjs/babel-plugin": "^0.6.1",
     "next": ">=14.0.1"
   },
-  "private": true,
+  "private": false,
   "publishConfig": {
     "access": "public"
   },

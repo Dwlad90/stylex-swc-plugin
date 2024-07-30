@@ -535,7 +535,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
 describe('@stylexjs/babel-plugin stylex.createTheme with literals', ()=>{
     beforeEach(()=>{
         defineVarsOutput = transform(`
-      import stylex from 'stylex';1
+      import stylex from 'stylex';
       export const buttonTheme = stylex.defineVars({
         '--bgColor': {
           default: 'blue',

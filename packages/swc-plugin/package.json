@@ -12,11 +12,12 @@
   ],
   "keywords": [
     "stylex",
+    "swc",
     "swc-plugin"
   ],
   "license": "MIT",
   "main": "./dist/stylex_swc_plugin.wasm",
-  "private": true,
+  "private": false,
   "publishConfig": {
     "access": "public"
   },

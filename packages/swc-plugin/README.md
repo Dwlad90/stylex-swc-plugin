@@ -4,7 +4,7 @@ StyleX is a JavaScript library for defining styles for optimized user
 interfaces, developed by Meta. The official repo is
 [here](https://www.github.com/facebook/stylex).
 
-**This is an unofficial plugin** for StyleX. It uses SWC instead of Babel for
+>**This is an unofficial plugin** for StyleX. It uses SWC instead of Babel for
 build step, which allows us to completely ditch Babel and make StyleX faster.
 
 This plugin passes almost 100% of tests of the official StyleX library. It is
@@ -44,6 +44,10 @@ const styles = stylex.create({
 
 const styleProps = stylex.props(styles.root, styles.element);
 ```
+
+> **Warning**
+>
+> The current resolution of the `exports` field from `package. json` is only partially supported, so if you encounter problems, please open an [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with an attached link to reproduce the problem.
 
 ## License
 

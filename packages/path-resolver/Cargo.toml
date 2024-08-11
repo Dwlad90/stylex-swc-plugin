@@ -1,0 +1,30 @@
+[package]
+name = "stylex_path_resolver"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[profile.release]
+# This removes more dead code
+codegen-units = 1
+lto = true
+# Optimize for size
+# opt-level = "s"
+# Optimize for performance, this is default so you don't need to specify it
+opt-level = "z"
+
+# Strip debug symbols
+strip = "symbols"
+
+[dependencies]
+serde = "1.0.204"
+serde_json = "1.0.120"
+swc_core = { version = "0.96.9", features = ["common", "ecma_loader_node"] }
+package-json = "0.4.0"
+pathdiff = { version = "0.2.1" }
+path-clean = { version = "1.0.1" }
+regex = "1.10.5"

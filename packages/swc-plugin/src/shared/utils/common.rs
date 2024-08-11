@@ -1,14 +1,11 @@
+use radix_fmt::radix;
 use std::{
   any::type_name,
   collections::HashSet,
-  fs,
   hash::{DefaultHasher, Hash, Hasher},
   ops::Deref,
-  path::{Path, PathBuf},
+  path::PathBuf,
 };
-
-use path_clean::PathClean;
-use radix_fmt::radix;
 use swc_core::{
   atoms::Atom,
   common::{FileName, DUMMY_SP},
@@ -29,7 +26,7 @@ use crate::shared::{
   structures::{
     base_css_type::BaseCSSType,
     functions::{FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::{StateManager, EXTENSIONS},
+    state_manager::StateManager,
   },
 };
 
@@ -520,54 +517,6 @@ pub(crate) fn _resolve_node_package_path(package_name: &str) -> Result<PathBuf, 
       "Error resolving package {}: {:?}",
       package_name, error
     )),
-  }
-}
-
-pub(crate) fn resolve_file_path(
-  import_path_str: &str,
-  source_file_path: &str,
-  ext: &str,
-  root_path: &str,
-) -> std::io::Result<PathBuf> {
-  let source_dir = Path::new(source_file_path).parent().unwrap();
-
-  let mut resolved_file_path = (if import_path_str.starts_with('.') {
-    source_dir
-      .join(import_path_str)
-      .strip_prefix(root_path)
-      .unwrap()
-      .to_path_buf()
-  } else if import_path_str.starts_with('/') {
-    Path::new(root_path).join(import_path_str)
-  } else {
-    Path::new("node_modules").join(import_path_str)
-  })
-  .clean();
-
-  if let Some(extension) = resolved_file_path.extension() {
-    let subpath = extension.to_string_lossy();
-
-    if EXTENSIONS.iter().all(|ext| {
-      let res = !ext.ends_with(subpath.as_ref());
-      res
-    }) {
-      resolved_file_path.set_extension(format!("{}{}", subpath, ext));
-    }
-  } else {
-    resolved_file_path.set_extension(ext);
-  }
-
-  let resolved_file_path = resolved_file_path.clean();
-
-  let path_to_check = Path::new("./cwd").join(&resolved_file_path);
-
-  if fs::metadata(path_to_check).is_ok() {
-    Ok(resolved_file_path.to_path_buf())
-  } else {
-    Err(std::io::Error::new(
-      std::io::ErrorKind::NotFound,
-      "File not found",
-    ))
   }
 }
 

@@ -1,12 +1,10 @@
 use core::panic;
+use std::collections::{HashMap, HashSet};
 use std::option::Option;
 use std::path::Path;
-use std::{
-  collections::{HashMap, HashSet},
-  path::PathBuf,
-};
 
 use indexmap::{IndexMap, IndexSet};
+use stylex_path_resolver::resolvers::{resolve_file_path, resolve_path, EXTENSIONS};
 use swc_core::ecma::ast::{
   CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
   ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
@@ -17,6 +15,11 @@ use swc_core::{
   common::{EqIgnoreSpan, FileName, DUMMY_SP},
 };
 
+use crate::shared::enums::data_structures::{
+  import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
+  style_vars_to_keep::StyleVarsToKeep,
+  top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+};
 use crate::shared::utils::{
   ast::factories::binding_ident_factory,
   common::{
@@ -28,14 +31,6 @@ use crate::shared::{
   utils::ast::factories::{
     expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
   },
-};
-use crate::shared::{
-  enums::data_structures::{
-    import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
-    style_vars_to_keep::StyleVarsToKeep,
-    top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-  },
-  utils::common::resolve_file_path,
 };
 
 use super::plugin_pass::PluginPass;
@@ -255,7 +250,7 @@ impl StateManager {
 
         let filename = Path::new(&filename);
 
-        let filename_for_hashing = relative_path(root_dir, filename).display().to_string();
+        let filename_for_hashing = resolve_path(Path::new(&filename), root_dir);
 
         Some(filename_for_hashing)
       }
@@ -280,8 +275,6 @@ impl StateManager {
           .root_dir
           .expect("root_dir is required for CommonJS");
 
-        let root_dir_path = Path::new(root_dir.as_str());
-
         let theme_file_extension = &module_resolution
           .theme_file_extension
           .clone()
@@ -294,15 +287,7 @@ impl StateManager {
         let resolved_file_path =
           file_path_resolver(import_path, source_file_path, root_dir.as_str());
 
-        ImportPathResolution::Tuple(
-          ImportPathResolutionType::ThemeNameRef,
-          relative_path(
-            Path::new(root_dir_path),
-            Path::new(resolved_file_path.as_str()),
-          )
-          .display()
-          .to_string(),
-        )
+        ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
       }
       CheckModuleResolution::Haste(module_resolution) => {
         let theme_file_extension = module_resolution
@@ -656,9 +641,6 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
   }))))
 }
 
-pub(crate) const EXTENSIONS: [&str; 8] =
-  [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".mdx", ".md"];
-
 pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
   if filename.ends_with(allowed_suffix) {
     return true;
@@ -749,6 +731,7 @@ fn file_path_resolver(
 
     if let Ok(resolved_path) = resolved_file_path {
       let resolved_path_str = resolved_path.display().to_string();
+
       if resolved_path_str.contains("/app/@") {
         return resolved_path_str.replace("/app/@", "/node_modules/@");
       } else {
@@ -758,11 +741,4 @@ fn file_path_resolver(
   }
 
   panic!("Cannot resolve file path: {}", relative_file_path)
-}
-
-fn relative_path(root: &Path, file_path: &Path) -> PathBuf {
-  file_path
-    .strip_prefix(root)
-    .unwrap_or(file_path)
-    .to_path_buf()
 }

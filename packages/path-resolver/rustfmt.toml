@@ -1,0 +1,75 @@
+# The number of spaces per indentation level
+tab_spaces = 2
+
+# The maximum width of each line
+max_width = 100
+
+
+# How to handle tabs (always, never, or unset)
+hard_tabs = false
+
+# The style of the trailing comma in lists
+trailing_comma = "Vertical"
+
+# How to handle trailing semicolons
+trailing_semicolon = true
+
+# How to handle spaces around ranges
+spaces_around_ranges = true
+
+# How to handle spaces before a colon
+space_before_colon = false
+
+# How to handle spaces after a colon
+space_after_colon = true
+
+# How to handle spaces around comments
+spaces_around_comments = true
+
+# How to handle spaces inside parentheticals
+spaces_inside_parens = true
+
+# How to handle spaces inside square brackets
+spaces_inside_square_brackets = true
+
+# How to handle spaces inside angle brackets
+spaces_inside_angle_brackets = true
+
+# How to handle spaces inside curly braces
+spaces_inside_curly_brackets = true
+
+# How to handle spaces around equals signs
+spaces_around_equals = true
+
+# How to handle spaces around fat arrows
+spaces_around_fat_arrow = true
+
+# How to handle spaces around the `->` in function types
+spaces_around_fn_arrow = true
+
+# How to handle spaces around the `=>` in match arms
+spaces_around_if = true
+
+# How to handle spaces around the `let` keyword
+spaces_around_let = true
+
+# How to handle spaces around the `match` keyword
+spaces_around_match = true
+
+# How to handle spaces around the `return` keyword
+spaces_around_return = true
+
+# How to handle spaces around the `struct` keyword
+spaces_around_struct = true
+
+# How to handle spaces around the `trait` keyword
+spaces_around_trait = true
+
+# How to handle spaces around the `type` keyword
+spaces_around_type = true
+
+# How to handle spaces around the `where` keyword
+spaces_around_where = true
+
+# How to handle spaces around the `while` keyword
+spaces_around_while = true

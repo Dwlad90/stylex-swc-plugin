@@ -6,6 +6,7 @@ rust-version = "1.80.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+doctest = false
 
 [profile.release]
 # This removes more dead code
@@ -46,9 +47,9 @@ phf = { version = "0.11.2", features = ["macros"] }
 once_cell = { version = "1.19.0" }
 colored = { version = "2.1.0" }
 node-resolve = { version = "2.2.0" }
-resolve-path = { version = "0.1.0" }
 path-clean = { version = "1.0.1" }
 cssparser = { version = "0.34.0" }
+stylex_path_resolver = { path = "../path-resolver" }
 
 [dev-dependencies]
 swc_core = { version = "0.96.9", features = [

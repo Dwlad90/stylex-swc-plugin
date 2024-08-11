@@ -1,7 +1,7 @@
 pub mod shared;
 pub(crate) mod transform;
 
-use std::env;
+use std::path::PathBuf;
 
 use shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
 pub use transform::ModuleTransformVisitor;
@@ -34,10 +34,9 @@ pub(crate) fn process_transform(
     None => FileName::Anon,
   };
 
-  let cwd = match env::current_dir() {
-    Ok(cwd) => Some(cwd),
-    Err(e) => panic!("Error getting current directory: {}", e),
-  };
+  let cwd: Option<PathBuf> = metadata
+    .get_context(&TransformPluginMetadataContextKind::Cwd)
+    .map(PathBuf::from);
 
   let plugin_pass = Box::new(PluginPass { cwd, filename });
 

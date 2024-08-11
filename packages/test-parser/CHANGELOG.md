@@ -1,5 +1,11 @@
 # @stylexswc/test-parser
 
+## 0.1.1
+
+### Patch Changes
+
+- a223705: added @stylexswc/path-resolver
+
 ## 0.1.0
 
 ### Minor Changes

@@ -1,4 +1,5 @@
 mod evaluation;
+mod stylex_export_const_test;
 mod stylex_metadata_test;
 mod stylex_transform_call_test;
 mod stylex_transform_create_test;

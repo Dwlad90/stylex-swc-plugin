@@ -10,7 +10,6 @@ use swc_core::{
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
   enums::misc::VarDeclAction,
-  regex::IDENT_PROP_REGEX,
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
   utils::{
     common::{
@@ -511,14 +510,13 @@ pub(crate) fn null_to_expression() -> Expr {
 }
 
 pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
-  if IDENT_PROP_REGEX.is_match(value) && value.parse::<i64>().is_err() {
-    Some(PropName::Ident(ident_name_factory(value)))
-  } else {
-    Some(PropName::Str(Str {
+  match Ident::verify_symbol(value) {
+    Ok(_) => Some(PropName::Ident(ident_name_factory(value))),
+    Err(_) => Some(PropName::Str(Str {
       span: DUMMY_SP,
       value: value.into(),
       raw: None,
-    }))
+    })),
   }
 }
 

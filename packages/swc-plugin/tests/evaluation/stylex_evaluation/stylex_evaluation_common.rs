@@ -17,6 +17,7 @@ use swc_core::{
     },
     parser::{Syntax, TsSyntax},
     transforms::testing::{test, test_transform},
+    utils::quote_ident,
   },
 };
 
@@ -270,7 +271,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
           let object_lit = ObjectLit {
             span: DUMMY_SP,
             props: vec![PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-              key: PropName::Ident("spreadValue".into()),
+              key: PropName::Ident(quote_ident!("spreadValue")),
               value: Box::new(arg),
             })))],
           };
@@ -320,11 +321,11 @@ fn evaluates_custom_functions_that_take_paths() {
             span: DUMMY_SP,
             props: vec![
               PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                key: PropName::Ident("type".into()),
+                key: PropName::Ident(quote_ident!("type")),
                 value: Box::new(string_to_expression("StringLiteral")),
               }))),
               PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                key: PropName::Ident("value".into()),
+                key: PropName::Ident(quote_ident!("value")),
                 value: Box::new(arg),
               }))),
             ],

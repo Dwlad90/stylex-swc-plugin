@@ -65,12 +65,6 @@ pub(crate) fn ident_factory(name: &str) -> Ident {
   Ident::from(name)
 }
 
-pub(crate) fn ident_name_factory(name: &str) -> Ident {
-  ident_factory(name)
-  // TODO: Uncomment this line to use after migration to swc_core >= 0.99.*
-  // IdentName::from(name)
-}
-
 // NOTE: Tests only using this function
 #[allow(dead_code)]
 pub(crate) fn prop_or_spread_expr_factory(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {

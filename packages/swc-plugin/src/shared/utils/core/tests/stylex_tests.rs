@@ -4,16 +4,16 @@ mod tests {
   use indexmap::IndexMap;
   use swc_core::{
     common::DUMMY_SP,
-    ecma::ast::{MemberExpr, MemberProp},
+    ecma::{
+      ast::{MemberExpr, MemberProp},
+      utils::quote_ident,
+    },
   };
 
   use crate::shared::{
     enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
     utils::{
-      ast::{
-        convertors::string_to_expression,
-        factories::{ident_factory, ident_name_factory},
-      },
+      ast::{convertors::string_to_expression, factories::ident_factory},
       common::get_string_val_from_lit,
       core::{
         parse_nullable_style::{ResolvedArg, StyleObject},
@@ -38,7 +38,7 @@ mod tests {
         MemberExpr {
           span: DUMMY_SP,
           obj: Box::new(string_to_expression("test")),
-          prop: MemberProp::Ident(ident_name_factory("test")),
+          prop: MemberProp::Ident(quote_ident!("test")),
         },
       ))
     }

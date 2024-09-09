@@ -1552,6 +1552,7 @@ dependencies = [
  "serde_json",
  "stylex_path_resolver",
  "swc_core",
+ "swc_ecma_parser",
  "testing 0.38.1",
 ]
 
@@ -1838,6 +1839,7 @@ dependencies = [
  "swc_atoms",
  "swc_common 0.34.4",
  "swc_ecma_ast",
+ "swc_ecma_visit",
  "tracing",
  "typed-arena",
 ]

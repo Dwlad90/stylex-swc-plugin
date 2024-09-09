@@ -14,7 +14,7 @@ use swc_core::{
       Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName, PropOrSpread,
       TplElement, VarDeclarator,
     },
-    utils::{drop_span, ident::IdentLike, ExprExt},
+    utils::{drop_span, ident::IdentLike, quote_ident, ExprExt},
   },
 };
 
@@ -48,9 +48,7 @@ use crate::shared::{
         big_int_to_expression, binary_expr_to_num, expr_to_num, expr_to_str, number_to_expression,
         string_to_expression, transform_shorthand_to_key_values,
       },
-      factories::{
-        array_expression_factory, ident_name_factory, lit_str_factory, object_expression_factory,
-      },
+      factories::{array_expression_factory, lit_str_factory, object_expression_factory},
     },
     common::{
       char_code_at, deep_merge_props, get_import_by_ident, get_key_str, get_string_val_from_lit,
@@ -628,7 +626,7 @@ fn _evaluate(
                 };
 
                 props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                  key: PropName::Ident(ident_name_factory(key.unwrap().as_str())),
+                  key: PropName::Ident(quote_ident!(key.unwrap())),
                   value: value.clone(),
                 }))));
               }
@@ -1359,7 +1357,7 @@ fn _evaluate(
 
                   for (key, value) in entries {
                     let ident_name = if let Lit::Str(lit_str) = key.as_ref() {
-                      ident_name_factory(lit_str.value.as_str())
+                      quote_ident!(lit_str.value.as_ref())
                     } else {
                       panic!("Expected a string literal")
                     };

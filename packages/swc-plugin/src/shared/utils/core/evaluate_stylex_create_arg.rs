@@ -1,9 +1,12 @@
 use indexmap::IndexMap;
 use swc_core::{
   common::DUMMY_SP,
-  ecma::ast::{
-    ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, CondExpr, Expr,
-    ExprOrSpread, KeyValueProp, ObjectLit, Pat, Prop, PropOrSpread, UnaryExpr, UnaryOp,
+  ecma::{
+    ast::{
+      ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, CondExpr,
+      Expr, ExprOrSpread, KeyValueProp, ObjectLit, Pat, Prop, PropOrSpread, UnaryExpr, UnaryOp,
+    },
+    utils::quote_ident,
   },
 };
 
@@ -22,9 +25,7 @@ use crate::shared::{
         expr_to_str, ident_to_expression, null_to_expression, string_to_expression,
         transform_shorthand_to_key_values,
       },
-      factories::{
-        ident_name_factory, object_expression_factory, prop_or_spread_expression_factory,
-      },
+      factories::{object_expression_factory, prop_or_spread_expression_factory},
     },
     common::{create_hash, normalize_expr},
     css::common::get_number_suffix,
@@ -315,7 +316,7 @@ fn evaluate_partial_object_recursively(
                       span: DUMMY_SP,
                       callee: Callee::Expr(Box::new(Expr::Arrow(ArrowExpr {
                         span: DUMMY_SP,
-                        params: vec![Pat::Ident(BindingIdent::from(ident_name_factory("val")))],
+                        params: vec![Pat::Ident(BindingIdent::from(quote_ident!("val")))],
                         body: Box::new(BlockStmtOrExpr::Expr(Box::new(Expr::Cond(CondExpr {
                           span: DUMMY_SP,
                           test: Box::new(Expr::from(BinExpr {

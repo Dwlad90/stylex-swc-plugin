@@ -691,3 +691,36 @@ test!(
     });
   "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    ModuleTransformVisitor::new_test(
+      tr.comments.clone(),
+      &PluginPass {
+        cwd: None,
+        filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+      },
+      None,
+    )
+  },
+  transforms_variables_object_with_key_containing_differend_symbols,
+  r#"
+        import stylex from 'stylex';
+        export const buttonTokens = stylex.defineVars({
+          default: "blue",
+          xl: "red",
+          "2xl": "green",
+          "xl3": "yellow",
+          if: "purple",
+          else: "orange",
+          __underscore__: "black",
+          "&lt": "white",
+          1: "gray",
+          gt$eq: "brown",
+        });
+    "#
+);

@@ -1,10 +1,12 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use swc_core::ecma::ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread};
+use swc_core::ecma::{
+  ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},
+  utils::quote_ident,
+};
 
 use crate::shared::{
-  constants::messages::ILLEGAL_ARGUMENT_LENGTH,
-  utils::ast::factories::{ident_name_factory, object_expression_factory},
+  constants::messages::ILLEGAL_ARGUMENT_LENGTH, utils::ast::factories::object_expression_factory,
 };
 
 static NUMBER: AtomicUsize = AtomicUsize::new(1);
@@ -22,7 +24,7 @@ pub(crate) fn stylex_include(args: Vec<Expr>) -> Expr {
   let first_arg = &args[0];
 
   let prop = Prop::from(KeyValueProp {
-    key: PropName::Ident(ident_name_factory(uuid().as_str())),
+    key: PropName::Ident(quote_ident!(uuid().as_str())),
     value: Box::new(first_arg.clone()),
   });
 

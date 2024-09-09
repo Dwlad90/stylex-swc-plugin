@@ -1,16 +1,20 @@
-use swc_core::ecma::ast::BigInt;
+use swc_core::ecma::{
+  ast::BigInt,
+  utils::{quote_ident, quote_str},
+};
 use swc_core::{
-  common::DUMMY_SP,
+  atoms::Atom,
   ecma::ast::{
-    BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Str, Tpl, UnaryExpr,
+    BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl, UnaryExpr,
     UnaryOp,
   },
 };
 
+use swc_ecma_parser::Context;
+
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
   enums::misc::VarDeclAction,
-  regex::IDENT_PROP_REGEX,
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
   utils::{
     common::{
@@ -21,8 +25,8 @@ use crate::shared::{
 };
 
 use super::factories::{
-  ident_factory, ident_name_factory, lit_big_int_factory, lit_boolean_factory, lit_null_factory,
-  lit_number_factory, lit_str_factory,
+  ident_factory, lit_big_int_factory, lit_boolean_factory, lit_null_factory, lit_number_factory,
+  lit_str_factory,
 };
 
 pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager, fns: &FunctionMap) -> f64 {
@@ -510,22 +514,25 @@ pub(crate) fn null_to_expression() -> Expr {
   Expr::Lit(lit_null_factory())
 }
 
+fn should_wrap_prop_name_key_with_quotes(key: &str) -> bool {
+  Ident::verify_symbol(key).is_err() && {
+    let ctx = Context::default();
+
+    !ctx.is_reserved_word(&Atom::from(key))
+  }
+}
 pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
-  if IDENT_PROP_REGEX.is_match(value) && value.parse::<i64>().is_err() {
-    Some(PropName::Ident(ident_name_factory(value)))
+  if should_wrap_prop_name_key_with_quotes(value) {
+    Some(PropName::Str(quote_str!(value)))
   } else {
-    Some(PropName::Str(Str {
-      span: DUMMY_SP,
-      value: value.into(),
-      raw: None,
-    }))
+    Some(PropName::Ident(quote_ident!(value)))
   }
 }
 
 pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
   if let Some(ident) = prop.as_shorthand() {
     *prop = Box::new(Prop::from(KeyValueProp {
-      key: PropName::Ident(ident_name_factory(&ident.sym)),
+      key: PropName::Ident(quote_ident!(ident.sym.as_ref())),
       value: Box::new(Expr::Ident(ident.clone())),
     }));
   }

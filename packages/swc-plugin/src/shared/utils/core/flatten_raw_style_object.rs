@@ -1,9 +1,11 @@
 use indexmap::IndexMap;
 use regex::Regex;
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread, Str},
-};
+use swc_core::
+  ecma::{
+    ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},
+    utils::quote_str,
+  }
+;
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
@@ -233,11 +235,7 @@ pub(crate) fn flatten_raw_style_object(
                     at_rules_to_pass_down.push(condition.clone());
                   }
 
-                  inner_key_value.key = PropName::Str(Str {
-                    span: DUMMY_SP,
-                    value: css_property_key.clone().into(),
-                    raw: None,
-                  });
+                  inner_key_value.key = PropName::Str(quote_str!(css_property_key.clone()));
 
                   let pairs = flatten_raw_style_object(
                     &[inner_key_value],

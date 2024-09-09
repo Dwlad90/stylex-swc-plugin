@@ -1,4 +1,7 @@
-use swc_core::{common::comments::Comments, ecma::ast::ExportDefaultExpr};
+use swc_core::{
+  common::comments::Comments,
+  ecma::{ast::ExportDefaultExpr, visit::FoldWith},
+};
 
 use crate::{
   shared::{enums::core::ModuleCycle, utils::common::normalize_expr},
@@ -15,6 +18,10 @@ where
   ) -> ExportDefaultExpr {
     if self.cycle == ModuleCycle::Skip {
       return export_default_expr;
+    }
+
+    if self.cycle == ModuleCycle::StateFilling {
+      return export_default_expr.fold_children_with(self);
     }
 
     if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {

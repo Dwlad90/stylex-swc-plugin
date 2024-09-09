@@ -9,11 +9,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(
-    tr.comments.clone(),
-    &PluginPass::default(),
-    None
-  ),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
   stylex_call_with_computed_key_access,
   r#"
       import stylex from 'stylex';
@@ -34,11 +30,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(
-    tr.comments.clone(),
-    &PluginPass::default(),
-    None
-  ),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
   stylex_call_with_mixed_access,
   r#"
       import stylex from 'stylex';
@@ -70,11 +62,140 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(
-    tr.comments.clone(),
-    &PluginPass::default(),
-    None
-  ),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+  stylex_call_with_mixed_access_inline_export_default,
+  r#"
+      import stylex from 'stylex';
+
+      export default function MyComponent() {
+        return (
+          <>
+            <div className={stylex(styles.foo)} />
+            <div className={stylex(styles.bar)} />
+            <CustomComponent xstyle={styles.foo} />
+            <div className={stylex(styles.foo, styles.bar)} />
+          </>
+        );
+      }
+
+      const styles = stylex.create({
+        foo: {
+          color: 'red',
+        },
+        bar: {
+          backgroundColor: 'blue',
+        }
+      });
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+  stylex_call_with_mixed_access_export_default,
+  r#"
+      import stylex from 'stylex';
+
+      function MyComponent() {
+        return (
+          <>
+            <div className={stylex(styles.foo)} />
+            <div className={stylex(styles.bar)} />
+            <CustomComponent xstyle={styles.foo} />
+            <div className={stylex(styles.foo, styles.bar)} />
+          </>
+        );
+      }
+
+      const styles = stylex.create({
+        foo: {
+          color: 'red',
+        },
+        bar: {
+          backgroundColor: 'blue',
+        }
+      });
+
+      export default MyComponent;
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+  stylex_call_with_mixed_access_inline_named_export,
+  r#"
+      import stylex from 'stylex';
+
+      export function MyComponent() {
+        return (
+          <>
+            <div className={stylex(styles.foo)} />
+            <div className={stylex(styles.bar)} />
+            <CustomComponent xstyle={styles.foo} />
+            <div className={stylex(styles.foo, styles.bar)} />
+          </>
+        );
+      };
+
+      const styles = stylex.create({
+        foo: {
+          color: 'red',
+        },
+        bar: {
+          backgroundColor: 'blue',
+        }
+      });
+"#
+);
+
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+  stylex_call_with_mixed_access_named_export,
+  r#"
+      import stylex from 'stylex';
+
+      function MyComponent() {
+        return (
+          <>
+            <div className={stylex(styles.foo)} />
+            <div className={stylex(styles.bar)} />
+            <CustomComponent xstyle={styles.foo} />
+            <div className={stylex(styles.foo, styles.bar)} />
+          </>
+        );
+      };
+
+      const styles = stylex.create({
+        foo: {
+          color: 'red',
+        },
+        bar: {
+          backgroundColor: 'blue',
+        }
+      });
+
+      export { MyComponent };
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
   stylex_call_with_composition_of_external_styles,
   r#"
       import stylex from 'stylex';
@@ -92,11 +213,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(
-    tr.comments.clone(),
-    &PluginPass::default(),
-    None
-  ),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
   stylex_call_with_composition_border_shorthands_with_external_styles,
   r#"
       import stylex from 'stylex';
@@ -117,11 +234,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(
-    tr.comments.clone(),
-    &PluginPass::default(),
-    None
-  ),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
   stylex_call_using_exported_styles_with_pseudo_selectors_and_queries,
   r#"
       import stylex from 'stylex';

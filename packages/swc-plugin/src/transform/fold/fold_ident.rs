@@ -14,7 +14,7 @@ where
       return ident;
     }
 
-    if self.cycle == ModuleCycle::Initializing {
+    if self.cycle == ModuleCycle::StateFilling {
       increase_ident_count(&mut self.state, &ident);
     }
 

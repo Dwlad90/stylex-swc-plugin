@@ -5,7 +5,8 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::core::ModuleCycle, structures::meta_data::MetaData, utils::common::fill_top_level_expressions,
+    enums::core::ModuleCycle, structures::meta_data::MetaData,
+    utils::common::fill_top_level_expressions,
   },
   ModuleTransformVisitor,
 };
@@ -18,6 +19,9 @@ where
     let mut module = module.fold_children_with(self);
 
     if !self.state.import_paths.is_empty() {
+      self.cycle = ModuleCycle::StateFilling;
+      module = module.fold_children_with(self);
+
       fill_top_level_expressions(&module, &mut self.state);
 
       self.cycle = ModuleCycle::TransformEnter;

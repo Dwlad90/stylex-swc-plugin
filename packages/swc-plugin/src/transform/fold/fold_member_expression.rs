@@ -27,7 +27,7 @@ where
       return member_expression;
     }
 
-    if self.cycle == ModuleCycle::Initializing {
+    if self.cycle == ModuleCycle::StateFilling {
       if let Some(obj_ident) = member_expression.obj.as_ident() {
         increase_member_ident_count(&mut self.state, &obj_ident.sym);
       }

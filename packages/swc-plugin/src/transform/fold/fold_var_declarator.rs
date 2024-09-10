@@ -32,6 +32,7 @@ where
     mut var_declarator: VarDeclarator,
   ) -> VarDeclarator {
     if self.cycle != ModuleCycle::Initializing
+      && self.cycle != ModuleCycle::StateFilling
       && self.cycle != ModuleCycle::TransformEnter
       && self.cycle != ModuleCycle::TransformExit
       && self.cycle != ModuleCycle::PreCleaning
@@ -122,7 +123,7 @@ where
           });
 
         if let Some(declaration_string) = declaration_string {
-          if self.cycle == ModuleCycle::Initializing
+          if self.cycle == ModuleCycle::StateFilling
             && (member.as_str() == "create" || member.eq(declaration_string.as_str()))
           {
             self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());

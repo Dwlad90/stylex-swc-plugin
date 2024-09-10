@@ -1,9 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{
-    ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier, ModuleExportName},
-    visit::FoldWith,
-  },
+  ecma::ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier, ModuleExportName},
 };
 
 use crate::{
@@ -97,11 +94,7 @@ where
         }
       }
 
-      if self.state.import_paths.is_empty() {
-        import_decl
-      } else {
-        import_decl.fold_children_with(self)
-      }
+      import_decl
     } else {
       import_decl
     }

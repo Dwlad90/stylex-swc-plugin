@@ -20,7 +20,7 @@ where
       return export_decl;
     }
 
-    if self.cycle == ModuleCycle::Initializing {
+    if self.cycle == ModuleCycle::StateFilling {
       if let Decl::Var(var_decl) = &export_decl.decl {
         for decl in &var_decl.decls {
           if let Some(ident) = decl.name.as_ident() {

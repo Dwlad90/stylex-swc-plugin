@@ -9,6 +9,7 @@ pub(crate) enum ModuleCycle {
   Cleaning,
   // The file has been processed and the plugin is skipped.
   Initializing,
+  StateFilling,
   Skip,
   InjectStyles,
 }

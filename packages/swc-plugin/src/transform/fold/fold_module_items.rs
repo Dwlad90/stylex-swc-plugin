@@ -1,3 +1,4 @@
+use swc_core::ecma::ast::ExportDecl;
 use swc_core::{
   common::{comments::Comments, DUMMY_SP},
   ecma::{
@@ -5,7 +6,6 @@ use swc_core::{
     visit::FoldWith,
   },
 };
-use swc_core::ecma::ast::ExportDecl;
 
 use crate::{
   shared::{enums::core::ModuleCycle, utils::ast::factories::binding_ident_factory},
@@ -20,6 +20,17 @@ where
     match self.cycle {
       ModuleCycle::Skip => module_items,
       ModuleCycle::Initializing => {
+        let transformed_module_items = module_items.fold_children_with(self);
+
+        if self.state.import_paths.is_empty() {
+          self.cycle = ModuleCycle::Skip;
+
+          return transformed_module_items;
+        }
+
+        transformed_module_items
+      }
+      ModuleCycle::StateFilling => {
         module_items.iter().for_each(|module_item| {
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
             var_decl.decls.iter().for_each(|decl| {
@@ -32,15 +43,7 @@ where
           }
         });
 
-        let transformed_module_items = module_items.fold_children_with(self);
-
-        if self.state.import_paths.is_empty() {
-          self.cycle = ModuleCycle::Skip;
-
-          return transformed_module_items;
-        }
-
-        transformed_module_items
+        module_items.fold_children_with(self)
       }
       ModuleCycle::TransformEnter => module_items.fold_children_with(self),
       ModuleCycle::TransformExit => module_items.fold_children_with(self),

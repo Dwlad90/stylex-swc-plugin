@@ -14,7 +14,7 @@ where
       return expr;
     }
 
-    if self.cycle == ModuleCycle::Initializing {
+    if self.cycle == ModuleCycle::StateFilling {
       if let Some(call_expr) = expr.as_call() {
         self.state.all_call_expressions.push(call_expr.clone());
       }

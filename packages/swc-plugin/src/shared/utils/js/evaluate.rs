@@ -319,7 +319,24 @@ fn _evaluate(
       //   state,
       // )
     }
-    Expr::Cond(_) => unimplemented!("Cond"),
+    Expr::Cond(cond) => {
+      let test_result = match *evaluate_cached(&cond.test, state, fns)
+        .expect("Test of condition must be an expression")
+      {
+        EvaluateResultValue::Expr(expr) => expr_to_bool(&expr, &mut state.traversal_state, fns),
+        _ => panic!("Test of condition must be an expression"),
+      };
+
+      if !state.confident {
+        return None;
+      }
+
+      if test_result {
+        evaluate_cached(&cond.cons, state, fns)
+      } else {
+        evaluate_cached(&cond.alt, state, fns)
+      }
+    }
     Expr::Paren(_) => {
       panic!("Paren must be normalized before evaluation")
     }

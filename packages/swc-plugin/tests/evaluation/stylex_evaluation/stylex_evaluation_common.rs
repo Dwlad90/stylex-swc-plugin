@@ -509,3 +509,23 @@ fn evaluates_ts_satisfies_value_expressions() {
     false,
   )
 }
+
+#[test]
+fn evaluates_condition_value_expressions() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+            2 > 1 ? 1 : 0
+            2 < 1 ? 1 : 0
+        "#,
+    r#"
+            1
+            0
+        "#,
+    false,
+  )
+}

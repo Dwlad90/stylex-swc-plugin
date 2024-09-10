@@ -359,3 +359,89 @@ fn evaluates_custom_functions_that_take_paths() {
     false,
   )
 }
+
+#[test]
+fn evaluates_unary_value_expressions() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+            !1;
+            !0;
+            !{};
+            !null;
+            !false;
+            !true;
+            +1;
+            +"1";
+            -1;
+            -"1";
+            ~1;
+            ~3;
+            typeof 1;
+            typeof "a";
+            typeof null;
+            typeof {};
+            typeof undefined;
+        "#,
+    r#"
+            false;
+            true;
+            false;
+            true;
+            true;
+            false;
+            1;
+            1;
+            -1;
+            -1;
+            -2;
+            -4;
+            "number";
+            "string";
+            "object";
+            "object";
+            "undefined";
+        "#,
+    false,
+  )
+}
+
+#[test]
+#[should_panic(expected = "Failed to evaluate expression")]
+fn evaluates_void_unary_value_expressions() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+              void 1;
+
+        "#,
+    r#""#,
+    false,
+  )
+}
+
+#[test]
+#[should_panic(expected = "Failed to evaluate expression")]
+fn evaluates_delete_unary_value_expressions() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+              delete a.b;
+
+        "#,
+    r#""#,
+    false,
+  )
+}

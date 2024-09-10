@@ -63,6 +63,19 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
   }
 }
 
+fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> Expr {
+  let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
+
+  match &var_decl {
+    Some(var_decl) => {
+      let var_decl_expr = get_expr_from_var_decl(var_decl);
+
+      var_decl_expr.clone()
+    }
+    None => panic!("{}", ILLEGAL_PROP_VALUE),
+  }
+}
+
 pub fn expr_to_str(
   expr_string: &Expr,
   state: &mut StateManager,
@@ -535,5 +548,31 @@ pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
       key: PropName::Ident(quote_ident!(ident.sym.as_ref())),
       value: Box::new(Expr::Ident(ident.clone())),
     }));
+  }
+}
+
+pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
+  match expr {
+    Expr::Lit(lit) => match lit {
+      Lit::Bool(b) => b.value,
+      Lit::Num(n) => n.value != 0.0,
+      Lit::Str(s) => !s.value.is_empty(),
+      Lit::Null(_) => false,
+      _ => unimplemented!("Conversion lit expression to boolean"),
+    },
+    Expr::Ident(ident) => expr_to_bool(&ident_to_expr(ident, state, functions), state, functions),
+    Expr::Array(_) => true,
+    Expr::Object(_) => true,
+    Expr::Fn(_) | Expr::Class(_) => true,
+    Expr::Unary(unary) => match unary.op {
+      UnaryOp::Void => false,
+      UnaryOp::TypeOf => true,
+      UnaryOp::Bang => !expr_to_bool(&unary.arg, state, functions),
+      UnaryOp::Minus => !expr_to_bool(&unary.arg, state, functions),
+      UnaryOp::Plus => !expr_to_bool(&unary.arg, state, functions),
+      UnaryOp::Tilde => !expr_to_bool(&unary.arg, state, functions),
+      _ => unimplemented!("Conversion unary expression to boolean"),
+    },
+    _ => unimplemented!("Conversion expression to boolean"),
   }
 }

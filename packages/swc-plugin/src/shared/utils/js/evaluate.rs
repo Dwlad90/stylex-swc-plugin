@@ -12,7 +12,7 @@ use swc_core::{
     ast::{
       ArrayLit, BlockStmtOrExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, KeyValueProp,
       Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName, PropOrSpread,
-      TplElement, VarDeclarator,
+      TplElement, UnaryOp, VarDeclarator,
     },
     utils::{drop_span, ident::IdentLike, quote_ident, ExprExt},
   },
@@ -45,8 +45,8 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{
-        big_int_to_expression, binary_expr_to_num, expr_to_num, expr_to_str, number_to_expression,
-        string_to_expression, transform_shorthand_to_key_values,
+        big_int_to_expression, binary_expr_to_num, bool_to_expression, expr_to_bool, expr_to_num,
+        expr_to_str, number_to_expression, string_to_expression, transform_shorthand_to_key_values,
       },
       factories::{array_expression_factory, lit_str_factory, object_expression_factory},
     },
@@ -474,7 +474,81 @@ fn _evaluate(
         None
       }
     }
-    Expr::Unary(_) => unimplemented!("Unary"),
+    Expr::Unary(unary) => {
+      if unary.op == UnaryOp::Void {
+        return None;
+      }
+
+      let argument = unary.arg.clone();
+
+      if unary.op == UnaryOp::TypeOf && (argument.is_fn_expr()) || argument.is_class() {
+        return Some(Box::new(EvaluateResultValue::Expr(Box::new(
+          string_to_expression("function"),
+        ))));
+      }
+
+      let arg = evaluate_cached(&argument, state, fns);
+
+      if !state.confident {
+        return None;
+      }
+
+      let arg = match *arg.expect("Unary argument is not an expression") {
+        EvaluateResultValue::Expr(expr) => expr,
+        _ => panic!("Unary argument is not an expression"),
+      };
+
+      match unary.op {
+        UnaryOp::Bang => {
+          let value = expr_to_bool(&arg, &mut state.traversal_state, fns);
+
+          Some(Box::new(EvaluateResultValue::Expr(Box::new(
+            bool_to_expression(!value),
+          ))))
+        }
+        UnaryOp::Plus => {
+          let value = expr_to_num(&arg, &mut state.traversal_state, fns);
+
+          Some(Box::new(EvaluateResultValue::Expr(Box::new(
+            number_to_expression(value),
+          ))))
+        }
+        UnaryOp::Minus => {
+          let value = expr_to_num(&arg, &mut state.traversal_state, fns);
+
+          Some(Box::new(EvaluateResultValue::Expr(Box::new(
+            number_to_expression(value * -1.0),
+          ))))
+        }
+        UnaryOp::Tilde => {
+          let value = expr_to_num(&arg, &mut state.traversal_state, fns);
+
+          Some(Box::new(EvaluateResultValue::Expr(Box::new(
+            number_to_expression((!(value as i64)) as f64),
+          ))))
+        }
+        UnaryOp::TypeOf => {
+          let arg_type = match &*arg {
+            Expr::Lit(Lit::Str(_)) => "string",
+            Expr::Lit(Lit::Bool(_)) => "boolean",
+            Expr::Lit(Lit::Num(_)) => "number",
+            Expr::Lit(Lit::Null(_)) => "object",
+            Expr::Fn(_) => "function",
+            Expr::Class(_) => "function",
+            Expr::Ident(ident) if ident.sym == *"undefined" => "undefined",
+            _ => "object",
+          };
+
+          Some(Box::new(EvaluateResultValue::Expr(Box::new(
+            string_to_expression(arg_type),
+          ))))
+        }
+        UnaryOp::Void => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Ident(
+          quote_ident!("undefined"),
+        ))))),
+        _ => deopt(&Expr::from(unary.clone()), state),
+      }
+    }
     Expr::Array(arr_path) => {
       let mut arr: Vec<Option<EvaluateResultValue>> = vec![];
 
@@ -1498,7 +1572,9 @@ fn _evaluate(
       return deopt(path, state);
     }
     _ => {
-      panic!("_evaluate not implemented this type of expression");
+      eprintln!("Unsupported type of expression");
+
+      return deopt(path, state);
     }
   };
 

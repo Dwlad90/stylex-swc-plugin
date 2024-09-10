@@ -388,10 +388,6 @@ impl StateManager {
       self.add_style_to_inject(&metadata, &inject_var_ident, ast);
     }
 
-    if self.options.runtime_injection.is_none() {
-      return;
-    }
-
     if let Some(item) = self
       .declarations
       .iter_mut()

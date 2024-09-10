@@ -697,6 +697,71 @@ test!(
     tsx: true,
     ..Default::default()
   }),
+  |tr| ModuleTransformVisitor::new_test(
+    tr.comments.clone(),
+    &PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transforms_variables_object_with_nested_defined_vars_call,
+  r#"
+        import stylex from 'stylex';
+        export const colors = stylex.defineVars({
+            primary: '#ff0000',
+        });
+        export const buttonTheme = stylex.defineVars({
+            bgColor: {
+                default: colors.primary,
+            },
+        });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test(
+    tr.comments.clone(),
+    &PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transforms_variables_object_with_nested_defined_vars_calls,
+  r#"
+        import stylex from 'stylex';
+        export const colors = stylex.defineVars({
+            primary: '#ff0000',
+        });
+        export const designSystem = stylex.defineVars({
+            primary: colors.primary,
+        });
+        export const buttonTheme = stylex.defineVars({
+            bgColor: {
+                default: designSystem.primary,
+            },
+        });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
   |tr| {
     ModuleTransformVisitor::new_test(
       tr.comments.clone(),

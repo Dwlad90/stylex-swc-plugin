@@ -1,6 +1,8 @@
+use std::any::Any;
+
 use swc_core::ecma::{
   ast::BigInt,
-  utils::{quote_ident, quote_str},
+  utils::{quote_ident, quote_str, ExprExt},
 };
 use swc_core::{
   atoms::Atom,
@@ -39,10 +41,13 @@ pub fn expr_to_num(expr_num: &Expr, traversal_state: &mut StateManager, fns: &Fu
 
       match binary_expr_to_num(lit, &mut state, fns) {
         Some(result) => result,
-        None => panic!("Binary expression is not a number"),
+        None => panic!(
+          "Binary expression is not a number: {:?}",
+          expr_num.get_type()
+        ),
       }
     }
-    _ => panic!("Expression in not a number {:?}", expr_num),
+    _ => panic!("Expression in not a number: {:?}", expr_num.get_type()),
   }
 }
 
@@ -84,7 +89,10 @@ pub fn expr_to_str(
   match &expr_string {
     Expr::Ident(ident) => ident_to_string(ident, state, functions),
     Expr::Lit(lit) => get_string_val_from_lit(lit).expect("Value is not a string"),
-    _ => panic!("Expression in not a string {:?}", expr_string),
+    _ => panic!(
+      "Expression in not a string, got {:?}",
+      expr_string.get_type()
+    ),
   }
 }
 
@@ -95,7 +103,10 @@ pub fn unari_to_num(unary_expr: &UnaryExpr, state: &mut StateManager, fns: &Func
   match &op {
     UnaryOp::Minus => expr_to_num(arg, state, fns) * -1.0,
     UnaryOp::Plus => expr_to_num(arg, state, fns),
-    _ => panic!("Union operation '{}' is invalid", op),
+    _ => panic!(
+      "Union operation '{:?}' is invalid",
+      Expr::from(unary_expr.clone()).get_type()
+    ),
   }
 }
 
@@ -377,7 +388,7 @@ pub fn ident_to_number(ident: &Ident, traveral_state: &mut StateManager, fns: &F
         },
         Expr::Unary(unary_expr) => unari_to_num(unary_expr, traveral_state, fns),
         Expr::Lit(lit) => lit_to_num(lit),
-        _ => panic!("Varable {:?} is not a number", var_decl_expr),
+        _ => panic!("Varable {:?} is not a number", var_decl_expr.get_type()),
       }
     }
     None => panic!("Variable {} is not declared", ident.sym),
@@ -396,13 +407,16 @@ pub fn lit_to_num(lit_num: &Lit) -> f64 {
     Lit::Num(num) => num.value,
     Lit::Str(str) => {
       let Result::Ok(num) = str.value.parse::<f64>() else {
-        panic!("Value in not a number");
+        panic!("Value in not a number: {}", str.value);
       };
 
       num
     }
     _ => {
-      panic!("Value in not a number");
+      panic!(
+        "Value in not a number: {:?}",
+        Expr::from(lit_num.clone()).get_type()
+      );
     }
   }
 }
@@ -475,7 +489,7 @@ pub fn expr_tpl_to_string(tpl: &Tpl, state: &mut StateManager, fns: &FunctionMap
         Expr::Lit(lit) => {
           tpl_str.push_str(&get_string_val_from_lit(lit).expect(ILLEGAL_PROP_VALUE))
         }
-        _ => panic!("Value not suppported"), // Handle other expression types as needed
+        _ => unimplemented!("TPL expression: {:?}", tpl.exprs[i].get_type()),
       }
     }
   }
@@ -491,11 +505,14 @@ pub fn transform_bin_expr_to_number(
   let mut state = Box::new(EvaluationState::new(traversal_state));
   let op = bin.op;
   let Some(left) = evaluate_cached(&bin.left, &mut state, fns) else {
-    panic!("Left expression is not a number")
+    panic!("Left expression is not a number: {:?}", bin.left.get_type())
   };
 
   let Some(right) = evaluate_cached(&bin.right, &mut state, fns) else {
-    panic!("Left expression is not a number")
+    panic!(
+      "Left expression is not a number: {:?}",
+      bin.right.get_type()
+    )
   };
   let left = expr_to_num(left.as_expr().unwrap(), traversal_state, fns);
   let right = expr_to_num(right.as_expr().unwrap(), traversal_state, fns);
@@ -558,7 +575,7 @@ pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &Fu
       Lit::Num(n) => n.value != 0.0,
       Lit::Str(s) => !s.value.is_empty(),
       Lit::Null(_) => false,
-      _ => unimplemented!("Conversion lit expression to boolean"),
+      _ => unimplemented!("Conversion {:?} expression to boolean", expr.get_type()),
     },
     Expr::Ident(ident) => expr_to_bool(&ident_to_expr(ident, state, functions), state, functions),
     Expr::Array(_) => true,
@@ -571,8 +588,10 @@ pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &Fu
       UnaryOp::Minus => !expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Plus => !expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Tilde => !expr_to_bool(&unary.arg, state, functions),
-      _ => unimplemented!("Conversion unary expression to boolean"),
+      _ => unimplemented!("Conversion {:?} expression to boolean", expr.get_type()),
     },
-    _ => unimplemented!("Conversion expression to boolean"),
+    _ => {
+      unimplemented!("Conversion {:?} expression to boolean", expr.get_type())
+    }
   }
 }

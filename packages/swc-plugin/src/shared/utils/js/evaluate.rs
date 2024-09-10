@@ -391,36 +391,36 @@ fn _evaluate(
           EvaluateResultValue::Expr(expr) => match expr.as_ref() {
             Expr::Array(ArrayLit { elems, .. }) => {
               let Some(eval_res) = propery else {
-                panic!("Property not found");
+                panic!("Property not found: {:?}", expr.get_type());
               };
 
               let EvaluateResultValue::Expr(expr) = eval_res.as_ref() else {
-                panic!("Property not found");
+                panic!("Property not found: {:?}", expr.get_type());
               };
 
               let Expr::Lit(Lit::Num(Number { value, .. })) = *expr.as_expr() else {
-                panic!("Member not found");
+                panic!("Member not found: {:?}", expr.get_type());
               };
 
               let property = elems.get(value as usize)?;
 
               let Some(ExprOrSpread { expr, .. }) = property else {
-                panic!("Member not found");
+                panic!("Member not found: {:?}", expr.get_type());
               };
 
               Some(Box::new(EvaluateResultValue::Expr(expr.clone())))
             }
             Expr::Object(ObjectLit { props, .. }) => {
               let Some(eval_res) = propery else {
-                panic!("Property not found");
+                panic!("Property not found: {:?}", expr.get_type());
               };
 
               let EvaluateResultValue::Expr(ident) = eval_res.as_ref() else {
-                panic!("Property not found");
+                panic!("Property not found: {:?}", expr.get_type());
               };
 
               let Expr::Ident(ident) = ident.as_expr().clone() else {
-                panic!("Member not found");
+                panic!("Member not found: {:?}", expr.get_type());
               };
 
               let property = props.iter().find(|prop| match prop {
@@ -452,17 +452,17 @@ fn _evaluate(
                     .value,
                 ))));
               } else {
-                panic!("Member not found");
+                panic!("Member not found: {:?}", expr.get_type());
               }
             }
-            _ => unimplemented!("Expression"),
+            _ => unimplemented!("Expression: {:?}", expr.get_type()),
           },
           EvaluateResultValue::FunctionConfigMap(fc_map) => {
             let key = match propery {
               Some(propery) => match propery.as_ref() {
                 EvaluateResultValue::Expr(expr) => match expr.as_ref() {
                   Expr::Ident(ident) => Box::new(ident.clone()),
-                  _ => panic!("Member not found"),
+                  _ => panic!("Member not found: {:?}", expr.get_type()),
                 },
                 _ => unimplemented!(),
               },
@@ -482,7 +482,7 @@ fn _evaluate(
                     get_string_val_from_lit(lit).expect("Property must be a string")
                   }
                   _ => {
-                    panic!("Member not found")
+                    panic!("Member not found: {:?}", expr.get_type());
                   }
                 },
                 _ => unimplemented!(),
@@ -568,7 +568,9 @@ fn _evaluate(
             Expr::Fn(_) => "function",
             Expr::Class(_) => "function",
             Expr::Ident(ident) if ident.sym == *"undefined" => "undefined",
-            _ => "object",
+            Expr::Object(_) => "object",
+            Expr::Array(_) => "object",
+            _ => unimplemented!("Unary TypeOf: {:?}", arg.get_type()),
           };
 
           Some(Box::new(EvaluateResultValue::Expr(Box::new(
@@ -1465,7 +1467,10 @@ fn _evaluate(
                     let ident_name = if let Lit::Str(lit_str) = key.as_ref() {
                       quote_ident!(lit_str.value.as_ref())
                     } else {
-                      panic!("Expected a string literal")
+                      panic!(
+                        "Expected a string literal: {:?}",
+                        Expr::from(*key.clone()).get_type()
+                      )
                     };
 
                     let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
@@ -1604,7 +1609,7 @@ fn _evaluate(
       return deopt(path, state);
     }
     _ => {
-      eprintln!("Unsupported type of expression");
+      eprintln!("Unsupported type of expression: {:?}", path.get_type());
 
       return deopt(path, state);
     }

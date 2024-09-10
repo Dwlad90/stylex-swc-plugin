@@ -1,5 +1,8 @@
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, ObjectLit, PropOrSpread};
+use swc_core::ecma::{
+  ast::{Expr, ObjectLit, PropOrSpread},
+  utils::ExprExt,
+};
 
 use crate::shared::{
   enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
@@ -92,7 +95,10 @@ impl From<ObjectLit> for BaseCSSType {
 
               &object_lit_factory(vec![prop])
             }
-            _ => panic!("Value must be an object or string"),
+            _ => panic!(
+              "Value must be an object or string, but got: {:?}",
+              key_value.value.get_type()
+            ),
           };
 
           for key_value in get_key_values_from_object(obj_value) {
@@ -113,7 +119,7 @@ impl From<ObjectLit> for BaseCSSType {
 
                       obj_map.insert(key, ValueWithDefault::String(value));
                     }
-                    _ => panic!("Value must be a string"),
+                    _ => panic!("Value must be a string, but got: {:?}", key_value.value.get_type()),
                   }
                 }
 
@@ -126,7 +132,7 @@ impl From<ObjectLit> for BaseCSSType {
 
                 values.insert(key, ValueWithDefault::String(value));
               }
-              _ => panic!("Value must be a string or object"),
+              _ => panic!("Value must be a string or object, but got: {:?}", key_value.value.get_type()),
             }
           }
         }

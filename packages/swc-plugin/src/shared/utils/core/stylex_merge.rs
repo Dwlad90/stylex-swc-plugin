@@ -1,5 +1,6 @@
 use swc_core::ecma::{
   ast::{BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread},
+  utils::ExprExt,
   visit::FoldWith,
 };
 
@@ -93,12 +94,12 @@ pub(crate) fn stylex_merge(
           let ident = match alt.as_ref() {
             Expr::Ident(ident) => ident,
             Expr::Member(meber) => meber.obj.as_ident().expect("Member obj is not an ident"),
-            _ => panic!("Illegal argument"),
+            _ => panic!("Illegal argument: {:?}", alt.get_type()),
           };
 
           let member = match alt.as_ref() {
-            Expr::Member(meber) => meber,
-            _ => panic!("Illegal argument"),
+            Expr::Member(member) => member,
+            _ => panic!("Illegal argument: {:?}", alt.get_type()),
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(
@@ -131,12 +132,12 @@ pub(crate) fn stylex_merge(
           let ident = match right.as_ref() {
             Expr::Ident(ident) => ident,
             Expr::Member(meber) => meber.obj.as_ident().expect("Member obj is not an ident"),
-            _ => panic!("Illegal argument"),
+            _ => panic!("Illegal argument: {:?}", right.get_type()),
           };
 
           let member = match right.as_ref() {
             Expr::Member(meber) => meber,
-            _ => panic!("Illegal argument"),
+            _ => panic!("Illegal argument: {:?}", right.get_type()),
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(

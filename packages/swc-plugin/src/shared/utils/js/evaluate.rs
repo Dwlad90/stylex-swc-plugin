@@ -286,10 +286,17 @@ fn _evaluate(
 
       None
     }
-    Expr::TsAs(_) => unimplemented!("TsAs"),
+    Expr::TsAs(tsas) => {
+      let expr = tsas.expr.clone();
+
+      evaluate_cached(&expr, state, fns)
+    }
     Expr::TsSatisfies(_) => unimplemented!("TsSatisfies"),
     Expr::Seq(sec) => {
-      let expr = sec.exprs.last().expect("Sequence must have at least one expression");
+      let expr = sec
+        .exprs
+        .last()
+        .expect("Sequence must have at least one expression");
 
       evaluate_cached(expr, state, fns)
     }

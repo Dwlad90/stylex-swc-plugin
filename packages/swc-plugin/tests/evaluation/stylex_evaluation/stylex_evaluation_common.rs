@@ -473,3 +473,21 @@ fn evaluates_sequence_value_expressions() {
     false,
   )
 }
+
+#[test]
+fn evaluates_ts_as_value_expressions() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+            (3 as number) * (4 as number);
+        "#,
+    r#"
+            12
+        "#,
+    false,
+  )
+}

@@ -291,7 +291,11 @@ fn _evaluate(
 
       evaluate_cached(&expr, state, fns)
     }
-    Expr::TsSatisfies(_) => unimplemented!("TsSatisfies"),
+    Expr::TsSatisfies(ts_satisfaies) => {
+      let expr = ts_satisfaies.expr.clone();
+
+      evaluate_cached(&expr, state, fns)
+    }
     Expr::Seq(sec) => {
       let expr = sec
         .exprs

@@ -445,3 +445,31 @@ fn evaluates_delete_unary_value_expressions() {
     false,
   )
 }
+
+#[test]
+fn evaluates_sequence_value_expressions() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |_| EvaluationModuleTransformVisitor::default(),
+    r#"
+            (1,2,3);
+            (1,2,3,4,5);
+            (1,2,3,4,5,6,7,8,9,10);
+            (-1,-2,-3);
+            (-1,-2,-3,-4,-5);
+            (-1,-2,-3,-4,-5,-6,-7,-8,-9,-10);
+        "#,
+    r#"
+            3;
+            5;
+            10;
+            -3;
+            -5;
+            -10;
+        "#,
+    false,
+  )
+}

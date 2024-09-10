@@ -288,7 +288,11 @@ fn _evaluate(
     }
     Expr::TsAs(_) => unimplemented!("TsAs"),
     Expr::TsSatisfies(_) => unimplemented!("TsSatisfies"),
-    Expr::Seq(_) => unimplemented!("Seq"),
+    Expr::Seq(sec) => {
+      let expr = sec.exprs.last().expect("Sequence must have at least one expression");
+
+      evaluate_cached(expr, state, fns)
+    }
     Expr::Lit(lit_path) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::Lit(
       lit_path.clone(),
     ))))),

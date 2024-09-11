@@ -1,6 +1,8 @@
 use clap::Parser;
+use regex::Regex;
 
 use std::{
+    fmt::Display,
     fs::{self, read_to_string, write},
     io,
     path::{Path, PathBuf},
@@ -120,48 +122,61 @@ impl Fold for TestsTransformer {
 }
 
 fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
-    let mut transformer = TestsTransformer {
-        module_items: Vec::new(),
+    let is_snapshot = file_path.to_string_lossy().ends_with(".snap");
+
+    let source_code = read_to_string(file_path)?.replace("{ ... }", "{ }");
+
+    let code = if is_snapshot {
+        source_code
+    } else {
+        let mut transformer = TestsTransformer {
+            module_items: Vec::new(),
+        };
+        let compiler = Compiler::new(Default::default());
+
+        let cm: Arc<SourceMap> = Default::default();
+
+        let file_path_string = file_path.to_string_lossy().into_owned();
+        let file_name = FileName::Custom(file_path_string);
+
+        let fm = cm.new_source_file(file_name, source_code);
+        let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
+
+        let mut program = compiler
+            .parse_js(
+                fm,
+                &handler,
+                EsVersion::EsNext,
+                Syntax::Typescript(Default::default()),
+                IsModule::Bool(true),
+                None,
+            )
+            .unwrap();
+
+        program = program.fold_with(&mut transformer);
+
+        let transformed_code = compiler.print(
+            &program,
+            PrintArgs {
+                source_map: SourceMapsConfig::Bool(false),
+                ..Default::default()
+            },
+        );
+
+        transformed_code.unwrap().code
     };
-    let compiler = Compiler::new(Default::default());
-
-    let source_code = read_to_string(file_path)?;
-
-    let cm: Arc<SourceMap> = Default::default();
-
-    let file_path_string = file_path.to_string_lossy().into_owned();
-    let file_name = FileName::Custom(file_path_string);
-
-    let fm = cm.new_source_file(file_name, source_code);
-    let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
-
-    let mut program = compiler
-        .parse_js(
-            fm,
-            &handler,
-            EsVersion::EsNext,
-            Syntax::Typescript(Default::default()),
-            IsModule::Bool(true),
-            None,
-        )
-        .unwrap();
-
-    program = program.fold_with(&mut transformer);
-
-    let transformed_code = compiler.print(
-        &program,
-        PrintArgs {
-            source_map: SourceMapsConfig::Bool(false),
-            ..Default::default()
-        },
-    );
 
     let test_file_name = file_path.file_name().unwrap().to_str().unwrap().to_string();
 
-    write(
-        format!("{}/{}", dir, test_file_name),
-        transformed_code.unwrap().code,
-    )
+    write_file(dir, &test_file_name, code)
+}
+
+fn write_file<P: Display, C: AsRef<[u8]>>(
+    dir: P,
+    test_file_name: P,
+    transformed_code: C,
+) -> Result<(), io::Error> {
+    write(format!("{}/{}", dir, test_file_name), transformed_code)
 }
 
 fn create_dir_if_not_exists(dir: &str) -> io::Result<()> {
@@ -190,9 +205,11 @@ fn main() {
             }
         };
 
+        let re = Regex::new(r"(test\.js|test\.js\.snap)$").unwrap();
+
         let file_paths = file_paths
             .into_iter()
-            .filter(|f| f.display().to_string().ends_with("-test.js"))
+            .filter(|f| re.is_match(&f.display().to_string()))
             .collect::<Vec<PathBuf>>();
 
         let dir = format!("./output/__tests__/{}", package);

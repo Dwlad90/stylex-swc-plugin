@@ -17,6 +17,7 @@ swc_core = { version = "0.96.9", features = [
   "ecma_codegen",
   "base_node"
 ] }
+regex = "1.10.5"
 
 clap = { version = "4.5.11", features = ["derive"] }
 

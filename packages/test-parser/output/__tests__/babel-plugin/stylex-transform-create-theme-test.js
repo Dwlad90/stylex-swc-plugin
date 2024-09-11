@@ -112,9 +112,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           fgColor: "var(--x4y59db)",
           __themeName__: "x568ih9"
         };
-        _inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+        _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
@@ -160,9 +160,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           fgColor: "var(--x4y59db)",
           __themeName__: "x568ih9"
         };
-        _inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+        _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
@@ -211,9 +211,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           fgColor: "var(--x4y59db)",
           __themeName__: "x568ih9"
         };
-        _inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+        _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
@@ -272,15 +272,15 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           fgColor: "var(--x4y59db)",
           __themeName__: "x568ih9"
         };
-        _inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+        _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
           x568ih9: "xtrlmmh"
         };
-        _inject2(".x1awrdae{--xgck17p:white;--xpegid5:black;--xrqfjmn:0px;}", 0.5);
+        _inject2(".x1awrdae, .x1awrdae:root{--xgck17p:white;--xpegid5:black;--xrqfjmn:0px;}", 0.5);
         const buttonThemeMonochromatic = {
           TestTheme__buttonThemeMonochromatic: "TestTheme__buttonThemeMonochromatic",
           $$css: true,
@@ -320,9 +320,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           __themeName__: "x568ih9"
         };
         const RADIUS = 10;
-        _inject2(".xi7kglk{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:10;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.xi7kglk{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.xi7kglk{--xgck17p:transparent;}}", 0.6);
+        _inject2(".xi7kglk, .xi7kglk:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:10;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.xi7kglk, .xi7kglk:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.xi7kglk, .xi7kglk:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
@@ -362,9 +362,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           __themeName__: "x568ih9"
         };
         const COLOR = 'coral';
-        _inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+        _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
@@ -404,9 +404,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           __themeName__: "x568ih9"
         };
         const name = 'light';
-        _inject2(".x143z4bu{--xgck17p:lightgreen;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.x143z4bu{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.x143z4bu{--xgck17p:transparent;}}", 0.6);
+        _inject2(".x143z4bu, .x143z4bu:root{--xgck17p:lightgreen;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.x143z4bu, .x143z4bu:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.x143z4bu, .x143z4bu:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
@@ -446,9 +446,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           __themeName__: "x568ih9"
         };
         const RADIUS = 2;
-        _inject2(".x64jqcx{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:4;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.x64jqcx{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.x64jqcx{--xgck17p:transparent;}}", 0.6);
+        _inject2(".x64jqcx, .x64jqcx:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:4;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.x64jqcx, .x64jqcx:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.x64jqcx, .x64jqcx:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
@@ -478,9 +478,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           fgColor: "var(--x4y59db)",
           __themeName__: "x568ih9"
         };
-        _inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+        _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           NestedTheme__buttonThemePositive: "NestedTheme__buttonThemePositive",
           $$css: true,
@@ -520,9 +520,9 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
           __themeName__: "x568ih9"
         };
         const RADIUS = 2;
-        _inject2(".x41sqjo{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:4px;--x4y59db:coral;}", 0.5);
-        _inject2("@media (prefers-color-scheme: dark){.x41sqjo{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-        _inject2("@media print{.x41sqjo{--xgck17p:transparent;}}", 0.6);
+        _inject2(".x41sqjo, .x41sqjo:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:4px;--x4y59db:coral;}", 0.5);
+        _inject2("@media (prefers-color-scheme: dark){.x41sqjo, .x41sqjo:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+        _inject2("@media print{.x41sqjo, .x41sqjo:root{--xgck17p:transparent;}}", 0.6);
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,

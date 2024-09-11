@@ -8,15 +8,15 @@ export const buttonTheme = {
     fgColor: "var(--x4y59db)",
     __themeName__: "x568ih9"
 };
-_inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-_inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-_inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+_inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+_inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+_inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
 export const buttonThemePositive = {
     TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
     $$css: true,
     x568ih9: "xtrlmmh"
 };
-_inject2(".x1awrdae{--xgck17p:white;--xpegid5:black;--xrqfjmn:0px;}", 0.5);
+_inject2(".x1awrdae, .x1awrdae:root{--xgck17p:white;--xpegid5:black;--xrqfjmn:0px;}", 0.5);
 export const buttonThemeMonochromatic = {
     TestTheme__buttonThemeMonochromatic: "TestTheme__buttonThemeMonochromatic",
     $$css: true,

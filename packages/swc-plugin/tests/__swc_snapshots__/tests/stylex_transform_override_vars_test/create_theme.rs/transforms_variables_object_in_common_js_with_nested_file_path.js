@@ -8,9 +8,9 @@ export const buttonTheme = {
     fgColor: "var(--x4y59db)",
     __themeName__: "x568ih9"
 };
-_inject2(".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
-_inject2("@media (prefers-color-scheme: dark){.xtrlmmh{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
-_inject2("@media print{.xtrlmmh{--xgck17p:transparent;}}", 0.6);
+_inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
+_inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
+_inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
 export const buttonThemePositive = {
     NestedTheme__buttonThemePositive: "NestedTheme__buttonThemePositive",
     $$css: true,

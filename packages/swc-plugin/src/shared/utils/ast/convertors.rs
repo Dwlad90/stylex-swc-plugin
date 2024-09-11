@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use swc_core::ecma::{
   ast::BigInt,
   utils::{quote_ident, quote_str, ExprExt},

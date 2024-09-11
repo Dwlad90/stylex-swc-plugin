@@ -146,7 +146,7 @@ mod stylex_create_theme {
       exprected_result_factory(&[(
         theme_name,
         (
-          ".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}",
+          ".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}",
           0.5
         )
       )])
@@ -212,7 +212,7 @@ mod stylex_create_theme {
       exprected_result_factory(&[(
         theme_name,
         (
-          ".x4znj40{--bgColor:green;--bgColorDisabled:antiquewhite;--cornerRadius:6px;--fgColor:coral;}",
+          ".x4znj40, .x4znj40:root{--bgColor:green;--bgColorDisabled:antiquewhite;--cornerRadius:6px;--fgColor:coral;}",
           0.5
         )
       )])
@@ -404,10 +404,10 @@ mod stylex_create_theme {
 
     assert_eq!(
       css_output,
-      exprected_result_factory(&[("x2y918k", (".x2y918k{--xgck17p:green;}", 0.5)),
-      ("x2y918k-1e6ryz3", ("@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:oklab(0.7 -0.2 -0.4);}}}", 0.7)),
-      ("x2y918k-1lveb7", ("@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:lightgreen;}}", 0.6)),
-      ("x2y918k-kpd015", ("@supports (color: oklab(0 0 0)){.x2y918k{--xgck17p:oklab(0.7 -0.3 -0.4);}}", 0.6))
+      exprected_result_factory(&[("x2y918k", (".x2y918k, .x2y918k:root{--xgck17p:green;}", 0.5)),
+      ("x2y918k-1e6ryz3", ("@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}}}", 0.7)),
+      ("x2y918k-1lveb7", ("@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}", 0.6)),
+      ("x2y918k-kpd015", ("@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}", 0.6))
       ])
     )
   }
@@ -452,10 +452,10 @@ mod stylex_create_theme {
 
     assert_eq!(
       css_output,
-      exprected_result_factory(&[("x2y918k", (".x2y918k{--xgck17p:green;}", 0.5)),
-      ("x2y918k-1e6ryz3", ("@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:oklab(0.7 -0.2 -0.4);}}}", 0.7)),
-      ("x2y918k-1lveb7", ("@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:lightgreen;}}", 0.6)),
-      ("x2y918k-kpd015", ("@supports (color: oklab(0 0 0)){.x2y918k{--xgck17p:oklab(0.7 -0.3 -0.4);}}", 0.6))
+      exprected_result_factory(&[("x2y918k", (".x2y918k, .x2y918k:root{--xgck17p:green;}", 0.5)),
+      ("x2y918k-1e6ryz3", ("@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}}}", 0.7)),
+      ("x2y918k-1lveb7", ("@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}", 0.6)),
+      ("x2y918k-kpd015", ("@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}", 0.6))
       ])
     )
   }

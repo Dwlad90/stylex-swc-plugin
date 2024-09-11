@@ -117,7 +117,7 @@ pub(crate) fn stylex_create_theme(
 
   for at_rule in sorted_at_rules.into_iter() {
     let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
-    let rule = format!(".{}{{{}}}", override_class_name, decls);
+    let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
 
     if at_rule == "default" {
       styles_to_inject.insert(

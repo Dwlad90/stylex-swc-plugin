@@ -36,7 +36,7 @@ export default function ButtonsDemo(_props) {
       </ThemeableButton>
     </div>;
 }
-_inject2(".x8j0i83{--x1tvn83n:red;--xlb9c25:4px;--xk30bbq:4px;--xkhjxis:8px;--xte9ugm:white;}", 0.5);
+_inject2(".x8j0i83, .x8j0i83:root{--x1tvn83n:red;--xlb9c25:4px;--xk30bbq:4px;--xkhjxis:8px;--xte9ugm:white;}", 0.5);
 const redTheme = {
     Page__redTheme: "Page__redTheme",
     $$css: true,

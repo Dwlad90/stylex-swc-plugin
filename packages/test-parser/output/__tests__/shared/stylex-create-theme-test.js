@@ -25,7 +25,7 @@ describe('stylex-create-theme test', ()=>{
         const [classNameOutput, cssOutput] = stylexCreateTheme(defaultVars, createTheme);
         expect(cssOutput[classNameOutput[defaultVars.__themeName__]]).toMatchInlineSnapshot(`
       {
-        "ltr": ".xtrlmmh{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}",
+        "ltr": ".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}",
         "priority": 0.5,
         "rtl": null,
       }
@@ -57,7 +57,7 @@ describe('stylex-create-theme test', ()=>{
         const [classNameOutput, cssOutput] = stylexCreateTheme(defaultVars, createTheme);
         expect(cssOutput[classNameOutput[defaultVars.__themeName__]]).toMatchInlineSnapshot(`
       {
-        "ltr": ".x4znj40{--bgColor:green;--bgColorDisabled:antiquewhite;--cornerRadius:6px;--fgColor:coral;}",
+        "ltr": ".x4znj40, .x4znj40:root{--bgColor:green;--bgColorDisabled:antiquewhite;--cornerRadius:6px;--fgColor:coral;}",
         "priority": 0.5,
         "rtl": null,
       }
@@ -144,22 +144,22 @@ describe('stylex-create-theme test', ()=>{
         expect(cssOutput).toMatchInlineSnapshot(`
       {
         "x2y918k": {
-          "ltr": ".x2y918k{--xgck17p:green;}",
+          "ltr": ".x2y918k, .x2y918k:root{--xgck17p:green;}",
           "priority": 0.5,
           "rtl": null,
         },
         "x2y918k-1e6ryz3": {
-          "ltr": "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:oklab(0.7 -0.2 -0.4);}}}",
+          "ltr": "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}}}",
           "priority": 0.7,
           "rtl": null,
         },
         "x2y918k-1lveb7": {
-          "ltr": "@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:lightgreen;}}",
+          "ltr": "@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}",
           "priority": 0.6,
           "rtl": null,
         },
         "x2y918k-kpd015": {
-          "ltr": "@supports (color: oklab(0 0 0)){.x2y918k{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
+          "ltr": "@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
           "priority": 0.6,
           "rtl": null,
         },
@@ -187,22 +187,22 @@ describe('stylex-create-theme test', ()=>{
         expect(cssOutput).toMatchInlineSnapshot(`
       {
         "x2y918k": {
-          "ltr": ".x2y918k{--xgck17p:green;}",
+          "ltr": ".x2y918k, .x2y918k:root{--xgck17p:green;}",
           "priority": 0.5,
           "rtl": null,
         },
         "x2y918k-1e6ryz3": {
-          "ltr": "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:oklab(0.7 -0.2 -0.4);}}}",
+          "ltr": "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}}}",
           "priority": 0.7,
           "rtl": null,
         },
         "x2y918k-1lveb7": {
-          "ltr": "@media (prefers-color-scheme: dark){.x2y918k{--xgck17p:lightgreen;}}",
+          "ltr": "@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}",
           "priority": 0.6,
           "rtl": null,
         },
         "x2y918k-kpd015": {
-          "ltr": "@supports (color: oklab(0 0 0)){.x2y918k{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
+          "ltr": "@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
           "priority": 0.6,
           "rtl": null,
         },

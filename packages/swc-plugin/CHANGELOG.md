@@ -1,5 +1,11 @@
 # @stylexswc/swc-plugin
 
+## 0.2.2
+
+### Patch Changes
+
+- a9e1961: create: transform different argument types
+
 ## 0.2.1
 
 ### Patch Changes

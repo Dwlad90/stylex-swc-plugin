@@ -1,5 +1,11 @@
 # @stylexswc/test-parser
 
+## 0.1.2
+
+### Patch Changes
+
+- 907c86b: parse test snapshots
+
 ## 0.1.1
 
 ### Patch Changes

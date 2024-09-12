@@ -72,6 +72,9 @@ const INTERCEPT = {
   h1: Math.round(100 * (MIN_FONT.h1 - SLOPE.h1 * (MIN_WIDTH / 16))) / 100,
 };
 
+const h2 = 'h2';
+const H3 = 'h3';
+
 export const text = stylex.defineVars({
   xxs: `clamp(${Math.min(MIN_FONT.xxs)}rem, calc(${INTERCEPT.xxs}rem + ${Math.round(10000 * SLOPE.xxs) / 100
     }vw), ${Math.max(MAX_FONT.xxs)}rem)`,
@@ -85,11 +88,11 @@ export const text = stylex.defineVars({
     }vw), ${Math.max(MAX_FONT.h5)}rem)`,
   h4: `clamp(${Math.min(MIN_FONT.h4)}rem, calc(${INTERCEPT.h4}rem + ${Math.round(10000 * SLOPE.h4) / 100
     }vw), ${Math.max(MAX_FONT.h4)}rem)`,
-  h3: `clamp(${Math.min(MIN_FONT.h3)}rem, calc(${INTERCEPT.h3}rem + ${Math.round(10000 * SLOPE.h3) / 100
+  [H3]: `clamp(${Math.min(MIN_FONT.h3)}rem, calc(${INTERCEPT.h3}rem + ${Math.round(10000 * SLOPE.h3) / 100
     }vw), ${Math.max(MAX_FONT.h3)}rem)`,
-  h2: `clamp(${Math.min(MIN_FONT.h2)}rem, calc(${INTERCEPT.h2}rem + ${Math.round(10000 * SLOPE.h2) / 100
+  [h2]: `clamp(${Math.min(MIN_FONT.h2)}rem, calc(${INTERCEPT.h2}rem + ${Math.round(10000 * SLOPE.h2) / 100
     }vw), ${Math.max(MAX_FONT.h2)}rem)`,
-  h1: `clamp(${Math.min(MIN_FONT.h1)}rem, calc(${INTERCEPT.h1}rem + ${Math.round(10000 * SLOPE.h1) / 100
+  ['h1']: `clamp(${Math.min(MIN_FONT.h1)}rem, calc(${INTERCEPT.h1}rem + ${Math.round(10000 * SLOPE.h1) / 100
     }vw), ${Math.max(MAX_FONT.h1)}rem)`,
 });
 

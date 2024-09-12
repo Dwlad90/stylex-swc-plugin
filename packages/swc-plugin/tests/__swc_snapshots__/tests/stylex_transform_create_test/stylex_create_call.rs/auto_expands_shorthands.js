@@ -1,7 +1,6 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-const borderRadius = 2;
 _inject2(".xe4njm9{margin:calc((100% - 50px) * .5) 20px 0}", 1000);
 _inject2(".xs4buau{border-color:red blue}", 2000);
 _inject2(".xbsl7fq{border-style:dashed}", 2000);

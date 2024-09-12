@@ -35,6 +35,14 @@ const optional = false;
 const optional2 = false;
 const optional3 = false;
 
+function getStaticProps() {
+  return {
+    props: {},
+  };
+}
+
+const { foo, ...a } = { foo: "bar", baz: "qux" };
+
 export default function Home() {
   const { className, style } = stylex.props(
     s.main,

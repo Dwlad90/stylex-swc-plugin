@@ -469,12 +469,14 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
     ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) => {
       for decl in &var.decls {
         if let Some(decl_init) = decl.init.as_ref() {
-          state.top_level_expressions.push(TopLevelExpression(
-            TopLevelExpressionKind::Stmt,
-            *decl_init.clone(),
-            Some(decl.name.as_ident().unwrap().sym.clone()),
-          ));
-          state.declarations.push(decl.clone());
+          if decl.name.as_ident().is_some() {
+            state.top_level_expressions.push(TopLevelExpression(
+              TopLevelExpressionKind::Stmt,
+              *decl_init.clone(),
+              Some(decl.name.as_ident().unwrap().sym.clone()),
+            ));
+            state.declarations.push(decl.clone());
+          }
         }
       }
     }

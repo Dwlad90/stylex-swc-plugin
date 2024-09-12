@@ -4,8 +4,10 @@ mod fold_expr;
 mod fold_ident;
 mod fold_import_decl;
 mod fold_member_expression;
+mod fold_member_prop;
 mod fold_module;
 mod fold_module_items;
+mod fold_prop_name;
 mod fold_stmt;
 mod fold_stmts;
 mod fold_var_declarator;
@@ -15,8 +17,8 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{
-      ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr, Module, ModuleItem, Stmt,
-      VarDeclarator,
+      ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr, MemberProp, Module,
+      ModuleItem, PropName, Stmt, VarDeclarator,
     },
     visit::{noop_fold_type, Fold},
   },
@@ -64,6 +66,14 @@ where
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
     self.fold_expr_impl(expr)
+  }
+
+  fn fold_prop_name(&mut self, prop_name: PropName) -> PropName {
+    self.fold_prop_name_impl(prop_name)
+  }
+
+  fn fold_member_prop(&mut self, member_prop: MemberProp) -> MemberProp {
+    self.fold_member_prop_impl(member_prop)
   }
 
   fn fold_member_expr(&mut self, member_expresseion: MemberExpr) -> MemberExpr {

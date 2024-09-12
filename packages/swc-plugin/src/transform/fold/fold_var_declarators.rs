@@ -20,7 +20,6 @@ where
       ModuleCycle::Skip => {
         return var_declarators;
       }
-      // ModuleCycle::Initializing => {}
       ModuleCycle::Cleaning => {
         var_declarators.retain(|decl| {
           if let Pat::Ident(bind_ident) = &decl.name {

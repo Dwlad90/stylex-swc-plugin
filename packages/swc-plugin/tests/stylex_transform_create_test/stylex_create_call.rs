@@ -603,3 +603,49 @@ test!(
     });
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+  transforms_style_object_with_key_containing_differend_types,
+  r#"
+        import stylex from 'stylex';
+
+        const color = 'blue';
+        const paddingTop = '1px';
+
+        const marginRight = 'marginRight';
+
+        const margin = {
+          left: 'marginLeft',
+        }
+
+        const values = {
+          paddingBottom: '2px',
+          paddingLeft: '3px',
+          paddingRight: '4px',
+          marginRight: '5px',
+          marginLeft: '6px',
+          margin: {
+            bottom: '7px',
+          }
+        };
+
+        const styles = stylex.create({
+            default: {
+                backgroundColor: 'red',
+                color: color,
+                paddingTop,
+                paddingBottom: values.paddingBottom,
+                paddingLeft: values['paddingLeft'],
+                paddingRight: values[`paddingRight`],
+                marginRight: values[marginRight],
+                marginLeft: values[margin.left],
+                marginBottom: values.margin.bottom,
+            }
+        });
+    "#
+);

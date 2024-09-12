@@ -419,8 +419,18 @@ fn _evaluate(
                 panic!("Property not found: {:?}", expr.get_type());
               };
 
-              let Expr::Ident(ident) = ident.as_expr().clone() else {
-                panic!("Member not found: {:?}", expr.get_type());
+              let ident = &mut ident.to_owned();
+              let normalized_ident = normalize_expr(ident);
+
+              let ident_string_name = match normalized_ident {
+                Expr::Ident(ident) => ident.sym.to_string(),
+                Expr::Lit(lit) => get_string_val_from_lit(lit).unwrap_or_else(|| {
+                  panic!(
+                    "Property must be convertable to string: {:?}",
+                    normalized_ident.get_type()
+                  )
+                }),
+                _ => unimplemented!("Member property: {:?}", normalized_ident.get_type()),
               };
 
               let property = props.iter().find(|prop| match prop {
@@ -436,7 +446,7 @@ fn _evaluate(
                     Prop::KeyValue(key_value) => {
                       let key = get_key_str(key_value);
 
-                      ident.sym == key
+                      ident_string_name == key
                     }
                     _ => unimplemented!("Prop"),
                   }
@@ -674,7 +684,13 @@ fn _evaluate(
                   return None;
                 }
 
-                let value = value.value.unwrap();
+                let value = value.value.unwrap_or_else(|| {
+                  panic!(
+                    "Value of key '{}' must be present, but got {:?}",
+                    key.clone().unwrap_or("Unknown".to_string()),
+                    path_key_value.value.get_type()
+                  )
+                });
 
                 let value = match value.as_ref() {
                   EvaluateResultValue::Expr(expr) => expr.clone(),

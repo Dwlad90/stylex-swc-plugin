@@ -16,15 +16,15 @@ where
     &mut self,
     mut export_default_expr: ExportDefaultExpr,
   ) -> ExportDefaultExpr {
-    if self.cycle == ModuleCycle::Skip {
+    if self.state.cycle == ModuleCycle::Skip {
       return export_default_expr;
     }
 
-    if self.cycle == ModuleCycle::StateFilling {
+    if self.state.cycle == ModuleCycle::StateFilling {
       return export_default_expr.fold_children_with(self);
     }
 
-    if self.cycle == ModuleCycle::TransformEnter || self.cycle == ModuleCycle::TransformExit {
+    if self.state.cycle == ModuleCycle::TransformEnter || self.state.cycle == ModuleCycle::TransformExit {
       let normalized_expr = normalize_expr(&mut export_default_expr.expr);
 
       if let Some(value) = self.transform_call_expression(normalized_expr) {

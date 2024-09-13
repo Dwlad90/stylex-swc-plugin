@@ -15,11 +15,11 @@ use swc_core::{
   common::{EqIgnoreSpan, FileName, DUMMY_SP},
 };
 
-use crate::shared::enums::data_structures::{
+use crate::shared::enums::{core::ModuleCycle, data_structures::{
   import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
   style_vars_to_keep::StyleVarsToKeep,
   top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-};
+}};
 use crate::shared::utils::{
   ast::factories::binding_ident_factory,
   common::{
@@ -66,8 +66,8 @@ pub struct StateManager {
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) all_call_expressions: Vec<CallExpr>,
-  pub(crate) var_decl_count_map: HashMap<Atom, i8>,
-  pub(crate) seen: HashMap<Box<Expr>, Box<SeenValue>>,
+  pub(crate) var_decl_count_map: HashMap<Atom, i16>,
+  pub(crate) seen: HashMap<Box<Expr>, (Box<SeenValue>, Option<HashMap<Atom, i16>>)>,
 
   // `stylex.create` calls
   pub(crate) style_map: HashMap<String, Box<StylesObjectMap>>,
@@ -75,7 +75,7 @@ pub struct StateManager {
 
   // results of `stylex.create` calls that should be kept
   pub(crate) style_vars_to_keep: HashSet<Box<StyleVarsToKeep>>,
-  pub(crate) member_object_ident_count_map: HashMap<Atom, i8>,
+  pub(crate) member_object_ident_count_map: HashMap<Atom, i16>,
 
   pub(crate) in_stylex_create: bool,
 
@@ -87,6 +87,9 @@ pub struct StateManager {
 
   pub(crate) injected_keyframes: IndexMap<String, Box<InjectableStyle>>,
   pub(crate) top_imports: Vec<ImportDecl>,
+
+  pub(crate) cycle: ModuleCycle,
+
 }
 
 impl Default for StateManager {
@@ -137,6 +140,8 @@ impl StateManager {
       prepend_import_module_items: vec![],
 
       injected_keyframes: IndexMap::new(),
+
+      cycle: ModuleCycle::Initializing,
     }
   }
 

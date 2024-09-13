@@ -16,11 +16,11 @@ where
   C: Comments,
 {
   pub(crate) fn fold_import_decl_impl(&mut self, import_decl: ImportDecl) -> ImportDecl {
-    if self.cycle == ModuleCycle::Skip {
+    if self.state.cycle == ModuleCycle::Skip {
       return import_decl;
     }
 
-    if self.cycle == ModuleCycle::Initializing {
+    if self.state.cycle == ModuleCycle::Initializing {
       if import_decl.type_only {
         return import_decl;
       }

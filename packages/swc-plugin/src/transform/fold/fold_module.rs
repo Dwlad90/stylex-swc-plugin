@@ -19,19 +19,19 @@ where
     let mut module = module.fold_children_with(self);
 
     if !self.state.import_paths.is_empty() {
-      self.cycle = ModuleCycle::StateFilling;
+      self.state.cycle = ModuleCycle::StateFilling;
       module = module.fold_children_with(self);
 
       fill_top_level_expressions(&module, &mut self.state);
 
-      self.cycle = ModuleCycle::TransformEnter;
+      self.state.cycle = ModuleCycle::TransformEnter;
       module = module.fold_children_with(self);
 
-      self.cycle = ModuleCycle::TransformExit;
+      self.state.cycle = ModuleCycle::TransformExit;
       module = module.fold_children_with(self);
 
       if self.state.options.runtime_injection.is_some() {
-        self.cycle = ModuleCycle::InjectStyles;
+        self.state.cycle = ModuleCycle::InjectStyles;
         module = module.fold_children_with(self);
       } else {
         // Preparing stylex metadata for css extraction
@@ -57,13 +57,23 @@ where
         );
       }
 
-      self.cycle = ModuleCycle::PreCleaning;
+      self.state.cycle = ModuleCycle::PreCleaning;
       module = module.fold_children_with(self);
 
-      self.cycle = ModuleCycle::Cleaning;
-      module.fold_children_with(self)
+      self.state.cycle = ModuleCycle::Cleaning;
+
+      // NOTE: Reversing the module body to clean the module items in the correct order,
+      // so removing unused variable declarations will more efficient
+      // After cleaning the module items, the module body will be reversed back to its original order
+      module.body.reverse();
+
+      module = module.fold_children_with(self);
+
+      module.body.reverse();
+
+      module
     } else {
-      self.cycle = ModuleCycle::Skip;
+      self.state.cycle = ModuleCycle::Skip;
       module
     }
   }

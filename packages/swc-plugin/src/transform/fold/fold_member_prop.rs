@@ -1,9 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{
-    ast::MemberProp,
-    visit::FoldWith,
-  },
+  ecma::{ast::MemberProp, visit::FoldWith},
 };
 
 use crate::{shared::enums::core::ModuleCycle, ModuleTransformVisitor};
@@ -13,11 +10,13 @@ where
   C: Comments,
 {
   pub(crate) fn fold_member_prop_impl(&mut self, member_prop: MemberProp) -> MemberProp {
-    if self.cycle == ModuleCycle::Skip {
+    if self.state.cycle == ModuleCycle::Skip {
       return member_prop;
     }
 
-    if self.cycle == ModuleCycle::StateFilling && member_prop.is_ident() {
+    if (self.state.cycle == ModuleCycle::StateFilling || self.state.cycle == ModuleCycle::Recounting)
+      && member_prop.is_ident()
+    {
       return member_prop;
     }
 

@@ -1,7 +1,7 @@
 use radix_fmt::radix;
 use std::{
   any::type_name,
-  collections::HashSet,
+  collections::{hash_map::Entry, HashMap, HashSet},
   hash::{DefaultHasher, Hash, Hasher},
   ops::Deref,
   path::PathBuf,
@@ -92,10 +92,9 @@ pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: &bool) -> Str
 }
 
 pub fn reduce_ident_count<'a>(state: &'a mut StateManager, ident: &'a Ident) {
-  *state
-    .var_decl_count_map
-    .entry(ident.sym.clone())
-    .or_insert(0) -= 1;
+  if let Entry::Occupied(mut entry) = state.var_decl_count_map.entry(ident.sym.clone()) {
+    *entry.get_mut() -= 1;
+  }
 }
 
 pub fn increase_member_ident(state: &mut StateManager, member_obj: &MemberExpr) {
@@ -111,10 +110,12 @@ pub fn reduce_member_expression_count(state: &mut StateManager, member_expressio
 }
 
 pub fn reduce_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
-  *state
+  if let Entry::Occupied(mut entry) = state
     .member_object_ident_count_map
     .entry(ident_atom.clone())
-    .or_insert(0) -= 1;
+  {
+    *entry.get_mut() -= 1;
+  }
 }
 
 pub fn increase_ident_count(state: &mut StateManager, ident: &Ident) {
@@ -125,7 +126,7 @@ pub fn increase_member_ident_count(state: &mut StateManager, ident_atom: &Atom) 
   increase_member_ident_count_by_count(state, ident_atom, 1);
 }
 
-pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, count: i8) {
+pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, count: i16) {
   let ident_id = &ident.sym;
 
   *state
@@ -137,7 +138,7 @@ pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, co
 pub fn increase_member_ident_count_by_count(
   state: &mut StateManager,
   ident_atom: &Atom,
-  count: i8,
+  count: i16,
 ) {
   *state
     .member_object_ident_count_map
@@ -349,6 +350,74 @@ pub(crate) fn deep_merge_props(
   }
 
   remove_duplicates(new_props.into_iter().rev().collect())
+}
+
+pub(crate) fn get_hash_map_difference<K, V>(
+  orig_map: &HashMap<K, V>,
+  compare_map: &HashMap<K, V>,
+) -> HashMap<K, V>
+where
+  K: Eq + Hash + Clone,
+  V: PartialEq + Clone,
+{
+  let mut diff = HashMap::new();
+
+  for (key, value) in orig_map {
+    if let Some(map2_value) = compare_map.get(key) {
+      if value != map2_value {
+        diff.insert(key.clone(), value.clone());
+      }
+    } else {
+      diff.insert(key.clone(), value.clone());
+    }
+  }
+
+  for (key, value) in compare_map {
+    if !orig_map.contains_key(key) {
+      diff.insert(key.clone(), value.clone());
+    }
+  }
+
+  diff
+}
+
+pub(crate) fn get_hash_map_value_difference(
+  orig_map: &HashMap<Atom, i16>,
+  map2: &HashMap<Atom, i16>,
+) -> HashMap<Atom, i16> {
+  let mut diff = HashMap::new();
+
+  for (key, value) in orig_map {
+    if let Some(map2_value) = map2.get(key) {
+      if value != map2_value {
+        diff.insert(key.clone(), value - map2_value);
+      }
+    } else {
+      diff.insert(key.clone(), *value);
+    }
+  }
+
+  diff
+}
+
+pub(crate) fn sum_hash_map_values(
+  orig_map: &HashMap<Atom, i16>,
+  compare_map: &HashMap<Atom, i16>,
+) -> HashMap<Atom, i16> {
+  let mut sum_map = HashMap::new();
+
+  for (key, value) in orig_map {
+    sum_map.insert(key.clone(), *value);
+  }
+
+  for (key, value) in compare_map {
+    sum_map
+      .entry(key.clone())
+      .and_modify(|e| *e += value)
+      .or_insert(*value);
+  }
+
+  sum_map
 }
 
 pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {

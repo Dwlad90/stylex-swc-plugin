@@ -16,11 +16,11 @@ where
   C: Comments,
 {
   pub(crate) fn fold_export_decl_impl(&mut self, export_decl: ExportDecl) -> ExportDecl {
-    if self.cycle == ModuleCycle::Skip {
+    if self.state.cycle == ModuleCycle::Skip {
       return export_decl;
     }
 
-    if self.cycle == ModuleCycle::StateFilling {
+    if self.state.cycle == ModuleCycle::StateFilling {
       if let Decl::Var(var_decl) = &export_decl.decl {
         for decl in &var_decl.decls {
           if let Some(ident) = decl.name.as_ident() {

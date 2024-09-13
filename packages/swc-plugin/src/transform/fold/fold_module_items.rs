@@ -17,13 +17,13 @@ where
   C: Comments,
 {
   pub(crate) fn fold_module_items(&mut self, module_items: Vec<ModuleItem>) -> Vec<ModuleItem> {
-    match self.cycle {
+    match self.state.cycle {
       ModuleCycle::Skip => module_items,
       ModuleCycle::Initializing => {
         let transformed_module_items = module_items.fold_children_with(self);
 
         if self.state.import_paths.is_empty() {
-          self.cycle = ModuleCycle::Skip;
+          self.state.cycle = ModuleCycle::Skip;
 
           return transformed_module_items;
         }
@@ -138,6 +138,7 @@ where
 
         module_items
       }
+      ModuleCycle::Recounting => module_items.fold_children_with(self),
     }
   }
 }

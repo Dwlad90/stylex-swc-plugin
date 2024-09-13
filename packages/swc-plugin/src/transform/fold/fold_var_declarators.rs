@@ -16,7 +16,7 @@ where
     &mut self,
     mut var_declarators: Vec<VarDeclarator>,
   ) -> Vec<VarDeclarator> {
-    match self.cycle {
+    match self.state.cycle {
       ModuleCycle::Skip => {
         return var_declarators;
       }
@@ -25,11 +25,17 @@ where
           if let Pat::Ident(bind_ident) = &decl.name {
             let decl_id = &bind_ident.sym;
 
-            if self.state.var_decl_count_map.contains_key(decl_id) {
-              let count = self.state.var_decl_count_map.get(decl_id).unwrap();
-
+            if let Some(&count) = self.state.var_decl_count_map.get(decl_id) {
               // Remove the variable declaration if it is used only once after transformation.
-              let is_used = count > &1;
+              let is_used = count > 1;
+
+              if !is_used {
+                self.state.cycle = ModuleCycle::Recounting;
+
+                decl.clone().fold_children_with(self);
+
+                self.state.cycle = ModuleCycle::Cleaning;
+              }
 
               return is_used;
             }

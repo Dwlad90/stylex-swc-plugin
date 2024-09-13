@@ -10,11 +10,11 @@ where
   C: Comments,
 {
   pub(crate) fn fold_stmts_impl(&mut self, mut stmts: Vec<Stmt>) -> Vec<Stmt> {
-    if self.cycle == ModuleCycle::Skip {
+    if self.state.cycle == ModuleCycle::Skip {
       return stmts;
     }
 
-    if self.cycle == ModuleCycle::Cleaning {
+    if self.state.cycle == ModuleCycle::Cleaning {
       stmts.retain(|stmt| {
         // We use `matches` macro as this match is trivial.
         !matches!(stmt, Stmt::Empty(..))

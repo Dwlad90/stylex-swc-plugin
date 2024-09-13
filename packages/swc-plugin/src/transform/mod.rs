@@ -28,7 +28,6 @@ where
   C: Comments,
 {
   comments: C,
-  cycle: ModuleCycle,
   props_declaration: Option<Id>,
   pub(crate) state: Box<StateManager>,
 }
@@ -57,7 +56,6 @@ where
 
     ModuleTransformVisitor {
       comments,
-      cycle: ModuleCycle::Initializing,
       props_declaration: None,
       state,
     }
@@ -99,7 +97,6 @@ where
 
     ModuleTransformVisitor {
       comments,
-      cycle: ModuleCycle::Initializing,
       props_declaration: None,
       state,
     }
@@ -134,7 +131,6 @@ where
 
     ModuleTransformVisitor {
       comments,
-      cycle: ModuleCycle::Initializing,
       props_declaration: None,
       state,
     }
@@ -148,7 +144,7 @@ where
           let ident_id = ident.to_id();
 
           if stylex_imports.contains(&ident.sym.to_string())
-            || (self.cycle == ModuleCycle::TransformEnter
+            || (self.state.cycle == ModuleCycle::TransformEnter
               && (self.state.stylex_create_import.contains(&ident.sym))
               || self.state.stylex_props_import.contains(&ident.sym)
               || self.state.stylex_keyframes_import.contains(&ident.sym)
@@ -178,7 +174,7 @@ where
             let ident_id = ident.to_id();
 
             if stylex_imports.contains(&ident.sym.to_string())
-              || (self.cycle == ModuleCycle::TransformEnter
+              || (self.state.cycle == ModuleCycle::TransformEnter
                 && (self.state.stylex_create_import.contains(&ident.sym))
                 || self.state.stylex_props_import.contains(&ident.sym)
                 || self.state.stylex_keyframes_import.contains(&ident.sym)

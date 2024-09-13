@@ -14,11 +14,11 @@ where
   C: Comments,
 {
   pub(crate) fn fold_stmt_impl(&mut self, stmt: Stmt) -> Stmt {
-    if self.cycle == ModuleCycle::Skip {
+    if self.state.cycle == ModuleCycle::Skip {
       return stmt;
     }
 
-    if self.cycle == ModuleCycle::Cleaning {
+    if self.state.cycle == ModuleCycle::Cleaning {
       let mut stmt = stmt.fold_children_with(self);
 
       if let Some(Stmt::Decl(Decl::Var(var))) = stmt.as_ref() {

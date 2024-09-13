@@ -10,14 +10,10 @@ where
   C: Comments,
 {
   pub(crate) fn fold_prop_name_impl(&mut self, prop_name: PropName) -> PropName {
-    if self.cycle == ModuleCycle::Skip {
-      return prop_name;
+    match self.state.cycle {
+      ModuleCycle::Skip => prop_name,
+      ModuleCycle::StateFilling | ModuleCycle::Recounting if prop_name.is_ident() => prop_name,
+      _ => prop_name.fold_children_with(self),
     }
-
-    if self.cycle == ModuleCycle::StateFilling && prop_name.is_ident() {
-      return prop_name;
-    }
-
-    prop_name.fold_children_with(self)
   }
 }

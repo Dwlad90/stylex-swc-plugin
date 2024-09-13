@@ -31,109 +31,108 @@ where
     &mut self,
     mut var_declarator: VarDeclarator,
   ) -> VarDeclarator {
-    if self.cycle != ModuleCycle::Initializing
-      && self.cycle != ModuleCycle::StateFilling
-      && self.cycle != ModuleCycle::TransformEnter
-      && self.cycle != ModuleCycle::TransformExit
-      && self.cycle != ModuleCycle::PreCleaning
-    {
-      if self.cycle == ModuleCycle::Cleaning {
-        let mut vars_to_keep: HashMap<Atom, NonNullProps> = HashMap::new();
+    match self.state.cycle {
+      ModuleCycle::StateFilling => {
+        if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
+          if let Some((declaration, member)) = self.process_declaration(call) {
+            let stylex_imports = self.state.stylex_import_stringified();
 
-        for StyleVarsToKeep(var_name, namespace_name, _) in self
-          .state
-          .style_vars_to_keep
-          .clone()
-          .into_iter()
-          .map(|item| *item)
-        {
-          match vars_to_keep.entry(var_name) {
-            Entry::Occupied(mut entry) => {
-              if let NonNullProps::Vec(vec) = entry.get_mut() {
-                if let NonNullProp::Atom(id) = namespace_name {
-                  vec.push(id);
-                }
+            if let Some(declaration_string) = stylex_imports
+              .into_iter()
+              .find(|item| item.eq(declaration.0.as_str()))
+              .or_else(|| {
+                self
+                  .state
+                  .stylex_create_import
+                  .iter()
+                  .find(|decl| decl.eq_ignore_span(&&Box::new(declaration.0.clone())))
+                  .map(|decl| decl.to_string())
+              })
+            {
+              if self.state.cycle == ModuleCycle::StateFilling
+                && (member.as_str() == "create" || member.eq(declaration_string.as_str()))
+              {
+                self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
               }
-            }
-            Entry::Vacant(entry) => {
-              let value = match namespace_name {
-                NonNullProp::Atom(namespace_name) => NonNullProps::Vec(vec![namespace_name]),
-                NonNullProp::True => NonNullProps::True,
-              };
-              entry.insert(value);
             }
           }
         }
 
-        for (_, var_name) in self.state.style_vars.clone().into_iter() {
-          if var_declarator.name != var_name.name {
-            continue;
-          };
+        var_declarator.fold_children_with(self)
+      }
+      ModuleCycle::Cleaning => {
+        {
+          let mut vars_to_keep: HashMap<Atom, NonNullProps> = HashMap::new();
 
-          let var_decl = self.state.top_level_expressions.clone().into_iter().find(
-            |TopLevelExpression(_, expr, _)| {
-              var_name.init.clone().unwrap().eq(&Box::new(expr.clone()))
-            },
-          );
-          if let Some(TopLevelExpression(kind, _, _)) = var_decl {
-            if TopLevelExpressionKind::Stmt == kind {
-              if let Some(object) = var_declarator.init.as_mut() {
-                if let Some(mut object) = object.as_object().cloned() {
-                  let namespaces_to_keep =
-                    match vars_to_keep.get(&var_name.name.as_ident().unwrap().sym) {
-                      Some(e) => match e {
-                        NonNullProps::Vec(vec) => vec.clone(),
-                        NonNullProps::True => vec![],
-                      },
-                      None => vec![],
-                    };
+          for StyleVarsToKeep(var_name, namespace_name, _) in self
+            .state
+            .style_vars_to_keep
+            .clone()
+            .into_iter()
+            .map(|item| *item)
+          {
+            match vars_to_keep.entry(var_name) {
+              Entry::Occupied(mut entry) => {
+                if let NonNullProps::Vec(vec) = entry.get_mut() {
+                  if let NonNullProp::Atom(id) = namespace_name {
+                    vec.push(id);
+                  }
+                }
+              }
+              Entry::Vacant(entry) => {
+                let value = match namespace_name {
+                  NonNullProp::Atom(namespace_name) => NonNullProps::Vec(vec![namespace_name]),
+                  NonNullProp::True => NonNullProps::True,
+                };
+                entry.insert(value);
+              }
+            }
+          }
 
-                  if !namespaces_to_keep.is_empty() {
-                    let props =
-                      self.retain_object_props(&mut object, namespaces_to_keep, var_name.as_ref());
+          for (_, var_name) in self.state.style_vars.clone().into_iter() {
+            if var_declarator.name != var_name.name {
+              continue;
+            };
 
-                    object.props = props;
+            if let Some(TopLevelExpression(kind, _, _)) =
+              self.state.top_level_expressions.clone().into_iter().find(
+                |TopLevelExpression(_, expr, _)| {
+                  var_name.init.clone().unwrap().eq(&Box::new(expr.clone()))
+                },
+              )
+            {
+              if TopLevelExpressionKind::Stmt == kind {
+                if let Some(object) = var_declarator.init.as_mut() {
+                  if let Some(mut object) = object.as_object().cloned() {
+                    let namespaces_to_keep =
+                      match vars_to_keep.get(&var_name.name.as_ident().unwrap().sym) {
+                        Some(NonNullProps::Vec(vec)) => vec.clone(),
+                        _ => vec![],
+                      };
 
-                    var_declarator.init = Some(Box::new(Expr::from(object)));
+                    if !namespaces_to_keep.is_empty() {
+                      let props = self.retain_object_props(
+                        &mut object,
+                        namespaces_to_keep,
+                        var_name.as_ref(),
+                      );
+
+                      object.props = props;
+
+                      var_declarator.init = Some(Box::new(Expr::from(object)));
+                    }
                   }
                 }
               }
             }
           }
         }
+
+        var_declarator
       }
-
-      return var_declarator;
+      ModuleCycle::Skip | ModuleCycle::InjectStyles => var_declarator,
+      _ => var_declarator.fold_children_with(self),
     }
-
-    if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
-      if let Some((declaration, member)) = self.process_declaration(call) {
-        let stylex_imports = self.state.stylex_import_stringified();
-
-        let declaration_string = stylex_imports
-          .into_iter()
-          .find(|item| item.eq(declaration.0.as_str()))
-          .or_else(|| {
-            self
-              .state
-              .stylex_create_import
-              .iter()
-              .find(|decl| decl.eq_ignore_span(&&Box::new(declaration.0.clone())))
-              .map(|decl| decl.to_string())
-          });
-
-        if let Some(declaration_string) = declaration_string {
-          if self.cycle == ModuleCycle::StateFilling
-            && (member.as_str() == "create" || member.eq(declaration_string.as_str()))
-          {
-            self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
-          }
-        }
-      }
-    }
-
-    // Call the fold_children_with method on the VarDecl struct
-    var_declarator.fold_children_with(self)
   }
 
   fn retain_object_props(

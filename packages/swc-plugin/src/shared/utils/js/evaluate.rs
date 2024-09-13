@@ -10,9 +10,9 @@ use swc_core::{
   common::{EqIgnoreSpan, DUMMY_SP},
   ecma::{
     ast::{
-      ArrayLit, BlockStmtOrExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, KeyValueProp,
-      Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName, PropOrSpread,
-      TplElement, UnaryOp, VarDeclarator,
+      ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
+      KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName,
+      PropOrSpread, TplElement, UnaryOp, VarDeclarator,
     },
     utils::{drop_span, ident::IdentLike, quote_ident, ExprExt},
   },
@@ -51,9 +51,10 @@ use crate::shared::{
       factories::{array_expression_factory, lit_str_factory, object_expression_factory},
     },
     common::{
-      char_code_at, deep_merge_props, get_import_by_ident, get_key_str, get_string_val_from_lit,
-      get_var_decl_by_ident, get_var_decl_from, normalize_expr, remove_duplicates,
-      sort_numbers_factory,
+      char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
+      get_import_by_ident, get_key_str, get_string_val_from_lit, get_var_decl_by_ident,
+      get_var_decl_from, normalize_expr, reduce_ident_count, reduce_member_expression_count,
+      remove_duplicates, sort_numbers_factory, sum_hash_map_values,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
@@ -842,6 +843,7 @@ fn _evaluate(
                         if second_arg.spread.is_some() {
                           unimplemented!("Spread")
                         }
+
                         let cached_first_arg = evaluate_cached(&first_arg.expr, state, fns);
                         let cached_second_arg = evaluate_cached(&second_arg.expr, state, fns);
 
@@ -1331,18 +1333,14 @@ fn _evaluate(
             }
           }
         } else {
-          let args: Vec<Box<EvaluateResultValue>> = call
-            .args
-            .iter()
-            .filter_map(|arg| evaluate_cached(&arg.expr, state, fns))
-            .collect();
-
           if !state.confident {
             return None;
           }
 
           match func.fn_ptr {
             FunctionType::ArrayArgs(func) => {
+              let args = evaluate_func_call_args(call, state, fns);
+
               let func_result = (func)(
                 args
                   .into_iter()
@@ -1357,6 +1355,8 @@ fn _evaluate(
               return Some(Box::new(EvaluateResultValue::Expr(Box::new(func_result))));
             }
             FunctionType::StylexExprFn(func) => {
+              let args = evaluate_func_call_args(call, state, fns);
+
               let func_result = (func)(
                 args.first().and_then(|arg| arg.as_expr().cloned()).unwrap(),
                 &mut state.traversal_state,
@@ -1365,6 +1365,8 @@ fn _evaluate(
               return Some(Box::new(EvaluateResultValue::Expr(Box::new(func_result))));
             }
             FunctionType::StylexTypeFn(func) => {
+              let args = evaluate_func_call_args(call, state, fns);
+
               let mut fn_args = IndexMap::default();
 
               let expr = args
@@ -1413,12 +1415,18 @@ fn _evaluate(
 
               match func.as_ref() {
                 CallbackType::Array(ArrayJS::Map) => {
+                  let args = evaluate_func_call_args(call, state, fns);
+
                   return evaluate_map(&args, &context);
                 }
                 CallbackType::Array(ArrayJS::Filter) => {
+                  let args = evaluate_func_call_args(call, state, fns);
+
                   return evaluate_filter(&args, &context);
                 }
                 CallbackType::Array(ArrayJS::Join) => {
+                  let args = evaluate_func_call_args(call, state, fns);
+
                   return evaluate_join(
                     &args,
                     &context,
@@ -1519,8 +1527,6 @@ fn _evaluate(
 
                   let result = num_args.first().unwrap().powf(*num_args.get(1).unwrap());
 
-                  // let trancated_num = trancate_f64(result);
-
                   return Some(Box::new(EvaluateResultValue::Expr(Box::new(
                     number_to_expression(result),
                   ))));
@@ -1545,7 +1551,7 @@ fn _evaluate(
                 }
                 CallbackType::Math(MathJS::Min | MathJS::Max) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
-                    panic!("Math.pow requires an argument")
+                    panic!("Math.(min | max) requires an argument")
                   };
 
                   let num_args = args_to_numbers(args, state, fns);
@@ -1570,6 +1576,8 @@ fn _evaluate(
                     panic!("String concat requires an argument")
                   };
 
+                  let args = evaluate_func_call_args(call, state, fns);
+
                   let str_args = args
                     .iter()
                     .map(|arg| {
@@ -1593,6 +1601,8 @@ fn _evaluate(
                   };
 
                   let base_str = expr_to_str(base_str, &mut state.traversal_state, fns);
+
+                  let args = evaluate_func_call_args(call, state, fns);
 
                   let num_args = args
                     .iter()
@@ -1740,6 +1750,19 @@ fn _evaluate(
   result
 }
 
+fn evaluate_func_call_args(
+  call: &mut CallExpr,
+  state: &mut EvaluationState,
+  fns: &FunctionMap,
+) -> Vec<EvaluateResultValue> {
+  let args: Vec<EvaluateResultValue> = call
+    .args
+    .iter()
+    .filter_map(|arg| evaluate_cached(&arg.expr, state, fns).map(|arg| *arg))
+    .collect();
+  args
+}
+
 fn args_to_numbers(
   args: &[Option<EvaluateResultValue>],
   state: &mut EvaluationState,
@@ -1876,24 +1899,56 @@ pub(crate) fn evaluate_cached(
   let existing = state.traversal_state.seen.get(&cleaned_path);
 
   match existing {
-    Some(evaluated_value) => {
+    Some((evaluated_value, var_decl_count_value_diff)) => {
       if evaluated_value.resolved {
         let resolved = evaluated_value.value.clone();
+
+        match path {
+          Expr::Ident(ident) => reduce_ident_count(&mut state.traversal_state, ident),
+          Expr::Member(member) => {
+            reduce_member_expression_count(&mut state.traversal_state, member)
+          }
+          Expr::Object(_) => {
+            if let Some(var_decl_count_value_diff) = var_decl_count_value_diff {
+              state.traversal_state.var_decl_count_map = sum_hash_map_values(
+                var_decl_count_value_diff,
+                &state.traversal_state.var_decl_count_map,
+              );
+            }
+          }
+          _ => {}
+        }
 
         return resolved;
       }
       deopt(path, state)
     }
     None => {
+      let should_save_var_decl_count = path.is_object();
+
+      let var_decl_count_map_orig =
+        should_save_var_decl_count.then(|| state.traversal_state.var_decl_count_map.clone());
+
       let val = _evaluate(&mut cleaned_path, state, fns);
+
+      let var_decl_count_value_diff = var_decl_count_map_orig.as_ref().map(|orig| {
+        let var_decl_count_map_evaluated = &state.traversal_state.var_decl_count_map;
+
+        let var_decl_count_map_diff = get_hash_map_difference(var_decl_count_map_evaluated, orig);
+
+        get_hash_map_value_difference(&var_decl_count_map_diff, orig)
+      });
 
       if state.confident {
         state.traversal_state.seen.insert(
           Box::new(path.clone()),
-          Box::new(SeenValue {
-            value: val.clone(),
-            resolved: true,
-          }),
+          (
+            Box::new(SeenValue {
+              value: val.clone(),
+              resolved: true,
+            }),
+            var_decl_count_value_diff,
+          ),
         );
       } else {
         let item = SeenValue {
@@ -1901,10 +1956,10 @@ pub(crate) fn evaluate_cached(
           resolved: false,
         };
 
-        state
-          .traversal_state
-          .seen
-          .insert(Box::new(cleaned_path.clone()), Box::new(item));
+        state.traversal_state.seen.insert(
+          Box::new(cleaned_path.clone()),
+          (Box::new(item), var_decl_count_value_diff),
+        );
       }
 
       val

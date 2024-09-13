@@ -13,7 +13,7 @@ use swc_core::{
 };
 
 pub(crate) fn evaluate_map(
-  funcs: &[Box<EvaluateResultValue>],
+  funcs: &[EvaluateResultValue],
   args: &[Option<EvaluateResultValue>],
 ) -> Option<Box<EvaluateResultValue>> {
   let cb = funcs.first()?;
@@ -75,7 +75,7 @@ pub(crate) fn evaluate_map(
 }
 
 pub(crate) fn evaluate_join(
-  funcs: &[Box<EvaluateResultValue>],
+  funcs: &[EvaluateResultValue],
   args: &[Option<EvaluateResultValue>],
   state: &mut StateManager,
   functions: &FunctionMap,
@@ -104,7 +104,7 @@ pub(crate) fn evaluate_join(
 }
 
 pub(crate) fn evaluate_filter(
-  funcs: &[Box<EvaluateResultValue>],
+  funcs: &[EvaluateResultValue],
   args: &[Option<EvaluateResultValue>],
 ) -> Option<Box<EvaluateResultValue>> {
   let cb = funcs.first()?;

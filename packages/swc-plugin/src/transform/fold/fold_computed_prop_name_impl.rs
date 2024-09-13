@@ -1,0 +1,41 @@
+use swc_core::{
+  common::comments::Comments,
+  ecma::{
+    ast::{ComputedPropName, Ident},
+    visit::FoldWith,
+  },
+};
+
+use crate::{
+  shared::{
+    enums::core::ModuleCycle,
+    utils::{ast::convertors::expr_to_str, common::increase_ident_count},
+  },
+  ModuleTransformVisitor,
+};
+
+impl<C> ModuleTransformVisitor<C>
+where
+  C: Comments,
+{
+  pub(crate) fn fold_computed_prop_name_impl(
+    &mut self,
+    computed_prop_name: ComputedPropName,
+  ) -> ComputedPropName {
+    if self.state.cycle == ModuleCycle::Skip {
+      return computed_prop_name;
+    }
+
+    if self.state.cycle == ModuleCycle::StateFilling && computed_prop_name.expr.is_lit() {
+      let expt_str = expr_to_str(
+        &computed_prop_name.expr,
+        &mut self.state,
+        &Default::default(),
+      );
+
+      increase_ident_count(&mut self.state, &Ident::from(expt_str.as_str()));
+    }
+
+    computed_prop_name.fold_children_with(self)
+  }
+}

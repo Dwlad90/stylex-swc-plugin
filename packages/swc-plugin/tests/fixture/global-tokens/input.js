@@ -25,6 +25,9 @@ const MAX_SCALE = 1.333;
 const MIN_BASE_SIZE = 16;
 const MAX_BASE_SIZE = 20;
 
+const h2 = 'h2';
+const H3 = 'h3';
+
 // Font sizes in `rem` units
 const MIN_FONT = {
   xxs: Math.round(MIN_BASE_SIZE / Math.pow(MIN_SCALE, 3) / 0.16) / 100,
@@ -33,8 +36,8 @@ const MIN_FONT = {
   p: Math.round(MIN_BASE_SIZE / 4) / 4,
   h5: Math.round((MIN_BASE_SIZE * MIN_SCALE) / 0.16) / 100,
   h4: Math.round((MIN_BASE_SIZE * Math.pow(MIN_SCALE, 2)) / 0.16) / 100,
-  h3: Math.round((MIN_BASE_SIZE * Math.pow(MIN_SCALE, 3)) / 0.16) / 100,
-  h2: Math.round((MIN_BASE_SIZE * Math.pow(MIN_SCALE, 4)) / 0.16) / 100,
+  [H3]: Math.round((MIN_BASE_SIZE * Math.pow(MIN_SCALE, 3)) / 0.16) / 100,
+  [h2]: Math.round((MIN_BASE_SIZE * Math.pow(MIN_SCALE, 4)) / 0.16) / 100,
   h1: Math.round((MIN_BASE_SIZE * Math.pow(MIN_SCALE, 5)) / 0.16) / 100,
 };
 // Font sizes in `rem` units
@@ -45,8 +48,8 @@ const MAX_FONT = {
   p: Math.round(MAX_BASE_SIZE / 4) / 4,
   h5: Math.round((MAX_BASE_SIZE * MAX_SCALE) / 0.16) / 100,
   h4: Math.round((MAX_BASE_SIZE * Math.pow(MAX_SCALE, 2)) / 0.16) / 100,
-  h3: Math.round((MAX_BASE_SIZE * Math.pow(MAX_SCALE, 3)) / 0.16) / 100,
-  h2: Math.round((MAX_BASE_SIZE * Math.pow(MAX_SCALE, 4)) / 0.16) / 100,
+  [H3]: Math.round((MAX_BASE_SIZE * Math.pow(MAX_SCALE, 3)) / 0.16) / 100,
+  [h2]: Math.round((MAX_BASE_SIZE * Math.pow(MAX_SCALE, 4)) / 0.16) / 100,
   h1: Math.round((MAX_BASE_SIZE * Math.pow(MAX_SCALE, 5)) / 0.16) / 100,
 };
 const SLOPE = {
@@ -56,8 +59,8 @@ const SLOPE = {
   p: (16 * (MAX_FONT.p - MIN_FONT.p)) / (MAX_WIDTH - MIN_WIDTH),
   h5: (16 * (MAX_FONT.h5 - MIN_FONT.h5)) / (MAX_WIDTH - MIN_WIDTH),
   h4: (16 * (MAX_FONT.h4 - MIN_FONT.h4)) / (MAX_WIDTH - MIN_WIDTH),
-  h3: (16 * (MAX_FONT.h3 - MIN_FONT.h3)) / (MAX_WIDTH - MIN_WIDTH),
-  h2: (16 * (MAX_FONT.h2 - MIN_FONT.h2)) / (MAX_WIDTH - MIN_WIDTH),
+  [H3]: (16 * (MAX_FONT[H3] - MIN_FONT[H3])) / (MAX_WIDTH - MIN_WIDTH),
+  [h2]: (16 * (MAX_FONT[h2] - MIN_FONT[h2])) / (MAX_WIDTH - MIN_WIDTH),
   h1: (16 * (MAX_FONT.h1 - MIN_FONT.h1)) / (MAX_WIDTH - MIN_WIDTH),
 };
 const INTERCEPT = {
@@ -67,13 +70,10 @@ const INTERCEPT = {
   p: Math.round(100 * (MIN_FONT.p - SLOPE.p * (MIN_WIDTH / 16))) / 100,
   h5: Math.round(100 * (MIN_FONT.h5 - SLOPE.h5 * (MIN_WIDTH / 16))) / 100,
   h4: Math.round(100 * (MIN_FONT.h4 - SLOPE.h4 * (MIN_WIDTH / 16))) / 100,
-  h3: Math.round(100 * (MIN_FONT.h3 - SLOPE.h3 * (MIN_WIDTH / 16))) / 100,
-  h2: Math.round(100 * (MIN_FONT.h2 - SLOPE.h2 * (MIN_WIDTH / 16))) / 100,
+  [H3]: Math.round(100 * (MIN_FONT[H3] - SLOPE[H3] * (MIN_WIDTH / 16))) / 100,
+  [h2]: Math.round(100 * (MIN_FONT[h2] - SLOPE[h2] * (MIN_WIDTH / 16))) / 100,
   h1: Math.round(100 * (MIN_FONT.h1 - SLOPE.h1 * (MIN_WIDTH / 16))) / 100,
 };
-
-const h2 = 'h2';
-const H3 = 'h3';
 
 export const text = stylex.defineVars({
   xxs: `clamp(${Math.min(MIN_FONT.xxs)}rem, calc(${INTERCEPT.xxs}rem + ${Math.round(10000 * SLOPE.xxs) / 100
@@ -88,10 +88,10 @@ export const text = stylex.defineVars({
     }vw), ${Math.max(MAX_FONT.h5)}rem)`,
   h4: `clamp(${Math.min(MIN_FONT.h4)}rem, calc(${INTERCEPT.h4}rem + ${Math.round(10000 * SLOPE.h4) / 100
     }vw), ${Math.max(MAX_FONT.h4)}rem)`,
-  [H3]: `clamp(${Math.min(MIN_FONT.h3)}rem, calc(${INTERCEPT.h3}rem + ${Math.round(10000 * SLOPE.h3) / 100
-    }vw), ${Math.max(MAX_FONT.h3)}rem)`,
-  [h2]: `clamp(${Math.min(MIN_FONT.h2)}rem, calc(${INTERCEPT.h2}rem + ${Math.round(10000 * SLOPE.h2) / 100
-    }vw), ${Math.max(MAX_FONT.h2)}rem)`,
+  [H3]: `clamp(${Math.min(MIN_FONT[H3])}rem, calc(${INTERCEPT[H3]}rem + ${Math.round(10000 * SLOPE.h3) / 100
+    }vw), ${Math.max(MAX_FONT[H3])}rem)`,
+  [h2]: `clamp(${Math.min(MIN_FONT[h2])}rem, calc(${INTERCEPT[h2]}rem + ${Math.round(10000 * SLOPE[h2]) / 100
+    }vw), ${Math.max(MAX_FONT[h2])}rem)`,
   ['h1']: `clamp(${Math.min(MIN_FONT.h1)}rem, calc(${INTERCEPT.h1}rem + ${Math.round(10000 * SLOPE.h1) / 100
     }vw), ${Math.max(MAX_FONT.h1)}rem)`,
 });

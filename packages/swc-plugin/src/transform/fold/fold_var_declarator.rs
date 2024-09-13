@@ -45,7 +45,7 @@ where
                   .state
                   .stylex_create_import
                   .iter()
-                  .find(|decl| decl.eq_ignore_span(&&Box::new(declaration.0.clone())))
+                  .find(|decl| decl.eq_ignore_span(&&declaration.0.clone()))
                   .map(|decl| decl.to_string())
               })
             {

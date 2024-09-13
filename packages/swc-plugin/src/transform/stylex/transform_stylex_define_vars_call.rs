@@ -70,12 +70,12 @@ where
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          Box::new("keyframes".into()),
+          "keyframes".into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
         let identifier = identifiers
-          .entry(Box::new(name.get_import_str().into()))
+          .entry(name.get_import_str().into())
           .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {

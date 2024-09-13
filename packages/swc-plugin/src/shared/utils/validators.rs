@@ -205,7 +205,7 @@ pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool
 }
 
 pub(crate) fn is_target_call(
-  (call_name, imports_map): (&str, &HashSet<Box<Atom>>),
+  (call_name, imports_map): (&str, &HashSet<Atom>),
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {

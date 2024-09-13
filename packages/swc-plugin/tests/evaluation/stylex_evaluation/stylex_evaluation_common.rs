@@ -173,14 +173,14 @@ fn evaluates_customs_functions() {
       };
 
       identifiers.insert(
-        Box::new(Atom::from("makeArray")),
+        Atom::from("makeArray"),
         Box::new(FunctionConfigType::Regular(make_array)),
       );
 
       let mut member_expressions = HashMap::new();
 
       member_expressions.insert(
-        Box::new(ImportSources::Regular("stylex".to_string())),
+        ImportSources::Regular("stylex".to_string()),
         Box::new(identifiers.clone()),
       );
 
@@ -233,7 +233,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       };
 
       identifiers.insert(
-        Box::new(Atom::from("makeClass")),
+        Atom::from("makeClass"),
         Box::new(FunctionConfigType::Regular(make_class)),
       );
 
@@ -282,7 +282,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
       };
 
       identifiers.insert(
-        Box::new(Atom::from("makeObj")),
+        Atom::from("makeObj"),
         Box::new(FunctionConfigType::Regular(make_obj)),
       );
 
@@ -337,7 +337,7 @@ fn evaluates_custom_functions_that_take_paths() {
       };
 
       identifiers.insert(
-        Box::new(Atom::from("getNode")),
+        Atom::from("getNode"),
         Box::new(FunctionConfigType::Regular(get_node)),
       );
 

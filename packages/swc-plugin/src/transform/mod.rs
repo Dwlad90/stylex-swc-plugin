@@ -47,10 +47,7 @@ where
 
     state.stylex_import.clone_from(&stylex_imports);
 
-    state.options.import_sources = stylex_imports
-      .into_iter()
-      .map(|stylex_import| *stylex_import)
-      .collect();
+    state.options.import_sources = stylex_imports.into_iter().collect();
 
     state._state = plugin_pass;
 
@@ -86,10 +83,7 @@ where
       }
     });
 
-    state.options.import_sources = stylex_imports
-      .into_iter()
-      .map(|stylex_import| *stylex_import)
-      .collect();
+    state.options.import_sources = stylex_imports.into_iter().collect();
 
     let plugin_pass = Box::new(plugin_pass.clone());
 
@@ -123,7 +117,7 @@ where
       }
     });
 
-    state.options.import_sources = stylex_imports.into_iter().map(|s_i| *s_i).collect();
+    state.options.import_sources = stylex_imports.into_iter().collect();
 
     let plugin_pass = plugin_pass.clone();
 
@@ -154,14 +148,8 @@ where
                 .contains(&ident.sym)
               || self.state.stylex_include_import.contains(&ident.sym)
               || self.state.stylex_types_import.contains(&ident.sym)
-              || self
-                .state
-                .stylex_create_theme_import
-                .contains(&ident.sym)
-              || self
-                .state
-                .stylex_define_vars_import
-                .contains(&ident.sym)
+              || self.state.stylex_create_theme_import.contains(&ident.sym)
+              || self.state.stylex_define_vars_import.contains(&ident.sym)
               || self.state.stylex_attrs_import.contains(&ident.sym))
           {
             increase_ident_count(&mut self.state, ident);
@@ -183,15 +171,9 @@ where
                   .stylex_first_that_works_import
                   .contains(&ident.sym)
                 || self.state.stylex_include_import.contains(&ident.sym)
-                || self
-                  .state
-                  .stylex_create_theme_import
-                  .contains(&ident.sym)
+                || self.state.stylex_create_theme_import.contains(&ident.sym)
                 || self.state.stylex_types_import.contains(&ident.sym)
-                || self
-                  .state
-                  .stylex_define_vars_import
-                  .contains(&ident.sym)
+                || self.state.stylex_define_vars_import.contains(&ident.sym)
                 || self.state.stylex_attrs_import.contains(&ident.sym))
             {
               if let MemberProp::Ident(ident) = &member.prop {
@@ -249,24 +231,17 @@ where
   }
 }
 
-fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> HashSet<Box<ImportSources>> {
+fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> HashSet<ImportSources> {
   let mut stylex_imports = HashSet::new();
 
-  stylex_imports.insert(Box::new(ImportSources::Regular("stylex".to_string())));
-  stylex_imports.insert(Box::new(ImportSources::Regular(
-    "@stylexjs/stylex".to_string(),
-  )));
+  stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
+  stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));
 
   if let Some(stylex_imports_extends) = match config {
     Some(ref config) => config.import_sources.clone(),
     None => None,
   } {
-    stylex_imports.extend(
-      stylex_imports_extends
-        .into_iter()
-        .map(Box::new)
-        .collect::<Vec<Box<ImportSources>>>(),
-    )
+    stylex_imports.extend(stylex_imports_extends)
   }
 
   stylex_imports

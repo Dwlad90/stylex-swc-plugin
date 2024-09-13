@@ -17,7 +17,7 @@ pub(crate) type EvaluateResultFns =
   IndexMap<String, (Vec<BindingIdent>, IndexMap<String, Box<Expr>>)>;
 pub(crate) type EvaluationCallback = Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>;
 pub(crate) type FunctionMapMemberExpression =
-  HashMap<Box<ImportSources>, Box<HashMap<Box<Atom>, Box<FunctionConfigType>>>>;
-pub(crate) type FunctionMapIdentifiers = HashMap<Box<Atom>, Box<FunctionConfigType>>;
+  HashMap<ImportSources, Box<HashMap<Atom, Box<FunctionConfigType>>>>;
+pub(crate) type FunctionMapIdentifiers = HashMap<Atom, Box<FunctionConfigType>>;
 pub(crate) type StylesObjectMap =
   IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>>;

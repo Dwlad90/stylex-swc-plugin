@@ -46,7 +46,7 @@ where
                 self
                   .state
                   .stylex_import
-                  .insert(Box::new(ImportSources::Regular(local_name)));
+                  .insert(ImportSources::Regular(local_name));
               };
             }
             ImportSpecifier::Namespace(import_specifier) => {
@@ -58,7 +58,7 @@ where
                 self
                   .state
                   .stylex_import
-                  .insert(Box::new(ImportSources::Regular(local_name)));
+                  .insert(ImportSources::Regular(local_name));
               }
             }
             ImportSpecifier::Named(import_specifier) => {
@@ -114,7 +114,7 @@ where
         self
           .state
           .stylex_import
-          .insert(Box::new(ImportSources::Regular(local_name.to_string())));
+          .insert(ImportSources::Regular(local_name.to_string()));
       }
     }
 
@@ -128,55 +128,46 @@ where
           self
             .state
             .stylex_create_import
-            .insert(Box::new(local_name_ident_atom));
+            .insert(local_name_ident_atom);
         }
         "props" => {
-          self
-            .state
-            .stylex_props_import
-            .insert(Box::new(local_name_ident_atom));
+          self.state.stylex_props_import.insert(local_name_ident_atom);
         }
         "attrs" => {
-          self
-            .state
-            .stylex_attrs_import
-            .insert(Box::new(local_name_ident_atom));
+          self.state.stylex_attrs_import.insert(local_name_ident_atom);
         }
         "keyframes" => {
           self
             .state
             .stylex_keyframes_import
-            .insert(Box::new(local_name_ident_atom));
+            .insert(local_name_ident_atom);
         }
         "include" => {
           self
             .state
             .stylex_include_import
-            .insert(Box::new(local_name_ident_atom));
+            .insert(local_name_ident_atom);
         }
         "firstThatWorks" => {
           self
             .state
             .stylex_first_that_works_import
-            .insert(Box::new(local_name_ident_atom));
+            .insert(local_name_ident_atom);
         }
         "defineVars" => {
           self
             .state
             .stylex_define_vars_import
-            .insert(Box::new(local_name_ident_atom));
+            .insert(local_name_ident_atom);
         }
         "createTheme" => {
           self
             .state
             .stylex_create_theme_import
-            .insert(Box::new(local_name_ident_atom));
+            .insert(local_name_ident_atom);
         }
         "types" => {
-          self
-            .state
-            .stylex_types_import
-            .insert(Box::new(local_name_ident_atom));
+          self.state.stylex_types_import.insert(local_name_ident_atom);
         }
         _ => {
           unreachable!("{}", MUST_BE_DEFAULT_IMPORT)

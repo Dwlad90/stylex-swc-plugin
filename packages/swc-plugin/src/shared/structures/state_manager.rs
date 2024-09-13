@@ -15,11 +15,14 @@ use swc_core::{
   common::{EqIgnoreSpan, FileName, DUMMY_SP},
 };
 
-use crate::shared::enums::{core::ModuleCycle, data_structures::{
-  import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
-  style_vars_to_keep::StyleVarsToKeep,
-  top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-}};
+use crate::shared::enums::{
+  core::ModuleCycle,
+  data_structures::{
+    import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
+    style_vars_to_keep::StyleVarsToKeep,
+    top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+  },
+};
 use crate::shared::utils::{
   ast::factories::binding_ident_factory,
   common::{
@@ -44,30 +47,33 @@ use super::{
   seen_value::SeenValue,
 };
 
+type AtomHashMap = HashMap<Atom, i16>;
+type AtomHashSet = HashSet<Atom>;
+
 #[derive(Clone, Debug)]
 pub struct StateManager {
   pub(crate) _state: Box<PluginPass>,
 
   // Imports
   pub(crate) import_paths: HashSet<String>,
-  pub(crate) stylex_import: HashSet<Box<ImportSources>>,
-  pub(crate) stylex_props_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_attrs_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_create_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_include_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_first_that_works_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_keyframes_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_define_vars_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_create_theme_import: HashSet<Box<Atom>>,
-  pub(crate) stylex_types_import: HashSet<Box<Atom>>,
+  pub(crate) stylex_import: HashSet<ImportSources>,
+  pub(crate) stylex_props_import: AtomHashSet,
+  pub(crate) stylex_attrs_import: AtomHashSet,
+  pub(crate) stylex_create_import: AtomHashSet,
+  pub(crate) stylex_include_import: AtomHashSet,
+  pub(crate) stylex_first_that_works_import: AtomHashSet,
+  pub(crate) stylex_keyframes_import: AtomHashSet,
+  pub(crate) stylex_define_vars_import: AtomHashSet,
+  pub(crate) stylex_create_theme_import: AtomHashSet,
+  pub(crate) stylex_types_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Box<Ident>, Box<Ident>)>,
   pub(crate) theme_name: Option<String>,
 
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) all_call_expressions: Vec<CallExpr>,
-  pub(crate) var_decl_count_map: HashMap<Atom, i16>,
-  pub(crate) seen: HashMap<Box<Expr>, (Box<SeenValue>, Option<HashMap<Atom, i16>>)>,
+  pub(crate) var_decl_count_map: AtomHashMap,
+  pub(crate) seen: HashMap<Box<Expr>, (Box<SeenValue>, Option<AtomHashMap>)>,
 
   // `stylex.create` calls
   pub(crate) style_map: HashMap<String, Box<StylesObjectMap>>,
@@ -75,7 +81,7 @@ pub struct StateManager {
 
   // results of `stylex.create` calls that should be kept
   pub(crate) style_vars_to_keep: HashSet<Box<StyleVarsToKeep>>,
-  pub(crate) member_object_ident_count_map: HashMap<Atom, i16>,
+  pub(crate) member_object_ident_count_map: AtomHashMap,
 
   pub(crate) in_stylex_create: bool,
 
@@ -89,7 +95,6 @@ pub struct StateManager {
   pub(crate) top_imports: Vec<ImportDecl>,
 
   pub(crate) cycle: ModuleCycle,
-
 }
 
 impl Default for StateManager {
@@ -182,7 +187,7 @@ impl StateManager {
       .stylex_import
       .clone()
       .into_iter()
-      .map(|import_source| match import_source.as_ref() {
+      .map(|import_source| match &import_source {
         ImportSources::Regular(regular) => regular.clone(),
         ImportSources::Named(named) => named.clone().r#as,
       })

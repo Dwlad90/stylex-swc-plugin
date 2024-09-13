@@ -210,12 +210,12 @@ fn _evaluate(
                         takes_path: false,
                       };
                       functions.insert(
-                        Box::new(ident.clone()),
+                        ident.clone(),
                         Box::new(FunctionConfigType::Regular(function.clone())),
                       );
 
                       member_expressions.insert(
-                        Box::new(ImportSources::Regular("entry".to_string())),
+                        ImportSources::Regular("entry".to_string()),
                         Box::new(functions.clone()),
                       );
                     }

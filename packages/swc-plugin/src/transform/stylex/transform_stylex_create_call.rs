@@ -100,17 +100,17 @@ where
         let member_expression = member_expressions.get_mut(name).unwrap();
 
         member_expression.insert(
-          Box::new("include".into()),
+          "include".into(),
           Box::new(FunctionConfigType::Regular(include_fn.clone())),
         );
 
         member_expression.insert(
-          Box::new("firstThatWorks".into()),
+          "firstThatWorks".into(),
           Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
 
         member_expression.insert(
-          Box::new("keyframes".into()),
+          "keyframes".into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }

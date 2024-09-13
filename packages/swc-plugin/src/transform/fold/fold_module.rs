@@ -5,7 +5,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::core::ModuleCycle, structures::meta_data::MetaData,
+    enums::core::TransformationCycle, structures::meta_data::MetaData,
     utils::common::fill_top_level_expressions,
   },
   ModuleTransformVisitor,
@@ -19,19 +19,19 @@ where
     let mut module = module.fold_children_with(self);
 
     if !self.state.import_paths.is_empty() {
-      self.state.cycle = ModuleCycle::StateFilling;
+      self.state.cycle = TransformationCycle::StateFilling;
       module = module.fold_children_with(self);
 
       fill_top_level_expressions(&module, &mut self.state);
 
-      self.state.cycle = ModuleCycle::TransformEnter;
+      self.state.cycle = TransformationCycle::TransformEnter;
       module = module.fold_children_with(self);
 
-      self.state.cycle = ModuleCycle::TransformExit;
+      self.state.cycle = TransformationCycle::TransformExit;
       module = module.fold_children_with(self);
 
       if self.state.options.runtime_injection.is_some() {
-        self.state.cycle = ModuleCycle::InjectStyles;
+        self.state.cycle = TransformationCycle::InjectStyles;
         module = module.fold_children_with(self);
       } else {
         // Preparing stylex metadata for css extraction
@@ -57,10 +57,10 @@ where
         );
       }
 
-      self.state.cycle = ModuleCycle::PreCleaning;
+      self.state.cycle = TransformationCycle::PreCleaning;
       module = module.fold_children_with(self);
 
-      self.state.cycle = ModuleCycle::Cleaning;
+      self.state.cycle = TransformationCycle::Cleaning;
 
       // NOTE: Reversing the module body to clean the module items in the correct order,
       // so removing unused variable declarations will more efficient
@@ -73,7 +73,7 @@ where
 
       module
     } else {
-      self.state.cycle = ModuleCycle::Skip;
+      self.state.cycle = TransformationCycle::Skip;
       module
     }
   }

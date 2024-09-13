@@ -7,7 +7,7 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::core::ModuleCycle, utils::common::increase_ident_count_by_count},
+  shared::{enums::core::TransformationCycle, utils::common::increase_ident_count_by_count},
   ModuleTransformVisitor,
 };
 
@@ -16,11 +16,11 @@ where
   C: Comments,
 {
   pub(crate) fn fold_export_decl_impl(&mut self, export_decl: ExportDecl) -> ExportDecl {
-    if self.state.cycle == ModuleCycle::Skip {
+    if self.state.cycle == TransformationCycle::Skip {
       return export_decl;
     }
 
-    if self.state.cycle == ModuleCycle::StateFilling {
+    if self.state.cycle == TransformationCycle::StateFilling {
       if let Decl::Var(var_decl) = &export_decl.decl {
         for decl in &var_decl.decls {
           if let Some(ident) = decl.name.as_ident() {

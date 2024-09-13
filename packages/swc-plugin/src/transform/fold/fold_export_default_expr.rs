@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::core::ModuleCycle, utils::common::normalize_expr},
+  shared::{enums::core::TransformationCycle, utils::common::normalize_expr},
   ModuleTransformVisitor,
 };
 
@@ -16,15 +16,15 @@ where
     &mut self,
     mut export_default_expr: ExportDefaultExpr,
   ) -> ExportDefaultExpr {
-    if self.state.cycle == ModuleCycle::Skip {
+    if self.state.cycle == TransformationCycle::Skip {
       return export_default_expr;
     }
 
-    if self.state.cycle == ModuleCycle::StateFilling {
+    if self.state.cycle == TransformationCycle::StateFilling {
       return export_default_expr.fold_children_with(self);
     }
 
-    if self.state.cycle == ModuleCycle::TransformEnter || self.state.cycle == ModuleCycle::TransformExit {
+    if self.state.cycle == TransformationCycle::TransformEnter || self.state.cycle == TransformationCycle::TransformExit {
       let normalized_expr = normalize_expr(&mut export_default_expr.expr);
 
       if let Some(value) = self.transform_call_expression(normalized_expr) {

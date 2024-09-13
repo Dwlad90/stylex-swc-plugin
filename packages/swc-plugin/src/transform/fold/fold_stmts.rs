@@ -3,18 +3,18 @@ use swc_core::{
   ecma::{ast::Stmt, visit::FoldWith},
 };
 
-use crate::{shared::enums::core::ModuleCycle, ModuleTransformVisitor};
+use crate::{shared::enums::core::TransformationCycle, ModuleTransformVisitor};
 
 impl<C> ModuleTransformVisitor<C>
 where
   C: Comments,
 {
   pub(crate) fn fold_stmts_impl(&mut self, mut stmts: Vec<Stmt>) -> Vec<Stmt> {
-    if self.state.cycle == ModuleCycle::Skip {
+    if self.state.cycle == TransformationCycle::Skip {
       return stmts;
     }
 
-    if self.state.cycle == ModuleCycle::Cleaning {
+    if self.state.cycle == TransformationCycle::Cleaning {
       stmts.retain(|stmt| {
         // We use `matches` macro as this match is trivial.
         !matches!(stmt, Stmt::Empty(..))

@@ -16,7 +16,7 @@ use swc_core::{
 };
 
 use crate::shared::enums::{
-  core::ModuleCycle,
+  core::TransformationCycle,
   data_structures::{
     import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
     style_vars_to_keep::StyleVarsToKeep,
@@ -94,7 +94,7 @@ pub struct StateManager {
   pub(crate) injected_keyframes: IndexMap<String, Box<InjectableStyle>>,
   pub(crate) top_imports: Vec<ImportDecl>,
 
-  pub(crate) cycle: ModuleCycle,
+  pub(crate) cycle: TransformationCycle,
 }
 
 impl Default for StateManager {
@@ -146,7 +146,7 @@ impl StateManager {
 
       injected_keyframes: IndexMap::new(),
 
-      cycle: ModuleCycle::Initializing,
+      cycle: TransformationCycle::Initializing,
     }
   }
 

@@ -4,7 +4,7 @@ use swc_core::{
   ecma::ast::{CallExpr, Callee, Expr, MemberProp},
 };
 
-use crate::shared::enums::core::ModuleCycle;
+use crate::shared::enums::core::TransformationCycle;
 use crate::ModuleTransformVisitor;
 
 impl<C> ModuleTransformVisitor<C>
@@ -31,7 +31,7 @@ where
   }
 
   fn transform_stylex_fns(&mut self, ident_name: &Atom, call_expr: &mut CallExpr) -> Option<Expr> {
-    if self.state.cycle == ModuleCycle::TransformEnter {
+    if self.state.cycle == TransformationCycle::TransformEnter {
       let (_, parent_var_decl) = &self.get_call_var_name(call_expr);
 
       if let Some(parent_var_decl) = parent_var_decl {
@@ -57,7 +57,7 @@ where
       }
     }
 
-    if self.state.cycle == ModuleCycle::TransformExit {
+    if self.state.cycle == TransformationCycle::TransformExit {
       if self.state.stylex_props_import.contains(ident_name) {
         if let Some(value) = self.transform_stylex_props_call(call_expr) {
           return Some(value);

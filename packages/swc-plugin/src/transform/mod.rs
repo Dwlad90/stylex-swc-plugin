@@ -7,7 +7,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::core::ModuleCycle,
+    enums::core::TransformationCycle,
     structures::{
       named_import_source::{ImportSources, RuntimeInjection},
       plugin_pass::PluginPass,
@@ -138,7 +138,7 @@ where
           let ident_id = ident.to_id();
 
           if stylex_imports.contains(&ident.sym.to_string())
-            || (self.state.cycle == ModuleCycle::TransformEnter
+            || (self.state.cycle == TransformationCycle::TransformEnter
               && (self.state.stylex_create_import.contains(&ident.sym))
               || self.state.stylex_props_import.contains(&ident.sym)
               || self.state.stylex_keyframes_import.contains(&ident.sym)
@@ -162,7 +162,7 @@ where
             let ident_id = ident.to_id();
 
             if stylex_imports.contains(&ident.sym.to_string())
-              || (self.state.cycle == ModuleCycle::TransformEnter
+              || (self.state.cycle == TransformationCycle::TransformEnter
                 && (self.state.stylex_create_import.contains(&ident.sym))
                 || self.state.stylex_props_import.contains(&ident.sym)
                 || self.state.stylex_keyframes_import.contains(&ident.sym)

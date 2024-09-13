@@ -5,7 +5,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    constants::messages::MUST_BE_DEFAULT_IMPORT, enums::core::ModuleCycle,
+    constants::messages::MUST_BE_DEFAULT_IMPORT, enums::core::TransformationCycle,
     structures::named_import_source::ImportSources,
   },
   ModuleTransformVisitor,
@@ -16,11 +16,11 @@ where
   C: Comments,
 {
   pub(crate) fn fold_import_decl_impl(&mut self, import_decl: ImportDecl) -> ImportDecl {
-    if self.state.cycle == ModuleCycle::Skip {
+    if self.state.cycle == TransformationCycle::Skip {
       return import_decl;
     }
 
-    if self.state.cycle == ModuleCycle::Initializing {
+    if self.state.cycle == TransformationCycle::Initializing {
       if import_decl.type_only {
         return import_decl;
       }

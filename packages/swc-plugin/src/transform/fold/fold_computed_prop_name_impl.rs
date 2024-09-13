@@ -8,7 +8,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::core::ModuleCycle,
+    enums::core::TransformationCycle,
     utils::{ast::convertors::expr_to_str, common::increase_ident_count},
   },
   ModuleTransformVisitor,
@@ -22,11 +22,11 @@ where
     &mut self,
     computed_prop_name: ComputedPropName,
   ) -> ComputedPropName {
-    if self.state.cycle == ModuleCycle::Skip {
+    if self.state.cycle == TransformationCycle::Skip {
       return computed_prop_name;
     }
 
-    if self.state.cycle == ModuleCycle::StateFilling && computed_prop_name.expr.is_lit() {
+    if self.state.cycle == TransformationCycle::StateFilling && computed_prop_name.expr.is_lit() {
       let expt_str = expr_to_str(
         &computed_prop_name.expr,
         &mut self.state,

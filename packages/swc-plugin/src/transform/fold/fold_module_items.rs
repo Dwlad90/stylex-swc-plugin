@@ -8,7 +8,7 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::core::ModuleCycle, utils::ast::factories::binding_ident_factory},
+  shared::{enums::core::TransformationCycle, utils::ast::factories::binding_ident_factory},
   ModuleTransformVisitor,
 };
 
@@ -18,19 +18,19 @@ where
 {
   pub(crate) fn fold_module_items(&mut self, module_items: Vec<ModuleItem>) -> Vec<ModuleItem> {
     match self.state.cycle {
-      ModuleCycle::Skip => module_items,
-      ModuleCycle::Initializing => {
+      TransformationCycle::Skip => module_items,
+      TransformationCycle::Initializing => {
         let transformed_module_items = module_items.fold_children_with(self);
 
         if self.state.import_paths.is_empty() {
-          self.state.cycle = ModuleCycle::Skip;
+          self.state.cycle = TransformationCycle::Skip;
 
           return transformed_module_items;
         }
 
         transformed_module_items
       }
-      ModuleCycle::StateFilling => {
+      TransformationCycle::StateFilling => {
         module_items.iter().for_each(|module_item| {
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
             var_decl.decls.iter().for_each(|decl| {
@@ -45,10 +45,10 @@ where
 
         module_items.fold_children_with(self)
       }
-      ModuleCycle::TransformEnter => module_items.fold_children_with(self),
-      ModuleCycle::TransformExit => module_items.fold_children_with(self),
-      ModuleCycle::PreCleaning => module_items.fold_children_with(self),
-      ModuleCycle::InjectStyles => {
+      TransformationCycle::TransformEnter => module_items.fold_children_with(self),
+      TransformationCycle::TransformExit => module_items.fold_children_with(self),
+      TransformationCycle::PreCleaning => module_items.fold_children_with(self),
+      TransformationCycle::InjectStyles => {
         let mut result_module_items: Vec<ModuleItem> =
           self.state.prepend_include_module_items.clone();
 
@@ -125,7 +125,7 @@ where
 
         result_module_items
       }
-      ModuleCycle::Cleaning => {
+      TransformationCycle::Cleaning => {
         // We need it twice for a clear dead code after declaration transforms
         let mut module_items = module_items.fold_children_with(self);
 
@@ -138,7 +138,7 @@ where
 
         module_items
       }
-      ModuleCycle::Recounting => module_items.fold_children_with(self),
+      TransformationCycle::Recounting => module_items.fold_children_with(self),
     }
   }
 }

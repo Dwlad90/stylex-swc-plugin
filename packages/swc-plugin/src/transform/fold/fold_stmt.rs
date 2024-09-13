@@ -7,18 +7,18 @@ use swc_core::{
   },
 };
 
-use crate::{shared::enums::core::ModuleCycle, ModuleTransformVisitor};
+use crate::{shared::enums::core::TransformationCycle, ModuleTransformVisitor};
 
 impl<C> ModuleTransformVisitor<C>
 where
   C: Comments,
 {
   pub(crate) fn fold_stmt_impl(&mut self, stmt: Stmt) -> Stmt {
-    if self.state.cycle == ModuleCycle::Skip {
+    if self.state.cycle == TransformationCycle::Skip {
       return stmt;
     }
 
-    if self.state.cycle == ModuleCycle::Cleaning {
+    if self.state.cycle == TransformationCycle::Cleaning {
       let mut stmt = stmt.fold_children_with(self);
 
       if let Some(Stmt::Decl(Decl::Var(var))) = stmt.as_ref() {

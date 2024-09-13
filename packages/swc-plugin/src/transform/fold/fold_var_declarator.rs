@@ -12,7 +12,7 @@ use swc_core::{
 use crate::{
   shared::{
     enums::{
-      core::ModuleCycle,
+      core::TransformationCycle,
       data_structures::{
         style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
         top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
@@ -32,7 +32,7 @@ where
     mut var_declarator: VarDeclarator,
   ) -> VarDeclarator {
     match self.state.cycle {
-      ModuleCycle::StateFilling => {
+      TransformationCycle::StateFilling => {
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
           if let Some((declaration, member)) = self.process_declaration(call) {
             let stylex_imports = self.state.stylex_import_stringified();
@@ -49,7 +49,7 @@ where
                   .map(|decl| decl.to_string())
               })
             {
-              if self.state.cycle == ModuleCycle::StateFilling
+              if self.state.cycle == TransformationCycle::StateFilling
                 && (member.as_str() == "create" || member.eq(declaration_string.as_str()))
               {
                 self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
@@ -60,7 +60,7 @@ where
 
         var_declarator.fold_children_with(self)
       }
-      ModuleCycle::Cleaning => {
+      TransformationCycle::Cleaning => {
         {
           let mut vars_to_keep: HashMap<Atom, NonNullProps> = HashMap::new();
 
@@ -130,7 +130,7 @@ where
 
         var_declarator
       }
-      ModuleCycle::Skip | ModuleCycle::InjectStyles => var_declarator,
+      TransformationCycle::Skip | TransformationCycle::InjectStyles => var_declarator,
       _ => var_declarator.fold_children_with(self),
     }
   }

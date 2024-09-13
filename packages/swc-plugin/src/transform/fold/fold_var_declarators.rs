@@ -6,7 +6,7 @@ use swc_core::{
   },
 };
 
-use crate::{shared::enums::core::ModuleCycle, ModuleTransformVisitor};
+use crate::{shared::enums::core::TransformationCycle, ModuleTransformVisitor};
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -17,10 +17,10 @@ where
     mut var_declarators: Vec<VarDeclarator>,
   ) -> Vec<VarDeclarator> {
     match self.state.cycle {
-      ModuleCycle::Skip => {
+      TransformationCycle::Skip => {
         return var_declarators;
       }
-      ModuleCycle::Cleaning => {
+      TransformationCycle::Cleaning => {
         var_declarators.retain(|decl| {
           if let Pat::Ident(bind_ident) = &decl.name {
             let decl_id = &bind_ident.sym;
@@ -30,11 +30,11 @@ where
               let is_used = count > 1;
 
               if !is_used {
-                self.state.cycle = ModuleCycle::Recounting;
+                self.state.cycle = TransformationCycle::Recounting;
 
                 decl.clone().fold_children_with(self);
 
-                self.state.cycle = ModuleCycle::Cleaning;
+                self.state.cycle = TransformationCycle::Cleaning;
               }
 
               return is_used;

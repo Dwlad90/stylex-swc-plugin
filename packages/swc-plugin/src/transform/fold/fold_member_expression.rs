@@ -9,7 +9,7 @@ use swc_core::{
 use crate::{
   shared::{
     enums::{
-      core::ModuleCycle,
+      core::TransformationCycle,
       data_structures::style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
     },
     utils::common::{increase_ident_count, increase_member_ident_count, reduce_member_ident_count},
@@ -23,20 +23,20 @@ where
 {
   pub(crate) fn fold_member_expr_impl(&mut self, member_expression: MemberExpr) -> MemberExpr {
     match self.state.cycle {
-      ModuleCycle::Skip => member_expression,
-      ModuleCycle::StateFilling | ModuleCycle::Recounting => {
+      TransformationCycle::Skip => member_expression,
+      TransformationCycle::StateFilling | TransformationCycle::Recounting => {
         if let Some(obj_ident) = member_expression.obj.as_ident() {
           match self.state.cycle {
-            ModuleCycle::StateFilling => {
+            TransformationCycle::StateFilling => {
               increase_member_ident_count(&mut self.state, &obj_ident.sym)
             }
-            ModuleCycle::Recounting => {reduce_member_ident_count(&mut self.state, &obj_ident.sym)},
+            TransformationCycle::Recounting => {reduce_member_ident_count(&mut self.state, &obj_ident.sym)},
             _ => {}
           }
         }
         member_expression.fold_children_with(self)
       }
-      ModuleCycle::PreCleaning => {
+      TransformationCycle::PreCleaning => {
         if let Expr::Ident(ident) = member_expression.obj.as_ref() {
           let obj_ident_name = ident.sym.to_string();
           if self.state.style_map.contains_key(&obj_ident_name) {

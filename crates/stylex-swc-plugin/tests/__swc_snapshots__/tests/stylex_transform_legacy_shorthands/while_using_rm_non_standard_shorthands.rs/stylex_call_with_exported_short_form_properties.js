@@ -1,3 +1,4 @@
+//__stylex_metadata_start__[{"class_name":"x123j3cw","style":{"rtl":null,"ltr":".x123j3cw{padding-top:5px}"},"priority":4000},{"class_name":"x1mpkggp","style":{"rtl":".x1mpkggp{padding-left:5px}","ltr":".x1mpkggp{padding-right:5px}"},"priority":3000},{"class_name":"xs9asl8","style":{"rtl":null,"ltr":".xs9asl8{padding-bottom:5px}"},"priority":4000},{"class_name":"x1t2a60a","style":{"rtl":".x1t2a60a{padding-right:5px}","ltr":".x1t2a60a{padding-left:5px}"},"priority":3000}]__stylex_metadata_end__
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';

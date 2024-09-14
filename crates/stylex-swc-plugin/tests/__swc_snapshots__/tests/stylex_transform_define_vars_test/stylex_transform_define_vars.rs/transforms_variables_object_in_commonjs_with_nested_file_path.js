@@ -1,3 +1,4 @@
+//__stylex_metadata_start__[{"class_name":"xmpye33","style":{"rtl":null,"ltr":":root{--x1sm8rlu:blue;--xxncinc:grey;--x4e1236:10;--xv9uic:pink;}"},"priority":0},{"class_name":"xmpye33-1lveb7","style":{"rtl":null,"ltr":"@media (prefers-color-scheme: dark){:root{--x1sm8rlu:lightblue;--xxncinc:rgba(0, 0, 0, 0.8);}}"},"priority":0.1},{"class_name":"xmpye33-bdddrq","style":{"rtl":null,"ltr":"@media print{:root{--x1sm8rlu:white;}}"},"priority":0.1}]__stylex_metadata_end__
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';

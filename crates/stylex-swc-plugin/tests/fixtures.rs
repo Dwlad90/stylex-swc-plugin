@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, rc::Rc};
 
 use stylex_swc_plugin::{
   shared::structures::{
@@ -8,12 +8,11 @@ use stylex_swc_plugin::{
   ModuleTransformVisitor,
 };
 use swc_core::{
-  common::{chain, FileName, Mark},
+  common::{chain, comments::SingleThreadedComments, FileName, Mark},
   ecma::{
     parser::{Syntax, TsSyntax},
     transforms::{base::resolver, testing::test_fixture},
   },
-  plugin::proxies::PluginCommentsProxy,
 };
 
 #[testing::fixture("tests/fixture/**/input.js")]
@@ -39,7 +38,7 @@ fn fixture(input: PathBuf) {
       chain!(
         resolver(unresolved_mark, top_level_mark, false),
         ModuleTransformVisitor::new_test_styles(
-          PluginCommentsProxy,
+          Rc::new(SingleThreadedComments::default()),
           &PluginPass {
             cwd: None,
             filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),

@@ -33,7 +33,9 @@ where
       if self.state.options.runtime_injection.is_some() {
         self.state.cycle = TransformationCycle::InjectStyles;
         module = module.fold_children_with(self);
-      } else {
+      }
+
+      if !&self.state.metadata.is_empty() {
         // Preparing stylex metadata for css extraction
         self.comments.add_leading(
           module.span.lo,

@@ -1,3 +1,4 @@
+//__stylex_metadata_start__[{"class_name":"x1gykpug","style":{"rtl":null,"ltr":".x1gykpug:hover{background-color:red}"},"priority":3130},{"class_name":"x11bf1mc","style":{"rtl":null,"ltr":".x11bf1mc:hover{color:var(--1ijzsae,revert)}"},"priority":3130}]__stylex_metadata_end__
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';

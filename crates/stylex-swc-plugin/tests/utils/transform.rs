@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
 use stylex_swc_plugin::shared::structures::plugin_pass::PluginPass;
 use stylex_swc_plugin::ModuleTransformVisitor;
 // use swc_ecma_codegen::{text_writer::JsWriter, Emitter};
 
-use swc_core::common::{chain, DUMMY_SP};
+use swc_core::common::{chain, comments::SingleThreadedComments, DUMMY_SP};
 use swc_core::ecma::ast::{
   CallExpr, Decl, Expr, ImportSpecifier, ModuleDecl, ModuleItem, Stmt, VarDecl, VarDeclKind,
   VarDeclarator,
@@ -24,7 +24,6 @@ use swc_core::{
     parser::{lexer::Lexer, Parser, StringInput, Syntax},
     visit::FoldWith,
   },
-  plugin::proxies::PluginCommentsProxy,
 };
 
 pub(crate) fn _parse_js(source_code: &str) -> Module {
@@ -51,7 +50,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
     Ok(module) => {
       // Do something with the parsed module.
       module.fold_with(&mut ModuleTransformVisitor::new_test_styles(
-        PluginCommentsProxy,
+        Rc::new(SingleThreadedComments::default()),
         &PluginPass::default(),
         None,
       ))

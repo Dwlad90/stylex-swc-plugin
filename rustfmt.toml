@@ -1,0 +1,14 @@
+edition = "2021"
+disable_all_formatting = false
+fn_params_layout = "Tall"
+force_explicit_abi = true
+hard_tabs = false
+match_block_trailing_comma = false
+max_width = 100
+merge_derives = true
+newline_style = "Unix"
+reorder_imports = true
+tab_spaces = 2
+use_small_heuristics = "Default"
+use_try_shorthand = false
+use_field_init_shorthand = true

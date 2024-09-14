@@ -1,0 +1,42 @@
+{
+  "name": "@stylexswc/swc-plugin",
+  "description": "SWC plugin for transforming StyleX code",
+  "version": "0.2.2",
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexswc/path-resolver": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ],
+  "license": "MIT",
+  "main": "./dist/stylex_swc_plugin.wasm",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": "dwlad90/stylex-swc-plugin",
+  "scripts": {
+    "build": "scripty --rust",
+    "check:artifacts": "[ -f ./dist/stylex_swc_plugin.wasm ] || { echo 'Artifacts does not exist'; exit 1; }",
+    "clean": "del-cli dist",
+    "format": "cargo fmt --all",
+    "format:check": "cargo fmt -- --check",
+    "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "NODE_ENV=test cargo test --lib --bins --tests",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,25 @@
+[package]
+name = "stylex_test_parser"
+version = "0.1.1"
+edition = "2021"
+rust-version = "1.80.0"
+description = "Test parser for StyleX"
+license = "MIT"
+repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde.workspace = true
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+  "base_node",
+] }
+regex.workspace = true
+serde_json.workspace = true
+clap = { version = "4.5.11", features = ["derive"] }
+walkdir = { version = "2.5.0" }

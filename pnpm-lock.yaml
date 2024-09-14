@@ -58,6 +58,16 @@ importers:
         specifier: ^5.4.5
         version: 5.4.5
 
+  crates/stylex-path-resolver: {}
+
+  crates/stylex-swc-plugin:
+    dependencies:
+      '@stylexswc/path-resolver':
+        specifier: workspace:*
+        version: link:../stylex-path-resolver
+
+  crates/stylex-test-parser: {}
+
   packages/eslint-config:
     dependencies:
       eslint:
@@ -119,12 +129,6 @@ importers:
       webpack:
         specifier: ^5.88.2
         version: 5.91.0
-
-  packages/path-resolver: {}
-
-  packages/swc-plugin: {}
-
-  packages/test-parser: {}
 
   packages/typescript-config: {}
 

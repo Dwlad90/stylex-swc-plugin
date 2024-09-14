@@ -1,5 +1,0 @@
-[toolchain]
-channel = "1.80.0"
-components = ["rustfmt", "clippy"]
-targets = ["wasm32-wasi"]
-profile = "minimal"

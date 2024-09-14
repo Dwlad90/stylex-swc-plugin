@@ -1,0 +1,10 @@
+name: 'Setup'
+description: 'Prepare the environment for the workflow'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Rust
+      uses: ./.github/actions/setup-rust
+
+    - name: Setup pnpm
+      uses: ./.github/actions/setup-pnpm

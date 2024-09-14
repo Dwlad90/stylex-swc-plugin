@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Lint code
+        run: pnpm run --filter @stylexswc/swc-plugin... lint:check
+
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Format code
+        run: pnpm run --filter @stylexswc/swc-plugin... format:check
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run tests
+        run: pnpm run --filter @stylexswc/swc-plugin... test
+        env:
+          RUST_MIN_STACK: 16777216
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, lint, format]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build project
+        run: pnpm run --filter @stylexswc/swc-plugin build
+
+      - name: Check build artifacts
+        run: pnpm run --filter @stylexswc/swc-plugin check:artifacts

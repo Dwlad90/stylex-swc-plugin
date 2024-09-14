@@ -1,0 +1,7 @@
+name: "Rust Setup"
+description: "Install Rust toolchain and dependencies"
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup Rust toolchain"
+      uses: actions-rust-lang/setup-rust-toolchain@v1

@@ -25,13 +25,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: nightly
-
-      - name: Setup pnpm
-        uses: ./.github/actions/setup-pnpm
+      - name: Setup environment
+        uses: ./.github/actions/setup
 
       - name: Generate documentation
         run: pnpm run --filter @stylexswc/swc-plugin docs

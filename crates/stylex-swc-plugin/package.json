@@ -29,7 +29,7 @@
     "build": "scripty --rust",
     "check:artifacts": "[ -f ./dist/stylex_swc_plugin.wasm ] || { echo 'Artifacts does not exist'; exit 1; }",
     "clean": "del-cli dist",
-    "docs": "RUSTDOCFLAGS=\"--enable-index-page -Zunstable-options\" cargo +nightly doc --no-deps",
+    "docs": "scripty --rust",
     "docs:open": "pnpm run docs --open",
     "format": "cargo fmt --all",
     "format:check": "cargo fmt -- --check",

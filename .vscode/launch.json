@@ -5,9 +5,9 @@
       "type": "lldb",
       "request": "launch",
       "name": "Debug",
-      "program": "${workspaceFolder}/packages/test-parser/target/debug/test-parser",
+      "program": "${workspaceFolder}/crates/stylex-test-parser/target/debug/test-parser",
       "args": [],
-      "cwd": "${workspaceFolder}/packages/test-parser",
+      "cwd": "${workspaceFolder}/crates/stylex-test-parser",
       "sourceLanguages": [
         "rust"
       ],

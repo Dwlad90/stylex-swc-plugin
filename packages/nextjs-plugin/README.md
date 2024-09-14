@@ -1,7 +1,7 @@
 # SWC Stylex plugin for Next.js
 
 Next.js plugin for an unofficial
-[`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/swc-plugin)
+[`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-swc-plugin)
 plugin.
 
 ## Why SWC instead of Babel

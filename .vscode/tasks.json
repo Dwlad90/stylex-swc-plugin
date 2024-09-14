@@ -13,7 +13,7 @@
         "$rustc"
       ],
       "options": {
-        "cwd": "${workspaceFolder}/packages/test-parser" // Add this line
+        "cwd": "${workspaceFolder}/crates/stylex-test-parser" // Add this line
       },
       "presentation": { // Add this block
         "reveal": "silent"

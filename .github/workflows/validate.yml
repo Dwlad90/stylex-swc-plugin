@@ -1,4 +1,4 @@
-name: CI
+name: Validate SWC Plugin
 
 on:
   push:

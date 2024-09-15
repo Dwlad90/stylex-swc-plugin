@@ -17,8 +17,8 @@ swc_core = { workspace = true, features = [
   "ecma_utils",
   "ecma_parser",
   "ecma_codegen",
-  "base_node",
 ] }
+swc_compiler_base = { version = "*", features = ["node"] }
 regex.workspace = true
 serde_json.workspace = true
 clap = { version = "4.5.11", features = ["derive"] }

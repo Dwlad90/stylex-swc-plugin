@@ -1,9 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = [
-  "crates/stylex-*",
-]
+members = ["crates/stylex-*"]
 
 [workspace.package]
 license = "MIT"
@@ -36,21 +34,7 @@ strip = "symbols"
 
 [workspace.dependencies]
 serde = "1.0.204"
-swc_core = { version = "0.96.9", features = [
-  "common",
-  "ecma_plugin_transform",
-  "ecma_utils",
-  "ecma_parser",
-  "ecma_codegen",
-  "css_codegen",
-  "css_visit",
-  "css_parser",
-  "css_ast",
-
-  "testing_transform",
-  "ecma_parser",
-] }
-
+swc_core = { version = "0.96.9" }
 lazy_static = "1.5.0"
 serde_json = "1.0.120"
 regex = "1.10.5"
@@ -60,16 +44,15 @@ derive_more = { version = "0.99.18" }
 convert_case = { version = "0.6.0" }
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }
-phf = { version = "0.11.2", features = ["macros"] }
+phf = { version = "0.11.2" }
 once_cell = { version = "1.19.0" }
 colored = { version = "2.1.0" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
 cssparser = { version = "0.34.0" }
 stylex_path_resolver = { path = "../path-resolver" }
-swc_ecma_parser = { version = "*", features = ["verify"] }
 testing = "0.38.1"
-insta = { version = "1.39.0", features = ["yaml"] }
+insta = { version = "1.39.0" }
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

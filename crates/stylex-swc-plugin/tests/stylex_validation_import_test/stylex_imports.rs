@@ -10,7 +10,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   ignore_non_stylex_imports,
   r#"
@@ -24,7 +24,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   support_named_export_of_stylex_create,
   r#"
@@ -39,7 +39,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   support_default_export_of_stylex_create,
   r#"

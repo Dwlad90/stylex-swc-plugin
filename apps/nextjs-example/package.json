@@ -1,0 +1,36 @@
+{
+  "name": "@stylexswc/next-example",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "clean": "rimraf .next",
+    "predev": "pnpm run clean",
+    "prebuild": "pnpm run clean",
+    "prestart": "pnpm run build",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "next:lint": "next lint"
+  },
+  "dependencies": {
+    "@stylexjs/open-props": "^0.7.5",
+    "@stylexjs/stylex": "^0.7.5",
+    "bright": "^0.8.4",
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@stylexjs/eslint-plugin": "^0.7.5",
+    "@stylexswc/nextjs-plugin": "^0.2.2",
+    "@stylexswc/swc-plugin": "^0.2.2",
+    "@types/node": "^20.10.4",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@typescript-eslint/parser": "^6.14.0",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.0.1",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3"
+  }
+}

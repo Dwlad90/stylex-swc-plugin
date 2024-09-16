@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::shared::utils::common::hash_f64;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub(crate) struct InjectableStyleBase {
   pub(crate) rtl: Option<String>,
   pub(crate) ltr: String,

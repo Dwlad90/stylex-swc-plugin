@@ -51,10 +51,6 @@ where
       if let Some(value) = self.transform_stylex_create(call_expr) {
         return Some(value);
       }
-
-      if let Some(value) = self.transform_stylex_create(call_expr) {
-        return Some(value);
-      }
     }
 
     if self.state.cycle == TransformationCycle::TransformExit {

@@ -58,7 +58,7 @@ where
     }
   }
 
-  pub fn new_test_styles(
+  pub fn new_test_force_runtime_injection(
     comments: C,
     plugin_pass: &PluginPass,
     config: Option<&mut StyleXOptionsParams>,

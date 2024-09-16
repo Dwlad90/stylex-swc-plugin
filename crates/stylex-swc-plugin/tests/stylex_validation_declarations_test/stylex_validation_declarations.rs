@@ -31,7 +31,7 @@ fn validation_stylex_invalid_properties() {
         ..Default::default()
       }),
       |tr| {
-        ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+        ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
       },
     );
   });
@@ -61,7 +61,7 @@ fn stylex_invalid_property_values() {
         ..Default::default()
       }),
       |tr| {
-        ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+        ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
       },
     );
   });

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 use crate::shared::constants::common::DEFAULT_INJECT_PATH;
@@ -19,7 +21,7 @@ pub struct StyleXStateOptions {
   pub runtime_injection: Option<RuntimeInjectionState>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
-  // pub aliases: Option<HashMap<String, Vec<String>>>,
+  pub aliases: Option<HashMap<String, Vec<String>>>,
   pub unstable_module_resolution: Option<CheckModuleResolution>,
 }
 
@@ -36,7 +38,7 @@ impl StyleXStateOptions {
       test: false,
       treeshake_compensation: None,
       gen_conditional_classes: false,
-      // aliases: None,
+      aliases: None,
       unstable_module_resolution: None,
     }
   }
@@ -63,23 +65,6 @@ impl From<StyleXOptions> for StyleXStateOptions {
       RuntimeInjection::Regular(s) => Some(RuntimeInjectionState::Regular(s)),
     };
 
-    // let aliases = match options.aliases {
-    //   Some(aliases) => match aliases {
-    //     stylex_options::Aliases::String(aliases) => {
-    //       let mut aliases_map = HashMap::new();
-    //       for (key, value) in aliases {
-    //         let vec = vec![value];
-
-    //         aliases_map.insert(key, vec);
-    //       }
-
-    //       Some(aliases_map)
-    //     }
-    //     stylex_options::Aliases::StringVec(aliases) => Some(aliases),
-    //   },
-    //   None => None,
-    // };
-
     StyleXStateOptions {
       style_resolution: options.style_resolution,
       use_rem_for_font_size: options.use_rem_for_font_size,
@@ -91,7 +76,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       test: options.test,
       treeshake_compensation: options.treeshake_compensation,
       gen_conditional_classes: options.gen_conditional_classes,
-      // aliases,
+      aliases: options.aliases,
       unstable_module_resolution: options.unstable_module_resolution,
     }
   }

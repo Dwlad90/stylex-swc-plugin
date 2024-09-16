@@ -230,10 +230,11 @@ pub fn resolve_file_path(
   source_file_path: &str,
   ext: &str,
   root_path: &str,
+  aliases: &HashMap<String, Vec<String>>,
 ) -> std::io::Result<PathBuf> {
   let source_dir = Path::new(source_file_path).parent().unwrap();
 
-  let mut resolved_file_path = (if import_path_str.starts_with('.') {
+  let resolved_file_paths: Vec<PathBuf> = if import_path_str.starts_with('.') {
     let root_path: &Path = Path::new(root_path);
 
     let resolved_import_path = PathBuf::from(resolve_path(
@@ -241,69 +242,116 @@ pub fn resolve_file_path(
       root_path,
     ));
 
-    resolved_import_path
+    vec![resolved_import_path]
   } else if import_path_str.starts_with('/') {
-    Path::new(root_path).join(import_path_str)
+    vec![Path::new(root_path).join(import_path_str)]
   } else {
-    let path = Path::new("node_modules").join(import_path_str);
+    let root_path: &Path = Path::new(root_path);
 
-    path
-  })
-  .clean();
+    let mut aliased_file_paths = possible_aliased_paths(import_path_str, aliases)
+      .iter()
+      .filter_map(|path| path.strip_prefix(root_path).ok())
+      .map(PathBuf::from)
+      .collect::<Vec<PathBuf>>();
 
-  if let Some(extension) = resolved_file_path.extension() {
-    let subpath = extension.to_string_lossy();
+    let node_modules_path = Path::new("node_modules").join(import_path_str);
 
-    if EXTENSIONS.iter().all(|ext| {
-      let res = !ext.ends_with(subpath.as_ref());
-      res
-    }) {
-      resolved_file_path.set_extension(format!("{}{}", subpath, ext));
+    aliased_file_paths.push(node_modules_path);
+
+    aliased_file_paths
+  };
+
+  for resolved_file_path in resolved_file_paths.iter() {
+    let mut resolved_file_path = resolved_file_path.clean();
+
+    if let Some(extension) = resolved_file_path.extension() {
+      let subpath = extension.to_string_lossy();
+
+      if EXTENSIONS.iter().all(|ext| {
+        let res = !ext.ends_with(subpath.as_ref());
+        res
+      }) {
+        resolved_file_path.set_extension(format!("{}{}", subpath, ext));
+      }
+    } else {
+      resolved_file_path.set_extension(ext);
     }
-  } else {
-    resolved_file_path.set_extension(ext);
+
+    let resolved_file_path = resolved_file_path.clean();
+
+    let cleaned_path_binding = resolved_file_path
+      .to_str()
+      .unwrap()
+      .replace("..", ".")
+      .to_string();
+
+    let cleaned_path = cleaned_path_binding.as_str();
+
+    let mut path_to_check = PathBuf::from(cleaned_path);
+
+    let mut node_modules_path_to_check = path_to_check.clone();
+
+    let cwd: &str;
+
+    #[cfg(test)]
+    {
+      cwd = root_path;
+    }
+
+    #[cfg(not(test))]
+    {
+      cwd = "cwd";
+    }
+
+    if !cleaned_path.contains(cwd) {
+      node_modules_path_to_check = Path::new(cwd)
+        .join("node_modules")
+        .join(path_to_check.clone());
+      path_to_check = Path::new(cwd).join(path_to_check);
+    }
+
+    if fs::metadata(path_to_check.clone()).is_ok()
+      || fs::metadata(node_modules_path_to_check.clone()).is_ok()
+    {
+      return Ok(resolved_file_path.to_path_buf());
+    }
   }
 
-  let resolved_file_path = resolved_file_path.clean();
+  Err(std::io::Error::new(
+    std::io::ErrorKind::NotFound,
+    "File not found",
+  ))
+}
 
-  let cleaned_path_binding = resolved_file_path
-    .to_str()
-    .unwrap()
-    .replace("..", ".")
-    .to_string();
+fn possible_aliased_paths(
+  import_path_str: &str,
+  aliases: &HashMap<String, Vec<String>>,
+) -> Vec<PathBuf> {
+  let mut result = vec![PathBuf::from(import_path_str)];
 
-  let cleaned_path = cleaned_path_binding.as_str();
-
-  let mut path_to_check = PathBuf::from(cleaned_path);
-  let mut node_modules_path_to_check = path_to_check.clone();
-
-  let cwd: &str;
-
-  #[cfg(test)]
-  {
-    cwd = root_path;
+  if aliases.is_empty() {
+    return result;
   }
 
-  #[cfg(not(test))]
-  {
-    cwd = "cwd";
+  for (alias, values) in aliases.iter() {
+    if alias.contains('*') {
+      let parts: Vec<&str> = alias.split('*').collect();
+      let before = parts[0];
+      let after = parts[1];
+
+      if import_path_str.starts_with(before) && import_path_str.ends_with(after) {
+        let replacement_string =
+          &import_path_str[before.len()..import_path_str.len() - after.len()];
+        for value in values {
+          result.push(PathBuf::from(value.replace('*', replacement_string)));
+        }
+      }
+    } else if alias == import_path_str {
+      for value in values {
+        result.push(PathBuf::from(value.clone()));
+      }
+    }
   }
 
-  if !cleaned_path.contains(cwd) {
-    node_modules_path_to_check = Path::new(cwd)
-      .join("node_modules")
-      .join(path_to_check.clone());
-    path_to_check = Path::new(cwd).join(path_to_check);
-  }
-
-  if fs::metadata(path_to_check.clone()).is_ok()
-    || fs::metadata(node_modules_path_to_check.clone()).is_ok()
-  {
-    Ok(resolved_file_path.to_path_buf())
-  } else {
-    Err(std::io::Error::new(
-      std::io::ErrorKind::NotFound,
-      "File not found",
-    ))
-  }
+  result
 }

@@ -16,7 +16,7 @@ where
   serializer.serialize_f64(*priority)
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 
 pub(crate) struct MetaData {
   class_name: String,

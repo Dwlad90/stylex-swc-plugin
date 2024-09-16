@@ -25,7 +25,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -58,7 +58,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -91,7 +91,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),

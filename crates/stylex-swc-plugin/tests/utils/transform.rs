@@ -49,7 +49,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
   match parser.parse_module() {
     Ok(module) => {
       // Do something with the parsed module.
-      module.fold_with(&mut ModuleTransformVisitor::new_test_styles(
+      module.fold_with(&mut ModuleTransformVisitor::new_test_force_runtime_injection(
         Rc::new(SingleThreadedComments::default()),
         &PluginPass::default(),
         None,

@@ -19,7 +19,7 @@ pub struct StyleXOptionsParams {
   pub gen_conditional_classes: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
-  pub aliases: Option<Aliases>,
+  pub aliases: Option<HashMap<String, Vec<String>>>,
   #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
 }
@@ -87,7 +87,7 @@ pub struct StyleXOptions {
   pub import_sources: Vec<ImportSources>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
-  // pub aliases: Option<Aliases>,
+  pub aliases: Option<HashMap<String, Vec<String>>>,
   pub unstable_module_resolution: Option<CheckModuleResolution>,
 }
 
@@ -122,7 +122,7 @@ impl Default for StyleXOptions {
       test: false,
       treeshake_compensation: None,
       gen_conditional_classes: false,
-      // aliases: None,
+      aliases: None,
       unstable_module_resolution: Some(CheckModuleResolution::Haste(
         StyleXOptions::get_haste_module_resolution(None),
       )),
@@ -162,7 +162,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       test: options.test.unwrap_or(false),
       treeshake_compensation: options.treeshake_compensation,
       gen_conditional_classes: options.gen_conditional_classes.unwrap_or(false),
-      // aliases: options.aliases,
+      aliases: options.aliases,
       unstable_module_resolution,
     }
   }

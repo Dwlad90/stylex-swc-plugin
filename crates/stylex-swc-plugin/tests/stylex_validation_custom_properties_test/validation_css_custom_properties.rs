@@ -26,7 +26,7 @@ fn disallow_unclosed_style_value_functions() {
 
       config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-      ModuleTransformVisitor::new_test_styles(
+      ModuleTransformVisitor::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         Some(&mut config),
@@ -58,7 +58,7 @@ fn disallow_unprefixed_custom_properties() {
 
       config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-      ModuleTransformVisitor::new_test_styles(
+      ModuleTransformVisitor::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         Some(&mut config),
@@ -87,7 +87,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -115,7 +115,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -133,7 +133,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None,),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None,),
   allow_undefined_custom_properties_regular,
   r#"
       import stylex from 'stylex';
@@ -153,7 +153,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -181,7 +181,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),

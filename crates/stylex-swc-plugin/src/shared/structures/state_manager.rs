@@ -1,7 +1,10 @@
 use core::panic;
-use std::collections::{HashMap, HashSet};
 use std::option::Option;
 use std::path::Path;
+use std::{
+  collections::{HashMap, HashSet},
+  hash::Hash,
+};
 
 use indexmap::{IndexMap, IndexSet};
 use stylex_path_resolver::resolvers::{resolve_file_path, resolve_path, EXTENSIONS};
@@ -290,12 +293,14 @@ impl StateManager {
           .clone()
           .unwrap_or(".stylex".to_string());
 
+        let aliases = self.options.aliases.clone().unwrap_or_default();
+
         if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
           return ImportPathResolution::False;
         }
 
         let resolved_file_path =
-          file_path_resolver(import_path, source_file_path, root_dir.as_str());
+          file_path_resolver(import_path, source_file_path, root_dir.as_str(), &aliases);
 
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
       }
@@ -682,35 +687,74 @@ fn add_file_extension(imported_file_path: &str, source_file: &str) -> String {
   format!("{}.{}", imported_file_path, file_extension)
 }
 
-fn chain_collect<T: Clone>(vec1: Vec<T>, vec2: Vec<T>) -> Vec<T> {
-  vec1.into_iter().chain(vec2).collect()
+fn chain_collect<T: Clone + Eq + PartialEq>(vec1: Vec<T>, vec2: Vec<T>) -> Vec<T> {
+  if vec1 == vec2 {
+    return vec1;
+  }
+
+  if vec1.len() < vec2.len() {
+    let commom_part = vec2.iter().take(vec1.len()).cloned().collect::<Vec<T>>();
+
+    if commom_part == vec1 {
+      return vec2;
+    }
+
+    let mut vec = vec1.clone();
+
+    vec.retain(|item| vec2.contains(item));
+
+    for item in vec2.iter() {
+      if !vec.contains(item) {
+        vec.push(item.clone());
+      }
+    }
+
+    return vec;
+  }
+
+  let mut vec = vec1.clone();
+
+  vec.retain(|item| !vec2.contains(item));
+
+  for item in vec2.iter() {
+    if !vec.contains(item) {
+      vec.push(item.clone());
+    }
+  }
+
+  vec
 }
 
-fn union_hash_set<T: Clone + Eq + std::hash::Hash>(
-  set1: &HashSet<T>,
-  set2: &HashSet<T>,
-) -> HashSet<T> {
+fn union_hash_set<T: Clone + Eq + Hash>(set1: &HashSet<T>, set2: &HashSet<T>) -> HashSet<T> {
   set1.union(set2).cloned().collect()
 }
 
-fn chain_collect_hash_map<K: Eq + std::hash::Hash, V: Clone>(
+fn chain_collect_hash_map<K: Eq + Hash, V: Clone + PartialEq>(
   map1: HashMap<K, V>,
   map2: HashMap<K, V>,
 ) -> HashMap<K, V> {
+  if map1 == map2 {
+    return map1;
+  }
   map1.into_iter().chain(map2).collect()
 }
 
-fn _union_index_set<T: Clone + Eq + std::hash::Hash>(
-  set1: &IndexSet<T>,
-  set2: &IndexSet<T>,
-) -> IndexSet<T> {
+fn _union_index_set<T: Clone + Eq + Hash>(set1: &IndexSet<T>, set2: &IndexSet<T>) -> IndexSet<T> {
+  if set1 == set2 {
+    return set1.clone();
+  }
+
   set1.union(set2).cloned().collect()
 }
 
-fn chain_collect_index_map<K: Eq + std::hash::Hash, V: Clone>(
+fn chain_collect_index_map<K: Eq + Hash, V: Clone + PartialEq>(
   map1: IndexMap<K, V>,
   map2: IndexMap<K, V>,
 ) -> IndexMap<K, V> {
+  if map1 == map2 {
+    return map1;
+  }
+
   map1.into_iter().chain(map2).collect()
 }
 
@@ -718,6 +762,7 @@ fn file_path_resolver(
   relative_file_path: &str,
   source_file_path: String,
   root_path: &str,
+  aliases: &HashMap<String, Vec<String>>,
 ) -> String {
   if EXTENSIONS
     .iter()
@@ -733,7 +778,8 @@ fn file_path_resolver(
       relative_file_path.to_string()
     };
 
-    let resolved_file_path = resolve_file_path(&import_path_str, &source_file_path, ext, root_path);
+    let resolved_file_path =
+      resolve_file_path(&import_path_str, &source_file_path, ext, root_path, aliases);
 
     if let Ok(resolved_path) = resolved_file_path {
       let resolved_path_str = resolved_path.display().to_string();

@@ -10,7 +10,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_color,
   r#"
@@ -27,7 +27,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_start_color,
   r#"
@@ -43,7 +43,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_end_color,
   r#"
@@ -61,7 +61,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_style,
   r#"
@@ -77,7 +77,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_start_style,
   r#"
@@ -93,7 +93,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_end_style,
   r#"
@@ -109,7 +109,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_inline_style,
   r#"
@@ -125,7 +125,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_inline_start_style,
   r#"
@@ -141,7 +141,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_inline_end_style,
   r#"
@@ -159,7 +159,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_width,
   r#"
@@ -175,7 +175,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_start_width,
   r#"
@@ -191,7 +191,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_block_end_width,
   r#"
@@ -207,7 +207,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_inline_width,
   r#"
@@ -223,7 +223,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_inline_start_width,
   r#"
@@ -239,7 +239,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   border_inline_end_width,
   r#"
@@ -257,7 +257,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   inset_block_start,
   r#"
@@ -273,7 +273,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   inset_block,
   r#"
@@ -289,7 +289,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   inset_block_end,
   r#"
@@ -305,7 +305,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   inset_inline,
   r#"
@@ -321,7 +321,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   inset_inline_start,
   r#"
@@ -337,7 +337,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   inset_inline_end,
   r#"
@@ -355,7 +355,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   margin_block,
   r#"
@@ -371,7 +371,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   margin_block_start,
   r#"
@@ -387,7 +387,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   margin_inline,
   r#"
@@ -403,7 +403,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   margin_inline_end,
   r#"
@@ -419,7 +419,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   margin_inline_start,
   r#"
@@ -437,7 +437,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   padding_block,
   r#"
@@ -453,7 +453,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   padding_block_end,
   r#"
@@ -469,7 +469,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   padding_block_start,
   r#"
@@ -485,7 +485,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   padding_inline,
   r#"
@@ -501,7 +501,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   padding_inline_end,
   r#"
@@ -517,7 +517,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   padding_inline_start,
   r#"
@@ -535,7 +535,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_end_aka_inset_inline_end,
   r#"
@@ -551,7 +551,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_margin_end_aka_margin_inline_end,
   r#"
@@ -567,7 +567,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_margin_horizontal_aka_margin_inline,
   r#"
@@ -583,7 +583,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_margin_vertical_aka_margin_block,
   r#"
@@ -599,7 +599,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_padding_end_aka_padding_inline_end,
   r#"
@@ -615,7 +615,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_padding_horizontal_aka_padding_inline,
   r#"
@@ -631,7 +631,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_padding_start_aka_padding_inline_start,
   r#"
@@ -647,7 +647,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_padding_vertical_aka_padding_block,
   r#"
@@ -663,7 +663,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   non_standard_start_aka_inset_inline_start,
   r#"
@@ -681,7 +681,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   legacy_short_form_property_value_flipping,
   r#"

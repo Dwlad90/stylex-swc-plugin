@@ -30,12 +30,11 @@ where
       self.state.cycle = TransformationCycle::TransformExit;
       module = module.fold_children_with(self);
 
-      if self.state.options.runtime_injection.is_some() {
-        self.state.cycle = TransformationCycle::InjectStyles;
-        module = module.fold_children_with(self);
-      }
-
       if !&self.state.metadata.is_empty() {
+        if self.comments.has_leading(module.span.lo) {
+          self.comments.take_leading(module.span.lo);
+        }
+
         // Preparing stylex metadata for css extraction
         self.comments.add_leading(
           module.span.lo,
@@ -57,6 +56,11 @@ where
             span: module.span,
           },
         );
+      }
+
+      if self.state.options.runtime_injection.is_some() {
+        self.state.cycle = TransformationCycle::InjectStyles;
+        module = module.fold_children_with(self);
       }
 
       self.state.cycle = TransformationCycle::PreCleaning;

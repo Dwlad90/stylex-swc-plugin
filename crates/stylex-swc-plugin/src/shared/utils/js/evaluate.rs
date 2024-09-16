@@ -1728,10 +1728,18 @@ fn _evaluate(
             if !state.added_imports.contains(&import_path_src)
               && state.traversal_state.get_treeshake_compensation()
             {
-              state
+              let prepend_import_module_item = add_import_expression(&import_path_src);
+
+              if !state
                 .traversal_state
                 .prepend_import_module_items
-                .push(add_import_expression(&import_path_src));
+                .contains(&prepend_import_module_item)
+              {
+                state
+                  .traversal_state
+                  .prepend_import_module_items
+                  .push(prepend_import_module_item);
+              }
 
               state.added_imports.insert(import_path_src);
             }

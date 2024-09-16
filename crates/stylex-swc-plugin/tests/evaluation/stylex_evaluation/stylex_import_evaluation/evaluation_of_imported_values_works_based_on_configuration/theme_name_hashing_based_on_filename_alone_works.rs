@@ -36,7 +36,7 @@ fn tranform(input: &str) -> String {
         ..Default::default()
       };
 
-      ModuleTransformVisitor::new_test_styles(
+      ModuleTransformVisitor::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass {
           filename: FileName::Real(

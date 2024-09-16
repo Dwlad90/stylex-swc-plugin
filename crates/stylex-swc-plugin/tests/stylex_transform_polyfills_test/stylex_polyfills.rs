@@ -10,7 +10,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   line_clamp,
   r#"
@@ -25,7 +25,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   pointer_events,
   r#"
@@ -45,7 +45,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   scrollbar_width,
   r#"

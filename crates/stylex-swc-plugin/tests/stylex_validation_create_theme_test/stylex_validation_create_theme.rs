@@ -12,7 +12,7 @@ fn must_be_bound_to_a_variable() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             stylex.createTheme({__themeName__: 'x568ih9'}, {});
@@ -30,7 +30,7 @@ fn it_must_have_two_arguments_no_args() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme();
@@ -48,7 +48,7 @@ fn it_must_have_two_arguments_one_args() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme({});
@@ -66,7 +66,7 @@ fn it_must_have_two_arguments_fn_args() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme(genStyles(),{});
@@ -84,7 +84,7 @@ fn it_must_have_two_arguments_empty_object_args() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme({},{});
@@ -97,7 +97,7 @@ fn it_must_have_two_arguments_empty_object_args() {
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   it_must_have_two_arguments_valid,
   r#"
@@ -117,7 +117,7 @@ fn variable_keys_must_be_a_static_value() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme(
@@ -133,7 +133,7 @@ fn variable_keys_must_be_a_static_value() {
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   values_must_be_static_number_or_string_in_stylex_create_theme_v1,
   r#"
@@ -148,7 +148,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
   },
   values_must_be_static_number_or_string_in_stylex_create_theme_v2,
   r#"
@@ -168,7 +168,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme(
@@ -189,7 +189,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme(

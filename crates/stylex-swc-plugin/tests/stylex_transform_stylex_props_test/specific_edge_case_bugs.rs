@@ -12,7 +12,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -63,7 +63,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {

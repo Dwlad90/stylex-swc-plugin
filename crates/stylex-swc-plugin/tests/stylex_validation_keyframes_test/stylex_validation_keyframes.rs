@@ -18,7 +18,7 @@ fn only_argument_must_be_an_object_of_objects_null() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const name = stylex.keyframes(null);
@@ -36,7 +36,7 @@ fn only_argument_must_be_an_object_of_objects_non_keyframe() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
     r#"
             import stylex from 'stylex';
             const name = stylex.keyframes({
@@ -53,7 +53,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
   only_argument_must_be_an_object_of_objects_valid,
   r#"
         import stylex from 'stylex';
@@ -69,7 +69,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_styles(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
   only_argument_must_be_an_object_of_objects_valid_filled,
   r#"
         import stylex from 'stylex';
@@ -100,7 +100,7 @@ test!(
 
     config.runtime_injection = Some(true);
 
-    ModuleTransformVisitor::new_test_styles(
+    ModuleTransformVisitor::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),

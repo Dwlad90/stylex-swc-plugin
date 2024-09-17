@@ -39,7 +39,10 @@ mod resolve_path_tests {
     tests::{fixture, get_root_dir},
   };
 
-  use std::{collections::HashMap, path::PathBuf};
+  use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+  };
 
   #[test]
   fn resolve_work_dir_packages() {
@@ -134,6 +137,40 @@ mod resolve_path_tests {
         get_root_dir(&test_path).as_path()
       ),
       "node_modules/stylex-lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn external_pnpm_package_file() {
+    assert_eq!(
+      resolve_path(
+        fixture(& PathBuf::from("workspace"), "../../node_modules/.pnpm/@stylexjs+open-props@0.7.5/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
+        get_root_dir(& PathBuf::from("workspace")).as_path()
+      ),
+      "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
+    );
+  }
+
+
+  #[test]
+  fn external_npm_package_file() {
+    assert_eq!(
+      resolve_path(
+        fixture(& PathBuf::from("workspace"), "../../node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
+        get_root_dir(& PathBuf::from("workspace")).as_path()
+      ),
+      "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn external_yarn_pnp_package_file() {
+    assert_eq!(
+      resolve_path(
+        fixture(& PathBuf::from("workspace"), "../../app/node_modules/.yarn/__virtual__/swc-virtual-123123/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
+        get_root_dir(& PathBuf::from("workspace")).as_path()
+      ),
+      "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
     );
   }
 

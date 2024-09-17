@@ -1,5 +1,5 @@
 import './globals.css';
-// import { globalTokens as $ } from '@/app/globalTokens.stylex';
+import { globalTokens as $ } from '@/app/globalTokens.stylex';
 import * as stylex from '@stylexjs/stylex';
 
 export const metadata = {
@@ -31,7 +31,7 @@ const styles = stylex.create({
     padding: 0,
   },
   body: {
-    // color: `rgba(${$.foregroundR}, ${$.foregroundG}, ${$.foregroundB}, 1)`,
+    color: `rgba(${$.foregroundR}, ${$.foregroundG}, ${$.foregroundB}, 1)`,
     backgroundImage: {
       default: 'linear-gradient(to bottom, rgb(214, 219, 220), white)',
       [DARK]: 'linear-gradient(to bottom, rgb(20, 22, 27), black)',

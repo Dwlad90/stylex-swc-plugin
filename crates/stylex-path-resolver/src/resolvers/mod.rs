@@ -58,6 +58,21 @@ pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
   let mut stripped_path = match processing_file.strip_prefix(root_dir) {
     Ok(stripped) => stripped.to_path_buf(),
     Err(_) => {
+      let processing_file_str = processing_file.to_string_lossy();
+
+      if let Some(node_modules_index) = processing_file_str.rfind("node_modules") {
+        // NOTE: This is a workaround for the case when the file is located in the node_modules directory and pnpm is package manager
+
+        let resolved_path_from_node_modules = processing_file_str
+          .split_at(node_modules_index)
+          .1
+          .to_string();
+
+        if !resolved_path_from_node_modules.is_empty() {
+          return resolved_path_from_node_modules;
+        }
+      }
+
       let resolver = NodeModulesResolver::new(TargetEnv::Node, Default::default(), true);
 
       let (package_json, _) = get_package_json(cwd.as_path());

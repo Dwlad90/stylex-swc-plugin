@@ -17,7 +17,13 @@ fn must_be_bound_to_a_named_export_const() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             const styles = stylex.defineVars({});
@@ -35,7 +41,13 @@ fn must_be_bound_to_a_named_export() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             stylex.defineVars({});
@@ -53,7 +65,13 @@ fn its_only_argument_must_be_a_single_object_fn() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             export const styles = stylex.defineVars(genStyles());
@@ -71,7 +89,13 @@ fn its_only_argument_must_be_a_single_object_number() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             export const styles = stylex.defineVars(1);
@@ -89,7 +113,13 @@ fn its_only_argument_must_be_a_single_object_empty() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             export const styles = stylex.defineVars();
@@ -107,7 +137,13 @@ fn its_only_argument_must_be_a_single_object_two_args() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             export const styles = stylex.defineVars({}, {});
@@ -145,7 +181,13 @@ fn variable_keys_must_be_a_static_value() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             export const styles = stylex.defineVars({
@@ -198,7 +240,13 @@ fn values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars_var
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             export const styles = stylex.defineVars({
@@ -218,7 +266,13 @@ fn values_must_be_static_number_or_string_or_keyframes_in_stylex_define_vars_fn(
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             export const styles = stylex.defineVars({

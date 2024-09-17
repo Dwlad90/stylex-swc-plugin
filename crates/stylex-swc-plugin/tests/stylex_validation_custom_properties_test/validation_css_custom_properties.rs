@@ -133,7 +133,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None,),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None,
+  ),
   allow_undefined_custom_properties_regular,
   r#"
       import stylex from 'stylex';

@@ -7,7 +7,11 @@ use swc_core::ecma::{
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None,
+    )
   },
   transform_simple_css_class,
   r#"
@@ -25,7 +29,11 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None,
+    )
   },
   transform_multiple_simple_css_classes,
   r#"
@@ -58,7 +66,11 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None,
+    )
   },
   transform_multiple_simple_css_classes_and_inject_to_react_component,
   r#"

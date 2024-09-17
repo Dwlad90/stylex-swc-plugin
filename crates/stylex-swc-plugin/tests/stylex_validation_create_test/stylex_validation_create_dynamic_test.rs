@@ -14,7 +14,13 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -38,7 +44,13 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -62,7 +74,13 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -86,7 +104,13 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -103,7 +127,11 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
+    ModuleTransformVisitor::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None,
+    )
   },
   dynamic_style_function_only_accepts_named_parameters_valid,
   r#"

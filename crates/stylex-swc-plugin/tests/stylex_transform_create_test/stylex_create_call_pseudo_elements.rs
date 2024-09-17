@@ -9,7 +9,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_before_and_after,
   r#"
         import stylex from 'stylex';
@@ -31,7 +35,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_placeholder,
   r#"
         import stylex from 'stylex';
@@ -50,7 +58,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_thumb,
   r#"
         import stylex from 'stylex';

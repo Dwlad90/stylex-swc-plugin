@@ -9,7 +9,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_function,
   r#"
     import stylex from 'stylex';
@@ -27,7 +31,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   adds_units_for_numbers_in_style_object_with_function,
   r#"
     import stylex from 'stylex';
@@ -45,7 +53,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_mix_of_objects_and_functions,
   r#"
     import stylex from 'stylex';
@@ -66,7 +78,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_styles_that_set_css_vars,
   r#"
     import stylex from 'stylex';
@@ -83,7 +99,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_functions_with_nested_dynamic_values,
   r#"
     import stylex from 'stylex';

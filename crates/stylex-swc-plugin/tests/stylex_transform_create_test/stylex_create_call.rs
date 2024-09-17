@@ -17,7 +17,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object,
   r#"
         import stylex from 'stylex';
@@ -35,7 +39,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_import_wildcard,
   r#"
         import * as foo from 'stylex';
@@ -53,7 +61,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_named_imports,
   r#"
         import {create} from 'stylex';
@@ -71,7 +83,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_custom_property,
   r#"
         import stylex from 'stylex';
@@ -88,7 +104,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_custom_property_as_value,
   r#"
         import stylex from 'stylex';
@@ -105,7 +125,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_multiple_namespaces,
   r#"
         import stylex from 'stylex';
@@ -125,7 +149,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   does_not_transform_attr_fn_value,
   r#"
         import stylex from 'stylex';
@@ -142,7 +170,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_gradient,
   r#"
         import stylex from 'stylex';
@@ -206,7 +238,11 @@ fn handles_camel_cased_transition_properties() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None)
+    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None
+    )
   ));
 }
 
@@ -215,7 +251,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   leaves_transition_properties_of_custom_properties_alone,
   r#"
         import stylex from 'stylex';
@@ -232,7 +272,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_nested_pseudo_class_to_css,
   r#"
         import stylex from 'stylex';
@@ -252,7 +296,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_nested_pseudo_class_within_properties_to_css,
   r#"
         import stylex from 'stylex';
@@ -274,7 +322,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_array_values_as_fallbacks,
   r#"
         import stylex from 'stylex';
@@ -291,7 +343,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_array_values_as_fallbacks_within_media_query,
   r#"
         import stylex from 'stylex';
@@ -312,7 +368,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_properties_requiring_vendor_prefixes,
   r#"
         import stylex from 'stylex';
@@ -329,7 +389,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_valid_shorthands,
   r#"
         const MEDIA_MOBILE = "@media (max-width: 700px)";
@@ -357,7 +421,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   uses_stylex_include_correctly_with_member_expressions,
   r#"
         import stylex from 'stylex';
@@ -374,7 +442,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   using_stylex_include_keeps_the_compiled_object,
   r#"
         import stylex from 'stylex';
@@ -402,7 +474,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   uses_stylex_first_that_works_correctly,
   r#"
         import stylex from 'stylex';
@@ -419,7 +495,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_complex_property_values_containing_custom_properties_variables,
   r#"
         import stylex from 'stylex';
@@ -436,7 +516,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   auto_expands_shorthands,
   r#"
         import stylex from 'stylex';
@@ -477,7 +561,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   last_property_wins_even_if_shorthand,
   r#"
         import stylex from 'stylex';
@@ -609,7 +697,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_key_containing_differend_types,
   r#"
         import stylex from 'stylex';

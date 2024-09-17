@@ -9,7 +9,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transform_import_aliases,
   r#"
         import foobar from '@stylexjs/stylex';
@@ -32,7 +36,13 @@ fn throw_when_named_import() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+    |tr| {
+      ModuleTransformVisitor::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
     r#"
             import { foo } from "@stylexjs/stylex";
 
@@ -48,7 +58,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   can_import_with_a_different_name,
   r#"
         import foobar from '@stylexjs/stylex';
@@ -68,7 +82,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   can_import_wildcard,
   r#"
         import * as foobar from '@stylexjs/stylex';
@@ -89,7 +107,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   can_import_just_create,
   r#"
         import {create} from '@stylexjs/stylex';
@@ -110,7 +132,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(tr.comments.clone(), &PluginPass::default(), None),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   can_import_just_create_with_alias,
   r#"
         import {create as css} from '@stylexjs/stylex';

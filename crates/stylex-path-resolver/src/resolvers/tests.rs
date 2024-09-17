@@ -39,10 +39,7 @@ mod resolve_path_tests {
     tests::{fixture, get_root_dir},
   };
 
-  use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-  };
+  use std::{collections::HashMap, path::PathBuf};
 
   #[test]
   fn resolve_work_dir_packages() {
@@ -151,13 +148,16 @@ mod resolve_path_tests {
     );
   }
 
-
   #[test]
   fn external_npm_package_file() {
     assert_eq!(
       resolve_path(
-        fixture(& PathBuf::from("workspace"), "../../node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
-        get_root_dir(& PathBuf::from("workspace")).as_path()
+        fixture(
+          &PathBuf::from("workspace"),
+          "../../node_modules/@stylexjs/open-props/lib/colors.stylex.js"
+        )
+        .as_path(),
+        get_root_dir(&PathBuf::from("workspace")).as_path()
       ),
       "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
     );

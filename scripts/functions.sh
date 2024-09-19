@@ -41,5 +41,11 @@ EOF
       ;;
   esac
 
+  # Trim any leading or trailing whitespace from the version components
+  major=$(echo "$major" | xargs)
+  minor=$(echo "$minor" | xargs)
+  patch=$(echo "$patch" | xargs)
+
+
   echo "$major.$minor.$patch"
 }

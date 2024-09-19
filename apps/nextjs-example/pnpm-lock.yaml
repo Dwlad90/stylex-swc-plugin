@@ -31,11 +31,11 @@ importers:
         specifier: ^0.7.5
         version: 0.7.5
       '@stylexswc/nextjs-plugin':
-        specifier: ^0.2.2
-        version: 0.2.2(@stylexjs/babel-plugin@0.7.5)(next@14.2.3(@babel/core@7.25.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        specifier: 0.2.4
+        version: 0.2.4(@stylexjs/babel-plugin@0.7.5)(next@14.2.3(@babel/core@7.25.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@stylexswc/swc-plugin':
-        specifier: ^0.2.2
-        version: 0.2.2
+        specifier: 0.2.4
+        version: 0.2.4
       '@types/node':
         specifier: ^20.10.4
         version: 20.16.5
@@ -295,14 +295,14 @@ packages:
   '@stylexjs/stylex@0.7.5':
     resolution: {integrity: sha512-e4bryU2AoKBeAlloea7sJZrYrjiqJYViw8AWL6eanTVdk7qJ0CduNoiRQxtCP1dOhqGAPG74kaWT7slLzZnqKg==}
 
-  '@stylexswc/nextjs-plugin@0.2.2':
-    resolution: {integrity: sha512-U+hBI6yqO+vb3I4nmdxbSMzAfHZDKCcJUjxyEAbqvsbdpW+88gtefPr5q8Au8G7fNoexAs3csYUWvnPIlBub1w==}
+  '@stylexswc/nextjs-plugin@0.2.4':
+    resolution: {integrity: sha512-JOmS4h0VUX114ZBQ4kSC/AEBZZjdGLp8OnuKu4+OtdmfmPEUoKftRaD6/Ka95FjiJgpzdE7WPf/kxebow7YpYg==}
     peerDependencies:
       '@stylexjs/babel-plugin': ^0.7.5
       next: '>=14.0.1'
 
-  '@stylexswc/swc-plugin@0.2.2':
-    resolution: {integrity: sha512-Ww01YBAIJm4GLY64jDFZKMwkwKu2vhJk6DsLMsoDoqcaDU/ZAfQvlCDHZcDEEmjcWJDsW9jfu77uRyOlOEkuJA==}
+  '@stylexswc/swc-plugin@0.2.4':
+    resolution: {integrity: sha512-8DPs5bLLfayMWukabLqEIQ6tzDgT+Mttrd9fqBXhTl6xPhkEzWJ2xaFScwWRL7eEi9+jTVQlRC+2isCfmxESEQ==}
 
   '@swc/counter@0.1.3':
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
@@ -1851,12 +1851,12 @@ snapshots:
       invariant: 2.2.4
       styleq: 0.1.3
 
-  '@stylexswc/nextjs-plugin@0.2.2(@stylexjs/babel-plugin@0.7.5)(next@14.2.3(@babel/core@7.25.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@stylexswc/nextjs-plugin@0.2.4(@stylexjs/babel-plugin@0.7.5)(next@14.2.3(@babel/core@7.25.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
       '@stylexjs/babel-plugin': 0.7.5
       next: 14.2.3(@babel/core@7.25.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@stylexswc/swc-plugin@0.2.2': {}
+  '@stylexswc/swc-plugin@0.2.4': {}
 
   '@swc/counter@0.1.3': {}
 

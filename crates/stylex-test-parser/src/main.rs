@@ -25,6 +25,8 @@ use swc_core::{
 };
 use walkdir::WalkDir;
 
+use log::error;
+
 #[derive(Parser)]
 struct Cli {
   #[clap(
@@ -187,6 +189,9 @@ fn create_dir_if_not_exists(dir: &str) -> io::Result<()> {
 }
 
 fn main() {
+  pretty_env_logger::formatted_builder().init();
+  color_backtrace::install();
+
   let cli = Cli::parse();
 
   let stylex_dir = cli
@@ -202,7 +207,7 @@ fn main() {
     let file_paths = match read_all_files(root_path) {
       Ok(paths) => paths,
       Err(err) => {
-        eprintln!("Error reading files: {}", err);
+        error!("Error reading files: {}", err);
         return;
       }
     };
@@ -220,8 +225,19 @@ fn main() {
 
     for path in &file_paths {
       if let Err(err) = transform_file(path, dir.as_str()) {
-        eprintln!("Error transforming file {}: {}", path.display(), err);
+        error!("Error transforming file {}: {}", path.display(), err);
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use ctor::ctor;
+
+  #[ctor]
+  fn init_color_backtrace() {
+    pretty_env_logger::formatted_builder().init();
+    color_backtrace::install();
   }
 }

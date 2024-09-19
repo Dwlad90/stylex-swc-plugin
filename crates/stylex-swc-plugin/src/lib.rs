@@ -3,7 +3,10 @@ pub(crate) mod transform;
 
 use std::path::PathBuf;
 
-use shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
+use shared::{
+  structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  utils::log::log_formatter,
+};
 pub use transform::ModuleTransformVisitor;
 
 use swc_core::{
@@ -16,11 +19,27 @@ use swc_core::{
   },
 };
 
+#[cfg(test)]
+mod tests {
+  use ctor::ctor;
+
+  #[ctor]
+  fn init_color_backtrace() {
+    pretty_env_logger::formatted_builder().init();
+    color_backtrace::install();
+  }
+}
+
 #[plugin_transform]
 pub(crate) fn process_transform(
   program: Program,
   metadata: TransformPluginProgramMetadata,
 ) -> Program {
+  pretty_env_logger::formatted_builder()
+    .format(log_formatter)
+    .init();
+  color_backtrace::install();
+
   let mut config = serde_json::from_str::<StyleXOptionsParams>(
     &metadata
       .get_transform_plugin_config()

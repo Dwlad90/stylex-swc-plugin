@@ -53,6 +53,12 @@ cssparser = { version = "0.34.0" }
 stylex_path_resolver = { path = "../path-resolver" }
 testing = "0.38.1"
 insta = { version = "1.39.0" }
+anyhow = "1.0.89"
+log = "0.4.22"
+pretty_env_logger = "0.5.0"
+color-backtrace = { version = "0.6.1" }
+ctor = "0.2.8"
+env_logger = "0.10.2"
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

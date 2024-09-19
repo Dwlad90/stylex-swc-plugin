@@ -5,6 +5,7 @@ use std::{
 };
 
 use indexmap::IndexMap;
+use log::warn;
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, DUMMY_SP},
@@ -1635,7 +1636,7 @@ fn _evaluate(
       return deopt(path, state);
     }
     _ => {
-      eprintln!("Unsupported type of expression: {:?}", path.get_type());
+      warn!("Unsupported type of expression: {:?}", path.get_type());
 
       return deopt(path, state);
     }

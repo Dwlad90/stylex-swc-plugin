@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use indexmap::IndexMap;
+use log::warn;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -97,13 +98,13 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
 
                 match value.as_ref() {
                   FlatCompiledStylesValue::IncludedStyle(_) => {
-                    eprintln!(
+                    warn!(
                       "styleq: {} typeof IncludedStyle is not \"string\" or \"null\".",
                       prop
                     )
                   }
                   FlatCompiledStylesValue::Bool(_) => {
-                    eprintln!(
+                    warn!(
                       "styleq: {} typeof {:?} is not \"string\" or \"null\".",
                       prop, "Bool"
                     )

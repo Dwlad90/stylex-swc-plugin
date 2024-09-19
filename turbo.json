@@ -4,6 +4,9 @@
     "^node",
     "^pnpm"
   ],
+  "globalEnv": [
+    "NODE_ENV"
+  ],
   "tasks": {
     "build": {
       "dependsOn": [
@@ -26,6 +29,15 @@
       "cache": false,
       "persistent": true
     },
-    "test": {}
+    "test": {
+      "dependsOn": [
+        "^test"
+      ],
+      "outputs": [
+        "**/__swc_snapshots__"
+      ]
+    },
+    "format:check": {},
+    "lint:check": {}
   }
 }

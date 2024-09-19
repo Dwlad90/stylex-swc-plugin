@@ -18,8 +18,16 @@ swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_codegen",
 ] }
-swc_compiler_base = { version = "*", features = ["node"] }
 regex.workspace = true
 serde_json.workspace = true
+anyhow.workspace = true
+log.workspace = true
+pretty_env_logger.workspace = true
+color-backtrace.workspace = true
+ctor.workspace = true
+env_logger.workspace = true
+
 clap = { version = "4.5.11", features = ["derive"] }
 walkdir = { version = "2.5.0" }
+
+swc_compiler_base = { version = "*", features = ["node"] }

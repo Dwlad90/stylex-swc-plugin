@@ -1,3 +1,4 @@
+use log::warn;
 use path_clean::PathClean;
 use regex::Regex;
 use std::path::{Path, PathBuf};
@@ -235,7 +236,7 @@ fn resolve_package_json_exports(
   }
 
   if potential_package_path.is_empty() {
-    eprintln!("Unfortunatly, the exports field is not yet fully supported, so path resolving may work not as expected");
+    warn!("Unfortunatly, the exports field is not yet fully supported, so path resolving may work not as expected");
     // TODO: implement exports field resolution
   }
 }

@@ -18,5 +18,12 @@ serde_json.workspace = true
 swc_core = { workspace = true, features = ["common", "ecma_loader_node"] }
 path-clean = { workspace = true }
 regex.workspace = true
+anyhow.workspace = true
+log.workspace = true
+pretty_env_logger.workspace = true
+color-backtrace.workspace = true
+ctor.workspace = true
+env_logger.workspace = true
+
 package-json = "0.4.0"
 pathdiff = { version = "0.2.1" }

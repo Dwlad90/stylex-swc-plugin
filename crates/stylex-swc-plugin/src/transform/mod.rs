@@ -213,11 +213,11 @@ where
       .clone()
       .into_iter()
       .find(|decl| {
-        decl
-          .init
-          .as_ref()
-          .unwrap()
-          .eq(&Box::new(Expr::Call(call.clone())))
+        if let Some(init) = &decl.init {
+          init.eq(&Box::new(Expr::Call(call.clone())))
+        } else {
+          false
+        }
       })
       .map(Box::new);
 

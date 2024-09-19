@@ -88,6 +88,33 @@ test!(
     &PluginPass::default(),
     None
   ),
+  transforms_style_when_have_unassigned_variable,
+  r#"
+        import {create} from 'stylex';
+
+        let color;
+
+        const styles = create({
+            default: {
+                backgroundColor: 'red',
+                color: 'blue',
+            }
+        });
+
+        color = 'red';
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
   transforms_style_object_with_custom_property,
   r#"
         import stylex from 'stylex';

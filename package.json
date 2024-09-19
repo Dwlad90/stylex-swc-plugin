@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/stylexswc",
-  "version": "0.0.1",
+  "version": "0.2.3",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -12,7 +12,7 @@
   },
   "config": {
     "scripty": {
-      "path": "./scripts/workspace"
+      "path": "./scripts/packages"
     }
   },
   "dependencies": {

@@ -83,10 +83,10 @@ importers:
         specifier: ^0.7.5
         version: 0.7.5
       '@stylexswc/nextjs-plugin':
-        specifier: ^0.2.2
+        specifier: 0.2.3
         version: link:../../packages/nextjs-plugin
       '@stylexswc/swc-plugin':
-        specifier: ^0.2.2
+        specifier: 0.2.3
         version: link:../../crates/stylex-swc-plugin
       '@types/node':
         specifier: ^20.10.4

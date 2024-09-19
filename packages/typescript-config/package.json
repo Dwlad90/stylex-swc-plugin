@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/typescript-config",
-  "version": "0.1.0",
+  "version": "0.2.3",
   "license": "MIT",
   "private": true,
   "publishConfig": {

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-plugin",
   "description": "Stylex NextJS plugin with swc plugin",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"

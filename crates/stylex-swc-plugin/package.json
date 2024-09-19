@@ -8,7 +8,7 @@
     }
   },
   "dependencies": {
-    "@stylexswc/path-resolver": "workspace:*"
+    "@stylexswc/path-resolver": "0.2.3"
   },
   "files": [
     "dist"

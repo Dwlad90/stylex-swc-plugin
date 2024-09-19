@@ -118,7 +118,7 @@ importers:
   crates/stylex-swc-plugin:
     dependencies:
       '@stylexswc/path-resolver':
-        specifier: workspace:*
+        specifier: 0.2.3
         version: link:../stylex-path-resolver
 
   crates/stylex-test-parser: {}

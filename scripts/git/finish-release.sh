@@ -46,15 +46,15 @@ git checkout "${MASTER_BRANCH}"
 git merge --ff-only "${LAST_TAG}"
 
 # Push the changes to the remote repository
-git push --tags origin "${BASE_BRANCH}"
 git push --follow-tags origin "${MASTER_BRANCH}"
 
 # Delete the release branch
 git branch -d "${RELEASE_BRANCH}"
 git push origin -d "${RELEASE_BRANCH}"
 
-# Checkout the base branch
+# Checkout and push the base branch
 git checkout "${BASE_BRANCH}"
+git push --tags origin "${BASE_BRANCH}"
 
 # set positional arguments in their proper place
 eval set -- "$PARAMS"

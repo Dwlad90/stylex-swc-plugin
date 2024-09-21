@@ -1,6 +1,6 @@
 # SWC Stylex plugin for Next.js
 
-Next.js plugin for an unofficial
+A Next.js plugin for the community-maintained
 [`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-swc-plugin)
 plugin.
 
@@ -8,12 +8,11 @@ plugin.
 
 Since version 12, Next.js uses SWC Compiler by default.
 [According to Vercel](https://nextjs.org/docs/architecture/nextjs-compiler),
-compilation using the SWC Compiler is 17x faster than Babel.
+SWC compiles JavaScript up to 17x faster than Babel.
 
-However, if you have a Babel config, the application will out put of SWC
-Compiler and continue to use Babel.
+However, if you have a Babel configconfiguration, Next.js will disable the SWC Compiler and continue using Babel.
 
-This plugin allows us to use StyleX and take advantage of SWC Compiler.
+This plugin lets you use StyleX with the SWC Compiler, so you can take full advantage of its speed and efficiency.
 
 **The usage of StyleX does not change**, all changes are internal. All you need
 to do, is install SWC StyleX plugin and update Next.js config.
@@ -34,14 +33,14 @@ npm install --save-dev @stylexswc/swc-plugin
 
 ## Usage
 
-Modify Next.js config. For example:
+Modify Next.js config. Here’s an example:
 
 ```js
 /** @type {import('next').NextConfig} */
 const stylexPlugin = require('@stylexswc/nextjs-plugin');
 
 const nextConfig = {
-  // Configure `pageExtensions` to include MDX files
+  // Configure `pageExtensions` to include MDX files. Include custom page extensions if needed
   pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
   transpilePackages: ['@stylexjs/open-props'],
   // Optionally, add any other Next.js config below

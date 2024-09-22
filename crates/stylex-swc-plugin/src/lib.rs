@@ -60,7 +60,7 @@ pub(crate) fn process_transform(
   let plugin_pass = Box::new(PluginPass { cwd, filename });
 
   let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
-    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config);
+    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config, true);
 
   program.fold_with(&mut stylex)
 }

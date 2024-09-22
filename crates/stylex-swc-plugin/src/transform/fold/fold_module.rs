@@ -30,7 +30,7 @@ where
       self.state.cycle = TransformationCycle::TransformExit;
       module = module.fold_children_with(self);
 
-      if !&self.state.metadata.is_empty() {
+      if self.should_inject_metadata && !&self.state.metadata.is_empty() {
         if self.comments.has_leading(module.span.lo) {
           self.comments.take_leading(module.span.lo);
         }

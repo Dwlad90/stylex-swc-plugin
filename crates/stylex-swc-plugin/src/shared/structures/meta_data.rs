@@ -18,7 +18,7 @@ where
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 
-pub(crate) struct MetaData {
+pub struct MetaData {
   class_name: String,
   style: InjectableStyleBase,
   #[serde(serialize_with = "f64_to_int")]
@@ -33,11 +33,11 @@ impl MetaData {
       style: InjectableStyleBase::from(injectable_style),
     }
   }
-  pub(crate) fn _get_style(&self) -> &InjectableStyleBase {
+  pub fn get_style(&self) -> &InjectableStyleBase {
     &self.style
   }
 
-  pub(crate) fn get_css(&self) -> &str {
+  pub fn get_css(&self) -> &str {
     self.style.ltr.as_str()
   }
 
@@ -45,11 +45,11 @@ impl MetaData {
     self.style.rtl.as_ref()
   }
 
-  pub(crate) fn get_class_name(&self) -> &str {
+  pub fn get_class_name(&self) -> &str {
     &self.class_name
   }
 
-  pub(crate) fn get_priority(&self) -> &f64 {
+  pub fn get_priority(&self) -> &f64 {
     &self.priority
   }
 

@@ -6,7 +6,7 @@ pub(crate) mod included_style;
 pub(crate) mod injectable_style;
 pub(crate) mod legacy_expand_shorthands_order;
 pub(crate) mod member_transform;
-pub(crate) mod meta_data;
+pub mod meta_data;
 pub mod named_import_source;
 pub(crate) mod null_pre_rule;
 pub(crate) mod order;

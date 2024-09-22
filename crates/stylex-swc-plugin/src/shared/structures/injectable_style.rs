@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::shared::utils::common::hash_f64;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub(crate) struct InjectableStyleBase {
-  pub(crate) rtl: Option<String>,
-  pub(crate) ltr: String,
+pub struct InjectableStyleBase {
+  pub rtl: Option<String>,
+  pub ltr: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

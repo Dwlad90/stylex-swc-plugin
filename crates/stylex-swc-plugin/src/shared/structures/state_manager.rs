@@ -89,7 +89,7 @@ pub struct StateManager {
   pub(crate) in_stylex_create: bool,
 
   pub(crate) options: Box<StyleXStateOptions>,
-  pub(crate) metadata: IndexMap<String, Vec<MetaData>>,
+  pub metadata: IndexMap<String, Vec<MetaData>>,
   pub(crate) styles_to_inject: IndexMap<Box<Expr>, Vec<ModuleItem>>,
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,

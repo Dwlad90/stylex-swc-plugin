@@ -1,0 +1,76 @@
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
+use swc_core::ecma::{
+  parser::{Syntax, TsSyntax},
+  transforms::testing::test,
+};
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  transforms_invalid_pseudo_class,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            default: {
+                backgroundColor: {':invalpwdijad': 'red'},
+                color: {':invalpwdijad': 'blue'},
+            },
+        });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  transforms_valid_pseudo_classes_in_order,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            default: {
+                color: {
+                    ':hover': 'blue',
+                    ':active':'red',
+                    ':focus': 'yellow',
+                    ':nth-child(2n)': 'purple',
+                },
+            },
+        });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  transforms_pseudo_class_with_array_value_as_fallbacks,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            default: {
+                position: {
+                    ':hover': ['sticky', 'fixed'],
+                }
+            },
+        });
+    "#
+);

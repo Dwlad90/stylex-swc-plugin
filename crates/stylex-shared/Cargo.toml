@@ -1,15 +1,15 @@
 [package]
-name = "stylex_compiler_rs"
-version = "0.1.0"
+name = "stylex_shared"
+version = "0.2.4"
 edition = "2021"
-license.workspace = true
-repository.workspace = true
-
+rust-version = "1.80.0"
+description = "Shared SWC tranformer for StyleX"
+license = "MIT"
+repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 doctest = false
-
 
 [dependencies]
 serde.workspace = true
@@ -47,19 +47,15 @@ color-backtrace.workspace = true
 ctor.workspace = true
 env_logger.workspace = true
 
-swc_compiler_base = { version = "*", features = ["node"] }
 swc_ecma_parser = { version = "*", features = ["verify"] }
 
-stylex_shared = { path = "../stylex-shared" }
-napi = "2"
-napi-derive = "2"
+stylex_path_resolver = { path = "../stylex-path-resolver" }
 
 
 [dev-dependencies]
 swc_core = { workspace = true, features = ["testing_transform", "ecma_parser"] }
 testing.workspace = true
 insta = { workspace = true, features = ["yaml"] }
-napi-build = "2"
 
 
 # .cargo/config defines few alias to build plugin.
@@ -67,7 +63,3 @@ napi-build = "2"
 # cargo build-wasm32 generates wasm32-unknown-unknown binary.
 
 # wasm-pack build --target web --dev -d dist --out-name index
-
-
-[build-dependencies]
-napi-build = "2"

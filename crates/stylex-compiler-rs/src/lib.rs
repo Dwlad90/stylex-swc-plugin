@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use swc_compiler_base::{parse_js, print, IsModule, PrintArgs, SourceMapsConfig};
 
-use stylex_swc_plugin::{
+use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
   ModuleTransformVisitor,
 };

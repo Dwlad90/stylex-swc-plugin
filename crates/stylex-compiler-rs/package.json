@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/stylex-compiler-rs",
+  "name": "@stylexswc/compiler-rs",
   "version": "0.0.1",
   "description": "Template project for writing node package with napi-rs",
   "main": "index.js",

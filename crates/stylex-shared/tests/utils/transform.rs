@@ -1,8 +1,6 @@
 use std::{rc::Rc, sync::Arc};
 
-use stylex_shared::shared::structures::plugin_pass::PluginPass;
-use stylex_shared::ModuleTransformVisitor;
-// use swc_ecma_codegen::{text_writer::JsWriter, Emitter};
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
 
 use swc_core::common::{chain, comments::SingleThreadedComments, DUMMY_SP};
 use swc_core::ecma::ast::{

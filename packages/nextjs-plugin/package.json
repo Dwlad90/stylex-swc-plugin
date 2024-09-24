@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@babel/types": "^7.23.9",
+    "@stylexswc/rs-compiler": "workspace:*",
     "@stylexswc/eslint-config": "workspace:*",
     "@stylexswc/typescript-config": "workspace:*",
     "@types/babel__core": "^7.20.5",

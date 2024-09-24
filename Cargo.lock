@@ -1885,39 +1885,18 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stylex_compiler_rs"
-version = "0.1.0"
+version = "0.2.4"
 dependencies = [
- "anyhow",
  "color-backtrace",
- "colored",
- "convert_case 0.6.0",
- "cssparser",
- "ctor",
- "dashmap 6.1.0",
- "derive_more",
- "env_logger",
- "indexmap",
- "insta",
- "lazy_static",
- "log",
- "murmur2",
  "napi",
  "napi-build",
  "napi-derive",
- "node-resolve",
- "once_cell",
- "path-clean 1.0.1",
- "phf",
- "pretty_env_logger",
- "radix_fmt",
- "regex",
  "serde",
  "serde_json",
  "stylex_shared",
  "swc_compiler_base",
  "swc_core",
  "swc_ecma_parser",
- "testing 0.38.1",
 ]
 
 [[package]]
@@ -1976,34 +1955,17 @@ dependencies = [
 name = "stylex_swc_plugin"
 version = "0.2.4"
 dependencies = [
- "anyhow",
  "color-backtrace",
- "colored",
- "convert_case 0.6.0",
- "cssparser",
  "ctor",
- "dashmap 6.1.0",
- "derive_more",
  "env_logger",
- "indexmap",
- "insta",
- "lazy_static",
  "log",
- "murmur2",
- "node-resolve",
- "once_cell",
- "path-clean 1.0.1",
- "phf",
  "pretty_env_logger",
- "radix_fmt",
- "regex",
  "serde",
  "serde_json",
  "stylex_path_resolver",
  "stylex_shared",
  "swc_core",
  "swc_ecma_parser",
- "testing 0.38.1",
 ]
 
 [[package]]

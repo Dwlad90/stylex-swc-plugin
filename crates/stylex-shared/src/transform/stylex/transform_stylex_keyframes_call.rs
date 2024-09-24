@@ -126,8 +126,6 @@ where
 
       let (animation_name, injectable_style) = stylex_keyframes(&plain_object, &mut self.state);
 
-      let (var_name, _) = &self.get_call_var_name(call);
-
       let mut injected_styles = IndexMap::new();
 
       injected_styles.insert(animation_name.clone(), Box::new(injectable_style));
@@ -136,7 +134,7 @@ where
 
       self
         .state
-        .register_styles(call, &injected_styles, &result_ast, var_name);
+        .register_styles(call, &injected_styles, &result_ast);
 
       Some(result_ast)
     } else {

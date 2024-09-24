@@ -1,0 +1,50 @@
+{
+  "name": "@stylexswc/nextjs-swc-plugin",
+  "description": "Stylex NextJS plugin with swc plugin",
+  "version": "0.2.4",
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@babel/types": "^7.23.9",
+    "@stylexswc/eslint-config": "workspace:*",
+    "@stylexswc/typescript-config": "workspace:*",
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^20.12.11",
+    "next": "^14.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "webpack": "^5.88.2"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "next",
+    "nextjs",
+    "nextjs-plugin",
+    "stylex"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "peerDependencies": {
+    "@stylexjs/babel-plugin": "^0.7.5",
+    "next": ">=14.0.1"
+  },
+  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": "dwlad90/stylex-swc-plugin",
+  "scripts": {
+    "build": "scripty --ts",
+    "clean": "del-cli dist",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "sideEffects": false
+}

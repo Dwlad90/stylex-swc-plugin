@@ -1,9 +1,12 @@
-
 use std::path::PathBuf;
 
-
-
-use stylex_shared::{shared::{structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams}, utils::log::log_formatter}, ModuleTransformVisitor};
+use stylex_shared::{
+  shared::{
+    structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+    utils::log::log_formatter,
+  },
+  ModuleTransformVisitor,
+};
 use swc_core::{
   common::FileName,
   ecma::{ast::Program, visit::FoldWith},
@@ -13,7 +16,6 @@ use swc_core::{
     proxies::{PluginCommentsProxy, TransformPluginProgramMetadata},
   },
 };
-
 
 #[plugin_transform]
 pub(crate) fn process_transform(
@@ -45,7 +47,7 @@ pub(crate) fn process_transform(
   let plugin_pass = Box::new(PluginPass { cwd, filename });
 
   let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
-    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config, true);
+    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config);
 
   program.fold_with(&mut stylex)
 }

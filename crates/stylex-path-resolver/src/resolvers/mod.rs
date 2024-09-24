@@ -309,12 +309,12 @@ pub fn resolve_file_path(
 
     let cwd: &str;
 
-    #[cfg(test)]
+    #[cfg(not(feature = "wasm"))]
     {
       cwd = root_path;
     }
 
-    #[cfg(not(test))]
+    #[cfg(feature = "wasm")]
     {
       cwd = "cwd";
     }

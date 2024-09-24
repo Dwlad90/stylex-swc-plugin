@@ -130,14 +130,12 @@ where
       let mut injected_styles = self.state.injected_keyframes.clone();
       injected_styles.extend(injected_styles_sans_keyframes);
 
-      let (var_name, _) = self.get_call_var_name(call);
-
       let result_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(variables_obj));
 
       self
         .state
-        .register_styles(call, &injected_styles, &result_ast, &var_name);
+        .register_styles(call, &injected_styles, &result_ast);
 
       return Some(result_ast);
     } else {

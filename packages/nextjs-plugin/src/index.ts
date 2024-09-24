@@ -4,9 +4,20 @@ import type { Configuration } from 'webpack';
 import type { NextConfig } from 'next';
 import type { ConfigurationContext } from 'next/dist/build/webpack/config/utils';
 import type { WebpackConfigContext } from 'next/dist/server/config-shared';
+import type { StyleXOptions } from '@stylexswc/rs-compiler';
 
 let count = 0;
-function StylexNextJSPlugin({ rootDir, filename = 'stylex-bundle.css', ...pluginOptions }: any) {
+
+interface StylexNextJSPluginOptions extends StyleXOptions {
+  rootDir: string;
+  filename?: string;
+}
+
+function StylexNextJSPlugin({
+  rootDir,
+  filename = 'stylex-bundle.css',
+  ...pluginOptions
+}: StylexNextJSPluginOptions) {
   return (nextConfig: NextConfig = {}) => {
     return {
       ...nextConfig,
@@ -47,7 +58,7 @@ function StylexNextJSPlugin({ rootDir, filename = 'stylex-bundle.css', ...plugin
           appendTo: (name: string) => name.endsWith('.css'),
           filename,
           dev,
-          ...pluginOptions,
+          rsOptions: pluginOptions,
         };
 
         const stylexPlugin = new WebpackPluginStylex(webpackPluginOptions);

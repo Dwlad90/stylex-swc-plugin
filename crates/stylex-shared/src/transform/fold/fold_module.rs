@@ -1,15 +1,17 @@
 use swc_core::{
-  common::comments::{Comment, CommentKind, Comments},
+  common::comments::Comments,
   ecma::{ast::Module, visit::FoldWith},
 };
 
 use crate::{
-  shared::{
-    enums::core::TransformationCycle, structures::meta_data::MetaData,
-    utils::common::fill_top_level_expressions,
-  },
+  shared::{enums::core::TransformationCycle, utils::common::fill_top_level_expressions},
   ModuleTransformVisitor,
 };
+
+#[cfg(feature = "wasm")]
+use crate::shared::structures::meta_data::MetaData;
+#[cfg(feature = "wasm")]
+use swc_core::common::comments::{Comment, CommentKind};
 
 impl<C> ModuleTransformVisitor<C>
 where
@@ -30,32 +32,35 @@ where
       self.state.cycle = TransformationCycle::TransformExit;
       module = module.fold_children_with(self);
 
-      if self.should_inject_metadata && !&self.state.metadata.is_empty() {
-        if self.comments.has_leading(module.span.lo) {
-          self.comments.take_leading(module.span.lo);
-        }
+      #[cfg(feature = "wasm")]
+      {
+        if !&self.state.metadata.is_empty() {
+          if self.comments.has_leading(module.span.lo) {
+            self.comments.take_leading(module.span.lo);
+          }
 
-        // Preparing stylex metadata for css extraction
-        self.comments.add_leading(
-          module.span.lo,
-          Comment {
-            kind: CommentKind::Line,
-            text: format!(
-              "__stylex_metadata_start__{}__stylex_metadata_end__",
-              serde_json::to_string(
-                &self
-                  .state
-                  .metadata
-                  .iter()
-                  .flat_map(|v| v.1.clone())
-                  .collect::<Vec<MetaData>>()
+          // Preparing stylex metadata for css extraction
+          self.comments.add_leading(
+            module.span.lo,
+            Comment {
+              kind: CommentKind::Line,
+              text: format!(
+                "__stylex_metadata_start__{}__stylex_metadata_end__",
+                serde_json::to_string(
+                  &self
+                    .state
+                    .metadata
+                    .iter()
+                    .flat_map(|v| v.1.clone())
+                    .collect::<Vec<MetaData>>()
+                )
+                .unwrap()
               )
-              .unwrap()
-            )
-            .into(),
-            span: module.span,
-          },
-        );
+              .into(),
+              span: module.span,
+            },
+          );
+        }
       }
 
       if self.state.options.runtime_injection.is_some() {

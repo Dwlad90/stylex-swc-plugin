@@ -14,8 +14,10 @@
   "files.exclude": {
     "node_modules": true,
     "**/node_modules": false,
+    "**/.cargo/**": true,
   },
   "search.exclude": {
     "**/node_modules": true,
+    "**/.cargo/**": true,
   }
 }

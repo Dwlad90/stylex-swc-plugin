@@ -27,22 +27,16 @@ pub struct ModuleTransformVisitor<C>
 where
   C: Comments,
 {
-  comments: C,
+  pub comments: C,
   props_declaration: Option<Id>,
   pub state: Box<StateManager>,
-  pub(crate) should_inject_metadata: bool,
 }
 
 impl<C> ModuleTransformVisitor<C>
 where
   C: Comments,
 {
-  pub fn new(
-    comments: C,
-    plugin_pass: Box<PluginPass>,
-    config: &mut StyleXOptionsParams,
-    should_inject_metadata: bool,
-  ) -> Self {
+  pub fn new(comments: C, plugin_pass: Box<PluginPass>, config: &mut StyleXOptionsParams) -> Self {
     let stylex_imports = fill_stylex_imports(&Some(config));
 
     let mut state = Box::new(StateManager::new(config.clone().into()));
@@ -57,7 +51,6 @@ where
       comments,
       props_declaration: None,
       state,
-      should_inject_metadata
     }
   }
 
@@ -96,7 +89,6 @@ where
       comments,
       props_declaration: None,
       state,
-      should_inject_metadata: true
     }
   }
 
@@ -131,7 +123,6 @@ where
       comments,
       props_declaration: None,
       state,
-      should_inject_metadata: true
     }
   }
 

@@ -238,7 +238,7 @@ where
 
       self
         .state
-        .register_styles(call, &injected_styles, &result_ast, var_name);
+        .register_styles(call, &injected_styles, &result_ast);
 
       Some(result_ast)
     } else {

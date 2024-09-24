@@ -23,8 +23,7 @@
   "devDependencies": {
     "@stylexjs/eslint-plugin": "^0.7.5",
     "@stylexswc/nextjs-plugin": "0.2.4",
-    "@stylexswc/swc-plugin": "0.2.4",
-    "@stylexswc/compiler-rs": "0.0.1",
+    "@stylexswc/rs-compiler": "0.2.4",
     "@types/node": "^20.10.4",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",

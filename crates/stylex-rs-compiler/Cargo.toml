@@ -1,0 +1,43 @@
+[package]
+name = "stylex_compiler_rs"
+version = "0.2.4"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+  "css_codegen",
+  "css_visit",
+  "css_parser",
+  "css_ast",
+] }
+color-backtrace.workspace = true
+
+swc_compiler_base = { version = "*", features = ["node"] }
+swc_ecma_parser = { version = "*", features = ["verify"] }
+
+stylex_shared = { path = "../stylex-shared" }
+napi = "2"
+napi-derive = "2"
+
+
+[dev-dependencies]
+napi-build = "2"
+
+
+[build-dependencies]
+napi-build = "2"

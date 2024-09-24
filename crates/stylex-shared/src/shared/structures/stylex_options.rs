@@ -62,9 +62,9 @@ pub enum Aliases {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all(deserialize = "camelCase", serialize = "PascalCase"))]
 pub struct ModuleResolution {
-  pub(crate) r#type: String,
-  pub(crate) root_dir: Option<String>,
-  pub(crate) theme_file_extension: Option<String>,
+  pub r#type: String,
+  pub root_dir: Option<String>,
+  pub theme_file_extension: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

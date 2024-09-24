@@ -1,0 +1,33 @@
+{
+  "name": "@stylexswc/rs-compiler-win32-x64-msvc",
+  "version": "0.2.4",
+  "private": true,
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "@stylexswc/rs-compiler.win32-x64-msvc.node",
+  "files": [
+    "@stylexswc/rs-compiler.win32-x64-msvc.node"
+  ],
+  "description": "napi-rs compiler for transform StyleX code",
+  "keywords": [
+    "napi-rs",
+    "NAPI",
+    "N-API",
+    "Rust",
+    "node-addon",
+    "node-addon-api"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+}

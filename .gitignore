@@ -4,6 +4,7 @@
 node_modules
 .pnp
 .pnp.js
+.cargo
 
 # Local env files
 .env

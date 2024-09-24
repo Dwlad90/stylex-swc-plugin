@@ -1,4 +1,4 @@
-name: Validate SWC Plugin
+name: Validate StyleX SWC plugin
 
 on:
   push:
@@ -57,7 +57,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Run tests
-        run: pnpm run -r test
+        run: pnpm run -r --filter='!@stylexswc/rs-compiler' test
         env:
           RUST_MIN_STACK: 16777216
 

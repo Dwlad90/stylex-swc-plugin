@@ -13,6 +13,7 @@ doctest = false
 
 [dependencies]
 serde.workspace = true
+serde_json.workspace = true
 swc_core = { workspace = true, features = [
   "common",
   "ecma_plugin_transform",
@@ -25,22 +26,6 @@ swc_core = { workspace = true, features = [
   "css_ast",
 ] }
 
-lazy_static.workspace = true
-serde_json.workspace = true
-regex.workspace = true
-dashmap.workspace = true
-indexmap.workspace = true
-derive_more.workspace = true
-convert_case.workspace = true
-murmur2.workspace = true
-radix_fmt.workspace = true
-phf = { workspace = true, features = ["macros"] }
-once_cell.workspace = true
-colored.workspace = true
-node-resolve.workspace = true
-path-clean.workspace = true
-cssparser.workspace = true
-anyhow.workspace = true
 log.workspace = true
 pretty_env_logger.workspace = true
 color-backtrace.workspace = true
@@ -49,14 +34,8 @@ env_logger.workspace = true
 
 swc_ecma_parser = { version = "*", features = ["verify"] }
 
-stylex_path_resolver = { path = "../stylex-path-resolver" }
-stylex_shared = { path = "../stylex-shared" }
-
-
-[dev-dependencies]
-swc_core = { workspace = true, features = ["testing_transform", "ecma_parser"] }
-testing.workspace = true
-insta = { workspace = true, features = ["yaml"] }
+stylex_path_resolver = { path = "../stylex-path-resolver", features = ["wasm"] }
+stylex_shared = { path = "../stylex-shared", features = ["wasm"] }
 
 
 # .cargo/config defines few alias to build plugin.

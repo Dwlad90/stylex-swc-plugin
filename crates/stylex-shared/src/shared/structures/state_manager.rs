@@ -340,7 +340,6 @@ impl StateManager {
     call: &CallExpr,
     style: &IndexMap<String, Box<InjectableStyle>>,
     ast: &Expr,
-    var_name: &Option<String>,
   ) {
     if style.is_empty() {
       return;
@@ -395,10 +394,7 @@ impl StateManager {
     }
 
     for metadata in metadatas {
-      self.add_style(
-        var_name.clone().unwrap_or("default".to_string()),
-        metadata.clone(),
-      );
+      self.add_style(metadata.clone());
 
       self.add_style_to_inject(&metadata, &inject_var_ident, ast);
     }
@@ -450,7 +446,8 @@ impl StateManager {
     }
   }
 
-  fn add_style(&mut self, var_name: String, metadata: MetaData) {
+  fn add_style(&mut self, metadata: MetaData) {
+    let var_name = String::from("stylex");
     let value = self.metadata.entry(var_name).or_default();
     let class_name = metadata.get_class_name(); // Cache the class name
 

@@ -1,18 +1,19 @@
 import path from 'path';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import { transform } from '@stylexswc/rs-compiler';
 import webpack from 'webpack';
 import fs from 'fs/promises';
-import { PluginRule } from './types';
 
 import type { Rule } from '@stylexjs/babel-plugin';
 import type { Compiler, WebpackError } from 'webpack';
+
+import type { StyleXOptions } from '@stylexswc/rs-compiler';
 
 const { NormalModule, Compilation } = webpack;
 
 const PLUGIN_NAME = 'stylex';
 
-const IS_DEV_ENV =
-  process.env.NODE_ENV === 'development' || process.env.BABEL_ENV === 'development';
+const IS_DEV_ENV = process.env.NODE_ENV === 'development';
 
 const { RawSource, ConcatSource } = webpack.sources;
 
@@ -22,14 +23,13 @@ const compilers = new Set<any>();
 
 class StylexPlugin {
   filesInLastRun: any = null;
-  filePath: any = null;
-  dev: any;
+  filePath?: string | null = null;
+  dev: boolean;
   appendTo: any;
-  filename: any;
-  babelConfig: any;
+  filename?: string;
   stylexImports: any[];
-  babelPlugin: any;
   useCSSLayers: any;
+  rsOptions: StyleXOptions;
 
   constructor({
     dev = IS_DEV_ENV,
@@ -37,6 +37,7 @@ class StylexPlugin {
     filename = appendTo == null ? 'stylex.css' : undefined,
     stylexImports = ['stylex', '@stylexjs/stylex'],
     useCSSLayers = false,
+    rsOptions = {},
   }: any = {}) {
     this.dev = dev;
     this.appendTo = appendTo;
@@ -44,6 +45,7 @@ class StylexPlugin {
     this.stylexImports = stylexImports;
 
     this.useCSSLayers = useCSSLayers;
+    this.rsOptions = rsOptions;
   }
 
   apply(compiler: Compiler) {
@@ -56,9 +58,8 @@ class StylexPlugin {
           // TypeScript modules
           /\.tsx?/.test(path.extname(module.resource))
         ) {
-          // We use .push() here instead of .unshift()
-          // Webpack usually runs loaders in reverse order and we want to ideally run
-          // our loader before anything else.
+          // We use .unshift() and not .push() like original babel plugin
+          // because we want to run other transformations first, e.g. custom SWC plugins.
           module.loaders.unshift({
             loader: path.resolve(__dirname, 'custom-webpack-loader.js'),
             options: { stylexPlugin: this },
@@ -82,8 +83,8 @@ class StylexPlugin {
         // Take styles for the modules that were included in the last compilation.
         const allRules = Object.keys(stylexRules)
           .map(filename => stylexRules[filename])
-          .filter(Boolean)
-          .flat() as unknown as Rule[];
+          .flat()
+          .filter((rule): rule is Rule => !!rule);
 
         return stylexBabelPlugin.processStylexRules(allRules, this.useCSSLayers);
       };
@@ -105,17 +106,13 @@ class StylexPlugin {
             if (cssFileName && stylexCSS != null) {
               this.filePath = path.join(process.cwd(), '.next', cssFileName);
 
-              const source = assets?.[cssFileName]?.source();
+              const updatedSource = new ConcatSource(
+                new RawSource(assets[cssFileName]?.source() || ''),
+                new RawSource(stylexCSS)
+              );
 
-              if (source) {
-                const updatedSource = new ConcatSource(
-                  new RawSource(source),
-                  new RawSource(stylexCSS)
-                );
-
-                compilation.updateAsset(cssFileName, updatedSource);
-                compilers.add(compiler);
-              }
+              compilation.updateAsset(cssFileName, updatedSource);
+              compilers.add(compiler);
             }
           }
         );
@@ -124,7 +121,7 @@ class StylexPlugin {
         compilation.hooks.additionalAssets.tap(PLUGIN_NAME, () => {
           try {
             const collectedCSS = getStyleXRules();
-            if (collectedCSS) {
+            if (collectedCSS && this.filename) {
               console.log('emitting asset', this.filename, collectedCSS);
               compilation.emitAsset(this.filename, new RawSource(collectedCSS));
               fs.writeFile(this.filename, collectedCSS).then(() =>
@@ -144,37 +141,20 @@ class StylexPlugin {
   // for JS modules. The loader than calls this function.
   async transformCode(inputCode: string, filename: string, logger: any) {
     const originalSource = inputCode;
+
     if (inputCode.includes('Welcome to my MDX page'))
       console.log('originalSource: ', originalSource);
 
     if (this.stylexImports.some(importName => originalSource.includes(importName))) {
-      let metadataStr = '[]';
+      let result = transform(filename, inputCode, this.rsOptions);
 
-      const code = originalSource.replace(
-        /\/\/*__stylex_metadata_start__(?<metadata>.+)__stylex_metadata_end__/,
-        (...args) => {
-          metadataStr = args.at(-1)?.metadata.split('"__stylex_metadata_end__')[0];
-
-          return '';
-        }
-      );
-
-      const metadata = { stylex: [] };
-
-      try {
-        metadata.stylex = JSON.parse(metadataStr);
-      } catch (e) {
-        console.error('error parsing metadata', e);
-      }
-      const map = null;
+      const metadata = result?.metadata;
+      const code = result.code;
+      const map = result.map;
 
       if (metadata.stylex != null && metadata.stylex.length > 0) {
         const oldRules = stylexRules[filename] || [];
-
-        stylexRules[filename] = metadata.stylex?.map(
-          (rule: PluginRule) => [rule.class_name, rule.style, rule.priority] as Rule
-        );
-
+        stylexRules[filename] = metadata.stylex;
         logger.debug(`Read stylex styles from ${filename}:`, metadata.stylex);
 
         const oldClassNames = new Set(oldRules.map(rule => rule[0]));
@@ -195,9 +175,9 @@ class StylexPlugin {
             });
           });
         }
-
-        return { code, map };
       }
+
+      return { code, map };
     }
     return { code: inputCode };
   }

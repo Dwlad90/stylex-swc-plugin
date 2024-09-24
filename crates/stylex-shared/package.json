@@ -34,7 +34,9 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "NODE_ENV=test cargo test --lib --bins --tests",
+    "test:rs": "NODE_ENV=test cargo test --lib --bins --tests fixture_",
+    "test:wasm": "NODE_ENV=test cargo test --lib --bins --tests --features wasm",
+    "test": "pnpm run test:rs && pnpm run test:wasm",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
   "sideEffects": false

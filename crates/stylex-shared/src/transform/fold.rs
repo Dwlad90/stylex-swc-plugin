@@ -14,6 +14,7 @@ mod fold_stmts;
 mod fold_var_declarator;
 mod fold_var_declarators;
 
+use super::ModuleTransformVisitor;
 use swc_core::{
   common::comments::Comments,
   ecma::{
@@ -24,8 +25,6 @@ use swc_core::{
     visit::{noop_fold_type, Fold},
   },
 };
-
-use crate::ModuleTransformVisitor;
 
 impl<C> Fold for ModuleTransformVisitor<C>
 where

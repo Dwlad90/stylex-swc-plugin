@@ -1,23 +1,8 @@
 pub mod shared;
-pub(crate) mod transform;
+pub mod transform;
 
-use std::path::PathBuf;
-
-use shared::{
-  structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-  utils::log::log_formatter,
-};
+use shared::structures::stylex_options::StyleXOptionsParams;
 pub use transform::ModuleTransformVisitor;
-
-use swc_core::{
-  common::FileName,
-  ecma::{ast::Program, visit::FoldWith},
-  plugin::{
-    metadata::TransformPluginMetadataContextKind,
-    plugin_transform,
-    proxies::{PluginCommentsProxy, TransformPluginProgramMetadata},
-  },
-};
 
 #[cfg(test)]
 mod tests {

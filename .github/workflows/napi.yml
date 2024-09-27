@@ -43,9 +43,6 @@ jobs:
           - host: windows-latest
             build:  pnpm run --filter @stylexswc/rs-compiler build --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
-          # - host: windows-latest
-          #   build:  pnpm run --filter @stylexswc/rs-compiler build --target i686-pc-windows-msvc
-          #   target: i686-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -61,29 +58,6 @@ jobs:
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build:  pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
-          # - host: ubuntu-latest
-            # target: armv7-unknown-linux-gnueabihf
-            # setup: |
-            #   sudo apt-get update
-            #   sudo apt-get install gcc-arm-linux-gnueabihf -y
-            # build: |
-            #    pnpm run --filter @stylexswc/rs-compiler§ build --target armv7-unknown-linux-gnueabihf
-          # - host: ubuntu-latest
-          #   target: aarch64-linux-android
-          #   build:  pnpm run --filter @stylexswc/rs-compiler build --target aarch64-linux-android
-          # - host: ubuntu-latest
-          #   target: armv7-linux-androideabi
-          #   build:  pnpm run --filter @stylexswc/rs-compiler build --target armv7-linux-androideabi
-          # - host: ubuntu-latest
-          #   target: aarch64-unknown-linux-musl
-          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          #   build: |-
-          #     set -e &&
-          #     rustup target add aarch64-unknown-linux-musl &&
-          #     pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-musl
-          # - host: windows-latest
-          #   target: aarch64-pc-windows-msvc
-          #   build:  pnpm run --filter @stylexswc/rs-compiler build --target aarch64-pc-windows-msvc
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -118,52 +92,6 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist/${{ env.APP_NAME }}.*.node
           if-no-files-found: error
-  # build-freebsd:
-  #   runs-on: ubuntu-latest
-  #   name: Build FreeBSD
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Build
-  #       id: build
-  #       uses: cross-platform-actions/action@v0.25.0
-  #       env:
-  #         DEBUG: napi:*
-  #         RUSTUP_IO_THREADS: 1
-  #       with:
-  #         operating_system: freebsd
-  #         version: '14.0'
-  #         memory: 8G
-  #         cpu_count: 3
-  #         environment_variables: DEBUG RUSTUP_IO_THREADS
-  #         shell: bash
-  #         run: |
-  #           sudo pkg install -y -f curl node libnghttp2 npm
-  #           sudo npm install -g yarn --ignore-scripts
-  #           curl https://sh.rustup.rs -sSf --output rustup.sh
-  #           sh rustup.sh -y --profile minimal --default-toolchain beta
-  #           source "$HOME/.cargo/env"
-  #           echo "~~~~ rustc --version ~~~~"
-  #           rustc --version
-  #           echo "~~~~ node -v ~~~~"
-  #           node -v
-  #           echo "~~~~ yarn --version ~~~~"
-  #           yarn --version
-  #           pwd
-  #           ls -lah
-  #           whoami
-  #           env
-  #           freebsd-version
-  #           pnpm install
-  #            pnpm run --filter @stylexswc/rs-compiler build
-  #           rm -rf node_modules
-  #           rm -rf target
-  #           rm -rf .yarn/cache
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: bindings-freebsd
-  #         path: ${{ env.APP_NAME }}.*.node
-  #         if-no-files-found: error
   test-macOS-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
@@ -282,118 +210,6 @@ jobs:
             npm install -g pnpm &&
             pnpm run --filter @stylexswc/rs-compiler test
           "
-  # test-linux-aarch64-gnu-binding:
-  #   name: Test bindings on aarch64-unknown-linux-gnu - node@${{ matrix.node }}
-  #   needs:
-  #     - build
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       node:
-  #         - '18'
-  #         - '20'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Download artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: bindings-aarch64-unknown-linux-gnu
-  #         path: .
-  #     - name: List packages
-  #       run: ls -R .
-  #       shell: bash
-  #     - name: Install dependencies
-  #       run: |
-  #         yarn config set supportedArchitectures.cpu "arm64"
-  #         yarn config set supportedArchitectures.libc "glibc"
-  #         pnpm install
-  #     - name: Set up QEMU
-  #       uses: docker/setup-qemu-action@v3
-  #       with:
-  #         platforms: arm64
-  #     - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  #     - name: Setup and run tests
-  #       uses: addnab/docker-run-action@v3
-  #       with:
-  #         image: node:${{ matrix.node }}-slim
-  #         options: '--platform linux/arm64 -v ${{ github.workspace }}:/build -w /build'
-  #         run: |
-  #           set -e
-  #           yarn test
-  #           ls -la
-  # test-linux-aarch64-musl-binding:
-  #   name: Test bindings on aarch64-unknown-linux-musl - node@lts
-  #   needs:
-  #     - build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Download artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: bindings-aarch64-unknown-linux-musl
-  #         path: .
-  #     - name: List packages
-  #       run: ls -R .
-  #       shell: bash
-  #     - name: Install dependencies
-  #       run: |
-  #         yarn config set supportedArchitectures.cpu "arm64"
-  #         yarn config set supportedArchitectures.libc "musl"
-  #         pnpm install
-  #     - name: Set up QEMU
-  #       uses: docker/setup-qemu-action@v3
-  #       with:
-  #         platforms: arm64
-  #     - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  #     - name: Setup and run tests
-  #       uses: addnab/docker-run-action@v3
-  #       with:
-  #         image: node:lts-alpine
-  #         options: '--platform linux/arm64 -v ${{ github.workspace }}:/build -w /build'
-  #         run: |
-  #           set -e
-  #           yarn test
-  # test-linux-arm-gnueabihf-binding:
-  #   name: Test bindings on armv7-unknown-linux-gnueabihf - node@${{ matrix.node }}
-  #   needs:
-  #     - build
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       node:
-  #         - '18'
-  #         - '20'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Download artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: bindings-armv7-unknown-linux-gnueabihf
-  #         path: .
-  #     - name: List packages
-  #       run: ls -R .
-  #       shell: bash
-  #     - name: Install dependencies
-  #       run: |
-  #         yarn config set supportedArchitectures.cpu "arm"
-  #         pnpm install
-  #     - name: Set up QEMU
-  #       uses: docker/setup-qemu-action@v3
-  #       with:
-  #         platforms: arm
-  #     - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  #     - name: Setup and run tests
-  #       uses: addnab/docker-run-action@v3
-  #       with:
-  #         image: node:${{ matrix.node }}-bullseye-slim
-  #         options: '--platform linux/arm/v7 -v ${{ github.workspace }}:/build -w /build'
-  #         run: |
-  #           set -e
-  #           yarn test
-  #           ls -la
   benchmark:
     name: Benchmark on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
@@ -446,29 +262,16 @@ jobs:
           key: ${{ matrix.settings.target }}-benchmark
       - name: Run benchmarks
         run: pnpm run --filter @stylexswc/rs-compiler bench
-      # - name: Store benchmark result
-      #   uses: rhysd/github-action-benchmark@v1
-      #   with:
-      #     tool: 'benchmarkjs'
-      #     output-file-path: 'crates/stylex-rs-compiler/benchmark/results/benchmark-results.json'
-      #     auto-push: true
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          # What benchmark tool the output.txt came from
           tool: 'benchmarkjs'
-          # Where the output from the benchmark tool is stored
           output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.txt'
-          # Where the previous data file is stored
           external-data-json-path: './cache/benchmark-data.json'
-          # Workflow will fail when an alert happens
           fail-on-alert: true
           comment-on-alert: true
           alert-comment-cc-users: '@Dwlad90'
-          # Enable Job Summary for PRs
           summary-always: true
-          # comment-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           alert-threshold: '150%'
           fail-threshold: '175%'
@@ -480,13 +283,9 @@ jobs:
     needs:
       - build
       - benchmark
-      # - build-freebsd
       - test-macOS-windows-binding
       - test-linux-x64-gnu-binding
       - test-linux-x64-musl-binding
-      # - test-linux-aarch64-gnu-binding
-      # # - test-linux-aarch64-musl-binding
-      # - test-linux-arm-gnueabihf-binding
     steps:
       - uses: actions/checkout@v4
       - name: Setup environment

@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/shared",
-  "description": "SWC plugin for transforming StyleX code",
+  "description": "Shared code for stylex-swc-plugin and stylex-rs-compiler",
   "version": "0.2.4",
   "config": {
     "scripty": {
@@ -13,11 +13,12 @@
   "keywords": [
     "stylex",
     "swc",
-    "swc-plugin"
+    "swc-plugin",
+    "napi-rs",
+    "napi"
   ],
   "license": "MIT",
-  "main": "./dist/stylex_swc_plugin.wasm",
-  "private": false,
+  "private": true,
   "publishConfig": {
     "access": "public"
   },

@@ -1,5 +1,9 @@
 # SWC Stylex plugin for Next.js
 
+> [!WARNING]
+> **Deprecated**: This package is deprecated as of version `0.3.0` and may be removed in the future. Please use the [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin) instead.
+
+
 Next.js plugin for an unofficial
 [`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-swc-plugin)
 plugin.

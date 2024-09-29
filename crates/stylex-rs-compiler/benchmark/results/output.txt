@@ -1,7 +1,0 @@
-buttons-demo x 526.6609697481321 ops/sec ±0.3517831778841184% (264 runs sampled)
-card x 1282.0937399844431 ops/sec ±0.23534261683506927% (642 runs sampled)
-counter x 37.16379591391972 ops/sec ±0.7269464794803073% (19 runs sampled)
-global-tokens x 9.794866924993299 ops/sec ±1.0190774825917597% (10 runs sampled)
-global-tokens-xs x 151.30371245434551 ops/sec ±0.37752630648859664% (76 runs sampled)
-page x 1222.5042863920187 ops/sec ±0.2416630483570113% (612 runs sampled)
-page-with-keyframes x 4.910897495898372 ops/sec ±1.3339357305747517% (10 runs sampled)

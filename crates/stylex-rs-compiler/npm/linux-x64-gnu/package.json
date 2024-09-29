@@ -12,7 +12,7 @@
   "files": [
     "@stylexswc/rs-compiler.linux-x64-gnu.node"
   ],
-  "description": "napi-rs compiler for transform StyleX code",
+  "description": "NAPI-RS compiler for transform StyleX code",
   "keywords": [
     "napi-rs",
     "NAPI",

@@ -12,7 +12,7 @@
   "files": [
     "@stylexswc/rs-compiler.darwin-x64.node"
   ],
-  "description": "napi-rs compiler for transform StyleX code",
+  "description": "NAPI-RS compiler for transform StyleX code",
   "keywords": [
     "napi-rs",
     "NAPI",

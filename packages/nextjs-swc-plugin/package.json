@@ -33,7 +33,7 @@
     "@stylexjs/babel-plugin": "^0.7.5",
     "next": ">=14.0.1"
   },
-  "private": true,
+  "private": false,
   "publishConfig": {
     "access": "public"
   },

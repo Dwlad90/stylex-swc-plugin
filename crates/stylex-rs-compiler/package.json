@@ -1,18 +1,20 @@
 {
   "name": "@stylexswc/rs-compiler",
   "version": "0.2.4",
-  "description": "napi-rs compiler for transform StyleX code",
+  "description": "NAPI-RS compiler for transform StyleX code",
   "main": "dist/index.js",
   "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "keywords": [
     "napi-rs",
     "NAPI",
     "N-API",
     "Rust",
     "node-addon",
-    "node-addon-api"
+    "node-addon-api",
+    "StyleX",
+    "SWC"
   ],
   "files": [
     "dist/index.d.ts",
@@ -33,7 +35,7 @@
     }
   },
   "engines": {
-    "node": ">= 10"
+    "node": ">= 18"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -72,17 +74,6 @@
     "typescript": "^5.5.3",
     "@types/node": "^20"
   },
-  "lint-staged": {
-    "*.@(js|ts|tsx)": [
-      "oxlint --fix"
-    ],
-    "*.@(js|ts|tsx|yml|yaml|md|json)": [
-      "prettier --write"
-    ],
-    "*.toml": [
-      "taplo format"
-    ]
-  },
   "ava": {
     "extensions": {
       "ts": "module"
@@ -96,13 +87,6 @@
       "--import",
       "@swc-node/register/esm-register"
     ]
-  },
-  "prettier": {
-    "printWidth": 120,
-    "semi": false,
-    "trailingComma": "all",
-    "singleQuote": true,
-    "arrowParens": "always"
   },
   "packageManager": "pnpm@9.9.0"
 }

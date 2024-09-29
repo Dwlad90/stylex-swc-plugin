@@ -3,7 +3,7 @@ use swc_core::ecma::{
   transforms::testing::test_transform,
 };
 
-use crate::evaluation::args_module_transform::ArgsModuleTransformVisitor;
+use crate::evaluation::args_module_transform::ArgsStyleXTransform;
 
 #[test]
 fn evaluates_empty_object() {
@@ -12,7 +12,7 @@ fn evaluates_empty_object() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsModuleTransformVisitor::default(),
+    |_| ArgsStyleXTransform::default(),
     r#"
           const x = {};
         "#,
@@ -30,7 +30,7 @@ fn evaluates_static_style_object() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsModuleTransformVisitor::default(),
+    |_| ArgsStyleXTransform::default(),
     r#"
           const x = {
             default: {
@@ -60,7 +60,7 @@ fn evaluates_object_with_function_styles_identifier() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsModuleTransformVisitor::default(),
+    |_| ArgsStyleXTransform::default(),
     r#"
           const x = {
             default: (width) => ({
@@ -90,7 +90,7 @@ fn evaluates_object_with_function_styles_binary_expression() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsModuleTransformVisitor::default(),
+    |_| ArgsStyleXTransform::default(),
     r#"
           const x = {
             default: (width) => ({

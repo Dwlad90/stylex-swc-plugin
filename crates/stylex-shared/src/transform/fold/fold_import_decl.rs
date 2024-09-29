@@ -8,10 +8,10 @@ use crate::{
     constants::messages::MUST_BE_DEFAULT_IMPORT, enums::core::TransformationCycle,
     structures::named_import_source::ImportSources,
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

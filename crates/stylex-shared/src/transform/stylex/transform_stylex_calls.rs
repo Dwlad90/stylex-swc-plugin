@@ -5,9 +5,9 @@ use swc_core::{
 };
 
 use crate::shared::enums::core::TransformationCycle;
-use crate::ModuleTransformVisitor;
+use crate::StyleXTransform;
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

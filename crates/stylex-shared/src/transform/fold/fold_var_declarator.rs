@@ -20,10 +20,10 @@ use crate::{
     },
     utils::ast::convertors::transform_shorthand_to_key_values,
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

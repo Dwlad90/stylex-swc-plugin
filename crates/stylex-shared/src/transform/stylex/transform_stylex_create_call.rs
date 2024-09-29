@@ -36,9 +36,9 @@ use crate::shared::{
   structures::{functions::FunctionConfigType, types::FunctionMapIdentifiers},
   utils::ast::factories::prop_or_spread_expression_factory,
 };
-use crate::ModuleTransformVisitor;
+use crate::StyleXTransform;
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

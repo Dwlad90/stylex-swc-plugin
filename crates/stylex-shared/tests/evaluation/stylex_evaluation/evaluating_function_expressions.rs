@@ -5,7 +5,7 @@ use swc_core::ecma::{
   transforms::testing::test_transform,
 };
 
-use crate::evaluation::evaluation_module_transform::EvaluationModuleTransformVisitor;
+use crate::evaluation::evaluation_module_transform::EvaluationStyleXTransform;
 
 #[test]
 fn function_with_a_single_params() {
@@ -14,7 +14,7 @@ fn function_with_a_single_params() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const double = x => x * 2;
         "#,
@@ -32,7 +32,7 @@ fn function_with_a_two_params() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const double = (a, b) => a + b;
         "#,
@@ -50,7 +50,7 @@ fn array_map() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const x = [1, 2, 3].map(x => x * 2);
         "#,
@@ -68,7 +68,7 @@ fn array_filter() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const x = [1, 2, 3].filter(x => x % 2 === 0);
         "#,
@@ -86,7 +86,7 @@ fn array_join() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const x = [1, 2, 3].join(", ");
             const x = ['a', 'b', 'c'].join(":");
@@ -106,7 +106,7 @@ fn array_map_and_filter() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const x = [1, 2, 3].map(x => x * 2).filter(x => x % 2 === 0);
             const y = [1, 2, 3].map(x => x ** 2).filter(x => x % 3 !== 0).map(x => x * 3);
@@ -128,7 +128,7 @@ fn array_methods() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const a = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(x => x * 2);
             const b = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(x => x % 3 !== 0);
@@ -150,7 +150,7 @@ fn object_methods() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const a = Object.keys({a: 1, b: 2, c: 3});
             const b = Object.values({a: 1, b: 2, c: 3});
@@ -178,7 +178,7 @@ fn object_entries() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const x = Object.entries({a: 1, b: 2, c: 4}).filter((entry) => entry[1] % 2 === 0);
             const x = Object.fromEntries(Object.entries({a: 1, b: 2, c: 4}).filter((entry) => entry[1] % 2 === 0));
@@ -205,7 +205,7 @@ fn methods_called_by_string_should_be_bind() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const x = "".concat("10px"," ").concat("10px");
             const x = "abc".charCodeAt(0);
@@ -228,7 +228,7 @@ fn math_pow() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
             const x = Math.pow(2, 3);
             const x = Math.pow(8, 4);
@@ -248,7 +248,7 @@ fn math_round() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
           const x = Math.round(2);
           const x = Math.round(2.5);
@@ -272,7 +272,7 @@ fn math_ceil() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
           const x = Math.ceil(2);
           const x = Math.ceil(2.5);
@@ -296,7 +296,7 @@ fn math_floor() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
           const x = Math.floor(2);
           const x = Math.floor(2.5);
@@ -324,7 +324,7 @@ fn math_min() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
           const x = Math.min(2);
           const x = Math.min(3,1,2);
@@ -348,7 +348,7 @@ fn math_max() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
           const x = Math.max(2);
           const x = Math.max(2,3,1);
@@ -374,7 +374,7 @@ fn math_complicated() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationModuleTransformVisitor::default(),
+    |_| EvaluationStyleXTransform::default(),
     r#"
           const x =  Math.min(Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100);
           const x =  Math.round(100 * (Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100 - (16 * (Math.round(20 / Math.pow(1.333, 3) / 0.16) / 100 - Math.round(15 / Math.pow(1.2, 2) / 0.16) / 10016)) / (1240 - 320) * (320 / 16))) / 100

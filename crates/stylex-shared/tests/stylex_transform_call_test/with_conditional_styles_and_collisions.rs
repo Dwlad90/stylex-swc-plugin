@@ -1,6 +1,6 @@
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -12,7 +12,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -40,7 +40,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -65,7 +65,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -91,7 +91,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -119,7 +119,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -147,7 +147,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -175,7 +175,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -200,7 +200,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -228,7 +228,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None

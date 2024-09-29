@@ -1,4 +1,4 @@
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -9,7 +9,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| { ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), None) },
+  |tr| { StyleXTransform::new_test(tr.comments.clone(), &PluginPass::default(), None) },
   stylex_metadata_is_correctly_set,
   r#"
         import stylex from 'stylex';

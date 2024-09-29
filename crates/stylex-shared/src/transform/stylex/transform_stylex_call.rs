@@ -8,10 +8,10 @@ use crate::{
     structures::named_import_source::ImportSources,
     utils::core::{stylex::stylex, stylex_merge::stylex_merge},
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

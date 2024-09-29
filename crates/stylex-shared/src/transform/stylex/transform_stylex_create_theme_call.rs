@@ -32,9 +32,9 @@ use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
   utils::core::dev_class_name::convert_theme_to_test_styles,
 };
-use crate::ModuleTransformVisitor;
+use crate::StyleXTransform;
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

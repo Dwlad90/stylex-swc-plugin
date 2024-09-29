@@ -1,4 +1,4 @@
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -9,7 +9,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -35,7 +35,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -58,7 +58,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None

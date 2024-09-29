@@ -20,7 +20,7 @@ test('sync function from native code', (t) => {
     dev: false,
     genConditionalClasses: true,
     treeshakeCompensation: true,
-    unstableModuleResolution: {
+    unstable_moduleResolution: {
       type: 'commonJS',
       rootDir,
     },

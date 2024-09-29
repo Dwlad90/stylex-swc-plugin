@@ -11,10 +11,10 @@ use crate::{
     enums::core::TransformationCycle,
     utils::{ast::convertors::expr_to_str, common::increase_ident_count},
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

@@ -2,7 +2,7 @@ use std::panic;
 
 use stylex_shared::{
   shared::{constants::messages, structures::plugin_pass::PluginPass},
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -31,7 +31,7 @@ fn validation_stylex_invalid_properties() {
         ..Default::default()
       }),
       |tr| {
-        ModuleTransformVisitor::new_test_force_runtime_injection(
+        StyleXTransform::new_test_force_runtime_injection(
           tr.comments.clone(),
           &PluginPass::default(),
           None,
@@ -65,7 +65,7 @@ fn stylex_invalid_property_values() {
         ..Default::default()
       }),
       |tr| {
-        ModuleTransformVisitor::new_test_force_runtime_injection(
+        StyleXTransform::new_test_force_runtime_injection(
           tr.comments.clone(),
           &PluginPass::default(),
           None,

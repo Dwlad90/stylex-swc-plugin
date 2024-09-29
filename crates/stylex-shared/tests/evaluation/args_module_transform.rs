@@ -20,15 +20,15 @@ use swc_core::{
     visit::{Fold, FoldWith},
   },
 };
-pub(crate) struct ArgsModuleTransformVisitor {
+pub(crate) struct ArgsStyleXTransform {
   pub(crate) functions: FunctionMap,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) state: StateManager,
 }
 
-impl Default for ArgsModuleTransformVisitor {
+impl Default for ArgsStyleXTransform {
   fn default() -> Self {
-    ArgsModuleTransformVisitor {
+    ArgsStyleXTransform {
       functions: FunctionMap {
         identifiers: HashMap::new(),
         member_expressions: HashMap::new(),
@@ -39,7 +39,7 @@ impl Default for ArgsModuleTransformVisitor {
   }
 }
 
-impl Fold for ArgsModuleTransformVisitor {
+impl Fold for ArgsStyleXTransform {
   fn fold_var_declarators(&mut self, var_declarators: Vec<VarDeclarator>) -> Vec<VarDeclarator> {
     var_declarators.iter().for_each(|decl| {
       if let Pat::Ident(_) = &decl.name {

@@ -5,7 +5,7 @@ use swc_core::{
 
 use crate::{
   shared::{enums::core::TransformationCycle, utils::common::fill_top_level_expressions},
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
 #[cfg(feature = "wasm")]
@@ -13,7 +13,7 @@ use crate::shared::structures::meta_data::MetaData;
 #[cfg(feature = "wasm")]
 use swc_core::common::comments::{Comment, CommentKind};
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

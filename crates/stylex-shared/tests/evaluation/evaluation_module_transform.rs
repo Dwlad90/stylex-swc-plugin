@@ -12,15 +12,15 @@ use swc_core::{
     visit::{Fold, FoldWith},
   },
 };
-pub(crate) struct EvaluationModuleTransformVisitor {
+pub(crate) struct EvaluationStyleXTransform {
   pub(crate) functions: FunctionMap,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) state: StateManager,
 }
 
-impl Default for EvaluationModuleTransformVisitor {
+impl Default for EvaluationStyleXTransform {
   fn default() -> Self {
-    EvaluationModuleTransformVisitor {
+    EvaluationStyleXTransform {
       functions: FunctionMap {
         identifiers: HashMap::new(),
         member_expressions: HashMap::new(),
@@ -31,7 +31,7 @@ impl Default for EvaluationModuleTransformVisitor {
   }
 }
 
-impl Fold for EvaluationModuleTransformVisitor {
+impl Fold for EvaluationStyleXTransform {
   fn fold_var_declarators(&mut self, var_declarators: Vec<VarDeclarator>) -> Vec<VarDeclarator> {
     var_declarators.iter().for_each(|decl| {
       if let Pat::Ident(_) = &decl.name {

@@ -14,10 +14,10 @@ use crate::{
     },
     utils::common::{increase_ident_count, increase_member_ident_count, reduce_member_ident_count},
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

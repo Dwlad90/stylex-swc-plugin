@@ -5,7 +5,7 @@ use stylex_shared::{
     plugin_pass::PluginPass,
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::{
   common::{chain, FileName, Mark},
@@ -51,7 +51,7 @@ fn fixture(input: PathBuf) {
 
       chain!(
         resolver(unresolved_mark, top_level_mark, false),
-        ModuleTransformVisitor::new_test_force_runtime_injection(
+        StyleXTransform::new_test_force_runtime_injection(
           tr.comments.clone(),
           &PluginPass {
             cwd: None,
@@ -86,7 +86,7 @@ fn fixture(input: PathBuf) {
 
       chain!(
         resolver(unresolved_mark, top_level_mark, false),
-        ModuleTransformVisitor::new_test(
+        StyleXTransform::new_test(
           tr.comments.clone(),
           &PluginPass {
             cwd: None,

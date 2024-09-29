@@ -4,7 +4,7 @@ use stylex_shared::{
     plugin_pass::PluginPass,
     stylex_options::StyleXOptionsParams,
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -23,7 +23,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -54,7 +54,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -88,7 +88,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -122,7 +122,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),

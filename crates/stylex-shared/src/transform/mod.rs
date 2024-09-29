@@ -23,7 +23,7 @@ mod fold;
 pub(crate) mod styleq;
 pub(crate) mod stylex;
 
-pub struct ModuleTransformVisitor<C>
+pub struct StyleXTransform<C>
 where
   C: Comments,
 {
@@ -32,7 +32,7 @@ where
   pub state: Box<StateManager>,
 }
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
@@ -47,7 +47,7 @@ where
 
     state._state = plugin_pass;
 
-    ModuleTransformVisitor {
+    StyleXTransform {
       comments,
       props_declaration: None,
       state,
@@ -85,7 +85,7 @@ where
 
     state._state = plugin_pass;
 
-    ModuleTransformVisitor {
+    StyleXTransform {
       comments,
       props_declaration: None,
       state,
@@ -119,7 +119,7 @@ where
 
     state._state = Box::new(plugin_pass);
 
-    ModuleTransformVisitor {
+    StyleXTransform {
       comments,
       props_declaration: None,
       state,

@@ -3,7 +3,7 @@ use stylex_shared::{
     plugin_pass::PluginPass,
     stylex_options::{StyleResolution, StyleXOptionsParams},
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -17,7 +17,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -39,7 +39,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -61,7 +61,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -83,7 +83,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -110,7 +110,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -131,7 +131,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -152,7 +152,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -176,7 +176,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -197,7 +197,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -239,7 +239,7 @@ fn handles_camel_cased_transition_properties() {
         tsx: true,
         ..Default::default()
       }),
-      |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+      |tr| StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None
@@ -251,7 +251,7 @@ fn handles_camel_cased_transition_properties() {
         tsx: true,
         ..Default::default()
       }),
-      |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+      |tr| StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None
@@ -265,7 +265,7 @@ fn handles_camel_cased_transition_properties() {
       tsx: true,
       ..Default::default()
     }),
-    |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+    |tr| StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       None
@@ -278,7 +278,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -299,7 +299,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -323,7 +323,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -349,7 +349,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -370,7 +370,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -395,7 +395,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -416,7 +416,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -448,7 +448,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -469,7 +469,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -501,7 +501,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -522,7 +522,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -543,7 +543,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -588,7 +588,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None
@@ -618,7 +618,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| { ModuleTransformVisitor::new_test(tr.comments.clone(), &PluginPass::default(), None) },
+  |tr| { StyleXTransform::new_test(tr.comments.clone(), &PluginPass::default(), None) },
   adds_null_for_constituent_properties_of_shorthands,
   r#"
     import stylex from 'stylex';
@@ -669,7 +669,7 @@ test!(
       ..StyleXOptionsParams::default()
     };
 
-    ModuleTransformVisitor::new_test(
+    StyleXTransform::new_test(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -724,7 +724,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None

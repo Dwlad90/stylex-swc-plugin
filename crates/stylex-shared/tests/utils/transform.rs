@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::Arc};
 
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 
 use swc_core::common::{chain, comments::SingleThreadedComments, DUMMY_SP};
 use swc_core::ecma::ast::{
@@ -48,7 +48,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
     Ok(module) => {
       // Do something with the parsed module.
       module.fold_with(
-        &mut ModuleTransformVisitor::new_test_force_runtime_injection(
+        &mut StyleXTransform::new_test_force_runtime_injection(
           Rc::new(SingleThreadedComments::default()),
           &PluginPass::default(),
           None,

@@ -8,10 +8,10 @@ use swc_core::{
 
 use crate::{
   shared::{enums::core::TransformationCycle, utils::common::increase_ident_count_by_count},
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

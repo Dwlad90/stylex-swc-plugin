@@ -3,7 +3,7 @@ use std::env;
 use insta::assert_snapshot;
 use stylex_shared::shared::structures::stylex_options::{StyleXOptions, StyleXOptionsParams};
 use stylex_shared::shared::utils::common::create_hash;
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 use swc_core::common::FileName;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -36,7 +36,7 @@ fn tranform(input: &str) -> String {
         ..Default::default()
       };
 
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass {
           filename: FileName::Real(

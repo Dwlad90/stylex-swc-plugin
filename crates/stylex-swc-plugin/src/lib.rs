@@ -5,7 +5,7 @@ use stylex_shared::{
     structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
     utils::log::log_formatter,
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::{
   common::FileName,
@@ -46,8 +46,8 @@ pub(crate) fn process_transform(
 
   let plugin_pass = Box::new(PluginPass { cwd, filename });
 
-  let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
-    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config);
+  let mut stylex: StyleXTransform<PluginCommentsProxy> =
+    StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
 
   program.fold_with(&mut stylex)
 }

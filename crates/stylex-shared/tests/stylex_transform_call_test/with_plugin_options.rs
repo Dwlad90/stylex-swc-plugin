@@ -1,6 +1,6 @@
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::{
   common::FileName,
@@ -15,7 +15,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -43,7 +43,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -77,7 +77,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -110,7 +110,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -142,7 +142,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,

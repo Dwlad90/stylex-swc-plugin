@@ -3,9 +3,9 @@ use swc_core::{
   ecma::{ast::MemberProp, visit::FoldWith},
 };
 
-use crate::{shared::enums::core::TransformationCycle, ModuleTransformVisitor};
+use crate::{shared::enums::core::TransformationCycle, StyleXTransform};
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

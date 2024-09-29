@@ -8,10 +8,10 @@ use crate::{
     core::{props::props, stylex_merge::stylex_merge},
     validators::is_props_call,
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

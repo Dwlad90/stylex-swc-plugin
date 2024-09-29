@@ -1,4 +1,4 @@
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
@@ -13,7 +13,7 @@ fn must_be_bound_to_a_variable() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,
@@ -37,7 +37,7 @@ fn it_must_have_two_arguments_no_args() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,
@@ -61,7 +61,7 @@ fn it_must_have_two_arguments_one_args() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,
@@ -85,7 +85,7 @@ fn it_must_have_two_arguments_fn_args() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,
@@ -109,7 +109,7 @@ fn it_must_have_two_arguments_empty_object_args() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,
@@ -127,7 +127,7 @@ fn it_must_have_two_arguments_empty_object_args() {
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       None,
@@ -152,7 +152,7 @@ fn variable_keys_must_be_a_static_value() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,
@@ -173,7 +173,7 @@ fn variable_keys_must_be_a_static_value() {
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       None,
@@ -192,7 +192,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       None,
@@ -217,7 +217,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,
@@ -244,7 +244,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
       ..Default::default()
     }),
     |tr| {
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         None,

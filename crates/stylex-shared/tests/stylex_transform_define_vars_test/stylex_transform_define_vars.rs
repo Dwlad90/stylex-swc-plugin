@@ -3,7 +3,7 @@ use stylex_shared::{
     plugin_pass::PluginPass,
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::{
   common::FileName,
@@ -20,7 +20,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -58,7 +58,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -96,7 +96,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -134,7 +134,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -172,7 +172,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -211,7 +211,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -249,7 +249,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -289,7 +289,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -330,7 +330,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -378,7 +378,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -425,7 +425,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -464,7 +464,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -503,7 +503,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -542,7 +542,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -581,7 +581,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -621,7 +621,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -661,7 +661,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -697,7 +697,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -728,7 +728,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass {
       cwd: None,
@@ -763,7 +763,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test(
+    StyleXTransform::new_test(
       tr.comments.clone(),
       &PluginPass {
         cwd: None,
@@ -796,7 +796,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    ModuleTransformVisitor::new_test(
+    StyleXTransform::new_test(
       tr.comments.clone(),
       &PluginPass {
         cwd: None,

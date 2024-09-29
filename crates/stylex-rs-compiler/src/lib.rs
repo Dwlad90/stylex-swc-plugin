@@ -1,9 +1,11 @@
 mod structs;
+mod utils;
+use napi::{Env, Result};
 use std::env;
-use structs::{StyleXOptions, StyleXTransformResult, StyleXMetadata};
+use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
 use swc_compiler_base::{print, PrintArgs, SourceMapsConfig};
 
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, ModuleTransformVisitor};
+use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax, TsSyntax};
 
 use swc_core::{
@@ -12,8 +14,8 @@ use swc_core::{
   plugin::proxies::PluginCommentsProxy,
 };
 
-use napi::{bindgen_prelude::*, JsObject};
 use napi_derive::napi;
+use utils::extract_stylex_metadata;
 
 #[napi]
 pub fn transform(
@@ -38,8 +40,8 @@ pub fn transform(
 
   let mut config = options.into();
 
-  let mut stylex: ModuleTransformVisitor<PluginCommentsProxy> =
-    ModuleTransformVisitor::new(PluginCommentsProxy, plugin_pass, &mut config);
+  let mut stylex: StyleXTransform<PluginCommentsProxy> =
+    StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
 
   let mut parser = Parser::new_from(Lexer::new(
     Syntax::Typescript(TsSyntax {
@@ -66,28 +68,7 @@ pub fn transform(
 
   let result = transformed_code.unwrap();
 
-  let mut stylex_metadata: Vec<JsObject> = vec![];
-
-  for (_, value) in stylex.state.metadata {
-    for meta in value.into_iter() {
-      let mut metadata_value = env.create_array_with_length(3)?;
-
-      metadata_value.set_element(0, env.create_string(meta.get_class_name())?)?;
-
-      let mut style_value = env.create_object()?;
-
-      let styles = meta.get_style();
-
-      style_value.set_named_property("ltr", styles.ltr.clone())?;
-      style_value.set_named_property("rtl", styles.rtl.clone())?;
-
-      metadata_value.set_element(1, style_value)?;
-
-      metadata_value.set_element(2, env.create_double(*meta.get_priority())?)?;
-
-      stylex_metadata.push(metadata_value);
-    }
-  }
+  let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
 
   let js_result = StyleXTransformResult {
     code: result.code,

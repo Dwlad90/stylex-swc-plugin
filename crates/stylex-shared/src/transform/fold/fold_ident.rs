@@ -5,10 +5,10 @@ use crate::{
     enums::core::TransformationCycle,
     utils::common::{increase_ident_count, reduce_ident_count},
   },
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

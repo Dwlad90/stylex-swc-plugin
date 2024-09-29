@@ -1,6 +1,7 @@
 import { Bench, Task } from 'tinybench'
 
 import { transform } from '../dist/index.js'
+import type { StyleXOptions } from '../dist/index.js'
 
 import path from 'path'
 import fs from 'fs'
@@ -9,11 +10,11 @@ const rootDir = process.cwd()
 
 const b = new Bench()
 
-const stylexOptions = {
+const stylexOptions:StyleXOptions = {
   dev: false,
   genConditionalClasses: true,
   treeshakeCompensation: true,
-  unstableModuleResolution: {
+  unstable_moduleResolution: {
     type: 'commonJS',
     rootDir,
   },

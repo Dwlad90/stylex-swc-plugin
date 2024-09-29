@@ -27,9 +27,9 @@ use crate::shared::{
   },
 };
 
-use crate::ModuleTransformVisitor;
+use crate::StyleXTransform;
 
-impl<C> ModuleTransformVisitor<C>
+impl<C> StyleXTransform<C>
 where
   C: Comments,
 {

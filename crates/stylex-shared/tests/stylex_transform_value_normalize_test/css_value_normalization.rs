@@ -1,6 +1,6 @@
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -12,7 +12,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -37,7 +37,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -58,7 +58,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -82,7 +82,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -103,7 +103,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -128,7 +128,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -149,7 +149,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -173,7 +173,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -194,7 +194,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -219,7 +219,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -251,7 +251,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -272,7 +272,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {
@@ -303,7 +303,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test(
+  |tr| StyleXTransform::new_test(
     tr.comments.clone(),
     &PluginPass::default(),
     Some(&mut StyleXOptionsParams {

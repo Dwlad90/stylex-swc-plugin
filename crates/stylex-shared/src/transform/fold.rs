@@ -14,7 +14,7 @@ mod fold_stmts;
 mod fold_var_declarator;
 mod fold_var_declarators;
 
-use super::ModuleTransformVisitor;
+use super::StyleXTransform;
 use swc_core::{
   common::comments::Comments,
   ecma::{
@@ -26,7 +26,7 @@ use swc_core::{
   },
 };
 
-impl<C> Fold for ModuleTransformVisitor<C>
+impl<C> Fold for StyleXTransform<C>
 where
   C: Comments,
 {

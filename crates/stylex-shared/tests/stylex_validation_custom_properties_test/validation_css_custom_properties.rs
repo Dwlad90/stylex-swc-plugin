@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-  ModuleTransformVisitor,
+  StyleXTransform,
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -26,7 +26,7 @@ fn disallow_unclosed_style_value_functions() {
 
       config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         Some(&mut config),
@@ -58,7 +58,7 @@ fn disallow_unprefixed_custom_properties() {
 
       config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-      ModuleTransformVisitor::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
         &PluginPass::default(),
         Some(&mut config),
@@ -87,7 +87,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -115,7 +115,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -133,7 +133,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| ModuleTransformVisitor::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
     &PluginPass::default(),
     None,
@@ -157,7 +157,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),
@@ -185,7 +185,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    ModuleTransformVisitor::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
       &PluginPass::default(),
       Some(&mut config),

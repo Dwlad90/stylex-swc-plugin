@@ -768,3 +768,40 @@ test!(
         });
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  transforms_style_with_url_property,
+  r#"
+      import stylex from 'stylex';
+
+      export const styles = stylex.create({
+          default: {
+            backgroundImage:'url("https://images.unsplash.com/photo-1634170380004-4b3b3b3b3b3b")',
+          },
+          foo:{
+            backgroundImage:'url("http://images.unsplash.com/photo-1634170380004-4b3b3b3b3b3b")',
+          },
+          bar:{
+            backgroundImage:'url("https://1.2.3.4/photo-1634170380004-4b3b3b3b3b3b")',
+          },
+          baz:{
+            backgroundImage:'url("http://1.2.3.4/photo-1634170380004-4b3b3b3b3b3b")',
+          },
+          boo:{
+            backgroundImage:'url("/photo-1634170380004-4b3b3b3b3b3b")',
+          },
+          far:{
+            backgroundImage:'url("./photo-1634170380004-4b3b3b3b3b3b")',
+          },
+      });
+    "#
+);

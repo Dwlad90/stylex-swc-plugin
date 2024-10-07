@@ -150,4 +150,61 @@ mod css_tests {
       r#"translateX(4px)"#
     );
   }
+
+  #[test]
+  fn allow_url_properties() {
+    assert_eq!(
+      transform_value(
+        "backgroundImage",
+        r#"url("https://images.unsplash.com/photo-1634170380004-4b3b3b3b3b3b")"#,
+        &StateManager::default()
+      ),
+      r#"url("https://images.unsplash.com/photo-1634170380004-4b3b3b3b3b3b")"#,
+    );
+
+    assert_eq!(
+      transform_value(
+        "backgroundImage",
+        r#"url("http://images.unsplash.com/photo-1634170380004-4b3b3b3b3b3b")"#,
+        &StateManager::default()
+      ),
+      r#"url("http://images.unsplash.com/photo-1634170380004-4b3b3b3b3b3b")"#,
+    );
+
+    assert_eq!(
+      transform_value(
+        "backgroundImage",
+        r#"url("https://1.2.3.4/photo-1634170380004-4b3b3b3b3b3b")"#,
+        &StateManager::default()
+      ),
+      r#"url("https://1.2.3.4/photo-1634170380004-4b3b3b3b3b3b")"#,
+    );
+
+    assert_eq!(
+      transform_value(
+        "backgroundImage",
+        r#"url("http://1.2.3.4/photo-1634170380004-4b3b3b3b3b3b")"#,
+        &StateManager::default()
+      ),
+      r#"url("http://1.2.3.4/photo-1634170380004-4b3b3b3b3b3b")"#,
+    );
+
+    assert_eq!(
+      transform_value(
+        "backgroundImage",
+        r#"url("/photo-1634170380004-4b3b3b3b3b3b")"#,
+        &StateManager::default()
+      ),
+      r#"url("/photo-1634170380004-4b3b3b3b3b3b")"#,
+    );
+
+    assert_eq!(
+      transform_value(
+        "backgroundImage",
+        r#"url("./photo-1634170380004-4b3b3b3b3b3b")"#,
+        &StateManager::default()
+      ),
+      r#"url("./photo-1634170380004-4b3b3b3b3b3b")"#,
+    );
+  }
 }

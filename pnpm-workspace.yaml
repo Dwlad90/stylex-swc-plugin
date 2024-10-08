@@ -1,4 +1,5 @@
 packages:
   - "apps/*"
   - "crates/*"
+  - "crates/stylex-rs-compiler/npm/*"
   - "packages/*"

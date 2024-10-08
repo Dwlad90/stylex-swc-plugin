@@ -22,7 +22,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "repository": "dwlad90/stylex-swc-plugin",
+    "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --rust",
     "check:artifacts": "[ -f ./dist/stylex_swc_plugin.wasm ] || { echo 'Artifacts does not exist'; exit 1; }",

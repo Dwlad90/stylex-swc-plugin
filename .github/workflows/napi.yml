@@ -11,8 +11,9 @@ permissions:
   push:
     branches:
       - master
-    tags-ignore:
-      - '**'
+    tags:
+      - "*.*.*"
+      - "*.*.*-*.*"
     paths-ignore:
       - '**/*.md'
       - LICENSE
@@ -282,10 +283,10 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
-      - benchmark
-      - test-macOS-windows-binding
-      - test-linux-x64-gnu-binding
-      - test-linux-x64-musl-binding
+      # - benchmark
+      # - test-macOS-windows-binding
+      # - test-linux-x64-gnu-binding
+      # - test-linux-x64-musl-binding
     steps:
       - uses: actions/checkout@v4
       - name: Setup environment
@@ -298,22 +299,22 @@ jobs:
         run:  pnpm run --filter @stylexswc/rs-compiler artifacts
       - name: Move and list artifacts
         run: |
-            mv crates/stylex-rs-compiler/npm/*/*.node crates/stylex-rs-compiler/dist
-            ls -R crates/stylex-rs-compiler/dist
-      - name: Prepare artifacts
-        run: |
-          sed -i "s|require('@stylexswc/rs-compiler-[^']*')|require('@stylexswc/rs-compiler')|g" crates/stylex-rs-compiler/dist/index.js
-        shell: bash
+            git diff
+            ls -R crates/stylex-rs-compiler/npm/*
+
+      # - name: Move and list artifacts
+      #   run: |
+      #       cp crates/stylex-rs-compiler/npm/*/*.node crates/stylex-rs-compiler/dist
+      #       ls -R crates/stylex-rs-compiler/dist
       - name: Publish
         run: |
-          if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$";
-          then
+          if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-            pnpm publish -r --access public
-          elif git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+";
-          then
+            pnpm publish -r --access public --no-git-checks --report-summary --dry-run
+          elif [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+-.*$ ]]; then
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-            pnpm publish -r --tag next --access public
+            pnpm publish -r --tag next --access public --no-git-checks --report-summary --dry-run
+            cat ./pnpm-publish-summary.json
           else
             echo "Not a release, skipping publish"
           fi

@@ -35,9 +35,10 @@
   },
   "private": false,
   "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
-  "repository": "dwlad90/stylex-swc-plugin",
+    "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --ts",
     "clean": "del-cli dist",

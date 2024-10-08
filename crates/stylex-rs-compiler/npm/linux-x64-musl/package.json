@@ -1,16 +1,17 @@
 {
   "name": "@stylexswc/rs-compiler-linux-x64-musl",
   "version": "0.3.0-rc.1",
-  "private": true,
+  "private": false,
   "os": [
     "linux"
   ],
   "cpu": [
     "x64"
   ],
-  "main": "@stylexswc/rs-compiler.linux-x64-musl.node",
+  "main": "rs-compiler.linux-x64-musl.node",
   "files": [
-    "@stylexswc/rs-compiler.linux-x64-musl.node"
+    "LICENSE",
+    "rs-compiler.linux-x64-musl.node"
   ],
   "description": "NAPI-RS compiler for transform StyleX code",
   "keywords": [

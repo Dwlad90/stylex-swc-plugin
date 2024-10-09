@@ -71,7 +71,13 @@ if [ "$WITH_STYLEX" = true ]; then
 fi
 
 # Get the last tag sorted by time
-LAST_TAG=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+LAST_TAG=""
+
+if [ -z "$PRE_RELEASE_TYPE" ]; then
+  LAST_TAG=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+else
+  LAST_TAG=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$' | head -n 1)
+fi
 
 # Increment the last tag based on the release type
 NEW_TAG=$(increment_version "$LAST_TAG" "$RELEASE_TYPE" "$PRE_RELEASE_TYPE")

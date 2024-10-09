@@ -9,8 +9,6 @@ permissions:
   id-token: write
 'on':
   push:
-    branches:
-      - master
     tags:
       - "*.*.*"
       - "*.*.*-*.*"
@@ -20,20 +18,12 @@ permissions:
       - '**/*.gitignore'
       - .editorconfig
       - docs/**
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
-      - converted_to_draft
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
-    if: github.event_name == 'push' || github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:

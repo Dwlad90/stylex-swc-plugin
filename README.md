@@ -20,7 +20,7 @@ This project is organized into several packages:
 
 **Core:**
 
-* [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/rs-compiler) -
+* [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler) -
   Rust-based [`napi-rs`](https://napi.rs/) compiler for transforming StyleX code.
 
 **Integration:**
@@ -60,11 +60,11 @@ This project is organized into several packages:
 * [`swc-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-swc-plugin) -
   Unofficial SWC implementation of the native
   [StyleX](https://github.com/facebook/stylex) plugin. The new alternative is
-  [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/rs-compiler)
+  [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler)
 
 **Integration:**
 
-* [`nextjs-swc-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin) -
+* [`nextjs-swc-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-swc-plugin) -
   Wrapper for
   [`Next.JS config`](https://nextjs.org/docs/app/api-reference/next-config-js)
   that inject the StyleX SWC plugin to webpack processing. The new alternative

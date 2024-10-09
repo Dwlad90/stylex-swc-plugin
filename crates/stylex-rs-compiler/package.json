@@ -40,7 +40,8 @@
   },
   "files": [
     "dist/index.d.ts",
-    "dist/index.js"
+    "dist/index.js",
+    "dist/*.node"
   ],
   "keywords": [
     "N-API",
@@ -85,7 +86,7 @@
     "format:rs": "cargo fmt",
     "format:toml": "taplo format",
     "lint": "oxlint .",
-    "prepublishOnly": "napi prepublish --skip-gh-release && git checkout .",
+    "prepublishOnly": "napi prepublish --skip-gh-release",
     "test": "ava",
     "version": "napi version"
   }

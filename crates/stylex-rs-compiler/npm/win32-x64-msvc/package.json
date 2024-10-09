@@ -1,16 +1,17 @@
 {
   "name": "@stylexswc/rs-compiler-win32-x64-msvc",
   "version": "0.3.0-rc.1",
-  "private": true,
+  "private": false,
   "os": [
     "win32"
   ],
   "cpu": [
     "x64"
   ],
-  "main": "@stylexswc/rs-compiler.win32-x64-msvc.node",
+  "main": "rs-compiler.win32-x64-msvc.node",
   "files": [
-    "@stylexswc/rs-compiler.win32-x64-msvc.node"
+    "LICENSE",
+    "rs-compiler.win32-x64-msvc.node"
   ],
   "description": "NAPI-RS compiler for transform StyleX code",
   "keywords": [

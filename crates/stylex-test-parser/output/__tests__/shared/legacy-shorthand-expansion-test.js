@@ -31,6 +31,34 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 ]
             ]);
         });
+        test('should expand simple gap values', ()=>{
+            expect(flattenRawStyleObject({
+                gap: 10
+            }, options)).toEqual([
+                [
+                    'rowGap',
+                    new PreRule('rowGap', 10)
+                ],
+                [
+                    'columnGap',
+                    new PreRule('columnGap', 10)
+                ]
+            ]);
+        });
+        test('should expand simple containIntrinsicSize values', ()=>{
+            expect(flattenRawStyleObject({
+                containIntrinsicSize: 10
+            }, options)).toEqual([
+                [
+                    'containIntrinsicWidth',
+                    new PreRule('containIntrinsicWidth', 10)
+                ],
+                [
+                    'containIntrinsicHeight',
+                    new PreRule('containIntrinsicHeight', 10)
+                ]
+            ]);
+        });
         test('should expand simple shorthands', ()=>{
             expect(flattenRawStyleObject({
                 margin: 10
@@ -114,6 +142,72 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'borderStartColor',
                     new PreRule('borderStartColor', 'red')
+                ]
+            ]);
+        });
+        test('should expand simple gap with space-separated values', ()=>{
+            expect(flattenRawStyleObject({
+                gap: '10px 20px'
+            }, options)).toEqual([
+                [
+                    'rowGap',
+                    new PreRule('rowGap', '10px')
+                ],
+                [
+                    'columnGap',
+                    new PreRule('columnGap', '20px')
+                ]
+            ]);
+        });
+        test('should expand simple containIntrinsicSize with space-separated values', ()=>{
+            const w = 'containIntrinsicWidth';
+            const h = 'containIntrinsicHeight';
+            expect(flattenRawStyleObject({
+                containIntrinsicSize: '10px 20px'
+            }, options)).toEqual([
+                [
+                    w,
+                    new PreRule(w, '10px')
+                ],
+                [
+                    h,
+                    new PreRule(h, '20px')
+                ]
+            ]);
+            expect(flattenRawStyleObject({
+                containIntrinsicSize: 'auto 10px 20px'
+            }, options)).toEqual([
+                [
+                    w,
+                    new PreRule(w, 'auto 10px')
+                ],
+                [
+                    h,
+                    new PreRule(h, '20px')
+                ]
+            ]);
+            expect(flattenRawStyleObject({
+                containIntrinsicSize: '10px auto 20px'
+            }, options)).toEqual([
+                [
+                    w,
+                    new PreRule(w, '10px')
+                ],
+                [
+                    h,
+                    new PreRule(h, 'auto 20px')
+                ]
+            ]);
+            expect(flattenRawStyleObject({
+                containIntrinsicSize: 'auto 10px auto 20px'
+            }, options)).toEqual([
+                [
+                    w,
+                    new PreRule(w, 'auto 10px')
+                ],
+                [
+                    h,
+                    new PreRule(h, 'auto 20px')
                 ]
             ]);
         });

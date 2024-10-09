@@ -4,12 +4,16 @@ function transform(source, opts = {}) {
         parserOpts: {
             flow: 'all'
         },
+        babelrc: false,
         plugins: [
             flowPlugin,
             [
                 stylexPlugin,
                 {
                     runtimeInjection: true,
+                    unstable_moduleResolution: {
+                        type: 'haste'
+                    },
                     ...opts
                 }
             ]
@@ -131,6 +135,26 @@ describe('@stylexjs/babel-plugin', ()=>{
         var _inject2 = _inject;
         import stylex from 'stylex';
         _inject2(".xd71okc{content:attr(some-attribute)}", 3000);"
+      `);
+        });
+        test('does not add unit when setting variable value', ()=>{
+            expect(transform(`
+          import * as stylex from '@stylexjs/stylex';
+          import {vars} from 'myTheme.stylex.js';
+
+          const styles = stylex.create({
+            default: {
+              [vars.foo]: 500,
+            },
+          });
+        `, {
+                filename: 'MyComponent.js'
+            })).toMatchInlineSnapshot(`
+        "import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        var _inject2 = _inject;
+        import * as stylex from '@stylexjs/stylex';
+        import { vars } from 'myTheme.stylex.js';
+        _inject2(".x4b9xku{--x1w7bng0:500}", 1);"
       `);
         });
         test('handles camelCased transition properties', ()=>{

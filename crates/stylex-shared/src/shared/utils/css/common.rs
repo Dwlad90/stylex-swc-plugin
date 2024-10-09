@@ -588,7 +588,7 @@ pub(crate) fn normalize_css_property_value(
 // type Validator = fn(Stylesheet);
 
 pub(crate) fn get_number_suffix(key: &str) -> String {
-  if UNITLESS_NUMBER_PROPERTIES.contains(key) {
+  if UNITLESS_NUMBER_PROPERTIES.contains(key) || key.starts_with("--") {
     return String::default();
   }
 

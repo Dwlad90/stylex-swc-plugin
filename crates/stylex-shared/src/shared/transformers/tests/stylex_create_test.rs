@@ -446,6 +446,27 @@ mod stylex_create {
   }
 
   #[test]
+  fn does_not_add_units_to_variable_value() {
+    let object = style_object_factory(&[("default", &[("--foo", "500")])]);
+
+    let (resolved_namespaces, injected_styles) = stylex_create(object);
+
+    let (expected_resolved_namespaces, expected_injected_styles) = exprected_result_factory(
+      &[("default", &[("--foo", "xwzgxvi")])],
+      &[(
+        "default",
+        &[(
+          "xwzgxvi",
+          (".xwzgxvi{--foo:500}", 1.0),
+        )],
+      )],
+    );
+
+    assert_eq!(resolved_namespaces, expected_resolved_namespaces);
+    assert_eq!(injected_styles, expected_injected_styles);
+  }
+
+  #[test]
   fn transforms_nested_pseudo_class_to_css() {
     let object = style_nested_object_factory(&[(
       "default",

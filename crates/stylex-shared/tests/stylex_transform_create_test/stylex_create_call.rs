@@ -1,13 +1,18 @@
+use std::env;
+
 use stylex_shared::{
   shared::structures::{
     plugin_pass::PluginPass,
-    stylex_options::{StyleResolution, StyleXOptionsParams},
+    stylex_options::{StyleResolution, StyleXOptions, StyleXOptionsParams},
   },
   StyleXTransform,
 };
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
+use swc_core::{
+  common::FileName,
+  ecma::{
+    parser::{Syntax, TsSyntax},
+    transforms::testing::test,
+  },
 };
 
 use crate::utils::transform::stringify_js;
@@ -188,6 +193,41 @@ test!(
             default: {
                 content: 'attr(some-attribute)',
             },
+        });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass {
+      filename: FileName::Real(
+        format!(
+          "{}/MyComponent.js",
+          env::current_dir().unwrap().display()
+        )
+        .into(),
+      ),
+      ..Default::default()
+    },
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  does_not_add_unit_when_setting_variable_value,
+  r#"
+        import * as stylex from '@stylexjs/stylex';
+        import {vars} from 'myTheme.stylex.js';
+        const styles = stylex.create({
+          default: {
+            [vars.foo]: 500,
+          },
         });
     "#
 );

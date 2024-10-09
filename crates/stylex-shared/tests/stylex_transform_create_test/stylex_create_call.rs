@@ -206,11 +206,7 @@ test!(
     tr.comments.clone(),
     &PluginPass {
       filename: FileName::Real(
-        format!(
-          "{}/MyComponent.js",
-          env::current_dir().unwrap().display()
-        )
-        .into(),
+        format!("{}/MyComponent.js", env::current_dir().unwrap().display()).into(),
       ),
       ..Default::default()
     },

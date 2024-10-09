@@ -105,6 +105,34 @@ impl Shorthands {
     ]
   }
 
+  fn contain_intrinsic_size(raw_value: Option<String>) -> Vec<OrderPair> {
+    let parts = split_value_required(raw_value.as_deref());
+
+    let parts = [parts.0, parts.1, parts.2, parts.3];
+
+    let mut coll: Vec<String> = Vec::with_capacity(parts.len());
+
+    for part in parts {
+      if let Some(last_element) = coll.last() {
+        if last_element == "auto" && !part.is_empty() {
+          let new_element = format!("auto {}", part);
+          coll.pop();
+          coll.push(new_element);
+          continue;
+        }
+      }
+      coll.push(part);
+    }
+
+    let width = coll.first().cloned().unwrap_or(Default::default());
+    let height = coll.get(1).cloned().unwrap_or(width.clone());
+
+    vec![
+      OrderPair("containIntrinsicWidth".into(), Some(width)),
+      OrderPair("containIntrinsicHeight".into(), Some(height)),
+    ]
+  }
+
   fn inset(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("top".into(), raw_value.to_owned()),
@@ -292,6 +320,7 @@ impl Shorthands {
       "borderVerticalStyle" => Some(Shorthands::border_vertical_style),
       "borderVerticalWidth" => Some(Shorthands::border_vertical_width),
       "borderRadius" => Some(Shorthands::border_radius),
+      "containIntrinsicSize" => Some(Shorthands::contain_intrinsic_size),
       "inset" => Some(Shorthands::inset),
       "insetInline" => Some(Shorthands::inset_inline),
       "insetBlock" => Some(Shorthands::inset_block),

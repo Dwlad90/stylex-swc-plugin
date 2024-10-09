@@ -453,13 +453,7 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles) = exprected_result_factory(
       &[("default", &[("--foo", "xwzgxvi")])],
-      &[(
-        "default",
-        &[(
-          "xwzgxvi",
-          (".xwzgxvi{--foo:500}", 1.0),
-        )],
-      )],
+      &[("default", &[("xwzgxvi", (".xwzgxvi{--foo:500}", 1.0))])],
     );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);

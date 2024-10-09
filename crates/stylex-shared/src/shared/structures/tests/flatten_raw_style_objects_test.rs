@@ -89,7 +89,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   }
 
   #[test]
-  fn converts_style_to_class_name() {
+  fn should_create_pre_rule_objects_for_simple_style_values() {
     let result = flatten_raw_style_object(
       &[
         key_value_factory("color", string_to_expression("red")),
@@ -112,6 +112,156 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     );
     expected_result.insert("marginLeft".to_string(), null_rule_factory());
     expected_result.insert("marginRight".to_string(), null_rule_factory());
+
+    assert_eq!(result, expected_result)
+  }
+
+  #[test]
+  fn should_expand_simple_gap_values() {
+    let result = flatten_raw_style_object(
+      &[key_value_factory("gap", string_to_expression("10"))],
+      &mut vec![],
+      &mut vec![],
+      &mut get_state(),
+      &FunctionMap::default(),
+    );
+
+    assert_eq!(result.len(), 2);
+
+    let mut expected_result = IndexMap::new();
+
+    expected_result.insert("rowGap".to_string(), pre_rule_factory("rowGap", "10"));
+    expected_result.insert("columnGap".to_string(), pre_rule_factory("columnGap", "10"));
+
+    assert_eq!(result, expected_result)
+  }
+
+  #[test]
+  fn should_expand_simple_contain_intrinsic_size_values() {
+    let result = flatten_raw_style_object(
+      &[key_value_factory(
+        "containIntrinsicSize",
+        string_to_expression("10"),
+      )],
+      &mut vec![],
+      &mut vec![],
+      &mut get_state(),
+      &FunctionMap::default(),
+    );
+
+    assert_eq!(result.len(), 2);
+
+    let mut expected_result = IndexMap::new();
+
+    expected_result.insert(
+      "containIntrinsicWidth".to_string(),
+      pre_rule_factory("containIntrinsicWidth", "10"),
+    );
+    expected_result.insert(
+      "containIntrinsicHeight".to_string(),
+      pre_rule_factory("containIntrinsicHeight", "10"),
+    );
+
+    assert_eq!(result, expected_result)
+  }
+
+  #[test]
+  fn should_expand_simple_gap_with_space_separated_values() {
+    let result = flatten_raw_style_object(
+      &[key_value_factory("gap", string_to_expression("10px 20px"))],
+      &mut vec![],
+      &mut vec![],
+      &mut get_state(),
+      &FunctionMap::default(),
+    );
+
+    assert_eq!(result.len(), 2);
+
+    let mut expected_result = IndexMap::new();
+
+    expected_result.insert("rowGap".to_string(), pre_rule_factory("rowGap", "10px"));
+    expected_result.insert(
+      "columnGap".to_string(),
+      pre_rule_factory("columnGap", "20px"),
+    );
+
+    assert_eq!(result, expected_result)
+  }
+
+  #[test]
+  fn should_expand_simple_contain_intrinsic_size_with_space_separated_values() {
+    let w = "containIntrinsicWidth";
+    let h = "containIntrinsicHeight";
+
+    let result = flatten_raw_style_object(
+      &[key_value_factory(
+        "containIntrinsicSize",
+        string_to_expression("10px 20px"),
+      )],
+      &mut vec![],
+      &mut vec![],
+      &mut get_state(),
+      &FunctionMap::default(),
+    );
+
+    assert_eq!(result.len(), 2);
+
+    let mut expected_result = IndexMap::new();
+
+    expected_result.insert(w.to_string(), pre_rule_factory(w, "10px"));
+    expected_result.insert(h.to_string(), pre_rule_factory(h, "20px"));
+
+    assert_eq!(result, expected_result)
+  }
+
+  #[test]
+  fn should_expand_simple_contain_intrinsic_size_with_space_separated_values_v2() {
+    let w = "containIntrinsicWidth";
+    let h = "containIntrinsicHeight";
+
+    let result = flatten_raw_style_object(
+      &[key_value_factory(
+        "containIntrinsicSize",
+        string_to_expression("auto 10px 20px"),
+      )],
+      &mut vec![],
+      &mut vec![],
+      &mut get_state(),
+      &FunctionMap::default(),
+    );
+
+    assert_eq!(result.len(), 2);
+
+    let mut expected_result = IndexMap::new();
+
+    expected_result.insert(w.to_string(), pre_rule_factory(w, "auto 10px"));
+    expected_result.insert(h.to_string(), pre_rule_factory(h, "20px"));
+
+    assert_eq!(result, expected_result)
+  }
+
+  #[test]
+  fn should_expand_simple_contain_intrinsic_size_with_space_separated_values_v3() {
+    let w = "containIntrinsicWidth";
+    let h = "containIntrinsicHeight";
+
+    let result = flatten_raw_style_object(
+      &[key_value_factory(
+        "containIntrinsicSize",
+        string_to_expression("auto 10px auto 20px"),
+      )],
+      &mut vec![],
+      &mut vec![],
+      &mut get_state(),
+      &FunctionMap::default(),
+    );
+
+    assert_eq!(result.len(), 2);
+
+    let mut expected_result = IndexMap::new();
+
+    expected_result.insert(w.to_string(), pre_rule_factory(w, "auto 10px"));
+    expected_result.insert(h.to_string(), pre_rule_factory(h, "auto 20px"));
 
     assert_eq!(result, expected_result)
   }

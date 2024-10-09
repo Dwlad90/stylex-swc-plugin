@@ -1,6 +1,6 @@
 [package]
 name = "stylex_compiler_rs"
-version = "0.3.0-rc.3"
+version = "0.3.0-rc.4"
 edition = "2021"
 license.workspace = true
 repository.workspace = true

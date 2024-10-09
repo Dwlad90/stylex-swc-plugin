@@ -30,7 +30,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "peerDependencies": {
-    "@stylexjs/babel-plugin": "^0.7.5",
+    "@stylexjs/babel-plugin": "^0.8.0",
     "next": ">=14.0.1"
   },
   "private": false,

@@ -29,8 +29,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 # Get the last tag sorted by time
-LAST_TAG=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
-
+LAST_TAG=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$' | head -n 1)
 RELEASE_BRANCH="release/${LAST_TAG}"
 
 if [ -z "$LAST_TAG" ]; then

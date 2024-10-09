@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler",
   "description": "NAPI-RS compiler for transform StyleX code",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0-rc.2",
   "ava": {
     "extensions": {
       "ts": "module"
@@ -41,7 +41,8 @@
   "files": [
     "dist/index.d.ts",
     "dist/index.js",
-    "dist/*.node"
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "N-API",

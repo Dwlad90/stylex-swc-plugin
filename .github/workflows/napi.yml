@@ -299,16 +299,16 @@ jobs:
         run:  pnpm run --filter @stylexswc/rs-compiler artifacts
       - name: Move and list artifacts
         run: |
-            git diff
             ls -R crates/stylex-rs-compiler/npm/*
       - name: Publish
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-            pnpm publish -r --access public --no-git-checks --report-summary --dry-run
+            pnpm publish -r --access public --no-git-checks --report-summary
           elif [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+-.*$ ]]; then
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-            pnpm publish -r --tag next --access public --no-git-checks --report-summary --dry-run
+            pnpm publish -r --tag next --access public --no-git-checks --report-summary
+            git diff
             cat ./pnpm-publish-summary.json
           else
             echo "Not a release, skipping publish"

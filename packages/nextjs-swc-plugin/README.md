@@ -74,8 +74,8 @@ module.exports = stylexPlugin({
 
 ## Examples
 
-- [Example repo](https://github.com/Dwlad90/nextjs-app-dir-stylex)
-- [CodeSandbox with example repo](https://codesandbox.io/p/github/Dwlad90/nextjs-app-dir-stylex/main)
+- [Example repo](https://github.com/Dwlad90/nextjs-app-dir-stylex/tree/swc)
+- [CodeSandbox with example repo](https://codesandbox.io/p/github/Dwlad90/nextjs-app-dir-stylex/swc)
 
 ## Documentation
 

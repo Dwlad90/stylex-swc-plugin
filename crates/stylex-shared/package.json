@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/shared",
   "description": "Shared code for stylex-swc-plugin and stylex-rs-compiler",
-  "version": "0.2.4",
+  "version": "0.3.0-rc.5",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -11,18 +11,18 @@
     "dist"
   ],
   "keywords": [
+    "napi",
+    "napi-rs",
     "stylex",
     "swc",
-    "swc-plugin",
-    "napi-rs",
-    "napi"
+    "swc-plugin"
   ],
   "license": "MIT",
   "private": true,
   "publishConfig": {
     "access": "public"
   },
-  "repository": "dwlad90/stylex-swc-plugin",
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --rust",
     "check:artifacts": "[ -f ./dist/stylex_swc_plugin.wasm ] || { echo 'Artifacts does not exist'; exit 1; }",
@@ -35,10 +35,10 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test:rs": "NODE_ENV=test cargo test --lib --bins --tests fixture_",
-    "test:wasm": "NODE_ENV=test cargo test --lib --bins --tests --features wasm",
     "test": "pnpm run test:rs && pnpm run test:wasm",
-    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test",
+    "test:rs": "NODE_ENV=test cargo test --lib --bins --tests fixture_",
+    "test:wasm": "NODE_ENV=test cargo test --lib --bins --tests --features wasm"
   },
   "sideEffects": false
 }

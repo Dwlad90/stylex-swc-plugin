@@ -15,6 +15,7 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 
 # Get the type of release from the arguments
 RELEASE_TYPE=$1
+PRE_RELEASE_TYPE=$2
 BASE_BRANCH=develop
 STYLEX_BRANCH=stylexjs
 
@@ -73,7 +74,7 @@ fi
 LAST_TAG=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
 # Increment the last tag based on the release type
-NEW_TAG=$(increment_version "$LAST_TAG" "$RELEASE_TYPE")
+NEW_TAG=$(increment_version "$LAST_TAG" "$RELEASE_TYPE" "$PRE_RELEASE_TYPE")
 printf "New version tag: %s\n\n" "$NEW_TAG"
 
 # Wait for user confirmation to continue

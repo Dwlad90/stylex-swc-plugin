@@ -1,16 +1,17 @@
 {
   "name": "@stylexswc/rs-compiler-darwin-x64",
-  "version": "0.2.4",
-  "private": true,
+  "version": "0.3.0-rc.5",
+  "private": false,
   "os": [
     "darwin"
   ],
   "cpu": [
     "x64"
   ],
-  "main": "@stylexswc/rs-compiler.darwin-x64.node",
+  "main": "rs-compiler.darwin-x64.node",
   "files": [
-    "@stylexswc/rs-compiler.darwin-x64.node"
+    "LICENSE",
+    "rs-compiler.darwin-x64.node"
   ],
   "description": "NAPI-RS compiler for transform StyleX code",
   "keywords": [

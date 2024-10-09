@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/swc-plugin",
   "description": "SWC plugin for transforming StyleX code",
-  "version": "0.2.4",
+  "version": "0.3.0-rc.5",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -19,9 +19,10 @@
   "main": "./dist/stylex_swc_plugin.wasm",
   "private": false,
   "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
-  "repository": "dwlad90/stylex-swc-plugin",
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --rust",
     "check:artifacts": "[ -f ./dist/stylex_swc_plugin.wasm ] || { echo 'Artifacts does not exist'; exit 1; }",

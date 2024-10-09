@@ -1,79 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler",
-  "version": "0.2.4",
   "description": "NAPI-RS compiler for transform StyleX code",
-  "main": "dist/index.js",
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "license": "MIT",
-  "private": false,
-  "keywords": [
-    "napi-rs",
-    "NAPI",
-    "N-API",
-    "Rust",
-    "node-addon",
-    "node-addon-api",
-    "StyleX",
-    "SWC"
-  ],
-  "files": [
-    "dist/index.d.ts",
-    "dist/index.js"
-  ],
-  "napi": {
-    "name": "rs-compiler",
-    "triples": {
-      "defaults": true,
-      "additional": [
-        "aarch64-apple-darwin",
-        "aarch64-unknown-linux-gnu",
-        "x86_64-apple-darwin",
-        "x86_64-pc-windows-msvc",
-        "x86_64-unknown-linux-gnu",
-        "x86_64-unknown-linux-musl"
-      ]
-    }
-  },
-  "engines": {
-    "node": ">= 18"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "scripts": {
-    "artifacts": "napi artifacts",
-    "bench": "node --import @swc-node/register/esm-register benchmark/bench.ts",
-    "build": "napi build --platform --release dist",
-    "build:debug": "napi build --platform",
-    "format": "run-p format:prettier format:rs format:toml",
-    "format:prettier": "prettier . -w",
-    "format:toml": "taplo format",
-    "format:rs": "cargo fmt",
-    "lint": "oxlint .",
-    "prepublishOnly": "napi prepublish -t npm",
-    "test": "ava",
-    "version": "napi version"
-  },
-  "devDependencies": {
-    "benchmark": "^2.1.2",
-    "@stylexjs/open-props": "^0.7.5",
-    "@stylexjs/stylex": "^0.7.5",
-    "@napi-rs/cli": "^2.18.4",
-    "@swc-node/register": "^1.10.6",
-    "@swc/core": "^1.6.13",
-    "@taplo/cli": "^0.7.0",
-    "ava": "^6.1.3",
-    "chalk": "^5.3.0",
-    "husky": "^9.0.11",
-    "lint-staged": "^15.2.7",
-    "npm-run-all2": "^6.2.2",
-    "oxlint": "^0.9.0",
-    "prettier": "^3.3.3",
-    "tinybench": "^2.8.0",
-    "typescript": "^5.5.3",
-    "@types/node": "^20"
-  },
+  "version": "0.3.0-rc.5",
   "ava": {
     "extensions": {
       "ts": "module"
@@ -88,5 +16,76 @@
       "@swc-node/register/esm-register"
     ]
   },
-  "packageManager": "pnpm@9.9.0"
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4",
+    "@stylexjs/open-props": "^0.7.5",
+    "@stylexjs/stylex": "^0.7.5",
+    "@swc-node/register": "^1.10.6",
+    "@swc/core": "^1.6.13",
+    "@taplo/cli": "^0.7.0",
+    "@types/node": "^20",
+    "ava": "^6.1.3",
+    "benchmark": "^2.1.2",
+    "chalk": "^5.3.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.7",
+    "npm-run-all2": "^6.2.2",
+    "oxlint": "^0.9.0",
+    "prettier": "^3.3.3",
+    "tinybench": "^2.8.0",
+    "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "files": [
+    "dist/index.d.ts",
+    "dist/index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "N-API",
+    "NAPI",
+    "napi-rs",
+    "node-addon",
+    "node-addon-api",
+    "Rust",
+    "StyleX",
+    "SWC"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "napi": {
+    "name": "rs-compiler",
+    "triples": {
+      "defaults": true,
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl"
+      ]
+    }
+  },
+  "packageManager": "pnpm@9.9.0",
+  "private": false,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "bench": "node --import @swc-node/register/esm-register benchmark/bench.ts",
+    "build": "napi build --platform --release dist",
+    "build:debug": "napi build --platform",
+    "format": "run-p format:prettier format:rs format:toml",
+    "format:prettier": "prettier . -w",
+    "format:rs": "cargo fmt",
+    "format:toml": "taplo format",
+    "lint": "oxlint .",
+    "prepublishOnly": "napi prepublish --skip-gh-release",
+    "test": "ava",
+    "version": "napi version"
+  }
 }

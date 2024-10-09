@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-swc-plugin",
   "description": "Stylex NextJS plugin with swc plugin",
-  "version": "0.2.4",
+  "version": "0.3.0-rc.5",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -35,9 +35,10 @@
   },
   "private": false,
   "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
-  "repository": "dwlad90/stylex-swc-plugin",
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --ts",
     "clean": "del-cli dist",

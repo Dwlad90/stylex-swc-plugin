@@ -1,5 +1,5 @@
-/** @type {import('next').NextConfig} */
 const path = require('path');
+/** @type {import('next').NextConfig} */
 const stylexPlugin = require('@stylexswc/nextjs-plugin');
 const rootDir = __dirname;
 

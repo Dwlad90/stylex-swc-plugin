@@ -57,7 +57,12 @@ git push --follow-tags origin "${MASTER_BRANCH}"
 
 # Delete the release branch
 git branch -d "${RELEASE_BRANCH}"
-git push origin -d "${RELEASE_BRANCH}"
+
+if git push origin -d "${RELEASE_BRANCH}"; then
+  echo "Successfully deleted remote branch ${RELEASE_BRANCH}"
+else
+  echo "Failed to delete remote branch ${RELEASE_BRANCH}. It may not exist."
+fi
 
 # Checkout and push the base branch
 git checkout "${BASE_BRANCH}"

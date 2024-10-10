@@ -134,6 +134,9 @@ find . -maxdepth 3 -name 'node_modules' -prune -o -name 'package.json' -print | 
 ' "$package_file" >tmp.$$.json && mv tmp.$$.json "$package_file"
 done
 
+# Install the dependencies
+pnpm install
+
 # Add the changes to the staging area
 git add .
 

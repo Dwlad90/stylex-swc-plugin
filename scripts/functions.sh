@@ -53,18 +53,14 @@ EOF
   esac
 
   if [ -n "$pre_release_type" ]; then
-    if [ -z "$pre_release" ]; then
-      pre_release="$pre_release_type.1"
+    # Get the highest existing pre-release version for the current version
+    existing_pre_release=$(git tag -l "${major}.${minor}.${patch}-${pre_release_type}.*" | sort -V | tail -n 1)
+    if [ -n "$existing_pre_release" ]; then
+      current_pre_release_version=$(echo "$existing_pre_release" | sed -E "s/.*${pre_release_type}\.([0-9]+)$/\1/")
+      current_pre_release_version=$((current_pre_release_version + 1))
+      pre_release="$pre_release_type.$current_pre_release_version"
     else
-      read -r current_pre_release_type current_pre_release_version <<EOF
-$(echo "$pre_release" | tr '.' ' ')
-EOF
-      if [ "$current_pre_release_type" = "$pre_release_type" ]; then
-        current_pre_release_version=$((current_pre_release_version + 1))
-        pre_release="$pre_release_type.$current_pre_release_version"
-      else
-        pre_release="$pre_release_type.1"
-      fi
+      pre_release="$pre_release_type.1"
     fi
   fi
 

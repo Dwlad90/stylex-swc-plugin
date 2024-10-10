@@ -46,10 +46,7 @@ impl fmt::Debug for EvaluateResultValue {
       Self::FunctionConfig(e) => f.debug_tuple("FunctionConfig").field(e).finish(),
       Self::FunctionConfigMap(e) => f.debug_tuple("FunctionConfigMap").field(e).finish(),
       Self::ThemeRef(e) => f.debug_tuple("ThemeRef").field(e).finish(),
-      Self::Callback(_) => f
-        .debug_tuple("Callback")
-        .field(&"Function Pointer")
-        .finish(),
+      Self::Callback(_) => f.debug_tuple("Callback").field(&"Callback").finish(),
     }
   }
 }

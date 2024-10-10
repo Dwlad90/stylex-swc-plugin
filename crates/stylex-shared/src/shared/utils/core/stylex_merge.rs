@@ -166,6 +166,7 @@ pub(crate) fn stylex_merge(
       break;
     }
   }
+
   if !state.gen_conditional_classes() && conditional > 0 {
     bail_out = true;
   }
@@ -180,7 +181,7 @@ pub(crate) fn stylex_merge(
 
       assert!(arg_path.spread.is_none(), "Spread not implemented yet");
 
-      let mut member_transfom = MemberTransform {
+      let mut member_transform = MemberTransform {
         index,
         bail_out_index,
         non_null_props: non_null_props.clone(),
@@ -188,12 +189,12 @@ pub(crate) fn stylex_merge(
         parents: vec![],
       };
 
-      arg_path.expr = arg_path.expr.clone().fold_with(&mut member_transfom);
+      arg_path.expr = arg_path.expr.clone().fold_with(&mut member_transform);
 
-      index = member_transfom.index;
-      bail_out_index = member_transfom.bail_out_index;
-      non_null_props = member_transfom.non_null_props;
-      *state = member_transfom.state;
+      index = member_transform.index;
+      bail_out_index = member_transform.bail_out_index;
+      non_null_props = member_transform.non_null_props;
+      *state = member_transform.state;
     }
 
     for arg in args.iter() {

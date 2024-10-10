@@ -695,7 +695,7 @@ fn _evaluate(
                 });
 
                 let value = match value.as_ref() {
-                  EvaluateResultValue::Expr(expr) => expr.clone(),
+                  EvaluateResultValue::Expr(expr) => Some(expr.clone()),
                   EvaluateResultValue::Vec(items) => {
                     let mut elems: Vec<Option<ExprOrSpread>> = vec![];
 
@@ -741,20 +741,20 @@ fn _evaluate(
                       elems,
                     };
 
-                    Box::new(Expr::Array(array))
+                    Some(Box::new(Expr::Array(array)))
                   }
-                  EvaluateResultValue::Callback(_cb) => {
-                    unimplemented!("EvaluateResultValue::Callback");
-                  }
+                  EvaluateResultValue::Callback(_) => None,
                   _ => {
                     panic!("Property value must be an expression")
                   }
                 };
 
-                props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                  key: PropName::Ident(quote_ident!(key.unwrap())),
-                  value: value.clone(),
-                }))));
+                if let Some(value) = value {
+                  props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
+                    key: PropName::Ident(quote_ident!(key.unwrap())),
+                    value: value.clone(),
+                  }))));
+                }
               }
 
               _ => unimplemented!(),

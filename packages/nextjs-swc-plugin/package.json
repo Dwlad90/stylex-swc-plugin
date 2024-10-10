@@ -7,6 +7,9 @@
       "path": "../../scripts/packages"
     }
   },
+  "dependencies": {
+    "@stylexjs/babel-plugin": "^0.8.0"
+  },
   "devDependencies": {
     "@babel/types": "^7.23.9",
     "@stylexswc/eslint-config": "workspace:*",
@@ -30,7 +33,6 @@
   "license": "MIT",
   "main": "dist/index.js",
   "peerDependencies": {
-    "@stylexjs/babel-plugin": "^0.8.0",
     "next": ">=14.0.1"
   },
   "private": false,

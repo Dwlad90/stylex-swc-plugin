@@ -143,3 +143,37 @@ test!(
     });
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None,
+    )
+  },
+  dynamic_style_function_only_accepts_named_parameters_valid_with_other_styles,
+  r#"
+    import stylex from "@stylexjs/stylex";
+
+    const styles = stylex.create({
+        size: (size: number) => ({ fontSize: (8 * size)+'px'}),
+        count: {
+          fontWeight: 100,
+        },
+        largeNumber: {
+          fontSize: '1.5rem',
+        },
+    });
+
+    const { className, style = {} } = { ...stylex.props(
+              styles.count,
+              styles.size(size),
+              styles.largeNumber
+    )}
+  "#
+);

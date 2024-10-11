@@ -322,9 +322,13 @@ fn _evaluate(
       // )
     }
     Expr::Cond(cond) => {
-      let test_result = match *evaluate_cached(&cond.test, state, fns)
-        .expect("Test of condition must be an expression")
-      {
+      let test_result = evaluate_cached(&cond.test, state, fns);
+
+      if !state.confident {
+        return None;
+      }
+
+      let test_result = match *test_result.expect("Test of condition must be an expression") {
         EvaluateResultValue::Expr(expr) => expr_to_bool(&expr, &mut state.traversal_state, fns),
         _ => panic!("Test of condition must be an expression"),
       };

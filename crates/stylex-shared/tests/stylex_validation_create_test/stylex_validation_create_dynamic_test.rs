@@ -161,19 +161,71 @@ test!(
     import stylex from "@stylexjs/stylex";
 
     const styles = stylex.create({
-        size: (size: number) => ({ fontSize: (8 * size)+'px'}),
-        count: {
-          fontWeight: 100,
-        },
-        largeNumber: {
-          fontSize: '1.5rem',
-        },
+      size: (size: number) => ({ fontSize: (8 * size)+'px'}),
+      count: {
+        fontWeight: 100,
+      },
+      largeNumber: {
+        fontSize: '1.5rem',
+      },
     });
 
     const { className, style = {} } = { ...stylex.props(
-              styles.count,
-              styles.size(size),
-              styles.largeNumber
+      styles.count,
+      styles.size(size),
+      styles.largeNumber
+    )}
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None,
+    )
+  },
+  dynamic_style_function_with_conditional_expression_fallback,
+  r#"
+    import stylex from "@stylexjs/stylex";
+
+    const styles = stylex.create({
+      fontSizeFallback: (size: number) => ({ fontSize: size ?? '1em' }),
+    });
+
+    const { className, style = {} } = { ...stylex.props(
+      styles.fontSizeFallback(size),
+    )}
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      &PluginPass::default(),
+      None,
+    )
+  },
+  dynamic_style_function_with_ternary_conditional_expression,
+  r#"
+    import stylex from "@stylexjs/stylex";
+
+    const styles = stylex.create({
+      fontSizeTernary: (size: number) => ({ fontSize: size < 10 ? '1em' : '2em' }),
+    });
+
+    const { className, style = {} } = { ...stylex.props(
+      styles.fontSizeTernary(size),
     )}
   "#
 );

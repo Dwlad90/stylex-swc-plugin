@@ -416,3 +416,62 @@ test!(
         stylex.props(styles.default);
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  stylex_call_with_spread_operator,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            red: {
+                color: 'red',
+            },
+            blue: {
+                backgroundColor: 'blue',
+            },
+            green: {
+                color: 'green',
+            }
+        });
+        stylex.props(...[styles.red, styles.blue,...[styles.green]]);
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  stylex_call_with_spread_operator_of_variable,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            red: {
+                color: 'red',
+            },
+            blue: {
+                backgroundColor: 'blue',
+            },
+            green: {
+                color: 'green',
+            }
+        });
+
+        const stylesArr = [styles.red, styles.blue,...[styles.green]]
+
+        stylex.props(...stylesArr);
+    "#
+);

@@ -30,21 +30,15 @@ pub(crate) fn stylex_merge(
   let args = call
     .args
     .iter()
-    .flat_map(|arg| {
-      assert!(arg.spread.is_none(), "Spread not implemented yet");
-
-      match arg.expr.as_ref() {
-        Expr::Array(arr) => arr.elems.clone(),
-        _ => vec![Some(arg.clone())],
-      }
+    .flat_map(|arg| match arg.expr.as_ref() {
+      Expr::Array(arr) => arr.elems.clone(),
+      _ => vec![Some(arg.clone())],
     })
     .flatten()
     .collect::<Vec<ExprOrSpread>>();
 
   for arg in args.iter() {
     current_index += 1;
-
-    assert!(arg.spread.is_none(), "Spread not implemented yet");
 
     let arg = arg.expr.as_ref();
 
@@ -178,8 +172,6 @@ pub(crate) fn stylex_merge(
 
     for arg_path in call.args.iter_mut() {
       index += 1;
-
-      assert!(arg_path.spread.is_none(), "Spread not implemented yet");
 
       let mut member_transform = MemberTransform {
         index,

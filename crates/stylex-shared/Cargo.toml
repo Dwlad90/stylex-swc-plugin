@@ -2,7 +2,7 @@
 name = "stylex_shared"
 version = "0.3.1-rc.1"
 edition = "2021"
-rust-version = "1.80.0"
+rust-version = "1.81.0"
 description = "Shared SWC tranformer for StyleX"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"

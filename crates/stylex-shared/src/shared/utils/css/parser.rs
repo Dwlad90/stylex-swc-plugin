@@ -337,7 +337,7 @@ pub fn parse_css_inner<'a>(
         //   }
         //   result.push_str(")");
       }
-      Token::Delim(ref value) => iter_result.push_str(&value.to_string()),
+      Token::Delim(ref value) => iter_result.push(*value),
       Token::Function(ref name) => {
         iter_result.push_str(name);
         iter_result.push('(');

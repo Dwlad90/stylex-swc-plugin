@@ -79,6 +79,7 @@
     "bench": "node --import @swc-node/register/esm-register benchmark/bench.ts",
     "build": "napi build --platform --release dist",
     "build:debug": "napi build --platform",
+    "check:artifacts": "[ -f ./dist/rs-compiler.*.node ] || { echo 'Artifacts does not exist'; exit 1; }",
     "format": "run-p format:prettier format:rs format:toml",
     "format:prettier": "prettier . -w",
     "format:rs": "cargo fmt",

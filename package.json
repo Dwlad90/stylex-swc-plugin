@@ -6,6 +6,7 @@
     "build": "turbo build",
     "clean": "turbo clean",
     "dev": "turbo dev",
+    "docs": "scripty  --rust",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "lint": "turbo lint",
     "prepare": "husky"

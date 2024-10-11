@@ -30,5 +30,5 @@ if [ "$build_rust" = true ]; then
 
   cargo doc --no-deps $verbose_flag $open_docs || handle_error "Failed to build cargo docs"
 
-  echo "<meta http-equiv=\"refresh\" content=\"0; url=stylex_swc_plugin\">" > ../../target/doc/index.html
+  echo "<meta http-equiv=\"refresh\" content=\"0; url=stylex_shared\">" > "$PWD/target/doc/index.html"
 fi

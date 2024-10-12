@@ -75,7 +75,7 @@ fn evaluates_object_with_function_styles_identifier() {
             default: {
               overflow: 'hidden',
               borderStyle: 'dashed',
-              borderWidth: "var(--borderWidth, revert)",
+              borderWidth: "var(--borderWidth)",
             }
           })
         "#,
@@ -105,7 +105,7 @@ fn evaluates_object_with_function_styles_binary_expression() {
             default: {
               overflow: 'hidden',
               borderStyle: 'dashed',
-              borderWidth: "var(--borderWidth, revert)",
+              borderWidth: "var(--borderWidth)",
             }
           })
         "#,

@@ -7,9 +7,9 @@ _inject2(".x1mpkggp{padding-right:5px}", 3000, ".x1mpkggp{padding-left:5px}");
 export const styles = {
     foo: {
         paddingStart: "x1t2a60a",
+        paddingEnd: "x1mpkggp",
         paddingLeft: null,
         paddingRight: null,
-        paddingEnd: "x1mpkggp",
         $$css: true
     }
 };

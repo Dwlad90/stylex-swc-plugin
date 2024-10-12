@@ -35,7 +35,9 @@ pub(crate) fn convert_style_to_class_name(
   let at_rule_hash_string = sorted_at_rules.join("");
   let pseudo_hash_string = sorted_pseudos.join("");
 
-  let modifier_hash_string = format!("{}{}", at_rule_hash_string, pseudo_hash_string);
+  // TODO: set correct order when will be answer from the Meta team
+  // Link to discussion: https://github.com/facebook/stylex/discussions/744
+  let modifier_hash_string = format!("{}{}", pseudo_hash_string, at_rule_hash_string,);
 
   let modifier_hash_string = if modifier_hash_string.is_empty() {
     "null".to_string()

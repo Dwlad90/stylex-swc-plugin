@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use indexmap::IndexMap;
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::{
@@ -9,8 +10,9 @@ use crate::shared::utils::{
 use super::{
   included_style::IncludedStyle, injectable_style::InjectableStyle, null_pre_rule::NullPreRule,
   pre_included_styles_rule::PreIncludedStylesRule, pre_rule_set::PreRuleSet,
-  state_manager::StateManager,
+  state_manager::StateManager, types::ClassesToOriginalPaths,
 };
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PreRuleValue {
@@ -22,7 +24,11 @@ pub(crate) enum PreRuleValue {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct ComputedStyle(pub(crate) String, pub(crate) InjectableStyle);
+pub(crate) struct ComputedStyle(
+  pub(crate) String,
+  pub(crate) InjectableStyle,
+  pub(crate) ClassesToOriginalPaths,
+);
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum CompiledResult {
@@ -69,44 +75,57 @@ pub(crate) struct StylesPreRule {
   value: PreRuleValue,
   pseudos: Vec<String>,
   at_rules: Vec<String>,
+  key_path: Vec<String>,
+}
+
+fn string_comparator(a: &str, b: &str) -> std::cmp::Ordering {
+  if a == "default" {
+    return Ordering::Less;
+  }
+  if b == "default" {
+    return Ordering::Greater;
+  }
+  a.cmp(b)
 }
 
 impl StylesPreRule {
-  pub(crate) fn new(
-    property: &str,
-    value: PreRuleValue,
-    pseudos: Option<Vec<String>>,
-    at_rules: Option<Vec<String>>,
-  ) -> Self {
-    let mut pseudos = pseudos.unwrap_or_default();
-    let at_rules = at_rules.unwrap_or_default();
+  fn get_pseudos(key_path: &Option<Vec<String>>) -> Vec<String> {
+    let mut unsorted_pseudos = key_path.clone().unwrap_or_default();
+
+    unsorted_pseudos = unsorted_pseudos
+      .iter()
+      .filter(|key| key.starts_with(':'))
+      .cloned()
+      .collect();
+
+    unsorted_pseudos.sort_by(|a, b| string_comparator(a, b));
+
+    unsorted_pseudos
+  }
+
+  fn get_at_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
+    let mut unsorted_at_rules = key_path.clone().unwrap_or_default();
+
+    unsorted_at_rules = unsorted_at_rules
+      .iter()
+      .filter(|key| key.starts_with('@'))
+      .cloned()
+      .collect();
+
+    unsorted_at_rules.sort_by(|a, b| string_comparator(a, b));
+
+    unsorted_at_rules
+  }
+
+  pub(crate) fn new(property: &str, value: PreRuleValue, key_path: Option<Vec<String>>) -> Self {
     let property_str = property.to_string();
-
-    if property_str.starts_with(':') {
-      let mut extended_pseudos = Vec::with_capacity(pseudos.len() + 1);
-
-      extended_pseudos.push(property_str.to_owned());
-      extended_pseudos.extend(pseudos);
-
-      pseudos = extended_pseudos;
-    }
-
-    let at_rules = if property_str.starts_with('@') {
-      let mut extender_at_rules = Vec::with_capacity(at_rules.len() + 1);
-
-      extender_at_rules.push(property_str.to_owned());
-      extender_at_rules.extend(at_rules);
-
-      extender_at_rules
-    } else {
-      at_rules
-    };
 
     StylesPreRule {
       property: property_str,
       value,
-      pseudos,
-      at_rules,
+      pseudos: StylesPreRule::get_pseudos(&key_path),
+      at_rules: StylesPreRule::get_at_rules(&key_path),
+      key_path: key_path.unwrap_or_default(),
     }
   }
   pub(crate) fn _get_property(&self) -> Option<&str> {
@@ -134,7 +153,15 @@ impl PreRule for StylesPreRule {
       state,
     );
 
-    CompiledResult::ComputedStyles(vec![ComputedStyle(class_name, rule)])
+    let mut classes_to_original_paths = IndexMap::new();
+
+    classes_to_original_paths.insert(class_name.clone(), self.key_path.clone());
+
+    CompiledResult::ComputedStyles(vec![ComputedStyle(
+      class_name,
+      rule,
+      classes_to_original_paths,
+    )])
   }
 
   fn equals(&self, other: &dyn PreRule) -> bool {

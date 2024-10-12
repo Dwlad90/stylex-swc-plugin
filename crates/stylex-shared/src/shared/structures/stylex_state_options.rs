@@ -25,17 +25,16 @@ pub struct StyleXStateOptions {
   pub unstable_module_resolution: Option<CheckModuleResolution>,
 }
 
-impl StyleXStateOptions {
-  pub(crate) fn _new() -> Self {
+impl Default for StyleXStateOptions {
+  fn default() -> Self {
     StyleXStateOptions {
       style_resolution: StyleResolution::ApplicationOrder,
-      use_rem_for_font_size: false,
-      runtime_injection: None,
-      class_name_prefix: "x".to_string(),
-      // defined_stylex_css_variables: HashMap::new(),
-      import_sources: vec![],
       dev: false,
       test: false,
+      use_rem_for_font_size: false,
+      class_name_prefix: "x".to_string(),
+      import_sources: vec![],
+      runtime_injection: None,
       treeshake_compensation: None,
       gen_conditional_classes: false,
       aliases: None,

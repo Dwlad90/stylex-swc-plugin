@@ -2,30 +2,45 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Pat, PropName};
+use swc_core::ecma::ast::{
+  ArrowExpr, BinExpr, BinaryOp, BlockStmtOrExpr, CondExpr, ExprOrSpread, Pat, Prop, PropName,
+};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
 use crate::shared::utils::{
-  ast::factories::array_expression_factory,
-  core::js_to_expr::{convert_object_to_ast, remove_objects_with_spreads, NestedStringObject},
-};
-use crate::shared::utils::{
-  ast::factories::object_expression_factory,
-  common::{get_key_str, get_key_values_from_object},
+  ast::{
+    convertors::{null_to_expression, string_to_expression},
+    factories::object_expression_factory,
+  },
+  common::{get_key_str, get_key_values_from_object, get_string_val_from_lit},
+  core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
 };
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
+  structures::{
+    order_pair::OrderPair, pre_rule::PreRuleValue, stylex_state_options::StyleXStateOptions,
+  },
   utils::core::dev_class_name::{convert_to_test_styles, inject_dev_class_names},
+};
+use crate::shared::{
+  structures::dynamic_style::DynamicStyle,
+  utils::validators::{is_create_call, validate_stylex_create},
 };
 use crate::shared::{
   structures::functions::{FunctionConfig, FunctionMap, FunctionType},
   transformers::{
     stylex_create::stylex_create_set, stylex_first_that_works::stylex_first_that_works,
     stylex_include::stylex_include, stylex_keyframes::get_keyframes_fn,
+  },
+};
+use crate::shared::{
+  structures::stylex_options::StyleResolution,
+  utils::{
+    ast::factories::array_expression_factory,
+    core::js_to_expr::{convert_object_to_ast, remove_objects_with_spreads, NestedStringObject},
   },
 };
 use crate::shared::{
@@ -132,7 +147,7 @@ where
 
       assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
 
-      let (mut compiled_styles, injected_styles_sans_keyframes) =
+      let (mut compiled_styles, injected_styles_sans_keyframes, class_paths_per_namespace) =
         stylex_create_set(&value, &mut self.state, &function_map);
 
       for (namespace, properties) in compiled_styles.iter() {
@@ -181,7 +196,7 @@ where
             .iter()
             .map(|key_value| {
               let orig_key = get_key_str(key_value);
-              let value = key_value.value.clone();
+              let mut value = key_value.value.clone();
 
               let key = match &key_value.key {
                 PropName::Ident(ident) => Some(ident.sym.to_string()),
@@ -193,6 +208,181 @@ where
 
               if let Some(key) = key {
                 if let Some((params, inline_styles)) = fns.get(&key) {
+                  let mut orig_class_paths = IndexMap::new();
+
+                  if let Some(namespace) = class_paths_per_namespace.get(&key) {
+                    for (class_name, class_paths) in namespace.iter() {
+                      orig_class_paths.insert(class_name.clone(), class_paths.join("_"));
+                    }
+                  }
+
+                  let mut dynamic_styles: Vec<DynamicStyle> = inline_styles
+                    .iter()
+                    .map(|(_key, v)| {
+                      let key = v
+                        .path
+                        .iter()
+                        .take(
+                          v.path
+                            .iter()
+                            .position(|p| !p.starts_with(':') && !p.starts_with('@'))
+                            .map_or(0, |index| index + 1),
+                        )
+                        .cloned()
+                        .collect::<Vec<String>>()
+                        .join("_");
+
+                      DynamicStyle {
+                        expression: v.original_expression.clone(),
+                        key,
+                        path: v.path.join("_"),
+                      }
+                    })
+                    .collect();
+
+                  if self.state.options.style_resolution == StyleResolution::LegacyExpandShorthands
+                  {
+                    dynamic_styles = legacy_expand_shorthands(dynamic_styles);
+                  }
+
+                  if let Some(value) = value.as_mut_object() {
+                    value.props = value
+                      .props
+                      .iter_mut()
+                      .map(|prop| {
+                        if let PropOrSpread::Prop(prop) = prop {
+                          if let Some(obj_prop) = prop.as_mut_key_value() {
+                            let prop_key = match &obj_prop.key {
+                              PropName::Ident(ident) => Some(ident.sym.to_string()),
+                              PropName::Str(strng) => Some(strng.value.to_string()),
+                              _ => None,
+                            };
+
+                            if let Some(prop_key) = prop_key {
+                              let dynamic_match = dynamic_styles
+                                .iter()
+                                .filter(|dynamic_style| dynamic_style.key == prop_key)
+                                .cloned()
+                                .collect::<Vec<DynamicStyle>>();
+
+                              if !dynamic_match.is_empty() {
+                                let value = &obj_prop.value;
+
+                                if let Expr::Lit(lit) = value.as_ref() {
+                                  let class_names_string = get_string_val_from_lit(lit)
+                                    .expect("Lit cannot be stringified");
+
+                                  let class_list =
+                                    class_names_string.split(' ').collect::<Vec<&str>>();
+
+                                  if class_list.len() == 1 {
+                                    let cls = class_list.first().unwrap();
+
+                                    let expr = dynamic_match
+                                      .iter()
+                                      .find(|dynamic_style| {
+                                        orig_class_paths
+                                          .get(&cls.to_string())
+                                          .map_or(false, |path| path == &dynamic_style.path)
+                                      })
+                                      .map(|dynamic_style| {
+                                        let expression = &dynamic_style.expression;
+
+                                        expression.clone()
+                                      });
+
+                                    if let Some(expr) = expr {
+                                      obj_prop.value = Box::new(Expr::Cond(CondExpr {
+                                        span: DUMMY_SP,
+                                        test: Box::new(Expr::Bin(BinExpr {
+                                          span: DUMMY_SP,
+                                          op: BinaryOp::EqEq,
+                                          left: Box::new(expr.clone()),
+                                          right: Box::new(null_to_expression()),
+                                        })),
+                                        cons: Box::new(null_to_expression()),
+                                        alt: value.clone(),
+                                      }));
+                                    }
+                                  } else if class_list.iter().any(|cls| {
+                                    dynamic_match.iter().any(|dynamic_style| {
+                                      orig_class_paths
+                                        .get(&cls.to_string())
+                                        .map_or(false, |path| path == &dynamic_style.path)
+                                    })
+                                  }) {
+                                    let expr_array: Vec<Expr> = class_list
+                                      .iter()
+                                      .enumerate()
+                                      .map(|(index, cls)| {
+                                        let expr = dynamic_match
+                                          .iter()
+                                          .find(|dynamic_style| {
+                                            orig_class_paths
+                                              .get(&cls.to_string())
+                                              .map_or(false, |path| path == &dynamic_style.path)
+                                          })
+                                          .map(|dynamic_style| dynamic_style.expression.clone());
+
+                                        let suffix = if index == class_list.len() - 1 {
+                                          ""
+                                        } else {
+                                          " "
+                                        };
+
+                                        if let Some(expr) = expr {
+                                          Expr::Cond(CondExpr {
+                                            span: DUMMY_SP,
+                                            test: Box::new(Expr::Bin(BinExpr {
+                                              span: DUMMY_SP,
+                                              op: BinaryOp::EqEq,
+                                              left: Box::new(expr.clone()),
+                                              right: Box::new(null_to_expression()),
+                                            })),
+                                            cons: Box::new(
+                                              string_to_expression(Default::default()),
+                                            ),
+                                            alt: Box::new(string_to_expression(
+                                              format!("{}{}", cls, suffix).as_str(),
+                                            )),
+                                          })
+                                        } else {
+                                          string_to_expression(
+                                            format!("{}{}", cls, suffix).as_str(),
+                                          )
+                                        }
+                                      })
+                                      .collect();
+
+                                    let (first, rest) =
+                                      expr_array.split_first().expect("Expression array is empty");
+
+                                    let reduced_expr =
+                                      rest.iter().fold(first.clone(), |acc, curr| {
+                                        Expr::Bin(BinExpr {
+                                          span: DUMMY_SP,
+                                          op: BinaryOp::Add,
+                                          left: Box::new(acc),
+                                          right: Box::new(curr.clone()),
+                                        })
+                                      });
+                                    obj_prop.value = Box::new(reduced_expr);
+                                  }
+                                }
+                              }
+                            }
+
+                            PropOrSpread::Prop(Box::new(Prop::from(obj_prop.to_owned())))
+                          } else {
+                            PropOrSpread::Prop(prop.to_owned())
+                          }
+                        } else {
+                          prop.to_owned()
+                        }
+                      })
+                      .collect::<Vec<PropOrSpread>>()
+                  }
+
                   let value = Expr::from(ArrowExpr {
                     span: DUMMY_SP,
                     params: params.iter().map(|arg| Pat::Ident(arg.clone())).collect(),
@@ -208,7 +398,10 @@ where
                             inline_styles
                               .iter()
                               .map(|(key, value)| {
-                                prop_or_spread_expression_factory(key.as_str(), *value.clone())
+                                prop_or_spread_expression_factory(
+                                  key.as_str(),
+                                  value.expression.clone(),
+                                )
                               })
                               .collect(),
                           )),
@@ -249,4 +442,52 @@ where
 
     result
   }
+}
+
+fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
+  let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles
+    .iter()
+    .enumerate()
+    .flat_map(|(i, dynamic_style)| {
+      let obj_entry = (
+        dynamic_style.key.clone(),
+        PreRuleValue::String(format!("p{}", i)),
+      );
+
+      let options = StyleXStateOptions {
+        style_resolution: StyleResolution::LegacyExpandShorthands,
+        ..Default::default()
+      };
+
+      flat_map_expanded_shorthands(obj_entry, &options)
+    })
+    .filter_map(|OrderPair(key, value)| {
+      let value = value?;
+
+      let index = value[1..].parse::<usize>().ok()?;
+      let that_dyn_style = dynamic_styles.get(index)?;
+
+      Some(DynamicStyle {
+        key: key.clone(),
+        path: if that_dyn_style.path == that_dyn_style.key {
+          key.clone()
+        } else if that_dyn_style
+          .path
+          .contains(&(that_dyn_style.key.clone() + "_"))
+        {
+          that_dyn_style
+            .path
+            .replace(&(that_dyn_style.key.clone() + "_"), &(key.clone() + "_"))
+        } else {
+          that_dyn_style.path.replace(
+            &("_".to_string() + that_dyn_style.key.as_str()),
+            &("_".to_string() + key.as_str()),
+          )
+        },
+        ..that_dyn_style.clone()
+      })
+    })
+    .collect();
+
+  expanded_keys_to_key_paths
 }

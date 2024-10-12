@@ -16,8 +16,11 @@ use crate::shared::{
   },
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{
-    evaluate_result::EvaluateResult, functions::FunctionMap, state_manager::StateManager,
-    types::EvaluateResultFns,
+    evaluate_result::EvaluateResult,
+    functions::FunctionMap,
+    inline_style::InlineStyle,
+    state_manager::StateManager,
+    types::{DynamicFns, TInlineStyles},
   },
   utils::{
     ast::{
@@ -43,7 +46,7 @@ pub fn evaluate_stylex_create_arg(
     Expr::Object(style_object) => {
       let mut result_value: IndexMap<Box<Expr>, Vec<KeyValueProp>> = IndexMap::new();
 
-      let mut fns: EvaluateResultFns = IndexMap::new();
+      let mut fns: DynamicFns = IndexMap::new();
 
       for prop in &mut style_object.props {
         match prop {
@@ -197,9 +200,9 @@ fn evaluate_partial_object_recursively(
   functions: &FunctionMap,
   key_path: Option<Vec<String>>,
 ) -> Box<EvaluateResult> {
-  let mut key_path = key_path.unwrap_or_default();
+  let key_path = key_path.unwrap_or_default();
 
-  let mut inline_styles: IndexMap<String, Box<Expr>> = IndexMap::new();
+  let mut inline_styles: TInlineStyles = IndexMap::new();
 
   let mut obj: Vec<PropOrSpread> = vec![];
 
@@ -249,6 +252,8 @@ fn evaluate_partial_object_recursively(
 
             match normalize_expr(value_path.as_mut()) {
               Expr::Object(object) => {
+                let mut key_path = key_path.clone();
+
                 key_path.push(key.clone());
 
                 let result = evaluate_partial_object_recursively(
@@ -287,8 +292,14 @@ fn evaluate_partial_object_recursively(
                 let result = evaluate(value_path, traversal_state, functions);
 
                 if !result.confident {
+                  let mut full_key_path = key_path.clone();
+
+                  full_key_path.push(key.clone());
+
                   let var_name = if !key_path.is_empty() {
+                    let mut key_path = key_path.clone();
                     key_path.push(key.clone());
+
                     format!("--{}", create_hash(key_path.join("_").as_str()))
                   } else {
                     format!("--{}", key)
@@ -296,20 +307,28 @@ fn evaluate_partial_object_recursively(
 
                   let new_prop = prop_or_spread_expression_factory(
                     key.as_str(),
-                    string_to_expression(format!("var({}, revert)", var_name).as_str()),
+                    string_to_expression(format!("var({})", var_name).as_str()),
                   );
 
                   obj.push(new_prop);
 
-                  let unit = if get_time_units().contains(key.as_str())
-                    || LENGTH_UNITS.contains(key.as_str())
+                  let expression = &value_path;
+
+                  let prop_name = full_key_path
+                    .iter()
+                    .find(|&k| !k.starts_with(':') && !k.starts_with('@') && k != "default")
+                    .unwrap_or(&key)
+                    .clone();
+
+                  let unit = if get_time_units().contains(prop_name.as_str())
+                    || LENGTH_UNITS.contains(prop_name.as_str())
                   {
-                    get_number_suffix(key.as_str())
+                    get_number_suffix(prop_name.as_str())
                   } else {
                     String::new()
                   };
 
-                  let result_expression = if !unit.is_empty() {
+                  let inline_style_expression = if !unit.is_empty() {
                     let val_ident = ident_to_expression("val");
 
                     Expr::from(CallExpr {
@@ -344,7 +363,7 @@ fn evaluate_partial_object_recursively(
                               right: Box::new(null_to_expression()),
                             })),
                             cons: Box::new(val_ident),
-                            alt: Box::new(string_to_expression("initial")),
+                            alt: Box::new(ident_to_expression("undefined")),
                           })),
                         })))),
                         is_async: false,
@@ -368,11 +387,22 @@ fn evaluate_partial_object_recursively(
                         right: Box::new(null_to_expression()),
                       })),
                       cons: value_path.clone(),
-                      alt: Box::new(string_to_expression("initial")),
+                      alt: Box::new(ident_to_expression("undefined")),
                     })
                   };
 
-                  inline_styles.insert(var_name, Box::new(result_expression));
+                  let mut key_path = key_path.clone();
+
+                  key_path.push(key.clone());
+
+                  inline_styles.insert(
+                    var_name,
+                    Box::new(InlineStyle {
+                      path: key_path,
+                      original_expression: *(*expression).clone(),
+                      expression: inline_style_expression,
+                    }),
+                  );
                 } else {
                   let new_prop = prop_or_spread_expression_factory(
                     key.as_str(),

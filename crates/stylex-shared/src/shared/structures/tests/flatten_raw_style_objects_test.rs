@@ -34,12 +34,11 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     state_manager
   }
 
-  pub(super) fn pre_rule_factory(key: &str, value: &str) -> PreRules {
+  pub(super) fn pre_rule_factory(key: &str, value: &str, path_key: &[&str]) -> PreRules {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
       PreRuleValue::String(value.to_string()),
-      None,
-      None,
+      Some(path_key.iter().map(|s| s.to_string()).collect()),
     ))
   }
 
@@ -51,40 +50,11 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     PreRules::NullPreRule(NullPreRule::default())
   }
 
-  pub(super) fn pre_rule_with_pseudos_factory(
-    key: &str,
-    value: &str,
-    pseudos: &[&str],
-    at_rules: &[&str],
-  ) -> PreRules {
-    PreRules::StylesPreRule(StylesPreRule::new(
-      key,
-      PreRuleValue::String(value.to_string()),
-      Some(pseudos.iter().map(|s| s.to_string()).collect()),
-      Some(at_rules.iter().map(|s| s.to_string()).collect()),
-    ))
-  }
-
-  pub(super) fn pre_rule_vec_factory(key: &str, value: &[&str]) -> PreRules {
+  pub(super) fn pre_rule_vec_factory(key: &str, value: &[&str], path_key: &[&str]) -> PreRules {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
       PreRuleValue::Vec(value.iter().map(|x| x.to_string()).collect()),
-      None,
-      None,
-    ))
-  }
-
-  pub(super) fn pre_rule_vec_with_pseudos_factory(
-    key: &str,
-    value: &[&str],
-    pseudos: &[&str],
-    at_rules: &[&str],
-  ) -> PreRules {
-    PreRules::StylesPreRule(StylesPreRule::new(
-      key,
-      PreRuleValue::Vec(value.iter().map(|x| x.to_string()).collect()),
-      Some(pseudos.iter().map(|s| s.to_string()).collect()),
-      Some(at_rules.iter().map(|s| s.to_string()).collect()),
+      Some(path_key.iter().map(|s| s.to_string()).collect()),
     ))
   }
 
@@ -96,7 +66,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         key_value_factory("marginStart", string_to_expression("10")),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -105,10 +74,13 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert("color".to_string(), pre_rule_factory("color", "red"));
+    expected_result.insert(
+      "color".to_string(),
+      pre_rule_factory("color", "red", &["color"]),
+    );
     expected_result.insert(
       "marginStart".to_string(),
-      pre_rule_factory("marginStart", "10"),
+      pre_rule_factory("marginStart", "10", &["marginStart"]),
     );
     expected_result.insert("marginLeft".to_string(), null_rule_factory());
     expected_result.insert("marginRight".to_string(), null_rule_factory());
@@ -121,7 +93,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let result = flatten_raw_style_object(
       &[key_value_factory("gap", string_to_expression("10"))],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -130,8 +101,14 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert("rowGap".to_string(), pre_rule_factory("rowGap", "10"));
-    expected_result.insert("columnGap".to_string(), pre_rule_factory("columnGap", "10"));
+    expected_result.insert(
+      "rowGap".to_string(),
+      pre_rule_factory("rowGap", "10", &["rowGap"]),
+    );
+    expected_result.insert(
+      "columnGap".to_string(),
+      pre_rule_factory("columnGap", "10", &["columnGap"]),
+    );
 
     assert_eq!(result, expected_result)
   }
@@ -144,7 +121,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         string_to_expression("10"),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -155,11 +131,11 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     expected_result.insert(
       "containIntrinsicWidth".to_string(),
-      pre_rule_factory("containIntrinsicWidth", "10"),
+      pre_rule_factory("containIntrinsicWidth", "10", &["containIntrinsicWidth"]),
     );
     expected_result.insert(
       "containIntrinsicHeight".to_string(),
-      pre_rule_factory("containIntrinsicHeight", "10"),
+      pre_rule_factory("containIntrinsicHeight", "10", &["containIntrinsicHeight"]),
     );
 
     assert_eq!(result, expected_result)
@@ -170,7 +146,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let result = flatten_raw_style_object(
       &[key_value_factory("gap", string_to_expression("10px 20px"))],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -179,10 +154,13 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert("rowGap".to_string(), pre_rule_factory("rowGap", "10px"));
+    expected_result.insert(
+      "rowGap".to_string(),
+      pre_rule_factory("rowGap", "10px", &["rowGap"]),
+    );
     expected_result.insert(
       "columnGap".to_string(),
-      pre_rule_factory("columnGap", "20px"),
+      pre_rule_factory("columnGap", "20px", &["columnGap"]),
     );
 
     assert_eq!(result, expected_result)
@@ -199,7 +177,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         string_to_expression("10px 20px"),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -208,8 +185,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert(w.to_string(), pre_rule_factory(w, "10px"));
-    expected_result.insert(h.to_string(), pre_rule_factory(h, "20px"));
+    expected_result.insert(w.to_string(), pre_rule_factory(w, "10px", &[w]));
+    expected_result.insert(h.to_string(), pre_rule_factory(h, "20px", &[h]));
 
     assert_eq!(result, expected_result)
   }
@@ -225,7 +202,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         string_to_expression("auto 10px 20px"),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -234,8 +210,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert(w.to_string(), pre_rule_factory(w, "auto 10px"));
-    expected_result.insert(h.to_string(), pre_rule_factory(h, "20px"));
+    expected_result.insert(w.to_string(), pre_rule_factory(w, "auto 10px", &[w]));
+    expected_result.insert(h.to_string(), pre_rule_factory(h, "20px", &[h]));
 
     assert_eq!(result, expected_result)
   }
@@ -251,7 +227,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         string_to_expression("auto 10px auto 20px"),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -260,8 +235,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert(w.to_string(), pre_rule_factory(w, "auto 10px"));
-    expected_result.insert(h.to_string(), pre_rule_factory(h, "auto 20px"));
+    expected_result.insert(w.to_string(), pre_rule_factory(w, "auto 10px", &[w]));
+    expected_result.insert(h.to_string(), pre_rule_factory(h, "auto 20px", &[h]));
 
     assert_eq!(result, expected_result)
   }
@@ -271,7 +246,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let result = flatten_raw_style_object(
       &[key_value_factory("margin", string_to_expression("10"))],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -280,15 +254,21 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert("marginTop".to_string(), pre_rule_factory("marginTop", "10"));
-    expected_result.insert("marginEnd".to_string(), pre_rule_factory("marginEnd", "10"));
+    expected_result.insert(
+      "marginTop".to_string(),
+      pre_rule_factory("marginTop", "10", &["marginTop"]),
+    );
+    expected_result.insert(
+      "marginEnd".to_string(),
+      pre_rule_factory("marginEnd", "10", &["marginEnd"]),
+    );
     expected_result.insert(
       "marginBottom".to_string(),
-      pre_rule_factory("marginBottom", "10"),
+      pre_rule_factory("marginBottom", "10", &["marginBottom"]),
     );
     expected_result.insert(
       "marginStart".to_string(),
-      pre_rule_factory("marginStart", "10"),
+      pre_rule_factory("marginStart", "10", &["marginStart"]),
     );
 
     assert_eq!(result, expected_result)
@@ -302,7 +282,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         key_value_factory("marginBottom", string_to_expression("20")),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -311,20 +290,26 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert("marginTop".to_string(), pre_rule_factory("marginTop", "10"));
-    expected_result.insert("marginEnd".to_string(), pre_rule_factory("marginEnd", "10"));
+    expected_result.insert(
+      "marginTop".to_string(),
+      pre_rule_factory("marginTop", "10", &["marginTop"]),
+    );
+    expected_result.insert(
+      "marginEnd".to_string(),
+      pre_rule_factory("marginEnd", "10", &["marginEnd"]),
+    );
     expected_result.insert(
       "marginBottom".to_string(),
-      pre_rule_factory("marginBottom", "10"),
+      pre_rule_factory("marginBottom", "10", &["marginBottom"]),
     );
     expected_result.insert(
       "marginStart".to_string(),
-      pre_rule_factory("marginStart", "10"),
+      pre_rule_factory("marginStart", "10", &["marginStart"]),
     );
 
     expected_result.insert(
       "marginBottom".to_string(),
-      pre_rule_factory("marginBottom", "20"),
+      pre_rule_factory("marginBottom", "20", &["marginBottom"]),
     );
 
     assert_eq!(result, expected_result)
@@ -338,7 +323,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         key_value_factory("borderColor", string_to_expression("red")),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -349,36 +333,36 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     expected_result.insert(
       "marginTop".to_string(),
-      pre_rule_factory("marginTop", "10px"),
+      pre_rule_factory("marginTop", "10px", &["marginTop"]),
     );
     expected_result.insert(
       "marginEnd".to_string(),
-      pre_rule_factory("marginEnd", "20px"),
+      pre_rule_factory("marginEnd", "20px", &["marginEnd"]),
     );
     expected_result.insert(
       "marginBottom".to_string(),
-      pre_rule_factory("marginBottom", "10px"),
+      pre_rule_factory("marginBottom", "10px", &["marginBottom"]),
     );
     expected_result.insert(
       "marginStart".to_string(),
-      pre_rule_factory("marginStart", "20px"),
+      pre_rule_factory("marginStart", "20px", &["marginStart"]),
     );
 
     expected_result.insert(
       "borderTopColor".to_string(),
-      pre_rule_factory("borderTopColor", "red"),
+      pre_rule_factory("borderTopColor", "red", &["borderTopColor"]),
     );
     expected_result.insert(
       "borderEndColor".to_string(),
-      pre_rule_factory("borderEndColor", "red"),
+      pre_rule_factory("borderEndColor", "red", &["borderEndColor"]),
     );
     expected_result.insert(
       "borderBottomColor".to_string(),
-      pre_rule_factory("borderBottomColor", "red"),
+      pre_rule_factory("borderBottomColor", "red", &["borderBottomColor"]),
     );
     expected_result.insert(
       "borderStartColor".to_string(),
-      pre_rule_factory("borderStartColor", "red"),
+      pre_rule_factory("borderStartColor", "red", &["borderStartColor"]),
     );
 
     assert_eq!(result, expected_result)
@@ -395,7 +379,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
         ])),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -406,19 +389,19 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 
     expected_result.insert(
       "marginTop".to_string(),
-      pre_rule_vec_factory("marginTop", &["10vh", "10dvh"]),
+      pre_rule_vec_factory("marginTop", &["10vh", "10dvh"], &["marginTop"]),
     );
     expected_result.insert(
       "marginEnd".to_string(),
-      pre_rule_factory("marginEnd", "20px"),
+      pre_rule_factory("marginEnd", "20px", &["marginEnd"]),
     );
     expected_result.insert(
       "marginBottom".to_string(),
-      pre_rule_vec_factory("marginBottom", &["10vh", "10dvh"]),
+      pre_rule_vec_factory("marginBottom", &["10vh", "10dvh"], &["marginBottom"]),
     );
     expected_result.insert(
       "marginStart".to_string(),
-      pre_rule_factory("marginStart", "20px"),
+      pre_rule_factory("marginStart", "20px", &["marginStart"]),
     );
 
     assert_eq!(result, expected_result)
@@ -434,7 +417,6 @@ mod nested_objects {
       functions::FunctionMap,
       tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
         get_state, null_rule_factory, pre_rule_factory, pre_rule_set_factory,
-        pre_rule_with_pseudos_factory,
       },
     },
     utils::{
@@ -457,7 +439,6 @@ mod nested_objects {
         ),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -466,21 +447,24 @@ mod nested_objects {
 
     let mut expected_result = IndexMap::new();
 
-    expected_result.insert("color".to_string(), pre_rule_factory("color", "blue"));
+    expected_result.insert(
+      "color".to_string(),
+      pre_rule_factory("color", "blue", &["color"]),
+    );
     expected_result.insert(
       "marginStart".to_string(),
-      pre_rule_factory("marginStart", "0"),
+      pre_rule_factory("marginStart", "0", &["marginStart"]),
     );
     expected_result.insert("marginLeft".to_string(), null_rule_factory());
     expected_result.insert("marginRight".to_string(), null_rule_factory());
     expected_result.insert(
       ":hover_color".to_string(),
-      pre_rule_with_pseudos_factory("color", "red", &[":hover"], &[]),
+      pre_rule_factory("color", "red", &[":hover", "color"]),
     );
 
     expected_result.insert(
       ":hover_marginStart".to_string(),
-      pre_rule_with_pseudos_factory("marginStart", "10", &[":hover"], &[]),
+      pre_rule_factory("marginStart", "10", &[":hover", "marginStart"]),
     );
 
     expected_result.insert(":hover_marginLeft".to_string(), null_rule_factory());
@@ -510,7 +494,6 @@ mod nested_objects {
         ),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -522,16 +505,16 @@ mod nested_objects {
     expected_result.insert(
       "color".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("color", "blue"),
-        pre_rule_with_pseudos_factory("color", "red", &[":hover"], &[]),
+        pre_rule_factory("color", "blue", &["color", "default"]),
+        pre_rule_factory("color", "red", &["color", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "0"),
-        pre_rule_with_pseudos_factory("marginStart", "10", &[":hover"], &[]),
+        pre_rule_factory("marginStart", "0", &["marginStart", "default"]),
+        pre_rule_factory("marginStart", "10", &["marginStart", ":hover"]),
       ]),
     );
 
@@ -568,7 +551,6 @@ mod nested_objects {
         ),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -580,40 +562,40 @@ mod nested_objects {
     expected_result.insert(
       "color".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("color", "blue"),
-        pre_rule_with_pseudos_factory("color", "red", &[":hover"], &[]),
+        pre_rule_factory("color", "blue", &["color", "default"]),
+        pre_rule_factory("color", "red", &["color", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginTop".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginTop", "0"),
-        pre_rule_with_pseudos_factory("marginTop", "10", &[":hover"], &[]),
+        pre_rule_factory("marginTop", "0", &["marginTop", "default"]),
+        pre_rule_factory("marginTop", "10", &["marginTop", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginEnd".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginEnd", "0"),
-        pre_rule_with_pseudos_factory("marginEnd", "10", &[":hover"], &[]),
+        pre_rule_factory("marginEnd", "0", &["marginEnd", "default"]),
+        pre_rule_factory("marginEnd", "10", &["marginEnd", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginBottom".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginBottom", "0"),
-        pre_rule_with_pseudos_factory("marginBottom", "10", &[":hover"], &[]),
+        pre_rule_factory("marginBottom", "0", &["marginBottom", "default"]),
+        pre_rule_factory("marginBottom", "10", &["marginBottom", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "0"),
-        pre_rule_with_pseudos_factory("marginStart", "10", &[":hover"], &[]),
+        pre_rule_factory("marginStart", "0", &["marginStart", "default"]),
+        pre_rule_factory("marginStart", "10", &["marginStart", ":hover"]),
       ]),
     );
 
@@ -640,7 +622,6 @@ mod nested_objects {
         ),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -652,40 +633,40 @@ mod nested_objects {
     expected_result.insert(
       "color".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("color", "blue"),
-        pre_rule_with_pseudos_factory("color", "red", &[":hover"], &[]),
+        pre_rule_factory("color", "blue", &["color", "default"]),
+        pre_rule_factory("color", "red", &["color", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginTop".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginTop", "1px"),
-        pre_rule_with_pseudos_factory("marginTop", "10px", &[":hover"], &[]),
+        pre_rule_factory("marginTop", "1px", &["marginTop", "default"]),
+        pre_rule_factory("marginTop", "10px", &["marginTop", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginEnd".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginEnd", "2px"),
-        pre_rule_with_pseudos_factory("marginEnd", "20px", &[":hover"], &[]),
+        pre_rule_factory("marginEnd", "2px", &["marginEnd", "default"]),
+        pre_rule_factory("marginEnd", "20px", &["marginEnd", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginBottom".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginBottom", "3px"),
-        pre_rule_with_pseudos_factory("marginBottom", "10px", &[":hover"], &[]),
+        pre_rule_factory("marginBottom", "3px", &["marginBottom", "default"]),
+        pre_rule_factory("marginBottom", "10px", &["marginBottom", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "4px"),
-        pre_rule_with_pseudos_factory("marginStart", "20px", &[":hover"], &[]),
+        pre_rule_factory("marginStart", "4px", &["marginStart", "default"]),
+        pre_rule_factory("marginStart", "20px", &["marginStart", ":hover"]),
       ]),
     );
 
@@ -713,7 +694,6 @@ mod nested_objects {
         ),
       ],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -725,20 +705,19 @@ mod nested_objects {
     expected_result.insert(
       "color".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("color", "blue"),
-        pre_rule_with_pseudos_factory("color", "red", &[":hover"], &[]),
-        pre_rule_with_pseudos_factory("color", "green", &[], &["@media (min-width: 300px)"]),
+        pre_rule_factory("color", "blue", &["color", "default"]),
+        pre_rule_factory("color", "red", &["color", ":hover"]),
+        pre_rule_factory("color", "green", &["color", "@media (min-width: 300px)"]),
       ]),
     );
 
     expected_result.insert(
       "marginStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "0"),
-        pre_rule_with_pseudos_factory("marginStart", "10", &[":hover"], &[]),
+        pre_rule_factory("marginStart", "0", &["marginStart", "default"]),
+        pre_rule_factory("marginStart", "10", &["marginStart", ":hover"]),
       ]),
     );
-
     expected_result.insert(
       "marginLeft".to_string(),
       pre_rule_set_factory(&[null_rule_factory(), null_rule_factory()]),
@@ -761,8 +740,7 @@ mod multiple_levels_of_nesting {
     structures::{
       functions::FunctionMap,
       tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
-        get_state, pre_rule_factory, pre_rule_set_factory, pre_rule_vec_with_pseudos_factory,
-        pre_rule_with_pseudos_factory,
+        get_state, pre_rule_factory, pre_rule_set_factory, pre_rule_vec_factory,
       },
     },
     utils::{
@@ -781,7 +759,6 @@ mod multiple_levels_of_nesting {
         ]),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -793,32 +770,36 @@ mod multiple_levels_of_nesting {
     expected_result.insert(
       "marginTop".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginTop", "1px"),
-        pre_rule_vec_with_pseudos_factory("marginTop", &["10px", "1dvh"], &[":hover"], &[]),
+        pre_rule_factory("marginTop", "1px", &["marginTop", "default"]),
+        pre_rule_vec_factory("marginTop", &["10px", "1dvh"], &["marginTop", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginEnd".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginEnd", "2px"),
-        pre_rule_vec_with_pseudos_factory("marginEnd", &["20px", "2dvh"], &[":hover"], &[]),
+        pre_rule_factory("marginEnd", "2px", &["marginEnd", "default"]),
+        pre_rule_vec_factory("marginEnd", &["20px", "2dvh"], &["marginEnd", ":hover"]),
       ]),
     );
 
     expected_result.insert(
       "marginBottom".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginBottom", "3px"),
-        pre_rule_vec_with_pseudos_factory("marginBottom", &["10px", "1dvh"], &[":hover"], &[]),
+        pre_rule_factory("marginBottom", "3px", &["marginBottom", "default"]),
+        pre_rule_vec_factory(
+          "marginBottom",
+          &["10px", "1dvh"],
+          &["marginBottom", ":hover"],
+        ),
       ]),
     );
 
     expected_result.insert(
       "marginStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "4px"),
-        pre_rule_vec_with_pseudos_factory("marginStart", &["20px", "2dvh"], &[":hover"], &[]),
+        pre_rule_factory("marginStart", "4px", &["marginStart", "default"]),
+        pre_rule_vec_factory("marginStart", &["20px", "2dvh"], &["marginStart", ":hover"]),
       ]),
     );
 
@@ -836,7 +817,6 @@ mod multiple_levels_of_nesting {
         )]),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -847,11 +827,10 @@ mod multiple_levels_of_nesting {
 
     expected_result.insert(
       "@media (min-width: 300px)_:hover_color".to_string(),
-      pre_rule_set_factory(&[pre_rule_with_pseudos_factory(
+      pre_rule_set_factory(&[pre_rule_factory(
         "color",
         "red",
-        &[":hover"],
-        &["@media (min-width: 300px)"],
+        &["@media (min-width: 300px)", ":hover", "color"],
       )]),
     );
 
@@ -875,7 +854,6 @@ mod multiple_levels_of_nesting {
         )]),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -886,21 +864,19 @@ mod multiple_levels_of_nesting {
 
     expected_result.insert(
       "@media (min-width: 300px)_:hover_color".to_string(),
-      pre_rule_set_factory(&[pre_rule_with_pseudos_factory(
+      pre_rule_set_factory(&[pre_rule_factory(
         "color",
         "pink",
-        &[":hover"],
-        &["@media (min-width: 300px)"],
+        &["@media (min-width: 300px)", ":hover", "color"],
       )]),
     );
 
     expected_result.insert(
       "@media (min-width: 300px)_:hover_:active_color".to_string(),
-      pre_rule_set_factory(&[pre_rule_with_pseudos_factory(
+      pre_rule_set_factory(&[pre_rule_factory(
         "color",
         "red",
-        &[":hover", ":active"],
-        &["@media (min-width: 300px)"],
+        &["@media (min-width: 300px)", ":hover", ":active", "color"],
       )]),
     );
 
@@ -921,7 +897,6 @@ mod multiple_levels_of_nesting {
         ]),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -933,8 +908,12 @@ mod multiple_levels_of_nesting {
     expected_result.insert(
       "color".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("color", "blue"),
-        pre_rule_with_pseudos_factory("color", "red", &[":hover"], &["@media (min-width: 300px)"]),
+        pre_rule_factory("color", "blue", &["color", "default"]),
+        pre_rule_factory(
+          "color",
+          "red",
+          &["color", "@media (min-width: 300px)", ":hover"],
+        ),
       ]),
     );
 
@@ -961,7 +940,6 @@ mod multiple_levels_of_nesting {
         ]),
       )],
       &mut vec![],
-      &mut vec![],
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -973,13 +951,16 @@ mod multiple_levels_of_nesting {
     expected_result.insert(
       "color".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("color", "blue"),
-        pre_rule_with_pseudos_factory("color", "red", &[":hover"], &["@media (min-width: 300px)"]),
-        pre_rule_with_pseudos_factory(
+        pre_rule_factory("color", "blue", &["color", "default"]),
+        pre_rule_factory(
+          "color",
+          "red",
+          &["color", "@media (min-width: 300px)", ":hover", "default"],
+        ),
+        pre_rule_factory(
           "color",
           "maroon",
-          &[":hover", ":active"],
-          &["@media (min-width: 300px)"],
+          &["color", "@media (min-width: 300px)", ":hover", ":active"],
         ),
       ]),
     );

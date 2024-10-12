@@ -26,6 +26,16 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xju2f9n": [
+              "color",
+            ],
+            "xrkmrrc": [
+              "backgroundColor",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -54,6 +64,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x1cfch2b{transition-property:margin-top}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1cfch2b": [
+              "transitionProperty",
+            ],
           },
         },
       ]
@@ -86,6 +103,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "x1a6dnx1": [
+              "willChange",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -109,6 +133,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "x17389it": [
+              "transitionProperty",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -130,6 +161,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x1lxaxzv{will-change:--foo}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1lxaxzv": [
+              "willChange",
+            ],
           },
         },
       ]
@@ -160,6 +198,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x95ccmk{transition-property:opacity,margin-top}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x95ccmk": [
+              "transitionProperty",
+            ],
           },
         },
       ]
@@ -199,6 +244,16 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "short": {
+            "x1lmef92": [
+              "padding",
+            ],
+            "xexx8yu": [
+              "paddingTop",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -222,6 +277,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xgau0yw": [
+              "--background-color",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -243,6 +305,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x13tgbkp{--final-color:var(--background-color)}",
             "priority": 1,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x13tgbkp": [
+              "--final-color",
+            ],
           },
         },
       ]
@@ -280,6 +349,18 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xrkmrrc": [
+              "backgroundColor",
+            ],
+          },
+          "default2": {
+            "xju2f9n": [
+              "color",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -303,6 +384,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xd71okc": [
+              "content",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -324,6 +412,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".xwzgxvi{--foo:500}",
             "priority": 1,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "xwzgxvi": [
+              "--foo",
+            ],
           },
         },
       ]
@@ -358,6 +453,18 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "x17z2mba": [
+              ":hover",
+              "color",
+            ],
+            "x1gykpug": [
+              ":hover",
+              "backgroundColor",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -382,6 +489,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x1ruww2u{position:sticky;position:fixed}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1ruww2u": [
+              "position",
+            ],
           },
         },
       ]
@@ -439,6 +553,19 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xb3r6kr": [
+              "overflow",
+            ],
+            "xbsl7fq": [
+              "borderStyle",
+            ],
+            "xmkeg23": [
+              "borderWidth",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -478,6 +605,21 @@ describe('stylex-create-test', ()=>{
             "ltr": ".xrkmrrc{background-color:red}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1ssfqz5": [
+              "@media (min-width: 2000px)",
+              "backgroundColor",
+            ],
+            "xc445zv": [
+              "@media (min-width: 1000px)",
+              "backgroundColor",
+            ],
+            "xrkmrrc": [
+              "backgroundColor",
+            ],
           },
         },
       ]

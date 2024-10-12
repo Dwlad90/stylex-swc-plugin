@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-plugin",
   "description": "Stylex NextJS plugin with NAPI-RS compiler",
-  "version": "0.3.1-rc.2",
+  "version": "0.3.1",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"

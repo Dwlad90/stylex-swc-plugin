@@ -19,6 +19,7 @@ mod converting_pre_rule_to_css {
     state_manager.options.use_rem_for_font_size = true;
     state_manager.options.dev = false;
     state_manager.options.test = false;
+    state_manager.options.debug = false;
 
     state_manager
   }

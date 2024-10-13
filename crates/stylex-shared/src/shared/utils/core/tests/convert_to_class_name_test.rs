@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod convert_style_to_class_name {
   use crate::shared::{
-    structures::{pre_rule::PreRuleValue, state_manager::StateManager},
+    structures::{
+      pre_rule::PreRuleValue, state_manager::StateManager, stylex_options::StyleResolution,
+      stylex_state_options::StyleXStateOptions,
+    },
     utils::core::convert_style_to_class_name::convert_style_to_class_name,
   };
   fn convert(styles: (&str, &PreRuleValue)) -> String {
-    let result =
-      convert_style_to_class_name(styles, &mut [], &mut [], "", &StateManager::default());
+    let result = convert_style_to_class_name(styles, &mut [], &mut [], &StateManager::default());
 
     extract_body(result.2.ltr)
   }
@@ -22,6 +24,53 @@ mod convert_style_to_class_name {
     let result = convert(("margin", &PreRuleValue::String("10".to_string())));
 
     assert_eq!(result, "margin:10px")
+  }
+
+  #[test]
+  fn prefixes_classname_with_property_name_when_options_debug_is_true() {
+    let (_, class_name, _) = convert_style_to_class_name(
+      ("margin", &PreRuleValue::String("10".to_string())),
+      &mut [],
+      &mut [],
+      &StateManager {
+        options: Box::new(StyleXStateOptions {
+          class_name_prefix: 'x'.to_string(),
+          style_resolution: StyleResolution::ApplicationOrder,
+          use_rem_for_font_size: false,
+          dev: false,
+          test: false,
+          debug: true,
+          ..Default::default()
+        }),
+        ..Default::default()
+      },
+    );
+
+    assert!(class_name.starts_with("margin-"))
+  }
+
+  #[test]
+  fn prefixes_classname_with_property_name_when_options_debug_is_false() {
+    let (_, class_name, _) = convert_style_to_class_name(
+      ("margin", &PreRuleValue::String("10".to_string())),
+      &mut [],
+      &mut [],
+      &StateManager {
+        options: Box::new(StyleXStateOptions {
+          class_name_prefix: 'x'.to_string(),
+          style_resolution: StyleResolution::ApplicationOrder,
+          use_rem_for_font_size: false,
+          dev: false,
+          test: false,
+          debug: false,
+          ..Default::default()
+        }),
+        ..Default::default()
+      },
+    );
+
+    assert!(!class_name.starts_with("margin-"));
+    assert!(class_name.starts_with("x"));
   }
 
   #[test]

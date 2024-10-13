@@ -182,7 +182,6 @@ impl PreRule for StylesPreRule {
       (self.property.as_str(), &self.value),
       &mut self.pseudos,
       &mut self.at_rules,
-      &state.options.class_name_prefix,
       state,
     );
 

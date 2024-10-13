@@ -15,9 +15,11 @@ pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),
   pseudos: &mut [String],
   at_rules: &mut [String],
-  prefix: &str,
   state: &StateManager,
 ) -> (String, String, InjectableStyle) {
+  let class_name_prefix = state.options.class_name_prefix.to_string();
+  let debug = state.options.debug;
+
   let (key, raw_value) = obj_entry;
 
   let dashed_key = if key.starts_with("--") {
@@ -79,7 +81,20 @@ pub(crate) fn convert_style_to_class_name(
     modifier_hash_string
   );
 
-  let class_name_hashed = format!("{}{}", prefix, create_hash(string_to_hash.as_str()));
+  let class_name_hashed = if debug {
+    format!(
+      "{}-{}{}",
+      key,
+      class_name_prefix,
+      create_hash(&string_to_hash)
+    )
+  } else {
+    format!(
+      "{}{}",
+      class_name_prefix,
+      create_hash(string_to_hash.as_str())
+    )
+  };
 
   let css_rules = generate_rule(
     class_name_hashed.as_str(),

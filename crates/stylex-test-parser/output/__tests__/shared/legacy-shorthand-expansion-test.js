@@ -1,5 +1,6 @@
 var options = {
     classNamePrefix: 'x',
+    debug: false,
     styleResolution: 'legacy-expand-shorthands',
     runtimeInjection: false,
     useRemForFontSize: true,

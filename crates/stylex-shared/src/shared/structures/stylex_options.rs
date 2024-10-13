@@ -19,6 +19,7 @@ pub struct StyleXOptionsParams {
   pub gen_conditional_classes: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
+  pub debug: Option<bool>,
   pub aliases: Option<HashMap<String, Vec<String>>>,
   #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
@@ -37,6 +38,7 @@ impl Default for StyleXOptionsParams {
       gen_conditional_classes: Some(false),
       dev: Some(false),
       test: Some(false),
+      debug: None,
       aliases: None,
       unstable_module_resolution: None,
     }
@@ -79,6 +81,7 @@ pub enum CheckModuleResolution {
 pub struct StyleXOptions {
   pub dev: bool,
   pub test: bool,
+  pub debug: bool,
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
   // pub defined_stylex_css_variables: HashMap<String, String>,
@@ -120,6 +123,7 @@ impl Default for StyleXOptions {
       import_sources: vec![],
       dev: false,
       test: false,
+      debug: false,
       treeshake_compensation: None,
       gen_conditional_classes: false,
       aliases: None,
@@ -160,6 +164,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       import_sources: options.import_sources.unwrap_or_default(),
       dev: options.dev.unwrap_or(false),
       test: options.test.unwrap_or(false),
+      debug: options.debug.or(options.dev).unwrap_or(false),
       treeshake_compensation: options.treeshake_compensation,
       gen_conditional_classes: options.gen_conditional_classes.unwrap_or(false),
       aliases: options.aliases,

@@ -108,3 +108,127 @@ test!(
       stylex.props(styles.unknown);
 "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      dev: Some(true),
+      debug: Some(true),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  debug_mode_classnames_enabled,
+  r#"
+      import stylex from '@stylexjs/stylex';
+      const styles = stylex.create({
+        tileHeading: {
+          marginRight: 12,
+        },
+      });
+      stylex.props(styles.unknown);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      dev: Some(true),
+      debug: Some(false),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  debug_mode_classnames_disabled,
+  r#"
+      import stylex from '@stylexjs/stylex';
+      const styles = stylex.create({
+        tileHeading: {
+          marginRight: 12,
+        },
+      });
+      stylex.props(styles.unknown);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      dev: Some(true),
+      debug: Some(true),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  debug_mode_classnames_enabled_with_many_styles,
+  r#"
+      import stylex from '@stylexjs/stylex';
+      const styles = stylex.create({
+        tileHeading: {
+          marginRight: 12,
+        },
+        content: {
+          gridArea: 'content',
+        },
+        root: {
+          display: 'grid',
+          gridTemplateRows: '100%',
+          gridTemplateAreas: '"content"',
+        },
+      });
+      stylex.props(styles.unknown);
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      dev: Some(false),
+      debug: Some(true),
+      gen_conditional_classes: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  debug_mode_classnames_enabled_with_dev_disabled,
+  r#"
+      import stylex from '@stylexjs/stylex';
+      const styles = stylex.create({
+        tileHeading: {
+          marginRight: 12,
+        },
+        content: {
+          gridArea: 'content',
+        },
+        root: {
+          display: 'grid',
+          gridTemplateRows: '100%',
+          gridTemplateAreas: '"content"',
+        },
+      });
+      stylex.props(styles.unknown);
+"#
+);

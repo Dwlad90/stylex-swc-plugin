@@ -34,21 +34,6 @@ To install the package, run the following command:
 npm install --save-dev @stylexswc/rs-compiler
 ```
 
-## Example
-
-Your StyleX code usage remains unchanged. Here's a simple example:
-
-```ts
-import stylex from '@stylexjs/stylex'
-
-export const styles = stylex.create({
-  default: {
-    backgroundColor: 'red',
-    color: 'blue',
-  },
-})
-```
-
 ### Transformation Process
 
 Internally, this compiler takes your StyleX code and transforms it into a format optimized for further processing.
@@ -94,6 +79,34 @@ The output from the compiler includes the transformed code, metadata about the g
   },
   "map": "{\"version\":3,\"sources\":[\"<anon>\"],\"names\":[],\"mappings\":\"AACE;AACA;;;;;;EAKG\"}"
 }
+```
+
+## Example
+
+Below is a simple example of input StyleX code:
+
+```ts
+import * as stylex from '@stylexjs/stylex';
+
+const styles = stylex.create({
+  root: {
+    padding: 10,
+  },
+  element: {
+    backgroundColor: 'red',
+  },
+});
+
+const styleProps = stylex.props(styles.root, styles.element);
+```
+
+Output code:
+
+```ts
+import * as stylex from '@stylexjs/stylex';
+const styleProps = {
+  className: 'x7z7khe xrkmrrc',
+};
 ```
 
 ## Compatibility

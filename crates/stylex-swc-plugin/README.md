@@ -28,9 +28,178 @@ To install the package, run the following command:
 npm install --save-dev @stylexswc/swc-plugin
 ```
 
+
+## Usage
+
+Modify your bundler configuration to use the StyleX SWC plugin.
+
+> [!NOTE]
+> All awailable options the same as in the official StyleX Babel plugin
+> and can be found on the
+> [StyleX babel plugin documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/)
+> page.
+
+For example:
+
+* Register SWC plugin in Next.js config:
+
+```ts
+module.exports = {
+  swcMinify: true,
+  experimental: {
+    swcPlugins: [[
+      "@stylexswc/swc-plugin",
+      {
+        dev: process.env.NODE_ENV === 'development',
+        genConditionalClasses: true,
+        treeshakeCompensation: true,
+        aliases: {
+          '@/*': [path.join(rootDir, '*')],
+        },
+        unstable_moduleResolution: {
+          type: 'commonJS',
+          rootDir: rootDir,
+        },
+      },
+    ]],
+  },
+};
+```
+
+* Register SWC plugin in Webpack config:
+
+```ts
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: [
+          {
+            loader: 'swc-loader',
+            options: {
+              jsc: {
+                experimental: {
+                  plugins: [
+                    [
+                      '@stylexswc/swc-plugin',
+                      {
+                        dev: process.env.NODE_ENV === 'development',
+                        genConditionalClasses: true,
+                        treeshakeCompensation: true,
+                        aliases: {
+                          '@/*': [path.join(rootDir, '*')],
+                        },
+                        unstable_moduleResolution: {
+                          type: 'commonJS',
+                          rootDir: rootDir,
+                        },
+                        // ... other options
+                      },
+                    ],
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+* Regiter SWC plugin in Rsbuild config:
+
+```ts
+export default {
+  tools: {
+    swc: {
+      jsc: {
+        experimental: {
+          plugins: [
+            [
+              '@swc/plugin-styled-components',
+              {
+                dev: process.env.NODE_ENV === 'development',
+                genConditionalClasses: true,
+                treeshakeCompensation: true,
+                aliases: {
+                  '@/*': [path.join(rootDir, '*')],
+                },
+                unstable_moduleResolution: {
+                  type: 'commonJS',
+                  rootDir: rootDir,
+                },
+                // ... other options
+              },
+            ],
+          ],
+        },
+      },
+    },
+  },
+};
+```
+
+## Working with Metadata
+
+Since SWC does not support receiving metadata after transformation, the process
+of extracting CSS styles is a bit tricky and is based on searching for a
+substring of metadata in the compiled application file and serializing it into
+JSON.
+
+To extract metadate from compiled code, you need to add the following code to your build script:
+
+```ts
+let metadataStr = '[]';
+
+const code = sourceCodeString.replace(
+  /\/\/*__stylex_metadata_start__(?<metadata>.+)__stylex_metadata_end__/,
+  (...args) => {
+    metadataStr = args.at(-1)?.metadata.split('"__stylex_metadata_end__')[0];
+
+    return '';
+  }
+);
+
+const metadata = { stylex: [] };
+
+try {
+  metadata.stylex = JSON.parse(metadataStr);
+} catch (e) {
+  console.error('error parsing metadata', e);
+}
+```
+
+Example of metadata:
+
+```json
+[
+  {
+    "class_name": "x7z7khe",
+    "style": {
+      "rtl": null,
+      "ltr": ".x7z7khe{padding:10px}"
+    },
+    "priority": 1000
+  },
+  {
+    "class_name": "xrkmrrc",
+    "style": {
+      "rtl": null,
+      "ltr": ".xrkmrrc{background-color:red}"
+    },
+    "priority": 3000
+  }
+]
+```
+
+Metadata can be used to extract CSS styles from the compiled code.
+
 ## Example
 
-Below is a simple example of using StyleX:
+Below is a simple example of input StyleX code:
 
 ```ts
 import * as stylex from '@stylexjs/stylex';
@@ -45,6 +214,16 @@ const styles = stylex.create({
 });
 
 const styleProps = stylex.props(styles.root, styles.element);
+```
+
+Output code:
+
+```ts
+//__stylex_metadata_start__[{"class_name":"x7z7khe","style":{"rtl":null,"ltr":".x7z7khe{padding:10px}"},"priority":1000},{"class_name":"xrkmrrc","style":{"rtl":null,"ltr":".xrkmrrc{background-color:red}"},"priority":3000}]__stylex_metadata_end__
+import * as stylex from '@stylexjs/stylex';
+const styleProps = {
+  className: 'x7z7khe xrkmrrc',
+};
 ```
 
 > [!IMPORTANT]

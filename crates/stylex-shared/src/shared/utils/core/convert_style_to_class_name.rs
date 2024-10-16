@@ -8,6 +8,7 @@ use crate::shared::{
   utils::{
     common::{create_hash, dashify},
     css::common::{generate_rule, transform_value},
+    pre_rule::{sort_at_rules, sort_pseudos},
   },
 };
 
@@ -28,11 +29,11 @@ pub(crate) fn convert_style_to_class_name(
     dashify(key).to_case(Case::Kebab)
   };
 
-  let sorted_pseudos = &mut pseudos.to_vec();
-  sorted_pseudos.sort();
+  let unsorted_pseudos = &mut pseudos.to_vec();
+  let sorted_pseudos = sort_pseudos(unsorted_pseudos);
 
-  let sorted_at_rules = &mut at_rules.to_vec();
-  sorted_at_rules.sort();
+  let unsorted_at_rules = &mut at_rules.to_vec();
+  let sorted_at_rules = sort_at_rules(unsorted_at_rules);
 
   let at_rule_hash_string = sorted_at_rules.join("");
   let pseudo_hash_string = sorted_pseudos.join("");
@@ -41,6 +42,8 @@ pub(crate) fn convert_style_to_class_name(
   // Link to discussion: https://github.com/facebook/stylex/discussions/744
   let modifier_hash_string = format!("{}{}", pseudo_hash_string, at_rule_hash_string,);
 
+  // NOTE: 'null' is used to keep existing hashes stable.
+  // This should be removed in a future version.
   let modifier_hash_string = if modifier_hash_string.is_empty() {
     "null".to_string()
   } else {

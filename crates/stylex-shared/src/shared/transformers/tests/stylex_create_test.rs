@@ -789,31 +789,31 @@ mod stylex_create {
           "default",
           &[
             ("::before_color", "x16oeupf"),
-            (":hover_::before_color", "xeb2lg0 x18ezmze x14o3fp0"),
+            (":hover_::before_color", "xzzpreb x1gobd9t x1lvqgcc"),
           ],
         )],
         &[(
           "default",
           &[
-            (
-              "x14o3fp0",
-              (".x14o3fp0:hover::before:active{color:yellow}", 8300.0),
-            ),
             ("x16oeupf", (".x16oeupf::before{color:red}", 8000.0)),
             (
-              "x18ezmze",
-              (".x18ezmze:hover::before:hover{color:green}", 8260.0),
+              "x1gobd9t",
+              (".x1gobd9t:hover::before:hover{color:green}", 8260.0),
             ),
-            ("xeb2lg0", (".xeb2lg0:hover::before{color:blue}", 8130.0)),
+            (
+              "x1lvqgcc",
+              (".x1lvqgcc:hover::before:active{color:yellow}", 8300.0),
+            ),
+            ("xzzpreb", (".xzzpreb:hover::before{color:blue}", 8130.0)),
           ],
         )],
         &[(
           "default",
           &[
-            ("x14o3fp0", &[":hover", "::before", ":active", "color"]),
             ("x16oeupf", &["::before", "color"]),
-            ("x18ezmze", &[":hover", "::before", ":hover", "color"]),
-            ("xeb2lg0", &[":hover", "::before", "default", "color"]),
+            ("x1gobd9t", &[":hover", "::before", ":hover", "color"]),
+            ("x1lvqgcc", &[":hover", "::before", ":active", "color"]),
+            ("xzzpreb", &[":hover", "::before", "default", "color"]),
           ],
         )],
       );
@@ -824,7 +824,6 @@ mod stylex_create {
   }
 
   #[test]
-  #[ignore]
 
   fn transforms_nested_pseudo_classes_within_pseudo_elements_v2() {
     let before_hover_object = style_multiple_depth_nested_object_factory(&[(
@@ -872,7 +871,7 @@ mod stylex_create {
 
     assert_eq!(
       hover_before_class,
-      &Box::new(FlatCompiledStylesValue::String("xeb2lg0".to_string()))
+      &Box::new(FlatCompiledStylesValue::String("xzzpreb".to_string()))
     );
 
     assert_ne!(before_hover_class, hover_before_class)

@@ -566,12 +566,12 @@ describe('stylex-create-test', ()=>{
         expect(styleXCreate({
             default: {
                 '::before': {
-                    color: 'blue'
+                    color: 'red'
                 },
                 ':hover': {
                     '::before': {
                         color: {
-                            default: 'red',
+                            default: 'blue',
                             ':hover': 'green',
                             ':active': 'yellow'
                         }
@@ -583,8 +583,8 @@ describe('stylex-create-test', ()=>{
         {
           "default": {
             "$$css": true,
-            "::before_color": "xvg9oe5",
-            ":hover_::before_color": "x1qdmp1q x18ezmze x14o3fp0",
+            "::before_color": "x16oeupf",
+            ":hover_::before_color": "xeb2lg0 x18ezmze x14o3fp0",
           },
         },
         {
@@ -593,19 +593,19 @@ describe('stylex-create-test', ()=>{
             "priority": 8300,
             "rtl": null,
           },
+          "x16oeupf": {
+            "ltr": ".x16oeupf::before{color:red}",
+            "priority": 8000,
+            "rtl": null,
+          },
           "x18ezmze": {
             "ltr": ".x18ezmze:hover::before:hover{color:green}",
             "priority": 8260,
             "rtl": null,
           },
-          "x1qdmp1q": {
-            "ltr": ".x1qdmp1q:hover::before{color:red}",
+          "xeb2lg0": {
+            "ltr": ".xeb2lg0:hover::before{color:blue}",
             "priority": 8130,
-            "rtl": null,
-          },
-          "xvg9oe5": {
-            "ltr": ".xvg9oe5::before{color:blue}",
-            "priority": 8000,
             "rtl": null,
           },
         },
@@ -617,26 +617,52 @@ describe('stylex-create-test', ()=>{
               ":active",
               "color",
             ],
+            "x16oeupf": [
+              "::before",
+              "color",
+            ],
             "x18ezmze": [
               ":hover",
               "::before",
               ":hover",
               "color",
             ],
-            "x1qdmp1q": [
+            "xeb2lg0": [
               ":hover",
               "::before",
               "default",
-              "color",
-            ],
-            "xvg9oe5": [
-              "::before",
               "color",
             ],
           },
         },
       ]
     `);
+    });
+    test.skip('transforms nested pseudo-classes within pseudo elements', ()=>{
+        const [beforeHover] = styleXCreate({
+            default: {
+                '::before': {
+                    color: {
+                        default: null,
+                        ':hover': 'blue'
+                    }
+                }
+            }
+        });
+        const [hoverBefore] = styleXCreate({
+            default: {
+                ':hover': {
+                    '::before': {
+                        color: 'blue'
+                    }
+                }
+            }
+        });
+        const beforeHoverClass = beforeHover.default['::before_color'];
+        const hoverBeforeClass = hoverBefore.default[':hover_::before_color'];
+        expect(beforeHoverClass).toMatchInlineSnapshot('"xeb2lg0"');
+        expect(hoverBeforeClass).toMatchInlineSnapshot('"xeb2lg0"');
+        expect(beforeHoverClass).not.toEqual(hoverBeforeClass);
     });
     test('transforms array values as fallbacks', ()=>{
         expect(styleXCreate({

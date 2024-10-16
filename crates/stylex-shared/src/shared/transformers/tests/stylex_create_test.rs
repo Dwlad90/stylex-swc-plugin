@@ -18,8 +18,9 @@ mod stylex_create {
     utils::ast::{
       convertors::string_to_expression,
       factories::{
-        array_expression_factory, key_value_factory, object_expression_factory,
-        prop_or_spread_expr_factory, prop_or_spread_string_factory,
+        array_expression_factory, key_value_factory, lit_null_factory, object_expression_factory,
+        prop_or_spread_expr_factory, prop_or_spread_expression_factory,
+        prop_or_spread_string_factory,
       },
     },
   };
@@ -72,9 +73,14 @@ mod stylex_create {
     object
   }
 
+  enum StringOrNull<'a> {
+    String(&'a str),
+    Null,
+  }
+
   enum DepthProps<'a> {
     One(&'a str),
-    Two(&'a [(&'a str, &'a str)]),
+    Two(&'a [(&'a str, &'a StringOrNull<'a>)]),
     Three(&'a [(&'a str, &'a [(&'a str, &'a str)])]),
     // Four(&'a [(&'a str, &'a [(&'a str, &'a [(&'a str, &'a str)])])]),
   }
@@ -106,7 +112,12 @@ mod stylex_create {
                       key,
                       arr
                         .iter()
-                        .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                        .map(|(key, value)| match value {
+                          StringOrNull::String(strng) => prop_or_spread_string_factory(key, strng),
+                          StringOrNull::Null => {
+                            prop_or_spread_expression_factory(key, Expr::Lit(lit_null_factory()))
+                          }
+                        })
                         .collect(),
                     ),
                     DepthProps::Three(arr) => prop_or_spread_expr_factory(
@@ -665,7 +676,10 @@ mod stylex_create {
         "::before",
         &[(
           "color",
-          &DepthProps::Two(&[("default", "red"), (":hover", "blue")]),
+          &DepthProps::Two(&[
+            ("default", &StringOrNull::String("red")),
+            (":hover", &StringOrNull::String("blue")),
+          ]),
         )],
       )],
     )]);
@@ -704,7 +718,10 @@ mod stylex_create {
         "::before",
         &[
           ("color", &DepthProps::One("red")),
-          (":hover", &DepthProps::Two(&[("color", "blue")])),
+          (
+            ":hover",
+            &DepthProps::Two(&[("color", &StringOrNull::String("blue"))]),
+          ),
         ],
       )],
     )]);
@@ -746,7 +763,7 @@ mod stylex_create {
     let object = style_multiple_depth_nested_object_factory(&[(
       "default",
       &[
-        ("::before", &[("color", &DepthProps::One("blue"))]),
+        ("::before", &[("color", &DepthProps::One("red"))]),
         (
           ":hover",
           &[(
@@ -754,7 +771,7 @@ mod stylex_create {
             &DepthProps::Three(&[(
               "color",
               &[
-                ("default", "red"),
+                ("default", "blue"),
                 (":hover", "green"),
                 (":active", "yellow"),
               ],
@@ -771,8 +788,8 @@ mod stylex_create {
         &[(
           "default",
           &[
-            ("::before_color", "xvg9oe5"),
-            (":hover_::before_color", "x1qdmp1q x18ezmze x14o3fp0"),
+            ("::before_color", "x16oeupf"),
+            (":hover_::before_color", "xeb2lg0 x18ezmze x14o3fp0"),
           ],
         )],
         &[(
@@ -782,21 +799,21 @@ mod stylex_create {
               "x14o3fp0",
               (".x14o3fp0:hover::before:active{color:yellow}", 8300.0),
             ),
+            ("x16oeupf", (".x16oeupf::before{color:red}", 8000.0)),
             (
               "x18ezmze",
               (".x18ezmze:hover::before:hover{color:green}", 8260.0),
             ),
-            ("x1qdmp1q", (".x1qdmp1q:hover::before{color:red}", 8130.0)),
-            ("xvg9oe5", (".xvg9oe5::before{color:blue}", 8000.0)),
+            ("xeb2lg0", (".xeb2lg0:hover::before{color:blue}", 8130.0)),
           ],
         )],
         &[(
           "default",
           &[
             ("x14o3fp0", &[":hover", "::before", ":active", "color"]),
+            ("x16oeupf", &["::before", "color"]),
             ("x18ezmze", &[":hover", "::before", ":hover", "color"]),
-            ("x1qdmp1q", &[":hover", "::before", "default", "color"]),
-            ("xvg9oe5", &["::before", "color"]),
+            ("xeb2lg0", &[":hover", "::before", "default", "color"]),
           ],
         )],
       );
@@ -804,6 +821,61 @@ mod stylex_create {
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
     assert_eq!(injected_styles, expected_injected_styles);
     assert_eq!(class_paths_in_namespace, expected_class_paths_in_namespace)
+  }
+
+  #[test]
+  #[ignore]
+
+  fn transforms_nested_pseudo_classes_within_pseudo_elements_v2() {
+    let before_hover_object = style_multiple_depth_nested_object_factory(&[(
+      "default",
+      &[(
+        "::before",
+        &[(
+          "color",
+          &DepthProps::Two(&[
+            ("default", &StringOrNull::Null),
+            (":hover", &StringOrNull::String("blue")),
+          ]),
+        )],
+      )],
+    )]);
+
+    let hover_before_object = style_multiple_depth_nested_object_factory(&[(
+      "default",
+      &[(
+        ":hover",
+        &[(
+          "::before",
+          &DepthProps::Two(&[("color", &StringOrNull::String("blue"))]),
+        )],
+      )],
+    )]);
+
+    let (before_hover, _, _) = stylex_create(before_hover_object);
+    let (hover_before, _, _) = stylex_create(hover_before_object);
+
+    let before_hover_class = before_hover
+      .get("default")
+      .and_then(|a| a.get("::before_color"))
+      .unwrap();
+
+    let hover_before_class = hover_before
+      .get("default")
+      .and_then(|a| a.get(":hover_::before_color"))
+      .unwrap();
+
+    assert_eq!(
+      before_hover_class,
+      &Box::new(FlatCompiledStylesValue::String("xeb2lg0".to_string()))
+    );
+
+    assert_eq!(
+      hover_before_class,
+      &Box::new(FlatCompiledStylesValue::String("xeb2lg0".to_string()))
+    );
+
+    assert_ne!(before_hover_class, hover_before_class)
   }
 
   #[test]

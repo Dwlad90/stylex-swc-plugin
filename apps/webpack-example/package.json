@@ -1,0 +1,21 @@
+{
+  "name": "@stylexswc/webpack-example",
+  "version": "0.3.1",
+  "description": "A simple webpack example to test stylexswc/webpack-plugin",
+  "main": "./dist/index.js",
+  "private": true,
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack --watch"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@stylexjs/stylex": "0.8.0"
+  },
+  "devDependencies": {
+    "@stylexswc/webpack-plugin": "0.3.1",
+    "html-webpack-plugin": "^5.5.3",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.0.0"
+  }
+}

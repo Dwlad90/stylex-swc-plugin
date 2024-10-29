@@ -76,4 +76,4 @@ module.exports = stylexPlugin({
 ## Documentation
 
 * [StyleX Documentation](https://stylexjs.com)
-* [SWC plugin for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/master/packages/swc-plugin)
+* [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler)

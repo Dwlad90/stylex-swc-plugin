@@ -28,6 +28,9 @@ This project is organized into several packages:
 * [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin) -
   A wrapper for [`Next.JS configuration`](https://nextjs.org/docs/app/api-reference/next-config-js) that integrates the StyleX [napi-rs](https://napi.rs/) compiler into the Webpack processing pipeline.
 
+* [`webpack-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/webpack-plugin) -
+  A wrapper for `Webpack configuration` that integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+
 **Utilities:**
 
 * [`stylex-shared`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-shared) -

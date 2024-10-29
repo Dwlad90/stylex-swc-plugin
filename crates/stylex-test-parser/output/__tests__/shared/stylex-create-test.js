@@ -26,6 +26,16 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xju2f9n": [
+              "color",
+            ],
+            "xrkmrrc": [
+              "backgroundColor",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -54,6 +64,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x1cfch2b{transition-property:margin-top}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1cfch2b": [
+              "transitionProperty",
+            ],
           },
         },
       ]
@@ -86,6 +103,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "x1a6dnx1": [
+              "willChange",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -109,6 +133,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "x17389it": [
+              "transitionProperty",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -130,6 +161,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x1lxaxzv{will-change:--foo}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1lxaxzv": [
+              "willChange",
+            ],
           },
         },
       ]
@@ -160,6 +198,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x95ccmk{transition-property:opacity,margin-top}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x95ccmk": [
+              "transitionProperty",
+            ],
           },
         },
       ]
@@ -199,6 +244,16 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "short": {
+            "x1lmef92": [
+              "padding",
+            ],
+            "xexx8yu": [
+              "paddingTop",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -222,6 +277,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xgau0yw": [
+              "--background-color",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -243,6 +305,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x13tgbkp{--final-color:var(--background-color)}",
             "priority": 1,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x13tgbkp": [
+              "--final-color",
+            ],
           },
         },
       ]
@@ -280,6 +349,18 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xrkmrrc": [
+              "backgroundColor",
+            ],
+          },
+          "default2": {
+            "xju2f9n": [
+              "color",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -303,6 +384,13 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xd71okc": [
+              "content",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -324,6 +412,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".xwzgxvi{--foo:500}",
             "priority": 1,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "xwzgxvi": [
+              "--foo",
+            ],
           },
         },
       ]
@@ -358,8 +453,216 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "x17z2mba": [
+              ":hover",
+              "color",
+            ],
+            "x1gykpug": [
+              ":hover",
+              "backgroundColor",
+            ],
+          },
+        },
       ]
     `);
+    });
+    test('transforms nested pseudo-classes within pseudo elements', ()=>{
+        expect(styleXCreate({
+            default: {
+                '::before': {
+                    color: {
+                        default: 'red',
+                        ':hover': 'blue'
+                    }
+                }
+            }
+        })).toMatchInlineSnapshot(`
+      [
+        {
+          "default": {
+            "$$css": true,
+            "::before_color": "x16oeupf xeb2lg0",
+          },
+        },
+        {
+          "x16oeupf": {
+            "ltr": ".x16oeupf::before{color:red}",
+            "priority": 8000,
+            "rtl": null,
+          },
+          "xeb2lg0": {
+            "ltr": ".xeb2lg0::before:hover{color:blue}",
+            "priority": 8130,
+            "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x16oeupf": [
+              "::before",
+              "default",
+              "color",
+            ],
+            "xeb2lg0": [
+              "::before",
+              ":hover",
+              "color",
+            ],
+          },
+        },
+      ]
+    `);
+    });
+    test('transforms nested legacy pseudo-classes within pseudo elements', ()=>{
+        expect(styleXCreate({
+            default: {
+                '::before': {
+                    color: 'red',
+                    ':hover': {
+                        color: 'blue'
+                    }
+                }
+            }
+        })).toMatchInlineSnapshot(`
+      [
+        {
+          "default": {
+            "$$css": true,
+            "::before_:hover_color": "xeb2lg0",
+            "::before_color": "x16oeupf",
+          },
+        },
+        {
+          "x16oeupf": {
+            "ltr": ".x16oeupf::before{color:red}",
+            "priority": 8000,
+            "rtl": null,
+          },
+          "xeb2lg0": {
+            "ltr": ".xeb2lg0::before:hover{color:blue}",
+            "priority": 8130,
+            "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x16oeupf": [
+              "::before",
+              "color",
+            ],
+            "xeb2lg0": [
+              "::before",
+              ":hover",
+              "color",
+            ],
+          },
+        },
+      ]
+    `);
+    });
+    test('transforms nested pseudo-element within legacy pseudo class', ()=>{
+        expect(styleXCreate({
+            default: {
+                '::before': {
+                    color: 'red'
+                },
+                ':hover': {
+                    '::before': {
+                        color: {
+                            default: 'blue',
+                            ':hover': 'green',
+                            ':active': 'yellow'
+                        }
+                    }
+                }
+            }
+        })).toMatchInlineSnapshot(`
+      [
+        {
+          "default": {
+            "$$css": true,
+            "::before_color": "x16oeupf",
+            ":hover_::before_color": "xzzpreb x1gobd9t x1lvqgcc",
+          },
+        },
+        {
+          "x16oeupf": {
+            "ltr": ".x16oeupf::before{color:red}",
+            "priority": 8000,
+            "rtl": null,
+          },
+          "x1gobd9t": {
+            "ltr": ".x1gobd9t:hover::before:hover{color:green}",
+            "priority": 8260,
+            "rtl": null,
+          },
+          "x1lvqgcc": {
+            "ltr": ".x1lvqgcc:hover::before:active{color:yellow}",
+            "priority": 8300,
+            "rtl": null,
+          },
+          "xzzpreb": {
+            "ltr": ".xzzpreb:hover::before{color:blue}",
+            "priority": 8130,
+            "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x16oeupf": [
+              "::before",
+              "color",
+            ],
+            "x1gobd9t": [
+              ":hover",
+              "::before",
+              ":hover",
+              "color",
+            ],
+            "x1lvqgcc": [
+              ":hover",
+              "::before",
+              ":active",
+              "color",
+            ],
+            "xzzpreb": [
+              ":hover",
+              "::before",
+              "default",
+              "color",
+            ],
+          },
+        },
+      ]
+    `);
+    });
+    test('transforms nested pseudo-classes within pseudo elements', ()=>{
+        const [beforeHover] = styleXCreate({
+            default: {
+                '::before': {
+                    color: {
+                        default: null,
+                        ':hover': 'blue'
+                    }
+                }
+            }
+        });
+        const [hoverBefore] = styleXCreate({
+            default: {
+                ':hover': {
+                    '::before': {
+                        color: 'blue'
+                    }
+                }
+            }
+        });
+        const beforeHoverClass = beforeHover.default['::before_color'];
+        const hoverBeforeClass = hoverBefore.default[':hover_::before_color'];
+        expect(beforeHoverClass).toMatchInlineSnapshot('"xeb2lg0"');
+        expect(hoverBeforeClass).toMatchInlineSnapshot('"xzzpreb"');
+        expect(beforeHoverClass).not.toEqual(hoverBeforeClass);
     });
     test('transforms array values as fallbacks', ()=>{
         expect(styleXCreate({
@@ -382,6 +685,13 @@ describe('stylex-create-test', ()=>{
             "ltr": ".x1ruww2u{position:sticky;position:fixed}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1ruww2u": [
+              "position",
+            ],
           },
         },
       ]
@@ -439,6 +749,19 @@ describe('stylex-create-test', ()=>{
             "rtl": null,
           },
         },
+        {
+          "default": {
+            "xb3r6kr": [
+              "overflow",
+            ],
+            "xbsl7fq": [
+              "borderStyle",
+            ],
+            "xmkeg23": [
+              "borderWidth",
+            ],
+          },
+        },
       ]
     `);
     });
@@ -478,6 +801,21 @@ describe('stylex-create-test', ()=>{
             "ltr": ".xrkmrrc{background-color:red}",
             "priority": 3000,
             "rtl": null,
+          },
+        },
+        {
+          "default": {
+            "x1ssfqz5": [
+              "@media (min-width: 2000px)",
+              "backgroundColor",
+            ],
+            "xc445zv": [
+              "@media (min-width: 1000px)",
+              "backgroundColor",
+            ],
+            "xrkmrrc": [
+              "backgroundColor",
+            ],
           },
         },
       ]

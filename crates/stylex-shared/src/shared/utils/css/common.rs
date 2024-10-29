@@ -65,10 +65,7 @@ fn property_to_ltr(pair: (&str, &str)) -> Pair {
       })
       .collect::<Vec<&str>>()
       .join(" ");
-    return Pair {
-      key: pair.0.to_string(),
-      value: new_val,
-    };
+    return Pair::new(pair.0.to_string(), new_val);
   };
 
   let result = match pair.0 {
@@ -96,10 +93,7 @@ fn property_to_ltr(pair: (&str, &str)) -> Pair {
     _ => pair,
   };
 
-  Pair {
-    key: result.0.to_string(),
-    value: result.1.to_string(),
-  }
+  Pair::new(result.0.to_string(), result.1.to_string())
 }
 
 pub(crate) fn generate_ltr(pair: &Pair) -> Pair {
@@ -152,10 +146,7 @@ fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
   match key {
     "box-shadow" | "text-shadow" => {
       let rtl_val = flip_shadow(val);
-      rtl_val.map(|rtl_val| Pair {
-        key: key.to_string(),
-        value: rtl_val,
-      })
+      rtl_val.map(|rtl_val| Pair::new(key.to_string(), rtl_val))
     }
     _ => None,
   }
@@ -168,89 +159,46 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
     .collect::<HashMap<_, _>>();
 
   match key {
-    "margin-start" => Some(Pair {
-      key: "margin-right".to_string(),
-      value: val.to_string(),
-    }),
-    "margin-end" => Some(Pair {
-      key: "margin-left".to_string(),
-      value: val.to_string(),
-    }),
-    "padding-start" => Some(Pair {
-      key: "padding-right".to_string(),
-      value: val.to_string(),
-    }),
-    "padding-end" => Some(Pair {
-      key: "padding-left".to_string(),
-      value: val.to_string(),
-    }),
-    "border-start" => Some(Pair {
-      key: "border-right".to_string(),
-      value: val.to_string(),
-    }),
-    "border-end" => Some(Pair {
-      key: "border-left".to_string(),
-      value: val.to_string(),
-    }),
-    "border-start-width" => Some(Pair {
-      key: "border-right-width".to_string(),
-      value: val.to_string(),
-    }),
-    "border-end-width" => Some(Pair {
-      key: "border-lrft-width".to_string(),
-      value: val.to_string(),
-    }),
+    "margin-start" => Some(Pair::new("margin-right".to_string(), val.to_string())),
+    "margin-end" => Some(Pair::new("margin-left".to_string(), val.to_string())),
+    "padding-start" => Some(Pair::new("padding-right".to_string(), val.to_string())),
+    "padding-end" => Some(Pair::new("padding-left".to_string(), val.to_string())),
+    "border-start" => Some(Pair::new("border-right".to_string(), val.to_string())),
+    "border-end" => Some(Pair::new("border-left".to_string(), val.to_string())),
+    "border-start-width" => Some(Pair::new("border-right-width".to_string(), val.to_string())),
+    "border-end-width" => Some(Pair::new("border-lrft-width".to_string(), val.to_string())),
 
-    "border-start-color" => Some(Pair {
-      key: "border-right-color".to_string(),
-      value: val.to_string(),
-    }),
-    "border-end-color" => Some(Pair {
-      key: "border-lrft-colot".to_string(),
-      value: val.to_string(),
-    }),
+    "border-start-color" => Some(Pair::new("border-right-color".to_string(), val.to_string())),
+    "border-end-color" => Some(Pair::new("border-lrft-colot".to_string(), val.to_string())),
 
-    "border-start-style" => Some(Pair {
-      key: "border-right-style".to_string(),
-      value: val.to_string(),
-    }),
-    "border-end-style" => Some(Pair {
-      key: "border-lrft-style".to_string(),
-      value: val.to_string(),
-    }),
+    "border-start-style" => Some(Pair::new("border-right-style".to_string(), val.to_string())),
+    "border-end-style" => Some(Pair::new("border-lrft-style".to_string(), val.to_string())),
 
-    "border-top-satrt-radius" => Some(Pair {
-      key: "border-top-right-radius".to_string(),
-      value: val.to_string(),
-    }),
+    "border-top-satrt-radius" => Some(Pair::new(
+      "border-top-right-radius".to_string(),
+      val.to_string(),
+    )),
 
-    "border-bottom-start-radius" => Some(Pair {
-      key: "border-bottom-right-radius".to_string(),
-      value: val.to_string(),
-    }),
+    "border-bottom-start-radius" => Some(Pair::new(
+      "border-bottom-right-radius".to_string(),
+      val.to_string(),
+    )),
 
-    "border-top-end-radius" => Some(Pair {
-      key: "border-top-left-radius".to_string(),
-      value: val.to_string(),
-    }),
+    "border-top-end-radius" => Some(Pair::new(
+      "border-top-left-radius".to_string(),
+      val.to_string(),
+    )),
 
-    "border-bottom-end-radius" => Some(Pair {
-      key: "border-bottom-left-radius".to_string(),
-      value: val.to_string(),
-    }),
+    "border-bottom-end-radius" => Some(Pair::new(
+      "border-bottom-left-radius".to_string(),
+      val.to_string(),
+    )),
 
-    "float" | "clear" => logical_to_physical.get(val).map(|&physical_val| Pair {
-      key: key.to_string(),
-      value: physical_val.to_string(),
-    }),
-    "start" => Some(Pair {
-      key: "right".to_string(),
-      value: val.to_string(),
-    }),
-    "end" => Some(Pair {
-      key: "left".to_string(),
-      value: val.to_string(),
-    }),
+    "float" | "clear" => logical_to_physical
+      .get(val)
+      .map(|&physical_val| Pair::new(key.to_string(), physical_val.to_string())),
+    "start" => Some(Pair::new("right".to_string(), val.to_string())),
+    "end" => Some(Pair::new("left".to_string(), val.to_string())),
     "background-position" => {
       let words: Vec<&str> = val.split_whitespace().collect();
       if words.contains(&"start") || words.contains(&"end") {
@@ -263,18 +211,14 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
           })
           .collect::<Vec<_>>()
           .join(" ");
-        Some(Pair {
-          key: key.to_string(),
-          value: new_val,
-        })
+        Some(Pair::new(key.to_string(), new_val))
       } else {
         None
       }
     }
-    "cursor" => CURSOR_FLIP.get(val).map(|val| Pair {
-      key: key.to_string(),
-      value: val.to_string(),
-    }),
+    "cursor" => CURSOR_FLIP
+      .get(val)
+      .map(|val| Pair::new(key.to_string(), val.to_string())),
     _ => shadows_flip(key, val),
   }
 }
@@ -368,10 +312,7 @@ pub(crate) fn generate_rule(
   let mut pairs: Vec<Pair> = vec![];
 
   for value in values {
-    pairs.push(Pair {
-      key: key.to_string(),
-      value: value.clone(),
-    });
+    pairs.push(Pair::new(key.to_string(), value.clone()));
   }
 
   let ltr_pairs: Vec<Pair> = pairs.iter().map(generate_ltr).collect::<Vec<Pair>>();

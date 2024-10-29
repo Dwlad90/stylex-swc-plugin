@@ -51,10 +51,10 @@ pub(crate) fn stylex_keyframes(
           state,
           |entry, state| match entry.as_ref() {
             FlatCompiledStylesValue::KeyValue(pair) => {
-              Box::new(FlatCompiledStylesValue::KeyValue(Pair {
-                key: pair.key.clone(),
-                value: transform_value(pair.key.as_str(), pair.value.as_str(), state),
-              }))
+              Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
+                pair.key.clone(),
+                transform_value(pair.key.as_str(), pair.value.as_str(), state),
+              )))
             }
             _ => panic!("Entry must be a tuple of key and value"),
           },
@@ -62,28 +62,25 @@ pub(crate) fn stylex_keyframes(
       })
       .done();
 
-    let (_, result) = pipe_result.into_iter().next().unwrap_or((
-      String::default(),
-      Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
-        String::default(),
-        String::default(),
-      ))),
-    ));
+    let pairs = pipe_result
+      .into_iter()
+      .filter_map(|(_, value)| value.as_key_value().cloned())
+      .collect::<Vec<Pair>>();
 
-    result
+    Box::new(FlatCompiledStylesValue::KeyValues(pairs))
   });
 
   let ltr_styles = obj_map(
     ObjMapType::Map(extended_object.clone()),
     state,
     |frame, _| {
-      let Some(pair) = frame.as_key_value() else {
+      let Some(pairs) = frame.as_key_values() else {
         panic!("Values must be an object")
       };
 
-      let ltr_value = generate_ltr(pair);
+      let ltr_values = pairs.iter().map(generate_ltr).collect();
 
-      Box::new(FlatCompiledStylesValue::KeyValue(ltr_value))
+      Box::new(FlatCompiledStylesValue::KeyValues(ltr_values))
     },
   );
 
@@ -91,15 +88,16 @@ pub(crate) fn stylex_keyframes(
     ObjMapType::Map(extended_object.clone()),
     state,
     |frame, _| {
-      let Some(pair) = frame.as_key_value() else {
+      let Some(pairs) = frame.as_key_values() else {
         panic!("Values must be an object")
       };
 
-      let rtl_value = generate_rtl(pair);
+      let rtl_values = pairs
+        .iter()
+        .map(|pair| generate_rtl(pair).unwrap_or(pair.clone()))
+        .collect();
 
-      Box::new(FlatCompiledStylesValue::KeyValue(
-        rtl_value.unwrap_or(pair.clone()),
-      ))
+      Box::new(FlatCompiledStylesValue::KeyValues(rtl_values))
     },
   );
 
@@ -134,16 +132,18 @@ fn construct_keyframes_obj(frames: &IndexMap<String, Box<FlatCompiledStylesValue
     .into_iter()
     .map(|(key, value)| {
       let value = match value.as_ref() {
-        FlatCompiledStylesValue::KeyValue(pair) => {
-          let Pair { key, value } = pair;
-
-          if key.is_empty() || value.is_empty() {
-            String::default()
-          } else {
-            format!("{}:{};", key, value)
-          }
-        }
-        _ => panic!("Value must be a key value pair"),
+        FlatCompiledStylesValue::KeyValues(pairs) => pairs
+          .iter()
+          .map(|pair| {
+            if pair.key.is_empty() || pair.value.is_empty() {
+              String::default()
+            } else {
+              format!("{}:{};", pair.key, pair.value)
+            }
+          })
+          .collect::<Vec<String>>()
+          .join(""),
+        _ => panic!("Value must be a key value pair array"),
       };
 
       format!("{}{{{}}}", key, value)

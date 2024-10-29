@@ -109,10 +109,10 @@ pub(crate) fn obj_map_keys(
     let key = mapper(key);
     map.insert(
       key.clone(),
-      Box::new(FlatCompiledStylesValue::KeyValue(Pair {
+      Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
         key,
-        value: value.clone(),
-      })),
+        value.clone(),
+      ))),
     );
   }
 

@@ -184,3 +184,57 @@ test!(
         });
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  generates_animation_name_with_multiple_keyframes_properties,
+  r#"
+      import stylex from 'stylex';
+      export const name = stylex.keyframes({
+        '0%': { opacity: 0, transform: 'rotateX(-90deg)' },
+        '60%': { opacity: 1, transform: 'rotateX(20deg)' },
+        '100%': { opacity: 1, transform: 'rotateX(0deg)' },
+      });
+
+      export const styles = stylex.create({
+        root: {
+          animationName: name,
+        },
+      });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    &PluginPass::default(),
+    None
+  ),
+  generates_animation_name_with_mixed_multiple_keyframes_properties,
+  r#"
+      import stylex from 'stylex';
+      export const name = stylex.keyframes({
+        '0%': { backgroundColor: '#fff', width: 100, height: 0 },
+        '50%': { translate: -100 },
+        '100%': { opacity: 0.5, width: 150, height: 200 },
+      });
+
+      export const styles = stylex.create({
+        root: {
+          animationName: name,
+        },
+      });
+    "#
+);

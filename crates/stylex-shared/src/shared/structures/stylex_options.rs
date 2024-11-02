@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 
+use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 use crate::shared::constants::common::DEFAULT_INJECT_PATH;
@@ -13,13 +13,13 @@ pub struct StyleXOptionsParams {
   pub use_rem_for_font_size: Option<bool>,
   pub runtime_injection: Option<bool>,
   pub class_name_prefix: Option<String>,
-  pub defined_stylex_css_variables: Option<HashMap<String, String>>,
+  pub defined_stylex_css_variables: Option<FxHashMap<String, String>>,
   pub import_sources: Option<Vec<ImportSources>>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
-  pub aliases: Option<HashMap<String, Vec<String>>>,
+  pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
 }
@@ -31,7 +31,7 @@ impl Default for StyleXOptionsParams {
       use_rem_for_font_size: Some(false),
       runtime_injection: Some(false),
       class_name_prefix: Some("x".to_string()),
-      defined_stylex_css_variables: Some(HashMap::new()),
+      defined_stylex_css_variables: Some(FxHashMap::default()),
       import_sources: None,
       treeshake_compensation: Some(true),
       gen_conditional_classes: Some(false),
@@ -55,8 +55,8 @@ pub enum StyleResolution {
 #[derive(Deserialize, Debug, Clone)]
 
 pub enum Aliases {
-  String(HashMap<String, String>),
-  StringVec(HashMap<String, Vec<String>>),
+  String(FxHashMap<String, String>),
+  StringVec(FxHashMap<String, Vec<String>>),
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -81,13 +81,13 @@ pub struct StyleXOptions {
   pub test: bool,
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
-  // pub defined_stylex_css_variables: HashMap<String, String>,
+  // pub defined_stylex_css_variables: FxHashMap<String, String>,
   pub style_resolution: StyleResolution,
   pub runtime_injection: RuntimeInjection,
   pub import_sources: Vec<ImportSources>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
-  pub aliases: Option<HashMap<String, Vec<String>>>,
+  pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: Option<CheckModuleResolution>,
 }
 
@@ -116,7 +116,7 @@ impl Default for StyleXOptions {
       use_rem_for_font_size: false,
       runtime_injection: RuntimeInjection::Boolean(false),
       class_name_prefix: "x".to_string(),
-      // defined_stylex_css_variables: HashMap::new(),
+      // defined_stylex_css_variables: FxHashMap::default(),
       import_sources: vec![],
       dev: false,
       test: false,

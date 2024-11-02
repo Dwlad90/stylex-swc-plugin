@@ -34,12 +34,14 @@ fn fixture(test_path: &PathBuf, part: &str) -> PathBuf {
 
 #[cfg(test)]
 mod resolve_path_tests {
+  use rustc_hash::FxHashMap;
+
   use crate::resolvers::{
     possible_aliased_paths, resolve_file_path, resolve_path,
     tests::{fixture, get_root_dir},
   };
 
-  use std::{collections::HashMap, path::PathBuf};
+  use std::path::PathBuf;
 
   #[test]
   fn resolve_work_dir_packages() {
@@ -549,7 +551,8 @@ mod resolve_path_tests {
     );
     let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
-    let aliases = HashMap::from([("@/*".to_string(), vec![format!("{}/src/*", root_path)])]);
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
 
     let expected_result = "src/components/button.js";
 
@@ -571,7 +574,7 @@ mod resolve_path_tests {
   #[test]
   fn get_import_path_when_no_aliases() {
     assert_eq!(
-      possible_aliased_paths("@stylexjs/stylex", &HashMap::new()),
+      possible_aliased_paths("@stylexjs/stylex", &FxHashMap::default()),
       vec![PathBuf::from("@stylexjs/stylex")]
     );
   }
@@ -581,7 +584,10 @@ mod resolve_path_tests {
     assert_eq!(
       possible_aliased_paths(
         "@/components/button",
-        &HashMap::from([("#/app/*".to_string(), vec![format!("{}/src/*", "root")])])
+        &[("#/app/*".to_string(), vec![format!("{}/src/*", "root")])]
+          .iter()
+          .cloned()
+          .collect::<FxHashMap<String, Vec<String>>>()
       ),
       vec![PathBuf::from("@/components/button")]
     );
@@ -592,7 +598,10 @@ mod resolve_path_tests {
     assert_eq!(
       possible_aliased_paths(
         "@/components/button",
-        &HashMap::from([("@/*".to_string(), vec!["/src/*".to_string()])])
+        &[("@/*".to_string(), vec!["/src/*".to_string()])]
+          .iter()
+          .cloned()
+          .collect::<FxHashMap<String, Vec<String>>>()
       ),
       vec![
         PathBuf::from("@/components/button"),
@@ -606,7 +615,10 @@ mod resolve_path_tests {
     assert_eq!(
       possible_aliased_paths(
         "@/components/button.js",
-        &HashMap::from([("@/*".to_string(), vec!["/src/*".to_string()])])
+        &[("@/*".to_string(), vec!["/src/*".to_string()])]
+          .iter()
+          .cloned()
+          .collect::<FxHashMap<String, Vec<String>>>()
       ),
       vec![
         PathBuf::from("@/components/button.js"),

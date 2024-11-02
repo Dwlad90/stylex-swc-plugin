@@ -1,7 +1,7 @@
 use core::panic;
-use std::collections::HashMap;
 
 use indexmap::IndexMap;
+use rustc_hash::FxHashMap;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -59,8 +59,8 @@ where
         None => second_arg.expr.clone(),
       })?;
 
-      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
-      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
+      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();
@@ -89,7 +89,7 @@ where
 
         let identifier = identifiers
           .entry(name.get_import_str().into())
-          .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
+          .or_insert(Box::new(FunctionConfigType::Map(FxHashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert("types".into(), types_fn.clone());

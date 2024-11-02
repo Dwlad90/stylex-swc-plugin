@@ -1,9 +1,7 @@
 use core::panic;
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::hash::Hash;
 use std::{cell::RefCell, path::Path};
-use std::{
-  collections::{HashMap, HashSet},
-  hash::Hash,
-};
 use std::{option::Option, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
@@ -53,8 +51,8 @@ use super::{
   seen_value::SeenValue,
 };
 
-type AtomHashMap = HashMap<Atom, i16>;
-type AtomHashSet = HashSet<Atom>;
+type AtomHashMap = FxHashMap<Atom, i16>;
+type AtomHashSet = FxHashSet<Atom>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SeenValueWithVarDeclCount {
@@ -67,8 +65,8 @@ pub struct StateManager {
   pub(crate) _state: Rc<PluginPass>,
 
   // Imports
-  pub(crate) import_paths: HashSet<String>,
-  pub(crate) stylex_import: HashSet<ImportSources>,
+  pub(crate) import_paths: FxHashSet<String>,
+  pub(crate) stylex_import: FxHashSet<ImportSources>,
   pub(crate) stylex_props_import: AtomHashSet,
   pub(crate) stylex_attrs_import: AtomHashSet,
   pub(crate) stylex_create_import: AtomHashSet,
@@ -85,15 +83,15 @@ pub struct StateManager {
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) all_call_expressions: Vec<CallExpr>,
   pub(crate) var_decl_count_map: AtomHashMap,
-  pub(crate) seen: HashMap<u64, Rc<SeenValueWithVarDeclCount>>,
-  pub(crate) css_property_seen: HashMap<String, String>,
+  pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
+  pub(crate) css_property_seen: FxHashMap<String, String>,
 
   // `stylex.create` calls
-  pub(crate) style_map: HashMap<String, Rc<StylesObjectMap>>,
-  pub(crate) style_vars: HashMap<String, Box<VarDeclarator>>,
+  pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
+  pub(crate) style_vars: FxHashMap<String, VarDeclarator>,
 
   // results of `stylex.create` calls that should be kept
-  pub(crate) style_vars_to_keep: HashSet<Box<StyleVarsToKeep>>,
+  pub(crate) style_vars_to_keep: FxHashSet<StyleVarsToKeep>,
   pub(crate) member_object_ident_count_map: AtomHashMap,
 
   pub(crate) in_stylex_create: bool,
@@ -122,33 +120,33 @@ impl StateManager {
 
     Self {
       _state: Rc::new(PluginPass::default()),
-      import_paths: HashSet::new(),
-      stylex_import: HashSet::new(),
-      stylex_props_import: HashSet::new(),
-      stylex_attrs_import: HashSet::new(),
-      stylex_create_import: HashSet::new(),
-      stylex_include_import: HashSet::new(),
-      stylex_first_that_works_import: HashSet::new(),
-      stylex_keyframes_import: HashSet::new(),
-      stylex_define_vars_import: HashSet::new(),
-      stylex_create_theme_import: HashSet::new(),
-      stylex_types_import: HashSet::new(),
+      import_paths: FxHashSet::default(),
+      stylex_import: FxHashSet::default(),
+      stylex_props_import: FxHashSet::default(),
+      stylex_attrs_import: FxHashSet::default(),
+      stylex_create_import: FxHashSet::default(),
+      stylex_include_import: FxHashSet::default(),
+      stylex_first_that_works_import: FxHashSet::default(),
+      stylex_keyframes_import: FxHashSet::default(),
+      stylex_define_vars_import: FxHashSet::default(),
+      stylex_create_theme_import: FxHashSet::default(),
+      stylex_types_import: FxHashSet::default(),
       inject_import_inserted: None,
-      style_map: HashMap::new(),
-      style_vars: HashMap::new(),
-      style_vars_to_keep: HashSet::new(),
-      member_object_ident_count_map: HashMap::new(),
+      style_map: FxHashMap::default(),
+      style_vars: FxHashMap::default(),
+      style_vars_to_keep: FxHashSet::default(),
+      member_object_ident_count_map: FxHashMap::default(),
       theme_name: None,
 
-      seen: HashMap::new(),
-      css_property_seen: HashMap::new(),
+      seen: FxHashMap::default(),
+      css_property_seen: FxHashMap::default(),
 
       top_imports: vec![],
 
       declarations: vec![],
       top_level_expressions: vec![],
       all_call_expressions: vec![],
-      var_decl_count_map: HashMap::new(),
+      var_decl_count_map: FxHashMap::default(),
 
       in_stylex_create: false,
       options,
@@ -508,7 +506,7 @@ impl StateManager {
       .push(module);
   }
 
-  // pub(crate) fn _get_css_vars(&self) -> HashMap<String, String> {
+  // pub(crate) fn _get_css_vars(&self) -> FxHashMap<String, String> {
   //   self.options.defined_stylex_css_variables.clone()
   // }
 
@@ -742,14 +740,14 @@ fn chain_collect<T: Clone + Eq + PartialEq>(vec1: Vec<T>, vec2: Vec<T>) -> Vec<T
   vec
 }
 
-fn union_hash_set<T: Clone + Eq + Hash>(set1: &HashSet<T>, set2: &HashSet<T>) -> HashSet<T> {
+fn union_hash_set<T: Clone + Eq + Hash>(set1: &FxHashSet<T>, set2: &FxHashSet<T>) -> FxHashSet<T> {
   set1.union(set2).cloned().collect()
 }
 
 fn chain_collect_hash_map<K: Eq + Hash, V: Clone + PartialEq>(
-  map1: HashMap<K, V>,
-  map2: HashMap<K, V>,
-) -> HashMap<K, V> {
+  map1: FxHashMap<K, V>,
+  map2: FxHashMap<K, V>,
+) -> FxHashMap<K, V> {
   if map1 == map2 {
     return map1;
   }
@@ -779,7 +777,7 @@ fn file_path_resolver(
   relative_file_path: &str,
   source_file_path: String,
   root_path: &str,
-  aliases: &HashMap<String, Vec<String>>,
+  aliases: &FxHashMap<String, Vec<String>>,
 ) -> String {
   if EXTENSIONS
     .iter()

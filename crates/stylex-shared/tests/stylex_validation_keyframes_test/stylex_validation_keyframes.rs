@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 
+use rustc_hash::FxHashMap;
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
   StyleXTransform,
@@ -112,7 +112,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    let mut defined_stylex_css_variables = HashMap::new();
+    let mut defined_stylex_css_variables = FxHashMap::default();
 
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
 

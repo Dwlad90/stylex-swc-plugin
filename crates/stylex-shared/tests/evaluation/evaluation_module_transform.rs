@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 
+use rustc_hash::FxHashMap;
 use stylex_shared::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
@@ -22,8 +22,8 @@ impl Default for EvaluationStyleXTransform {
   fn default() -> Self {
     EvaluationStyleXTransform {
       functions: FunctionMap {
-        identifiers: HashMap::new(),
-        member_expressions: HashMap::new(),
+        identifiers: FxHashMap::default(),
+        member_expressions: FxHashMap::default(),
       },
       declarations: vec![],
       state: StateManager::default(),

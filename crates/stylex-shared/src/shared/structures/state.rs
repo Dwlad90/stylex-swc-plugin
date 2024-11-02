@@ -1,5 +1,4 @@
-use std::collections::{HashMap, HashSet};
-
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::ecma::ast::Expr;
 
 use super::functions::FunctionMap;
@@ -8,7 +7,7 @@ use super::functions::FunctionMap;
 pub struct EvaluationState {
   pub(crate) confident: bool,
   pub(crate) deopt_path: Option<Expr>,
-  pub(crate) added_imports: HashSet<String>,
+  pub(crate) added_imports: FxHashSet<String>,
   pub(crate) functions: FunctionMap,
 }
 
@@ -17,10 +16,10 @@ impl Default for EvaluationState {
     EvaluationState {
       confident: true,
       deopt_path: None,
-      added_imports: HashSet::new(),
+      added_imports: FxHashSet::default(),
       functions: FunctionMap {
-        identifiers: HashMap::new(),
-        member_expressions: HashMap::new(),
+        identifiers: FxHashMap::default(),
+        member_expressions: FxHashMap::default(),
       },
     }
   }
@@ -31,10 +30,10 @@ impl EvaluationState {
     EvaluationState {
       confident: true,
       deopt_path: None,
-      added_imports: HashSet::new(),
+      added_imports: FxHashSet::default(),
       functions: FunctionMap {
-        identifiers: HashMap::new(),
-        member_expressions: HashMap::new(),
+        identifiers: FxHashMap::default(),
+        member_expressions: FxHashMap::default(),
       },
     }
   }

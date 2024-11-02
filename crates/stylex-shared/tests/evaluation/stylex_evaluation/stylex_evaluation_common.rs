@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 
+use rustc_hash::FxHashMap;
 use stylex_shared::shared::{
   structures::{
     functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
@@ -150,7 +150,7 @@ fn evaluates_customs_functions() {
       ..Default::default()
     }),
     |_| {
-      let mut identifiers = HashMap::new();
+      let mut identifiers = FxHashMap::default();
 
       let make_array = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(|args| {
@@ -177,7 +177,7 @@ fn evaluates_customs_functions() {
         Box::new(FunctionConfigType::Regular(make_array)),
       );
 
-      let mut member_expressions = HashMap::new();
+      let mut member_expressions = FxHashMap::default();
 
       member_expressions.insert(
         ImportSources::Regular("stylex".to_string()),
@@ -213,7 +213,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       ..Default::default()
     }),
     |_| {
-      let mut identifiers = HashMap::new();
+      let mut identifiers = FxHashMap::default();
 
       let make_class = FunctionConfig {
         fn_ptr: FunctionType::StylexExprFn(|arg, _| {
@@ -240,7 +240,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       EvaluationStyleXTransform {
         functions: FunctionMap {
           identifiers,
-          member_expressions: HashMap::new(),
+          member_expressions: FxHashMap::default(),
         },
         declarations: vec![],
         state: StateManager::default(),
@@ -264,7 +264,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
       ..Default::default()
     }),
     |_| {
-      let mut identifiers = HashMap::new();
+      let mut identifiers = FxHashMap::default();
 
       let make_obj = FunctionConfig {
         fn_ptr: FunctionType::StylexExprFn(|arg, _| {
@@ -289,7 +289,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
       EvaluationStyleXTransform {
         functions: FunctionMap {
           identifiers,
-          member_expressions: HashMap::new(),
+          member_expressions: FxHashMap::default(),
         },
         declarations: vec![],
         state: StateManager::default(),
@@ -313,7 +313,7 @@ fn evaluates_custom_functions_that_take_paths() {
       ..Default::default()
     }),
     |_| {
-      let mut identifiers = HashMap::new();
+      let mut identifiers = FxHashMap::default();
 
       let get_node = FunctionConfig {
         fn_ptr: FunctionType::StylexExprFn(|arg, _| {
@@ -344,7 +344,7 @@ fn evaluates_custom_functions_that_take_paths() {
       EvaluationStyleXTransform {
         functions: FunctionMap {
           identifiers,
-          member_expressions: HashMap::new(),
+          member_expressions: FxHashMap::default(),
         },
         declarations: vec![],
         state: StateManager::default(),

@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 
+use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{CallExpr, Expr, KeyValueProp, Lit, Pat, PropName, VarDeclarator},
@@ -215,7 +215,7 @@ pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool
 }
 
 pub(crate) fn is_target_call(
-  (call_name, imports_map): (&str, &HashSet<Atom>),
+  (call_name, imports_map): (&str, &FxHashSet<Atom>),
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {

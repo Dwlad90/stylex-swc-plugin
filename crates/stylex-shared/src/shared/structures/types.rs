@@ -1,6 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use indexmap::IndexMap;
+use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{BindingIdent, Expr},
@@ -17,7 +18,7 @@ pub(crate) type EvaluateResultFns =
   IndexMap<String, (Vec<BindingIdent>, IndexMap<String, Box<Expr>>)>;
 pub(crate) type EvaluationCallback = Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>;
 pub(crate) type FunctionMapMemberExpression =
-  HashMap<ImportSources, Box<HashMap<Atom, Box<FunctionConfigType>>>>;
-pub(crate) type FunctionMapIdentifiers = HashMap<Atom, Box<FunctionConfigType>>;
+  FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
+pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
 pub(crate) type StylesObjectMap =
   IndexMap<String, Box<IndexMap<String, Box<FlatCompiledStylesValue>>>>;

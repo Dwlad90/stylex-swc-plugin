@@ -1,5 +1,6 @@
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, env};
+use std::env;
 use std::{default::Default, fs::read_to_string};
 
 use package_json::{PackageDependencies, PackageJsonManager};
@@ -14,7 +15,7 @@ pub struct PackageJsonExtended {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub module: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub exports: Option<HashMap<String, String>>,
+  pub exports: Option<FxHashMap<String, String>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub dependencies: Option<PackageDependencies>,
   #[serde(skip_serializing_if = "Option::is_none")]

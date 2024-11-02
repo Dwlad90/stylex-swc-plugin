@@ -1,6 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use indexmap::IndexMap;
+use rustc_hash::FxHashMap;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{ArrowExpr, BlockStmtOrExpr, ExprOrSpread, Pat, PropName};
 use swc_core::{
@@ -67,8 +68,8 @@ where
 
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
 
-      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
-      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
+      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
       let include_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_include),
@@ -180,7 +181,7 @@ where
         self
           .state
           .style_vars
-          .insert(var_name.clone(), parent_var_decl.clone().unwrap());
+          .insert(var_name.clone(), *parent_var_decl.clone().unwrap());
       }
 
       let mut result_ast =

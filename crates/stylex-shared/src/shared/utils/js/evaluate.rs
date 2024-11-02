@@ -1,12 +1,9 @@
 use core::panic;
-use std::{
-  borrow::Borrow,
-  collections::{HashMap, HashSet},
-  rc::Rc,
-};
+use std::{borrow::Borrow, rc::Rc};
 
 use indexmap::IndexMap;
 use log::warn;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, DUMMY_SP},
@@ -125,7 +122,7 @@ pub fn evaluate(
   let mut state = Box::new(EvaluationState {
     confident: true,
     deopt_path: None,
-    added_imports: HashSet::new(),
+    added_imports: FxHashSet::default(),
     functions: fns.clone(),
     // traversal_state: Rc::clone(traversal_state),
   });
@@ -206,7 +203,7 @@ fn _evaluate(
                 move |cb_args: Vec<Option<EvaluateResultValue>>| {
                   let mut functions = functions.clone();
 
-                  let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
+                  let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
                   ident_params.iter().enumerate().for_each(|(index, ident)| {
                     if let Some(arg) = cb_args.get(index) {

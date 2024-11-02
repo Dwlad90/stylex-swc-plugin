@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 use crate::shared::constants::common::DEFAULT_INJECT_PATH;
@@ -15,13 +14,13 @@ pub struct StyleXStateOptions {
   pub test: bool,
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
-  // pub defined_stylex_css_variables: HashMap<String, String>,
+  // pub defined_stylex_css_variables: FxHashMap<String, String>,
   pub style_resolution: StyleResolution,
   pub import_sources: Vec<ImportSources>,
   pub runtime_injection: Option<RuntimeInjectionState>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
-  pub aliases: Option<HashMap<String, Vec<String>>>,
+  pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: Option<CheckModuleResolution>,
 }
 
@@ -32,7 +31,7 @@ impl StyleXStateOptions {
       use_rem_for_font_size: false,
       runtime_injection: None,
       class_name_prefix: "x".to_string(),
-      // defined_stylex_css_variables: HashMap::new(),
+      // defined_stylex_css_variables: FxHashMap::default(),
       import_sources: vec![],
       dev: false,
       test: false,

@@ -24,6 +24,7 @@ use crate::shared::{
   },
 };
 
+use rustc_hash::FxHashMap;
 use swc_core::{
   common::{input::StringInput, source_map::Pos, BytePos},
   css::{
@@ -36,7 +37,6 @@ use swc_core::{
   },
 };
 
-use std::collections::HashMap;
 
 use crate::shared::{
   constants::cursor_flip::CURSOR_FLIP, regex::LENGTH_UNIT_TESTER_REGEX,
@@ -156,7 +156,7 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
   let logical_to_physical = [("start", "right"), ("end", "left")]
     .iter()
     .cloned()
-    .collect::<HashMap<_, _>>();
+    .collect::<FxHashMap<_, _>>();
 
   match key {
     "margin-start" => Some(Pair::new("margin-right".to_string(), val.to_string())),

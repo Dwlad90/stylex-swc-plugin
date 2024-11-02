@@ -1,5 +1,6 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
+use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
 use crate::shared::enums::{
@@ -106,7 +107,7 @@ pub struct FunctionConfig {
 #[derive(Debug, PartialEq, Clone)]
 pub enum FunctionConfigType {
   Regular(FunctionConfig),
-  Map(HashMap<Atom, FunctionConfig>),
+  Map(FxHashMap<Atom, FunctionConfig>),
 }
 
 impl FunctionConfigType {
@@ -117,14 +118,14 @@ impl FunctionConfigType {
     }
   }
 
-  pub(crate) fn _as_map(&self) -> Option<&HashMap<Atom, FunctionConfig>> {
+  pub(crate) fn _as_map(&self) -> Option<&FxHashMap<Atom, FunctionConfig>> {
     match self {
       Self::Regular(_) => None,
       Self::Map(map) => Some(map),
     }
   }
 
-  pub(crate) fn as_map_mut(&mut self) -> Option<&mut HashMap<Atom, FunctionConfig>> {
+  pub(crate) fn as_map_mut(&mut self) -> Option<&mut FxHashMap<Atom, FunctionConfig>> {
     match self {
       Self::Regular(_) => None,
       Self::Map(map) => Some(map),

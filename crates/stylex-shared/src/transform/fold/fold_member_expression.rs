@@ -55,10 +55,7 @@ where
                     NonNullProp::Atom(prop_ident.sym.clone()),
                     NonNullProps::True,
                   );
-                  self
-                    .state
-                    .style_vars_to_keep
-                    .insert(Box::new(style_var_to_keep));
+                  self.state.style_vars_to_keep.insert(style_var_to_keep);
                 }
               }
             }

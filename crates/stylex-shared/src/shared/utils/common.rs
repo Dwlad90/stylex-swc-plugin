@@ -1,7 +1,8 @@
 use radix_fmt::radix;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
   any::type_name,
-  collections::{hash_map::Entry, HashMap, HashSet},
+  collections::hash_map::Entry,
   hash::{DefaultHasher, Hash, Hasher},
   ops::Deref,
   path::PathBuf,
@@ -292,7 +293,7 @@ fn prop_name_eq(a: &PropName, b: &PropName) -> bool {
 }
 
 pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
-  let mut set = HashSet::new();
+  let mut set = FxHashSet::default();
   let mut result = vec![];
 
   for prop in props.into_iter().rev() {
@@ -357,14 +358,14 @@ pub(crate) fn deep_merge_props(
 }
 
 pub(crate) fn get_hash_map_difference<K, V>(
-  orig_map: &HashMap<K, V>,
-  compare_map: &HashMap<K, V>,
-) -> HashMap<K, V>
+  orig_map: &FxHashMap<K, V>,
+  compare_map: &FxHashMap<K, V>,
+) -> FxHashMap<K, V>
 where
   K: Eq + Hash + Clone,
   V: PartialEq + Clone,
 {
-  let mut diff = HashMap::new();
+  let mut diff = FxHashMap::default();
 
   for (key, value) in orig_map {
     if let Some(map2_value) = compare_map.get(key) {
@@ -386,10 +387,10 @@ where
 }
 
 pub(crate) fn get_hash_map_value_difference(
-  orig_map: &HashMap<Atom, i16>,
-  map2: &HashMap<Atom, i16>,
-) -> HashMap<Atom, i16> {
-  let mut diff = HashMap::new();
+  orig_map: &FxHashMap<Atom, i16>,
+  map2: &FxHashMap<Atom, i16>,
+) -> FxHashMap<Atom, i16> {
+  let mut diff = FxHashMap::default();
 
   for (key, value) in orig_map {
     if let Some(map2_value) = map2.get(key) {
@@ -405,10 +406,10 @@ pub(crate) fn get_hash_map_value_difference(
 }
 
 pub(crate) fn sum_hash_map_values(
-  orig_map: &HashMap<Atom, i16>,
-  compare_map: &HashMap<Atom, i16>,
-) -> HashMap<Atom, i16> {
-  let mut sum_map = HashMap::new();
+  orig_map: &FxHashMap<Atom, i16>,
+  compare_map: &FxHashMap<Atom, i16>,
+) -> FxHashMap<Atom, i16> {
+  let mut sum_map = FxHashMap::default();
 
   for (key, value) in orig_map {
     sum_map.insert(key.clone(), *value);

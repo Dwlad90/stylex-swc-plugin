@@ -1,5 +1,6 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::hash_map::Entry;
 
+use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
   common::{comments::Comments, EqIgnoreSpan},
@@ -64,14 +65,10 @@ where
       }
       TransformationCycle::Cleaning => {
         {
-          let mut vars_to_keep: HashMap<Atom, NonNullProps> = HashMap::new();
+          let mut vars_to_keep: FxHashMap<Atom, NonNullProps> = FxHashMap::default();
 
-          for StyleVarsToKeep(var_name, namespace_name, _) in self
-            .state
-            .style_vars_to_keep
-            .clone()
-            .into_iter()
-            .map(|item| *item)
+          for StyleVarsToKeep(var_name, namespace_name, _) in
+            self.state.style_vars_to_keep.clone().into_iter()
           {
             match vars_to_keep.entry(var_name) {
               Entry::Occupied(mut entry) => {
@@ -113,11 +110,8 @@ where
                       };
 
                     if !namespaces_to_keep.is_empty() {
-                      let props = self.retain_object_props(
-                        &mut object,
-                        namespaces_to_keep,
-                        var_name.as_ref(),
-                      );
+                      let props =
+                        self.retain_object_props(&mut object, namespaces_to_keep, &var_name);
 
                       object.props = props;
 
@@ -166,7 +160,7 @@ where
               .style_vars_to_keep
               .iter()
               .filter_map(|top_level_expression| {
-                let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression.as_ref();
+                let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
 
                 if var_id.eq(var) && namespace_name.eq(&key_id.clone()) {
                   Some(prop.clone())

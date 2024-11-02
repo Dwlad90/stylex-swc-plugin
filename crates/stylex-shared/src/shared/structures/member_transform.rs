@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 
+use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::{Expr, MemberExpr};
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
 
@@ -35,8 +35,8 @@ impl Fold for MemberTransform {
       &mut self.non_null_props,
       &mut self.state,
       &FunctionMap {
-        identifiers: HashMap::new(),
-        member_expressions: HashMap::new(),
+        identifiers: FxHashMap::default(),
+        member_expressions: FxHashMap::default(),
       },
     );
 

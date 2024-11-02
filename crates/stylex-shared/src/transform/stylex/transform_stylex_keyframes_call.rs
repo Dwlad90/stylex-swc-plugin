@@ -1,6 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use indexmap::IndexMap;
+use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
@@ -51,8 +52,8 @@ where
         None => first_arg.expr.clone(),
       })?;
 
-      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
-      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
+      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
       let include_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_include),

@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 
+use rustc_hash::FxHashMap;
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
   StyleXTransform,
@@ -20,7 +20,7 @@ fn disallow_unclosed_style_value_functions() {
     |tr| {
       let mut config = StyleXOptionsParams::default();
 
-      let mut defined_stylex_css_variables = HashMap::new();
+      let mut defined_stylex_css_variables = FxHashMap::default();
 
       defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
 
@@ -52,7 +52,7 @@ fn disallow_unprefixed_custom_properties() {
     |tr| {
       let mut config = StyleXOptionsParams::default();
 
-      let mut defined_stylex_css_variables = HashMap::new();
+      let mut defined_stylex_css_variables = FxHashMap::default();
 
       defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
 
@@ -81,7 +81,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    let mut defined_stylex_css_variables = HashMap::new();
+    let mut defined_stylex_css_variables = FxHashMap::default();
 
     defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
 
@@ -108,7 +108,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    let mut defined_stylex_css_variables = HashMap::new();
+    let mut defined_stylex_css_variables = FxHashMap::default();
 
     defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
@@ -153,7 +153,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    let defined_stylex_css_variables = HashMap::new();
+    let defined_stylex_css_variables = FxHashMap::default();
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
@@ -178,7 +178,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams::default();
 
-    let mut defined_stylex_css_variables = HashMap::new();
+    let mut defined_stylex_css_variables = FxHashMap::default();
 
     defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());

@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use napi::JsObject;
 use napi_derive::napi;
+use rustc_hash::FxHashMap;
 use stylex_shared::shared::structures::{
   named_import_source::ImportSources,
   stylex_options::{ModuleResolution, StyleResolution, StyleXOptionsParams},
@@ -20,14 +19,14 @@ pub struct StyleXOptions {
   pub use_rem_for_font_size: Option<bool>,
   pub runtime_injection: Option<bool>,
   pub class_name_prefix: Option<String>,
-  pub defined_stylex_css_variables: Option<HashMap<String, String>>,
+  pub defined_stylex_css_variables: Option<FxHashMap<String, String>>,
   #[napi(ts_type = "(string | { as: string, from: string })[]")]
   pub import_sources: Option<Vec<String>>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
-  pub aliases: Option<HashMap<String, Vec<String>>>,
+  pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
 }

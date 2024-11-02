@@ -1,6 +1,7 @@
-use std::{collections::HashMap, fmt, rc::Rc};
+use std::{fmt, rc::Rc};
 
 use indexmap::IndexMap;
+use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, KeyValueProp, Lit},
@@ -17,7 +18,7 @@ pub enum EvaluateResultValue {
   Entries(IndexMap<Lit, Lit>),
   Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
-  FunctionConfigMap(HashMap<Atom, FunctionConfig>),
+  FunctionConfigMap(FxHashMap<Atom, FunctionConfig>),
   ThemeRef(ThemeRef),
 }
 

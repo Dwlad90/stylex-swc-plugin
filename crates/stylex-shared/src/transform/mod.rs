@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 
+use rustc_hash::FxHashSet;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
@@ -222,8 +222,8 @@ where
   }
 }
 
-fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> HashSet<ImportSources> {
-  let mut stylex_imports = HashSet::new();
+fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> FxHashSet<ImportSources> {
+  let mut stylex_imports = FxHashSet::default();
 
   stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
   stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));

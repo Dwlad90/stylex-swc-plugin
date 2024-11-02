@@ -1,5 +1,6 @@
 use std::{collections::HashMap, panic};
 
+use rustc_hash::FxHashMap;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -46,8 +47,8 @@ where
         None => first_arg.expr.clone(),
       })?;
 
-      let mut identifiers: FunctionMapIdentifiers = HashMap::new();
-      let mut member_expressions: FunctionMapMemberExpression = HashMap::new();
+      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
+      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();

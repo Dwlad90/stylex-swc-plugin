@@ -27,6 +27,8 @@ pretty_env_logger.workspace = true
 color-backtrace.workspace = true
 ctor.workspace = true
 env_logger.workspace = true
+rustc-hash.workspace = true
+once_cell.workspace = true
 
 package-json = "0.4.0"
 pathdiff = { version = "0.2.1" }

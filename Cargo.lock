@@ -443,12 +443,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam-utils"
-version = "0.8.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
-
-[[package]]
 name = "crypto-common"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -533,20 +527,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "978747c1d849a7d2ee5e8adc0159961c48fb7e5db2f06af6723b80123bb53856"
 dependencies = [
  "cfg-if",
- "hashbrown 0.14.5",
- "lock_api",
- "once_cell",
- "parking_lot_core",
-]
-
-[[package]]
-name = "dashmap"
-version = "6.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
  "hashbrown 0.14.5",
  "lock_api",
  "once_cell",
@@ -830,7 +810,7 @@ dependencies = [
  "new_debug_unreachable",
  "once_cell",
  "phf",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "triomphe",
 ]
 
@@ -1589,6 +1569,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
+name = "rustc-hash"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
+
+[[package]]
 name = "rustc_version"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1807,7 +1793,7 @@ dependencies = [
  "data-encoding",
  "debugid",
  "if_chain",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "rustc_version 0.2.3",
  "serde",
  "serde_json",
@@ -1826,7 +1812,7 @@ dependencies = [
  "data-encoding",
  "debugid",
  "if_chain",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "rustc_version 0.2.3",
  "serde",
  "serde_json",
@@ -1897,6 +1883,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "rustc-hash 2.0.0",
  "serde",
  "serde_json",
  "stylex_shared",
@@ -1914,11 +1901,13 @@ dependencies = [
  "ctor",
  "env_logger",
  "log",
+ "once_cell",
  "package-json",
  "path-clean 1.0.1",
  "pathdiff",
  "pretty_env_logger",
  "regex",
+ "rustc-hash 2.0.0",
  "serde",
  "serde_json",
  "swc_core",
@@ -1933,7 +1922,6 @@ dependencies = [
  "colored",
  "cssparser",
  "ctor",
- "dashmap 6.1.0",
  "derive_more",
  "env_logger",
  "indexmap",
@@ -1948,6 +1936,7 @@ dependencies = [
  "pretty_env_logger",
  "radix_fmt",
  "regex",
+ "rustc-hash 2.0.0",
  "serde",
  "serde_json",
  "stringcase",
@@ -2002,7 +1991,7 @@ dependencies = [
  "bumpalo",
  "hashbrown 0.14.5",
  "ptr_meta",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "triomphe",
 ]
 
@@ -2016,7 +2005,7 @@ dependencies = [
  "hstr",
  "once_cell",
  "rkyv",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
 ]
 
@@ -2028,7 +2017,7 @@ checksum = "83406221c501860fce9c27444f44125eafe9e598b8b81be7563d7036784cd05c"
 dependencies = [
  "ahash 0.8.11",
  "anyhow",
- "dashmap 5.5.3",
+ "dashmap",
  "once_cell",
  "regex",
  "serde",
@@ -2053,7 +2042,7 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "rkyv",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "siphasher",
  "sourcemap 8.0.1",
@@ -2081,7 +2070,7 @@ dependencies = [
  "num-bigint",
  "once_cell",
  "parking_lot",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "siphasher",
  "swc_allocator",
@@ -2106,7 +2095,7 @@ dependencies = [
  "napi-derive",
  "once_cell",
  "pathdiff",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "serde_json",
  "sourcemap 8.0.1",
@@ -2195,7 +2184,7 @@ checksum = "894275a04a693db249903c29b31dfc71fae0bde68c49d4c4a935243f9eeba691"
 dependencies = [
  "auto_impl",
  "bitflags",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "swc_atoms",
  "swc_common 0.34.4",
@@ -2286,7 +2275,7 @@ dependencies = [
  "memchr",
  "num-bigint",
  "once_cell",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "sourcemap 8.0.1",
  "swc_atoms",
@@ -2315,7 +2304,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a9febebf047d1286e7b723fa2758f3229da2c103834f3eaee69833f46692612"
 dependencies = [
  "anyhow",
- "dashmap 5.5.3",
+ "dashmap",
  "normpath",
  "once_cell",
  "path-clean 0.1.0",
@@ -2342,7 +2331,7 @@ dependencies = [
  "phf",
  "radix_fmt",
  "regex",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "ryu-js",
  "serde",
  "serde_json",
@@ -2408,7 +2397,7 @@ dependencies = [
  "indexmap",
  "once_cell",
  "phf",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "smallvec",
  "swc_atoms",
@@ -2438,11 +2427,11 @@ version = "0.201.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "724a8306e98c1b1f9640fc44c1acc0c971f6daa17651919e06b64f905d4a4564"
 dependencies = [
- "dashmap 5.5.3",
+ "dashmap",
  "indexmap",
  "once_cell",
  "petgraph",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde_json",
  "swc_atoms",
  "swc_common 0.34.4",
@@ -2489,7 +2478,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "146562ac3515c8de0fa9d479c43ae673cf9df9ece814f8b8130686080a7251ac"
 dependencies = [
  "indexmap",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "swc_atoms",
  "swc_common 0.34.4",
  "swc_ecma_ast",
@@ -2508,7 +2497,7 @@ dependencies = [
  "indexmap",
  "num_cpus",
  "once_cell",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "ryu-js",
  "swc_atoms",
  "swc_common 0.34.4",
@@ -2577,7 +2566,7 @@ checksum = "c00cf5c1687e9858fb9de1ffa90a3e21369095406e97ace870a389320d105b0a"
 dependencies = [
  "indexmap",
  "petgraph",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "swc_common 0.34.4",
 ]
 

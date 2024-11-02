@@ -1,6 +1,6 @@
-use dashmap::DashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::Ident;
 
 use crate::shared::utils::ast::factories::ident_factory;
@@ -8,13 +8,14 @@ use crate::shared::utils::ast::factories::ident_factory;
 /// A thread-safe generator for unique identifiers.
 pub(crate) struct UidGenerator {
   prefix: String,
-  counters: DashMap<String, AtomicUsize>,
+  counters: FxHashMap<String, AtomicUsize>,
 }
 
 impl UidGenerator {
   /// Creates a new IdGenerator with the given prefix.
   pub fn new(prefix: &str) -> Self {
-    let counters = DashMap::new();
+    let mut counters = FxHashMap::default();
+
     counters
       .entry(prefix.to_string())
       .or_insert_with(|| AtomicUsize::new(1));
@@ -23,7 +24,7 @@ impl UidGenerator {
       counters,
     }
   }
-  pub fn _clear(&self) {
+  pub fn _clear(&mut self) {
     self.counters.remove(&self.prefix);
   }
   pub fn generate(&self) -> String {

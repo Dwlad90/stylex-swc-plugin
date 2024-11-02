@@ -1,10 +1,11 @@
 use log::warn;
+use once_cell::sync::Lazy;
 use path_clean::PathClean;
 use regex::Regex;
+use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
-use std::{collections::HashMap, default::Default};
 use swc_core::{
-  common::{sync::Lazy, FileName},
+  common::FileName,
   ecma::loader::{resolve::Resolve, resolvers::node::NodeModulesResolver, TargetEnv},
 };
 
@@ -195,7 +196,7 @@ fn get_node_modules_path(
 
 fn resolve_package_json_exports(
   potential_file_path: &str,
-  exports: &HashMap<String, String>,
+  exports: &FxHashMap<String, String>,
   potential_package_path: &mut String,
   real_resolved_node_modules_path: &Path,
 ) {
@@ -247,7 +248,7 @@ pub fn resolve_file_path(
   source_file_path: &str,
   ext: &str,
   root_path: &str,
-  aliases: &HashMap<String, Vec<String>>,
+  aliases: &FxHashMap<String, Vec<String>>,
 ) -> std::io::Result<PathBuf> {
   let source_dir = Path::new(source_file_path).parent().unwrap();
 
@@ -342,7 +343,7 @@ pub fn resolve_file_path(
 
 fn possible_aliased_paths(
   import_path_str: &str,
-  aliases: &HashMap<String, Vec<String>>,
+  aliases: &FxHashMap<String, Vec<String>>,
 ) -> Vec<PathBuf> {
   let mut result = vec![PathBuf::from(import_path_str)];
 

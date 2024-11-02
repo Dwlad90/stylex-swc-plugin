@@ -26,6 +26,7 @@ swc_core = { workspace = true, features = [
   "css_ast",
 ] }
 color-backtrace.workspace = true
+rustc-hash.workspace = true
 
 swc_compiler_base = { version = "*", features = ["node"] }
 swc_ecma_parser = { version = "*", features = ["verify"] }

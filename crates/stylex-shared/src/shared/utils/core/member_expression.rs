@@ -112,6 +112,6 @@ pub(crate) fn member_expression(
       style_non_null_props,
     );
 
-    state.style_vars_to_keep.insert(Box::new(style_var_to_keep));
+    state.style_vars_to_keep.insert(style_var_to_keep);
   }
 }

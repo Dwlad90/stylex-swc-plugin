@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+
+use rustc_hash::FxHashMap;
 
 use crate::shared::utils::common::{create_hash, gen_file_based_identifier};
 
@@ -7,7 +8,7 @@ pub struct ThemeRef {
   file_name: String,
   export_name: String,
   class_name_prefix: String,
-  map: HashMap<String, String>,
+  map: FxHashMap<String, String>,
 }
 
 impl ThemeRef {
@@ -16,7 +17,7 @@ impl ThemeRef {
       file_name,
       export_name,
       class_name_prefix,
-      map: HashMap::new(),
+      map: FxHashMap::default(),
     }
   }
 

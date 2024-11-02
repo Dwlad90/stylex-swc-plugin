@@ -15,7 +15,7 @@ use swc_core::{
 pub(crate) fn evaluate_map(
   funcs: &[EvaluateResultValue],
   args: &[Option<EvaluateResultValue>],
-) -> Option<Box<EvaluateResultValue>> {
+) -> Option<EvaluateResultValue> {
   let cb = funcs.first()?;
 
   let cb = cb.as_callback()?;
@@ -33,7 +33,7 @@ pub(crate) fn evaluate_map(
             .map(|expr| {
               let expr = evaluate_map_cb(cb, expr);
 
-              EvaluateResultValue::Expr(Box::new(expr))
+              EvaluateResultValue::Expr(expr)
             })
             .collect::<Vec<EvaluateResultValue>>();
 
@@ -55,22 +55,18 @@ pub(crate) fn evaluate_map(
     .collect::<Vec<Expr>>();
 
   match func_result.first() {
-    Some(Expr::Array(array)) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::from(
-      array.clone(),
-    ))))),
-    _ => Some(Box::new(EvaluateResultValue::Expr(Box::new(
-      array_expression_factory(
-        func_result
-          .into_iter()
-          .map(|expr| {
-            Some(ExprOrSpread {
-              spread: None,
-              expr: Box::new(expr),
-            })
+    Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::from(array.clone()))),
+    _ => Some(EvaluateResultValue::Expr(array_expression_factory(
+      func_result
+        .into_iter()
+        .map(|expr| {
+          Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(expr),
           })
-          .collect(),
-      ),
-    )))),
+        })
+        .collect(),
+    ))),
   }
 }
 
@@ -79,7 +75,7 @@ pub(crate) fn evaluate_join(
   args: &[Option<EvaluateResultValue>],
   state: &mut StateManager,
   functions: &FunctionMap,
-) -> Option<Box<EvaluateResultValue>> {
+) -> Option<EvaluateResultValue> {
   let join_arg = funcs.first()?;
 
   let join_arg = expr_to_str(join_arg.as_expr()?, state, functions);
@@ -98,15 +94,13 @@ pub(crate) fn evaluate_join(
     .collect::<Vec<String>>()
     .join(&join_arg);
 
-  Some(Box::new(EvaluateResultValue::Expr(Box::new(
-    string_to_expression(&result),
-  ))))
+  Some(EvaluateResultValue::Expr(string_to_expression(&result)))
 }
 
 pub(crate) fn evaluate_filter(
   funcs: &[EvaluateResultValue],
   args: &[Option<EvaluateResultValue>],
-) -> Option<Box<EvaluateResultValue>> {
+) -> Option<EvaluateResultValue> {
   let cb = funcs.first()?;
 
   let cb = cb.as_callback()?;
@@ -117,7 +111,7 @@ pub(crate) fn evaluate_filter(
       let result = arg.as_ref()?;
 
       match result {
-        EvaluateResultValue::Expr(expr) => evaluate_filter_cb(cb, arg, expr.as_ref()),
+        EvaluateResultValue::Expr(expr) => evaluate_filter_cb(cb, arg, expr),
         EvaluateResultValue::Vec(vec) => {
           let func_result = vec
             .iter()
@@ -125,7 +119,7 @@ pub(crate) fn evaluate_filter(
               let result =
                 evaluate_filter_cb(cb, &expr.clone(), &expr.as_ref()?.as_expr()?.clone());
 
-              result.map(|expr| EvaluateResultValue::Expr(Box::new(expr)))
+              result.map(EvaluateResultValue::Expr)
             })
             .collect::<Vec<EvaluateResultValue>>();
 
@@ -150,23 +144,19 @@ pub(crate) fn evaluate_filter(
     .collect::<Vec<Expr>>();
 
   match func_result.first() {
-    Some(Expr::Array(array)) => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::from(
-      array.clone(),
-    ))))),
-    _ => Some(Box::new(EvaluateResultValue::Expr(Box::new(Expr::from(
-      ArrayLit {
-        span: DUMMY_SP,
-        elems: func_result
-          .into_iter()
-          .map(|expr| {
-            Some(ExprOrSpread {
-              spread: None,
-              expr: Box::new(expr),
-            })
+    Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::from(array.clone()))),
+    _ => Some(EvaluateResultValue::Expr(Expr::from(ArrayLit {
+      span: DUMMY_SP,
+      elems: func_result
+        .into_iter()
+        .map(|expr| {
+          Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(expr),
           })
-          .collect(),
-      },
-    ))))),
+        })
+        .collect(),
+    }))),
   }
 }
 

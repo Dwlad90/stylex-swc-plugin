@@ -41,7 +41,7 @@ pub fn evaluate_stylex_create_arg(
 ) -> Box<EvaluateResult> {
   match path {
     Expr::Object(style_object) => {
-      let mut result_value: IndexMap<Box<Expr>, Vec<KeyValueProp>> = IndexMap::new();
+      let mut result_value: IndexMap<Expr, Vec<KeyValueProp>> = IndexMap::new();
 
       let mut fns: EvaluateResultFns = IndexMap::new();
 
@@ -113,7 +113,7 @@ pub fn evaluate_stylex_create_arg(
                         fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
 
                         result_value.insert(
-                          Box::new(key_expr.clone()),
+                          key_expr.clone(),
                           value
                             .props
                             .into_iter()
@@ -136,8 +136,8 @@ pub fn evaluate_stylex_create_arg(
                       return val;
                     }
 
-                    let value_to_insert = match val.value.unwrap().as_ref() {
-                      EvaluateResultValue::Expr(expr) => match expr.as_ref() {
+                    let value_to_insert = match val.value.unwrap() {
+                      EvaluateResultValue::Expr(expr) => match expr {
                         Expr::Object(obj_expr) => {
                           let mut obj_expr_props: Vec<KeyValueProp> = vec![];
 
@@ -165,7 +165,7 @@ pub fn evaluate_stylex_create_arg(
                       _ => panic!("{}", ILLEGAL_NAMESPACE_VALUE),
                     };
 
-                    result_value.insert(Box::new(key_expr.clone()), value_to_insert);
+                    result_value.insert(key_expr.clone(), value_to_insert);
 
                     continue;
                   }
@@ -182,7 +182,7 @@ pub fn evaluate_stylex_create_arg(
       Box::new(EvaluateResult {
         confident: true,
         deopt: None,
-        value: Some(Box::new(EvaluateResultValue::Map(result_value))),
+        value: Some(EvaluateResultValue::Map(result_value)),
         inline_styles: None,
         fns: if fns.is_empty() { None } else { Some(fns) },
       })
@@ -405,9 +405,7 @@ fn evaluate_partial_object_recursively(
   Box::new(EvaluateResult {
     confident: true,
     deopt: None,
-    value: Some(Box::new(EvaluateResultValue::Expr(Box::new(
-      object_expression_factory(obj),
-    )))),
+    value: Some(EvaluateResultValue::Expr(object_expression_factory(obj))),
     inline_styles: Some(inline_styles),
     fns: None,
   })

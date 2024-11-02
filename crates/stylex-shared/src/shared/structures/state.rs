@@ -2,15 +2,14 @@ use std::collections::{HashMap, HashSet};
 
 use swc_core::ecma::ast::Expr;
 
-use super::{functions::FunctionMap, state_manager::StateManager};
+use super::functions::FunctionMap;
 
 #[derive(Debug)]
 pub struct EvaluationState {
   pub(crate) confident: bool,
-  pub(crate) deopt_path: Option<Box<Expr>>,
+  pub(crate) deopt_path: Option<Expr>,
   pub(crate) added_imports: HashSet<String>,
   pub(crate) functions: FunctionMap,
-  pub(crate) traversal_state: StateManager,
 }
 
 impl Default for EvaluationState {
@@ -23,13 +22,12 @@ impl Default for EvaluationState {
         identifiers: HashMap::new(),
         member_expressions: HashMap::new(),
       },
-      traversal_state: StateManager::default(),
     }
   }
 }
 
 impl EvaluationState {
-  pub(crate) fn new(traversal_state: &StateManager) -> Self {
+  pub(crate) fn new() -> Self {
     EvaluationState {
       confident: true,
       deopt_path: None,
@@ -38,7 +36,6 @@ impl EvaluationState {
         identifiers: HashMap::new(),
         member_expressions: HashMap::new(),
       },
-      traversal_state: traversal_state.clone(),
     }
   }
 }

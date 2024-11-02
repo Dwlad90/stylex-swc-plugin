@@ -30,6 +30,35 @@ fn must_be_bound_to_a_variable() {
 }
 
 #[test]
+fn can_be_item_of_array() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        &PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+            import stylex from "@stylexjs/stylex";
+
+            export const lotsOfStyles = [stylex.create({})];
+        "#,
+    r#"
+      import stylex from "@stylexjs/stylex";
+      export const lotsOfStyles = [
+          {}
+      ];
+    "#,
+    false,
+  )
+}
+
+#[test]
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
 fn must_be_called_at_top_level() {
   test_transform(

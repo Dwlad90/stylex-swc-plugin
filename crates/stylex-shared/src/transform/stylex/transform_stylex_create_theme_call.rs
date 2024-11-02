@@ -44,7 +44,7 @@ where
     let result = if is_create_theme_call {
       let (_, parent_var_decl) = &self.get_call_var_name(call);
 
-      validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
+      validate_stylex_create_theme_indent(parent_var_decl, call, &self.state);
 
       let first_arg = call.args.first();
       let second_arg = call.args.get(1);
@@ -111,7 +111,7 @@ where
 
       let mut variables = match evaluated_arg1.value {
         Some(value) => {
-          validate_theme_variables(&value, &mut self.state);
+          validate_theme_variables(&value);
 
           value
         }

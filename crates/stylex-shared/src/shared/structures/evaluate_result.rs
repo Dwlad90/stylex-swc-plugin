@@ -17,8 +17,8 @@ use super::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct EvaluateResult {
   pub(crate) confident: bool,
-  pub value: Option<Box<EvaluateResultValue>>,
-  pub(crate) deopt: Option<Box<Expr>>,
+  pub value: Option<EvaluateResultValue>,
+  pub(crate) deopt: Option<Expr>,
   pub(crate) inline_styles: Option<IndexMap<String, Box<Expr>>>,
   pub(crate) fns: Option<EvaluateResultFns>,
 }
@@ -38,14 +38,14 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_map(&self) -> Option<&IndexMap<Box<Expr>, Vec<KeyValueProp>>> {
+  pub fn as_map(&self) -> Option<&IndexMap<Expr, Vec<KeyValueProp>>> {
     match self {
       EvaluateResultValue::Map(value) => Some(value),
       _ => None,
     }
   }
 
-  pub fn as_entries(&self) -> Option<&IndexMap<Box<Lit>, Box<Lit>>> {
+  pub fn as_entries(&self) -> Option<&IndexMap<Lit, Lit>> {
     match self {
       EvaluateResultValue::Entries(value) => Some(value),
       _ => None,

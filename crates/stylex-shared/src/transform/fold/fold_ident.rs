@@ -13,7 +13,9 @@ where
   C: Comments,
 {
   pub(crate) fn fold_ident_impl(&mut self, ident: Ident) -> Ident {
-    match self.state.cycle {
+    let cycle = self.state.cycle;
+
+    match cycle {
       TransformationCycle::StateFilling => {
         increase_ident_count(&mut self.state, &ident);
       }

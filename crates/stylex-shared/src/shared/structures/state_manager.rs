@@ -1,10 +1,10 @@
 use core::panic;
-use std::option::Option;
-use std::path::Path;
+use std::{cell::RefCell, path::Path};
 use std::{
   collections::{HashMap, HashSet},
   hash::Hash,
 };
+use std::{option::Option, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
 use stylex_path_resolver::resolvers::{resolve_file_path, resolve_path, EXTENSIONS};
@@ -18,14 +18,6 @@ use swc_core::{
   common::{EqIgnoreSpan, FileName, DUMMY_SP},
 };
 
-use crate::shared::enums::{
-  core::TransformationCycle,
-  data_structures::{
-    import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
-    style_vars_to_keep::StyleVarsToKeep,
-    top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-  },
-};
 use crate::shared::utils::{
   ast::factories::binding_ident_factory,
   common::{
@@ -37,6 +29,17 @@ use crate::shared::{
   utils::ast::factories::{
     expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
   },
+};
+use crate::shared::{
+  enums::{
+    core::TransformationCycle,
+    data_structures::{
+      import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
+      style_vars_to_keep::StyleVarsToKeep,
+      top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+    },
+  },
+  utils::common::stable_hash,
 };
 
 use super::plugin_pass::PluginPass;
@@ -53,9 +56,15 @@ use super::{
 type AtomHashMap = HashMap<Atom, i16>;
 type AtomHashSet = HashSet<Atom>;
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct SeenValueWithVarDeclCount {
+  pub(crate) seen_value: SeenValue,
+  pub(crate) var_decl_count: Option<AtomHashMap>,
+}
+
 #[derive(Clone, Debug)]
 pub struct StateManager {
-  pub(crate) _state: Box<PluginPass>,
+  pub(crate) _state: Rc<PluginPass>,
 
   // Imports
   pub(crate) import_paths: HashSet<String>,
@@ -69,17 +78,18 @@ pub struct StateManager {
   pub(crate) stylex_define_vars_import: AtomHashSet,
   pub(crate) stylex_create_theme_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
-  pub(crate) inject_import_inserted: Option<(Box<Ident>, Box<Ident>)>,
+  pub(crate) inject_import_inserted: Option<(Rc<Ident>, Rc<Ident>)>,
   pub(crate) theme_name: Option<String>,
 
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) all_call_expressions: Vec<CallExpr>,
   pub(crate) var_decl_count_map: AtomHashMap,
-  pub(crate) seen: HashMap<Box<Expr>, (Box<SeenValue>, Option<AtomHashMap>)>,
+  pub(crate) seen: HashMap<u64, Rc<SeenValueWithVarDeclCount>>,
+  pub(crate) css_property_seen: HashMap<String, String>,
 
   // `stylex.create` calls
-  pub(crate) style_map: HashMap<String, Box<StylesObjectMap>>,
+  pub(crate) style_map: HashMap<String, Rc<StylesObjectMap>>,
   pub(crate) style_vars: HashMap<String, Box<VarDeclarator>>,
 
   // results of `stylex.create` calls that should be kept
@@ -88,13 +98,13 @@ pub struct StateManager {
 
   pub(crate) in_stylex_create: bool,
 
-  pub(crate) options: Box<StyleXStateOptions>,
-  pub metadata: IndexMap<String, Vec<MetaData>>,
-  pub(crate) styles_to_inject: IndexMap<Box<Expr>, Vec<ModuleItem>>,
+  pub(crate) options: Rc<RefCell<StyleXStateOptions>>,
+  pub metadata: IndexMap<String, IndexSet<MetaData>>,
+  pub(crate) styles_to_inject: IndexMap<u64, Vec<ModuleItem>>,
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
-  pub(crate) injected_keyframes: IndexMap<String, Box<InjectableStyle>>,
+  pub(crate) injected_keyframes: IndexMap<String, Rc<InjectableStyle>>,
   pub(crate) top_imports: Vec<ImportDecl>,
 
   pub(crate) cycle: TransformationCycle,
@@ -108,10 +118,10 @@ impl Default for StateManager {
 
 impl StateManager {
   pub fn new(stylex_options: StyleXOptions) -> Self {
-    let options = Box::new(StyleXStateOptions::from(stylex_options));
+    let options = Rc::new(RefCell::new(StyleXStateOptions::from(stylex_options)));
 
     Self {
-      _state: Box::<PluginPass>::default(),
+      _state: Rc::new(PluginPass::default()),
       import_paths: HashSet::new(),
       stylex_import: HashSet::new(),
       stylex_props_import: HashSet::new(),
@@ -131,6 +141,7 @@ impl StateManager {
       theme_name: None,
 
       seen: HashMap::new(),
+      css_property_seen: HashMap::new(),
 
       top_imports: vec![],
 
@@ -154,7 +165,7 @@ impl StateManager {
   }
 
   pub fn import_as(&self, import: &str) -> Option<String> {
-    for import_source in &self.options.import_sources {
+    for import_source in &self.options.borrow().import_sources {
       match import_source {
         ImportSources::Regular(_) => {}
         ImportSources::Named(named) => {
@@ -169,18 +180,18 @@ impl StateManager {
   }
 
   pub fn import_sources(&self) -> Vec<ImportSources> {
-    self.options.import_sources.clone()
+    self.options.borrow().import_sources.clone()
   }
 
   pub fn import_sources_stringified(&self) -> Vec<String> {
     self
       .options
+      .borrow()
       .import_sources
-      .clone()
-      .into_iter()
+      .iter()
       .map(|import_source| match import_source {
-        ImportSources::Regular(regular) => regular,
-        ImportSources::Named(named) => named.from,
+        ImportSources::Regular(regular) => regular.clone(),
+        ImportSources::Named(named) => named.from.clone(),
       })
       .collect()
   }
@@ -188,8 +199,7 @@ impl StateManager {
   pub fn stylex_import_stringified(&self) -> Vec<String> {
     self
       .stylex_import
-      .clone()
-      .into_iter()
+      .iter()
       .map(|import_source| match &import_source {
         ImportSources::Regular(regular) => regular.clone(),
         ImportSources::Named(named) => named.clone().r#as,
@@ -198,15 +208,15 @@ impl StateManager {
   }
 
   pub(crate) fn is_test(&self) -> bool {
-    self.options.test
+    self.options.borrow().test
   }
 
   pub(crate) fn is_dev(&self) -> bool {
-    self.options.dev
+    self.options.borrow().dev
   }
 
   pub(crate) fn gen_conditional_classes(&self) -> bool {
-    self.options.gen_conditional_classes
+    self.options.borrow().gen_conditional_classes
   }
 
   pub(crate) fn get_short_filename(&self) -> String {
@@ -220,6 +230,7 @@ impl StateManager {
 
     let unstable_module_resolution = self
       .options
+      .borrow()
       .unstable_module_resolution
       .clone()
       .unwrap_or_default();
@@ -243,7 +254,7 @@ impl StateManager {
 
     if filename.is_empty()
       || !matches_file_suffix(theme_file_extension.as_str(), &filename)
-      || self.options.unstable_module_resolution.is_none()
+      || self.options.borrow().unstable_module_resolution.is_none()
     {
       return None;
     }
@@ -277,7 +288,7 @@ impl StateManager {
       return ImportPathResolution::False;
     }
 
-    let Some(unstable_module_resolution) = &self.options.unstable_module_resolution else {
+    let Some(unstable_module_resolution) = &self.options.borrow().unstable_module_resolution else {
       return ImportPathResolution::False;
     };
 
@@ -293,7 +304,7 @@ impl StateManager {
           .clone()
           .unwrap_or(".stylex".to_string());
 
-        let aliases = self.options.aliases.clone().unwrap_or_default();
+        let aliases = self.options.borrow().aliases.clone().unwrap_or_default();
 
         if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
           return ImportPathResolution::False;
@@ -330,15 +341,15 @@ impl StateManager {
   ) -> Option<TopLevelExpression> {
     self
       .top_level_expressions
-      .clone()
-      .into_iter()
+      .iter()
       .find(|tpe| kind.eq(&tpe.0) && tpe.1.eq(&Box::new(Expr::Call(call.clone()))))
+      .cloned()
   }
 
   pub(crate) fn register_styles(
     &mut self,
     call: &CallExpr,
-    style: &IndexMap<String, Box<InjectableStyle>>,
+    style: &IndexMap<String, Rc<InjectableStyle>>,
     ast: &Expr,
   ) {
     if style.is_empty() {
@@ -351,8 +362,9 @@ impl StateManager {
 
     let runtime_injection_default = &RuntimeInjectionState::Regular(String::default());
 
-    let runtime_injection = self
-      .options
+    let binding = self.options.borrow().clone();
+
+    let runtime_injection = &binding
       .runtime_injection
       .as_ref()
       .unwrap_or(runtime_injection_default);
@@ -360,9 +372,9 @@ impl StateManager {
     let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
       Some(idents) => idents,
       None => {
-        let inject_module_ident = Box::new(uid_generator_inject.generate_ident());
+        let inject_module_ident = Rc::new(uid_generator_inject.generate_ident());
 
-        let inject_var_ident = Box::new(match &runtime_injection {
+        let inject_var_ident = Rc::new(match &runtime_injection {
           RuntimeInjectionState::Regular(_) => uid_generator_inject.generate_ident(),
           RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
             uid_generator_inject = UidGenerator::new(r#as);
@@ -399,38 +411,36 @@ impl StateManager {
       self.add_style_to_inject(&metadata, &inject_var_ident, ast);
     }
 
-    if let Some(item) = self
-      .declarations
-      .iter_mut()
-      .find(|decl| match decl.init.as_ref() {
-        Some(boxed_expr) => {
-          matches!(**boxed_expr, Expr::Call(ref existing_call) if existing_call == call)
-        }
-        None => false,
-      })
-    {
+    // Update declarations
+    if let Some(item) = self.declarations.iter_mut().find(|decl| {
+      decl.init.as_ref().map_or(
+        false,
+        |boxed_expr| matches!(**boxed_expr, Expr::Call(ref existing_call) if existing_call == call),
+      )
+    }) {
       item.init = Some(Box::new(ast.clone())); // Only clone ast here
-    };
+    }
 
-    if let Some((_, item)) = self
-      .style_vars
-      .iter_mut()
-      .find(|(_, decl)| match decl.init.as_ref() {
-        Some(expr) => matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
-        None => false,
-      })
-    {
+    // Update style_vars
+    if let Some((_, item)) = self.style_vars.iter_mut().find(|(_, decl)| {
+      decl.init.as_ref().map_or(
+        false,
+        |expr| matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
+      )
+    }) {
       item.init = Some(Box::new(ast.clone())); // Clone `ast` only when necessary
-    };
+    }
 
+    // Update top_level_expressions
     if let Some(TopLevelExpression(_, item, _)) = self
       .top_level_expressions
       .iter_mut()
       .find(|TopLevelExpression(_, decl, _)| matches!(decl, Expr::Call(c) if c == call))
     {
       *item = ast.clone();
-    };
+    }
 
+    // Update all_call_expressions
     if let Some((index, _)) = self
       .all_call_expressions
       .iter()
@@ -449,11 +459,13 @@ impl StateManager {
   fn add_style(&mut self, metadata: MetaData) {
     let var_name = String::from("stylex");
     let value = self.metadata.entry(var_name).or_default();
-    let class_name = metadata.get_class_name(); // Cache the class name
+    // let class_name = metadata.get_class_name(); // Cache the class name
 
-    if !value.iter().any(|item| item.get_class_name() == class_name) {
-      value.push(metadata);
-    }
+    value.insert(metadata);
+
+    // if !value.iter().any(|item| item.get_class_name() == class_name) {
+    //   value.push(metadata);
+    // }
   }
 
   fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, ast: &Expr) {
@@ -476,7 +488,7 @@ impl StateManager {
     let stylex_call_expr = CallExpr {
       span: DUMMY_SP,
       type_args: None,
-      callee: Callee::Expr(Box::new(_inject.clone())),
+      callee: Callee::Expr(Box::new(_inject)),
       args: stylex_inject_args,
     };
 
@@ -487,9 +499,11 @@ impl StateManager {
       expr: Box::new(stylex_call),
     }));
 
+    let ast_hash = stable_hash(ast);
+
     self
       .styles_to_inject
-      .entry(Box::new(ast.clone()))
+      .entry(ast_hash)
       .or_default()
       .push(module);
   }
@@ -499,11 +513,17 @@ impl StateManager {
   // }
 
   pub(crate) fn get_treeshake_compensation(&self) -> bool {
-    self.options.treeshake_compensation.unwrap_or(false)
+    self
+      .options
+      .borrow()
+      .treeshake_compensation
+      .unwrap_or(false)
   }
 
   // Now you can use these helper functions to simplify your function
   pub fn combine(&mut self, other: &Self) {
+    // let other = other;
+
     self.import_paths = union_hash_set(&self.import_paths, &other.import_paths);
     self.stylex_import = union_hash_set(&self.stylex_import, &other.stylex_import);
     self.stylex_props_import =

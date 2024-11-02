@@ -48,7 +48,6 @@ export default function Home() {
       </div>
     </main>;
 }
-const MEDIA_MOBILE = '@media (max-width: 700px)';
 _inject2("@keyframes x1b14oj3-B{0%{transform:var(--x8qjy7n);}10%{transform:var(--x16qhacm);}20%{transform:var(--x8qjy7n);}30%{transform:var(--x16qhacm);}40%{transform:var(--x8qjy7n);}90%{transform:var(--xg58vmv);}100%{transform:var(--x8qjy7n);}}", 1);
 _inject2(".x78zum5{display:flex}", 3000);
 _inject2(".xdt5ytf{flex-direction:column}", 3000);

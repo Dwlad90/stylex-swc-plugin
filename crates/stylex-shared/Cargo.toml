@@ -34,7 +34,7 @@ regex.workspace = true
 dashmap.workspace = true
 indexmap.workspace = true
 derive_more.workspace = true
-convert_case.workspace = true
+stringcase.workspace = true
 murmur2.workspace = true
 radix_fmt.workspace = true
 phf = { workspace = true, features = ["macros"] }

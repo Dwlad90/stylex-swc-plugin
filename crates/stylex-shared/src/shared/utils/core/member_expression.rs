@@ -71,30 +71,30 @@ pub(crate) fn member_expression(
       }
 
       if let NonNullProps::Vec(vec) = non_null_props {
-        if let Some(EvaluateResultValue::Expr(expr)) = evaluate_result.value.map(|v| *v) {
-          if let Expr::Object(ObjectLit { props, .. }) = expr.as_ref() {
-            let namespaces = props
-              .iter()
-              .filter_map(|item| match item {
-                PropOrSpread::Spread(_) => unimplemented!("Spread"),
-                PropOrSpread::Prop(prop) => match prop.as_ref() {
-                  Prop::KeyValue(key_value) => match key_value.value.as_ref() {
-                    Expr::Lit(Lit::Null(_)) => None,
-                    _ => Some(
-                      key_value
-                        .key
-                        .as_ident()
-                        .map(|ident| ident.sym.clone())
-                        .expect("Key not an ident"),
-                    ),
-                  },
-                  _ => unimplemented!(),
+        if let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) =
+          evaluate_result.value
+        {
+          let namespaces = props
+            .iter()
+            .filter_map(|item| match item {
+              PropOrSpread::Spread(_) => unimplemented!("Spread"),
+              PropOrSpread::Prop(prop) => match prop.as_ref() {
+                Prop::KeyValue(key_value) => match key_value.value.as_ref() {
+                  Expr::Lit(Lit::Null(_)) => None,
+                  _ => Some(
+                    key_value
+                      .key
+                      .as_ident()
+                      .map(|ident| ident.sym.clone())
+                      .expect("Key not an ident"),
+                  ),
                 },
-              })
-              .collect::<Vec<Atom>>();
+                _ => unimplemented!(),
+              },
+            })
+            .collect::<Vec<Atom>>();
 
-            vec.extend(namespaces);
-          }
+          vec.extend(namespaces);
         }
       }
     }

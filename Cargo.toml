@@ -41,7 +41,7 @@ regex = "1.10.5"
 dashmap = "6.0.1"
 indexmap = "2.2.6"
 derive_more = { version = "0.99.18" }
-convert_case = { version = "0.6.0" }
+stringcase="0.3.0"
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }
 phf = { version = "0.11.2" }

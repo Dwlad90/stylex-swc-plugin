@@ -33,7 +33,7 @@ use crate::shared::{
 
 use super::common::{get_key_str, get_key_values_from_object};
 
-pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
+pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
   if !is_create_call(call, state) {
     return;
   }
@@ -47,7 +47,17 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
       || state
         .top_level_expressions
         .iter()
-        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&call_expr) }),
+        .any(|TopLevelExpression(_, call_item, _)| {
+          match call_item {
+            Expr::Call(call) => call.eq(
+              call_expr
+                .as_call()
+                .expect("Top level expression is not a call"),
+            ),
+            Expr::Array(_) => true,
+            _ => false,
+          }
+        }),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -63,7 +73,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
   )
 }
 
-pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &mut StateManager) {
+pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &StateManager) {
   let init = match &var_decl.init {
     Some(init) => init.clone().call().expect(NON_STATIC_KEYFRAME_VALUE),
     None => panic!("{}", NON_STATIC_KEYFRAME_VALUE),
@@ -101,7 +111,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 pub(crate) fn validate_stylex_create_theme_indent(
   var_decl: &Option<Box<VarDeclarator>>,
   call: &CallExpr,
-  state: &mut StateManager,
+  state: &StateManager,
 ) {
   let Some(var_decl) = var_decl else {
     panic!("{}", UNBOUND_STYLEX_CALL_VALUE)
@@ -133,7 +143,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   assert!(init.args.len() == 2, "{}", ILLEGAL_ARGUMENT_LENGTH);
 }
 
-pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateManager) {
+pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager) {
   if !is_define_vars_call(call, state) {
     return;
   }
@@ -360,7 +370,7 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
 
 pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
   match obj {
-    EvaluateResultValue::Expr(expr) => match expr.as_ref() {
+    EvaluateResultValue::Expr(expr) => match expr {
       Expr::Object(object) => {
         let key_values = get_key_values_from_object(object);
 
@@ -377,16 +387,13 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
   }
 }
 
-pub(crate) fn validate_theme_variables(
-  variables: &EvaluateResultValue,
-  state: &mut StateManager,
-) -> KeyValueProp {
+pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyValueProp {
   if let Some(theme_ref) = variables.as_theme_ref() {
     let mut cloned_theme_ref = theme_ref.clone();
 
-    let (value, updated_state) = cloned_theme_ref.get(THEME_NAME_KEY);
+    let value = cloned_theme_ref.get(THEME_NAME_KEY);
 
-    state.combine(updated_state);
+    // state.combine(updated_state);
 
     let key_value = key_value_factory(THEME_NAME_KEY, string_to_expression(value.as_str()));
 

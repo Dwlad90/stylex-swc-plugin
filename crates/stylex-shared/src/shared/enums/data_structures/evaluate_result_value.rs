@@ -11,10 +11,10 @@ use crate::shared::structures::{
 };
 
 pub enum EvaluateResultValue {
-  Expr(Box<Expr>),
+  Expr(Expr),
   Vec(Vec<Option<EvaluateResultValue>>),
-  Map(IndexMap<Box<Expr>, Vec<KeyValueProp>>),
-  Entries(IndexMap<Box<Lit>, Box<Lit>>),
+  Map(IndexMap<Expr, Vec<KeyValueProp>>),
+  Entries(IndexMap<Lit, Lit>),
   Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
   FunctionConfigMap(HashMap<Atom, FunctionConfig>),

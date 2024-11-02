@@ -31,7 +31,9 @@ where
     &mut self,
     mut var_declarator: VarDeclarator,
   ) -> VarDeclarator {
-    match self.state.cycle {
+    let cycle = self.state.cycle;
+
+    match cycle {
       TransformationCycle::StateFilling => {
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
           if let Some((declaration, member)) = self.process_declaration(call) {
@@ -136,7 +138,7 @@ where
   }
 
   fn retain_object_props(
-    &mut self,
+    &self,
     object: &mut ObjectLit,
     namespace_to_keep: Vec<Atom>,
     var_name: &VarDeclarator,

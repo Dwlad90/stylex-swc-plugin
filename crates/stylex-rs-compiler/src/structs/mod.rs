@@ -21,6 +21,7 @@ pub struct StyleXOptions {
   pub runtime_injection: Option<bool>,
   pub class_name_prefix: Option<String>,
   pub defined_stylex_css_variables: Option<HashMap<String, String>>,
+  #[napi(ts_type = "(string | { as: string, from: string })[]")]
   pub import_sources: Option<Vec<String>>,
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: Option<bool>,
@@ -33,7 +34,7 @@ pub struct StyleXOptions {
 
 #[napi(object)]
 pub struct StyleXMetadata {
-  #[napi(ts_type = "Array<[string, { ltr: string; rtl?: null | string }, number]>")]
+  #[napi(ts_type = "([string, { ltr: string; rtl?: null | string }, number])[]")]
   pub stylex: Vec<JsObject>,
 }
 

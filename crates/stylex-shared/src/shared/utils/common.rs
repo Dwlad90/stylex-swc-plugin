@@ -22,7 +22,6 @@ use crate::shared::{
     data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
     misc::VarDeclAction,
   },
-  regex::DASHIFY_REGEX,
   structures::{
     base_css_type::BaseCSSType,
     functions::{FunctionConfigType, FunctionMap, FunctionType},
@@ -117,7 +116,6 @@ pub fn reduce_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
     *entry.get_mut() -= 1;
   }
 }
-
 pub fn increase_ident_count(state: &mut StateManager, ident: &Ident) {
   increase_ident_count_by_count(state, ident, 1);
 }
@@ -125,7 +123,6 @@ pub fn increase_ident_count(state: &mut StateManager, ident: &Ident) {
 pub fn increase_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
   increase_member_ident_count_by_count(state, ident_atom, 1);
 }
-
 pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, count: i16) {
   let ident_id = &ident.sym;
 
@@ -148,17 +145,17 @@ pub fn increase_member_ident_count_by_count(
 
 pub fn get_var_decl_by_ident<'a>(
   ident: &'a Ident,
-  state: &'a mut StateManager,
+  traversal_state: &'a mut StateManager,
   functions: &'a FunctionMap,
   action: VarDeclAction,
 ) -> Option<VarDeclarator> {
   match action {
-    VarDeclAction::Increase => increase_ident_count(state, ident),
-    VarDeclAction::Reduce => reduce_ident_count(state, ident),
+    VarDeclAction::Increase => increase_ident_count(traversal_state, ident),
+    VarDeclAction::Reduce => reduce_ident_count(traversal_state, ident),
     VarDeclAction::None => {}
   };
 
-  match get_var_decl_from(state, ident) {
+  match get_var_decl_from(traversal_state, ident) {
     Some(var_decl) => Some(var_decl.clone()),
     None => {
       let func = functions.identifiers.get(&ident.sym);
@@ -188,70 +185,76 @@ pub fn get_var_decl_by_ident<'a>(
   }
 }
 
-pub fn get_import_by_ident<'a>(
-  ident: &'a Ident,
-  state: &'a mut StateManager,
-) -> Option<ImportDecl> {
-  get_import_from(state, ident).cloned()
+pub fn get_import_by_ident<'a>(ident: &'a Ident, state: &'a StateManager) -> Option<ImportDecl> {
+  get_import_from(state, ident)
 }
 
 pub(crate) fn get_var_decl_from<'a>(
   state: &'a StateManager,
   ident: &'a Ident,
-) -> Option<&'a VarDeclarator> {
-  state.declarations.iter().find(|var_declarator| {
-    if let Pat::Ident(binding_indent) = &var_declarator.name {
-      return binding_indent.sym == ident.sym;
-    }
+) -> Option<VarDeclarator> {
+  state
+    .declarations
+    .iter()
+    .find(|var_declarator| {
+      if let Pat::Ident(binding_indent) = &var_declarator.name {
+        return binding_indent.sym == ident.sym;
+      }
 
-    false
-  })
+      false
+    })
+    .cloned()
 }
 
-pub(crate) fn get_import_from<'a>(
-  state: &'a StateManager,
-  ident: &'a Ident,
-) -> Option<&'a ImportDecl> {
-  state.top_imports.iter().find(|import| {
-    import.specifiers.iter().any(|specifier| match specifier {
-      ImportSpecifier::Named(named_import) => {
-        named_import.local.sym == ident.sym || {
-          if let Some(imported) = &named_import.imported {
-            match imported {
-              ModuleExportName::Ident(export_ident) => export_ident.sym == ident.sym,
-              ModuleExportName::Str(strng) => strng.value == ident.sym,
+pub(crate) fn get_import_from<'a>(state: &'a StateManager, ident: &'a Ident) -> Option<ImportDecl> {
+  state
+    .top_imports
+    .iter()
+    .find(|import| {
+      import.specifiers.iter().any(|specifier| match specifier {
+        ImportSpecifier::Named(named_import) => {
+          named_import.local.sym == ident.sym || {
+            if let Some(imported) = &named_import.imported {
+              match imported {
+                ModuleExportName::Ident(export_ident) => export_ident.sym == ident.sym,
+                ModuleExportName::Str(strng) => strng.value == ident.sym,
+              }
+            } else {
+              false
             }
-          } else {
-            false
           }
         }
-      }
-      ImportSpecifier::Default(default_import) => default_import.local.sym == ident.sym,
-      ImportSpecifier::Namespace(namespace_import) => namespace_import.local.sym == ident.sym,
+        ImportSpecifier::Default(default_import) => default_import.local.sym == ident.sym,
+        ImportSpecifier::Namespace(namespace_import) => namespace_import.local.sym == ident.sym,
+      })
     })
-  })
+    .cloned()
 }
 
 pub(crate) fn get_var_decl_by_ident_or_member<'a>(
   state: &'a StateManager,
   ident: &'a Ident,
-) -> Option<&'a VarDeclarator> {
-  state.declarations.iter().find(|var_declarator| {
-    if let Pat::Ident(binding_indent) = &var_declarator.name {
-      if binding_indent.sym == ident.sym {
-        return true;
+) -> Option<VarDeclarator> {
+  state
+    .declarations
+    .iter()
+    .find(|var_declarator| {
+      if let Pat::Ident(binding_indent) = &var_declarator.name {
+        if binding_indent.sym == ident.sym {
+          return true;
+        }
       }
-    }
 
-    var_declarator
-      .init
-      .as_ref()
-      .and_then(|init| init.as_call())
-      .and_then(|call| call.callee.as_expr())
-      .and_then(|callee| callee.as_member())
-      .and_then(|member| member.prop.as_ident())
-      .map_or(false, |member_ident| member_ident.sym == ident.sym)
-  })
+      var_declarator
+        .init
+        .as_ref()
+        .and_then(|init| init.as_call())
+        .and_then(|call| call.callee.as_expr())
+        .and_then(|callee| callee.as_member())
+        .and_then(|member| member.prop.as_ident())
+        .map_or(false, |member_ident| member_ident.sym == ident.sym)
+    })
+    .cloned()
 }
 
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
@@ -500,11 +503,6 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
   key_values
 }
 
-pub(crate) fn dashify(s: &str) -> String {
-  let after = DASHIFY_REGEX.replace_all(s, "$1-$2");
-  after.to_lowercase()
-}
-
 pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
   module.clone().body.iter().for_each(|item| match &item {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => {
@@ -605,4 +603,10 @@ pub(crate) fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Orde
 
 pub(crate) fn char_code_at(s: &str, index: usize) -> Option<u32> {
   s.chars().nth(index).map(|c| c as u32)
+}
+
+pub(crate) fn stable_hash<T: Hash>(t: &T) -> u64 {
+  let mut hasher = DefaultHasher::new();
+  t.hash(&mut hasher);
+  hasher.finish()
 }

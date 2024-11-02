@@ -6,7 +6,7 @@ mod convert_style_to_class_name {
   };
   fn convert(styles: (&str, &PreRuleValue)) -> String {
     let result =
-      convert_style_to_class_name(styles, &mut [], &mut [], "", &StateManager::default());
+      convert_style_to_class_name(styles, &mut [], &mut [], &mut StateManager::default());
 
     extract_body(result.2.ltr)
   }

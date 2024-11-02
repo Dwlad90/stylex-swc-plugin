@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod flatten_style_object_with_legacy_shorthand_expansion {
+  use std::{cell::RefCell, rc::Rc};
+
   use indexmap::IndexMap;
   use swc_core::ecma::ast::Expr;
 
@@ -9,6 +11,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       null_pre_rule::NullPreRule,
       pre_rule::{PreRuleValue, PreRules, StylesPreRule},
       pre_rule_set::PreRuleSet,
+      state::EvaluationState,
       state_manager::StateManager,
       stylex_options::StyleResolution,
     },
@@ -24,12 +27,16 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
 
-    state_manager.options.class_name_prefix = "x".to_string();
-    state_manager.options.style_resolution = StyleResolution::LegacyExpandShorthands;
-    state_manager.options.runtime_injection = None;
-    state_manager.options.use_rem_for_font_size = true;
-    state_manager.options.dev = false;
-    state_manager.options.test = false;
+    let mut options = state_manager.options.borrow().clone();
+
+    options.class_name_prefix = "x".to_string();
+    options.style_resolution = StyleResolution::LegacyExpandShorthands;
+    options.runtime_injection = None;
+    options.use_rem_for_font_size = true;
+    options.dev = false;
+    options.test = false;
+
+    state_manager.options = Rc::new(RefCell::new(options));
 
     state_manager
   }
@@ -97,6 +104,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -122,6 +130,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       &[key_value_factory("gap", string_to_expression("10"))],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -145,6 +154,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -171,6 +181,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       &[key_value_factory("gap", string_to_expression("10px 20px"))],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -200,6 +211,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -226,6 +238,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -252,6 +265,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -272,6 +286,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       &[key_value_factory("margin", string_to_expression("10"))],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -303,6 +318,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -339,6 +355,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -396,6 +413,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -431,11 +449,10 @@ mod nested_objects {
 
   use crate::shared::{
     structures::{
-      functions::FunctionMap,
-      tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
+      functions::FunctionMap, state::EvaluationState, tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
         get_state, null_rule_factory, pre_rule_factory, pre_rule_set_factory,
         pre_rule_with_pseudos_factory,
-      },
+      }
     },
     utils::{
       ast::{convertors::string_to_expression, factories::{key_value_factory, object_expression_factory, prop_or_spread_string_factory}, }, core::flatten_raw_style_object::flatten_raw_style_object,
@@ -458,6 +475,7 @@ mod nested_objects {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -511,6 +529,7 @@ mod nested_objects {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -569,6 +588,7 @@ mod nested_objects {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -641,6 +661,7 @@ mod nested_objects {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -714,6 +735,7 @@ mod nested_objects {
       ],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -759,11 +781,10 @@ mod multiple_levels_of_nesting {
 
   use crate::shared::{
     structures::{
-      functions::FunctionMap,
-      tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
+      functions::FunctionMap, state::EvaluationState, tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
         get_state, pre_rule_factory, pre_rule_set_factory, pre_rule_vec_with_pseudos_factory,
         pre_rule_with_pseudos_factory,
-      },
+      }
     },
     utils::{
        ast::factories::{key_value_factory, object_expression_factory, prop_or_spread_array_string_factory, prop_or_spread_expr_factory, prop_or_spread_string_factory}, core::flatten_raw_style_object::flatten_raw_style_object
@@ -782,6 +803,7 @@ mod multiple_levels_of_nesting {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -837,6 +859,7 @@ mod multiple_levels_of_nesting {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -876,6 +899,7 @@ mod multiple_levels_of_nesting {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -922,6 +946,7 @@ mod multiple_levels_of_nesting {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );
@@ -962,6 +987,7 @@ mod multiple_levels_of_nesting {
       )],
       &mut vec![],
       &mut vec![],
+      &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
     );

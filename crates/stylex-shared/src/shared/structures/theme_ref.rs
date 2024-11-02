@@ -2,30 +2,28 @@ use std::collections::HashMap;
 
 use crate::shared::utils::common::{create_hash, gen_file_based_identifier};
 
-use super::state_manager::StateManager;
-
 #[derive(Debug, Clone)]
 pub struct ThemeRef {
   file_name: String,
   export_name: String,
-  state: StateManager,
+  class_name_prefix: String,
   map: HashMap<String, String>,
 }
 
 impl ThemeRef {
-  pub(crate) fn new(file_name: String, export_name: String, state: StateManager) -> Self {
+  pub(crate) fn new(file_name: String, export_name: String, class_name_prefix: String) -> Self {
     Self {
       file_name,
       export_name,
-      state,
+      class_name_prefix,
       map: HashMap::new(),
     }
   }
 
-  pub(crate) fn get(&mut self, key: &str) -> (String, &StateManager) {
+  pub(crate) fn get(&mut self, key: &str) -> String {
     if key.starts_with("--") {
       let css_key = format!("var({})", key);
-      return (css_key, &self.state);
+      return css_key;
     }
     let entry = self.map.entry(key.to_string()).or_insert_with(|| {
       let str_to_hash = gen_file_based_identifier(
@@ -38,16 +36,12 @@ impl ThemeRef {
         },
       );
 
-      let var_name = format!(
-        "{}{}",
-        self.state.options.class_name_prefix,
-        create_hash(&str_to_hash)
-      );
+      let var_name = format!("{}{}", self.class_name_prefix, create_hash(&str_to_hash));
 
       format!("var(--{})", var_name)
     });
 
-    (entry.to_string(), &self.state)
+    entry.to_string()
   }
 
   fn _set(&self, key: &str, value: &str) {

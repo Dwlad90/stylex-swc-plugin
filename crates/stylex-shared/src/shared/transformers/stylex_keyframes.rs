@@ -1,4 +1,7 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
+use stringcase::kebab_case;
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::{
@@ -16,9 +19,9 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{expr_to_str, string_to_expression},
-    common::{create_hash, dashify, get_key_str},
+    common::{create_hash, get_key_str},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-    css::common::{generate_ltr, generate_rtl, transform_value},
+    css::common::{generate_ltr, generate_rtl, transform_value_cached},
     object::{obj_entries, obj_from_entries, obj_map, obj_map_keys, Pipe},
   },
 };
@@ -27,7 +30,7 @@ pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (String, InjectableStyle) {
-  let mut class_name_prefix = state.options.class_name_prefix.clone();
+  let mut class_name_prefix = state.options.borrow().class_name_prefix.clone();
 
   if class_name_prefix.is_empty() {
     class_name_prefix = "x".to_string();
@@ -44,7 +47,7 @@ pub(crate) fn stylex_keyframes(
 
     let pipe_result = Pipe::create(frame)
       .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| obj_map_keys(&entries, dashify))
+      .pipe(|entries| obj_map_keys(&entries, kebab_case))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),
@@ -53,7 +56,7 @@ pub(crate) fn stylex_keyframes(
             FlatCompiledStylesValue::KeyValue(pair) => {
               Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
                 pair.key.clone(),
-                transform_value(pair.key.as_str(), pair.value.as_str(), state),
+                transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
               )))
             }
             _ => panic!("Entry must be a tuple of key and value"),
@@ -159,7 +162,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
       let key = get_key_str(pair);
       let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default());
 
-      flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)
+      flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options.borrow())
         .into_iter()
         .filter_map(|pair| {
           pair.1.as_ref()?;
@@ -178,11 +181,11 @@ pub(crate) fn get_keyframes_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexExprFn(|expr: Expr, local_state: &mut StateManager| -> Expr {
       let (animation_name, injected_style) =
-        stylex_keyframes(&EvaluateResultValue::Expr(Box::new(expr)), local_state);
+        stylex_keyframes(&EvaluateResultValue::Expr(expr), local_state);
 
       local_state
         .injected_keyframes
-        .insert(animation_name.clone(), Box::new(injected_style));
+        .insert(animation_name.clone(), Rc::new(injected_style));
 
       let result = string_to_expression(animation_name.as_str());
 

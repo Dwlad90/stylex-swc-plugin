@@ -44,4 +44,3 @@ export default function Home() {
       </div>
     </main>;
 }
-const MEDIA_MOBILE = '@media (max-width: 700px)';

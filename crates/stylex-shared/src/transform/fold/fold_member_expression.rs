@@ -22,11 +22,15 @@ where
   C: Comments,
 {
   pub(crate) fn fold_member_expr_impl(&mut self, member_expression: MemberExpr) -> MemberExpr {
-    match self.state.cycle {
+    let cycle = self.state.cycle;
+
+    match cycle {
       TransformationCycle::Skip => member_expression,
       TransformationCycle::StateFilling | TransformationCycle::Recounting => {
         if let Some(obj_ident) = member_expression.obj.as_ident() {
-          match self.state.cycle {
+          let cycle = self.state.cycle;
+
+          match cycle {
             TransformationCycle::StateFilling => {
               increase_member_ident_count(&mut self.state, &obj_ident.sym)
             }

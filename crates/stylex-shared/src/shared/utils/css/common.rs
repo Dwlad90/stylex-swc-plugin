@@ -13,6 +13,7 @@ use crate::shared::{
     shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
     unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
   },
+  regex::{CLEAN_CSS_VAR, CSS_ATTRIBUTE},
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
     stylex_state_options::StyleXStateOptions,
@@ -23,7 +24,6 @@ use crate::shared::{
   },
 };
 
-use regex::Regex;
 use swc_core::{
   common::{input::StringInput, source_map::Pos, BytePos},
   css::{
@@ -405,7 +405,7 @@ pub(crate) fn get_priority(key: &str) -> f64 {
   3000.0
 }
 
-pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
+fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
   let css_property_value = value.trim();
 
   let value = match &css_property_value.parse::<f64>() {
@@ -419,10 +419,7 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
 
   if key == "content" || key == "hyphenateCharacter" || key == "hyphenate-character" {
     let val = value.trim();
-    if Regex::new(r"^attr\([a-zA-Z0-9-]+\)$")
-      .unwrap()
-      .is_match(val)
-    {
+    if CSS_ATTRIBUTE.is_match(val) {
       return val.to_string();
     }
     if !(val.starts_with('"') && val.ends_with('"') || val.starts_with('\'') && val.ends_with('\''))
@@ -433,10 +430,27 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
     return val.to_string();
   }
 
-  let result = normalize_css_property_value(key, value.as_ref(), &state.options);
+  let result = normalize_css_property_value(key, value.as_ref(), &state.options.borrow());
 
   result
 }
+
+pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateManager) -> String {
+  let cache_key: String = format!("{}:{}", key, value);
+
+  let cache = state.css_property_seen.get(&cache_key);
+
+  if let Some(result) = cache {
+    return result.to_string();
+  }
+
+  let result = transform_value(key, value, state);
+
+  state.css_property_seen.insert(cache_key, result.clone());
+
+  result
+}
+
 pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
   let config = ParserConfig {
     allow_wrong_line_comments: false,
@@ -481,7 +495,7 @@ pub(crate) fn normalize_css_property_value(
       error_message = LINT_UNCLOSED_FUNCTION.to_string();
     }
 
-    panic!("{}", error_message)
+    panic!("{}, css rule: {}", error_message, css_rule)
   }
 
   let ast_normalized = match parsed_css {
@@ -579,9 +593,8 @@ pub fn stringify(node: &Stylesheet) -> String {
      *
      * HACK: Replace `--\3{number}` with `--{number}` to simulate original behavior of StyleX
      */
-    let re = Regex::new(r"\\3(\d) ").unwrap();
 
-    result = re
+    result = CLEAN_CSS_VAR
       .replace_all(buf.as_str(), |caps: &regex::Captures| {
         caps
           .get(1)

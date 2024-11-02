@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, rc::Rc};
 
 use indexmap::IndexMap;
 
@@ -25,9 +25,9 @@ pub(crate) fn stylex_create_theme(
   typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
 ) -> (
   IndexMap<String, Box<FlatCompiledStylesValue>>,
-  IndexMap<String, Box<InjectableStyle>>,
+  IndexMap<String, Rc<InjectableStyle>>,
 ) {
-  let theme_name_key_value = validate_theme_variables(theme_vars, state);
+  let theme_name_key_value = validate_theme_variables(theme_vars);
 
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
@@ -68,7 +68,7 @@ pub(crate) fn stylex_create_theme(
 
         theme_vars_str_value
       }
-      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str()).0.clone(),
+      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str()).clone(),
       _ => unimplemented!("Unsupported theme vars type"),
     };
 
@@ -108,12 +108,12 @@ pub(crate) fn stylex_create_theme(
   // Create a class name hash
   let override_class_name = format!(
     "{}{}",
-    state.options.class_name_prefix,
+    state.options.borrow().class_name_prefix,
     create_hash(at_rules_string_for_hash.as_str())
   );
 
   let mut resolved_theme_vars: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
-  let mut styles_to_inject: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
+  let mut styles_to_inject: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
 
   for at_rule in sorted_at_rules.into_iter() {
     let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
@@ -122,7 +122,7 @@ pub(crate) fn stylex_create_theme(
     if at_rule == "default" {
       styles_to_inject.insert(
         override_class_name.clone(),
-        Box::new(InjectableStyle {
+        Rc::new(InjectableStyle {
           ltr: rule,
           rtl: None,
           priority: Some(0.5),
@@ -135,7 +135,7 @@ pub(crate) fn stylex_create_theme(
 
       styles_to_inject.insert(
         key,
-        Box::new(InjectableStyle {
+        Rc::new(InjectableStyle {
           ltr,
           rtl: None,
           priority: Some(priority),
@@ -155,7 +155,7 @@ pub(crate) fn stylex_create_theme(
       state,
       &FunctionMap::default(),
     ),
-    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY).0.to_owned(),
+    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY).to_owned(),
     _ => unimplemented!("Unsupported theme vars type"),
   };
 

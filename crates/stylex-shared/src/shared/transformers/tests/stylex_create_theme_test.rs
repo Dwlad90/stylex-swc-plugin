@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod stylex_create_theme {
+  use std::rc::Rc;
+
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
@@ -22,19 +24,19 @@ mod stylex_create_theme {
       .map(|(key, value)| prop_or_spread_string_factory(key, value))
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
+    EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
   fn exprected_result_factory(
     injected_styles: &[(&str, (&str, f64))],
-  ) -> IndexMap<String, Box<InjectableStyle>> {
+  ) -> IndexMap<String, Rc<InjectableStyle>> {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        Box::new(InjectableStyle {
+        Rc::new(InjectableStyle {
           ltr: value.0.to_string(),
           rtl: None,
           priority: Some(value.1),
@@ -87,7 +89,7 @@ mod stylex_create_theme {
       props.push(prop_or_spread_string_factory(key, value));
     }
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
+    EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
   #[test]

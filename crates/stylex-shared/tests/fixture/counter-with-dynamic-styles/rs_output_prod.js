@@ -23,7 +23,6 @@ export default function Counter() {
       </button>
     </div>;
 }
-const DARK = '@media (prefers-color-scheme: dark)';
 const styles = {
     size: (size)=>[
             {

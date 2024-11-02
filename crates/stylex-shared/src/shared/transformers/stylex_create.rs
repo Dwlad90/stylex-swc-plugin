@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 
 use crate::shared::{
@@ -9,6 +11,7 @@ use crate::shared::{
     functions::FunctionMap,
     injectable_style::InjectableStyle,
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
+    state::EvaluationState,
     state_manager::StateManager,
     types::FlatCompiledStyles,
   },
@@ -20,35 +23,43 @@ use crate::shared::{
 
 pub(crate) fn stylex_create_set(
   namespaces: &EvaluateResultValue,
-  state: &mut StateManager,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
   functions: &FunctionMap,
 ) -> (
   IndexMap<String, Box<FlatCompiledStyles>>,
-  IndexMap<String, Box<InjectableStyle>>,
+  IndexMap<String, Rc<InjectableStyle>>,
 ) {
   let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
-  let mut injected_styles_map: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
+  let mut injected_styles_map: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
 
   for (namespace_name, namespace) in namespaces.as_map().unwrap() {
     validate_namespace(namespace, &[]);
 
-    let mut pseudos = vec![];
-    let mut at_rules = vec![];
+    let mut pseudos: Vec<String> = vec![];
+    let mut at_rules: Vec<String> = vec![];
 
-    let mut flattened_namespace =
-      flatten_raw_style_object(namespace, &mut pseudos, &mut at_rules, state, functions);
+    let mut flattened_namespace = flatten_raw_style_object(
+      namespace,
+      &mut pseudos,
+      &mut at_rules,
+      state,
+      traversal_state,
+      functions,
+    );
 
     let compiled_namespace_tuples = flattened_namespace
       .iter_mut()
       .map(|(key, value)| match value {
-        PreRules::PreRuleSet(rule_set) => (key.to_string(), rule_set.compiled(state)),
+        PreRules::PreRuleSet(rule_set) => (key.to_string(), rule_set.compiled(traversal_state)),
         PreRules::StylesPreRule(styles_pre_rule) => {
-          (key.to_string(), styles_pre_rule.compiled(state))
+          (key.to_string(), styles_pre_rule.compiled(traversal_state))
         }
-        PreRules::NullPreRule(rule_set) => (key.to_string(), rule_set.compiled(state)),
-        PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
-          (key.to_string(), pre_included_tyles_rule.compiled(state))
-        }
+        PreRules::NullPreRule(rule_set) => (key.to_string(), rule_set.compiled(traversal_state)),
+        PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => (
+          key.to_string(),
+          pre_included_tyles_rule.compiled(traversal_state),
+        ),
       })
       .collect::<Vec<(String, CompiledResult)>>();
 
@@ -97,13 +108,13 @@ pub(crate) fn stylex_create_set(
         for ComputedStyle(class_name, injectable_styles) in class_name_tuples.iter() {
           injected_styles_map
             .entry(class_name.clone())
-            .or_insert_with(|| Box::new(injectable_styles.clone()));
+            .or_insert_with(|| Rc::new(injectable_styles.clone()));
         }
       } else {
         namespace_obj.insert(key.clone(), Box::new(FlatCompiledStylesValue::Null));
       }
     }
-    let resolved_namespace_name = expr_to_str(namespace_name, state, functions);
+    let resolved_namespace_name = expr_to_str(namespace_name, traversal_state, functions);
 
     namespace_obj.insert(
       COMPILED_KEY.to_owned(),

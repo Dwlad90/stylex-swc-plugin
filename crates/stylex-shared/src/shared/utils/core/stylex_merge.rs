@@ -186,7 +186,10 @@ pub(crate) fn stylex_merge(
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;
       non_null_props = member_transform.non_null_props;
-      *state = member_transform.state;
+
+      let cloned_state = member_transform.state.clone();
+
+      *state = cloned_state;
     }
 
     for arg in args.iter() {
@@ -200,11 +203,11 @@ pub(crate) fn stylex_merge(
     for arg in &resolved_args {
       match arg {
         ResolvedArg::StyleObject(_, ident, member_expr) => {
-          reduce_ident_count(&mut *state, ident);
+          reduce_ident_count(state, ident);
           reduce_member_expression_count(state, member_expr)
         }
         ResolvedArg::ConditionalStyle(_, _, _, ident, member_expr) => {
-          reduce_ident_count(&mut *state, ident);
+          reduce_ident_count(state, ident);
           reduce_member_expression_count(state, member_expr)
         }
       }

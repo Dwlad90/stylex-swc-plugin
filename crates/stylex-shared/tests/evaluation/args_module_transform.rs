@@ -81,8 +81,8 @@ impl Fold for ArgsStyleXTransform {
       evaluate_stylex_create_arg(&mut Box::new(expr), &mut self.state, &self.functions);
 
     match evaluate_result.value {
-      Some(value) => match value.as_ref() {
-        EvaluateResultValue::Expr(expr) => *expr.clone(), //.fold_children_with(self),
+      Some(value) => match value {
+        EvaluateResultValue::Expr(expr) => expr.clone(), //.fold_children_with(self),
         EvaluateResultValue::Vec(vec) => array_expression_factory(
           vec
             .iter()
@@ -96,12 +96,8 @@ impl Fold for ArgsStyleXTransform {
             .collect(),
         ),
         EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
-            2.0,
-          )))),
-          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
-            7.0,
-          )))),
+          Some(EvaluateResultValue::Expr(number_to_expression(2.0))),
+          Some(EvaluateResultValue::Expr(number_to_expression(7.0))),
         ]),
         EvaluateResultValue::Map(map) => {
           let mut props = vec![];

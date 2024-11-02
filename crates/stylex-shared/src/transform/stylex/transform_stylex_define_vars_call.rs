@@ -37,7 +37,7 @@ where
     let is_define_vars = is_define_vars_call(call, &self.state);
 
     let result = if is_define_vars {
-      validate_stylex_define_vars(call, &mut self.state);
+      validate_stylex_define_vars(call, &self.state);
 
       let first_arg = call.args.first();
 

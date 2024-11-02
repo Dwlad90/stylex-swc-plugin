@@ -72,8 +72,8 @@ impl Fold for EvaluationStyleXTransform {
     let evaluate_result = evaluate(&Box::new(expr), &mut self.state, &self.functions);
 
     match evaluate_result.value {
-      Some(value) => match value.as_ref() {
-        EvaluateResultValue::Expr(expr) => *expr.clone(),
+      Some(value) => match value {
+        EvaluateResultValue::Expr(expr) => expr.clone(),
         EvaluateResultValue::Vec(vec) => Expr::from(ArrayLit {
           span: DUMMY_SP,
           elems: vec
@@ -88,12 +88,8 @@ impl Fold for EvaluationStyleXTransform {
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
-            2.0,
-          )))),
-          Some(EvaluateResultValue::Expr(Box::new(number_to_expression(
-            7.0,
-          )))),
+          Some(EvaluateResultValue::Expr(number_to_expression(2.0))),
+          Some(EvaluateResultValue::Expr(number_to_expression(7.0))),
         ]),
         _ => panic!("Failed to evaluate expression"),
       },

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod stylex_define_vars {
-  use std::rc::Rc;
+  use std::{cell::RefCell, rc::Rc};
 
   use indexmap::IndexMap;
   use swc_core::ecma::ast::{Expr, PropOrSpread};
@@ -77,19 +77,19 @@ mod stylex_define_vars {
       props.push(prop_or_spread_string_factory(key, value));
     }
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
+    EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
   fn exprected_css_result_factory(
     injected_styles: &[(&str, (&str, f64))],
-  ) -> IndexMap<String, Box<InjectableStyle>> {
+  ) -> IndexMap<String, Rc<InjectableStyle>> {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        Box::new(InjectableStyle {
+        Rc::new(InjectableStyle {
           ltr: value.0.to_string(),
           rtl: None,
           priority: Some(value.1),
@@ -552,10 +552,10 @@ mod stylex_define_vars {
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),
-      options: Box::new(StyleXStateOptions {
+      options: Rc::new(RefCell::new(StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
-        ..*state.options
-      }),
+        ..state.options.borrow().clone()
+      })),
       ..*state
     });
 
@@ -742,10 +742,10 @@ mod stylex_define_vars {
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),
-      options: Box::new(StyleXStateOptions {
+      options: Rc::new(RefCell::new(StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
-        ..*state.options
-      }),
+        ..state.options.borrow().clone()
+      })),
       ..*state
     });
 

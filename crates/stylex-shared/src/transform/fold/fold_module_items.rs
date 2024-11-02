@@ -8,7 +8,10 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::core::TransformationCycle, utils::ast::factories::binding_ident_factory},
+  shared::{
+    enums::core::TransformationCycle,
+    utils::{ast::factories::binding_ident_factory, common::stable_hash},
+  },
   StyleXTransform,
 };
 
@@ -17,7 +20,9 @@ where
   C: Comments,
 {
   pub(crate) fn fold_module_items(&mut self, module_items: Vec<ModuleItem>) -> Vec<ModuleItem> {
-    match self.state.cycle {
+    let cycle = self.state.cycle;
+
+    match cycle {
       TransformationCycle::Skip => module_items,
       TransformationCycle::Initializing => {
         let transformed_module_items = module_items.fold_children_with(self);
@@ -113,7 +118,9 @@ where
             for decl in decls {
               let key = decl.init.clone().unwrap();
 
-              if let Some(metadata_items) = self.state.styles_to_inject.get(key.as_ref()) {
+              let key_hash = stable_hash(key.as_ref());
+
+              if let Some(metadata_items) = self.state.styles_to_inject.get(&key_hash) {
                 for module_item in metadata_items.iter() {
                   result_module_items.push(module_item.clone());
                 }

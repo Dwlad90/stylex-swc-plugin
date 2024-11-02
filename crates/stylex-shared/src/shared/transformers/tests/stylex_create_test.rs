@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod stylex_create {
+  use std::rc::Rc;
+
   use indexmap::IndexMap;
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
@@ -9,8 +11,8 @@ mod stylex_create {
       flat_compiled_styles_value::FlatCompiledStylesValue,
     },
     structures::{
-      functions::FunctionMap, injectable_style::InjectableStyle, state_manager::StateManager,
-      types::FlatCompiledStyles,
+      functions::FunctionMap, injectable_style::InjectableStyle, state::EvaluationState,
+      state_manager::StateManager, types::FlatCompiledStyles,
     },
     transformers::stylex_create::stylex_create_set,
     utils::ast::{
@@ -22,14 +24,12 @@ mod stylex_create {
     },
   };
 
-  fn style_object_factory(
-    args: &[(&str, &[(&str, &str)])],
-  ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
+  fn style_object_factory(args: &[(&str, &[(&str, &str)])]) -> IndexMap<Expr, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 
     for (key, value) in args {
       object.insert(
-        Box::new(string_to_expression(key)),
+        string_to_expression(key),
         value
           .iter()
           .map(|(key, value)| key_value_factory(key, string_to_expression(value)))
@@ -44,12 +44,12 @@ mod stylex_create {
 
   fn style_nested_object_factory(
     args: &StyleNestedObjectFactoryArgs,
-  ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
+  ) -> IndexMap<Expr, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 
     for (key, value) in args {
       object.insert(
-        Box::new(string_to_expression(key)),
+        string_to_expression(key),
         value
           .iter()
           .map(|(key, value)| {
@@ -73,12 +73,12 @@ mod stylex_create {
   type StyleArrayObjectFactoryArgs<'a> = [(&'a str, &'a [(&'a str, &'a [&'a str])])];
   fn style_array_object_factory(
     args: &StyleArrayObjectFactoryArgs,
-  ) -> IndexMap<Box<Expr>, Vec<KeyValueProp>> {
+  ) -> IndexMap<Expr, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
 
     for (key, value) in args {
       object.insert(
-        Box::new(string_to_expression(key)),
+        string_to_expression(key),
         value
           .iter()
           .map(|(key, value)| {
@@ -108,7 +108,7 @@ mod stylex_create {
     injected_styles: &InjectedStylesArg,
   ) -> (
     IndexMap<String, Box<FlatCompiledStyles>>,
-    IndexMap<String, Box<InjectableStyle>>,
+    IndexMap<String, Rc<InjectableStyle>>,
   ) {
     let mut expected_resolved_namespaces = IndexMap::new();
     let mut expected_injected_styles = IndexMap::new();
@@ -140,7 +140,7 @@ mod stylex_create {
         let (value, priority) = inj;
         expected_injected_styles.insert(
           key.to_string(),
-          Box::new(InjectableStyle {
+          Rc::new(InjectableStyle {
             ltr: value.to_string(),
             rtl: None,
             priority: Some(*priority),
@@ -153,13 +153,14 @@ mod stylex_create {
   }
 
   fn stylex_create(
-    style_object: IndexMap<Box<Expr>, Vec<KeyValueProp>>,
+    style_object: IndexMap<Expr, Vec<KeyValueProp>>,
   ) -> (
     IndexMap<String, Box<FlatCompiledStyles>>,
-    IndexMap<String, Box<InjectableStyle>>,
+    IndexMap<String, Rc<InjectableStyle>>,
   ) {
     stylex_create_set(
       &EvaluateResultValue::Map(style_object),
+      &mut EvaluationState::new(),
       &mut StateManager::default(),
       &FunctionMap::default(),
     )

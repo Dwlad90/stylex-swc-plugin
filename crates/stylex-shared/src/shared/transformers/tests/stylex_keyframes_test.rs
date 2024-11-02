@@ -28,7 +28,7 @@ mod stylex_keyframes {
       })
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(Box::new(object_expression_factory(props)))
+    EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
   fn exprected_css_result_factory(

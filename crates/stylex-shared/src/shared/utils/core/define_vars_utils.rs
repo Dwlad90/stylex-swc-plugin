@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::{ops::Mul, rc::Rc};
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};
@@ -16,14 +16,14 @@ pub(crate) fn construct_css_variables_string(
   variables: &IndexMap<String, Box<FlatCompiledStylesValue>>,
   theme_name_hash: &String,
   typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
-) -> IndexMap<String, Box<InjectableStyle>> {
+) -> IndexMap<String, Rc<InjectableStyle>> {
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
   for (key, value) in variables.iter() {
     collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &[], typed_variables);
   }
 
-  let mut result: IndexMap<String, Box<InjectableStyle>> = IndexMap::new();
+  let mut result: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
 
   for (at_rule, value) in rules_by_at_rule.iter() {
     let suffix = if at_rule == "default" {
@@ -40,7 +40,7 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix),
-      Box::new(InjectableStyle {
+      Rc::new(InjectableStyle {
         priority: Some(priority_for_at_rule(at_rule).mul(0.1)),
         ltr,
         rtl: None,

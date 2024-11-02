@@ -10,7 +10,9 @@ where
   C: Comments,
 {
   pub(crate) fn fold_prop_name_impl(&mut self, prop_name: PropName) -> PropName {
-    match self.state.cycle {
+    let cycle = self.state.cycle;
+
+    match cycle {
       TransformationCycle::Skip => prop_name,
       TransformationCycle::StateFilling | TransformationCycle::Recounting
         if prop_name.is_ident() =>

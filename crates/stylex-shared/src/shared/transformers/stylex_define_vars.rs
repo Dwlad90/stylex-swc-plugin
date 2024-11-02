@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
@@ -19,11 +21,11 @@ pub(crate) fn stylex_define_vars(
   state: &mut StateManager,
 ) -> (
   IndexMap<String, Box<FlatCompiledStylesValue>>,
-  IndexMap<String, Box<InjectableStyle>>,
+  IndexMap<String, Rc<InjectableStyle>>,
 ) {
   let theme_name_hash = format!(
     "{}{}",
-    state.options.class_name_prefix,
+    state.options.borrow().class_name_prefix,
     create_hash(state.theme_name.as_ref().unwrap())
   );
 
@@ -50,7 +52,7 @@ pub(crate) fn stylex_define_vars(
           } else {
             &format!(
               "{}{}",
-              &state.options.class_name_prefix,
+              &state.options.borrow().class_name_prefix,
               create_hash(str_to_hash.as_str())
             )
           };
@@ -110,12 +112,12 @@ pub(crate) fn stylex_define_vars(
     },
   );
 
-  let mut injectable_types: IndexMap<String, Box<InjectableStyle>> = injectable_types
+  let mut injectable_types: IndexMap<String, Rc<InjectableStyle>> = injectable_types
     .iter()
     .filter_map(|(key, value)| {
       value
         .as_injectable_style()
-        .map(|inj_style| (key.to_owned(), Box::new(inj_style.clone())))
+        .map(|inj_style| (key.to_owned(), Rc::new(inj_style.clone())))
     })
     .collect();
 

@@ -50,7 +50,7 @@ impl CompiledResult {
 pub(crate) trait PreRule: Debug {
   #[allow(dead_code)]
   fn get_value(&self) -> Option<PreRuleValue>;
-  fn compiled(&mut self, state: &StateManager) -> CompiledResult;
+  fn compiled(&mut self, state: &mut StateManager) -> CompiledResult;
   #[allow(dead_code)]
   fn equals(&self, other: &dyn PreRule) -> bool;
 }
@@ -125,12 +125,11 @@ impl PreRule for StylesPreRule {
     Some(self.value.to_owned())
   }
 
-  fn compiled(&mut self, state: &StateManager) -> CompiledResult {
+  fn compiled(&mut self, state: &mut StateManager) -> CompiledResult {
     let (_, class_name, rule) = convert_style_to_class_name(
       (self.property.as_str(), &self.value),
       &mut self.pseudos,
       &mut self.at_rules,
-      &state.options.class_name_prefix,
       state,
     );
 

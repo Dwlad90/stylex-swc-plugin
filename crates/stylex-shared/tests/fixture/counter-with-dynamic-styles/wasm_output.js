@@ -2,8 +2,8 @@
 'use client';
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
-import "@stylexjs/open-props/lib/colors.stylex";
 import "./globalTokens.stylex";
+import "@stylexjs/open-props/lib/colors.stylex";
 import * as stylex from '@stylexjs/stylex';
 import { spacing, text, globalTokens as $ } from './globalTokens.stylex';
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
@@ -28,7 +28,6 @@ export default function Counter() {
       </button>
     </div>;
 }
-const DARK = '@media (prefers-color-scheme: dark)';
 _inject2(".x13jbg0v{font-size:var(--fontSize,revert)}", 3000);
 _inject2(".x78zum5{display:flex}", 3000);
 _inject2(".x6s0dn4{align-items:center}", 3000);

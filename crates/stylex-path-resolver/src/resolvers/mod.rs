@@ -4,7 +4,7 @@ use regex::Regex;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, default::Default};
 use swc_core::{
-  common::FileName,
+  common::{sync::Lazy, FileName},
   ecma::loader::{resolve::Resolve, resolvers::node::NodeModulesResolver, TargetEnv},
 };
 
@@ -19,10 +19,11 @@ mod tests;
 
 pub const EXTENSIONS: [&str; 8] = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".mdx", ".md"];
 
-pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
-  let file_pattern = Regex::new(r"\.(jsx?|tsx?|mdx?|mjs|cjs)$").unwrap(); // Matches common file extensions
+pub static FILE_PATTERN: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"\.(jsx?|tsx?|mdx?|mjs|cjs)$"#).unwrap());
 
-  if !file_pattern.is_match(processing_file.to_str().unwrap()) {
+pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
+  if !FILE_PATTERN.is_match(processing_file.to_str().unwrap()) {
     let processing_path: PathBuf;
 
     #[cfg(test)]

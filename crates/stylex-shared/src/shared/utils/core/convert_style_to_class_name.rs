@@ -1,4 +1,4 @@
-use convert_case::{Case, Casing};
+use stringcase::kebab_case;
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},
@@ -6,8 +6,8 @@ use crate::shared::{
     injectable_style::InjectableStyle, pre_rule::PreRuleValue, state_manager::StateManager,
   },
   utils::{
-    common::{create_hash, dashify},
-    css::common::{generate_rule, transform_value},
+    common::create_hash,
+    css::common::{generate_rule, transform_value_cached},
   },
 };
 
@@ -15,15 +15,14 @@ pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),
   pseudos: &mut [String],
   at_rules: &mut [String],
-  prefix: &str,
-  state: &StateManager,
+  state: &mut StateManager,
 ) -> (String, String, InjectableStyle) {
   let (key, raw_value) = obj_entry;
 
   let dashed_key = if key.starts_with("--") {
     key.to_string()
   } else {
-    dashify(key).to_case(Case::Kebab)
+    kebab_case(key)
   };
 
   let sorted_pseudos = &mut pseudos.to_vec();
@@ -44,11 +43,11 @@ pub(crate) fn convert_style_to_class_name(
   };
 
   let value = match raw_value {
-    PreRuleValue::String(value) => PreRuleValue::String(transform_value(key, value, state)),
+    PreRuleValue::String(value) => PreRuleValue::String(transform_value_cached(key, value, state)),
     PreRuleValue::Vec(vec) => PreRuleValue::Vec(
       vec
         .iter()
-        .map(|each_value| transform_value(key, each_value.as_str(), state))
+        .map(|each_value| transform_value_cached(key, each_value.as_str(), state))
         .collect::<Vec<String>>(),
     ),
     PreRuleValue::Expr(_) => panic!("{}", ILLEGAL_PROP_VALUE),
@@ -76,6 +75,8 @@ pub(crate) fn convert_style_to_class_name(
     value.join(", "),
     modifier_hash_string
   );
+
+  let prefix = &state.options.borrow().class_name_prefix;
 
   let class_name_hashed = format!("{}{}", prefix, create_hash(string_to_hash.as_str()));
 

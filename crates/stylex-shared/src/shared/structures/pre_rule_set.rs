@@ -38,7 +38,7 @@ impl PreRule for PreRuleSet {
   fn equals(&self, _other: &dyn PreRule) -> bool {
     true
   }
-  fn compiled(&mut self, state: &StateManager) -> CompiledResult {
+  fn compiled(&mut self, state: &mut StateManager) -> CompiledResult {
     let style_tuple = self
       .rules
       .iter_mut()

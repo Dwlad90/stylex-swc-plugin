@@ -1,5 +1,8 @@
 #[cfg(test)]
 mod converting_pre_rule_to_css {
+
+  use std::{cell::RefCell, rc::Rc};
+
   use crate::shared::structures::{
     injectable_style::InjectableStyle,
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRuleValue, StylesPreRule},
@@ -10,12 +13,16 @@ mod converting_pre_rule_to_css {
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
 
-    state_manager.options.class_name_prefix = "x".to_string();
-    state_manager.options.style_resolution = StyleResolution::LegacyExpandShorthands;
-    state_manager.options.runtime_injection = None;
-    state_manager.options.use_rem_for_font_size = true;
-    state_manager.options.dev = false;
-    state_manager.options.test = false;
+    let mut options = state_manager.options.borrow().clone();
+
+    options.class_name_prefix = "x".to_string();
+    options.style_resolution = StyleResolution::LegacyExpandShorthands;
+    options.runtime_injection = None;
+    options.use_rem_for_font_size = true;
+    options.dev = false;
+    options.test = false;
+
+    state_manager.options = Rc::new(RefCell::new(options));
 
     state_manager
   }
@@ -23,7 +30,7 @@ mod converting_pre_rule_to_css {
   #[test]
   fn should_convert_a_pre_rule_to_css() {
     let result = StylesPreRule::new("color", PreRuleValue::String("red".to_string()), None, None)
-      .compiled(&get_state());
+      .compiled(&mut get_state());
 
     assert_eq!(
       result,

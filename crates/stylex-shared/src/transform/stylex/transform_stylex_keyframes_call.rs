@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::VarDeclarator;
@@ -36,7 +36,7 @@ where
     let is_keyframes_call = is_keyframes_call(var_decl, &self.state);
 
     let result = if is_keyframes_call {
-      validate_stylex_keyframes_indent(var_decl, &mut self.state);
+      validate_stylex_keyframes_indent(var_decl, &self.state);
 
       let call = &var_decl
         .init
@@ -128,7 +128,7 @@ where
 
       let mut injected_styles = IndexMap::new();
 
-      injected_styles.insert(animation_name.clone(), Box::new(injectable_style));
+      injected_styles.insert(animation_name.clone(), Rc::new(injectable_style));
 
       let result_ast = string_to_expression(animation_name.as_str());
 

@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::common::type_of;
@@ -25,7 +23,7 @@ impl PreRule for PreIncludedStylesRule {
   fn get_value(&self) -> Option<PreRuleValue> {
     Some(PreRuleValue::Expr(self.included_styles.clone()))
   }
-  fn compiled(&mut self, _: &StateManager) -> CompiledResult {
+  fn compiled(&mut self, _: &mut StateManager) -> CompiledResult {
     CompiledResult::IncludedStyle(IncludedStyle::new(self.included_styles.clone()))
   }
   fn equals(&self, other: &dyn PreRule) -> bool {

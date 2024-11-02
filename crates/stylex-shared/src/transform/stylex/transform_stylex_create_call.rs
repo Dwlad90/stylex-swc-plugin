@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use indexmap::IndexMap;
 use swc_core::common::DUMMY_SP;
@@ -8,7 +8,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
 use crate::shared::utils::{
   ast::factories::array_expression_factory,
   core::js_to_expr::{convert_object_to_ast, remove_objects_with_spreads, NestedStringObject},
@@ -29,6 +28,10 @@ use crate::shared::{
   },
 };
 use crate::shared::{
+  structures::state::EvaluationState,
+  utils::validators::{is_create_call, validate_stylex_create},
+};
+use crate::shared::{
   structures::types::{FlatCompiledStyles, FunctionMapMemberExpression},
   utils::core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
 };
@@ -37,6 +40,9 @@ use crate::shared::{
   utils::ast::factories::prop_or_spread_expression_factory,
 };
 use crate::StyleXTransform;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static CALL_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 impl<C> StyleXTransform<C>
 where
@@ -47,7 +53,10 @@ where
     let is_create_call = is_create_call(call, &self.state);
 
     let result = if is_create_call {
-      validate_stylex_create(call, &mut self.state);
+      // println!("transform_stylex_create");
+
+      validate_stylex_create(call, &self.state);
+      CALL_COUNTER.fetch_add(1, Ordering::SeqCst);
 
       let first_arg = call.args.first();
 
@@ -132,8 +141,12 @@ where
 
       assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
 
-      let (mut compiled_styles, injected_styles_sans_keyframes) =
-        stylex_create_set(&value, &mut self.state, &function_map);
+      let (mut compiled_styles, injected_styles_sans_keyframes) = stylex_create_set(
+        &value,
+        &mut EvaluationState::new(),
+        &mut self.state,
+        &function_map,
+      );
 
       for (namespace, properties) in compiled_styles.iter() {
         resolved_namespaces
@@ -162,7 +175,7 @@ where
         self
           .state
           .style_map
-          .insert(var_name.clone(), styles_to_remember);
+          .insert(var_name.clone(), Rc::new(*styles_to_remember));
 
         self
           .state
@@ -235,7 +248,6 @@ where
           result_ast = object_expression_factory(props);
         }
       };
-
       self
         .state
         .register_styles(call, &injected_styles, &result_ast);
@@ -246,6 +258,8 @@ where
     };
 
     self.state.in_stylex_create = false;
+
+    // println!("{}", CALL_COUNTER.load(Ordering::SeqCst));
 
     result
   }

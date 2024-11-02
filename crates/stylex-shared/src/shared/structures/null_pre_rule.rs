@@ -22,7 +22,7 @@ impl PreRule for NullPreRule {
   fn get_value(&self) -> Option<PreRuleValue> {
     None
   }
-  fn compiled(&mut self, _: &StateManager) -> CompiledResult {
+  fn compiled(&mut self, _: &mut StateManager) -> CompiledResult {
     CompiledResult::Null
   }
   fn equals(&self, _other: &dyn PreRule) -> bool {

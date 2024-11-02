@@ -1,3 +1,4 @@
+use stringcase::kebab_case;
 use swc_core::{
   common::DUMMY_SP,
   css::{
@@ -9,7 +10,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::{constants::common::ROOT_FONT_SIZE, utils::common::dashify};
+use crate::shared::constants::common::ROOT_FONT_SIZE;
 
 struct CssFolder {
   use_rem_for_font_size: bool,
@@ -135,7 +136,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
     .map(|value| match value {
       ComponentValue::Ident(ident) => {
         let ident = Ident {
-          value: dashify(ident.value.as_str()).into(),
+          value: kebab_case(ident.value.as_str()).into(),
           raw: None,
           span: ident.span,
         };

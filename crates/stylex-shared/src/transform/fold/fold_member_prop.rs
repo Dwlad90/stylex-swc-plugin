@@ -10,7 +10,9 @@ where
   C: Comments,
 {
   pub(crate) fn fold_member_prop_impl(&mut self, member_prop: MemberProp) -> MemberProp {
-    match self.state.cycle {
+    let cycle = self.state.cycle;
+
+    match cycle {
       TransformationCycle::Skip => member_prop,
       TransformationCycle::StateFilling | TransformationCycle::Recounting
         if member_prop.is_ident() =>

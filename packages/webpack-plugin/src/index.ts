@@ -2,11 +2,10 @@ import path from 'path';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import { transform } from '@stylexswc/rs-compiler';
 import webpack from 'webpack';
-import fs from 'fs/promises';
 
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
-import type { Compiler, Module, NormalModule as NormalModuleType, WebpackError } from 'webpack';
+import type { Compiler, NormalModule as NormalModuleType, WebpackError } from 'webpack';
 
 const { NormalModule, Compilation } = webpack;
 
@@ -181,7 +180,7 @@ class StylexPlugin {
     if (this.stylexImports.some(importName => inputCode.includes(importName))) {
       const originalSource = inputCode;
 
-      let result = transform(filename, inputCode, this.rsOptions);
+      let result = transform(filename, originalSource, this.rsOptions);
 
       const metadata = result?.metadata;
       const code = result.code;

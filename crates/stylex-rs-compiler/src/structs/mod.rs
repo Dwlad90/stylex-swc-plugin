@@ -19,6 +19,7 @@ pub struct StyleXOptions {
   pub use_rem_for_font_size: Option<bool>,
   pub runtime_injection: Option<bool>,
   pub class_name_prefix: Option<String>,
+  #[napi(ts_type = "Record<string, string>")]
   pub defined_stylex_css_variables: Option<FxHashMap<String, String>>,
   #[napi(ts_type = "(string | { as: string, from: string })[]")]
   pub import_sources: Option<Vec<String>>,
@@ -26,6 +27,7 @@ pub struct StyleXOptions {
   pub gen_conditional_classes: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
+  #[napi(ts_type = "Record<string, string[]>")]
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,

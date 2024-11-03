@@ -37,7 +37,6 @@ use swc_core::{
   },
 };
 
-
 use crate::shared::{
   constants::cursor_flip::CURSOR_FLIP, regex::LENGTH_UNIT_TESTER_REGEX,
   structures::pre_rule::PreRules,
@@ -100,7 +99,7 @@ pub(crate) fn generate_ltr(pair: &Pair) -> Pair {
   property_to_ltr((pair.key.as_str(), pair.value.as_str()))
 }
 
-fn flip_sign(value: String) -> String {
+fn flip_sign(value: &str) -> String {
   if value == "0" {
     value.to_string()
   } else if value.starts_with('-') {
@@ -128,7 +127,7 @@ fn flip_shadow(value: &str) -> Option<String> {
     let index = if is_unit(parts[0].as_str()) { 0 } else { 1 };
 
     if index < parts.len() {
-      let flipped = flip_sign(parts[index].clone());
+      let flipped = flip_sign(&parts[index]);
       parts[index] = flipped;
     }
     built_defs.push(parts.join(" "));
@@ -249,7 +248,7 @@ pub(crate) fn split_value_required(strng: Option<&str>) -> (String, String, Stri
 pub(crate) fn split_value(
   value: Option<&str>,
 ) -> (String, Option<String>, Option<String>, Option<String>) {
-  let nodes = parse_css(value.unwrap_or(""));
+  let nodes = parse_css(value.unwrap_or_default());
 
   let top = nodes.first().cloned().unwrap_or(String::default());
   let right = nodes.get(1).cloned();
@@ -430,7 +429,7 @@ fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
     return val.to_string();
   }
 
-  let result = normalize_css_property_value(key, value.as_ref(), &state.options.borrow());
+  let result = normalize_css_property_value(key, value.as_ref(), &state.options);
 
   result
 }

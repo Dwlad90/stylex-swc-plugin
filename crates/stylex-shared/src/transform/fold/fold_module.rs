@@ -63,7 +63,7 @@ where
         }
       }
 
-      if self.state.options.borrow().runtime_injection.is_some() {
+      if self.state.options.runtime_injection.is_some() {
         self.state.cycle = TransformationCycle::InjectStyles;
         module = module.fold_children_with(self);
       }

@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod converting_pre_rule_to_css {
 
-  use std::{cell::RefCell, rc::Rc};
-
   use crate::shared::structures::{
     injectable_style::InjectableStyle,
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRuleValue, StylesPreRule},
@@ -13,7 +11,7 @@ mod converting_pre_rule_to_css {
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
 
-    let mut options = state_manager.options.borrow().clone();
+    let mut options = state_manager.options.clone();
 
     options.class_name_prefix = "x".to_string();
     options.style_resolution = StyleResolution::LegacyExpandShorthands;
@@ -22,7 +20,7 @@ mod converting_pre_rule_to_css {
     options.dev = false;
     options.test = false;
 
-    state_manager.options = Rc::new(RefCell::new(options));
+    state_manager.options = options;
 
     state_manager
   }

@@ -11,7 +11,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_invalid_pseudo_class,
@@ -33,7 +33,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_valid_pseudo_classes_in_order,
@@ -59,7 +59,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_pseudo_class_with_array_value_as_fallbacks,

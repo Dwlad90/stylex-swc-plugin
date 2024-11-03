@@ -42,10 +42,9 @@ pub fn evaluate_stylex_create_arg(
   match path {
     Expr::Object(style_object) => {
       let mut result_value: IndexMap<Expr, Vec<KeyValueProp>> = IndexMap::new();
-
       let mut fns: EvaluateResultFns = IndexMap::new();
 
-      for prop in &mut style_object.props {
+      for prop in &style_object.props {
         match prop {
           PropOrSpread::Spread(_) => unimplemented!("Spread"),
           PropOrSpread::Prop(prop) => {
@@ -67,10 +66,8 @@ pub fn evaluate_stylex_create_arg(
                   });
                 }
 
-                let key = key_result.value.unwrap();
-
+                let key = key_result.value.as_ref().unwrap();
                 let key_expr = key.as_expr().unwrap();
-
                 let value_path = &mut key_value_prop.value;
 
                 match value_path.as_mut() {
@@ -104,8 +101,9 @@ pub fn evaluate_stylex_create_arg(
 
                         let value = eval_result
                           .value
-                          .and_then(|value| value.as_expr().cloned())
-                          .and_then(|expr| expr.as_object().cloned())
+                          .as_ref()
+                          .and_then(|value| value.as_expr())
+                          .and_then(|expr| expr.as_object())
                           .expect("Value not an object");
 
                         let key = expr_to_str(key_expr, traversal_state, functions);
@@ -116,10 +114,9 @@ pub fn evaluate_stylex_create_arg(
                           key_expr.clone(),
                           value
                             .props
-                            .into_iter()
-                            .filter_map(|prop| {
-                              prop.as_prop().and_then(|prop| prop.as_key_value()).cloned()
-                            })
+                            .iter()
+                            .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
+                            .cloned()
                             .collect(),
                         );
                       } else {
@@ -136,27 +133,15 @@ pub fn evaluate_stylex_create_arg(
                       return val;
                     }
 
-                    let value_to_insert = match val.value.unwrap() {
+                    let value_to_insert = match val.value.as_ref().unwrap() {
                       EvaluateResultValue::Expr(expr) => match expr {
                         Expr::Object(obj_expr) => {
-                          let mut obj_expr_props: Vec<KeyValueProp> = vec![];
-
-                          for prop in obj_expr.clone().props {
-                            match prop {
-                              PropOrSpread::Spread(_) => unimplemented!("Spread"),
-                              PropOrSpread::Prop(mut prop) => {
-                                transform_shorthand_to_key_values(&mut prop);
-
-                                match prop.as_ref() {
-                                  Prop::KeyValue(obj_expr_prop_kv) => {
-                                    obj_expr_props.push(obj_expr_prop_kv.clone())
-                                  }
-
-                                  _ => unimplemented!(),
-                                }
-                              }
-                            }
-                          }
+                          let obj_expr_props = obj_expr
+                            .props
+                            .iter()
+                            .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
+                            .cloned()
+                            .collect::<Vec<_>>();
 
                           obj_expr_props
                         }
@@ -198,23 +183,21 @@ fn evaluate_partial_object_recursively(
   key_path: Option<Vec<String>>,
 ) -> Box<EvaluateResult> {
   let mut key_path = key_path.unwrap_or_default();
-
   let mut inline_styles: IndexMap<String, Box<Expr>> = IndexMap::new();
-
   let mut obj: Vec<PropOrSpread> = vec![];
 
-  for prop in path.props.clone() {
+  for prop in &path.props {
     match prop {
       PropOrSpread::Spread(spread) => {
         let result = evaluate(&spread.expr, traversal_state, functions);
-
         if !result.confident {
           return result;
         }
-
         unimplemented!();
       }
-      PropOrSpread::Prop(mut prop) => {
+      PropOrSpread::Prop(prop) => {
+        let mut prop = prop.clone();
+
         transform_shorthand_to_key_values(&mut prop);
 
         match prop.as_mut() {
@@ -231,25 +214,22 @@ fn evaluate_partial_object_recursively(
               });
             }
 
-            let Some(key) = key_result.value else {
-              panic!("Evaluated key value in not found");
-            };
+            let key = key_result
+              .value
+              .as_ref()
+              .and_then(|v| v.as_expr())
+              .expect("Evaluated key value is not a string");
 
-            let Some(key) = key.as_expr() else {
-              panic!("Evaluated key value in not a string");
-            };
+            let mut key_str = expr_to_str(key, traversal_state, functions);
 
-            let mut key = expr_to_str(key, traversal_state, functions);
-
-            if key.starts_with("var(") && key.ends_with(')') {
-              key = key[4..key.len() - 1].to_string();
+            if key_str.starts_with("var(") && key_str.ends_with(')') {
+              key_str = key_str[4..key_str.len() - 1].to_string();
             }
 
             let value_path = &mut key_value.value;
-
             match normalize_expr(value_path.as_mut()) {
               Expr::Object(object) => {
-                key_path.push(key.clone());
+                key_path.push(key_str.clone());
 
                 let result = evaluate_partial_object_recursively(
                   object,
@@ -269,14 +249,12 @@ fn evaluate_partial_object_recursively(
                 }
 
                 let new_prop = prop_or_spread_expression_factory(
-                  key.as_str(),
+                  &key_str,
                   result
                     .value
-                    .and_then(|value| value.as_expr().cloned())
-                    .expect("Value not an expression")
-                    .clone(),
+                    .and_then(|v| v.as_expr().cloned())
+                    .expect("Value not an expression"),
                 );
-
                 obj.push(new_prop);
 
                 if let Some(result_inline_styles) = result.inline_styles {
@@ -285,33 +263,29 @@ fn evaluate_partial_object_recursively(
               }
               _ => {
                 let result = evaluate(value_path, traversal_state, functions);
-
                 if !result.confident {
                   let var_name = if !key_path.is_empty() {
-                    key_path.push(key.clone());
-                    format!("--{}", create_hash(key_path.join("_").as_str()))
+                    key_path.push(key_str.clone());
+                    format!("--{}", create_hash(&key_path.join("_")))
                   } else {
-                    format!("--{}", key)
+                    format!("--{}", key_str)
                   };
 
                   let new_prop = prop_or_spread_expression_factory(
-                    key.as_str(),
-                    string_to_expression(format!("var({}, revert)", var_name).as_str()),
+                    &key_str,
+                    string_to_expression(&format!("var({}, revert)", var_name)),
                   );
-
                   obj.push(new_prop);
 
-                  let unit = if get_time_units().contains(key.as_str())
-                    || LENGTH_UNITS.contains(key.as_str())
-                  {
-                    get_number_suffix(key.as_str())
-                  } else {
-                    String::new()
-                  };
+                  let unit =
+                    if get_time_units().contains(&key_str) || LENGTH_UNITS.contains(&key_str) {
+                      get_number_suffix(&key_str)
+                    } else {
+                      String::new()
+                    };
 
                   let result_expression = if !unit.is_empty() {
                     let val_ident = ident_to_expression("val");
-
                     Expr::from(CallExpr {
                       span: DUMMY_SP,
                       callee: Callee::Expr(Box::new(Expr::Arrow(ArrowExpr {
@@ -333,7 +307,7 @@ fn evaluate_partial_object_recursively(
                             span: DUMMY_SP,
                             op: BinaryOp::Add,
                             left: Box::new(val_ident.clone()),
-                            right: Box::new(string_to_expression(unit.as_str())),
+                            right: Box::new(string_to_expression(&unit)),
                           })),
                           alt: Box::new(Expr::from(CondExpr {
                             span: DUMMY_SP,
@@ -375,13 +349,12 @@ fn evaluate_partial_object_recursively(
                   inline_styles.insert(var_name, Box::new(result_expression));
                 } else {
                   let new_prop = prop_or_spread_expression_factory(
-                    key.as_str(),
+                    &key_str,
                     result
                       .value
-                      .and_then(|value| value.as_expr().cloned())
+                      .and_then(|v| v.as_expr().cloned())
                       .expect("Value not an expression"),
                   );
-
                   obj.push(new_prop);
                 }
               }

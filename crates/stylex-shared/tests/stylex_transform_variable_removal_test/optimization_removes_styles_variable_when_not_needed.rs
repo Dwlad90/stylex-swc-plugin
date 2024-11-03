@@ -14,7 +14,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
@@ -40,7 +40,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
       ..StyleXOptionsParams::default()

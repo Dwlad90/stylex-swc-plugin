@@ -17,7 +17,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
@@ -45,7 +45,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
@@ -79,7 +79,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
@@ -112,7 +112,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },
@@ -144,7 +144,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       cwd: None,
       filename: FileName::Real("/html/js/FooBar.react.js".into()),
     },

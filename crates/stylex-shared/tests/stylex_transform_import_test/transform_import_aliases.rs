@@ -11,7 +11,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transform_import_aliases,
@@ -39,7 +39,7 @@ fn throw_when_named_import() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -60,7 +60,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   can_import_with_a_different_name,
@@ -84,7 +84,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   can_import_wildcard,
@@ -109,7 +109,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   can_import_just_create,
@@ -134,7 +134,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   can_import_just_create_with_alias,

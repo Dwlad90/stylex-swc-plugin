@@ -20,9 +20,7 @@ where
   C: Comments,
 {
   pub(crate) fn fold_module_items(&mut self, module_items: Vec<ModuleItem>) -> Vec<ModuleItem> {
-    let cycle = self.state.cycle;
-
-    match cycle {
+    match self.state.cycle {
       TransformationCycle::Skip => module_items,
       TransformationCycle::Initializing => {
         let transformed_module_items = module_items.fold_children_with(self);
@@ -50,9 +48,10 @@ where
 
         module_items.fold_children_with(self)
       }
-      TransformationCycle::TransformEnter => module_items.fold_children_with(self),
-      TransformationCycle::TransformExit => module_items.fold_children_with(self),
-      TransformationCycle::PreCleaning => module_items.fold_children_with(self),
+      TransformationCycle::TransformEnter
+      | TransformationCycle::TransformExit
+      | TransformationCycle::PreCleaning
+      | TransformationCycle::Recounting => module_items.fold_children_with(self),
       TransformationCycle::InjectStyles => {
         let mut result_module_items: Vec<ModuleItem> =
           self.state.prepend_include_module_items.clone();
@@ -145,7 +144,6 @@ where
 
         module_items
       }
-      TransformationCycle::Recounting => module_items.fold_children_with(self),
     }
   }
 }

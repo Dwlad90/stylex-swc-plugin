@@ -76,7 +76,7 @@ fn namespace_to_dev_class_name(
   let basename = Path::new(filename)
     .file_stem()
     .and_then(|os_str| os_str.to_str())
-    .unwrap_or("");
+    .unwrap_or_default();
 
   // Build up the class name, and sanitize it of disallowed characters
   let class_name = format!(
@@ -105,7 +105,7 @@ fn convert_theme_to_base_styles(
   let basename = Path::new(filename)
     .file_stem()
     .and_then(|os_str| os_str.to_str())
-    .unwrap_or("")
+    .unwrap_or_default()
     .split('.')
     .next()
     .expect("basename is empty");

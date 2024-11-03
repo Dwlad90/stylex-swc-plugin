@@ -32,9 +32,7 @@ where
     &mut self,
     mut var_declarator: VarDeclarator,
   ) -> VarDeclarator {
-    let cycle = self.state.cycle;
-
-    match cycle {
+    match self.state.cycle {
       TransformationCycle::StateFilling => {
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
           if let Some((declaration, member)) = self.process_declaration(call) {

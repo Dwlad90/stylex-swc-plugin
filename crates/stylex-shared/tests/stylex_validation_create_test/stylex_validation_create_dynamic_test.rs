@@ -17,7 +17,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -47,7 +47,7 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -77,7 +77,7 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -107,7 +107,7 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -129,7 +129,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -152,7 +152,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -186,7 +186,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -212,7 +212,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },

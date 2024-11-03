@@ -14,7 +14,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
       gen_conditional_classes: Some(true),
@@ -65,7 +65,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
       gen_conditional_classes: Some(true),

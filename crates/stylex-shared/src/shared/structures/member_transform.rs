@@ -1,4 +1,3 @@
-
 use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::{Expr, MemberExpr};
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};

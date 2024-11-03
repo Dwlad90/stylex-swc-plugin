@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod flatten_style_object_with_legacy_shorthand_expansion {
-  use std::{cell::RefCell, rc::Rc};
-
   use indexmap::IndexMap;
   use swc_core::ecma::ast::Expr;
 
@@ -27,7 +25,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
 
-    let mut options = state_manager.options.borrow().clone();
+    let mut options = state_manager.options.clone();
 
     options.class_name_prefix = "x".to_string();
     options.style_resolution = StyleResolution::LegacyExpandShorthands;
@@ -36,7 +34,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     options.dev = false;
     options.test = false;
 
-    state_manager.options = Rc::new(RefCell::new(options));
+    state_manager.options = options;
 
     state_manager
   }

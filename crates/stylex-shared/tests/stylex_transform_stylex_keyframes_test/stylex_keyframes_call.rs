@@ -11,7 +11,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   empty_stylex_props_call,
@@ -28,7 +28,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   converts_keyframes_to_css,
@@ -52,7 +52,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   converts_keyframes_to_css_with_import_wildcard,
@@ -77,7 +77,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   converts_keyframes_to_css_with_named_import,
@@ -102,7 +102,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   allows_template_literal_references_to_keyframes,
@@ -132,7 +132,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   allows_inline_references_to_keyframes,
@@ -161,7 +161,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   generates_rtl_specific_keyframes,
@@ -192,7 +192,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   generates_animation_name_with_multiple_keyframes_properties,
@@ -219,7 +219,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   generates_animation_name_with_mixed_multiple_keyframes_properties,

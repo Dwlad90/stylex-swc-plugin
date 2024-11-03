@@ -1,7 +1,7 @@
 use core::panic;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
-use std::{cell::RefCell, path::Path};
+use std::path::Path;
 use std::{option::Option, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
@@ -62,7 +62,7 @@ pub(crate) struct SeenValueWithVarDeclCount {
 
 #[derive(Clone, Debug)]
 pub struct StateManager {
-  pub(crate) _state: Rc<PluginPass>,
+  pub(crate) _state: PluginPass,
 
   // Imports
   pub(crate) import_paths: FxHashSet<String>,
@@ -76,7 +76,7 @@ pub struct StateManager {
   pub(crate) stylex_define_vars_import: AtomHashSet,
   pub(crate) stylex_create_theme_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
-  pub(crate) inject_import_inserted: Option<(Rc<Ident>, Rc<Ident>)>,
+  pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) theme_name: Option<String>,
 
   pub(crate) declarations: Vec<VarDeclarator>,
@@ -96,7 +96,7 @@ pub struct StateManager {
 
   pub(crate) in_stylex_create: bool,
 
-  pub(crate) options: Rc<RefCell<StyleXStateOptions>>,
+  pub(crate) options: StyleXStateOptions,
   pub metadata: IndexMap<String, IndexSet<MetaData>>,
   pub(crate) styles_to_inject: IndexMap<u64, Vec<ModuleItem>>,
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
@@ -116,10 +116,10 @@ impl Default for StateManager {
 
 impl StateManager {
   pub fn new(stylex_options: StyleXOptions) -> Self {
-    let options = Rc::new(RefCell::new(StyleXStateOptions::from(stylex_options)));
+    let options = StyleXStateOptions::from(stylex_options);
 
     Self {
-      _state: Rc::new(PluginPass::default()),
+      _state: PluginPass::default(),
       import_paths: FxHashSet::default(),
       stylex_import: FxHashSet::default(),
       stylex_props_import: FxHashSet::default(),
@@ -163,12 +163,12 @@ impl StateManager {
   }
 
   pub fn import_as(&self, import: &str) -> Option<String> {
-    for import_source in &self.options.borrow().import_sources {
+    for import_source in &self.options.import_sources {
       match import_source {
         ImportSources::Regular(_) => {}
         ImportSources::Named(named) => {
           if named.from.eq(import) {
-            return Some(named.r#as.clone());
+            return Some(named.r#as.to_string());
           }
         }
       }
@@ -178,19 +178,19 @@ impl StateManager {
   }
 
   pub fn import_sources(&self) -> Vec<ImportSources> {
-    self.options.borrow().import_sources.clone()
+    self.options.import_sources.to_vec()
   }
 
   pub fn import_sources_stringified(&self) -> Vec<String> {
     self
       .options
-      .borrow()
       .import_sources
       .iter()
       .map(|import_source| match import_source {
-        ImportSources::Regular(regular) => regular.clone(),
-        ImportSources::Named(named) => named.from.clone(),
+        ImportSources::Regular(regular) => regular.as_str(),
+        ImportSources::Named(named) => named.from.as_str(),
       })
+      .map(ToString::to_string)
       .collect()
   }
 
@@ -199,28 +199,29 @@ impl StateManager {
       .stylex_import
       .iter()
       .map(|import_source| match &import_source {
-        ImportSources::Regular(regular) => regular.clone(),
-        ImportSources::Named(named) => named.clone().r#as,
+        ImportSources::Regular(regular) => regular.as_str(),
+        ImportSources::Named(named) => named.r#as.as_str(),
       })
+      .map(ToString::to_string)
       .collect()
   }
 
   pub(crate) fn is_test(&self) -> bool {
-    self.options.borrow().test
+    self.options.test
   }
 
   pub(crate) fn is_dev(&self) -> bool {
-    self.options.borrow().dev
+    self.options.dev
   }
 
   pub(crate) fn gen_conditional_classes(&self) -> bool {
-    self.options.borrow().gen_conditional_classes
+    self.options.gen_conditional_classes
   }
 
   pub(crate) fn get_short_filename(&self) -> String {
     extract_filename_from_path(&self._state.filename)
   }
-  pub(crate) fn get_filename(&self) -> String {
+  pub(crate) fn get_filename(&self) -> &str {
     extract_path(&self._state.filename)
   }
   pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
@@ -228,31 +229,29 @@ impl StateManager {
 
     let unstable_module_resolution = self
       .options
-      .borrow()
       .unstable_module_resolution
-      .clone()
+      .as_ref()
+      .cloned()
       .unwrap_or_default();
 
     let theme_file_extension = match &unstable_module_resolution {
       CheckModuleResolution::CommonJS(ModuleResolution {
         theme_file_extension,
         ..
-      }) => theme_file_extension,
-      CheckModuleResolution::Haste(ModuleResolution {
+      })
+      | CheckModuleResolution::Haste(ModuleResolution {
         theme_file_extension,
         ..
-      }) => theme_file_extension,
-      CheckModuleResolution::CrossFileParsing(ModuleResolution {
+      })
+      | CheckModuleResolution::CrossFileParsing(ModuleResolution {
         theme_file_extension,
         ..
-      }) => theme_file_extension,
-    }
-    .clone()
-    .unwrap_or(".stylex".to_string());
+      }) => theme_file_extension.as_deref().unwrap_or(".stylex"),
+    };
 
     if filename.is_empty()
-      || !matches_file_suffix(theme_file_extension.as_str(), &filename)
-      || self.options.borrow().unstable_module_resolution.is_none()
+      || !matches_file_suffix(theme_file_extension, filename)
+      || self.options.unstable_module_resolution.is_none()
     {
       return None;
     }
@@ -260,19 +259,20 @@ impl StateManager {
     match unstable_module_resolution {
       CheckModuleResolution::Haste(_) => {
         let filename = FileName::Real(filename.into());
-        extract_filename_with_ext_from_path(&filename)
+        extract_filename_with_ext_from_path(&filename).map(|s| s.to_string())
       }
       CheckModuleResolution::CommonJS(module_resolution)
       | CheckModuleResolution::CrossFileParsing(module_resolution) => {
         let root_dir = module_resolution
           .root_dir
+          .as_deref()
           .expect("root_dir is required for CommonJS");
 
-        let root_dir = Path::new(root_dir.as_str());
+        let root_dir = Path::new(root_dir);
 
-        let filename = Path::new(&filename);
+        let processing_file = Path::new(&filename);
 
-        let filename_for_hashing = resolve_path(Path::new(&filename), root_dir);
+        let filename_for_hashing = resolve_path(processing_file, root_dir);
 
         Some(filename_for_hashing)
       }
@@ -286,46 +286,46 @@ impl StateManager {
       return ImportPathResolution::False;
     }
 
-    let Some(unstable_module_resolution) = &self.options.borrow().unstable_module_resolution else {
+    let Some(unstable_module_resolution) = &self.options.unstable_module_resolution else {
       return ImportPathResolution::False;
     };
 
     match unstable_module_resolution {
       CheckModuleResolution::CommonJS(module_resolution) => {
-        let root_dir = &module_resolution
-          .clone()
+        let root_dir = module_resolution
           .root_dir
+          .as_deref()
           .expect("root_dir is required for CommonJS");
 
-        let theme_file_extension = &module_resolution
+        let theme_file_extension = module_resolution
           .theme_file_extension
-          .clone()
-          .unwrap_or(".stylex".to_string());
+          .as_deref()
+          .unwrap_or(".stylex");
 
-        let aliases = self.options.borrow().aliases.clone().unwrap_or_default();
+        let aliases = self.options.aliases.as_ref().cloned().unwrap_or_default();
 
-        if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
+        if !matches_file_suffix(theme_file_extension, import_path) {
           return ImportPathResolution::False;
         }
 
         let resolved_file_path =
-          file_path_resolver(import_path, source_file_path, root_dir.as_str(), &aliases);
+          file_path_resolver(import_path, source_file_path, root_dir, &aliases);
 
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
       }
       CheckModuleResolution::Haste(module_resolution) => {
         let theme_file_extension = module_resolution
           .theme_file_extension
-          .clone()
-          .unwrap_or(".stylex".to_string());
+          .as_deref()
+          .unwrap_or(".stylex");
 
-        if !matches_file_suffix(theme_file_extension.as_str(), import_path) {
+        if !matches_file_suffix(theme_file_extension, import_path) {
           return ImportPathResolution::False;
         }
 
         ImportPathResolution::Tuple(
           ImportPathResolutionType::ThemeNameRef,
-          add_file_extension(import_path, &source_file_path),
+          add_file_extension(import_path, source_file_path),
         )
       }
       _ => unimplemented!("Module resolution is not supported"),
@@ -340,7 +340,7 @@ impl StateManager {
     self
       .top_level_expressions
       .iter()
-      .find(|tpe| kind.eq(&tpe.0) && tpe.1.eq(&Box::new(Expr::Call(call.clone()))))
+      .find(|tpe| kind == &tpe.0 && matches!(tpe.1, Expr::Call(ref c) if c == call))
       .cloned()
   }
 
@@ -358,27 +358,26 @@ impl StateManager {
 
     let mut uid_generator_inject = UidGenerator::new("inject");
 
-    let runtime_injection_default = &RuntimeInjectionState::Regular(String::default());
-
-    let binding = self.options.borrow().clone();
-
-    let runtime_injection = &binding
+    let runtime_injection = self
+      .options
       .runtime_injection
       .as_ref()
-      .unwrap_or(runtime_injection_default);
+      .cloned()
+      .unwrap_or(RuntimeInjectionState::Regular(String::default()));
 
     let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
       Some(idents) => idents,
       None => {
-        let inject_module_ident = Rc::new(uid_generator_inject.generate_ident());
+        let inject_module_ident = uid_generator_inject.generate_ident();
 
-        let inject_var_ident = Rc::new(match &runtime_injection {
+        let inject_var_ident = match &runtime_injection {
           RuntimeInjectionState::Regular(_) => uid_generator_inject.generate_ident(),
           RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
-            uid_generator_inject = UidGenerator::new(r#as);
+            let r#as_clone = r#as.clone();
+            uid_generator_inject = UidGenerator::new(&r#as_clone);
             uid_generator_inject.generate_ident()
           }
-        });
+        };
 
         self.inject_import_inserted = Some((inject_module_ident.clone(), inject_var_ident.clone()));
 
@@ -387,25 +386,22 @@ impl StateManager {
     };
 
     if !metadatas.is_empty() && self.prepend_include_module_items.is_empty() {
-      let first_module_items = match runtime_injection {
+      let first_module_items = match &runtime_injection {
         RuntimeInjectionState::Regular(_) => vec![
           add_inject_default_import_expression(&inject_module_ident),
           add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
         ],
-        RuntimeInjectionState::Named(_) => {
-          vec![
-            add_inject_named_import_expression(&inject_module_ident, &inject_var_ident),
-            add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
-          ]
-        }
+        RuntimeInjectionState::Named(_) => vec![
+          add_inject_named_import_expression(&inject_module_ident, &inject_var_ident),
+          add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
+        ],
       };
 
       self.prepend_include_module_items.extend(first_module_items);
     }
 
     for metadata in metadatas {
-      self.add_style(metadata.clone());
-
+      self.add_style(&metadata);
       self.add_style_to_inject(&metadata, &inject_var_ident, ast);
     }
 
@@ -454,39 +450,33 @@ impl StateManager {
     }
   }
 
-  fn add_style(&mut self, metadata: MetaData) {
-    let var_name = String::from("stylex");
-    let value = self.metadata.entry(var_name).or_default();
-    // let class_name = metadata.get_class_name(); // Cache the class name
+  fn add_style(&mut self, metadata: &MetaData) {
+    let var_name = "stylex";
+    let value = self.metadata.entry(var_name.to_string()).or_default();
 
-    value.insert(metadata);
-
-    // if !value.iter().any(|item| item.get_class_name() == class_name) {
-    //   value.push(metadata);
-    // }
+    if !value.contains(metadata) {
+      value.insert(metadata.clone());
+    }
   }
 
   fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, ast: &Expr) {
-    let priority = &metadata.get_priority();
-
-    let css = &metadata.get_css();
-    let css_rtl = &metadata.get_css_rtl();
+    let priority = metadata.get_priority();
+    let css = metadata.get_css();
+    let css_rtl = metadata.get_css_rtl();
 
     let mut stylex_inject_args = vec![
       expr_or_spread_string_expression_factory(css),
-      expr_or_spread_number_expression_factory(round_f64(**priority, 1)),
+      expr_or_spread_number_expression_factory(round_f64(*priority, 1)),
     ];
 
     if let Some(rtl) = css_rtl {
-      stylex_inject_args.push(expr_or_spread_string_expression_factory(rtl.as_str()));
+      stylex_inject_args.push(expr_or_spread_string_expression_factory(rtl));
     }
-
-    let _inject = Expr::Ident(inject_var_ident.clone());
 
     let stylex_call_expr = CallExpr {
       span: DUMMY_SP,
       type_args: None,
-      callee: Callee::Expr(Box::new(_inject)),
+      callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
       args: stylex_inject_args,
     };
 
@@ -511,17 +501,11 @@ impl StateManager {
   // }
 
   pub(crate) fn get_treeshake_compensation(&self) -> bool {
-    self
-      .options
-      .borrow()
-      .treeshake_compensation
-      .unwrap_or(false)
+    self.options.treeshake_compensation.unwrap_or(false)
   }
 
   // Now you can use these helper functions to simplify your function
   pub fn combine(&mut self, other: &Self) {
-    // let other = other;
-
     self.import_paths = union_hash_set(&self.import_paths, &other.import_paths);
     self.stylex_import = union_hash_set(&self.stylex_import, &other.stylex_import);
     self.stylex_props_import =
@@ -775,7 +759,7 @@ fn chain_collect_index_map<K: Eq + Hash, V: Clone + PartialEq>(
 
 fn file_path_resolver(
   relative_file_path: &str,
-  source_file_path: String,
+  source_file_path: &str,
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
 ) -> String {
@@ -794,7 +778,7 @@ fn file_path_resolver(
     };
 
     let resolved_file_path =
-      resolve_file_path(&import_path_str, &source_file_path, ext, root_path, aliases);
+      resolve_file_path(&import_path_str, source_file_path, ext, root_path, aliases);
 
     if let Ok(resolved_path) = resolved_file_path {
       let resolved_path_str = resolved_path.display().to_string();

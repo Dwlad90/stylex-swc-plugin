@@ -1,4 +1,3 @@
-
 use rustc_hash::FxHashMap;
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
@@ -21,7 +20,7 @@ fn only_argument_must_be_an_object_of_objects_null() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -45,7 +44,7 @@ fn only_argument_must_be_an_object_of_objects_non_keyframe() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -67,7 +66,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   only_argument_must_be_an_object_of_objects_valid,
@@ -87,7 +86,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   only_argument_must_be_an_object_of_objects_valid_filled,
@@ -122,7 +121,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },

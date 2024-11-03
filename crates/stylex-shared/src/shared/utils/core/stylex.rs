@@ -7,7 +7,7 @@ use crate::{
 
 use super::parse_nullable_style::ResolvedArg;
 
-pub(crate) fn stylex(values: &Vec<ResolvedArg>) -> Option<FnResult> {
+pub(crate) fn stylex(values: &[ResolvedArg]) -> Option<FnResult> {
   let result = styleq(values);
 
   Some(FnResult::Stylex(string_to_expression(

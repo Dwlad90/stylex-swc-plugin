@@ -39,15 +39,13 @@ where
     let result = if is_keyframes_call {
       validate_stylex_keyframes_indent(var_decl, &self.state);
 
-      let call = &var_decl
+      let call = var_decl
         .init
-        .clone()
-        .and_then(|decl| decl.call())
+        .as_ref()
+        .and_then(|decl| decl.as_call())
         .expect("Expected call expression");
 
-      let first_arg = call.args.first();
-
-      let first_arg = first_arg.map(|first_arg| match &first_arg.spread {
+      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!("Spread"),
         None => first_arg.expr.clone(),
       })?;
@@ -80,9 +78,7 @@ where
       }
 
       for name in &self.state.stylex_import {
-        member_expressions.entry(name.clone()).or_default();
-
-        let member_expression = member_expressions.get_mut(name).unwrap();
+        let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
           "include".into(),
@@ -116,16 +112,12 @@ where
           );
           value
         }
-        None => {
-          panic!("{}", NON_STATIC_VALUE)
-        }
+        None => panic!("{}", NON_STATIC_VALUE),
       };
 
-      let plain_object = value;
+      assert_valid_keyframes(&value);
 
-      assert_valid_keyframes(&plain_object);
-
-      let (animation_name, injectable_style) = stylex_keyframes(&plain_object, &mut self.state);
+      let (animation_name, injectable_style) = stylex_keyframes(&value, &mut self.state);
 
       let mut injected_styles = IndexMap::new();
 

@@ -40,3 +40,6 @@ pub(crate) static CSS_ATTRIBUTE: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"^attr\([a-zA-Z0-9-]+\)$"#).unwrap());
 
 pub(crate) static CLEAN_CSS_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\\3(\d) "#).unwrap());
+
+pub(crate) static IS_CSS_VAR: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"^var\(--[a-zA-Z0-9-_]+\)$"#).unwrap());

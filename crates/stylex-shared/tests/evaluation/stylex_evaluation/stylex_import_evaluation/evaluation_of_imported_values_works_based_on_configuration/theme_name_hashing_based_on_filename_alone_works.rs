@@ -38,7 +38,7 @@ fn tranform(input: &str) -> String {
 
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass {
+        PluginPass {
           filename: FileName::Real(
             format!("{}/test.skip.js", env::current_dir().unwrap().display()).into(),
           ),

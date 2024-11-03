@@ -9,7 +9,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| { StyleXTransform::new_test(tr.comments.clone(), &PluginPass::default(), None) },
+  |tr| { StyleXTransform::new_test(tr.comments.clone(), PluginPass::default(), None) },
   stylex_metadata_is_correctly_set,
   r#"
         import stylex from 'stylex';

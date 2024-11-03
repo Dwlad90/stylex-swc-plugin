@@ -30,7 +30,7 @@ pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (String, InjectableStyle) {
-  let mut class_name_prefix = state.options.borrow().class_name_prefix.clone();
+  let mut class_name_prefix = state.options.class_name_prefix.clone();
 
   if class_name_prefix.is_empty() {
     class_name_prefix = "x".to_string();
@@ -97,7 +97,7 @@ pub(crate) fn stylex_keyframes(
 
       let rtl_values = pairs
         .iter()
-        .map(|pair| generate_rtl(pair).unwrap_or(pair.clone()))
+        .map(|pair| generate_rtl(pair).unwrap_or_else(|| pair.clone()))
         .collect();
 
       Box::new(FlatCompiledStylesValue::KeyValues(rtl_values))
@@ -162,7 +162,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
       let key = get_key_str(pair);
       let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default());
 
-      flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options.borrow())
+      flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)
         .into_iter()
         .filter_map(|pair| {
           pair.1.as_ref()?;

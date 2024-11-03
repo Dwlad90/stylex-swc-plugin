@@ -39,16 +39,16 @@ pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   }
 }
 
-pub(crate) fn extract_path(path: &FileName) -> String {
+pub(crate) fn extract_path(path: &FileName) -> &str {
   match path {
-    FileName::Real(path_buf) => path_buf.to_str().unwrap().to_string(),
-    _ => "UnknownFile".to_string(),
+    FileName::Real(path_buf) => path_buf.to_str().unwrap(),
+    _ => "UnknownFile",
   }
 }
 
-pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<String> {
+pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&str> {
   match path {
-    FileName::Real(path_buf) => Some(path_buf.file_name().unwrap().to_str().unwrap().to_string()),
+    FileName::Real(path_buf) => Some(path_buf.file_name().unwrap().to_str().unwrap()),
     _ => None,
   }
 }
@@ -80,11 +80,11 @@ pub(crate) fn get_key_str(key_value: &KeyValueProp) -> String {
     _ => panic!("Key is not recognized"),
   };
 
-  wrap_key_in_quotes(key, &should_wrap_in_quotes)
+  wrap_key_in_quotes(key, should_wrap_in_quotes)
 }
 
-pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: &bool) -> String {
-  if *should_wrap_in_quotes {
+pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {
+  if should_wrap_in_quotes {
     format!("\"{}\"", key)
   } else {
     key.to_string()
@@ -156,80 +156,76 @@ pub fn get_var_decl_by_ident<'a>(
     VarDeclAction::None => {}
   };
 
-  match get_var_decl_from(traversal_state, ident) {
-    Some(var_decl) => Some(var_decl.clone()),
-    None => {
-      let func = functions.identifiers.get(&ident.sym);
+  if let Some(var_decl) = get_var_decl_from(traversal_state, ident) {
+    return Some(var_decl.clone());
+  }
 
-      match func {
-        Some(func) => match func.as_ref() {
-          FunctionConfigType::Regular(func) => match func.fn_ptr.clone() {
-            FunctionType::Mapper(func) => {
-              let result = func();
+  if let Some(func) = functions.identifiers.get(&ident.sym) {
+    match func.as_ref() {
+      FunctionConfigType::Regular(func) => match &func.fn_ptr {
+        FunctionType::Mapper(func) => {
+          let result = func();
 
-              let var_decl = VarDeclarator {
-                span: DUMMY_SP,
-                name: Pat::from(binding_ident_factory(ident.clone())),
-                init: Some(Box::new(result)),
-                definite: false,
-              };
+          let var_decl = VarDeclarator {
+            span: DUMMY_SP,
+            name: Pat::from(binding_ident_factory(ident.clone())),
+            init: Some(Box::new(result)),
+            definite: false,
+          };
 
-              Some(var_decl)
-            }
-            _ => panic!("Function type not supported"),
-          },
-          FunctionConfigType::Map(_) => unimplemented!(),
-        },
-        None => None,
-      }
+          return Some(var_decl);
+        }
+        _ => panic!("Function type not supported"),
+      },
+      FunctionConfigType::Map(_) => unimplemented!(),
     }
   }
+
+  None
 }
 
-pub fn get_import_by_ident<'a>(ident: &'a Ident, state: &'a StateManager) -> Option<ImportDecl> {
+pub fn get_import_by_ident<'a>(
+  ident: &'a Ident,
+  state: &'a StateManager,
+) -> Option<&'a ImportDecl> {
   get_import_from(state, ident)
 }
 
 pub(crate) fn get_var_decl_from<'a>(
   state: &'a StateManager,
   ident: &'a Ident,
-) -> Option<VarDeclarator> {
-  state
-    .declarations
-    .iter()
-    .find(|var_declarator| {
-      if let Pat::Ident(binding_indent) = &var_declarator.name {
-        return binding_indent.sym == ident.sym;
-      }
+) -> Option<&'a VarDeclarator> {
+  state.declarations.iter().find(|var_declarator| {
+    if let Pat::Ident(binding_ident) = &var_declarator.name {
+      return binding_ident.sym == ident.sym;
+    }
 
-      false
-    })
-    .cloned()
+    false
+  })
 }
 
-pub(crate) fn get_import_from<'a>(state: &'a StateManager, ident: &'a Ident) -> Option<ImportDecl> {
-  state
-    .top_imports
-    .iter()
-    .find(|import| {
-      import.specifiers.iter().any(|specifier| match specifier {
-        ImportSpecifier::Named(named_import) => {
-          named_import.local.sym == ident.sym || {
-            if let Some(imported) = &named_import.imported {
-              match imported {
-                ModuleExportName::Ident(export_ident) => export_ident.sym == ident.sym,
-                ModuleExportName::Str(strng) => strng.value == ident.sym,
-              }
-            } else {
-              false
+pub(crate) fn get_import_from<'a>(
+  state: &'a StateManager,
+  ident: &'a Ident,
+) -> Option<&'a ImportDecl> {
+  state.top_imports.iter().find(|import| {
+    import.specifiers.iter().any(|specifier| match specifier {
+      ImportSpecifier::Named(named_import) => {
+        named_import.local.sym == ident.sym || {
+          if let Some(imported) = &named_import.imported {
+            match imported {
+              ModuleExportName::Ident(export_ident) => export_ident.sym == ident.sym,
+              ModuleExportName::Str(strng) => strng.value == ident.sym,
             }
+          } else {
+            false
           }
         }
-        ImportSpecifier::Default(default_import) => default_import.local.sym == ident.sym,
-        ImportSpecifier::Namespace(namespace_import) => namespace_import.local.sym == ident.sym,
-      })
+      }
+      ImportSpecifier::Default(default_import) => default_import.local.sym == ident.sym,
+      ImportSpecifier::Namespace(namespace_import) => namespace_import.local.sym == ident.sym,
     })
-    .cloned()
+  })
 }
 
 pub(crate) fn get_var_decl_by_ident_or_member<'a>(

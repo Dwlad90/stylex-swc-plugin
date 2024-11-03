@@ -26,12 +26,13 @@ where
       for key_value in key_values.iter() {
         let key = get_key_str(key_value);
 
-        let value = key_value.value.clone();
+        let value = Box::new(FlatCompiledStylesValue::Tuple(
+          key.clone(),
+          key_value.value.clone(),
+          None,
+        ));
 
-        let result = mapper(
-          Box::new(FlatCompiledStylesValue::Tuple(key.clone(), value, None)),
-          state,
-        );
+        let result = mapper(value, state);
 
         variables_map.insert(key, result);
       }
@@ -77,23 +78,19 @@ impl<T> Pipe<T> {
 }
 
 pub(crate) fn obj_entries(obj: &Expr) -> Vec<KeyValueProp> {
-  let mut ret_val = Vec::new();
   let object = obj.as_object().expect("Object expected");
 
-  let key_values = get_key_values_from_object(object);
-
-  for key_value in key_values.iter() {
-    ret_val.push(key_value.clone());
-  }
-
-  ret_val
+  get_key_values_from_object(object)
 }
 
-pub(crate) fn obj_from_entries(entries: &Vec<OrderPair>) -> IndexMap<String, String> {
-  let mut map = IndexMap::new();
+pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String> {
+  let mut map = IndexMap::with_capacity(entries.len());
 
   for OrderPair(key, value) in entries {
-    map.insert(key.clone(), value.clone().expect("Value is not a string"));
+    map.insert(
+      key.clone(),
+      value.as_ref().expect("Value is not a string").clone(),
+    );
   }
 
   map
@@ -103,14 +100,15 @@ pub(crate) fn obj_map_keys(
   entries: &IndexMap<String, String>,
   mapper: fn(&str) -> String,
 ) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
-  let mut map = IndexMap::new();
+  let mut map = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
-    let key = mapper(key);
+    let mapped_key = mapper(key);
+
     map.insert(
-      key.clone(),
+      mapped_key.clone(),
       Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
-        key,
+        mapped_key,
         value.clone(),
       ))),
     );
@@ -123,7 +121,7 @@ pub(crate) fn _obj_map_entries(
   entries: &IndexMap<String, String>,
   mapper: fn((&str, &str)) -> Pair,
 ) -> IndexMap<String, FlatCompiledStylesValue> {
-  let mut map = IndexMap::new();
+  let mut map = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
     let result = mapper((key, value));

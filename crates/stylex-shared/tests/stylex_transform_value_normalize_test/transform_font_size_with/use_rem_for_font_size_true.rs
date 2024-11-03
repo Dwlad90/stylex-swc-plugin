@@ -14,7 +14,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
       use_rem_for_font_size: Some(true),
@@ -48,7 +48,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
       use_rem_for_font_size: Some(true),

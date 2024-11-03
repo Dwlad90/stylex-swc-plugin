@@ -23,7 +23,7 @@ impl CssFolder {
     declaration: &'a mut Declaration,
   ) -> &'a mut Declaration {
     if let DeclarationName::Ident(ident) = &declaration.name {
-      if ident.value.eq("fontSize") || self.parent_key.as_deref() == Some("fontSize") {
+      if ident.value == "fontSize" || self.parent_key.as_deref() == Some("fontSize") {
         self.parent_key = Some("fontSize".into());
         declaration.value = declaration.value.clone().fold_children_with(self);
         self.parent_key = None;
@@ -87,7 +87,7 @@ impl Fold for CssFolder {
 
     // NOTE: only last css fucntion value should be folded
     if let Some(last) = fnc.value.last_mut() {
-      *last = last.clone().fold_with(self);
+      *last = last.clone().fold_children_with(self);
     }
 
     fnc
@@ -129,23 +129,11 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
     DeclarationName::DashedIdent(_) => return declaration,
   }
 
-  declaration.value = declaration
-    .value
-    .clone()
-    .into_iter()
-    .map(|value| match value {
-      ComponentValue::Ident(ident) => {
-        let ident = Ident {
-          value: kebab_case(ident.value.as_str()).into(),
-          raw: None,
-          span: ident.span,
-        };
-
-        ComponentValue::Ident(Box::new(ident))
-      }
-      _ => value,
-    })
-    .collect();
+  declaration.value.iter_mut().for_each(|value| {
+    if let ComponentValue::Ident(ident) = value {
+      ident.value = kebab_case(ident.value.as_str()).into();
+    }
+  });
 
   declaration
 }

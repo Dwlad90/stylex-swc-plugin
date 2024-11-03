@@ -27,7 +27,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },
@@ -60,7 +60,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },
@@ -93,7 +93,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },

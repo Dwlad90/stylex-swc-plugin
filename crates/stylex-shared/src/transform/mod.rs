@@ -1,4 +1,3 @@
-
 use rustc_hash::FxHashSet;
 use swc_core::{
   common::comments::Comments,
@@ -36,32 +35,32 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub fn new(comments: C, plugin_pass: Box<PluginPass>, config: &mut StyleXOptionsParams) -> Self {
+  pub fn new(comments: C, plugin_pass: PluginPass, config: &mut StyleXOptionsParams) -> Self {
     let stylex_imports = fill_stylex_imports(&Some(config));
 
-    let mut state = Box::new(StateManager::new(config.clone().into()));
+    let mut state = StateManager::new(config.clone().into());
 
     state.stylex_import.clone_from(&stylex_imports);
 
-    state.options.borrow_mut().import_sources = stylex_imports.into_iter().collect();
+    state.options.import_sources = stylex_imports.into_iter().collect();
 
-    state._state = plugin_pass.into();
+    state._state = plugin_pass;
 
     StyleXTransform {
       comments,
       props_declaration: None,
-      state: *state,
+      state,
     }
   }
 
   pub fn new_test_force_runtime_injection(
     comments: C,
-    plugin_pass: &PluginPass,
+    plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> Self {
     let stylex_imports = fill_stylex_imports(&config);
 
-    let mut state = Box::new(match config {
+    let mut state = match config {
       Some(config) => {
         config.runtime_injection = Some(true);
         config.treeshake_compensation = Some(true);
@@ -77,29 +76,27 @@ where
 
         StateManager::new(config)
       }
-    });
+    };
 
-    state.options.borrow_mut().import_sources = stylex_imports.into_iter().collect();
+    state.options.import_sources = stylex_imports.into_iter().collect();
 
-    let plugin_pass = Box::new(plugin_pass.clone());
-
-    state._state = plugin_pass.into();
+    state._state = plugin_pass;
 
     StyleXTransform {
       comments,
       props_declaration: None,
-      state: *state,
+      state,
     }
   }
 
   pub fn new_test(
     comments: C,
-    plugin_pass: &PluginPass,
+    plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> Self {
     let stylex_imports = fill_stylex_imports(&config);
 
-    let mut state = Box::new(match config {
+    let mut state = match config {
       Some(config) => StateManager::new(config.clone().into()),
       None => {
         let config = StyleXOptions {
@@ -111,18 +108,16 @@ where
 
         StateManager::new(config)
       }
-    });
+    };
 
-    state.options.borrow_mut().import_sources = stylex_imports.into_iter().collect();
+    state.options.import_sources = stylex_imports.into_iter().collect();
 
-    let plugin_pass = plugin_pass.clone();
-
-    state._state = plugin_pass.into();
+    state._state = plugin_pass;
 
     StyleXTransform {
       comments,
       props_declaration: None,
-      state: *state,
+      state,
     }
   }
 
@@ -196,7 +191,7 @@ where
   pub(crate) fn get_call_var_name(
     &mut self,
     call: &CallExpr,
-  ) -> (Option<String>, Option<Box<VarDeclarator>>) {
+  ) -> (Option<String>, Option<VarDeclarator>) {
     let mut var_name: Option<String> = None;
 
     let parent_var_decl = self
@@ -205,14 +200,18 @@ where
       .iter()
       .find(|decl| {
         if let Some(init) = &decl.init {
-          init.eq(&Box::new(Expr::Call(call.clone())))
+          if let Expr::Call(init_call) = init.as_ref() {
+            init_call == call
+          } else {
+            false
+          }
         } else {
           false
         }
       })
-      .map(|item| Box::new(item.clone()));
+      .cloned();
 
-    if let Some(parent_var_decl) = &parent_var_decl {
+    if let Some(ref parent_var_decl) = parent_var_decl {
       if let Some(ident) = parent_var_decl.name.as_ident() {
         var_name = Some(ident.sym.to_string());
       }

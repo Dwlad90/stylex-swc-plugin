@@ -33,10 +33,10 @@ pub fn transform(
 
   let cwd = env::current_dir()?;
 
-  let plugin_pass = Box::new(PluginPass {
+  let plugin_pass = PluginPass {
     cwd: Some(cwd),
     filename,
-  });
+  };
 
   let mut config = options.into();
 

@@ -10,7 +10,7 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
-      KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Prop, PropName,
+      KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Pat, Prop, PropName,
       PropOrSpread, TplElement, UnaryOp, VarDeclarator,
     },
     utils::{drop_span, ident::IdentLike, quote_ident, ExprExt},
@@ -66,26 +66,15 @@ pub(crate) fn evaluate_obj_key(
 ) -> EvaluateResult {
   let key_path = &prop_kv.key;
 
-  let key: Expr;
-
-  match key_path {
-    PropName::Ident(ident) => {
-      key = string_to_expression(ident.sym.to_string().as_str());
-    }
+  let key = match key_path {
+    PropName::Ident(ident) => string_to_expression(&ident.sym),
     PropName::Computed(computed) => {
-      let computed_path = &computed.expr;
-      let computed_result = evaluate(computed_path, state, functions);
+      let computed_result = evaluate(&computed.expr, state, functions);
       if computed_result.confident {
-        key = match computed_result.value {
-          Some(eval_result) => {
-            if let EvaluateResultValue::Expr(value) = eval_result {
-              value.clone()
-            } else {
-              panic!("Expected expression value");
-            }
-          }
-          _ => panic!("Expected string value"),
-        };
+        match computed_result.value {
+          Some(EvaluateResultValue::Expr(ref value)) => value.clone(),
+          _ => panic!("Expected expression value"),
+        }
       } else {
         return EvaluateResult {
           confident: false,
@@ -96,14 +85,12 @@ pub(crate) fn evaluate_obj_key(
         };
       }
     }
-    PropName::Str(strng) => key = string_to_expression(&strng.value),
-    PropName::Num(num) => key = number_to_expression(num.value),
-    PropName::BigInt(big_int) => {
-      key = big_int_to_expression(big_int.clone());
-    }
-  }
+    PropName::Str(strng) => string_to_expression(&strng.value),
+    PropName::Num(num) => number_to_expression(num.value),
+    PropName::BigInt(big_int) => big_int_to_expression(big_int.clone()),
+  };
 
-  let key_expr = string_to_expression(expr_to_str(&key, state, functions).as_str());
+  let key_expr = string_to_expression(&expr_to_str(&key, state, functions));
 
   EvaluateResult {
     confident: true,
@@ -124,26 +111,13 @@ pub fn evaluate(
     deopt_path: None,
     added_imports: FxHashSet::default(),
     functions: fns.clone(),
-    // traversal_state: Rc::clone(traversal_state),
   });
-
-  // return Box::new(EvaluateResult {
-  //   confident: false,
-  //   value: None,
-  //   deopt: None,
-  //   inline_styles: None,
-  //   fns: None,
-  // });
 
   let mut value = evaluate_cached(path, &mut state, traversal_state, fns);
 
   if !state.confident {
     value = None;
   }
-
-  // let traversal_state_cloned = traversal_state.clone();
-
-  // *traversal_state = traversal_state_cloned;
 
   Box::new(EvaluateResult {
     confident: state.confident,
@@ -177,15 +151,14 @@ fn _evaluate(
 
   let result: Option<EvaluateResultValue> = match path {
     Expr::Arrow(arrow) => {
-      let body = arrow.body.clone();
-      let params = arrow.params.clone();
+      let body = &arrow.body;
+      let params = &arrow.params;
 
       let ident_params = params
-        .clone()
-        .into_iter()
+        .iter()
         .filter_map(|param| {
-          if param.is_ident() {
-            Some(param.as_ident().unwrap().sym.clone())
+          if let Pat::Ident(ident) = param {
+            Some(ident.sym.clone())
           } else {
             None
           }
@@ -208,13 +181,13 @@ fn _evaluate(
                   ident_params.iter().enumerate().for_each(|(index, ident)| {
                     if let Some(arg) = cb_args.get(index) {
                       let expr = arg
-                        .clone()
-                        .and_then(|arg| arg.as_expr().cloned())
+                        .as_ref()
+                        .and_then(|arg| arg.as_expr())
                         .expect("Argument is not an expression");
 
                       let cl = |arg: Expr| move || arg.clone();
 
-                      let result = (cl)(expr);
+                      let result = (cl)(expr.clone());
                       let function = FunctionConfig {
                         fn_ptr: FunctionType::Mapper(Rc::new(result)),
                         takes_path: false,
@@ -276,16 +249,14 @@ fn _evaluate(
     Expr::Ident(ident) => {
       let atom_ident_id = &ident.sym;
 
-      if state.functions.identifiers.contains_key(atom_ident_id) {
-        let func = state.functions.identifiers.get(atom_ident_id)?;
-
+      if let Some(func) = state.functions.identifiers.get(atom_ident_id) {
         match func.as_ref() {
           FunctionConfigType::Regular(func) => {
-            let FunctionType::Mapper(func) = func.fn_ptr.clone() else {
+            if let FunctionType::Mapper(func) = &func.fn_ptr {
+              return Some(EvaluateResultValue::Expr(func()));
+            } else {
               panic!("Function not found");
-            };
-
-            return Some(EvaluateResultValue::Expr(func()));
+            }
           }
           FunctionConfigType::Map(func_map) => {
             return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
@@ -295,15 +266,9 @@ fn _evaluate(
 
       None
     }
-    Expr::TsAs(tsas) => {
-      let expr = tsas.expr.clone();
-
-      evaluate_cached(&expr, state, traversal_state, fns)
-    }
+    Expr::TsAs(tsas) => evaluate_cached(&tsas.expr, state, traversal_state, fns),
     Expr::TsSatisfies(ts_satisfaies) => {
-      let expr = ts_satisfaies.expr.clone();
-
-      evaluate_cached(&expr, state, traversal_state, fns)
+      evaluate_cached(&ts_satisfaies.expr, state, traversal_state, fns)
     }
     Expr::Seq(sec) => {
       let expr = sec
@@ -341,7 +306,7 @@ fn _evaluate(
       }
 
       let test_result = match test_result.expect("Test of condition must be an expression") {
-        EvaluateResultValue::Expr(expr) => expr_to_bool(&expr, traversal_state, fns),
+        EvaluateResultValue::Expr(ref expr) => expr_to_bool(expr, traversal_state, fns),
         _ => panic!("Test of condition must be an expression"),
       };
 
@@ -359,18 +324,12 @@ fn _evaluate(
       panic!("Paren must be normalized before evaluation")
     }
     Expr::Member(member) => {
-      // let mut traversal_state = &traversal_state;
-      // let traversal_state_borrowed = traversal_state;
-
       let parent_is_call_expr = traversal_state
         .all_call_expressions
-        .clone()
-        .into_iter()
+        .iter()
         .any(|call_expr| {
           if let Some(callee) = call_expr.callee.as_expr() {
-            callee
-              .as_ref()
-              .eq_ignore_span(&Expr::Member(member.clone()))
+            callee.eq_ignore_span(&Box::new(Expr::Member(member.clone())))
           } else {
             false
           }
@@ -385,14 +344,14 @@ fn _evaluate(
       if let Some(object) = evaluated_value {
         if !state.confident {
           return None;
-        };
+        }
 
         let prop_path = &member.prop;
 
-        let propery = match prop_path {
+        let property = match prop_path {
           MemberProp::Ident(ident) => Some(EvaluateResultValue::Expr(Expr::from(ident.clone()))),
           MemberProp::Computed(ComputedPropName { expr, .. }) => {
-            let result = evaluate_cached(&expr.clone(), state, traversal_state, fns);
+            let result = evaluate_cached(expr, state, traversal_state, fns);
 
             if !state.confident {
               return None;
@@ -408,33 +367,30 @@ fn _evaluate(
         match object {
           EvaluateResultValue::Expr(expr) => match &expr {
             Expr::Array(ArrayLit { elems, .. }) => {
-              let Some(eval_res) = propery else {
-                panic!("Property not found: {:?}", expr.get_type());
+              let eval_res = property.expect("Property not found");
+
+              let expr = match eval_res {
+                EvaluateResultValue::Expr(expr) => expr,
+                _ => panic!("Property not found: {:?}", expr.get_type()),
               };
 
-              let EvaluateResultValue::Expr(expr) = eval_res else {
-                panic!("Property not found: {:?}", expr.get_type());
+              let value = match expr {
+                Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
+                _ => panic!("Member not found: {:?}", expr.get_type()),
               };
 
-              let Expr::Lit(Lit::Num(Number { value, .. })) = *expr.as_expr() else {
-                panic!("Member not found: {:?}", expr.get_type());
-              };
+              let property = elems.get(value)?;
 
-              let property = elems.get(value as usize)?;
+              let expr = property.as_ref().expect("Member not found").expr.clone();
 
-              let Some(ExprOrSpread { expr, .. }) = property else {
-                panic!("Member not found: {:?}", expr.get_type());
-              };
-
-              Some(EvaluateResultValue::Expr(*expr.clone()))
+              Some(EvaluateResultValue::Expr(*expr))
             }
             Expr::Object(ObjectLit { props, .. }) => {
-              let Some(eval_res) = propery else {
-                panic!("Property not found: {:?}", expr.get_type());
-              };
+              let eval_res = property.expect("Property not found");
 
-              let EvaluateResultValue::Expr(ident) = eval_res else {
-                panic!("Property not found: {:?}", expr.get_type());
+              let ident = match eval_res {
+                EvaluateResultValue::Expr(ident) => ident,
+                _ => panic!("Property not found: {:?}", expr.get_type()),
               };
 
               let ident = &mut ident.to_owned();
@@ -452,9 +408,7 @@ fn _evaluate(
               };
 
               let property = props.iter().find(|prop| match prop {
-                PropOrSpread::Spread(_) => {
-                  unimplemented!("Spread");
-                }
+                PropOrSpread::Spread(_) => unimplemented!("Spread"),
                 PropOrSpread::Prop(prop) => {
                   let mut prop = prop.clone();
 
@@ -476,8 +430,8 @@ fn _evaluate(
                   *prop
                     .as_key_value()
                     .expect("Expression is not a key value")
-                    .clone()
-                    .value,
+                    .value
+                    .clone(),
                 ));
               } else {
                 panic!("Member not found: {:?}", expr.get_type());
@@ -486,8 +440,8 @@ fn _evaluate(
             _ => unimplemented!("Expression: {:?}", expr.get_type()),
           },
           EvaluateResultValue::FunctionConfigMap(fc_map) => {
-            let key = match propery {
-              Some(propery) => match propery {
+            let key = match property {
+              Some(property) => match property {
                 EvaluateResultValue::Expr(expr) => match expr {
                   Expr::Ident(ident) => Box::new(ident.clone()),
                   _ => panic!("Member not found: {:?}", expr.get_type()),
@@ -501,28 +455,22 @@ fn _evaluate(
 
             return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
           }
-          EvaluateResultValue::ThemeRef(theme_ref) => {
-            let key = match propery {
-              Some(propery) => match propery {
+          EvaluateResultValue::ThemeRef(mut theme_ref) => {
+            let key = match property {
+              Some(property) => match property {
                 EvaluateResultValue::Expr(expr) => match expr {
                   Expr::Ident(Ident { sym, .. }) => sym.to_string(),
                   Expr::Lit(lit) => {
                     get_string_val_from_lit(&lit).expect("Property must be a string")
                   }
-                  _ => {
-                    panic!("Member not found: {:?}", expr.get_type());
-                  }
+                  _ => panic!("Member not found: {:?}", expr.get_type()),
                 },
                 _ => unimplemented!(),
               },
               None => panic!("Member not found"),
             };
 
-            let mut cloned_theme_ref = theme_ref.clone();
-
-            let value = &cloned_theme_ref.get(&key);
-
-            // traversal_state.combine(updated_state);
+            let value = theme_ref.get(&key);
 
             return Some(EvaluateResultValue::Expr(string_to_expression(
               value.as_str(),
@@ -539,13 +487,13 @@ fn _evaluate(
         return None;
       }
 
-      let argument = unary.arg.clone();
+      let argument = &unary.arg;
 
-      if unary.op == UnaryOp::TypeOf && (argument.is_fn_expr()) || argument.is_class() {
+      if unary.op == UnaryOp::TypeOf && (argument.is_fn_expr() || argument.is_class()) {
         return Some(EvaluateResultValue::Expr(string_to_expression("function")));
       }
 
-      let arg = evaluate_cached(&argument, state, traversal_state, fns);
+      let arg = evaluate_cached(argument, state, traversal_state, fns);
 
       if !state.confident {
         return None;
@@ -604,7 +552,7 @@ fn _evaluate(
       }
     }
     Expr::Array(arr_path) => {
-      let mut arr: Vec<Option<EvaluateResultValue>> = vec![];
+      let mut arr: Vec<Option<EvaluateResultValue>> = Vec::with_capacity(arr_path.elems.len());
 
       for elem in arr_path.elems.iter().flatten() {
         let elem_value = evaluate(&elem.expr, traversal_state, &state.functions);
@@ -632,7 +580,7 @@ fn _evaluate(
 
             let new_props = spread_expression
               .and_then(|spread| spread.as_expr().cloned())
-              .and_then(|expr| expr.object())
+              .and_then(|expr| expr.as_object().cloned())
               .expect("Spread must be an object");
 
             let merged_object = deep_merge_props(props, new_props.props);
@@ -661,17 +609,18 @@ fn _evaluate(
                       evaluate(&computed.expr, traversal_state, &state.functions);
 
                     if !evaluated_result.confident {
-                      if evaluated_result.deopt.is_some() {
-                        deopt(&evaluated_result.deopt.unwrap(), state);
-                      };
+                      if let Some(deopt_val) = evaluated_result.deopt {
+                        deopt(&deopt_val, state);
+                      }
 
                       return None;
                     }
 
                     Some(expr_to_str(
-                      &evaluated_result
+                      evaluated_result
                         .value
-                        .and_then(|value| value.as_expr().cloned())
+                        .as_ref()
+                        .and_then(|value| value.as_expr())
                         .expect("Property must be an expression"),
                       traversal_state,
                       &state.functions,
@@ -683,9 +632,9 @@ fn _evaluate(
                 let value = evaluate(&path_key_value.value, traversal_state, &state.functions);
 
                 if !value.confident {
-                  if value.deopt.is_some() {
-                    deopt(&value.deopt.unwrap(), state);
-                  };
+                  if let Some(deopt_val) = value.deopt {
+                    deopt(&deopt_val, state);
+                  }
 
                   return None;
                 }
@@ -693,74 +642,73 @@ fn _evaluate(
                 let value = value.value.unwrap_or_else(|| {
                   panic!(
                     "Value of key '{}' must be present, but got {:?}",
-                    key.clone().unwrap_or("Unknown".to_string()),
+                    key.clone().unwrap_or_else(|| "Unknown".to_string()),
                     path_key_value.value.get_type()
                   )
                 });
 
                 let value = match value {
-                  EvaluateResultValue::Expr(expr) => Some(expr.clone()),
+                  EvaluateResultValue::Expr(expr) => Some(expr),
                   EvaluateResultValue::Vec(items) => {
-                    let mut elems: Vec<Option<ExprOrSpread>> = vec![];
+                    let elems = items
+                      .iter()
+                      .map(|entry| {
+                        let expr = entry
+                          .as_ref()
+                          .and_then(|entry| {
+                            entry
+                              .as_vec()
+                              .map(|vec| {
+                                let elems = vec
+                                  .iter()
+                                  .flatten()
+                                  .map(|item| {
+                                    let item = item.as_expr().unwrap();
+                                    Some(ExprOrSpread {
+                                      spread: None,
+                                      expr: Box::new(item.clone()),
+                                    })
+                                  })
+                                  .collect();
 
-                    for entry in items.clone() {
-                      let expr = entry
-                        .and_then(|entry| {
-                          entry
-                            .as_vec()
-                            .map(|vec| {
-                              let mut elems = vec![];
-
-                              for item in vec.iter().flatten() {
-                                let item = item.as_expr().unwrap();
-                                elems.push(Some(ExprOrSpread {
-                                  spread: None,
-                                  expr: Box::new(item.clone()),
-                                }));
-                              }
-
-                              Expr::Array(ArrayLit {
-                                span: DUMMY_SP,
-                                elems,
+                                Expr::Array(ArrayLit {
+                                  span: DUMMY_SP,
+                                  elems,
+                                })
                               })
-                            })
-                            .or_else(|| entry.as_expr().cloned())
+                              .or_else(|| entry.as_expr().cloned())
+                          })
+                          .expect(ILLEGAL_PROP_ARRAY_VALUE);
+
+                        let expr = match expr {
+                          Expr::Array(array) => Expr::Array(array),
+                          Expr::Lit(lit) => Expr::Lit(lit),
+                          _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+                        };
+
+                        Some(ExprOrSpread {
+                          spread: None,
+                          expr: Box::new(expr),
                         })
-                        .expect(ILLEGAL_PROP_ARRAY_VALUE);
+                      })
+                      .collect();
 
-                      let expr = match expr {
-                        Expr::Array(array) => Expr::Array(array),
-                        Expr::Lit(lit) => Expr::Lit(lit),
-                        _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE,),
-                      };
-
-                      elems.push(Some(ExprOrSpread {
-                        spread: None,
-                        expr: Box::new(expr),
-                      }));
-                    }
-
-                    let array = ArrayLit {
+                    Some(Expr::Array(ArrayLit {
                       span: DUMMY_SP,
                       elems,
-                    };
-
-                    Some(Expr::Array(array))
+                    }))
                   }
                   EvaluateResultValue::Callback(_) => None,
-                  _ => {
-                    panic!("Property value must be an expression")
-                  }
+                  _ => panic!("Property value must be an expression"),
                 };
 
                 if let Some(value) = value {
                   props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
                     key: PropName::Ident(quote_ident!(key.unwrap())),
-                    value: Box::new(value.clone()),
+                    value: Box::new(value),
                   }))));
                 }
               }
-
               _ => unimplemented!(),
             }
           }
@@ -776,12 +724,10 @@ fn _evaluate(
     }
     Expr::Bin(bin) => {
       if let Some(result) = binary_expr_to_num(bin, state, traversal_state, fns) {
-        let result = number_to_expression(result);
-
-        return Some(EvaluateResultValue::Expr(result));
-      } else {
-        None
+        return Some(EvaluateResultValue::Expr(number_to_expression(result)));
       }
+
+      None
     }
     Expr::Call(call) => {
       let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
@@ -817,29 +763,30 @@ fn _evaluate(
             if property.is_ident() {
               if is_valid_callee(object) && !is_invalid_method(property) {
                 let callee_name = get_callee_name(object);
-
                 let method_name = get_method_name(property);
 
-                match callee_name.as_str() {
+                match callee_name {
                   "Math" => {
-                    let Some(first_arg) = &call.args.first() else {
-                      panic!("Math.{} requires an argument", method_name)
-                    };
+                    let first_arg = call
+                      .args
+                      .first()
+                      .unwrap_or_else(|| panic!("Math.{} requires an argument", method_name));
 
                     if first_arg.spread.is_some() {
                       unimplemented!("Spread")
                     }
 
-                    match method_name.as_ref() {
+                    match method_name {
                       "pow" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(MathJS::Pow))),
                           takes_path: false,
                         }));
 
-                        let Some(second_arg) = call.args.get(1) else {
-                          panic!("Math.pow requires an second argument")
-                        };
+                        let second_arg = call
+                          .args
+                          .get(1)
+                          .expect("Math.pow requires a second argument");
 
                         if second_arg.spread.is_some() {
                           unimplemented!("Spread")
@@ -858,7 +805,7 @@ fn _evaluate(
                       "round" | "ceil" | "floor" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(
-                            match method_name.as_ref() {
+                            match method_name {
                               "round" => MathJS::Round,
                               "ceil" => MathJS::Ceil,
                               "floor" => MathJS::Floor,
@@ -877,11 +824,10 @@ fn _evaluate(
                             .expect("First argument should be an expression"),
                         ))]);
                       }
-
                       "min" | "max" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(
-                            match method_name.as_ref() {
+                            match method_name {
                               "min" => MathJS::Min,
                               "max" => MathJS::Max,
                               _ => unreachable!("Invalid method: {}", method_name),
@@ -916,9 +862,9 @@ fn _evaluate(
                   "Object" => {
                     let args = &call.args;
 
-                    let Some(arg) = args.first() else {
-                      panic!("Object.{} requires an argument", method_name)
-                    };
+                    let arg = args
+                      .first()
+                      .unwrap_or_else(|| panic!("Object.{} requires an argument", method_name));
 
                     if arg.spread.is_some() {
                       unimplemented!("Spread")
@@ -926,7 +872,7 @@ fn _evaluate(
 
                     let cached_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
 
-                    match method_name.as_ref() {
+                    match method_name {
                       "fromEntries" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
@@ -972,7 +918,7 @@ fn _evaluate(
                             }
                           }
                           EvaluateResultValue::Vec(vec) => {
-                            for entry in vec.clone() {
+                            for entry in vec {
                               let entry = entry
                                 .and_then(|entry| entry.as_vec().cloned())
                                 .expect("Entry must be some");
@@ -991,7 +937,7 @@ fn _evaluate(
                                 .and_then(|expr| expr.as_lit().cloned())
                                 .expect("Value must be a literal");
 
-                              entries_result.insert(key.clone().clone(), value.clone().clone());
+                              entries_result.insert(key.clone(), value.clone());
                             }
                           }
                           _ => {
@@ -1125,12 +1071,11 @@ fn _evaluate(
                 let obj_name = obj_ident.sym.to_string();
                 let prop_id = prop_ident.sym.to_id();
 
-                let member_expressions = state
+                if let Some(member_expr) = state
                   .functions
                   .member_expressions
-                  .get(&ImportSources::Regular(obj_name));
-
-                if let Some(member_expr) = member_expressions {
+                  .get(&ImportSources::Regular(obj_name))
+                {
                   if let Some(member_expr_fn) = member_expr.get(&prop_id.0) {
                     match member_expr_fn.as_ref() {
                       FunctionConfigType::Regular(fc) => {
@@ -1146,18 +1091,12 @@ fn _evaluate(
             if let Some(prop_id) = is_id_prop(property) {
               let obj_name = obj_ident.sym.to_string();
 
-              if state
+              if let Some(member_expr) = state
                 .functions
                 .member_expressions
-                .contains_key(&ImportSources::Regular(obj_name.clone()))
+                .get(&ImportSources::Regular(obj_name))
               {
-                let member_expr = state
-                  .functions
-                  .member_expressions
-                  .get(&ImportSources::Regular(obj_name))
-                  .unwrap();
-
-                if member_expr.contains_key(&prop_id) {
+                if member_expr.contains_key(prop_id) {
                   unimplemented!("Check what's happening here");
 
                   // context = Some(member_expr.clone());
@@ -1287,35 +1226,22 @@ fn _evaluate(
 
       if let Some(func) = func {
         if func.takes_path {
-          let args = call
-            .args
-            .iter()
-            .map(|arg| *arg.expr.clone())
-            .collect::<Vec<Expr>>();
+          let args = call.args.iter().map(|arg| &*arg.expr).collect::<Vec<_>>();
 
           match func.fn_ptr {
             FunctionType::ArrayArgs(func) => {
-              let func_result = (func)(args);
-
+              let func_result = (func)(args.iter().map(|arg| (*arg).clone()).collect());
               return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::StylexExprFn(func) => {
-              let func_result = (func)(args.first().unwrap().clone(), traversal_state);
+              let func_result = (func)((**args.first().unwrap()).clone(), traversal_state);
 
               return Some(EvaluateResultValue::Expr(func_result));
             }
-            FunctionType::StylexTypeFn(_) => {
-              panic!("StylexTypeFn");
-            }
-            FunctionType::StylexFnsFactory(_) => {
-              panic!("StylexFnsFactory");
-            }
-            FunctionType::Callback(_) => {
-              panic!("Arrow function");
-            }
-            FunctionType::Mapper(_) => {
-              panic!("Mapper");
-            }
+            FunctionType::StylexTypeFn(_) => panic!("StylexTypeFn"),
+            FunctionType::StylexFnsFactory(_) => panic!("StylexFnsFactory"),
+            FunctionType::Callback(_) => panic!("Arrow function"),
+            FunctionType::Mapper(_) => panic!("Mapper"),
           }
         } else {
           if !state.confident {
@@ -1325,7 +1251,6 @@ fn _evaluate(
           match func.fn_ptr {
             FunctionType::ArrayArgs(func) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
-
               let func_result = (func)(
                 args
                   .into_iter()
@@ -1341,19 +1266,15 @@ fn _evaluate(
             }
             FunctionType::StylexExprFn(func) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
-
               let func_result = (func)(
                 args.first().and_then(|arg| arg.as_expr().cloned()).unwrap(),
                 traversal_state,
               );
-
               return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::StylexTypeFn(func) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
-
               let mut fn_args = IndexMap::default();
-
               let expr = args
                 .first()
                 .and_then(|expr| expr.as_expr())
@@ -1361,7 +1282,7 @@ fn _evaluate(
 
               match expr {
                 Expr::Object(obj) => {
-                  for prop in obj.props.iter() {
+                  for prop in &obj.props {
                     let prop = prop.as_prop().unwrap();
                     let key_value = prop.as_key_value().unwrap();
 
@@ -1390,10 +1311,7 @@ fn _evaluate(
               }
 
               let func_result = (func)(ValueWithDefault::Map(fn_args));
-
-              let css_type = func_result;
-
-              return Some(EvaluateResultValue::Expr(css_type));
+              return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::Callback(func) => {
               let context = context.expect("Object.entries requires a context");
@@ -1618,103 +1536,94 @@ fn _evaluate(
   if result.is_none() && path.is_ident() {
     let ident = path.as_ident().expect("Identifier not found");
 
-    let binding = get_var_decl_by_ident(
+    if let Some(binding) = get_var_decl_by_ident(
       ident,
       traversal_state,
       &state.functions,
       VarDeclAction::Reduce,
-    );
-
-    match binding {
-      Some(binding) => {
-        if path.eq(&&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
-          unimplemented!("Binding")
-        }
-
-        let result = evaluate_cached(
-          &Box::new(*binding.init.expect("Binding not found")),
-          state,
-          traversal_state,
-          fns,
-        );
-        return result;
+    ) {
+      if (*path).eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
+        unimplemented!("Binding")
       }
-      None => {
-        let name = ident.sym.to_string();
 
-        if name == "undefined" || name == "infinity" || name == "NaN" {
-          return Some(EvaluateResultValue::Expr(Expr::from(ident.clone())));
+      return evaluate_cached(
+        &Box::new(*binding.init.expect("Binding not found")),
+        state,
+        traversal_state,
+        fns,
+      );
+    }
+
+    let name = ident.sym.to_string();
+
+    if name == "undefined" || name == "infinity" || name == "NaN" {
+      return Some(EvaluateResultValue::Expr(Expr::from(ident.clone())));
+    }
+
+    if let Some(import_path) = get_import_by_ident(ident, traversal_state).and_then(|import_decl| {
+      if import_decl
+        .specifiers
+        .iter()
+        .any(|import| import.is_named())
+      {
+        Some(import_decl)
+      } else {
+        None
+      }
+    }) {
+      let import_specifier = import_path
+        .specifiers
+        .iter()
+        .find_map(|import| {
+          if let Some(name_import) = import.as_named() {
+            if ident.sym == name_import.local.sym {
+              return Some(name_import);
+            }
+          }
+          None
+        })
+        .expect("Import specifier not found");
+
+      let imported = import_specifier
+        .imported
+        .clone()
+        .unwrap_or_else(|| ModuleExportName::Ident(import_specifier.local.clone()));
+
+      let abs_path = traversal_state.import_path_resolver(&import_path.src.value);
+
+      let imported_name = match imported {
+        ModuleExportName::Ident(ident) => ident.sym.to_string(),
+        ModuleExportName::Str(strng) => strng.value.to_string(),
+      };
+
+      let return_value = match abs_path {
+        ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, value) => {
+          evaluate_theme_ref(&value, imported_name, traversal_state)
         }
+        _ => return deopt(path, state),
+      };
 
-        let binding = get_import_by_ident(ident, traversal_state).and_then(|import_decl| {
-          if import_decl
-            .specifiers
-            .iter()
-            .any(|import| import.is_named())
+      if state.confident {
+        let import_path_src = import_path.src.value.to_string();
+
+        if !state.added_imports.contains(&import_path_src)
+          && traversal_state.get_treeshake_compensation()
+        {
+          let prepend_import_module_item = add_import_expression(&import_path_src);
+
+          if !traversal_state
+            .prepend_import_module_items
+            .contains(&prepend_import_module_item)
           {
-            Some(import_decl)
-          } else {
-            None
+            traversal_state
+              .prepend_import_module_items
+              .push(prepend_import_module_item);
           }
-        });
 
-        if let Some(import_path) = binding {
-          let import_specifier = import_path
-            .specifiers
-            .iter()
-            .find_map(|import| {
-              if let Some(name_import) = import.as_named() {
-                if ident.sym == name_import.local.sym {
-                  return Some(name_import);
-                }
-              }
-              None
-            })
-            .expect("Import specifier not found");
-          let imported = import_specifier
-            .imported
-            .clone()
-            .unwrap_or(ModuleExportName::Ident(import_specifier.local.clone()));
-
-          let abs_path = traversal_state.import_path_resolver(&import_path.src.value);
-
-          let imported_name = match imported {
-            ModuleExportName::Ident(ident) => ident.sym.to_string(),
-            ModuleExportName::Str(strng) => strng.value.to_string(),
-          };
-
-          let return_value = match abs_path {
-            ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, value) => {
-              evaluate_theme_ref(&value, imported_name, traversal_state)
-            }
-            _ => {
-              return deopt(path, state);
-            }
-          };
-
-          if state.confident {
-            let import_path_src = import_path.src.value.to_string();
-
-            if !state.added_imports.contains(&import_path_src)
-              && traversal_state.get_treeshake_compensation()
-            {
-              let prepend_import_module_item = add_import_expression(&import_path_src);
-
-              if !traversal_state
-                .prepend_import_module_items
-                .contains(&prepend_import_module_item)
-              {
-                traversal_state
-                  .prepend_import_module_items
-                  .push(prepend_import_module_item);
-              }
-
-              state.added_imports.insert(import_path_src);
-            }
-
-            return Some(EvaluateResultValue::ThemeRef(return_value));
-          }
+          state.added_imports.insert(import_path_src);
         }
+
+        return Some(EvaluateResultValue::ThemeRef(return_value));
       }
     }
   }
@@ -1727,17 +1636,16 @@ fn _evaluate(
 }
 
 fn evaluate_func_call_args(
-  call: &mut CallExpr,
+  call: &CallExpr,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Vec<EvaluateResultValue> {
-  let args: Vec<EvaluateResultValue> = call
+  call
     .args
     .iter()
     .filter_map(|arg| evaluate_cached(&arg.expr, state, traversal_state, fns))
-    .collect();
-  args
+    .collect()
 }
 
 fn args_to_numbers(
@@ -1761,7 +1669,7 @@ fn args_to_numbers(
     .collect::<Vec<f64>>()
 }
 
-fn get_binding(callee: &Expr, state: &StateManager) -> Option<VarDeclarator> {
+fn get_binding<'a>(callee: &'a Expr, state: &'a StateManager) -> Option<&'a VarDeclarator> {
   match callee {
     Expr::Ident(ident) => get_var_decl_from(state, ident),
     _ => None,
@@ -1769,44 +1677,42 @@ fn get_binding(callee: &Expr, state: &StateManager) -> Option<VarDeclarator> {
 }
 
 fn is_valid_callee(callee: &Expr) -> bool {
-  match callee {
-    Expr::Ident(ident) => {
-      let name = ident.sym.to_string();
-      VALID_CALLEES.contains(name.as_str())
-    }
-    _ => false,
+  if let Expr::Ident(ident) = callee {
+    VALID_CALLEES.contains(ident.sym.as_ref())
+  } else {
+    false
   }
 }
 
-fn get_callee_name(callee: &Expr) -> String {
+fn get_callee_name(callee: &Expr) -> &str {
   match callee {
-    Expr::Ident(ident) => ident.sym.to_string(),
+    Expr::Ident(ident) => &ident.sym,
     _ => panic!("Callee is not an identifier"),
   }
 }
 
 fn is_invalid_method(prop: &MemberProp) -> bool {
   match prop {
-    MemberProp::Ident(ident_prop) => INVALID_METHODS.contains(ident_prop.sym.to_string().as_str()),
+    MemberProp::Ident(ident_prop) => INVALID_METHODS.contains(&*ident_prop.sym),
     _ => false,
   }
 }
 
-fn get_method_name(prop: &MemberProp) -> String {
+fn get_method_name(prop: &MemberProp) -> &str {
   match prop {
-    MemberProp::Ident(ident_prop) => ident_prop.sym.to_string(),
+    MemberProp::Ident(ident_prop) => &ident_prop.sym,
     _ => panic!("Method is not an identifier"),
   }
 }
 
-fn is_id_prop(prop: &MemberProp) -> Option<Atom> {
-  match prop {
-    MemberProp::Computed(comp_prop) => match comp_prop.expr.as_ref() {
-      Expr::Lit(Lit::Str(strng)) => Some(strng.value.clone()),
-      _ => None,
-    },
-    _ => None,
+fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
+  if let MemberProp::Computed(comp_prop) = prop {
+    if let Expr::Lit(Lit::Str(strng)) = comp_prop.expr.as_ref() {
+      return Some(&strng.value);
+    }
   }
+
+  None
 }
 
 pub(crate) fn evaluate_quasis(
@@ -1817,44 +1723,33 @@ pub(crate) fn evaluate_quasis(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  let mut strng = String::default();
+  let mut strng = String::new();
 
   let exprs = match tpl_expr {
-    Expr::Tpl(tpl) => tpl.exprs.clone(),
-    Expr::TaggedTpl(tagged_tpl) => tagged_tpl.tpl.exprs.clone(),
+    Expr::Tpl(tpl) => &tpl.exprs,
+    Expr::TaggedTpl(tagged_tpl) => &tagged_tpl.tpl.exprs,
     _ => panic!("The expression is not a template"),
   };
 
   for (i, elem) in quasis.iter().enumerate() {
     if !state.confident {
       return None;
-    };
+    }
 
-    strng += (if raw {
-      elem.raw.to_string()
+    strng.push_str(if raw {
+      &elem.raw
     } else {
-      elem
-        .cooked
-        .clone()
-        .expect("Cooked should be some")
-        .to_string()
-    })
-    .as_str();
+      elem.cooked.as_ref().expect("Cooked should be some")
+    });
 
-    let expr = exprs.get(i);
-
-    if let Some(expr) = expr {
-      let evaluated_expr = evaluate_cached(expr, state, traversal_state, fns);
-
-      if let Some(expr) = evaluated_expr {
-        let expr = expr.as_expr().expect("Expression not found");
-
-        let lit = expr.as_lit().expect("Literal not found");
-
-        let lit_str = get_string_val_from_lit(lit);
-
-        if let Some(lit_str) = lit_str {
-          strng += &lit_str;
+    if let Some(expr) = exprs.get(i) {
+      if let Some(evaluated_expr) = evaluate_cached(expr, state, traversal_state, fns) {
+        if let Some(lit_str) = evaluated_expr
+          .as_expr()
+          .and_then(|expr| expr.as_lit())
+          .and_then(get_string_val_from_lit)
+        {
+          strng.push_str(&lit_str);
         }
       }
     }
@@ -1862,11 +1757,9 @@ pub(crate) fn evaluate_quasis(
 
   if !state.confident {
     return None;
-  };
+  }
 
-  Some(EvaluateResultValue::Expr(string_to_expression(
-    strng.as_str(),
-  )))
+  Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
 }
 
 pub(crate) fn evaluate_cached(
@@ -1883,10 +1776,10 @@ pub(crate) fn evaluate_cached(
 
   match existing {
     Some(evaluate_value) => {
-      let a: &SeenValueWithVarDeclCount = evaluate_value.borrow();
+      let evaluate_value: &SeenValueWithVarDeclCount = evaluate_value.borrow();
 
-      let evaluated_value = &a.seen_value;
-      let var_decl_count_value_diff = &a.var_decl_count;
+      let evaluated_value = &evaluate_value.seen_value;
+      let var_decl_count_value_diff = &evaluate_value.var_decl_count;
 
       if evaluated_value.resolved {
         let resolved = evaluated_value.value.clone();
@@ -1918,9 +1811,8 @@ pub(crate) fn evaluate_cached(
       let val = _evaluate(&mut cleaned_path, state, traversal_state, fns);
 
       let var_decl_count_value_diff = var_decl_count_map_orig.as_ref().map(|orig| {
-        let var_decl_count_map_evaluated = &traversal_state.var_decl_count_map;
-
-        let var_decl_count_map_diff = get_hash_map_difference(var_decl_count_map_evaluated, orig);
+        let var_decl_count_map_diff =
+          get_hash_map_difference(&traversal_state.var_decl_count_map, orig);
 
         get_hash_map_value_difference(&var_decl_count_map_diff, orig)
       });
@@ -1933,10 +1825,12 @@ pub(crate) fn evaluate_cached(
       traversal_state
         .seen
         .entry(cleaned_path_hash)
-        .or_insert(Rc::new(SeenValueWithVarDeclCount {
-          seen_value,
-          var_decl_count: var_decl_count_value_diff,
-        }));
+        .or_insert_with(|| {
+          Rc::new(SeenValueWithVarDeclCount {
+            seen_value,
+            var_decl_count: var_decl_count_value_diff,
+          })
+        });
 
       val
     }
@@ -1945,8 +1839,8 @@ pub(crate) fn evaluate_cached(
 
 fn evaluate_theme_ref(file_name: &str, export_name: String, state: &StateManager) -> ThemeRef {
   ThemeRef::new(
-    file_name.to_string(),
+    file_name.to_owned(),
     export_name,
-    state.options.borrow_mut().class_name_prefix.clone(),
+    state.options.class_name_prefix.clone(),
   )
 }

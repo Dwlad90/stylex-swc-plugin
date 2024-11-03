@@ -23,15 +23,15 @@ pub(crate) fn member_expression(
   let object = member.obj.as_ref();
   let property = &member.prop;
 
-  let mut obj_name: Option<Atom> = None;
+  let mut obj_name: Option<&Atom> = None;
   let mut prop_name: Option<&Atom> = None;
 
   if let Expr::Ident(ident) = object {
-    let obj_ident_name = ident.sym.to_string();
+    let obj_ident_name = &ident.sym;
 
-    obj_name = Some(ident.sym.clone());
+    obj_name = Some(&ident.sym);
 
-    if state.style_map.contains_key(&obj_ident_name) {
+    if state.style_map.contains_key(&obj_ident_name.to_string()) {
       match property {
         MemberProp::Ident(ident) => {
           prop_name = Some(&ident.sym);
@@ -85,16 +85,16 @@ pub(crate) fn member_expression(
                     key_value
                       .key
                       .as_ident()
-                      .map(|ident| ident.sym.clone())
+                      .map(|ident| &ident.sym)
                       .expect("Key not an ident"),
                   ),
                 },
                 _ => unimplemented!(),
               },
             })
-            .collect::<Vec<Atom>>();
+            .collect::<Vec<&Atom>>();
 
-          vec.extend(namespaces);
+          vec.extend(namespaces.into_iter().cloned());
         }
       }
     }
@@ -104,7 +104,7 @@ pub(crate) fn member_expression(
     increase_ident_count(state, object.as_ident().expect("Object not an ident"));
 
     let style_var_to_keep = StyleVarsToKeep(
-      obj_name,
+      obj_name.clone(),
       match prop_name {
         Some(prop_name) => NonNullProp::Atom(prop_name.clone()),
         None => NonNullProp::True,

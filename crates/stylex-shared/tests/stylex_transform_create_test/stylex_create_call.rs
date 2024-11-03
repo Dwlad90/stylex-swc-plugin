@@ -24,7 +24,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_object,
@@ -46,7 +46,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_object_with_import_wildcard,
@@ -68,7 +68,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_object_with_named_imports,
@@ -90,7 +90,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_when_have_unassigned_variable,
@@ -117,7 +117,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_object_with_custom_property,
@@ -138,7 +138,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_object_with_custom_property_as_value,
@@ -159,7 +159,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_multiple_namespaces,
@@ -183,7 +183,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   does_not_transform_attr_fn_value,
@@ -204,7 +204,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       filename: FileName::Real(
         format!("{}/MyComponent.js", env::current_dir().unwrap().display()).into(),
       ),
@@ -235,7 +235,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_object_with_gradient,
@@ -277,7 +277,7 @@ fn handles_camel_cased_transition_properties() {
       }),
       |tr| StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None
       )
     ),
@@ -289,7 +289,7 @@ fn handles_camel_cased_transition_properties() {
       }),
       |tr| StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None
       )
     )
@@ -303,7 +303,7 @@ fn handles_camel_cased_transition_properties() {
     }),
     |tr| StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None
     )
   ));
@@ -316,7 +316,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   leaves_transition_properties_of_custom_properties_alone,
@@ -337,7 +337,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_nested_pseudo_class_to_css,
@@ -361,7 +361,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_nested_pseudo_class_within_properties_to_css,
@@ -387,7 +387,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_array_values_as_fallbacks,
@@ -408,7 +408,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_array_values_as_fallbacks_within_media_query,
@@ -433,7 +433,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_properties_requiring_vendor_prefixes,
@@ -454,7 +454,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_valid_shorthands,
@@ -486,7 +486,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   uses_stylex_include_correctly_with_member_expressions,
@@ -507,7 +507,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   using_stylex_include_keeps_the_compiled_object,
@@ -539,7 +539,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   uses_stylex_first_that_works_correctly,
@@ -560,7 +560,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_complex_property_values_containing_custom_properties_variables,
@@ -581,7 +581,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   auto_expands_shorthands,
@@ -626,7 +626,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   last_property_wins_even_if_shorthand,
@@ -654,7 +654,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| { StyleXTransform::new_test(tr.comments.clone(), &PluginPass::default(), None) },
+  |tr| { StyleXTransform::new_test(tr.comments.clone(), PluginPass::default(), None) },
   adds_null_for_constituent_properties_of_shorthands,
   r#"
     import stylex from 'stylex';
@@ -707,7 +707,7 @@ test!(
 
     StyleXTransform::new_test(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },
@@ -762,7 +762,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_object_with_key_containing_differend_types,
@@ -812,7 +812,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   transforms_style_with_url_property,

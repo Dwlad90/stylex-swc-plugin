@@ -107,7 +107,6 @@ impl Shorthands {
 
   fn contain_intrinsic_size(raw_value: Option<String>) -> Vec<OrderPair> {
     let parts = split_value_required(raw_value.as_deref());
-
     let parts = [parts.0, parts.1, parts.2, parts.3];
 
     let mut coll: Vec<String> = Vec::with_capacity(parts.len());
@@ -115,17 +114,16 @@ impl Shorthands {
     for part in parts {
       if let Some(last_element) = coll.last() {
         if last_element == "auto" && !part.is_empty() {
-          let new_element = format!("auto {}", part);
           coll.pop();
-          coll.push(new_element);
+          coll.push(format!("auto {}", part));
           continue;
         }
       }
       coll.push(part);
     }
 
-    let width = coll.first().cloned().unwrap_or(Default::default());
-    let height = coll.get(1).cloned().unwrap_or(width.clone());
+    let width = coll.first().cloned().unwrap_or_default();
+    let height = coll.get(1).cloned().unwrap_or_else(|| width.clone());
 
     vec![
       OrderPair("containIntrinsicWidth".into(), Some(width)),

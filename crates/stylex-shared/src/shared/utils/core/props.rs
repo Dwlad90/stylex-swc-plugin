@@ -12,7 +12,7 @@ use crate::{
 
 use super::parse_nullable_style::ResolvedArg;
 
-pub(crate) fn props(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
+pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
   let StyleQResult {
     class_name,
     inline_style,

@@ -1,4 +1,3 @@
-
 use rustc_hash::FxHashMap;
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
@@ -28,7 +27,7 @@ fn disallow_unclosed_style_value_functions() {
 
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         Some(&mut config),
       )
     },
@@ -60,7 +59,7 @@ fn disallow_unprefixed_custom_properties() {
 
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         Some(&mut config),
       )
     },
@@ -89,7 +88,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },
@@ -117,7 +116,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },
@@ -135,7 +134,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None,
   ),
   allow_undefined_custom_properties_regular,
@@ -159,7 +158,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },
@@ -187,7 +186,7 @@ test!(
 
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       Some(&mut config),
     )
   },

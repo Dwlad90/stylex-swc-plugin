@@ -28,7 +28,7 @@ where
   hasher.finish()
 }
 
-pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
+pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
   let mut class_name = String::default();
 
   if arguments.is_empty() {
@@ -39,31 +39,22 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
     };
   }
 
-  let mut defined_properties: Vec<String> = vec![]; // The className and inline style to build up
+  let mut defined_properties = vec![]; // The className and inline style to build up
 
-  let inline_style: Option<FlatCompiledStyles> = None;
+  let inline_style = None;
+  let mut next_cache: Option<IndexMap<u64, (String, Vec<String>)>> = Some(IndexMap::new());
+  let mut styles = arguments.iter().collect::<Vec<_>>();
 
-  let mut next_cache: Option<IndexMap<u64, (String, Vec<String>)>> = Some(IndexMap::new()); // This way of creating an array from arguments is fastest
-
-  let mut styles = vec![];
-
-  for arg in arguments {
-    styles.push(arg);
-  }
-
-  while !styles.is_empty() {
-    let possible_style = match styles.pop() {
-      Some(possible_style) => match possible_style {
-        ResolvedArg::StyleObject(_, _, _) => possible_style,
-        ResolvedArg::ConditionalStyle(_, value, _, _, _) => {
-          if value.is_some() {
-            possible_style
-          } else {
-            continue;
-          }
+  while let Some(possible_style) = styles.pop() {
+    let possible_style = match possible_style {
+      ResolvedArg::StyleObject(_, _, _) => possible_style,
+      ResolvedArg::ConditionalStyle(_, value, _, _, _) => {
+        if value.is_some() {
+          possible_style
+        } else {
+          continue;
         }
-      },
-      None => continue,
+      }
     };
 
     match possible_style {
@@ -77,63 +68,55 @@ pub(crate) fn styleq(arguments: &Vec<ResolvedArg>) -> StyleQResult {
             let btree_map: BTreeMap<_, _> = style.iter().collect();
 
             let style_hash = get_hash(btree_map);
+            let mut class_name_chunk = String::default();
 
             // Build up the class names defined by this object
-            let mut class_name_chunk = String::default(); // Check the cache to see if we've already done this work
+            if let Some(next_cache) = next_cache.as_mut() {
+              if let Some((cached_class_name, cached_properties)) = next_cache.get(&style_hash) {
+                class_name_chunk = cached_class_name.clone();
+                defined_properties.extend(cached_properties.iter().cloned());
+              } else {
+                // The properties defined by this object
+                let mut defined_properties_chunk: Vec<String> = vec![];
 
-            if next_cache
-              .clone()
-              .and_then(|cache| cache.get(&style_hash).cloned())
-              .is_some()
-            {
-              unimplemented!("Cache entry");
-            } else {
-              // The properties defined by this object
-              let mut defined_properties_chunk: Vec<String> = vec![];
-
-              for (prop, value) in style.iter() {
-                if prop.eq(COMPILED_KEY) {
-                  continue;
-                }
-
-                match value.as_ref() {
-                  FlatCompiledStylesValue::IncludedStyle(_) => {
-                    warn!(
-                      "styleq: {} typeof IncludedStyle is not \"string\" or \"null\".",
-                      prop
-                    )
-                  }
-                  FlatCompiledStylesValue::Bool(_) => {
-                    warn!(
-                      "styleq: {} typeof {:?} is not \"string\" or \"null\".",
-                      prop, "Bool"
-                    )
-                  }
-                  _ => {}
-                }
-
-                // Only add to chunks if this property hasn't already been seen
-                if !defined_properties.contains(prop) {
-                  defined_properties.push(prop.clone());
-
-                  if next_cache.is_some() {
-                    defined_properties_chunk.push(prop.clone())
+                for (prop, value) in style.iter() {
+                  if prop.eq(COMPILED_KEY) {
+                    continue;
                   }
 
-                  if let FlatCompiledStylesValue::String(value) = *value.clone() {
-                    class_name_chunk = if class_name_chunk.is_empty() {
-                      value.to_string()
-                    } else {
-                      format!("{} {}", class_name_chunk, value)
-                    };
+                  match value.as_ref() {
+                    FlatCompiledStylesValue::IncludedStyle(_) => {
+                      warn!(
+                        "styleq: {} typeof IncludedStyle is not \"string\" or \"null\".",
+                        prop
+                      )
+                    }
+                    FlatCompiledStylesValue::Bool(_) => {
+                      warn!(
+                        "styleq: {} typeof {:?} is not \"string\" or \"null\".",
+                        prop, "Bool"
+                      )
+                    }
+                    _ => {}
+                  }
+
+                  if !defined_properties.contains(prop) {
+                    defined_properties.push(prop.clone());
+                    defined_properties_chunk.push(prop.clone());
+
+                    if let FlatCompiledStylesValue::String(value) = *value.clone() {
+                      class_name_chunk = if class_name_chunk.is_empty() {
+                        value.to_string()
+                      } else {
+                        format!("{} {}", class_name_chunk, value)
+                      };
+                    }
                   }
                 }
-              }
 
-              if let Some(next_cache) = next_cache.as_mut() {
                 next_cache.insert(
                   style_hash,
-                  (class_name_chunk.clone(), defined_properties_chunk.clone()),
+                  (class_name_chunk.clone(), defined_properties_chunk),
                 );
               }
             }

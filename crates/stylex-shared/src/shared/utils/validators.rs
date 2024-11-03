@@ -1,4 +1,3 @@
-
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
@@ -40,8 +39,6 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
 
   let ident = ident_factory("create");
 
-  let call_expr = Expr::from(call.clone());
-
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state
@@ -49,11 +46,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
         .iter()
         .any(|TopLevelExpression(_, call_item, _)| {
           match call_item {
-            Expr::Call(call) => call.eq(
-              call_expr
-                .as_call()
-                .expect("Top level expression is not a call"),
-            ),
+            Expr::Call(call_item_call) => call_item_call == call,
             Expr::Array(_) => true,
             _ => false,
           }
@@ -64,13 +57,9 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
 
   assert!(call.args.len() == 1, "{}", ILLEGAL_ARGUMENT_LENGTH);
 
-  let first_args = &call.args[0];
+  let first_arg = &call.args[0];
 
-  assert!(
-    first_args.expr.is_object(),
-    "{}",
-    NON_OBJECT_FOR_STYLEX_CALL
-  )
+  assert!(first_arg.expr.is_object(), "{}", NON_OBJECT_FOR_STYLEX_CALL)
 }
 
 pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &StateManager) {
@@ -85,14 +74,14 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let ident = ident_factory("keyframes");
 
-  let expr = Expr::from(init.clone());
+  let expr = Expr::Call(init.clone());
 
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state
         .top_level_expressions
         .iter()
-        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&expr) }),
+        .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -109,18 +98,19 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 }
 
 pub(crate) fn validate_stylex_create_theme_indent(
-  var_decl: &Option<Box<VarDeclarator>>,
+  var_decl: &Option<VarDeclarator>,
   call: &CallExpr,
   state: &StateManager,
 ) {
-  let Some(var_decl) = var_decl else {
-    panic!("{}", UNBOUND_STYLEX_CALL_VALUE)
-  };
+  let var_decl = var_decl.as_ref().expect(UNBOUND_STYLEX_CALL_VALUE);
 
-  let init = match &var_decl.init {
-    Some(init) => init.clone().call().expect(NON_STATIC_KEYFRAME_VALUE),
-    None => panic!("{}", NON_STATIC_KEYFRAME_VALUE),
-  };
+  let init = var_decl
+    .init
+    .as_ref()
+    .expect(NON_STATIC_KEYFRAME_VALUE)
+    .clone()
+    .call()
+    .expect(NON_STATIC_KEYFRAME_VALUE);
 
   if !is_create_theme_call(call, state) {
     return;
@@ -128,14 +118,14 @@ pub(crate) fn validate_stylex_create_theme_indent(
 
   let ident = ident_factory("keyframes");
 
-  let expr = Expr::from(init.clone());
+  let expr = Expr::Call(init.clone());
 
   assert!(
     get_var_decl_by_ident_or_member(state, &ident).is_some()
       || state
         .top_level_expressions
         .iter()
-        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&expr) }),
+        .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -157,7 +147,7 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager)
       || state
         .top_level_expressions
         .iter()
-        .any(|TopLevelExpression(_, call_item, _)| { call_item.eq(&expr) }),
+        .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -186,10 +176,7 @@ pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
 }
 
 pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
-  let init = match &var_decl.init {
-    Some(init) => init.clone().call(),
-    None => None,
-  };
+  let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
 
   if let Some(call) = init {
     is_target_call(("keyframes", &state.stylex_keyframes_import), &call, state)
@@ -219,11 +206,11 @@ pub(crate) fn is_target_call(
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
-  let is_create_ident = call.callee.as_expr().map_or(false, |expr| {
-    expr
-      .as_ident()
-      .map_or(false, |ident| imports_map.contains(&ident.sym))
-  });
+  let is_create_ident = call
+    .callee
+    .as_expr()
+    .and_then(|arg| arg.as_ident())
+    .map_or(false, |ident| imports_map.contains(&ident.sym));
 
   let is_create_member = call
     .callee
@@ -232,12 +219,12 @@ pub(crate) fn is_target_call(
     .map_or(false, |member| {
       member.obj.is_ident()
         && member.prop.as_ident().map_or(false, |ident| {
-          ident.sym.eq(call_name)
+          ident.sym == call_name
             && state.stylex_import_stringified().contains(
               &member
                 .obj
                 .as_ident()
-                .expect("Member epression is not an ident")
+                .expect("Member expression is not an ident")
                 .sym
                 .to_string(),
             )
@@ -249,7 +236,7 @@ pub(crate) fn is_target_call(
 pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[String]) {
   for namespace in namespaces {
     let key = match &namespace.key {
-      PropName::Ident(key) => format!("{}", key.sym),
+      PropName::Ident(key) => key.sym.to_string(),
       PropName::Str(key) => {
         if !(key.value.starts_with('@')
           || key.value.starts_with(':')
@@ -265,8 +252,10 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
 
     match namespace.value.as_ref() {
       Expr::Lit(lit) => {
-        if let Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_) = lit {
-        } else {
+        if !matches!(
+          lit,
+          Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
+        ) {
           panic!("{}", ILLEGAL_PROP_VALUE);
         }
       }
@@ -278,9 +267,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
             "Spread operator not implemented"
           );
 
-          if let Expr::Lit(_) = elem.expr.as_ref() {
-            // Do nothing
-          } else {
+          if !matches!(elem.expr.as_ref(), Expr::Lit(_)) {
             panic!("{}", ILLEGAL_PROP_ARRAY_VALUE);
           }
         }
@@ -392,8 +379,6 @@ pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyVa
     let mut cloned_theme_ref = theme_ref.clone();
 
     let value = cloned_theme_ref.get(THEME_NAME_KEY);
-
-    // state.combine(updated_state);
 
     let key_value = key_value_factory(THEME_NAME_KEY, string_to_expression(value.as_str()));
 

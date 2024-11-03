@@ -52,7 +52,6 @@ pub(crate) fn parse_nullable_style(
     Expr::Member(member) => {
       let mut obj_name: Option<String> = None;
       let mut prop_name: Option<String> = None;
-      // let state_borrowed = state;
 
       if let Some(obj_ident) = member.obj.as_ident() {
         if state.style_map.contains_key(obj_ident.sym.as_str()) {

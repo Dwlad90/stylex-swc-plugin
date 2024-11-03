@@ -67,7 +67,7 @@ pub(crate) fn stylex_create_set(
       .iter()
       .map(|(key, value)| {
         (
-          key.to_string(),
+          key.as_str(),
           match value {
             CompiledResult::ComputedStyles(styles) => {
               CompiledResult::ComputedStyles(styles.clone())
@@ -79,7 +79,7 @@ pub(crate) fn stylex_create_set(
           },
         )
       })
-      .collect::<IndexMap<String, CompiledResult>>();
+      .collect::<IndexMap<&str, CompiledResult>>();
 
     let mut namespace_obj: FlatCompiledStyles = IndexMap::new();
 
@@ -88,7 +88,7 @@ pub(crate) fn stylex_create_set(
 
       if let Some(included_styles) = value.as_included_style() {
         namespace_obj.insert(
-          key.clone(),
+          (*key).to_string(),
           Box::new(FlatCompiledStylesValue::IncludedStyle(
             included_styles.clone(),
           )),
@@ -101,7 +101,7 @@ pub(crate) fn stylex_create_set(
           .join(" ");
 
         namespace_obj.insert(
-          key.clone(),
+          (*key).to_string(),
           Box::new(FlatCompiledStylesValue::String(class_name.clone())),
         );
 
@@ -111,7 +111,7 @@ pub(crate) fn stylex_create_set(
             .or_insert_with(|| Rc::new(injectable_styles.clone()));
         }
       } else {
-        namespace_obj.insert(key.clone(), Box::new(FlatCompiledStylesValue::Null));
+        namespace_obj.insert((*key).to_string(), Box::new(FlatCompiledStylesValue::Null));
       }
     }
     let resolved_namespace_name = expr_to_str(namespace_name, traversal_state, functions);

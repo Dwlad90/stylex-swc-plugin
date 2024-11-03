@@ -15,7 +15,7 @@ fn must_be_bound_to_a_variable() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -39,7 +39,7 @@ fn it_must_have_two_arguments_no_args() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -63,7 +63,7 @@ fn it_must_have_two_arguments_one_args() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -87,7 +87,7 @@ fn it_must_have_two_arguments_fn_args() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -111,7 +111,7 @@ fn it_must_have_two_arguments_empty_object_args() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -129,7 +129,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -154,7 +154,7 @@ fn variable_keys_must_be_a_static_value() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -175,7 +175,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -194,7 +194,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -219,7 +219,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },
@@ -246,7 +246,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
     |tr| {
       StyleXTransform::new_test_force_runtime_injection(
         tr.comments.clone(),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       )
     },

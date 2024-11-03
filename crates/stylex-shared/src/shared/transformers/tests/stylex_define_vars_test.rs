@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod stylex_define_vars {
-  use std::{cell::RefCell, rc::Rc};
+  use std::rc::Rc;
 
   use indexmap::IndexMap;
   use swc_core::ecma::ast::{Expr, PropOrSpread};
@@ -552,10 +552,10 @@ mod stylex_define_vars {
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),
-      options: Rc::new(RefCell::new(StyleXStateOptions {
+      options: StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
-        ..state.options.borrow().clone()
-      })),
+        ..state.options.clone()
+      },
       ..*state
     });
 
@@ -742,10 +742,10 @@ mod stylex_define_vars {
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),
-      options: Rc::new(RefCell::new(StyleXStateOptions {
+      options: StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
-        ..state.options.borrow().clone()
-      })),
+        ..state.options.clone()
+      },
       ..*state
     });
 

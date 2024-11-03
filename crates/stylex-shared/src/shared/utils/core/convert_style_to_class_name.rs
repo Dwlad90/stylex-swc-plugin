@@ -25,21 +25,16 @@ pub(crate) fn convert_style_to_class_name(
     kebab_case(key)
   };
 
-  let sorted_pseudos = &mut pseudos.to_vec();
-  sorted_pseudos.sort();
+  pseudos.sort();
+  at_rules.sort();
 
-  let sorted_at_rules = &mut at_rules.to_vec();
-  sorted_at_rules.sort();
+  let at_rule_hash_string = at_rules.join("");
+  let pseudo_hash_string = pseudos.join("");
 
-  let at_rule_hash_string = sorted_at_rules.join("");
-  let pseudo_hash_string = sorted_pseudos.join("");
-
-  let modifier_hash_string = format!("{}{}", at_rule_hash_string, pseudo_hash_string);
-
-  let modifier_hash_string = if modifier_hash_string.is_empty() {
+  let modifier_hash_string = if at_rule_hash_string.is_empty() && pseudo_hash_string.is_empty() {
     "null".to_string()
   } else {
-    modifier_hash_string
+    format!("{}{}", at_rule_hash_string, pseudo_hash_string)
   };
 
   let value = match raw_value {
@@ -48,14 +43,13 @@ pub(crate) fn convert_style_to_class_name(
       vec
         .iter()
         .map(|each_value| transform_value_cached(key, each_value.as_str(), state))
-        .collect::<Vec<String>>(),
+        .collect(),
     ),
-    PreRuleValue::Expr(_) => panic!("{}", ILLEGAL_PROP_VALUE),
-    PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
+    PreRuleValue::Expr(_) | PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
   let value = match &value {
-    PreRuleValue::String(value) => vec![value.to_owned()],
+    PreRuleValue::String(value) => vec![value.to_string()],
     PreRuleValue::Vec(values) => {
       if values
         .iter()
@@ -76,7 +70,7 @@ pub(crate) fn convert_style_to_class_name(
     modifier_hash_string
   );
 
-  let prefix = &state.options.borrow().class_name_prefix;
+  let prefix = &state.options.class_name_prefix;
 
   let class_name_hashed = format!("{}{}", prefix, create_hash(string_to_hash.as_str()));
 

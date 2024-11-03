@@ -1,6 +1,5 @@
 var options = {
     classNamePrefix: 'x',
-    debug: false,
     styleResolution: 'legacy-expand-shorthands',
     runtimeInjection: false,
     useRemForFontSize: true,
@@ -16,15 +15,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'color',
-                    new PreRule('color', 'red', [
-                        'color'
-                    ])
+                    new PreRule('color', 'red')
                 ],
                 [
                     'marginStart',
-                    new PreRule('marginStart', 10, [
-                        'marginStart'
-                    ])
+                    new PreRule('marginStart', 10)
                 ],
                 [
                     'marginLeft',
@@ -42,15 +37,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'rowGap',
-                    new PreRule('rowGap', 10, [
-                        'rowGap'
-                    ])
+                    new PreRule('rowGap', 10)
                 ],
                 [
                     'columnGap',
-                    new PreRule('columnGap', 10, [
-                        'columnGap'
-                    ])
+                    new PreRule('columnGap', 10)
                 ]
             ]);
         });
@@ -60,15 +51,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'containIntrinsicWidth',
-                    new PreRule('containIntrinsicWidth', 10, [
-                        'containIntrinsicWidth'
-                    ])
+                    new PreRule('containIntrinsicWidth', 10)
                 ],
                 [
                     'containIntrinsicHeight',
-                    new PreRule('containIntrinsicHeight', 10, [
-                        'containIntrinsicHeight'
-                    ])
+                    new PreRule('containIntrinsicHeight', 10)
                 ]
             ]);
         });
@@ -78,27 +65,19 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'marginTop',
-                    new PreRule('marginTop', 10, [
-                        'marginTop'
-                    ])
+                    new PreRule('marginTop', 10)
                 ],
                 [
                     'marginEnd',
-                    new PreRule('marginEnd', 10, [
-                        'marginEnd'
-                    ])
+                    new PreRule('marginEnd', 10)
                 ],
                 [
                     'marginBottom',
-                    new PreRule('marginBottom', 10, [
-                        'marginBottom'
-                    ])
+                    new PreRule('marginBottom', 10)
                 ],
                 [
                     'marginStart',
-                    new PreRule('marginStart', 10, [
-                        'marginStart'
-                    ])
+                    new PreRule('marginStart', 10)
                 ]
             ]);
             expect(flattenRawStyleObject({
@@ -107,33 +86,23 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'marginTop',
-                    new PreRule('marginTop', 10, [
-                        'marginTop'
-                    ])
+                    new PreRule('marginTop', 10)
                 ],
                 [
                     'marginEnd',
-                    new PreRule('marginEnd', 10, [
-                        'marginEnd'
-                    ])
+                    new PreRule('marginEnd', 10)
                 ],
                 [
                     'marginBottom',
-                    new PreRule('marginBottom', 10, [
-                        'marginBottom'
-                    ])
+                    new PreRule('marginBottom', 10)
                 ],
                 [
                     'marginStart',
-                    new PreRule('marginStart', 10, [
-                        'marginStart'
-                    ])
+                    new PreRule('marginStart', 10)
                 ],
                 [
                     'marginBottom',
-                    new PreRule('marginBottom', 20, [
-                        'marginBottom'
-                    ])
+                    new PreRule('marginBottom', 20)
                 ]
             ]);
         });
@@ -144,51 +113,35 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'marginTop',
-                    new PreRule('marginTop', '10px', [
-                        'marginTop'
-                    ])
+                    new PreRule('marginTop', '10px')
                 ],
                 [
                     'marginEnd',
-                    new PreRule('marginEnd', '20px', [
-                        'marginEnd'
-                    ])
+                    new PreRule('marginEnd', '20px')
                 ],
                 [
                     'marginBottom',
-                    new PreRule('marginBottom', '10px', [
-                        'marginBottom'
-                    ])
+                    new PreRule('marginBottom', '10px')
                 ],
                 [
                     'marginStart',
-                    new PreRule('marginStart', '20px', [
-                        'marginStart'
-                    ])
+                    new PreRule('marginStart', '20px')
                 ],
                 [
                     'borderTopColor',
-                    new PreRule('borderTopColor', 'red', [
-                        'borderTopColor'
-                    ])
+                    new PreRule('borderTopColor', 'red')
                 ],
                 [
                     'borderEndColor',
-                    new PreRule('borderEndColor', 'red', [
-                        'borderEndColor'
-                    ])
+                    new PreRule('borderEndColor', 'red')
                 ],
                 [
                     'borderBottomColor',
-                    new PreRule('borderBottomColor', 'red', [
-                        'borderBottomColor'
-                    ])
+                    new PreRule('borderBottomColor', 'red')
                 ],
                 [
                     'borderStartColor',
-                    new PreRule('borderStartColor', 'red', [
-                        'borderStartColor'
-                    ])
+                    new PreRule('borderStartColor', 'red')
                 ]
             ]);
         });
@@ -198,15 +151,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'rowGap',
-                    new PreRule('rowGap', '10px', [
-                        'rowGap'
-                    ])
+                    new PreRule('rowGap', '10px')
                 ],
                 [
                     'columnGap',
-                    new PreRule('columnGap', '20px', [
-                        'columnGap'
-                    ])
+                    new PreRule('columnGap', '20px')
                 ]
             ]);
         });
@@ -218,15 +167,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     w,
-                    new PreRule(w, '10px', [
-                        w
-                    ])
+                    new PreRule(w, '10px')
                 ],
                 [
                     h,
-                    new PreRule(h, '20px', [
-                        h
-                    ])
+                    new PreRule(h, '20px')
                 ]
             ]);
             expect(flattenRawStyleObject({
@@ -234,15 +179,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     w,
-                    new PreRule(w, 'auto 10px', [
-                        w
-                    ])
+                    new PreRule(w, 'auto 10px')
                 ],
                 [
                     h,
-                    new PreRule(h, '20px', [
-                        h
-                    ])
+                    new PreRule(h, '20px')
                 ]
             ]);
             expect(flattenRawStyleObject({
@@ -250,15 +191,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     w,
-                    new PreRule(w, '10px', [
-                        w
-                    ])
+                    new PreRule(w, '10px')
                 ],
                 [
                     h,
-                    new PreRule(h, 'auto 20px', [
-                        h
-                    ])
+                    new PreRule(h, 'auto 20px')
                 ]
             ]);
             expect(flattenRawStyleObject({
@@ -266,15 +203,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     w,
-                    new PreRule(w, 'auto 10px', [
-                        w
-                    ])
+                    new PreRule(w, 'auto 10px')
                 ],
                 [
                     h,
-                    new PreRule(h, 'auto 20px', [
-                        h
-                    ])
+                    new PreRule(h, 'auto 20px')
                 ]
             ]);
         });
@@ -290,30 +223,22 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     new PreRule('marginTop', [
                         '10vh',
                         '10dvh'
-                    ], [
-                        'marginTop'
                     ])
                 ],
                 [
                     'marginEnd',
-                    new PreRule('marginEnd', '20px', [
-                        'marginEnd'
-                    ])
+                    new PreRule('marginEnd', '20px')
                 ],
                 [
                     'marginBottom',
                     new PreRule('marginBottom', [
                         '10vh',
                         '10dvh'
-                    ], [
-                        'marginBottom'
                     ])
                 ],
                 [
                     'marginStart',
-                    new PreRule('marginStart', '20px', [
-                        'marginStart'
-                    ])
+                    new PreRule('marginStart', '20px')
                 ]
             ]);
         });
@@ -330,15 +255,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
             }, options)).toEqual([
                 [
                     'color',
-                    new PreRule('color', 'blue', [
-                        'color'
-                    ])
+                    new PreRule('color', 'blue')
                 ],
                 [
                     'marginStart',
-                    new PreRule('marginStart', 0, [
-                        'marginStart'
-                    ])
+                    new PreRule('marginStart', 0)
                 ],
                 [
                     'marginLeft',
@@ -351,16 +272,14 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     ':hover_color',
                     new PreRule('color', 'red', [
-                        ':hover',
-                        'color'
-                    ])
+                        ':hover'
+                    ], [])
                 ],
                 [
                     ':hover_marginStart',
                     new PreRule('marginStart', 10, [
-                        ':hover',
-                        'marginStart'
-                    ])
+                        ':hover'
+                    ], [])
                 ],
                 [
                     ':hover_marginLeft',
@@ -386,27 +305,19 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'color',
                     PreRuleSet.create([
-                        new PreRule('color', 'blue', [
-                            'color',
-                            'default'
-                        ]),
+                        new PreRule('color', 'blue'),
                         new PreRule('color', 'red', [
-                            'color',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', 0, [
-                            'marginStart',
-                            'default'
-                        ]),
+                        new PreRule('marginStart', 0),
                         new PreRule('marginStart', 10, [
-                            'marginStart',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
@@ -439,66 +350,46 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'color',
                     PreRuleSet.create([
-                        new PreRule('color', 'blue', [
-                            'color',
-                            'default'
-                        ]),
+                        new PreRule('color', 'blue'),
                         new PreRule('color', 'red', [
-                            'color',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginTop',
                     PreRuleSet.create([
-                        new PreRule('marginTop', 0, [
-                            'marginTop',
-                            'default'
-                        ]),
+                        new PreRule('marginTop', 0),
                         new PreRule('marginTop', 10, [
-                            'marginTop',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginEnd',
                     PreRuleSet.create([
-                        new PreRule('marginEnd', 0, [
-                            'marginEnd',
-                            'default'
-                        ]),
+                        new PreRule('marginEnd', 0),
                         new PreRule('marginEnd', 10, [
-                            'marginEnd',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginBottom',
                     PreRuleSet.create([
-                        new PreRule('marginBottom', 0, [
-                            'marginBottom',
-                            'default'
-                        ]),
+                        new PreRule('marginBottom', 0),
                         new PreRule('marginBottom', 10, [
-                            'marginBottom',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', 0, [
-                            'marginStart',
-                            'default'
-                        ]),
+                        new PreRule('marginStart', 0),
                         new PreRule('marginStart', 10, [
-                            'marginStart',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ]
             ]);
@@ -517,66 +408,46 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'color',
                     PreRuleSet.create([
-                        new PreRule('color', 'blue', [
-                            'color',
-                            'default'
-                        ]),
+                        new PreRule('color', 'blue'),
                         new PreRule('color', 'red', [
-                            'color',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginTop',
                     PreRuleSet.create([
-                        new PreRule('marginTop', '1px', [
-                            'marginTop',
-                            'default'
-                        ]),
+                        new PreRule('marginTop', '1px'),
                         new PreRule('marginTop', '10px', [
-                            'marginTop',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginEnd',
                     PreRuleSet.create([
-                        new PreRule('marginEnd', '2px', [
-                            'marginEnd',
-                            'default'
-                        ]),
+                        new PreRule('marginEnd', '2px'),
                         new PreRule('marginEnd', '20px', [
-                            'marginEnd',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginBottom',
                     PreRuleSet.create([
-                        new PreRule('marginBottom', '3px', [
-                            'marginBottom',
-                            'default'
-                        ]),
+                        new PreRule('marginBottom', '3px'),
                         new PreRule('marginBottom', '10px', [
-                            'marginBottom',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', '4px', [
-                            'marginStart',
-                            'default'
-                        ]),
+                        new PreRule('marginStart', '4px'),
                         new PreRule('marginStart', '20px', [
-                            'marginStart',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ]
             ]);
@@ -596,16 +467,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'color',
                     PreRuleSet.create([
-                        new PreRule('color', 'blue', [
-                            'color',
-                            'default'
-                        ]),
+                        new PreRule('color', 'blue'),
                         new PreRule('color', 'red', [
-                            'color',
                             ':hover'
-                        ]),
-                        new PreRule('color', 'green', [
-                            'color',
+                        ], []),
+                        new PreRule('color', 'green', [], [
                             '@media (min-width: 300px)'
                         ])
                     ])
@@ -613,14 +479,10 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'marginStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', 0, [
-                            'marginStart',
-                            'default'
-                        ]),
+                        new PreRule('marginStart', 0),
                         new PreRule('marginStart', 10, [
-                            'marginStart',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
@@ -654,65 +516,49 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'marginTop',
                     PreRuleSet.create([
-                        new PreRule('marginTop', '1px', [
-                            'marginTop',
-                            'default'
-                        ]),
+                        new PreRule('marginTop', '1px'),
                         new PreRule('marginTop', [
                             '10px',
                             '1dvh'
                         ], [
-                            'marginTop',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginEnd',
                     PreRuleSet.create([
-                        new PreRule('marginEnd', '2px', [
-                            'marginEnd',
-                            'default'
-                        ]),
+                        new PreRule('marginEnd', '2px'),
                         new PreRule('marginEnd', [
                             '20px',
                             '2dvw'
                         ], [
-                            'marginEnd',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginBottom',
                     PreRuleSet.create([
-                        new PreRule('marginBottom', '3px', [
-                            'marginBottom',
-                            'default'
-                        ]),
+                        new PreRule('marginBottom', '3px'),
                         new PreRule('marginBottom', [
                             '10px',
                             '1dvh'
                         ], [
-                            'marginBottom',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ],
                 [
                     'marginStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', '4px', [
-                            'marginStart',
-                            'default'
-                        ]),
+                        new PreRule('marginStart', '4px'),
                         new PreRule('marginStart', [
                             '20px',
                             '2dvw'
                         ], [
-                            'marginStart',
                             ':hover'
-                        ])
+                        ], [])
                     ])
                 ]
             ]);
@@ -729,9 +575,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     '@media (min-width: 300px)_:hover_color',
                     PreRuleSet.create([
                         new PreRule('color', 'red', [
-                            '@media (min-width: 300px)',
-                            ':hover',
-                            'color'
+                            ':hover'
+                        ], [
+                            '@media (min-width: 300px)'
                         ])
                     ])
                 ]
@@ -752,9 +598,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     '@media (min-width: 300px)_:hover_color',
                     PreRuleSet.create([
                         new PreRule('color', 'pink', [
-                            '@media (min-width: 300px)',
-                            ':hover',
-                            'color'
+                            ':hover'
+                        ], [
+                            '@media (min-width: 300px)'
                         ])
                     ])
                 ],
@@ -762,10 +608,10 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     '@media (min-width: 300px)_:hover_:active_color',
                     PreRuleSet.create([
                         new PreRule('color', 'red', [
-                            '@media (min-width: 300px)',
-                            ':hover',
                             ':active',
-                            'color'
+                            ':hover'
+                        ], [
+                            '@media (min-width: 300px)'
                         ])
                     ])
                 ]
@@ -783,14 +629,11 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'color',
                     PreRuleSet.create([
-                        new PreRule('color', 'blue', [
-                            'color',
-                            'default'
-                        ]),
+                        new PreRule('color', 'blue', [], []),
                         new PreRule('color', 'red', [
-                            'color',
-                            '@media (min-width: 300px)',
                             ':hover'
+                        ], [
+                            '@media (min-width: 300px)'
                         ])
                     ])
                 ]
@@ -811,21 +654,17 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                 [
                     'color',
                     PreRuleSet.create([
-                        new PreRule('color', 'blue', [
-                            'color',
-                            'default'
-                        ]),
+                        new PreRule('color', 'blue', [], []),
                         new PreRule('color', 'red', [
-                            'color',
-                            '@media (min-width: 300px)',
-                            ':hover',
-                            'default'
+                            ':hover'
+                        ], [
+                            '@media (min-width: 300px)'
                         ]),
                         new PreRule('color', 'maroon', [
-                            'color',
-                            '@media (min-width: 300px)',
                             ':hover',
                             ':active'
+                        ], [
+                            '@media (min-width: 300px)'
                         ])
                     ])
                 ]

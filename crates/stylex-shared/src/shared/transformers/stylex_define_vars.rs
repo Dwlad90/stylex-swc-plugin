@@ -25,7 +25,7 @@ pub(crate) fn stylex_define_vars(
 ) {
   let theme_name_hash = format!(
     "{}{}",
-    state.options.borrow().class_name_prefix,
+    state.options.class_name_prefix,
     create_hash(state.theme_name.as_ref().unwrap())
   );
 
@@ -39,12 +39,12 @@ pub(crate) fn stylex_define_vars(
     ObjMapType::Object(variables.clone()),
     state,
     |item, state| -> Box<FlatCompiledStylesValue> {
-      let reuslt = match item.as_ref() {
+      let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
           panic!("InjectableStyle is not supported")
         }
         FlatCompiledStylesValue::Tuple(key, value, _) => {
-          let str_to_hash = format!("{}.{}", state.theme_name.clone().unwrap(), key);
+          let str_to_hash = format!("{}.{}", state.theme_name.as_ref().unwrap(), key);
 
           // Created hashed variable names with fileName//themeName//key
           let name_hash = if key.starts_with("--") {
@@ -52,7 +52,7 @@ pub(crate) fn stylex_define_vars(
           } else {
             &format!(
               "{}{}",
-              &state.options.borrow().class_name_prefix,
+              &state.options.class_name_prefix,
               create_hash(str_to_hash.as_str())
             )
           };
@@ -67,7 +67,7 @@ pub(crate) fn stylex_define_vars(
         _ => unimplemented!(),
       };
 
-      Box::new(reuslt)
+      Box::new(result)
     },
   );
 
@@ -81,7 +81,6 @@ pub(crate) fn stylex_define_vars(
       FlatCompiledStylesValue::Tuple(key, _, _) => {
         Box::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
       }
-
       _ => unreachable!("Unsupported value type"),
     },
   );

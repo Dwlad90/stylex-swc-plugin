@@ -38,12 +38,7 @@ pub(crate) fn stylex_create_theme(
       .expect("Variables must be an object"),
   ));
 
-  variables_key_values.sort_by(|a, b| {
-    let a_key = get_key_str(a);
-    let b_key = get_key_str(b);
-
-    a_key.cmp(&b_key)
-  });
+  variables_key_values.sort_by_key(get_key_str);
 
   for key_value in variables_key_values.into_iter() {
     let key = get_key_str(&key_value);
@@ -53,20 +48,14 @@ pub(crate) fn stylex_create_theme(
         let theme_vars_key_values = get_key_values_from_object(expr.as_object().unwrap());
         let theme_vars_item = theme_vars_key_values
           .iter()
-          .find(|key_value| {
-            let local_key = get_key_str(key_value);
-
-            local_key == key
-          })
+          .find(|key_value| get_key_str(key_value) == key)
           .expect("Theme variable not found");
 
-        let theme_vars_str_value = expr_to_str(
+        expr_to_str(
           theme_vars_item.value.as_ref(),
           state,
           &FunctionMap::default(),
-        );
-
-        theme_vars_str_value
+        )
       }
       EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str()).clone(),
       _ => unimplemented!("Unsupported theme vars type"),
@@ -98,9 +87,9 @@ pub(crate) fn stylex_create_theme(
   let at_rules_string_for_hash = sorted_at_rules
     .iter()
     .map(|at_rule| {
-      let rult_by_at_rule = rules_by_at_rule.get(*at_rule).unwrap().join("");
+      let rule_by_at_rule = rules_by_at_rule.get(*at_rule).unwrap().join("");
 
-      wrap_with_at_rules(rult_by_at_rule.as_str(), at_rule)
+      wrap_with_at_rules(rule_by_at_rule.as_str(), at_rule)
     })
     .collect::<Vec<String>>()
     .join("");
@@ -108,7 +97,7 @@ pub(crate) fn stylex_create_theme(
   // Create a class name hash
   let override_class_name = format!(
     "{}{}",
-    state.options.borrow().class_name_prefix,
+    state.options.class_name_prefix,
     create_hash(at_rules_string_for_hash.as_str())
   );
 

@@ -32,7 +32,6 @@ where
 
   fn transform_stylex_fns(&mut self, ident_name: &Atom, call_expr: &mut CallExpr) -> Option<Expr> {
     if self.state.cycle == TransformationCycle::TransformEnter {
-      // println!("transform_stylex_fns_enter");
       let (_, parent_var_decl) = &self.get_call_var_name(call_expr);
 
       if let Some(parent_var_decl) = parent_var_decl {

@@ -54,9 +54,10 @@ pub(crate) fn flatten_raw_style_object(
     if INCLUDED_IDENT_REGEX.is_match(key.as_str()) {
       flattened.insert(
         key.clone(),
-        PreRules::PreIncludedStylesRule(PreIncludedStylesRule::new(*property.value.clone())),
+        PreRules::PreIncludedStylesRule(PreIncludedStylesRule::new(
+          property.value.as_ref().clone(),
+        )),
       );
-
       continue;
     }
 
@@ -76,20 +77,17 @@ pub(crate) fn flatten_raw_style_object(
                       None => PreRuleValue::Null,
                     },
                   ),
-                  &traversal_state.options.borrow(),
+                  &traversal_state.options,
                 );
 
                 for OrderPair(property, val) in pairs.iter() {
                   let property = property.to_string();
 
                   if let Some(val) = val {
-                    if equivalent_pairs.get(&property).is_none() {
-                      let inner_map = vec![val.clone()];
-                      equivalent_pairs.insert(property, inner_map);
-                    } else {
-                      let inner_map = equivalent_pairs.get_mut(&property).unwrap();
-                      inner_map.push(val.clone());
-                    }
+                    equivalent_pairs
+                      .entry(property)
+                      .or_default()
+                      .push(val.clone());
                   }
                 }
               }
@@ -107,27 +105,19 @@ pub(crate) fn flatten_raw_style_object(
 
           values.dedup();
 
-          if values.is_empty() {
-            flattened.insert(property.clone(), PreRules::NullPreRule(NullPreRule::new()));
+          let pre_rule_value = if values.len() == 1 {
+            PreRuleValue::String(values[0].clone())
           } else {
-            let pre_rule_value = if let Some(first_value) = values.first() {
-              if values.len() == 1 {
-                PreRuleValue::String(first_value.clone())
-              } else {
-                PreRuleValue::Vec(values.clone())
-              }
-            } else {
-              PreRuleValue::Null // Default value when `values` is empty.
-            };
+            PreRuleValue::Vec(values)
+          };
 
-            let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-              property.as_str(),
-              pre_rule_value,
-              Some(pseudos.clone()),
-              Some(at_rules.clone()),
-            ));
-            flattened.insert(property.clone(), pre_rule);
-          }
+          let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
+            property.as_str(),
+            pre_rule_value,
+            Some(pseudos.clone()),
+            Some(at_rules.clone()),
+          ));
+          flattened.insert(property, pre_rule);
         }
       }
       Expr::Lit(property_lit) => {
@@ -142,7 +132,7 @@ pub(crate) fn flatten_raw_style_object(
                 None => PreRuleValue::Null,
               },
             ),
-            &traversal_state.options.borrow(),
+            &traversal_state.options,
           );
 
           for OrderPair(property, pre_rule) in pairs.iter() {
@@ -177,29 +167,26 @@ pub(crate) fn flatten_raw_style_object(
         flattened.insert(css_property_key, pre_rule);
       }
       Expr::Ident(ident) => {
-        let ident = get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce);
+        if let Some(var_decl) =
+          get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce)
+        {
+          let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
-        match ident {
-          Some(var_decl) => {
-            let var_decl_expr = get_expr_from_var_decl(&var_decl);
+          let mut property_cloned = property.clone();
+          property_cloned.value = Box::new(var_decl_expr.clone());
 
-            let mut property_cloned = property.clone();
-            property_cloned.value = Box::new(var_decl_expr.clone());
+          let inner_flattened = flatten_raw_style_object(
+            &[property_cloned],
+            pseudos,
+            at_rules,
+            state,
+            traversal_state,
+            fns,
+          );
 
-            let inner_flattened = flatten_raw_style_object(
-              &[property_cloned],
-              pseudos,
-              at_rules,
-              state,
-              traversal_state,
-              fns,
-            );
-
-            flattened.extend(inner_flattened);
-          }
-          None => {
-            panic!("{}", NON_STATIC_VALUE)
-          }
+          flattened.extend(inner_flattened);
+        } else {
+          panic!("{}", NON_STATIC_VALUE)
         }
       }
       Expr::Bin(bin) => {
@@ -227,61 +214,56 @@ pub(crate) fn flatten_raw_style_object(
           }
           let mut equivalent_pairs: IndexMap<String, IndexMap<String, PreRules>> = IndexMap::new();
 
-          obj.props.clone().into_iter().for_each(|prop| match prop {
-            PropOrSpread::Prop(mut prop) => {
-              transform_shorthand_to_key_values(&mut prop);
+          for prop in obj.clone().props.iter_mut() {
+            if let PropOrSpread::Prop(ref mut prop) = prop {
+              transform_shorthand_to_key_values(prop);
 
-              match prop.as_ref() {
-                Prop::KeyValue(key_value) => {
-                  let mut inner_key_value: KeyValueProp = key_value.clone();
+              if let Prop::KeyValue(key_value) = prop.as_ref() {
+                let mut inner_key_value: KeyValueProp = key_value.clone();
 
-                  let condition = get_key_str(&inner_key_value);
-                  let mut pseudos_to_pass_down = pseudos.clone();
-                  let mut at_rules_to_pass_down = at_rules.clone();
+                let condition = get_key_str(&inner_key_value);
+                let mut pseudos_to_pass_down = pseudos.clone();
+                let mut at_rules_to_pass_down = at_rules.clone();
 
-                  if condition.starts_with(':') {
-                    pseudos_to_pass_down.push(condition.clone());
-                  } else if condition.starts_with('@') {
-                    at_rules_to_pass_down.push(condition.clone());
-                  }
-
-                  inner_key_value.key = PropName::Str(quote_str!(css_property_key.clone()));
-
-                  let pairs = flatten_raw_style_object(
-                    &[inner_key_value],
-                    &mut pseudos_to_pass_down,
-                    &mut at_rules_to_pass_down,
-                    state,
-                    traversal_state,
-                    fns,
-                  );
-
-                  for (property, pre_rule) in pairs {
-                    if equivalent_pairs.get(&property).is_none() {
-                      let mut inner_map = IndexMap::new();
-                      inner_map.insert(condition.clone(), pre_rule);
-                      equivalent_pairs.insert(property, inner_map);
-                    } else {
-                      let inner_map = equivalent_pairs.get_mut(&property).unwrap();
-                      inner_map.insert(condition.clone(), pre_rule);
-                    }
-                  }
+                if condition.starts_with(':') {
+                  pseudos_to_pass_down.push(condition.clone());
+                } else if condition.starts_with('@') {
+                  at_rules_to_pass_down.push(condition.clone());
                 }
-                _ => panic!("{}", NON_STATIC_VALUE),
+
+                inner_key_value.key = PropName::Str(quote_str!(css_property_key.clone()));
+
+                let pairs = flatten_raw_style_object(
+                  &[inner_key_value],
+                  &mut pseudos_to_pass_down,
+                  &mut at_rules_to_pass_down,
+                  state,
+                  traversal_state,
+                  fns,
+                );
+
+                for (property, pre_rule) in pairs {
+                  equivalent_pairs
+                    .entry(property)
+                    .or_default()
+                    .insert(condition.clone(), pre_rule);
+                }
+              } else {
+                panic!("{}", NON_STATIC_VALUE);
               }
+            } else {
+              panic!("{}", NON_STATIC_VALUE);
             }
-            _ => panic!("{}", NON_STATIC_VALUE),
-          });
+          }
+
           for (property, obj) in equivalent_pairs.iter() {
             let sorted_keys: Vec<&String> = obj.keys().collect();
 
-            let mut rules: Vec<PreRules> = Vec::new();
-            for condition in sorted_keys {
-              rules.push(obj[condition].clone());
-            }
+            let rules: Vec<PreRules> = sorted_keys
+              .iter()
+              .map(|condition| obj[*condition].clone())
+              .collect();
 
-            // If there are many conditions with `null` values, we will collapse them into a single `null` value.
-            // `PreRuleSet::create` takes care of that for us.
             flattened.insert(property.clone(), PreRuleSet::create(rules));
           }
         } else {

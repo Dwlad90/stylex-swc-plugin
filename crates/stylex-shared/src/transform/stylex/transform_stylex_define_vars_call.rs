@@ -1,5 +1,3 @@
-use std::{collections::HashMap, panic};
-
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::comments::Comments,
@@ -37,12 +35,10 @@ where
   pub(crate) fn transform_stylex_define_vars(&mut self, call: &CallExpr) -> Option<Expr> {
     let is_define_vars = is_define_vars_call(call, &self.state);
 
-    let result = if is_define_vars {
+    if is_define_vars {
       validate_stylex_define_vars(call, &self.state);
 
-      let first_arg = call.args.first();
-
-      let first_arg = first_arg.map(|first_arg| match &first_arg.spread {
+      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!("Spread"),
         None => first_arg.expr.clone(),
       })?;
@@ -77,7 +73,7 @@ where
 
         let identifier = identifiers
           .entry(name.get_import_str().into())
-          .or_insert(Box::new(FunctionConfigType::Map(HashMap::default())));
+          .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert("types".into(), types_fn.clone());
@@ -105,14 +101,13 @@ where
           );
           value
         }
-        None => {
-          panic!("{}", NON_STATIC_VALUE)
-        }
+        None => panic!("{}", NON_STATIC_VALUE),
       };
 
-      let Some(file_name) = self.state.get_filename_for_hashing() else {
-        panic!("No filename found for generating theme name.")
-      };
+      let file_name = self
+        .state
+        .get_filename_for_hashing()
+        .expect("No filename found for generating theme name.");
 
       let export_expr = self
         .state
@@ -138,11 +133,9 @@ where
         .state
         .register_styles(call, &injected_styles, &result_ast);
 
-      return Some(result_ast);
+      Some(result_ast)
     } else {
       None
-    };
-
-    result
+    }
   }
 }

@@ -46,18 +46,18 @@ where
 
       validate_stylex_create_theme_indent(parent_var_decl, call, &self.state);
 
-      let first_arg = call.args.first();
-      let second_arg = call.args.get(1);
-
-      let first_arg = first_arg.map(|first_arg| match &first_arg.spread {
+      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!("Spread"),
         None => first_arg.expr.clone(),
       })?;
 
-      let second_arg = second_arg.map(|second_arg| match &second_arg.spread {
-        Some(_) => unimplemented!("Spread"),
-        None => second_arg.expr.clone(),
-      })?;
+      let second_arg = call
+        .args
+        .get(1)
+        .map(|second_arg| match &second_arg.spread {
+          Some(_) => unimplemented!("Spread"),
+          None => second_arg.expr.clone(),
+        })?;
 
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
@@ -89,7 +89,7 @@ where
 
         let identifier = identifiers
           .entry(name.get_import_str().into())
-          .or_insert(Box::new(FunctionConfigType::Map(FxHashMap::default())));
+          .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert("types".into(), types_fn.clone());
@@ -110,17 +110,15 @@ where
       assert!(evaluated_arg2.confident, "{}", NON_STATIC_VALUE);
 
       let mut variables = match evaluated_arg1.value {
-        Some(value) => {
-          validate_theme_variables(&value);
-
-          value
+        Some(ref value) => {
+          validate_theme_variables(value);
+          value.clone()
         }
-        None => {
-          panic!("Can only override variables theme created with stylex.defineVars().")
-        }
+        None => panic!("Can only override variables theme created with stylex.defineVars()."),
       };
+
       let overrides = match evaluated_arg2.value {
-        Some(value) => {
+        Some(ref value) => {
           assert!(
             value
               .as_expr()
@@ -129,11 +127,9 @@ where
             "{}",
             NON_OBJECT_FOR_STYLEX_CALL
           );
-          value
+          value.clone()
         }
-        None => {
-          panic!("{}", NON_OBJECT_FOR_STYLEX_CALL)
-        }
+        None => panic!("{}", NON_OBJECT_FOR_STYLEX_CALL),
       };
 
       let (mut overrides_obj, inject_styles) = stylex_create_theme(
@@ -147,10 +143,10 @@ where
 
       if self.state.is_test() {
         overrides_obj =
-          convert_theme_to_test_styles(&var_name, &overrides_obj, &self.state.get_filename());
+          convert_theme_to_test_styles(&var_name, &overrides_obj, self.state.get_filename());
       } else if self.state.is_dev() {
         overrides_obj =
-          convert_theme_to_dev_styles(&var_name, &overrides_obj, &self.state.get_filename());
+          convert_theme_to_dev_styles(&var_name, &overrides_obj, self.state.get_filename());
       }
 
       let result_ast =
@@ -160,7 +156,7 @@ where
         .state
         .register_styles(call, &inject_styles, &result_ast);
 
-      return Some(result_ast);
+      Some(result_ast)
     } else {
       None
     };

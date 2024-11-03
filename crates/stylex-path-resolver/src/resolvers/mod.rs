@@ -251,31 +251,20 @@ pub fn resolve_file_path(
   aliases: &FxHashMap<String, Vec<String>>,
 ) -> std::io::Result<PathBuf> {
   let source_dir = Path::new(source_file_path).parent().unwrap();
+  let root_path = Path::new(root_path);
 
   let resolved_file_paths: Vec<PathBuf> = if import_path_str.starts_with('.') {
-    let root_path: &Path = Path::new(root_path);
-
-    let resolved_import_path = PathBuf::from(resolve_path(
-      source_dir.join(import_path_str).as_path(),
-      root_path,
-    ));
-
-    vec![resolved_import_path]
+    vec![resolve_path(&source_dir.join(import_path_str), root_path).into()]
   } else if import_path_str.starts_with('/') {
-    vec![Path::new(root_path).join(import_path_str)]
+    vec![root_path.join(import_path_str)]
   } else {
-    let root_path: &Path = Path::new(root_path);
-
     let mut aliased_file_paths = possible_aliased_paths(import_path_str, aliases)
       .iter()
       .filter_map(|path| path.strip_prefix(root_path).ok())
       .map(PathBuf::from)
       .collect::<Vec<PathBuf>>();
 
-    let node_modules_path = Path::new("node_modules").join(import_path_str);
-
-    aliased_file_paths.push(node_modules_path);
-
+    aliased_file_paths.push(Path::new("node_modules").join(import_path_str));
     aliased_file_paths
   };
 
@@ -284,53 +273,40 @@ pub fn resolve_file_path(
 
     if let Some(extension) = resolved_file_path.extension() {
       let subpath = extension.to_string_lossy();
-
-      if EXTENSIONS.iter().all(|ext| {
-        let res = !ext.ends_with(subpath.as_ref());
-        res
-      }) {
+      if EXTENSIONS
+        .iter()
+        .all(|ext| !ext.ends_with(subpath.as_ref()))
+      {
         resolved_file_path.set_extension(format!("{}{}", subpath, ext));
       }
     } else {
       resolved_file_path.set_extension(ext);
     }
 
-    let resolved_file_path = resolved_file_path.clean();
-
-    let cleaned_path_binding = resolved_file_path
+    let cleaned_path = resolved_file_path
       .to_str()
       .unwrap()
       .replace("..", ".")
       .to_string();
 
-    let cleaned_path = cleaned_path_binding.as_str();
+    let path_to_check: PathBuf;
+    let node_modules_path_to_check: PathBuf;
 
-    let mut path_to_check = PathBuf::from(cleaned_path);
-
-    let mut node_modules_path_to_check = path_to_check.clone();
-
-    let cwd: &str;
-
-    #[cfg(not(feature = "wasm"))]
-    {
-      cwd = root_path;
-    }
-
-    #[cfg(feature = "wasm")]
-    {
-      cwd = "cwd";
-    }
+    let cwd = if cfg!(feature = "wasm") {
+      "cwd"
+    } else {
+      root_path.to_str().unwrap()
+    };
 
     if !cleaned_path.contains(cwd) {
-      node_modules_path_to_check = Path::new(cwd)
-        .join("node_modules")
-        .join(path_to_check.clone());
-      path_to_check = Path::new(cwd).join(path_to_check);
+      node_modules_path_to_check = Path::new(cwd).join("node_modules").join(&cleaned_path);
+      path_to_check = Path::new(cwd).join(cleaned_path);
+    } else {
+      path_to_check = PathBuf::from(&cleaned_path);
+      node_modules_path_to_check = path_to_check.clone();
     }
 
-    if fs::metadata(path_to_check.clone()).is_ok()
-      || fs::metadata(node_modules_path_to_check.clone()).is_ok()
-    {
+    if fs::metadata(&path_to_check).is_ok() || fs::metadata(&node_modules_path_to_check).is_ok() {
       return Ok(resolved_file_path.to_path_buf());
     }
   }
@@ -352,11 +328,7 @@ fn possible_aliased_paths(
   }
 
   for (alias, values) in aliases.iter() {
-    if alias.contains('*') {
-      let parts: Vec<&str> = alias.split('*').collect();
-      let before = parts[0];
-      let after = parts[1];
-
+    if let Some((before, after)) = alias.split_once('*') {
       if import_path_str.starts_with(before) && import_path_str.ends_with(after) {
         let replacement_string =
           &import_path_str[before.len()..import_path_str.len() - after.len()];
@@ -365,9 +337,7 @@ fn possible_aliased_paths(
         }
       }
     } else if alias == import_path_str {
-      for value in values {
-        result.push(PathBuf::from(value.clone()));
-      }
+      result.extend(values.iter().map(PathBuf::from));
     }
   }
 

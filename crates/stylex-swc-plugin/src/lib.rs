@@ -44,7 +44,7 @@ pub(crate) fn process_transform(
     .get_context(&TransformPluginMetadataContextKind::Cwd)
     .map(PathBuf::from);
 
-  let plugin_pass = Box::new(PluginPass { cwd, filename });
+  let plugin_pass = PluginPass { cwd, filename };
 
   let mut stylex: StyleXTransform<PluginCommentsProxy> =
     StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);

@@ -72,15 +72,10 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
 }
 
 fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> Expr {
-  let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
-
-  match &var_decl {
-    Some(var_decl) => {
-      let var_decl_expr = get_expr_from_var_decl(var_decl);
-
-      var_decl_expr.clone()
-    }
-    None => panic!("{}", ILLEGAL_PROP_VALUE),
+  if let Some(var_decl) = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
+    get_expr_from_var_decl(&var_decl).clone()
+  } else {
+    panic!("{}", ILLEGAL_PROP_VALUE)
   }
 }
 

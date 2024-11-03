@@ -53,7 +53,7 @@ fn fixture(input: PathBuf) {
         resolver(unresolved_mark, top_level_mark, false),
         StyleXTransform::new_test_force_runtime_injection(
           tr.comments.clone(),
-          &PluginPass {
+          PluginPass {
             cwd: None,
             filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
           },
@@ -88,7 +88,7 @@ fn fixture(input: PathBuf) {
         resolver(unresolved_mark, top_level_mark, false),
         StyleXTransform::new_test(
           tr.comments.clone(),
-          &PluginPass {
+          PluginPass {
             cwd: None,
             filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
           },

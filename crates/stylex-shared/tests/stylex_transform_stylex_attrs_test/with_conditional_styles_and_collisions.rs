@@ -14,7 +14,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
@@ -42,7 +42,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   stylex_call_with_conditions_skip_conditional,
@@ -67,7 +67,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   stylex_call_with_property_collisions,
@@ -93,7 +93,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   stylex_call_with_reverting_by_null,
@@ -119,7 +119,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   stylex_call_with_short_form_property_collisions,
@@ -147,7 +147,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   stylex_call_with_short_form_property_collisions_with_null,
@@ -175,7 +175,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
@@ -203,7 +203,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   stylex_call_with_conditions_and_collisions_skip_conditional,
@@ -228,7 +228,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
@@ -256,7 +256,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection(
     tr.comments.clone(),
-    &PluginPass::default(),
+    PluginPass::default(),
     None
   ),
   stylex_call_with_conditions_and_null_collisions_skip_conditional,

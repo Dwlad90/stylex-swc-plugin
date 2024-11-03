@@ -12,7 +12,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -31,7 +31,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },
@@ -55,7 +55,7 @@ test!(
   |tr| {
     StyleXTransform::new_test_force_runtime_injection(
       tr.comments.clone(),
-      &PluginPass::default(),
+      PluginPass::default(),
       None,
     )
   },

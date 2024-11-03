@@ -49,7 +49,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
       // Do something with the parsed module.
       module.fold_with(&mut StyleXTransform::new_test_force_runtime_injection(
         Rc::new(SingleThreadedComments::default()),
-        &PluginPass::default(),
+        PluginPass::default(),
         None,
       ))
     }

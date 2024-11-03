@@ -287,13 +287,13 @@ describe('Evaluation of imported values works based on configuration', ()=>{
         import stylex from 'stylex';
         import 'otherFile.stylex';
         import { MyTheme } from 'otherFile.stylex';
-        _inject2(".__hashed_var__b69i2g{--__hashed_var__1jqb1tb:var(----__hashed_var__1jqb1tb)}", 1);
+        _inject2(".__hashed_var__15x39w1{--__hashed_var__1jqb1tb:var(----__hashed_var__1jqb1tb,revert)}", 1);
         const styles = {
           color: color => [{
-            "--__hashed_var__1jqb1tb": color == null ? null : "__hashed_var__b69i2g",
+            "--__hashed_var__1jqb1tb": "__hashed_var__15x39w1",
             $$css: true
           }, {
-            "----__hashed_var__1jqb1tb": color != null ? color : undefined
+            "----__hashed_var__1jqb1tb": color != null ? color : "initial"
           }]
         };
         stylex.props(styles.color('red'));"
@@ -301,9 +301,9 @@ describe('Evaluation of imported values works based on configuration', ()=>{
             expect(transformation.metadata.stylex).toMatchInlineSnapshot(`
         [
           [
-            "__hashed_var__b69i2g",
+            "__hashed_var__15x39w1",
             {
-              "ltr": ".__hashed_var__b69i2g{--__hashed_var__1jqb1tb:var(----__hashed_var__1jqb1tb)}",
+              "ltr": ".__hashed_var__15x39w1{--__hashed_var__1jqb1tb:var(----__hashed_var__1jqb1tb,revert)}",
               "rtl": null,
             },
             1,

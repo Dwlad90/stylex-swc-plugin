@@ -1,15 +1,17 @@
 use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
-use crate::shared::utils::ast::{
-  convertors::{expr_to_str, string_to_expression},
-  factories::array_expression_factory,
+use crate::shared::{
+  regex::IS_CSS_VAR,
+  utils::ast::{
+    convertors::{expr_to_str, string_to_expression},
+    factories::array_expression_factory,
+  },
 };
 
 fn is_var(arg: &Expr) -> bool {
   let str_arg = expr_to_str(arg, &mut Default::default(), &Default::default());
 
-  let re = regex::Regex::new(r"^var\(--[a-zA-Z0-9-_]+\)$").unwrap();
-  re.is_match(&str_arg)
+  IS_CSS_VAR.is_match(&str_arg)
 }
 
 pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
@@ -17,49 +19,41 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
 
   match first_var {
     None => {
-      let mut elems = Vec::with_capacity(args.len());
-
-      for arg in args.into_iter().rev() {
-        elems.push(Some(ExprOrSpread {
-          spread: None,
-          expr: Box::new(arg),
-        }));
-      }
+      let elems = args
+        .into_iter()
+        .rev()
+        .map(|arg| {
+          Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(arg),
+          })
+        })
+        .collect();
 
       array_expression_factory(elems)
     }
     Some(first_var) => {
-      let priorities = args[..first_var]
-        .iter()
-        .rev()
-        .cloned()
-        .collect::<Vec<Expr>>();
-      let rest = args[first_var..].to_vec();
+      let priorities = args[..first_var].iter().rev().collect::<Vec<_>>();
+      let rest = &args[first_var..];
       let first_non_var = rest.iter().position(|arg| !is_var(arg));
       let var_parts = if let Some(first_non_var) = first_non_var {
-        rest[..=first_non_var]
-          .iter()
-          .rev()
-          .cloned()
-          .collect::<Vec<Expr>>()
+        rest[..=first_non_var].iter().rev().collect::<Vec<_>>()
       } else {
-        rest.iter().rev().cloned().collect::<Vec<Expr>>()
+        rest.iter().rev().collect::<Vec<_>>()
       };
 
       let vars = var_parts
         .into_iter()
         .map(|arg| {
-          if is_var(&arg) {
-            let str_arg = expr_to_str(&arg, &mut Default::default(), &Default::default());
-
-            let cleared_str_arg = str_arg[4..str_arg.len() - 1].to_string();
-
-            string_to_expression(&cleared_str_arg)
+          if is_var(arg) {
+            let str_arg = expr_to_str(arg, &mut Default::default(), &Default::default());
+            let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
+            string_to_expression(cleared_str_arg)
           } else {
-            arg
+            arg.clone()
           }
         })
-        .collect::<Vec<Expr>>();
+        .collect::<Vec<_>>();
 
       let return_value = {
         let mut so_far = String::new();
@@ -75,9 +69,7 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
         }
 
         let mut result = vec![string_to_expression(&so_far)];
-
-        result.extend_from_slice(&priorities);
-
+        result.extend(priorities.iter().map(|&expr| expr.clone()));
         result
       };
 
@@ -93,7 +85,7 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
             expr: Box::new(expr),
           })
         })
-        .collect::<Vec<Option<ExprOrSpread>>>();
+        .collect();
 
       array_expression_factory(return_value)
     }

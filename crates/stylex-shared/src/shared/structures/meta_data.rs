@@ -56,12 +56,12 @@ impl MetaData {
     self.style.ltr.as_str()
   }
 
-  pub(crate) fn get_css_rtl(&self) -> Option<&String> {
-    self.style.rtl.as_ref()
+  pub(crate) fn get_css_rtl(&self) -> Option<&str> {
+    self.style.rtl.as_deref()
   }
 
   pub fn get_class_name(&self) -> &str {
-    &self.class_name
+    self.class_name.as_str()
   }
 
   pub fn get_priority(&self) -> &f64 {
@@ -72,10 +72,10 @@ impl MetaData {
     injected_styles_map: &IndexMap<String, Rc<InjectableStyle>>,
   ) -> Vec<MetaData> {
     injected_styles_map
-      .into_iter()
+      .iter()
       .map(|(class_name, injectable_style)| {
-        MetaData::new(class_name.clone(), (**injectable_style).clone())
+        MetaData::new(class_name.clone(), injectable_style.as_ref().clone())
       })
-      .collect::<Vec<MetaData>>()
+      .collect()
   }
 }

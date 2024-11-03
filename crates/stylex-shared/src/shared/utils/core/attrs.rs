@@ -9,24 +9,24 @@ use crate::shared::{
 
 use super::{parse_nullable_style::ResolvedArg, props::props};
 
-pub(crate) fn attrs(styles: &Vec<ResolvedArg>) -> Option<FnResult> {
-  let props = props(styles);
+pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
+  let props = props(styles)?;
 
-  let props = props
-    .and_then(|props| props.as_props().cloned())
-    .and_then(|props| props.as_values().cloned())?;
+  let props = props.as_props()?.as_values()?;
 
-  let mut attrs_map: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut attrs_map: IndexMap<String, &Box<FlatCompiledStylesValue>> = IndexMap::new();
 
   if let Some(class_name) = props.get("className") {
-    attrs_map.insert("class".to_string(), class_name.clone());
-  };
+    attrs_map.insert("class".to_string(), class_name);
+  }
 
-  if let Some(_inline_style) = props.get("style") {
+  if props.get("style").is_some() {
     panic!("Implement inline style");
-  };
+  }
 
   Some(FnResult::Attrs(
-    NestedStringObject::FlatCompiledStylesValues(attrs_map),
+    NestedStringObject::FlatCompiledStylesValues(
+      attrs_map.into_iter().map(|(k, v)| (k, v.clone())).collect(),
+    ),
   ))
 }

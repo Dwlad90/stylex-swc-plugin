@@ -19,29 +19,30 @@ use crate::shared::{
 
 use super::{js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg};
 
-fn fn_result_to_expression(fn_result: &FnResult) -> Option<Expr> {
+fn fn_result_to_expression(fn_result: FnResult) -> Option<Expr> {
   match fn_result {
-    FnResult::Stylex(string_object) => Some(string_object.clone()),
-    FnResult::Props(string_object) => Some(convert_object_to_ast(string_object)),
-    FnResult::Attrs(string_object) => Some(convert_object_to_ast(string_object)),
+    FnResult::Stylex(string_object) => Some(string_object),
+    FnResult::Props(string_object) | FnResult::Attrs(string_object) => {
+      Some(convert_object_to_ast(&string_object))
+    }
   }
 }
 
 pub(crate) fn make_string_expression(
-  values: &Vec<ResolvedArg>,
-  transform: fn(&Vec<ResolvedArg>) -> Option<FnResult>,
+  values: &[ResolvedArg],
+  transform: fn(&[ResolvedArg]) -> Option<FnResult>,
 ) -> Option<Expr> {
   let conditions = values
     .iter()
     .filter_map(|value| match value {
-      ResolvedArg::ConditionalStyle(expr, _, _, _, _) => Some(*expr.clone()),
+      ResolvedArg::ConditionalStyle(expr, _, _, _, _) => Some(expr),
       _ => None,
     })
-    .collect::<Vec<Expr>>();
+    .collect::<Vec<_>>();
 
   if conditions.is_empty() {
     if let Some(value) = transform(values) {
-      return fn_result_to_expression(&value);
+      return fn_result_to_expression(value);
     } else {
       return Some(string_to_expression(""));
     }
@@ -78,7 +79,7 @@ pub(crate) fn make_string_expression(
         .iter()
         .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
 
-      if let Some(result) = fn_result_to_expression(&transform(&args).unwrap()) {
+      if let Some(result) = fn_result_to_expression(transform(&args).unwrap()) {
         let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
           key: PropName::Ident(quote_ident!(key.to_string())),
           value: Box::new(result),
@@ -92,7 +93,12 @@ pub(crate) fn make_string_expression(
     .collect::<Vec<PropOrSpread>>();
 
   let obj_expressions = object_expression_factory(obj_entries);
-  let conditions_to_key = gen_bitwise_or_of_conditions(conditions);
+  let conditions_to_key = gen_bitwise_or_of_conditions(
+    &conditions
+      .into_iter()
+      .map(|c| (**c).clone())
+      .collect::<Vec<_>>(),
+  );
 
   Some(Expr::from(MemberExpr {
     span: DUMMY_SP,
@@ -104,7 +110,7 @@ pub(crate) fn make_string_expression(
   }))
 }
 
-fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
+fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
   let binary_expressions = conditions
     .iter()
     .enumerate()
@@ -144,13 +150,7 @@ fn gen_bitwise_or_of_conditions(conditions: Vec<Expr>) -> Box<Expr> {
 }
 
 fn gen_condition_permutations(count: usize) -> Vec<Vec<bool>> {
-  let mut result = Vec::new();
-  for i in 0..2u32.pow(count as u32) {
-    let mut combination = Vec::new();
-    for j in 0..count {
-      combination.push(i & (1 << j) != 0);
-    }
-    result.push(combination);
-  }
-  result
+  (0..2usize.pow(count as u32))
+    .map(|i| (0..count).map(|j| i & (1 << j) != 0).collect())
+    .collect()
 }

@@ -90,7 +90,7 @@ describe('custom path evaluation works as expected', ()=>{
         expect(result.value).toEqual({
             default: {
                 borderStyle: 'dashed',
-                borderWidth: 'var(--borderWidth)',
+                borderWidth: 'var(--borderWidth, revert)',
                 overflow: 'hidden'
             }
         });
@@ -105,99 +105,78 @@ describe('custom path evaluation works as expected', ()=>{
           ],
           {
             "--borderWidth": {
-              "expression": {
-                "arguments": [
-                  {
-                    "name": "width",
-                    "type": "Identifier",
-                  },
-                ],
-                "callee": {
-                  "async": false,
-                  "body": {
+              "arguments": [
+                {
+                  "name": "width",
+                  "type": "Identifier",
+                },
+              ],
+              "callee": {
+                "async": false,
+                "body": {
+                  "alternate": {
                     "alternate": {
-                      "alternate": {
-                        "name": "undefined",
-                        "type": "Identifier",
-                      },
-                      "consequent": {
-                        "name": "val",
-                        "type": "Identifier",
-                      },
-                      "test": {
-                        "left": {
-                          "name": "val",
-                          "type": "Identifier",
-                        },
-                        "operator": "!=",
-                        "right": {
-                          "type": "NullLiteral",
-                        },
-                        "type": "BinaryExpression",
-                      },
-                      "type": "ConditionalExpression",
+                      "type": "StringLiteral",
+                      "value": "initial",
                     },
                     "consequent": {
-                      "left": {
-                        "name": "val",
-                        "type": "Identifier",
-                      },
-                      "operator": "+",
-                      "right": {
-                        "type": "StringLiteral",
-                        "value": "px",
-                      },
-                      "type": "BinaryExpression",
+                      "name": "val",
+                      "type": "Identifier",
                     },
                     "test": {
                       "left": {
-                        "argument": {
-                          "name": "val",
-                          "type": "Identifier",
-                        },
-                        "operator": "typeof",
-                        "prefix": true,
-                        "type": "UnaryExpression",
+                        "name": "val",
+                        "type": "Identifier",
                       },
-                      "operator": "===",
+                      "operator": "!=",
                       "right": {
-                        "type": "StringLiteral",
-                        "value": "number",
+                        "type": "NullLiteral",
                       },
                       "type": "BinaryExpression",
                     },
                     "type": "ConditionalExpression",
                   },
-                  "expression": null,
-                  "params": [
-                    {
+                  "consequent": {
+                    "left": {
                       "name": "val",
                       "type": "Identifier",
                     },
-                  ],
-                  "type": "ArrowFunctionExpression",
+                    "operator": "+",
+                    "right": {
+                      "type": "StringLiteral",
+                      "value": "px",
+                    },
+                    "type": "BinaryExpression",
+                  },
+                  "test": {
+                    "left": {
+                      "argument": {
+                        "name": "val",
+                        "type": "Identifier",
+                      },
+                      "operator": "typeof",
+                      "prefix": true,
+                      "type": "UnaryExpression",
+                    },
+                    "operator": "===",
+                    "right": {
+                      "type": "StringLiteral",
+                      "value": "number",
+                    },
+                    "type": "BinaryExpression",
+                  },
+                  "type": "ConditionalExpression",
                 },
-                "type": "CallExpression",
+                "expression": null,
+                "params": [
+                  {
+                    "name": "val",
+                    "type": "Identifier",
+                  },
+                ],
+                "type": "ArrowFunctionExpression",
               },
-              "originalExpression": {
-                "name": "width",
-                "type": "Identifier",
-              },
-              "path": [
-                {
-                  "0": "b",
-                  "1": "o",
-                  "10": "h",
-                  "2": "r",
-                  "3": "d",
-                  "4": "e",
-                  "5": "r",
-                  "6": "W",
-                  "7": "i",
-                  "8": "d",
-                  "9": "t",
-                },
-              ],
+              "type": "CallExpression",
             },
           },
         ],
@@ -219,7 +198,7 @@ describe('custom path evaluation works as expected', ()=>{
             default: {
                 overflow: 'hidden',
                 borderStyle: 'dashed',
-                borderWidth: 'var(--borderWidth)'
+                borderWidth: 'var(--borderWidth, revert)'
             }
         });
         expect(removeLoc(result.fns)).toMatchInlineSnapshot(`
@@ -233,147 +212,102 @@ describe('custom path evaluation works as expected', ()=>{
           ],
           {
             "--borderWidth": {
-              "expression": {
-                "arguments": [
-                  {
+              "arguments": [
+                {
+                  "left": {
                     "left": {
-                      "left": {
-                        "name": "width",
-                        "type": "Identifier",
-                      },
-                      "operator": "*",
-                      "right": {
-                        "extra": {
-                          "raw": "2",
-                          "rawValue": 2,
-                        },
-                        "type": "NumericLiteral",
-                        "value": 2,
-                      },
-                      "type": "BinaryExpression",
+                      "name": "width",
+                      "type": "Identifier",
                     },
-                    "operator": "+",
+                    "operator": "*",
                     "right": {
                       "extra": {
-                        "raw": "'px'",
-                        "rawValue": "px",
+                        "raw": "2",
+                        "rawValue": 2,
                       },
-                      "type": "StringLiteral",
-                      "value": "px",
+                      "type": "NumericLiteral",
+                      "value": 2,
                     },
                     "type": "BinaryExpression",
                   },
-                ],
-                "callee": {
-                  "async": false,
-                  "body": {
+                  "operator": "+",
+                  "right": {
+                    "extra": {
+                      "raw": "'px'",
+                      "rawValue": "px",
+                    },
+                    "type": "StringLiteral",
+                    "value": "px",
+                  },
+                  "type": "BinaryExpression",
+                },
+              ],
+              "callee": {
+                "async": false,
+                "body": {
+                  "alternate": {
                     "alternate": {
-                      "alternate": {
-                        "name": "undefined",
-                        "type": "Identifier",
-                      },
-                      "consequent": {
-                        "name": "val",
-                        "type": "Identifier",
-                      },
-                      "test": {
-                        "left": {
-                          "name": "val",
-                          "type": "Identifier",
-                        },
-                        "operator": "!=",
-                        "right": {
-                          "type": "NullLiteral",
-                        },
-                        "type": "BinaryExpression",
-                      },
-                      "type": "ConditionalExpression",
+                      "type": "StringLiteral",
+                      "value": "initial",
                     },
                     "consequent": {
-                      "left": {
-                        "name": "val",
-                        "type": "Identifier",
-                      },
-                      "operator": "+",
-                      "right": {
-                        "type": "StringLiteral",
-                        "value": "px",
-                      },
-                      "type": "BinaryExpression",
+                      "name": "val",
+                      "type": "Identifier",
                     },
                     "test": {
                       "left": {
-                        "argument": {
-                          "name": "val",
-                          "type": "Identifier",
-                        },
-                        "operator": "typeof",
-                        "prefix": true,
-                        "type": "UnaryExpression",
+                        "name": "val",
+                        "type": "Identifier",
                       },
-                      "operator": "===",
+                      "operator": "!=",
                       "right": {
-                        "type": "StringLiteral",
-                        "value": "number",
+                        "type": "NullLiteral",
                       },
                       "type": "BinaryExpression",
                     },
                     "type": "ConditionalExpression",
                   },
-                  "expression": null,
-                  "params": [
-                    {
+                  "consequent": {
+                    "left": {
                       "name": "val",
                       "type": "Identifier",
                     },
-                  ],
-                  "type": "ArrowFunctionExpression",
+                    "operator": "+",
+                    "right": {
+                      "type": "StringLiteral",
+                      "value": "px",
+                    },
+                    "type": "BinaryExpression",
+                  },
+                  "test": {
+                    "left": {
+                      "argument": {
+                        "name": "val",
+                        "type": "Identifier",
+                      },
+                      "operator": "typeof",
+                      "prefix": true,
+                      "type": "UnaryExpression",
+                    },
+                    "operator": "===",
+                    "right": {
+                      "type": "StringLiteral",
+                      "value": "number",
+                    },
+                    "type": "BinaryExpression",
+                  },
+                  "type": "ConditionalExpression",
                 },
-                "type": "CallExpression",
-              },
-              "originalExpression": {
-                "left": {
-                  "left": {
-                    "name": "width",
+                "expression": null,
+                "params": [
+                  {
+                    "name": "val",
                     "type": "Identifier",
                   },
-                  "operator": "*",
-                  "right": {
-                    "extra": {
-                      "raw": "2",
-                      "rawValue": 2,
-                    },
-                    "type": "NumericLiteral",
-                    "value": 2,
-                  },
-                  "type": "BinaryExpression",
-                },
-                "operator": "+",
-                "right": {
-                  "extra": {
-                    "raw": "'px'",
-                    "rawValue": "px",
-                  },
-                  "type": "StringLiteral",
-                  "value": "px",
-                },
-                "type": "BinaryExpression",
+                ],
+                "type": "ArrowFunctionExpression",
               },
-              "path": [
-                {
-                  "0": "b",
-                  "1": "o",
-                  "10": "h",
-                  "2": "r",
-                  "3": "d",
-                  "4": "e",
-                  "5": "r",
-                  "6": "W",
-                  "7": "i",
-                  "8": "d",
-                  "9": "t",
-                },
-              ],
+              "type": "CallExpression",
             },
           },
         ],

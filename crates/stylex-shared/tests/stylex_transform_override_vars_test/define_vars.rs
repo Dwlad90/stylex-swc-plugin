@@ -28,7 +28,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
@@ -65,7 +65,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test(
     tr.comments.clone(),
-    &PluginPass {
+    PluginPass {
       cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },

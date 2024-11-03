@@ -41,9 +41,6 @@ use crate::shared::{
   utils::ast::factories::prop_or_spread_expression_factory,
 };
 use crate::StyleXTransform;
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-static CALL_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 impl<C> StyleXTransform<C>
 where
@@ -54,20 +51,11 @@ where
     let is_create_call = is_create_call(call, &self.state);
 
     let result = if is_create_call {
-      // println!("transform_stylex_create");
-
       validate_stylex_create(call, &self.state);
-      CALL_COUNTER.fetch_add(1, Ordering::SeqCst);
 
-      let first_arg = call.args.first();
-
-      let mut first_arg = first_arg.map(|first_arg| match &first_arg.spread {
-        Some(_) => unimplemented!(),
-        None => first_arg.expr.clone(),
-      })?;
+      let mut first_arg = call.args.first()?.expr.clone();
 
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
-
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
@@ -133,12 +121,7 @@ where
       let evaluated_arg =
         evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
-      let value = match evaluated_arg.value {
-        Some(value) => value,
-        None => {
-          panic!("{}", NON_STATIC_VALUE)
-        }
-      };
+      let value = evaluated_arg.value.expect(NON_STATIC_VALUE);
 
       assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
 
@@ -153,35 +136,35 @@ where
         resolved_namespaces
           .entry(namespace.clone())
           .or_default()
-          .extend(*properties.clone());
+          .extend(properties.iter().map(|(k, v)| (k.clone(), v.clone())));
       }
 
       let mut injected_styles = self.state.injected_keyframes.clone();
 
       injected_styles.extend(injected_styles_sans_keyframes);
 
-      let (var_name, parent_var_decl) = &self.get_call_var_name(call);
+      let (var_name, parent_var_decl) = self.get_call_var_name(call);
 
       if self.state.is_test() {
-        compiled_styles = convert_to_test_styles(&compiled_styles, var_name, &self.state);
+        compiled_styles = convert_to_test_styles(&compiled_styles, &var_name, &self.state);
       }
 
       if self.state.is_dev() {
-        compiled_styles = inject_dev_class_names(&compiled_styles, var_name, &self.state);
+        compiled_styles = inject_dev_class_names(&compiled_styles, &var_name, &self.state);
       }
 
       if let Some(var_name) = var_name.as_ref() {
-        let styles_to_remember = Box::new(remove_objects_with_spreads(&compiled_styles));
+        let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
 
         self
           .state
           .style_map
-          .insert(var_name.clone(), Rc::new(*styles_to_remember));
+          .insert(var_name.clone(), Rc::new(styles_to_remember));
 
         self
           .state
           .style_vars
-          .insert(var_name.clone(), *parent_var_decl.clone().unwrap());
+          .insert(var_name.clone(), parent_var_decl.clone().unwrap());
       }
 
       let mut result_ast =
@@ -239,10 +222,9 @@ where
                 }
               }
 
-              let prop =
-                prop.unwrap_or(prop_or_spread_expression_factory(orig_key.as_str(), *value));
-
-              prop
+              prop.unwrap_or_else(|| {
+                prop_or_spread_expression_factory(orig_key.as_str(), *value.clone())
+              })
             })
             .collect::<Vec<PropOrSpread>>();
 
@@ -259,8 +241,6 @@ where
     };
 
     self.state.in_stylex_create = false;
-
-    // println!("{}", CALL_COUNTER.load(Ordering::SeqCst));
 
     result
   }

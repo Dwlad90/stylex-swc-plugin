@@ -18,18 +18,18 @@ use crate::shared::{
 pub(crate) fn remove_objects_with_spreads(
   obj: &IndexMap<String, Box<FlatCompiledStyles>>,
 ) -> IndexMap<String, Box<FlatCompiledStyles>> {
-  let mut obj = obj.clone();
+  let mut new_obj = IndexMap::with_capacity(obj.len());
 
-  obj.retain(|_key, value| {
-    value.values().all(|keep_value| {
-      !matches!(
-        *keep_value.clone(),
-        FlatCompiledStylesValue::IncludedStyle(_)
-      )
-    })
-  });
+  for (key, value) in obj.iter() {
+    if value
+      .values()
+      .all(|keep_value| !matches!(**keep_value, FlatCompiledStylesValue::IncludedStyle(_)))
+    {
+      new_obj.insert(key.clone(), value.clone());
+    }
+  }
 
-  obj
+  new_obj
 }
 
 #[derive(Debug, PartialEq, Clone)]

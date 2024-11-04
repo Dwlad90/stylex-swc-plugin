@@ -53,9 +53,11 @@ impl Fold for CssFolder {
   }
 
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
+    dbg!(&dimension);
     let dimension = timing_normalizer(&mut dimension);
     let dimension = zero_demention_normalizer(dimension);
 
+    dbg!(&dimension);
     dimension.clone().fold_children_with(self)
   }
 
@@ -154,7 +156,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       }
 
       length.value = get_zero_demansion_value();
-      length.unit = get_zero_demansion_unit();
+      length.unit = get_zero_demansion_unit(&length.unit);
 
       dimension
     }
@@ -194,7 +196,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       }
 
       frequency.value = get_zero_demansion_value();
-      frequency.unit = get_zero_demansion_unit();
+      frequency.unit = get_zero_demansion_unit(&frequency.unit);
 
       dimension
     }
@@ -204,7 +206,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       }
 
       resolution.value = get_zero_demansion_value();
-      resolution.unit = get_zero_demansion_unit();
+      resolution.unit = get_zero_demansion_unit(&resolution.unit);
 
       dimension
     }
@@ -214,7 +216,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       }
 
       flex.value = get_zero_demansion_value();
-      flex.unit = get_zero_demansion_unit();
+      flex.unit = get_zero_demansion_unit(&flex.unit);
 
       dimension
     }
@@ -224,7 +226,7 @@ fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       }
 
       unknown.value = get_zero_demansion_value();
-      unknown.unit = get_zero_demansion_unit();
+      unknown.unit = get_zero_demansion_unit(&unknown.unit);
 
       dimension
     }
@@ -239,7 +241,23 @@ fn get_zero_demansion_value() -> Number {
   }
 }
 
-fn get_zero_demansion_unit() -> Ident {
+fn get_zero_demansion_unit(unit: &Ident) -> Ident {
+  if unit.value.eq("fr") {
+    return Ident {
+      value: "fr".into(),
+      raw: None,
+      span: DUMMY_SP,
+    };
+  }
+
+  if unit.value.eq("%") {
+    return Ident {
+      value: "%".into(),
+      raw: None,
+      span: DUMMY_SP,
+    };
+  }
+
   Ident {
     value: "".into(),
     raw: None,

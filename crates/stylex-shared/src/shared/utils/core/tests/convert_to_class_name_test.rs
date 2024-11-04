@@ -89,11 +89,11 @@ mod convert_style_to_class_name {
   fn keeps_fr_for_zero_fraction_values() {
     let result = convert(("gridTemplateRows", &PreRuleValue::String("0fr".to_string())));
 
-    assert_eq!(result, "grid-template-rows:0")
+    assert_eq!(result, "grid-template-rows:0fr")
   }
 
   #[test]
-  fn keeps_fr_for_zero_percentage_values() {
+  fn keeps_percent_for_zero_percentage_values() {
     let result = convert(("flexBasis", &PreRuleValue::String("0%".to_string())));
 
     assert_eq!(result, "flex-basis:0%")

@@ -157,6 +157,15 @@ mod css_tests {
       ),
       r#"translateX(4px)"#
     );
+
+    assert_eq!(
+      transform_value_cached(
+        "gridTemplateColumns",
+        r#"auto 0fr 0fr"#,
+        &mut StateManager::default()
+      ),
+      r#"auto 0fr 0fr"#
+    );
   }
 
   #[test]

@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, rc::Rc};
 
 use indexmap::IndexMap;
+use swc_core::ecma::ast::KeyValueProp;
 
 use crate::shared::{
   constants::common::{COMPILED_KEY, THEME_NAME_KEY},
@@ -12,7 +13,9 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::expr_to_str,
-    common::{create_hash, get_css_value, get_key_str, get_key_values_from_object},
+    common::{
+      create_hash, find_and_swap_remove, get_css_value, get_key_str, get_key_values_from_object,
+    },
     core::define_vars_utils::{collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules},
     validators::validate_theme_variables,
   },
@@ -40,16 +43,29 @@ pub(crate) fn stylex_create_theme(
 
   variables_key_values.sort_by_key(get_key_str);
 
+  let mut __theme_name: String = String::new();
+  let mut theme_vars_key_values: Vec<KeyValueProp> = Vec::new();
+
+  if let EvaluateResultValue::Expr(expr) = theme_vars {
+    theme_vars_key_values =
+      get_key_values_from_object(expr.as_object().expect("Theme vars must be an object"));
+
+    __theme_name = theme_vars_key_values
+      .iter()
+      .find(|key_value| get_key_str(key_value) == "__themeName__")
+      .map(|key_value| expr_to_str(&key_value.value, state, &FunctionMap::default()))
+      .unwrap_or_default();
+  };
+
   for key_value in variables_key_values.into_iter() {
     let key = get_key_str(&key_value);
 
     let theme_vars_str_value = match theme_vars {
-      EvaluateResultValue::Expr(expr) => {
-        let theme_vars_key_values = get_key_values_from_object(expr.as_object().unwrap());
-        let theme_vars_item = theme_vars_key_values
-          .iter()
-          .find(|key_value| get_key_str(key_value) == key)
-          .expect("Theme variable not found");
+      EvaluateResultValue::Expr(_) => {
+        let theme_vars_item = find_and_swap_remove(&mut theme_vars_key_values, |key_value| {
+          get_key_str(key_value) == key
+        })
+        .expect("Theme variable not found");
 
         expr_to_str(
           theme_vars_item.value.as_ref(),
@@ -148,9 +164,11 @@ pub(crate) fn stylex_create_theme(
     _ => unimplemented!("Unsupported theme vars type"),
   };
 
+  let theme_class = format!("{override_class_name} {__theme_name}");
+
   resolved_theme_vars.insert(
     theme_name_str_value,
-    Rc::new(FlatCompiledStylesValue::String(override_class_name)),
+    Rc::new(FlatCompiledStylesValue::String(theme_class)),
   );
 
   (resolved_theme_vars, styles_to_inject)

@@ -9,5 +9,5 @@ export const buttonTheme = {
 };
 export const buttonThemePositive = {
     $$css: true,
-    x568ih9: "xtrlmmh"
+    x568ih9: "xtrlmmh x568ih9"
 };

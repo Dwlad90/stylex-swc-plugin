@@ -24,6 +24,7 @@ export interface StyleXOptions {
   genConditionalClasses?: boolean
   dev?: boolean
   test?: boolean
+  debug?: boolean
   aliases?: Record<string, string[]>
   unstable_moduleResolution?: StyleXModuleResolution
 }

@@ -38,6 +38,10 @@ impl ThemeRef {
 
       let var_name = format!("{}{}", self.class_name_prefix, create_hash(&str_to_hash));
 
+      if key == "__themeName__" {
+        return var_name;
+      }
+
       format!("var(--{})", var_name)
     });
 

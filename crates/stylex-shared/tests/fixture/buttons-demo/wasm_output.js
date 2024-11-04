@@ -41,7 +41,7 @@ _inject2(".x8j0i83, .x8j0i83:root{--x1tvn83n:red;--xlb9c25:4px;--xk30bbq:4px;--x
 const redTheme = {
     Page__redTheme: "Page__redTheme",
     $$css: true,
-    "var(--x1p0kudt)": "x8j0i83"
+    x1p0kudt: "x8j0i83 "
 };
 _inject2(".display-x78zum5{display:flex}", 3000);
 _inject2(".flexDirection-xdt5ytf{flex-direction:column}", 3000);

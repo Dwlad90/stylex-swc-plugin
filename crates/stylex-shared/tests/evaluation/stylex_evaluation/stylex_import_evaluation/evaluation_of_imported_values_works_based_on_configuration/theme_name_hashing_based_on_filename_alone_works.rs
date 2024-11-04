@@ -77,6 +77,32 @@ fn importing_file_with_stylex_suffix_works() {
 }
 
 #[test]
+fn importing_file_with_dot_stylex_and_reading_theme_name_returns_a_class_name() {
+  let input = r#"import stylex from 'stylex';
+        import { MyTheme } from 'otherFile.stylex';
+        const styles = stylex.create({
+          red: {
+            color: MyTheme.__themeName__,
+          }
+        });
+        stylex(styles.red);"#;
+
+  let transformation = tranform(input);
+
+  let expected_var_name = format!(
+    "{}{}",
+    OPTIONS.class_name_prefix,
+    create_hash("otherFile.stylex.js//MyTheme")
+  );
+
+  assert_eq!(expected_var_name, "__hashed_var__jvfbhb");
+
+  assert!(transformation.contains(&expected_var_name));
+
+  assert_snapshot!(transformation);
+}
+
+#[test]
 fn maintains_variable_names_that_start_with_double_dash_from_stylex_files() {
   let input = r#"import stylex from 'stylex';
         import { MyTheme } from 'otherFile.stylex';

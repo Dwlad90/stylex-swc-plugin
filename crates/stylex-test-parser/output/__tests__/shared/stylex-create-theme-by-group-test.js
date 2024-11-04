@@ -1,7 +1,7 @@
 describe('stylex-create-theme test', ()=>{
     test('overrides set of vars with CSS class', ()=>{
         const defaultVars = {
-            __themeName__: 'TestTheme.stylex.js//buttonTheme',
+            __themeName__: 'TestTheme_stylex_js__buttonTheme_hash',
             bgColor: 'var(--xgck17p)',
             bgColorDisabled: 'var(--xpegid5)',
             cornerRadius: 'var(--xrqfjmn)',
@@ -23,7 +23,13 @@ describe('stylex-create-theme test', ()=>{
             fgColor: 'coral'
         };
         const [classNameOutput, cssOutput] = stylexCreateTheme(defaultVars, createTheme);
-        expect(defaultVars.__themeName__).toMatchInlineSnapshot('"TestTheme.stylex.js//buttonTheme"');
+        expect(defaultVars.__themeName__).toMatchInlineSnapshot('"TestTheme_stylex_js__buttonTheme_hash"');
+        expect(classNameOutput).toMatchInlineSnapshot(`
+      {
+        "$$css": true,
+        "TestTheme_stylex_js__buttonTheme_hash": "xtrlmmh TestTheme_stylex_js__buttonTheme_hash",
+      }
+    `);
         expect(cssOutput[classNameOutput[defaultVars.__themeName__].split(' ')[0]]).toMatchInlineSnapshot(`
       {
         "ltr": ".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}",
@@ -34,7 +40,7 @@ describe('stylex-create-theme test', ()=>{
     });
     test('overrides set of literal vars with CSS class', ()=>{
         const defaultVars = {
-            __themeName__: 'TestTheme.stylex.js//buttonTheme',
+            __themeName__: 'TestTheme_stylex_js__buttonTheme_hash',
             '--bgColor': 'var(--bgColor)',
             '--bgColorDisabled': 'var(--bgColorDisabled)',
             '--cornerRadius': 'var(--cornerRadius)',
@@ -56,7 +62,13 @@ describe('stylex-create-theme test', ()=>{
             '--fgColor': 'coral'
         };
         const [classNameOutput, cssOutput] = stylexCreateTheme(defaultVars, createTheme);
-        expect(defaultVars.__themeName__).toMatchInlineSnapshot('"TestTheme.stylex.js//buttonTheme"');
+        expect(defaultVars.__themeName__).toMatchInlineSnapshot('"TestTheme_stylex_js__buttonTheme_hash"');
+        expect(classNameOutput).toMatchInlineSnapshot(`
+      {
+        "$$css": true,
+        "TestTheme_stylex_js__buttonTheme_hash": "x4znj40 TestTheme_stylex_js__buttonTheme_hash",
+      }
+    `);
         expect(cssOutput[classNameOutput[defaultVars.__themeName__].split(' ')[0]]).toMatchInlineSnapshot(`
       {
         "ltr": ".x4znj40, .x4znj40:root{--bgColor:green;--bgColorDisabled:antiquewhite;--cornerRadius:6px;--fgColor:coral;}",
@@ -67,7 +79,7 @@ describe('stylex-create-theme test', ()=>{
     });
     test('variables order does not change the hash', ()=>{
         const defaultVars = {
-            __themeName__: 'TestTheme.stylex.js//buttonTheme',
+            __themeName__: 'TestTheme_stylex_js__buttonTheme_hash',
             bgColor: 'var(--xgck17p)',
             bgColorDisabled: 'var(--xpegid5)',
             cornerRadius: 'var(--xrqfjmn)',
@@ -105,12 +117,12 @@ describe('stylex-create-theme test', ()=>{
         };
         const [classNameOutput1] = stylexCreateTheme(defaultVars, createTheme1);
         const [classNameOutput2] = stylexCreateTheme(defaultVars, createTheme2);
-        expect(defaultVars.__themeName__).toMatchInlineSnapshot('"TestTheme.stylex.js//buttonTheme"');
+        expect(defaultVars.__themeName__).toMatchInlineSnapshot('"TestTheme_stylex_js__buttonTheme_hash"');
         expect(classNameOutput1[defaultVars.__themeName__].split(' ')[0]).toEqual(classNameOutput2[defaultVars.__themeName__].split(' ')[0]);
     });
     test('Adding an at-rule changes the hash', ()=>{
         const defaultVars = {
-            __themeName__: 'TestTheme.stylex.js//buttonTheme',
+            __themeName__: 'TestTheme_stylex_js__buttonTheme_hash',
             bgColor: 'var(--xgck17p)'
         };
         const createTheme1 = {
@@ -128,7 +140,7 @@ describe('stylex-create-theme test', ()=>{
     });
     test('Generates styles for nested at-rules', ()=>{
         const defaultVars = {
-            __themeName__: 'TestTheme.stylex.js//buttonTheme',
+            __themeName__: 'TestTheme_stylex_js__buttonTheme_hash',
             bgColor: 'var(--xgck17p)'
         };
         const createTheme = {
@@ -171,7 +183,7 @@ describe('stylex-create-theme test', ()=>{
     });
     test('Generates styles for typed nested at-rules', ()=>{
         const defaultVars = {
-            __themeName__: 'TestTheme.stylex.js//buttonTheme',
+            __themeName__: 'TestTheme_stylex_js__buttonTheme_hash',
             bgColor: 'var(--xgck17p)'
         };
         const createTheme = {

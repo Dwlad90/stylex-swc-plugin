@@ -15,5 +15,5 @@ _inject2("@media print{.x143z4bu, .x143z4bu:root{--xgck17p:transparent;}}", 0.6)
 export const buttonThemePositive = {
     TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
     $$css: true,
-    x568ih9: "x143z4bu"
+    x568ih9: "x143z4bu x568ih9"
 };

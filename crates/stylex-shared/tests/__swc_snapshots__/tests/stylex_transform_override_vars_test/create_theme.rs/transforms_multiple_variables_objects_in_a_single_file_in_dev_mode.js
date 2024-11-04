@@ -15,11 +15,11 @@ _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
 export const buttonThemePositive = {
     TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
     $$css: true,
-    x568ih9: "xtrlmmh"
+    x568ih9: "xtrlmmh x568ih9"
 };
 _inject2(".x1awrdae, .x1awrdae:root{--xgck17p:white;--xpegid5:black;--xrqfjmn:0px;}", 0.5);
 export const buttonThemeMonochromatic = {
     TestTheme__buttonThemeMonochromatic: "TestTheme__buttonThemeMonochromatic",
     $$css: true,
-    x568ih9: "x1awrdae"
+    x568ih9: "x1awrdae x568ih9"
 };

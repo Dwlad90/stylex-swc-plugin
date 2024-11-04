@@ -8,5 +8,5 @@ _inject2("@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x
 _inject2("@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}", 0.6);
 export const variables = {
     $$css: true,
-    "TestTheme.stylex.js//buttonTheme": "x2y918k"
+    "TestTheme.stylex.js//buttonTheme": "x2y918k TestTheme.stylex.js//buttonTheme"
 };

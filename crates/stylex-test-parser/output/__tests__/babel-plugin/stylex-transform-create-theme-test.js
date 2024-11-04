@@ -73,6 +73,29 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
       });
     `);
     });
+    test('test one output of stylex.defineVars()', ()=>{
+        expect(transform(`
+          import * as stylex from 'stylex';
+
+          export const buttonTheme = stylex.defineVars({
+            bgColor: 'green',
+            bgColorDisabled: 'antiquewhite',
+            cornerRadius: '6px',
+            fgColor: 'coral',
+          });
+        `, {
+            filename: 'TestTheme.stylex.js'
+        })).toMatchInlineSnapshot(`
+      "import * as stylex from 'stylex';
+      export const buttonTheme = {
+        bgColor: "var(--xgck17p)",
+        bgColorDisabled: "var(--xpegid5)",
+        cornerRadius: "var(--xrqfjmn)",
+        fgColor: "var(--x4y59db)",
+        __themeName__: "x568ih9"
+      };"
+    `);
+    });
     test('output of stylex.defineVars()', ()=>{
         expect(defineVarsOutput).toMatchInlineSnapshot(`
       "import stylex from 'stylex';
@@ -118,7 +141,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };"
       `);
             expect(output1).toEqual(output2);
@@ -138,7 +161,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         };
         const buttonThemePositive = {
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };"
       `);
         });
@@ -166,7 +189,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };"
       `);
         });
@@ -188,7 +211,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         };
         const buttonThemePositive = {
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };"
       `);
         });
@@ -217,7 +240,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };"
       `);
         });
@@ -240,11 +263,11 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         };
         const buttonThemePositive = {
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };
         const buttonThemeNew = {
           $$css: true,
-          x568ih9: "x1qnwd2l"
+          x568ih9: "x1qnwd2l x568ih9"
         };"
       `);
         });
@@ -278,13 +301,13 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };
         _inject2(".x1awrdae, .x1awrdae:root{--xgck17p:white;--xpegid5:black;--xrqfjmn:0px;}", 0.5);
         const buttonThemeMonochromatic = {
           TestTheme__buttonThemeMonochromatic: "TestTheme__buttonThemeMonochromatic",
           $$css: true,
-          x568ih9: "x1awrdae"
+          x568ih9: "x1awrdae x568ih9"
         };"
       `);
         });
@@ -326,7 +349,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "xi7kglk"
+          x568ih9: "xi7kglk x568ih9"
         };"
       `);
         });
@@ -368,7 +391,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };"
       `);
         });
@@ -410,7 +433,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "x143z4bu"
+          x568ih9: "x143z4bu x568ih9"
         };"
       `);
         });
@@ -452,7 +475,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "x64jqcx"
+          x568ih9: "x64jqcx x568ih9"
         };"
       `);
         });
@@ -484,7 +507,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           NestedTheme__buttonThemePositive: "NestedTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "xtrlmmh"
+          x568ih9: "xtrlmmh x568ih9"
         };"
       `);
         });
@@ -526,7 +549,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme', ()=>{
         const buttonThemePositive = {
           TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
           $$css: true,
-          x568ih9: "x41sqjo"
+          x568ih9: "x41sqjo x568ih9"
         };"
       `);
         });
@@ -593,7 +616,7 @@ describe('@stylexjs/babel-plugin stylex.createTheme with literals', ()=>{
         };
         const buttonThemePositive = {
           $$css: true,
-          x568ih9: "x4znj40"
+          x568ih9: "x4znj40 x568ih9"
         };"
       `);
         });

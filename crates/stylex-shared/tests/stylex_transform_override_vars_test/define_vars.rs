@@ -30,6 +30,34 @@ test!(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
+      filename: FileName::Real("TestTheme.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Some(false),
+      ..get_default_opts()
+    })
+  ),
+  test_one_output_of_stylex_define_vars,
+  r#"
+    import * as stylex from 'stylex';
+    export const buttonTheme = stylex.defineVars({
+      bgColor: 'green',
+      bgColorDisabled: 'antiquewhite',
+      cornerRadius: '6px',
+      fgColor: 'coral',
+    });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {

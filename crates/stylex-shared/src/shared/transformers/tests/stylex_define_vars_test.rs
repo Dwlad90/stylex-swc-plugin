@@ -19,63 +19,65 @@ mod stylex_define_vars {
       ast::{
         convertors::string_to_expression,
         factories::{
-          object_expression_factory, prop_or_spread_expr_factory,
-          prop_or_spread_expression_factory, prop_or_spread_string_factory,
+          object_expression_factory, prop_or_spread_expr_factory, prop_or_spread_expression_factory,
         },
       },
       common::create_hash,
     },
   };
 
+  enum DefaultVarsFactoryValue<'a> {
+    Simple(&'a str),
+    Nested(&'a [(&'a str, &'a str)]),
+  }
+
   type DefaultVarsFactoryArgs<'a> = [(
     &'a str,
-    &'a [(&'a str, &'a str)],
+    DefaultVarsFactoryValue<'a>,
     &'a [(&'a str, &'a [(&'a str, &'a str)])],
     &'a [Expr],
   )];
-  fn default_vars_factory(
-    args: &DefaultVarsFactoryArgs,
-    str_args: &[(&str, &str)],
-  ) -> EvaluateResultValue {
-    let mut props = args
+  fn default_vars_factory(args: &DefaultVarsFactoryArgs) -> EvaluateResultValue {
+    let props = args
       .iter()
-      .map(|(key, values, nested_values, types_values)| {
-        let mut props = values
-          .iter()
-          .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
-          .collect::<Vec<PropOrSpread>>();
+      .map(|(key, values, nested_values, types_values)| match values {
+        DefaultVarsFactoryValue::Simple(value) => {
+          prop_or_spread_expression_factory(key, string_to_expression(value))
+        }
+        DefaultVarsFactoryValue::Nested(values) => {
+          let mut props = values
+            .iter()
+            .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
+            .collect::<Vec<PropOrSpread>>();
 
-        let nested_props = nested_values
-          .iter()
-          .map(|val| {
-            let props = val
-              .1
-              .iter()
-              .map(|(key, value)| {
-                prop_or_spread_expression_factory(key, string_to_expression(value))
-              })
-              .collect::<Vec<PropOrSpread>>();
+          let nested_props = nested_values
+            .iter()
+            .map(|val| {
+              let props = val
+                .1
+                .iter()
+                .map(|(key, value)| {
+                  prop_or_spread_expression_factory(key, string_to_expression(value))
+                })
+                .collect::<Vec<PropOrSpread>>();
 
-            prop_or_spread_expression_factory(val.0, object_expression_factory(props))
-          })
-          .collect::<Vec<PropOrSpread>>();
+              prop_or_spread_expression_factory(val.0, object_expression_factory(props))
+            })
+            .collect::<Vec<PropOrSpread>>();
 
-        props.extend(nested_props);
+          props.extend(nested_props);
 
-        let types_props = types_values
-          .iter()
-          .flat_map(|expr| expr.as_object().unwrap().props.clone())
-          .collect::<Vec<PropOrSpread>>();
+          let types_props = types_values
+            .iter()
+            .flat_map(|expr| expr.as_object().unwrap().props.clone())
+            .collect::<Vec<PropOrSpread>>();
 
-        props.extend(types_props);
+          props.extend(types_props);
 
-        prop_or_spread_expr_factory(key, props)
+          prop_or_spread_expr_factory(key, props)
+        }
       })
       .collect::<Vec<PropOrSpread>>();
-
-    for (key, value) in str_args.iter() {
-      props.push(prop_or_spread_string_factory(key, value));
-    }
 
     EvaluateResultValue::Expr(object_expression_factory(props))
   }
@@ -119,31 +121,40 @@ mod stylex_define_vars {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
-    let default_vars = default_vars_factory(
-      &[
-        (
-          "bgColor",
-          &[
-            ("default", "blue"),
-            ("@media (prefers-color-scheme: dark)", "lightblue"),
-            ("@media print", "white"),
-          ],
-          &[],
-          &[],
-        ),
-        (
-          "bgColorDisabled",
-          &[
-            ("default", "grey"),
-            ("@media (prefers-color-scheme: dark)", "rgba(0, 0, 0, 0.8)"),
-          ],
-          &[],
-          &[],
-        ),
-        ("fgColor", &[("default", "pink")], &[], &[]),
-      ],
-      &[("cornerRadius", "10px")],
-    );
+    let default_vars = default_vars_factory(&[
+      (
+        "bgColor",
+        DefaultVarsFactoryValue::Nested(&[
+          ("default", "blue"),
+          ("@media (prefers-color-scheme: dark)", "lightblue"),
+          ("@media print", "white"),
+        ]),
+        &[],
+        &[],
+      ),
+      (
+        "bgColorDisabled",
+        DefaultVarsFactoryValue::Nested(&[
+          ("default", "grey"),
+          ("@media (prefers-color-scheme: dark)", "rgba(0, 0, 0, 0.8)"),
+        ]),
+        &[],
+        &[],
+      ),
+      (
+        "cornerRadius",
+        DefaultVarsFactoryValue::Simple("10px"),
+        &[],
+        &[],
+      ),
+      (
+        "fgColor",
+        DefaultVarsFactoryValue::Nested(&[("default", "pink")]),
+        &[],
+        &[],
+      ),
+    ]);
+    dbg!(&default_vars);
 
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),
@@ -203,21 +214,21 @@ mod stylex_define_vars {
       exprected_css_result_factory(&[(
         "x568ih9",
         (
-          ":root{--xgck17p:blue;--xpegid5:grey;--x4y59db:pink;--xrqfjmn:10px;}",
+          ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
           0.0
         )
       ),
       (
         "x568ih9-1lveb7",
         (
-          "@media (prefers-color-scheme: dark){:root{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+          "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
           0.1
         )
       ),
       (
         "x568ih9-bdddrq",
         (
-          "@media print{:root{--xgck17p:white;}}",
+          "@media print{:root, .x568ih9{--xgck17p:white;}}",
           0.1
         )
       )])
@@ -229,31 +240,39 @@ mod stylex_define_vars {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
-    let default_vars = default_vars_factory(
-      &[
-        (
-          "--bgColor",
-          &[
-            ("default", "blue"),
-            ("@media (prefers-color-scheme: dark)", "lightblue"),
-            ("@media print", "white"),
-          ],
-          &[],
-          &[],
-        ),
-        (
-          "--bgColorDisabled",
-          &[
-            ("default", "grey"),
-            ("@media (prefers-color-scheme: dark)", "rgba(0, 0, 0, 0.8)"),
-          ],
-          &[],
-          &[],
-        ),
-        ("--fgColor", &[("default", "pink")], &[], &[]),
-      ],
-      &[("--cornerRadius", "10px")],
-    );
+    let default_vars = default_vars_factory(&[
+      (
+        "--bgColor",
+        DefaultVarsFactoryValue::Nested(&[
+          ("default", "blue"),
+          ("@media (prefers-color-scheme: dark)", "lightblue"),
+          ("@media print", "white"),
+        ]),
+        &[],
+        &[],
+      ),
+      (
+        "--bgColorDisabled",
+        DefaultVarsFactoryValue::Nested(&[
+          ("default", "grey"),
+          ("@media (prefers-color-scheme: dark)", "rgba(0, 0, 0, 0.8)"),
+        ]),
+        &[],
+        &[],
+      ),
+      (
+        "--cornerRadius",
+        DefaultVarsFactoryValue::Simple("10px"),
+        &[],
+        &[],
+      ),
+      (
+        "--fgColor",
+        DefaultVarsFactoryValue::Nested(&[("default", "pink")]),
+        &[],
+        &[],
+      ),
+    ]);
 
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),
@@ -281,21 +300,21 @@ mod stylex_define_vars {
       exprected_css_result_factory(&[(
         "x568ih9",
         (
-          ":root{--bgColor:blue;--bgColorDisabled:grey;--fgColor:pink;--cornerRadius:10px;}",
+          ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
           0.0
         )
       ),
       (
         "x568ih9-1lveb7",
         (
-          "@media (prefers-color-scheme: dark){:root{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
+          "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
           0.1
         )
       ),
       (
         "x568ih9-bdddrq",
         (
-          "@media print{:root{--bgColor:white;}}",
+          "@media print{:root, .x568ih9{--bgColor:white;}}",
           0.1
         )
       )])
@@ -307,45 +326,53 @@ mod stylex_define_vars {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
-    let default_vars = default_vars_factory(
-      &[
-        (
-          "bgColor",
-          &[("default", "blue"), ("@media print", "white")],
-          &[(
-            "@media (prefers-color-scheme: dark)",
+    let default_vars = default_vars_factory(&[
+      (
+        "bgColor",
+        DefaultVarsFactoryValue::Nested(&[("default", "blue"), ("@media print", "white")]),
+        &[(
+          "@media (prefers-color-scheme: dark)",
+          &[
+            ("default", "lightblue"),
+            ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
+          ],
+        )],
+        &[],
+      ),
+      (
+        "bgColorDisabled",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[
+          (
+            "default",
             &[
-              ("default", "lightblue"),
+              ("default", "grey"),
               ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
             ],
-          )],
-          &[],
-        ),
-        (
-          "bgColorDisabled",
-          &[],
-          &[
-            (
-              "default",
-              &[
-                ("default", "grey"),
-                ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-              ],
-            ),
-            (
-              "@media (prefers-color-scheme: dark)",
-              &[
-                ("default", "rgba(0, 0, 0, 0.8)"),
-                ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-              ],
-            ),
-          ],
-          &[],
-        ),
-        ("fgColor", &[("default", "pink")], &[], &[]),
-      ],
-      &[("cornerRadius", "10px")],
-    );
+          ),
+          (
+            "@media (prefers-color-scheme: dark)",
+            &[
+              ("default", "rgba(0, 0, 0, 0.8)"),
+              ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
+            ],
+          ),
+        ],
+        &[],
+      ),
+      (
+        "cornerRadius",
+        DefaultVarsFactoryValue::Simple("10px"),
+        &[],
+        &[],
+      ),
+      (
+        "fgColor",
+        DefaultVarsFactoryValue::Nested(&[("default", "pink")]),
+        &[],
+        &[],
+      ),
+    ]);
 
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),
@@ -405,35 +432,35 @@ mod stylex_define_vars {
       exprected_css_result_factory(&[(
         "x568ih9",
         (
-          ":root{--xgck17p:blue;--xpegid5:grey;--x4y59db:pink;--xrqfjmn:10px;}",
+          ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
           0.0
         )
       ),
       (
         "x568ih9-1e6ryz3",
         (
-          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
+          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
           0.2
         )
       ),
       (
         "x568ih9-1lveb7",
         (
-          "@media (prefers-color-scheme: dark){:root{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+          "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
           0.1
         )
       ),
       (
         "x568ih9-bdddrq",
         (
-          "@media print{:root{--xgck17p:white;}}",
+          "@media print{:root, .x568ih9{--xgck17p:white;}}",
           0.1
         )
       ),
       (
         "x568ih9-kpd015",
         (
-          "@supports (color: oklab(0 0 0)){:root{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
+          "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
           0.1
         )
       )
@@ -539,15 +566,32 @@ mod stylex_define_vars {
 
     let fg_color = type_fabric(&color_fn, ValueWithDefault::Map(fg_color_map));
 
-    let default_vars = default_vars_factory(
-      &[
-        ("bgColor", &[], &[], &[bg_color.into()]),
-        ("bgColorDisabled", &[], &[], &[bg_color_disabled.into()]),
-        ("cornerRadius", &[], &[], &[corner_radius.into()]),
-        ("fgColor", &[], &[], &[fg_color.into()]),
-      ],
-      &[],
-    );
+    let default_vars = default_vars_factory(&[
+      (
+        "bgColor",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[bg_color.into()],
+      ),
+      (
+        "bgColorDisabled",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[bg_color_disabled.into()],
+      ),
+      (
+        "cornerRadius",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[corner_radius.into()],
+      ),
+      (
+        "fgColor",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[fg_color.into()],
+      ),
+    ]);
 
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
@@ -573,35 +617,35 @@ mod stylex_define_vars {
       (
         "x568ih9",
         (
-          ":root{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
+          ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
           0.0
         )
       ),
       (
         "x568ih9-1e6ryz3",
         (
-          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
+          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
           0.2
         )
       ),
       (
         "x568ih9-1lveb7",
         (
-          "@media (prefers-color-scheme: dark){:root{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+          "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
           0.1
         )
       ),
       (
         "x568ih9-bdddrq",
         (
-          "@media print{:root{--xgck17p:white;}}",
+          "@media print{:root, .x568ih9{--xgck17p:white;}}",
           0.1
         )
       ),
       (
         "x568ih9-kpd015",
         (
-          "@supports (color: oklab(0 0 0)){:root{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
+          "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
           0.1
         )
       ),
@@ -729,15 +773,32 @@ mod stylex_define_vars {
 
     let fg_color = type_fabric(&color_fn, ValueWithDefault::Map(fg_color_map));
 
-    let default_vars = default_vars_factory(
-      &[
-        ("--bgColor", &[], &[], &[bg_color.into()]),
-        ("--bgColorDisabled", &[], &[], &[bg_color_disabled.into()]),
-        ("--cornerRadius", &[], &[], &[corner_radius.into()]),
-        ("--fgColor", &[], &[], &[fg_color.into()]),
-      ],
-      &[],
-    );
+    let default_vars = default_vars_factory(&[
+      (
+        "--bgColor",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[bg_color.into()],
+      ),
+      (
+        "--bgColorDisabled",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[bg_color_disabled.into()],
+      ),
+      (
+        "--cornerRadius",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[corner_radius.into()],
+      ),
+      (
+        "--fgColor",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[],
+        &[fg_color.into()],
+      ),
+    ]);
 
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
@@ -784,35 +845,35 @@ mod stylex_define_vars {
       (
         "x568ih9",
         (
-          ":root{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
+          ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
           0.0
         )
       ),
       (
         "x568ih9-1e6ryz3",
         (
-          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root{--bgColor:oklab(0.7 -0.3 -0.4);--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}}",
+          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:oklab(0.7 -0.3 -0.4);--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}}",
           0.2
         )
       ),
       (
         "x568ih9-1lveb7",
         (
-          "@media (prefers-color-scheme: dark){:root{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
+          "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
           0.1
         )
       ),
       (
         "x568ih9-bdddrq",
         (
-          "@media print{:root{--bgColor:white;}}",
+          "@media print{:root, .x568ih9{--bgColor:white;}}",
           0.1
         )
       ),
       (
         "x568ih9-kpd015",
         (
-          "@supports (color: oklab(0 0 0)){:root{--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}",
+          "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}",
           0.1
         )
       ),

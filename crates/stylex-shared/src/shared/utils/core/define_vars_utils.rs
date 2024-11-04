@@ -32,7 +32,9 @@ pub(crate) fn construct_css_variables_string(
       format!("-{}", create_hash(at_rule))
     };
 
-    let mut ltr = format!(":root{{{}}}", value.join(""));
+    let selector = format!(":root, .{theme_name_hash}");
+
+    let mut ltr = format!("{selector}{{{}}}", value.join(""));
 
     if at_rule != "default" {
       ltr = wrap_with_at_rules(ltr.as_str(), at_rule);

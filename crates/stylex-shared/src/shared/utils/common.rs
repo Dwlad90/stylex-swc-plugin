@@ -607,3 +607,13 @@ pub(crate) fn stable_hash<T: Hash>(t: &T) -> u64 {
   t.hash(&mut hasher);
   hasher.finish()
 }
+
+pub(crate) fn find_and_swap_remove<T, F>(vec: &mut Vec<T>, predicate: F) -> Option<T>
+where
+  F: Fn(&T) -> bool,
+{
+  vec
+    .iter()
+    .position(predicate)
+    .map(|index| vec.swap_remove(index))
+}

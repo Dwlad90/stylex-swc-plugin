@@ -94,7 +94,7 @@ mod stylex_create_theme {
 
   #[test]
   fn overrides_set_of_vars_with_css_class() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let theme_name = "TestTheme_stylex_js__buttonTheme_hash";
 
     let mut default_vars = default_vars_factory(&[
       ("__themeName__", theme_name),
@@ -135,6 +135,15 @@ mod stylex_create_theme {
       &mut IndexMap::default(),
     );
 
+    assert_eq!(
+      class_name_output
+        .get(theme_name)
+        .unwrap()
+        .as_string()
+        .unwrap(),
+      "xtrlmmh TestTheme_stylex_js__buttonTheme_hash"
+    );
+
     let key = class_name_output
       .get(theme_name)
       .unwrap()
@@ -162,7 +171,7 @@ mod stylex_create_theme {
 
   #[test]
   fn overrides_set_of_literal_vars_with_css_class() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let theme_name = "TestTheme_stylex_js__buttonTheme_hash";
 
     let mut default_vars = default_vars_factory(&[
       ("__themeName__", theme_name),
@@ -203,6 +212,15 @@ mod stylex_create_theme {
       &mut IndexMap::default(),
     );
 
+    assert_eq!(
+      class_name_output
+        .get(theme_name)
+        .unwrap()
+        .as_string()
+        .unwrap(),
+      "x4znj40 TestTheme_stylex_js__buttonTheme_hash"
+    );
+
     let key = class_name_output
       .get(theme_name)
       .unwrap()
@@ -230,7 +248,7 @@ mod stylex_create_theme {
 
   #[test]
   fn variables_order_does_not_change_the_hash() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let theme_name = "TestTheme_stylex_js__buttonTheme_hash";
 
     let mut default_vars = default_vars_factory(&[
       ("__themeName__", theme_name),
@@ -330,7 +348,7 @@ mod stylex_create_theme {
 
   #[test]
   fn adding_an_at_rule_changes_the_hash() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let theme_name = "TestTheme_stylex_js__buttonTheme_hash";
 
     let mut default_vars =
       default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
@@ -391,7 +409,7 @@ mod stylex_create_theme {
 
   #[test]
   fn generates_styles_for_nested_at_rules() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let theme_name = "TestTheme_stylex_js__buttonTheme_hash";
 
     let mut default_vars =
       default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
@@ -433,7 +451,7 @@ mod stylex_create_theme {
 
   #[test]
   fn generates_styles_for_typed_nested_at_rules() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let theme_name = "TestTheme_stylex_js__buttonTheme_hash";
 
     let mut default_vars =
       default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);

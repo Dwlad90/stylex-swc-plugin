@@ -290,7 +290,7 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
           let conditional_styles_key_values = get_key_values_from_object(object);
 
           for conditional_style in &conditional_styles_key_values {
-            validate_conditional_styles(conditional_style, conditions);
+            validate_conditional_styles(conditional_style, &[]);
           }
         }
       }

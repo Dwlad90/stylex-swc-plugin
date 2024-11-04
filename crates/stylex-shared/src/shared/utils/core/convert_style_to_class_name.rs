@@ -25,11 +25,14 @@ pub(crate) fn convert_style_to_class_name(
     kebab_case(key)
   };
 
-  pseudos.sort();
-  at_rules.sort();
+  let sorted_pseudos = &mut pseudos.to_vec();
+  sorted_pseudos.sort();
 
-  let at_rule_hash_string = at_rules.join("");
-  let pseudo_hash_string = pseudos.join("");
+  let sorted_at_rules = &mut at_rules.to_vec();
+  sorted_at_rules.sort();
+
+  let at_rule_hash_string = sorted_at_rules.join("");
+  let pseudo_hash_string = sorted_pseudos.join("");
 
   let modifier_hash_string = if at_rule_hash_string.is_empty() && pseudo_hash_string.is_empty() {
     "null".to_string()

@@ -1,10 +1,12 @@
-use std::{cmp::Ordering, fmt::Debug};
+use std::fmt::Debug;
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::{
-  common::type_of, core::convert_style_to_class_name::convert_style_to_class_name,
+  common::type_of,
+  core::convert_style_to_class_name::convert_style_to_class_name,
+  pre_rule::{sort_at_rules, sort_pseudos},
 };
 
 use super::{
@@ -77,18 +79,6 @@ pub(crate) struct StylesPreRule {
   key_path: Vec<String>,
 }
 
-fn string_comparator(a: &str, b: &str) -> std::cmp::Ordering {
-  if a == "default" {
-    return Ordering::Less;
-  }
-
-  if b == "default" {
-    return Ordering::Greater;
-  }
-
-  a.cmp(b)
-}
-
 impl StylesPreRule {
   fn get_pseudos(key_path: &Option<Vec<String>>) -> Vec<String> {
     let mut unsorted_pseudos = key_path.clone().unwrap_or_default();
@@ -99,9 +89,7 @@ impl StylesPreRule {
       .cloned()
       .collect();
 
-    unsorted_pseudos.sort_by(|a, b| string_comparator(a, b));
-
-    unsorted_pseudos
+    sort_pseudos(&unsorted_pseudos)
   }
 
   fn get_at_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
@@ -113,9 +101,7 @@ impl StylesPreRule {
       .cloned()
       .collect();
 
-    unsorted_at_rules.sort_by(|a, b| string_comparator(a, b));
-
-    unsorted_at_rules
+    sort_at_rules(&unsorted_at_rules)
   }
   pub(crate) fn new(property: &str, value: PreRuleValue, key_path: Option<Vec<String>>) -> Self {
     let property_str = property.to_string();

@@ -22,7 +22,7 @@ mod stylex_create {
       convertors::string_to_expression,
       factories::{
         array_expression_factory, key_value_factory, object_expression_factory,
-        prop_or_spread_string_factory,
+        prop_or_spread_expr_factory, prop_or_spread_string_factory,
       },
     },
   };
@@ -62,6 +62,93 @@ mod stylex_create {
                 value
                   .iter()
                   .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                  .collect(),
+              ),
+            )
+          })
+          .collect(),
+      );
+    }
+
+    object
+  }
+
+  enum DepthProps<'a> {
+    One(&'a str),
+    Two(&'a [(&'a str, &'a str)]),
+    Three(&'a [(&'a str, &'a [(&'a str, &'a str)])]),
+    // Four(&'a [(&'a str, &'a [(&'a str, &'a [(&'a str, &'a str)])])]),
+  }
+
+  type StyleMultipleDepthNestedObjectFactoryArgs<'a> = [(
+    &'a str,
+    &'a [(&'a str, &'a [(&'a str, &'a DepthProps<'a>)])],
+  )];
+
+  fn style_multiple_depth_nested_object_factory(
+    args: &StyleMultipleDepthNestedObjectFactoryArgs,
+  ) -> IndexMap<Expr, Vec<KeyValueProp>> {
+    let mut object = IndexMap::new();
+
+    for (key, value) in args {
+      object.insert(
+        string_to_expression(key),
+        value
+          .iter()
+          .map(|(key, value)| {
+            key_value_factory(
+              key,
+              object_expression_factory(
+                value
+                  .iter()
+                  .map(|(key, values)| match values {
+                    DepthProps::One(strng) => prop_or_spread_string_factory(key, strng),
+                    DepthProps::Two(arr) => prop_or_spread_expr_factory(
+                      key,
+                      arr
+                        .iter()
+                        .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                        .collect(),
+                    ),
+                    DepthProps::Three(arr) => prop_or_spread_expr_factory(
+                      key,
+                      arr
+                        .iter()
+                        .map(|(key, values)| {
+                          prop_or_spread_expr_factory(
+                            key,
+                            values
+                              .iter()
+                              .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                              .collect(),
+                          )
+                        })
+                        .collect(),
+                    ),
+                    // DepthProps::Four(arr) => prop_or_spread_expr_factory(
+                    //   key,
+                    //   arr
+                    //     .iter()
+                    //     .map(|(key, values)| {
+                    //       prop_or_spread_expr_factory(
+                    //         key,
+                    //         values
+                    //           .iter()
+                    //           .map(|(key, values)| {
+                    //             prop_or_spread_expr_factory(
+                    //               key,
+                    //               values
+                    //                 .iter()
+                    //                 .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                    //                 .collect(),
+                    //             )
+                    //           })
+                    //           .collect(),
+                    //       )
+                    //     })
+                    //     .collect(),
+                    // ),
+                  })
                   .collect(),
               ),
             )
@@ -563,6 +650,155 @@ mod stylex_create {
           &[
             ("x1gykpug", &[":hover", "backgroundColor"]),
             ("x17z2mba", &[":hover", "color"]),
+          ],
+        )],
+      );
+
+    assert_eq!(resolved_namespaces, expected_resolved_namespaces);
+    assert_eq!(injected_styles, expected_injected_styles);
+    assert_eq!(class_paths_in_namespace, expected_class_paths_in_namespace)
+  }
+
+  #[test]
+  fn transforms_nested_pseudo_classes_within_pseudo_elements() {
+    let object = style_multiple_depth_nested_object_factory(&[(
+      "default",
+      &[(
+        "::before",
+        &[(
+          "color",
+          &DepthProps::Two(&[("default", "red"), (":hover", "blue")]),
+        )],
+      )],
+    )]);
+
+    let (resolved_namespaces, injected_styles, class_paths_in_namespace) = stylex_create(object);
+
+    let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
+      exprected_result_factory(
+        &[("default", &[("::before_color", "x16oeupf xeb2lg0")])],
+        &[(
+          "default",
+          &[
+            ("x16oeupf", (".x16oeupf::before{color:red}", 8000.0)),
+            ("xeb2lg0", (".xeb2lg0::before:hover{color:blue}", 8130.0)),
+          ],
+        )],
+        &[(
+          "default",
+          &[
+            ("x16oeupf", &["::before", "default", "color"]),
+            ("xeb2lg0", &["::before", ":hover", "color"]),
+          ],
+        )],
+      );
+
+    assert_eq!(resolved_namespaces, expected_resolved_namespaces);
+    assert_eq!(injected_styles, expected_injected_styles);
+    assert_eq!(class_paths_in_namespace, expected_class_paths_in_namespace)
+  }
+
+  #[test]
+  fn transforms_nested_legacy_pseudo_classes_within_pseudo_elements() {
+    let object = style_multiple_depth_nested_object_factory(&[(
+      "default",
+      &[(
+        "::before",
+        &[
+          ("color", &DepthProps::One("red")),
+          (":hover", &DepthProps::Two(&[("color", "blue")])),
+        ],
+      )],
+    )]);
+
+    let (resolved_namespaces, injected_styles, class_paths_in_namespace) = stylex_create(object);
+
+    let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
+      exprected_result_factory(
+        &[(
+          "default",
+          &[
+            ("::before_:hover_color", "xeb2lg0"),
+            ("::before_color", "x16oeupf"),
+          ],
+        )],
+        &[(
+          "default",
+          &[
+            ("x16oeupf", (".x16oeupf::before{color:red}", 8000.0)),
+            ("xeb2lg0", (".xeb2lg0::before:hover{color:blue}", 8130.0)),
+          ],
+        )],
+        &[(
+          "default",
+          &[
+            ("x16oeupf", &["::before", "color"]),
+            ("xeb2lg0", &["::before", ":hover", "color"]),
+          ],
+        )],
+      );
+
+    assert_eq!(resolved_namespaces, expected_resolved_namespaces);
+    assert_eq!(injected_styles, expected_injected_styles);
+    assert_eq!(class_paths_in_namespace, expected_class_paths_in_namespace)
+  }
+
+  #[test]
+  fn transforms_nested_pseudo_element_within_legacy_pseudo_class() {
+    let object = style_multiple_depth_nested_object_factory(&[(
+      "default",
+      &[
+        ("::before", &[("color", &DepthProps::One("blue"))]),
+        (
+          ":hover",
+          &[(
+            "::before",
+            &DepthProps::Three(&[(
+              "color",
+              &[
+                ("default", "red"),
+                (":hover", "green"),
+                (":active", "yellow"),
+              ],
+            )]),
+          )],
+        ),
+      ],
+    )]);
+
+    let (resolved_namespaces, injected_styles, class_paths_in_namespace) = stylex_create(object);
+
+    let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
+      exprected_result_factory(
+        &[(
+          "default",
+          &[
+            ("::before_color", "xvg9oe5"),
+            (":hover_::before_color", "x1qdmp1q x18ezmze x14o3fp0"),
+          ],
+        )],
+        &[(
+          "default",
+          &[
+            (
+              "x14o3fp0",
+              (".x14o3fp0:hover::before:active{color:yellow}", 8300.0),
+            ),
+            (
+              "x18ezmze",
+              (".x18ezmze:hover::before:hover{color:green}", 8260.0),
+            ),
+            ("x1qdmp1q", (".x1qdmp1q:hover::before{color:red}", 8130.0)),
+            ("xvg9oe5", (".xvg9oe5::before{color:blue}", 8000.0)),
+          ],
+        )],
+        &[(
+          "default",
+          &[
+            ("x14o3fp0", &[":hover", "::before", ":active", "color"]),
+            ("x18ezmze", &[":hover", "::before", ":hover", "color"]),
+            ("x1qdmp1q", &[":hover", "::before", "default", "color"]),
+            ("xvg9oe5", &["::before", "color"]),
           ],
         )],
       );

@@ -8,6 +8,7 @@ use crate::shared::{
   utils::{
     common::create_hash,
     css::common::{generate_rule, transform_value_cached},
+    pre_rule::{sort_at_rules, sort_pseudos},
   },
 };
 
@@ -27,16 +28,18 @@ pub(crate) fn convert_style_to_class_name(
     kebab_case(key)
   };
 
-  let sorted_pseudos = &mut pseudos.to_vec();
-  sorted_pseudos.sort();
+  let unsorted_pseudos = &mut pseudos.to_vec();
+  let sorted_pseudos = sort_pseudos(unsorted_pseudos);
 
-  let sorted_at_rules = &mut at_rules.to_vec();
-  sorted_at_rules.sort();
+  let unsorted_at_rules = &mut at_rules.to_vec();
+  let sorted_at_rules = sort_at_rules(unsorted_at_rules);
 
   let at_rule_hash_string = sorted_at_rules.join("");
   let pseudo_hash_string = sorted_pseudos.join("");
 
   let modifier_hash_string = if at_rule_hash_string.is_empty() && pseudo_hash_string.is_empty() {
+    // NOTE: 'null' is used to keep existing hashes stable.
+    // This should be removed in a future version.
     "null".to_string()
   } else {
     // TODO: set correct order when will be answer from the Meta team

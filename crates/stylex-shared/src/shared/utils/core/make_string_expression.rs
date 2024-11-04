@@ -93,12 +93,8 @@ pub(crate) fn make_string_expression(
     .collect::<Vec<PropOrSpread>>();
 
   let obj_expressions = object_expression_factory(obj_entries);
-  let conditions_to_key = gen_bitwise_or_of_conditions(
-    &conditions
-      .into_iter()
-      .map(|c| c.clone())
-      .collect::<Vec<_>>(),
-  );
+  let conditions_to_key =
+    gen_bitwise_or_of_conditions(&conditions.into_iter().cloned().collect::<Vec<_>>());
 
   Some(Expr::from(MemberExpr {
     span: DUMMY_SP,

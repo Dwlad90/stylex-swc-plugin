@@ -3,7 +3,7 @@ mod tests {
 
   use std::rc::Rc;
 
-use indexmap::IndexMap;
+  use indexmap::IndexMap;
   use swc_core::{
     common::DUMMY_SP,
     ecma::{

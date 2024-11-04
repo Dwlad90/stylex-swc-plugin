@@ -1,4 +1,4 @@
-//__stylex_metadata_start__[{"class_name":"xe4njm9","style":{"rtl":null,"ltr":".xe4njm9{margin:calc((100% - 50px) * .5) 20px 0}"},"priority":1000},{"class_name":"xs4buau","style":{"rtl":null,"ltr":".xs4buau{border-color:red blue}"},"priority":2000},{"class_name":"xbsl7fq","style":{"rtl":null,"ltr":".xbsl7fq{border-style:dashed}"},"priority":2000},{"class_name":"xn43iik","style":{"rtl":null,"ltr":".xn43iik{border-width:0 0 2px 0}"},"priority":2000},{"class_name":"xmkeg23","style":{"rtl":null,"ltr":".xmkeg23{border-width:1px}"},"priority":2000},{"class_name":"xa309fb","style":{"rtl":null,"ltr":".xa309fb{border-bottom-width:5px}"},"priority":4000},{"class_name":"x1y0btm7","style":{"rtl":null,"ltr":".x1y0btm7{border-style:solid}"},"priority":2000},{"class_name":"x1q0q8m5","style":{"rtl":null,"ltr":".x1q0q8m5{border-bottom-style:solid}"},"priority":4000},{"class_name":"x1lh7sze","style":{"rtl":null,"ltr":".x1lh7sze{border-color:var(--divider)}"},"priority":2000},{"class_name":"xud65wk","style":{"rtl":null,"ltr":".xud65wk{border-bottom-color:red}"},"priority":4000},{"class_name":"x12oqio5","style":{"rtl":null,"ltr":".x12oqio5{border-radius:4px}"},"priority":2000},{"class_name":"x1lmef92","style":{"rtl":null,"ltr":".x1lmef92{padding:calc((100% - 50px) * .5) var(--rightpadding,20px)}"},"priority":1000},{"class_name":"xexx8yu","style":{"rtl":null,"ltr":".xexx8yu{padding-top:0}"},"priority":4000},{"class_name":"x1bg2uv5","style":{"rtl":null,"ltr":".x1bg2uv5{border-color:green}"},"priority":2000}]__stylex_metadata_end__
+//__stylex_metadata_start__[{"class_name":"xe4njm9","style":{"rtl":null,"ltr":".xe4njm9{margin:calc((100% - 50px) * .5) 20px 0}"},"priority":1000},{"class_name":"xs4buau","style":{"rtl":null,"ltr":".xs4buau{border-color:red blue}"},"priority":2000},{"class_name":"xbsl7fq","style":{"rtl":null,"ltr":".xbsl7fq{border-style:dashed}"},"priority":2000},{"class_name":"xn43iik","style":{"rtl":null,"ltr":".xn43iik{border-width:0 0 2px 0}"},"priority":2000},{"class_name":"xmkeg23","style":{"rtl":null,"ltr":".xmkeg23{border-width:1px}"},"priority":2000},{"class_name":"x1y0btm7","style":{"rtl":null,"ltr":".x1y0btm7{border-style:solid}"},"priority":2000},{"class_name":"x1lh7sze","style":{"rtl":null,"ltr":".x1lh7sze{border-color:var(--divider)}"},"priority":2000},{"class_name":"x12oqio5","style":{"rtl":null,"ltr":".x12oqio5{border-radius:4px}"},"priority":2000},{"class_name":"xa309fb","style":{"rtl":null,"ltr":".xa309fb{border-bottom-width:5px}"},"priority":4000},{"class_name":"x1q0q8m5","style":{"rtl":null,"ltr":".x1q0q8m5{border-bottom-style:solid}"},"priority":4000},{"class_name":"xud65wk","style":{"rtl":null,"ltr":".xud65wk{border-bottom-color:red}"},"priority":4000},{"class_name":"x1lmef92","style":{"rtl":null,"ltr":".x1lmef92{padding:calc((100% - 50px) * .5) var(--rightpadding,20px)}"},"priority":1000},{"class_name":"xexx8yu","style":{"rtl":null,"ltr":".xexx8yu{padding-top:0}"},"priority":4000},{"class_name":"x1bg2uv5","style":{"rtl":null,"ltr":".x1bg2uv5{border-color:green}"},"priority":2000}]__stylex_metadata_end__
 import stylex from 'stylex';
 export const styles = {
     default: {
@@ -52,7 +52,6 @@ export const styles = {
         borderRightWidth: null,
         borderBlockWidth: null,
         borderTopWidth: null,
-        borderBottomWidth: "xa309fb",
         borderStyle: "x1y0btm7",
         borderInlineStyle: null,
         borderInlineStartStyle: null,
@@ -61,7 +60,6 @@ export const styles = {
         borderRightStyle: null,
         borderBlockStyle: null,
         borderTopStyle: null,
-        borderBottomStyle: "x1q0q8m5",
         borderColor: "x1lh7sze",
         borderInlineColor: null,
         borderInlineStartColor: null,
@@ -70,7 +68,6 @@ export const styles = {
         borderRightColor: null,
         borderBlockColor: null,
         borderTopColor: null,
-        borderBottomColor: "xud65wk",
         borderRadius: "x12oqio5",
         borderStartStartRadius: null,
         borderStartEndRadius: null,
@@ -80,6 +77,9 @@ export const styles = {
         borderTopRightRadius: null,
         borderBottomLeftRadius: null,
         borderBottomRightRadius: null,
+        borderBottomWidth: "xa309fb",
+        borderBottomStyle: "x1q0q8m5",
+        borderBottomColor: "xud65wk",
         $$css: true
     },
     short: {
@@ -90,12 +90,11 @@ export const styles = {
         paddingEnd: null,
         paddingRight: null,
         paddingBlock: null,
-        paddingTop: "xexx8yu",
         paddingBottom: null,
+        paddingTop: "xexx8yu",
         $$css: true
     },
     shortReversed: {
-        paddingTop: null,
         padding: "x1lmef92",
         paddingInline: null,
         paddingStart: null,
@@ -103,6 +102,7 @@ export const styles = {
         paddingEnd: null,
         paddingRight: null,
         paddingBlock: null,
+        paddingTop: null,
         paddingBottom: null,
         $$css: true
     },

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, KeyValueProp};
 
@@ -13,9 +15,9 @@ pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,
   state: &mut StateManager,
   mapper: F,
-) -> IndexMap<String, Box<FlatCompiledStylesValue>>
+) -> IndexMap<String, Rc<FlatCompiledStylesValue>>
 where
-  F: Fn(Box<FlatCompiledStylesValue>, &mut StateManager) -> Box<FlatCompiledStylesValue>,
+  F: Fn(Rc<FlatCompiledStylesValue>, &mut StateManager) -> Rc<FlatCompiledStylesValue>,
 {
   let mut variables_map = IndexMap::new();
 
@@ -26,7 +28,7 @@ where
       for key_value in key_values.iter() {
         let key = get_key_str(key_value);
 
-        let value = Box::new(FlatCompiledStylesValue::Tuple(
+        let value = Rc::new(FlatCompiledStylesValue::Tuple(
           key.clone(),
           key_value.value.clone(),
           None,
@@ -99,7 +101,7 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
 pub(crate) fn obj_map_keys(
   entries: &IndexMap<String, String>,
   mapper: fn(&str) -> String,
-) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
+) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
   let mut map = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
@@ -107,7 +109,7 @@ pub(crate) fn obj_map_keys(
 
     map.insert(
       mapped_key.clone(),
-      Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
+      Rc::new(FlatCompiledStylesValue::KeyValue(Pair::new(
         mapped_key,
         value.clone(),
       ))),

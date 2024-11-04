@@ -13,9 +13,9 @@ use crate::shared::{
 };
 
 pub(crate) fn construct_css_variables_string(
-  variables: &IndexMap<String, Box<FlatCompiledStylesValue>>,
+  variables: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
   theme_name_hash: &String,
-  typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
+  typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
 ) -> IndexMap<String, Rc<InjectableStyle>> {
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
@@ -56,7 +56,7 @@ pub(crate) fn collect_vars_by_at_rules(
   value: &FlatCompiledStylesValue,
   collection: &mut IndexMap<String, Vec<String>>,
   at_rules: &[String],
-  typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
+  typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
 ) {
   let Some((hash_name, value, css_type)) = value.as_tuple() else {
     panic!("Props must be an key value pair")
@@ -69,7 +69,7 @@ pub(crate) fn collect_vars_by_at_rules(
 
     typed_variables.insert(
       hash_name.clone(),
-      Box::new(FlatCompiledStylesValue::CSSType(
+      Rc::new(FlatCompiledStylesValue::CSSType(
         hash_name.clone(),
         css_type.syntax,
         initial_value.clone(),

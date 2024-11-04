@@ -32,10 +32,22 @@ use crate::shared::{
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 
+fn normalize_key_path(key_path: Vec<String>, key: &str, property: String) -> Vec<String> {
+  if key_path.contains(&key.to_string()) {
+    key_path
+      .into_iter()
+      .map(|k| if k == key { property.clone() } else { k })
+      .collect()
+  } else {
+    let mut new_key_path = key_path.clone();
+    new_key_path.push(property);
+    new_key_path
+  }
+}
+
 pub(crate) fn flatten_raw_style_object(
   style: &[KeyValueProp],
-  pseudos: &mut Vec<String>,
-  at_rules: &mut Vec<String>,
+  key_path: &mut Vec<String>,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
@@ -52,17 +64,19 @@ pub(crate) fn flatten_raw_style_object(
     };
 
     if INCLUDED_IDENT_REGEX.is_match(key.as_str()) {
-      flattened.insert(
-        key.clone(),
-        PreRules::PreIncludedStylesRule(PreIncludedStylesRule::new(
-          property.value.as_ref().clone(),
-        )),
-      );
+      let pre_rule =
+        PreRules::PreIncludedStylesRule(PreIncludedStylesRule::new(*property.value.clone()));
+      insert_or_update_rule_with_shifting_index(&mut flattened, &key, pre_rule);
+
       continue;
     }
 
     match property.value.as_ref() {
       Expr::Array(property_array) => {
+        // Step 1: Expand properties to its constituent parts
+        // Collect the various values for each value in the array
+        // that belongs to the same property.
+
         let mut equivalent_pairs: IndexMap<String, Vec<String>> = IndexMap::new();
 
         property_array.elems.iter().for_each(|each_val| {
@@ -105,19 +119,31 @@ pub(crate) fn flatten_raw_style_object(
 
           values.dedup();
 
-          let pre_rule_value = if values.len() == 1 {
-            PreRuleValue::String(values[0].clone())
-          } else {
-            PreRuleValue::Vec(values)
-          };
+          if values.is_empty() {
+            let pre_rule = PreRules::NullPreRule(NullPreRule::new());
 
-          let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-            property.as_str(),
-            pre_rule_value,
-            Some(pseudos.clone()),
-            Some(at_rules.clone()),
-          ));
-          flattened.insert(property, pre_rule);
+            insert_or_update_rule_with_shifting_index(&mut flattened, &property, pre_rule);
+          } else {
+            let pre_rule_value = if let Some(first_value) = values.first() {
+              if values.len() == 1 {
+                PreRuleValue::String(first_value.clone())
+              } else {
+                PreRuleValue::Vec(values.clone())
+              }
+            } else {
+              PreRuleValue::Null // Default value when `values` is empty.
+            };
+
+            let normalized_key_path =
+              normalize_key_path(key_path.clone(), key.as_str(), property.clone());
+
+            let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
+              property.as_str(),
+              pre_rule_value,
+              Some(normalized_key_path),
+            ));
+            insert_or_update_rule_with_shifting_index(&mut flattened, &property, pre_rule);
+          }
         }
       }
       Expr::Lit(property_lit) => {
@@ -139,16 +165,19 @@ pub(crate) fn flatten_raw_style_object(
             let property = property.to_string();
 
             if let Some(pair_value) = pre_rule {
+              let normalized_key_path =
+                normalize_key_path(key_path.clone(), key.as_str(), property.clone());
+
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
                 property.as_str(),
                 PreRuleValue::String(pair_value.to_string()),
-                Some(pseudos.clone()),
-                Some(at_rules.clone()),
+                Some(normalized_key_path),
               ));
 
-              flattened.insert(property, pre_rule);
+              insert_or_update_rule_with_shifting_index(&mut flattened, &property, pre_rule);
             } else {
-              flattened.insert(property, PreRules::NullPreRule(NullPreRule::new()));
+              let pre_rule = PreRules::NullPreRule(NullPreRule::new());
+              insert_or_update_rule_with_shifting_index(&mut flattened, &property, pre_rule);
             }
           }
         }
@@ -157,11 +186,13 @@ pub(crate) fn flatten_raw_style_object(
         let handled_tpl = handle_tpl_to_expression(tpl, traversal_state, fns);
         let result = expr_tpl_to_string(handled_tpl.as_tpl().unwrap(), state, traversal_state, fns);
 
+        let normalized_key_path =
+          normalize_key_path(key_path.clone(), key.as_str(), css_property_key.clone());
+
         let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
           css_property_key.as_str(),
           PreRuleValue::String(result),
-          Some(pseudos.clone()),
-          Some(at_rules.clone()),
+          Some(normalized_key_path),
         ));
 
         flattened.insert(css_property_key, pre_rule);
@@ -175,14 +206,8 @@ pub(crate) fn flatten_raw_style_object(
           let mut property_cloned = property.clone();
           property_cloned.value = Box::new(var_decl_expr.clone());
 
-          let inner_flattened = flatten_raw_style_object(
-            &[property_cloned],
-            pseudos,
-            at_rules,
-            state,
-            traversal_state,
-            fns,
-          );
+          let inner_flattened =
+            flatten_raw_style_object(&[property_cloned], key_path, state, traversal_state, fns);
 
           flattened.extend(inner_flattened);
         } else {
@@ -195,14 +220,8 @@ pub(crate) fn flatten_raw_style_object(
         let mut property_cloned = property.clone();
         property_cloned.value = Box::new(number_to_expression(result));
 
-        let inner_flattened = flatten_raw_style_object(
-          &[property_cloned],
-          pseudos,
-          at_rules,
-          state,
-          traversal_state,
-          fns,
-        );
+        let inner_flattened =
+          flatten_raw_style_object(&[property_cloned], key_path, state, traversal_state, fns);
 
         flattened.extend(inner_flattened)
       }
@@ -222,31 +241,34 @@ pub(crate) fn flatten_raw_style_object(
                 let mut inner_key_value: KeyValueProp = key_value.clone();
 
                 let condition = get_key_str(&inner_key_value);
-                let mut pseudos_to_pass_down = pseudos.clone();
-                let mut at_rules_to_pass_down = at_rules.clone();
-
-                if condition.starts_with(':') {
-                  pseudos_to_pass_down.push(condition.clone());
-                } else if condition.starts_with('@') {
-                  at_rules_to_pass_down.push(condition.clone());
-                }
 
                 inner_key_value.key = PropName::Str(quote_str!(css_property_key.clone()));
 
+                let mut key_path = if !key_path.is_empty() {
+                  let mut new_key_path = key_path.clone();
+                  new_key_path.push(condition.clone());
+                  new_key_path
+                } else {
+                  vec![key.clone(), condition.clone()]
+                };
+
                 let pairs = flatten_raw_style_object(
                   &[inner_key_value],
-                  &mut pseudos_to_pass_down,
-                  &mut at_rules_to_pass_down,
+                  &mut key_path,
                   state,
                   traversal_state,
                   fns,
                 );
 
                 for (property, pre_rule) in pairs {
-                  equivalent_pairs
-                    .entry(property)
-                    .or_default()
-                    .insert(condition.clone(), pre_rule);
+                  if equivalent_pairs.get(&property).is_none() {
+                    let mut inner_map = IndexMap::new();
+                    inner_map.insert(condition.clone(), pre_rule);
+                    equivalent_pairs.insert(property, inner_map);
+                  } else {
+                    let inner_map = equivalent_pairs.get_mut(&property).unwrap();
+                    inner_map.insert(condition.clone(), pre_rule);
+                  }
                 }
               } else {
                 panic!("{}", NON_STATIC_VALUE);
@@ -267,28 +289,25 @@ pub(crate) fn flatten_raw_style_object(
             flattened.insert(property.clone(), PreRuleSet::create(rules));
           }
         } else {
-          let mut pseudos_to_pass_down = pseudos.clone();
-          let mut at_rules_to_pass_down = at_rules.clone();
-
-          if key.starts_with(':') {
-            pseudos_to_pass_down.push(key.clone());
-          } else if key.starts_with('@') {
-            at_rules_to_pass_down.push(key.clone());
-          }
-
           let inner_key_value = get_key_values_from_object(obj);
+
+          let mut key_path = key_path.clone();
+          key_path.push(key.clone());
 
           let pairs = flatten_raw_style_object(
             &inner_key_value.into_iter().collect::<Vec<KeyValueProp>>(),
-            &mut pseudos_to_pass_down,
-            &mut at_rules_to_pass_down,
+            &mut key_path,
             state,
             traversal_state,
             fns,
           );
 
           for (property, pre_rule) in pairs {
-            flattened.insert(format!("{}_{}", key, property), pre_rule);
+            insert_or_update_rule_with_shifting_index(
+              &mut flattened,
+              format!("{}_{}", key, property).as_str(),
+              pre_rule,
+            );
           }
         }
       }
@@ -299,4 +318,16 @@ pub(crate) fn flatten_raw_style_object(
   }
 
   flattened
+}
+
+fn insert_or_update_rule_with_shifting_index(
+  flattened: &mut IndexMap<String, PreRules>,
+  property: &str,
+  pre_rule: PreRules,
+) {
+  if flattened.get(property).is_some() {
+    flattened.shift_remove_entry(property);
+  };
+
+  flattened.insert(property.to_string(), pre_rule);
 }

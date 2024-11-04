@@ -96,7 +96,7 @@ pub(crate) fn make_string_expression(
   let conditions_to_key = gen_bitwise_or_of_conditions(
     &conditions
       .into_iter()
-      .map(|c| (**c).clone())
+      .map(|c| c.clone())
       .collect::<Vec<_>>(),
   );
 

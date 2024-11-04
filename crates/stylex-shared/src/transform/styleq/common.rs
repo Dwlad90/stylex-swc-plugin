@@ -104,7 +104,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                     defined_properties.push(prop.clone());
                     defined_properties_chunk.push(prop.clone());
 
-                    if let FlatCompiledStylesValue::String(value) = *value.clone() {
+                    if let FlatCompiledStylesValue::String(value) = (**value).clone() {
                       class_name_chunk = if class_name_chunk.is_empty() {
                         value.to_string()
                       } else {

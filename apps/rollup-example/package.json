@@ -1,7 +1,8 @@
 {
   "name": "@stylexswc/rollup-example",
   "version": "0.4.0-rc.1",
-  "description": "A simple rollup example to test stylexswc/rollup-plugin",
+  "description": "A simple rollup example to test @stylexswc/rollup-plugin",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "build": "pnpx rollup --config ./rollup.config.mjs",

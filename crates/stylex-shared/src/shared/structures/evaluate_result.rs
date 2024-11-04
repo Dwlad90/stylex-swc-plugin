@@ -10,7 +10,7 @@ use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResult
 use super::{
   functions::FunctionConfig,
   theme_ref::ThemeRef,
-  types::{EvaluateResultFns, EvaluationCallback},
+  types::{DynamicFns, EvaluationCallback, TInlineStyles},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -18,8 +18,8 @@ pub struct EvaluateResult {
   pub(crate) confident: bool,
   pub value: Option<EvaluateResultValue>,
   pub(crate) deopt: Option<Expr>,
-  pub(crate) inline_styles: Option<IndexMap<String, Box<Expr>>>,
-  pub(crate) fns: Option<EvaluateResultFns>,
+  pub(crate) inline_styles: Option<TInlineStyles>,
+  pub(crate) fns: Option<DynamicFns>,
 }
 
 impl EvaluateResultValue {

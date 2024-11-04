@@ -22,9 +22,9 @@ pub(crate) fn stylex_create_theme(
   theme_vars: &mut EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
-  typed_variables: &mut IndexMap<String, Box<FlatCompiledStylesValue>>,
+  typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
 ) -> (
-  IndexMap<String, Box<FlatCompiledStylesValue>>,
+  IndexMap<String, Rc<FlatCompiledStylesValue>>,
   IndexMap<String, Rc<InjectableStyle>>,
 ) {
   let theme_name_key_value = validate_theme_variables(theme_vars);
@@ -101,7 +101,7 @@ pub(crate) fn stylex_create_theme(
     create_hash(at_rules_string_for_hash.as_str())
   );
 
-  let mut resolved_theme_vars: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut resolved_theme_vars: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
   let mut styles_to_inject: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
 
   for at_rule in sorted_at_rules.into_iter() {
@@ -135,7 +135,7 @@ pub(crate) fn stylex_create_theme(
 
   resolved_theme_vars.insert(
     COMPILED_KEY.to_string(),
-    Box::new(FlatCompiledStylesValue::Bool(true)),
+    Rc::new(FlatCompiledStylesValue::Bool(true)),
   );
 
   let theme_name_str_value = match theme_vars {
@@ -150,7 +150,7 @@ pub(crate) fn stylex_create_theme(
 
   resolved_theme_vars.insert(
     theme_name_str_value,
-    Box::new(FlatCompiledStylesValue::String(override_class_name)),
+    Rc::new(FlatCompiledStylesValue::String(override_class_name)),
   );
 
   (resolved_theme_vars, styles_to_inject)

@@ -1,8 +1,8 @@
 'use client';
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
-import "./globalTokens.stylex";
 import "@stylexjs/open-props/lib/colors.stylex";
+import "./globalTokens.stylex";
 import * as stylex from '@stylexjs/stylex';
 import { spacing, text, globalTokens as $ } from './globalTokens.stylex';
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
@@ -13,7 +13,7 @@ export default function Counter() {
         className: "Page__styles.container x78zum5 x6s0dn4 xl56j7k x1q0g3np xkorlav xmkeg23 x1y0btm7 xzj82u7 xhcr65l x1byiw6p x1l7lfc5"
     }}>
       <button {...{
-        className: "Page__styles.button x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 x1ynku2j xij5jp x6lnu34 xd84qqf x1ap9xfb xc342km xng3xce x12ugs8o x1kopudh xp822f4 x1ypdohk xf8wwq x1u4xmye xglsxx3"
+        className: "Page__styles.button x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 x1ynku2j xij5jp x6lnu34 xd84qqf x1lod3q0 xc342km xng3xce x12ugs8o x1kopudh xp822f4 x1ypdohk xf8wwq x1u4xmye xglsxx3"
     }} onClick={()=>setCount((c)=>c - 1)}>
         -
       </button>
@@ -28,12 +28,13 @@ export default function Counter() {
         {count}
       </div>
       <button {...{
-        className: "Page__styles.button x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 x1ynku2j xij5jp x6lnu34 xd84qqf x1ap9xfb xc342km xng3xce x12ugs8o x1kopudh xp822f4 x1ypdohk xf8wwq x1u4xmye xglsxx3"
+        className: "Page__styles.button x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 x1ynku2j xij5jp x6lnu34 xd84qqf x1lod3q0 xc342km xng3xce x12ugs8o x1kopudh xp822f4 x1ypdohk xf8wwq x1u4xmye xglsxx3"
     }} onClick={()=>setCount((c)=>c + 1)}>
         +
       </button>
     </div>;
 }
+const DARK = '@media (prefers-color-scheme: dark)';
 _inject2(".x78zum5{display:flex}", 3000);
 _inject2(".x6s0dn4{align-items:center}", 3000);
 _inject2(".xl56j7k{justify-content:center}", 3000);
@@ -51,7 +52,7 @@ _inject2(".x1ynku2j{color:var(--x1g16e7s)}", 3000);
 _inject2(".xij5jp{background-color:var(--x1wnl0mb)}", 3000);
 _inject2(".x6lnu34:hover{background-color:var(--x1987uwy)}", 3130);
 _inject2("@media (prefers-color-scheme: dark){.xd84qqf.xd84qqf{background-color:var(--xv11w9p)}}", 3200);
-_inject2("@media (prefers-color-scheme: dark){.x1ap9xfb.x1ap9xfb:hover{background-color:var(--xd0alct)}}", 3330);
+_inject2("@media (prefers-color-scheme: dark){.x1lod3q0.x1lod3q0:hover{background-color:var(--xd0alct)}}", 3330);
 _inject2(".xc342km{border-width:0}", 2000);
 _inject2(".xng3xce{border-style:none}", 2000);
 _inject2(".x12ugs8o{border-radius:var(--xvp50ho)}", 2000);

@@ -1,6 +1,6 @@
-use std::rc::Rc;
+use std::{collections::VecDeque, rc::Rc};
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 
 use crate::shared::{
   constants::common::COMPILED_KEY,
@@ -13,7 +13,7 @@ use crate::shared::{
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
     state::EvaluationState,
     state_manager::StateManager,
-    types::FlatCompiledStyles,
+    types::{ClassPathsInNamespace, FlatCompiledStyles},
   },
   utils::{
     ast::convertors::expr_to_str, core::flatten_raw_style_object::flatten_raw_style_object,
@@ -27,102 +27,104 @@ pub(crate) fn stylex_create_set(
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
 ) -> (
-  IndexMap<String, Box<FlatCompiledStyles>>,
+  IndexMap<String, Rc<FlatCompiledStyles>>,
   IndexMap<String, Rc<InjectableStyle>>,
+  IndexMap<String, Rc<ClassPathsInNamespace>>,
 ) {
-  let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
+  let mut resolved_namespaces: IndexMap<String, Rc<FlatCompiledStyles>> = IndexMap::new();
   let mut injected_styles_map: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
+  let mut namespace_to_class_paths: IndexMap<String, Rc<ClassPathsInNamespace>> = IndexMap::new();
 
   for (namespace_name, namespace) in namespaces.as_map().unwrap() {
     validate_namespace(namespace, &[]);
 
-    let mut pseudos: Vec<String> = vec![];
-    let mut at_rules: Vec<String> = vec![];
+    let mut class_paths_in_namespace: ClassPathsInNamespace = IndexMap::new();
 
-    let mut flattened_namespace = flatten_raw_style_object(
-      namespace,
-      &mut pseudos,
-      &mut at_rules,
-      state,
-      traversal_state,
-      functions,
-    );
+    let mut key_path = vec![];
+
+    let mut seen_properties = IndexSet::<String>::new();
+
+    let mut flattened_namespace =
+      flatten_raw_style_object(namespace, &mut key_path, state, traversal_state, functions)
+        .into_iter()
+        .rev()
+        .fold(VecDeque::new(), |mut arr, curr| {
+          if !seen_properties.contains(&curr.0) {
+            seen_properties.insert(curr.0.clone());
+            arr.push_front(curr);
+          }
+          arr
+        });
 
     let compiled_namespace_tuples = flattened_namespace
       .iter_mut()
-      .map(|(key, value)| match value {
-        PreRules::PreRuleSet(rule_set) => (key.to_string(), rule_set.compiled(traversal_state)),
-        PreRules::StylesPreRule(styles_pre_rule) => {
-          (key.to_string(), styles_pre_rule.compiled(traversal_state))
-        }
-        PreRules::NullPreRule(rule_set) => (key.to_string(), rule_set.compiled(traversal_state)),
-        PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => (
-          key.to_string(),
-          pre_included_tyles_rule.compiled(traversal_state),
-        ),
+      .map(|(key, value)| {
+        let key = key.clone();
+
+        let compiled_value = match value {
+          PreRules::PreRuleSet(rule_set) => rule_set.compiled(traversal_state),
+          PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.compiled(traversal_state),
+          PreRules::NullPreRule(rule_set) => rule_set.compiled(traversal_state),
+          PreRules::PreIncludedStylesRule(pre_included_styles_rule) => {
+            pre_included_styles_rule.compiled(traversal_state)
+          }
+        };
+        (key, compiled_value)
       })
       .collect::<Vec<(String, CompiledResult)>>();
 
-    let compiled_namespace = compiled_namespace_tuples
-      .iter()
-      .map(|(key, value)| {
-        (
-          key.as_str(),
-          match value {
-            CompiledResult::ComputedStyles(styles) => {
-              CompiledResult::ComputedStyles(styles.clone())
-            }
-            CompiledResult::Null => CompiledResult::Null,
-            CompiledResult::IncludedStyle(include_styles) => {
-              CompiledResult::IncludedStyle(include_styles.clone())
-            }
-          },
-        )
-      })
-      .collect::<IndexMap<&str, CompiledResult>>();
-
     let mut namespace_obj: FlatCompiledStyles = IndexMap::new();
 
-    for key in compiled_namespace.keys() {
-      let value = compiled_namespace.get(key).unwrap();
-
+    for (key, value) in compiled_namespace_tuples {
       if let Some(included_styles) = value.as_included_style() {
+        // stylex.include calls are passed through as-is.
         namespace_obj.insert(
-          (*key).to_string(),
-          Box::new(FlatCompiledStylesValue::IncludedStyle(
+          key.clone(),
+          Rc::new(FlatCompiledStylesValue::IncludedStyle(
             included_styles.clone(),
           )),
         );
       } else if let Some(class_name_tuples) = value.as_computed_styles() {
+        for ComputedStyle(_class_name, _, classes_to_original_path) in class_name_tuples.iter() {
+          class_paths_in_namespace.extend(classes_to_original_path.clone());
+        }
+
         let class_name = class_name_tuples
           .iter()
-          .map(|ComputedStyle(name, _)| name.as_str())
+          .map(|ComputedStyle(name, _, _)| name.as_str())
           .collect::<Vec<&str>>()
           .join(" ");
 
         namespace_obj.insert(
-          (*key).to_string(),
-          Box::new(FlatCompiledStylesValue::String(class_name.clone())),
+          key.clone(),
+          Rc::new(FlatCompiledStylesValue::String(class_name.clone())),
         );
 
-        for ComputedStyle(class_name, injectable_styles) in class_name_tuples.iter() {
+        for ComputedStyle(class_name, injectable_styles, _) in class_name_tuples.iter() {
           injected_styles_map
             .entry(class_name.clone())
             .or_insert_with(|| Rc::new(injectable_styles.clone()));
         }
       } else {
-        namespace_obj.insert((*key).to_string(), Box::new(FlatCompiledStylesValue::Null));
+        namespace_obj.insert(key.clone(), Rc::new(FlatCompiledStylesValue::Null));
       }
     }
+
     let resolved_namespace_name = expr_to_str(namespace_name, traversal_state, functions);
 
     namespace_obj.insert(
       COMPILED_KEY.to_owned(),
-      Box::new(FlatCompiledStylesValue::Bool(true)),
+      Rc::new(FlatCompiledStylesValue::Bool(true)),
     );
 
-    resolved_namespaces.insert(resolved_namespace_name, Box::new(namespace_obj));
+    resolved_namespaces.insert(resolved_namespace_name.clone(), Rc::new(namespace_obj));
+
+    namespace_to_class_paths.insert(resolved_namespace_name, Rc::new(class_paths_in_namespace));
   }
 
-  (resolved_namespaces, injected_styles_map)
+  (
+    resolved_namespaces,
+    injected_styles_map,
+    namespace_to_class_paths,
+  )
 }

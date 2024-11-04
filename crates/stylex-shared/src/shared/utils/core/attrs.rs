@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 
 use crate::shared::{
@@ -14,7 +16,7 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
 
   let props = props.as_props()?.as_values()?;
 
-  let mut attrs_map: IndexMap<String, &Box<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut attrs_map: IndexMap<String, &Rc<FlatCompiledStylesValue>> = IndexMap::new();
 
   if let Some(class_name) = props.get("className") {
     attrs_map.insert("class".to_string(), class_name);

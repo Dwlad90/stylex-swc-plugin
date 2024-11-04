@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
 
-  use indexmap::IndexMap;
+  use std::rc::Rc;
+
+use indexmap::IndexMap;
   use swc_core::{
     common::DUMMY_SP,
     ecma::{
@@ -29,7 +31,7 @@ mod tests {
       let mut object = IndexMap::new();
 
       for (key, value) in arg.iter() {
-        object.insert(key.to_string(), Box::new(value.clone()));
+        object.insert(key.to_string(), Rc::new(value.clone()));
       }
 
       result_args.push(ResolvedArg::StyleObject(

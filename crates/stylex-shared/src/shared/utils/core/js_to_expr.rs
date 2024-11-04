@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 use swc_core::{
   common::DUMMY_SP,
@@ -16,8 +18,8 @@ use crate::shared::{
 };
 
 pub(crate) fn remove_objects_with_spreads(
-  obj: &IndexMap<String, Box<FlatCompiledStyles>>,
-) -> IndexMap<String, Box<FlatCompiledStyles>> {
+  obj: &IndexMap<String, Rc<FlatCompiledStyles>>,
+) -> IndexMap<String, Rc<FlatCompiledStyles>> {
   let mut new_obj = IndexMap::with_capacity(obj.len());
 
   for (key, value) in obj.iter() {
@@ -34,19 +36,19 @@ pub(crate) fn remove_objects_with_spreads(
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum NestedStringObject {
-  FlatCompiledStyles(IndexMap<String, Box<FlatCompiledStyles>>),
-  FlatCompiledStylesValues(IndexMap<String, Box<FlatCompiledStylesValue>>),
+  FlatCompiledStyles(IndexMap<String, Rc<FlatCompiledStyles>>),
+  FlatCompiledStylesValues(IndexMap<String, Rc<FlatCompiledStylesValue>>),
 }
 
 impl NestedStringObject {
-  pub(crate) fn _as_styles(&self) -> Option<&IndexMap<String, Box<FlatCompiledStyles>>> {
+  pub(crate) fn _as_styles(&self) -> Option<&IndexMap<String, Rc<FlatCompiledStyles>>> {
     match self {
       NestedStringObject::FlatCompiledStyles(obj) => Some(obj),
       _ => None,
     }
   }
 
-  pub(crate) fn as_values(&self) -> Option<&IndexMap<String, Box<FlatCompiledStylesValue>>> {
+  pub(crate) fn as_values(&self) -> Option<&IndexMap<String, Rc<FlatCompiledStylesValue>>> {
     match self {
       NestedStringObject::FlatCompiledStylesValues(obj) => Some(obj),
       _ => None,
@@ -61,7 +63,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
     NestedStringObject::FlatCompiledStyles(obj) => {
       for (key, value) in obj.iter() {
         let expr = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
-          *value.clone(),
+          (**value).clone(),
         ));
 
         let prop = prop_or_spread_expression_factory(key.as_str(), expr);

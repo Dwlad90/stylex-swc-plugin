@@ -101,13 +101,13 @@ mod stylex_define_vars {
 
   fn exprected_js_result_factory(
     js_output: &[(&str, &str)],
-  ) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
+  ) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
     let mut expected_injected_styles = IndexMap::new();
 
     for (key, value) in js_output {
       expected_injected_styles.insert(
         key.to_string(),
-        Box::new(FlatCompiledStylesValue::String(value.to_string())),
+        Rc::new(FlatCompiledStylesValue::String(value.to_string())),
       );
     }
 

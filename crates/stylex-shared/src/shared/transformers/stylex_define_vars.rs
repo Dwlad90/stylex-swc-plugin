@@ -20,7 +20,7 @@ pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (
-  IndexMap<String, Box<FlatCompiledStylesValue>>,
+  IndexMap<String, Rc<FlatCompiledStylesValue>>,
   IndexMap<String, Rc<InjectableStyle>>,
 ) {
   let theme_name_hash = format!(
@@ -29,7 +29,7 @@ pub(crate) fn stylex_define_vars(
     create_hash(state.theme_name.as_ref().unwrap())
   );
 
-  let mut typed_variables: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut typed_variables: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
 
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
     panic!("Values must be an object")
@@ -38,7 +38,7 @@ pub(crate) fn stylex_define_vars(
   let variables_map = obj_map(
     ObjMapType::Object(variables.clone()),
     state,
-    |item, state| -> Box<FlatCompiledStylesValue> {
+    |item, state| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
           panic!("InjectableStyle is not supported")
@@ -67,7 +67,7 @@ pub(crate) fn stylex_define_vars(
         _ => unimplemented!(),
       };
 
-      Box::new(result)
+      Rc::new(result)
     },
   );
 
@@ -79,7 +79,7 @@ pub(crate) fn stylex_define_vars(
         panic!("InjectableStyle is not supported")
       }
       FlatCompiledStylesValue::Tuple(key, _, _) => {
-        Box::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
+        Rc::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
       }
       _ => unreachable!("Unsupported value type"),
     },
@@ -91,7 +91,7 @@ pub(crate) fn stylex_define_vars(
   let injectable_types = obj_map(
     ObjMapType::Map(typed_variables),
     state,
-    |item, _| -> Box<FlatCompiledStylesValue> {
+    |item, _| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
         FlatCompiledStylesValue::CSSType(name_hash, syntax, initial_value) => {
           let property = format!(
@@ -107,7 +107,7 @@ pub(crate) fn stylex_define_vars(
         _ => unreachable!("Unsupported value type"),
       };
 
-      Box::new(result)
+      Rc::new(result)
     },
   );
 
@@ -122,7 +122,7 @@ pub(crate) fn stylex_define_vars(
 
   theme_variables_objects.insert(
     "__themeName__".to_string(),
-    Box::new(FlatCompiledStylesValue::String(theme_name_hash)),
+    Rc::new(FlatCompiledStylesValue::String(theme_name_hash)),
   );
 
   injectable_types.extend(injectable_styles);

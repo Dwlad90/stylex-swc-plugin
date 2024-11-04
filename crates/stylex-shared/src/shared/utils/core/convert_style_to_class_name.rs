@@ -34,7 +34,9 @@ pub(crate) fn convert_style_to_class_name(
   let modifier_hash_string = if at_rule_hash_string.is_empty() && pseudo_hash_string.is_empty() {
     "null".to_string()
   } else {
-    format!("{}{}", at_rule_hash_string, pseudo_hash_string)
+    // TODO: set correct order when will be answer from the Meta team
+    // Link to discussion: https://github.com/facebook/stylex/discussions/744
+    format!("{}{}", pseudo_hash_string, at_rule_hash_string)
   };
 
   let value = match raw_value {

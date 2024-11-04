@@ -1,4 +1,10 @@
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
+use stylex_shared::{
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleResolution, StyleXOptionsParams},
+  },
+  StyleXTransform,
+};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -114,6 +120,96 @@ test!(
           color,
         },
       }),
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  transforms_functions_with_dynamic_values_within_conditional_values,
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      default: (color) => ({
+        backgroundColor: 'red',
+        color: {
+          default: color,
+          ':hover': {
+            '@media (min-width: 1000px)': 'green',
+            default: 'blue',
+          }
+        },
+      }),
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  transforms_functions_with_multiple_dynamic_values_within_conditional_values,
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      default: (color) => ({
+        backgroundColor: 'red',
+        color: {
+          default: color,
+          ':hover': {
+            '@media (min-width: 1000px)': 'green',
+            default: 'color-mix(' + color + ', blue)',
+          }
+        },
+      }),
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      ..StyleXOptionsParams::default()
+    };
+
+    StyleXTransform::new_test_force_runtime_injection(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  transforms_shorthands_in_legacy_expand_shorthands_mode,
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      default: (margin) => ({
+        backgroundColor: 'red',
+        margin: {
+          default: margin,
+          ':hover': margin + 4,
+        },
+        marginTop: margin - 4,
+      })
     });
   "#
 );

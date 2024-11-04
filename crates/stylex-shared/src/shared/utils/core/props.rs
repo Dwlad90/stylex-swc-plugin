@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 
 use crate::{
@@ -18,12 +20,12 @@ pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
     inline_style,
   } = styleq(styles);
 
-  let mut props_map: IndexMap<String, Box<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut props_map: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
 
   if !class_name.is_empty() {
     props_map.insert(
       "className".to_string(),
-      Box::new(FlatCompiledStylesValue::String(class_name)),
+      Rc::new(FlatCompiledStylesValue::String(class_name)),
     );
   }
 

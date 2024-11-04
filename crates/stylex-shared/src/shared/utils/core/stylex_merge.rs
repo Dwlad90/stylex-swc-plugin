@@ -86,7 +86,7 @@ pub(crate) fn stylex_merge(
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(
-            test.clone(),
+            *test.clone(),
             Some(primary),
             Some(fallback),
             ident.clone(),
@@ -124,7 +124,7 @@ pub(crate) fn stylex_merge(
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(
-            left.clone(),
+            *left.clone(),
             Some(right_resolved),
             None,
             ident.clone(),

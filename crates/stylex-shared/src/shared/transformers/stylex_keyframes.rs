@@ -54,7 +54,7 @@ pub(crate) fn stylex_keyframes(
           state,
           |entry, state| match entry.as_ref() {
             FlatCompiledStylesValue::KeyValue(pair) => {
-              Box::new(FlatCompiledStylesValue::KeyValue(Pair::new(
+              Rc::new(FlatCompiledStylesValue::KeyValue(Pair::new(
                 pair.key.clone(),
                 transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
               )))
@@ -70,7 +70,7 @@ pub(crate) fn stylex_keyframes(
       .filter_map(|(_, value)| value.as_key_value().cloned())
       .collect::<Vec<Pair>>();
 
-    Box::new(FlatCompiledStylesValue::KeyValues(pairs))
+    Rc::new(FlatCompiledStylesValue::KeyValues(pairs))
   });
 
   let ltr_styles = obj_map(
@@ -83,7 +83,7 @@ pub(crate) fn stylex_keyframes(
 
       let ltr_values = pairs.iter().map(generate_ltr).collect();
 
-      Box::new(FlatCompiledStylesValue::KeyValues(ltr_values))
+      Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
     },
   );
 
@@ -100,7 +100,7 @@ pub(crate) fn stylex_keyframes(
         .map(|pair| generate_rtl(pair).unwrap_or_else(|| pair.clone()))
         .collect();
 
-      Box::new(FlatCompiledStylesValue::KeyValues(rtl_values))
+      Rc::new(FlatCompiledStylesValue::KeyValues(rtl_values))
     },
   );
 
@@ -130,7 +130,7 @@ pub(crate) fn stylex_keyframes(
   )
 }
 
-fn construct_keyframes_obj(frames: &IndexMap<String, Box<FlatCompiledStylesValue>>) -> String {
+fn construct_keyframes_obj(frames: &IndexMap<String, Rc<FlatCompiledStylesValue>>) -> String {
   frames
     .into_iter()
     .map(|(key, value)| {

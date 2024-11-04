@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, rc::Rc};
 
 use indexmap::IndexMap;
 
@@ -27,23 +27,23 @@ pub(crate) fn inject_dev_class_names(
 
     dev_class.insert(
       dev_class_name.clone(),
-      Box::new(FlatCompiledStylesValue::String(dev_class_name)),
+      Rc::new(FlatCompiledStylesValue::String(dev_class_name)),
     );
 
-    dev_class.extend(*value.clone());
+    dev_class.extend((**value).clone());
 
-    result.insert(key.clone(), Box::new(dev_class));
+    result.insert(key.clone(), Rc::new(dev_class));
   }
 
   result
 }
 
 pub(crate) fn convert_to_test_styles(
-  obj: &IndexMap<String, Box<FlatCompiledStyles>>,
+  obj: &IndexMap<String, Rc<FlatCompiledStyles>>,
   var_name: &Option<String>,
   state: &StateManager,
-) -> IndexMap<String, Box<FlatCompiledStyles>> {
-  let mut result: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
+) -> IndexMap<String, Rc<FlatCompiledStyles>> {
+  let mut result: IndexMap<String, Rc<FlatCompiledStyles>> = IndexMap::new();
 
   for (key, _value) in obj.iter() {
     let dev_class_name =
@@ -53,15 +53,15 @@ pub(crate) fn convert_to_test_styles(
 
     dev_class.insert(
       dev_class_name.clone(),
-      Box::new(FlatCompiledStylesValue::String(dev_class_name)),
+      Rc::new(FlatCompiledStylesValue::String(dev_class_name)),
     );
 
     dev_class.insert(
       COMPILED_KEY.to_string(),
-      Box::new(FlatCompiledStylesValue::Bool(true)),
+      Rc::new(FlatCompiledStylesValue::Bool(true)),
     );
 
-    result.insert(key.clone(), Box::new(dev_class));
+    result.insert(key.clone(), Rc::new(dev_class));
   }
 
   result
@@ -98,7 +98,7 @@ fn namespace_to_dev_class_name(
 fn convert_theme_to_base_styles(
   variable_name: &str,
   filename: &str,
-) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
+) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
   let mut overrides_obj_extended = IndexMap::new();
 
   // Get the basename of the file without the extension
@@ -115,7 +115,7 @@ fn convert_theme_to_base_styles(
 
   overrides_obj_extended.insert(
     dev_class_name.clone(),
-    Box::new(FlatCompiledStylesValue::String(dev_class_name)),
+    Rc::new(FlatCompiledStylesValue::String(dev_class_name)),
   );
 
   overrides_obj_extended
@@ -123,9 +123,9 @@ fn convert_theme_to_base_styles(
 
 pub(crate) fn convert_theme_to_dev_styles(
   variable_name: &Option<String>,
-  overrides_obj: &IndexMap<String, Box<FlatCompiledStylesValue>>,
+  overrides_obj: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
   filename: &str,
-) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
+) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
   let variable_name_str = variable_name
     .as_ref()
     .expect("Variable name not found.")
@@ -140,15 +140,15 @@ pub(crate) fn convert_theme_to_dev_styles(
 
 pub(crate) fn convert_theme_to_test_styles(
   variable_name: &Option<String>,
-  overrides_obj: &IndexMap<String, Box<FlatCompiledStylesValue>>,
+  overrides_obj: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
   filename: &str,
-) -> IndexMap<String, Box<FlatCompiledStylesValue>> {
+) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
   let mut overrides_obj_extended =
     convert_theme_to_dev_styles(variable_name, overrides_obj, filename);
 
   overrides_obj_extended.insert(
     COMPILED_KEY.to_string(),
-    Box::new(FlatCompiledStylesValue::Bool(true)),
+    Rc::new(FlatCompiledStylesValue::Bool(true)),
   );
 
   overrides_obj_extended

@@ -1817,9 +1817,16 @@ pub(crate) fn evaluate_cached(
         get_hash_map_value_difference(&var_decl_count_map_diff, orig)
       });
 
-      let seen_value = SeenValue {
-        value: if state.confident { val.clone() } else { None },
-        resolved: true,
+      let seen_value = if state.confident {
+        SeenValue {
+          value: val.clone(),
+          resolved: true,
+        }
+      } else {
+        SeenValue {
+          value: None,
+          resolved: false,
+        }
       };
 
       traversal_state

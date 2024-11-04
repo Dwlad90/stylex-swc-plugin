@@ -53,11 +53,9 @@ impl Fold for CssFolder {
   }
 
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
-    dbg!(&dimension);
     let dimension = timing_normalizer(&mut dimension);
     let dimension = zero_demention_normalizer(dimension);
 
-    dbg!(&dimension);
     dimension.clone().fold_children_with(self)
   }
 

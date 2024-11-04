@@ -10,7 +10,7 @@ export default function ButtonsDemo(_props) {
         console.log("click");
     };
     return <div {...{
-        className: "Page__styles.container x78zum5 xdt5ytf x6s0dn4 xl56j7k xou54vl xzk7aed"
+        className: "Page__styles.container display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-xl56j7k gap-xou54vl paddingBottom-xzk7aed"
     }}>
       <ThemeableButton onClick={onClick}>Vanilla Button</ThemeableButton>
 
@@ -42,20 +42,20 @@ const redTheme = {
     $$css: true,
     "var(--x1p0kudt)": "x8j0i83"
 };
-_inject2(".x78zum5{display:flex}", 3000);
-_inject2(".xdt5ytf{flex-direction:column}", 3000);
-_inject2(".x6s0dn4{align-items:center}", 3000);
-_inject2(".xl56j7k{justify-content:center}", 3000);
-_inject2(".xou54vl{gap:16px}", 2000);
-_inject2(".xzk7aed{padding-bottom:64px}", 4000);
-_inject2(".xdh2fpr{border-width:2px}", 2000);
-_inject2(".x1y0btm7{border-style:solid}", 2000);
-_inject2(".x71xlcl{border-color:red}", 2000);
-_inject2(".x1bg2uv5{border-color:green}", 2000);
+_inject2(".display-x78zum5{display:flex}", 3000);
+_inject2(".flexDirection-xdt5ytf{flex-direction:column}", 3000);
+_inject2(".alignItems-x6s0dn4{align-items:center}", 3000);
+_inject2(".justifyContent-xl56j7k{justify-content:center}", 3000);
+_inject2(".gap-xou54vl{gap:16px}", 2000);
+_inject2(".paddingBottom-xzk7aed{padding-bottom:64px}", 4000);
+_inject2(".borderWidth-xdh2fpr{border-width:2px}", 2000);
+_inject2(".borderStyle-x1y0btm7{border-style:solid}", 2000);
+_inject2(".borderColor-x71xlcl{border-color:red}", 2000);
+_inject2(".borderColor-x1bg2uv5{border-color:green}", 2000);
 const styles = {
     bordered: {
         "Page__styles.bordered": "Page__styles.bordered",
-        borderWidth: "xdh2fpr",
+        borderWidth: "borderWidth-xdh2fpr",
         borderInlineWidth: null,
         borderInlineStartWidth: null,
         borderLeftWidth: null,
@@ -64,7 +64,7 @@ const styles = {
         borderBlockWidth: null,
         borderTopWidth: null,
         borderBottomWidth: null,
-        borderStyle: "x1y0btm7",
+        borderStyle: "borderStyle-x1y0btm7",
         borderInlineStyle: null,
         borderInlineStartStyle: null,
         borderLeftStyle: null,
@@ -73,7 +73,7 @@ const styles = {
         borderBlockStyle: null,
         borderTopStyle: null,
         borderBottomStyle: null,
-        borderColor: "x71xlcl",
+        borderColor: "borderColor-x71xlcl",
         borderInlineColor: null,
         borderInlineStartColor: null,
         borderLeftColor: null,
@@ -86,7 +86,7 @@ const styles = {
     },
     greenBorder: {
         "Page__styles.greenBorder": "Page__styles.greenBorder",
-        borderColor: "x1bg2uv5",
+        borderColor: "borderColor-x1bg2uv5",
         borderInlineColor: null,
         borderInlineStartColor: null,
         borderLeftColor: null,

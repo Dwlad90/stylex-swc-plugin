@@ -31,6 +31,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     state_manager.options.use_rem_for_font_size = true;
     state_manager.options.dev = false;
     state_manager.options.test = false;
+    state_manager.options.debug = false;
 
     state_manager
   }

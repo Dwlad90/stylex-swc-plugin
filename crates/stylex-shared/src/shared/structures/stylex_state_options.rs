@@ -12,6 +12,7 @@ use super::{
 pub struct StyleXStateOptions {
   pub dev: bool,
   pub test: bool,
+  pub debug: bool,
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
   // pub defined_stylex_css_variables: FxHashMap<String, String>,
@@ -30,6 +31,7 @@ impl Default for StyleXStateOptions {
       style_resolution: StyleResolution::ApplicationOrder,
       dev: false,
       test: false,
+      debug: false,
       use_rem_for_font_size: false,
       class_name_prefix: "x".to_string(),
       import_sources: vec![],
@@ -72,6 +74,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       import_sources: options.import_sources,
       dev: options.dev,
       test: options.test,
+      debug: options.debug,
       treeshake_compensation: options.treeshake_compensation,
       gen_conditional_classes: options.gen_conditional_classes,
       aliases: options.aliases,

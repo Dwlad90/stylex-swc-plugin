@@ -27,6 +27,7 @@ pub struct StyleXOptions {
   pub gen_conditional_classes: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
+  pub debug: Option<bool>,
   #[napi(ts_type = "Record<string, string[]>")]
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[napi(js_name = "unstable_moduleResolution")]
@@ -77,6 +78,7 @@ impl From<StyleXOptions> for StyleXOptionsParams {
       gen_conditional_classes: val.gen_conditional_classes,
       dev: val.dev,
       test: val.test,
+      debug: val.debug.or(val.dev),
       aliases: val.aliases,
       unstable_module_resolution,
     }

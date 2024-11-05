@@ -1,0 +1,4 @@
+apps/rollup-example/lotsOfStyles.js linguist-vendored
+crates/stylex-test-parser/output/__tests__/** linguist-vendored
+*.min.js linguist-vendored
+**/__swc_snapshots__/** linguist-vendored

@@ -447,18 +447,15 @@ pub fn handle_tpl_to_expression(
       let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
 
       // If a variable declaration was found
-      match &var_decl {
-        Some(var_decl) => {
-          // Swap the placeholder expression in the template with the variable declaration's initializer
-          std::mem::swap(
-            expr,
-            &mut var_decl
-              .init
-              .clone()
-              .expect("Variable declaration has no initializer"),
-          );
-        }
-        None => {}
+      if let Some(var_decl) = &var_decl {
+        // Swap the placeholder expression in the template with the variable declaration's initializer
+        std::mem::swap(
+          expr,
+          &mut var_decl
+            .init
+            .clone()
+            .expect("Variable declaration has no initializer"),
+        );
       }
     };
   }

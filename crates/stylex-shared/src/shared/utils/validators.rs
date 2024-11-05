@@ -326,13 +326,10 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
   match inner_value.as_ref() {
     Expr::Lit(_) => {}
     Expr::Array(array) => {
-      for elem in array.elems.iter() {
-        match elem {
-          Some(elem) => match elem.expr.as_ref() {
-            Expr::Lit(_) => {}
-            _ => panic!("{}", ILLEGAL_PROP_VALUE),
-          },
-          None => {}
+      for elem in array.elems.iter().flatten() {
+        match elem.expr.as_ref() {
+          Expr::Lit(_) => {}
+          _ => panic!("{}", ILLEGAL_PROP_VALUE),
         }
       }
     }

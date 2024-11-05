@@ -8,7 +8,7 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.8.0"
+    "@stylexjs/babel-plugin": "^0.9.3"
   },
   "devDependencies": {
     "@babel/types": "^7.23.9",

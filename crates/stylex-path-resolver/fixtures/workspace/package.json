@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "dependencies": {
     "@stylex/theme-lib": "workspace:^",
-    "@stylexjs/open-props": "^0.8.0",
+    "@stylexjs/open-props": "^0.9.3",
     "stylex-lib": "workspace:^"
   }
 }

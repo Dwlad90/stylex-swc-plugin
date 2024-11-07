@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/eslint-config",
-  "version": "0.4.0",
+  "version": "0.4.1-dev.1",
   "dependencies": {
     "eslint": "^8.57.0"
   },

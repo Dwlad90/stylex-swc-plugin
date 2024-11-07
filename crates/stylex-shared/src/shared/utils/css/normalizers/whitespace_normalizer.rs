@@ -6,21 +6,22 @@ use crate::shared::regex::{
 };
 
 pub(crate) fn whitespace_normalizer(result: String) -> String {
-  if let Some(cuptures) = CSS_URL_REGEX.captures(result.as_str()) {
-    return cuptures
-      .get(0)
-      .unwrap_or_else(|| panic!("URL is not valid: {}", result))
-      .as_str()
-      .to_string();
+  if let Some(captures) = CSS_URL_REGEX.captures(result.as_str()) {
+    if let Some(url) = captures.get(0) {
+      return url.as_str().to_string();
+    } else {
+      panic!("Failed to get URL from captures: {}", result);
+    }
   }
 
   let css_string: &str = if result.contains('{') {
-    CSS_RULE_REGEX
-      .captures(result.as_str())
-      .unwrap()
-      .get(1)
-      .unwrap_or_else(|| panic!("Failed to get CSS rule of: {}", result))
-      .as_str()
+    match CSS_RULE_REGEX.captures(result.as_str()) {
+      Some(captures) => match captures.get(1) {
+        Some(rule) => rule.as_str(),
+        None => panic!("Failed to get CSS rule of: {}", result),
+      },
+      None => panic!("Failed to parse CSS rule of: {}", result),
+    }
   } else {
     result.as_str()
   };

@@ -34,7 +34,7 @@
     "shellcheck": "^3.0.0",
     "syncpack": "^12.4.0",
     "turbo": "^2.0.9",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.4"
   },
   "repository": {
     "type": "git",

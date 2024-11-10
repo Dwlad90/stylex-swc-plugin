@@ -1,10 +1,3 @@
-/**
- * This entry file is for main unplugin.
- *
- *
- * @module
- */
-
 import * as path from 'node:path';
 
 import { createUnplugin } from 'unplugin';
@@ -63,7 +56,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
       try {
         const { code, metadata, map } = stylexRsCompiler.transform(
-          id,
+          file,
           inputCode,
           normalizedOptions.rsOptions
         );

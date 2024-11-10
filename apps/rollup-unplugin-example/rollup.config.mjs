@@ -39,7 +39,7 @@ export default {
     }),
     styleXRSRollupPlugin({
       dev: true,
-      stylex: {
+      rsOptions: {
         useCSSLayers: true,
         genConditionalClasses: true,
         treeshakeCompensation: true,

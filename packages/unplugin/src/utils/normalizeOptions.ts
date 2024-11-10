@@ -6,6 +6,7 @@ export default function normalizeOptions(
   options: UnpluginStylexRSOptions
 ): Required<UnpluginStylexRSOptions> {
   return {
+    ...options,
     fileName: options.fileName ?? 'stylex.css',
     useCSSLayers: options.useCSSLayers ?? false,
     pageExtensions: options.pageExtensions ?? ['tsx', 'jsx', 'js', 'ts'],
@@ -18,6 +19,5 @@ export default function normalizeOptions(
       },
       importSources: options.rsOptions?.importSources ?? ['stylex', '@stylexjs/stylex'],
     },
-    ...options,
   };
 }

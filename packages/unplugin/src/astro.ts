@@ -1,8 +1,8 @@
-import type { Options } from './types'
+import type { UnpluginStylexRSOptions } from './types'
 
 import unplugin from './index'
 
-export default (options: Options): any => ({
+export default (options: UnpluginStylexRSOptions): any => ({
   name: 'unplugin-starter',
   hooks: {
     'astro:config:setup': async (astro: any) => {

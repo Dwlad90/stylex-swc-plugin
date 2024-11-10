@@ -36,8 +36,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       // Specific for Vite support
       const questionSignIndex = extensionName.indexOf('?');
 
-      const cleanedExtensionName =
+      let cleanedExtensionName =
         questionSignIndex > -1 ? extensionName.slice(0, questionSignIndex) : extensionName;
+
+      if (cleanedExtensionName.startsWith('.')) {
+        cleanedExtensionName = cleanedExtensionName.slice(1);
+      }
 
       return pageExtensions.includes(cleanedExtensionName);
     },

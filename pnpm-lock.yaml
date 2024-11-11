@@ -58,6 +58,37 @@ importers:
         specifier: ^5.5.4
         version: 5.6.2
 
+  apps/esbuild-unplugin-example:
+    dependencies:
+      '@stylexjs/open-props':
+        specifier: ^0.9.3
+        version: 0.9.3
+      '@stylexjs/stylex':
+        specifier: ^0.9.3
+        version: 0.9.3
+      '@stylexswc/rs-compiler-darwin-arm64':
+        specifier: 0.4.1-dev.1
+        version: 0.4.1-dev.1
+      '@stylexswc/unplugin':
+        specifier: 0.4.1-dev.1
+        version: link:../../packages/unplugin
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: 18.3.12
+        version: 18.3.12
+      '@types/react-dom':
+        specifier: 18.3.1
+        version: 18.3.1
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.0
+
   apps/nextjs-example:
     dependencies:
       '@stylexjs/open-props':
@@ -244,6 +275,9 @@ importers:
       '@types/react':
         specifier: 18.3.12
         version: 18.3.12
+      '@types/react-dom':
+        specifier: 18.3.1
+        version: 18.3.1
       '@vitejs/plugin-react':
         specifier: ^4.3.3
         version: 4.3.3(vite@5.4.10(@types/node@22.8.5)(lightningcss@1.27.0)(terser@5.31.0))
@@ -2070,6 +2104,9 @@ packages:
 
   '@types/react-dom@18.3.0':
     resolution: {integrity: sha512-EhwApuTmMBmXuFOikhQLIBUn6uFg81SwLMOAUgodJF14SOBOCMdU04gDoYi0WOJJHD144TL32z4yDqCW3dnkQg==}
+
+  '@types/react-dom@18.3.1':
+    resolution: {integrity: sha512-qW1Mfv8taImTthu4KoXgDfLuk4bydU6Q/TkADnDWWHwi4NX4BR+LWfTp2sVmTqRrsHvyDDTelgelxJ+SsejKKQ==}
 
   '@types/react@18.3.12':
     resolution: {integrity: sha512-D2wOSq/d6Agt28q7rSI3jhU7G6aiuzljDGZ2hTZHIkrTLUI+AF3WMeKkEZ9nN2fkBAlcktT6vcZjDFiIhMYEQw==}
@@ -8309,7 +8346,11 @@ snapshots:
 
   '@types/react-dom@18.3.0':
     dependencies:
-      '@types/react': 18.3.6
+      '@types/react': 18.3.12
+
+  '@types/react-dom@18.3.1':
+    dependencies:
+      '@types/react': 18.3.12
 
   '@types/react@18.3.12':
     dependencies:

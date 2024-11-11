@@ -1,12 +1,12 @@
 {
-  "name": "@stylexswc/vite-unplugin-example",
+  "name": "@stylexswc/esbuild-unplugin-example",
   "version": "0.4.1-dev.1",
   "description": "A simple rollup example to test @stylexswc/rollup-plugin",
   "private": true,
   "main": "index.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build"
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -18,9 +18,8 @@
     "react-dom": "^18.3.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.3",
-    "vite": "^5.4.10",
-    "@types/react":"18.3.12",
-    "@types/react-dom":"18.3.1"
+    "esbuild": "^0.24.0",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1"
   }
 }

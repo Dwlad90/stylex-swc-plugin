@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { promises } from 'node:fs';
 
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance, UnpluginMessage } from 'unplugin';
@@ -8,6 +9,9 @@ import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions from './utils/normalizeOptions';
 import type { UnpluginStylexRSOptions } from './types';
 import stylexRsCompiler, { StyleXMetadata } from '@stylexswc/rs-compiler';
+import generateHash from './utils/generateHash';
+
+const { writeFile, mkdir } = promises;
 
 export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefined> = (
   options = {}
@@ -51,7 +55,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             : inputCode.includes(importName.from)
         )
       ) {
-        return;
+        return {
+          code: inputCode,
+        };
       }
 
       try {
@@ -77,6 +83,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
 
     buildEnd() {
+      if (this.getNativeBuildContext?.().framework === 'esbuild') {
+        // esbuild will handle the CSS generation in the `onEnd` hook
+        return;
+      }
       const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
 
       if (!collectedCSS) return;
@@ -134,6 +144,40 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             injectTo: 'head',
           },
         ];
+      },
+    },
+    esbuild: {
+      setup(build) {
+        build.onEnd(async ({ outputFiles }) => {
+          const fileName = normalizedOptions.fileName;
+          const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+
+          if (!collectedCSS) return;
+
+          const shouldWriteToDisk =
+            build.initialOptions.write === undefined || build.initialOptions.write;
+
+          if (shouldWriteToDisk) {
+            const generatedCSSFileName = path.join(process.cwd(), fileName);
+            await mkdir(path.dirname(generatedCSSFileName), {
+              recursive: true,
+            });
+            await writeFile(generatedCSSFileName, collectedCSS, 'utf8');
+
+            return;
+          }
+
+          if (outputFiles !== undefined) {
+            outputFiles.push({
+              path: '<stdout>',
+              contents: new TextEncoder().encode(collectedCSS),
+              hash: generateHash(collectedCSS),
+              get text() {
+                return collectedCSS;
+              },
+            });
+          }
+        });
       },
     },
   };

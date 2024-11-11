@@ -1,46 +1,37 @@
 <script setup lang="ts">
-import { colors } from '@stylexjs/open-props/lib/colors.stylex';
-import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
-import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
-import * as stylex from '@stylexjs/stylex';
+import { colors } from '@stylexjs/open-props/lib/colors.stylex'
+import { fonts } from '@stylexjs/open-props/lib/fonts.stylex'
+import { sizes } from '@stylexjs/open-props/lib/sizes.stylex'
+import * as stylex from '@stylexjs/stylex'
 </script>
 
 <script lang="ts">
 const styles = stylex.create({
-  container: {
-    alignItems: 'center',
-    backgroundColor: colors.choco3,
-    display: 'grid',
-    height: '100dvh',
-    justifyContent: 'center',
-    width: '100dvw',
-  },
-  button: {
-    alignItems: 'center',
-    backgroundColor: colors.jungle6,
-    borderRadius: sizes.spacing15,
-    color: colors.gray2,
+  main: {
+    width: '100vw',
+    height: '100vh',
     display: 'flex',
-    fontFamily: fonts.mono,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingBlock: sizes.spacing5,
-    paddingInline: sizes.spacing10,
-    borderWidth: 0,
-    fontWeight: 'bold',
-    ":hover": {
-      backgroundColor: colors.jungle8,
-    },
-    ":active": {
-      backgroundColor: colors.jungle10,
-    }
+    backgroundColor: colors.pink7,
   },
-});
+  card: {
+    backgroundColor: colors.blue9,
+    padding: sizes.spacing5,
+    borderRadius: sizes.spacing2,
+    justifyContent: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    color: colors.gray0,
+    fontFamily: fonts.mono,
+  },
+})
 </script>
 
 <template>
-  <main :class="stylex.props(styles.container).className">
-    <button :class="stylex.props(styles.button).className">
-      Click Me
-    </button>
-  </main>
+  <div :class="stylex.props(styles.main).className">
+    <div :class="stylex.props(styles.card).className">
+      <span>Blue rounded rectangle</span>
+    </div>
+  </div>
 </template>

@@ -2,10 +2,13 @@ mod structs;
 mod utils;
 use napi::{Env, Result};
 use std::env;
-use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
+use structs::{SourceMaps, StyleXMetadata, StyleXOptions, StyleXTransformResult};
 use swc_compiler_base::{print, PrintArgs, SourceMapsConfig};
 
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
+use stylex_shared::{
+  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  StyleXTransform,
+};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax, TsSyntax};
 
 use swc_core::{
@@ -38,7 +41,16 @@ pub fn transform(
     filename,
   };
 
-  let mut config = options.into();
+  let source_map = match options.source_map.as_ref() {
+    Some(source_map) => match source_map {
+      SourceMaps::True => SourceMapsConfig::Bool(true),
+      SourceMaps::False => SourceMapsConfig::Bool(false),
+      SourceMaps::Inline => SourceMapsConfig::Str("inline".to_string()),
+    },
+    None => SourceMapsConfig::Bool(false),
+  };
+
+  let mut config: StyleXOptionsParams = options.into();
 
   let mut stylex: StyleXTransform<PluginCommentsProxy> =
     StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
@@ -61,7 +73,7 @@ pub fn transform(
     cm,
     &program,
     PrintArgs {
-      source_map: SourceMapsConfig::Bool(true),
+      source_map,
       ..Default::default()
     },
   );

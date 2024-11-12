@@ -13,6 +13,13 @@ pub struct StyleXModuleResolution {
   pub theme_file_extension: Option<String>,
 }
 
+#[napi(string_enum)]
+pub enum SourceMaps {
+  True,
+  False,
+  Inline,
+}
+
 #[napi(object)]
 pub struct StyleXOptions {
   pub style_resolution: Option<String>,
@@ -32,6 +39,7 @@ pub struct StyleXOptions {
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
+  pub source_map: Option<SourceMaps>,
 }
 
 #[napi(object)]

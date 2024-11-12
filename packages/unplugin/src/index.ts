@@ -22,6 +22,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
   let viteConfig: { build: BuildOptions | undefined; base: string | undefined } | null = null;
 
+  let hasCssToExtract = false;
+
   return {
     name: 'unplugin-stylex-rs',
 
@@ -83,13 +85,16 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
 
     buildEnd() {
-      if (this.getNativeBuildContext?.().framework === 'esbuild') {
-        // esbuild will handle the CSS generation in the `onEnd` hook
+      const framework = this.getNativeBuildContext?.().framework;
+      if (framework === 'esbuild') {
+        // will handle the CSS generation in the plugin itself
         return;
       }
       const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
 
       if (!collectedCSS) return;
+
+      hasCssToExtract = true;
 
       this.emitFile({
         fileName: normalizedOptions.fileName,
@@ -178,6 +183,23 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             });
           }
         });
+      },
+    },
+    farm: {
+      transformHtml: {
+        executor(resource) {
+          if (!hasCssToExtract) return Promise.resolve(resource.htmlResource);
+
+          const htmlResource = resource.htmlResource;
+
+          let htmlContent = Buffer.from(htmlResource.bytes).toString('utf-8');
+
+          htmlContent = `${htmlContent}<link rel="stylesheet" href="/${normalizedOptions.fileName}" />`;
+
+          htmlResource.bytes = [...Buffer.from(htmlContent, 'utf-8')];
+
+          return Promise.resolve(resource.htmlResource);
+        },
       },
     },
   };

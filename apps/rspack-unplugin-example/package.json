@@ -1,12 +1,12 @@
 {
-  "name": "@stylexswc/rsbuild-unplugin-example",
+  "name": "@stylexswc/rspack-unplugin-example",
   "version": "0.4.1-rc.1",
   "description": "A simple rollup example to test @stylexswc/rollup-plugin",
   "private": true,
   "main": "index.js",
   "scripts": {
-    "dev": "rsbuild dev",
-    "build": "rsbuild build"
+    "dev": "rspack serve",
+    "build": "rspack build"
   },
   "license": "MIT",
   "dependencies": {
@@ -18,8 +18,8 @@
     "react-dom": "^18.3.0"
   },
   "devDependencies": {
-    "@rsbuild/core": "^1.1.0",
-    "@rsbuild/plugin-react": "^1.0.7",
+    "@rspack/cli": "^1.1.1",
+    "@rspack/core": "^1.1.1",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1"
   }

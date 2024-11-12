@@ -1,0 +1,63 @@
+import { defineConfig } from '@rsbuild/core'
+import { pluginReact } from '@rsbuild/plugin-react'
+import styleXRSPackPlugin from '@stylexswc/unplugin/rspack'
+import path from 'node:path'
+import rspack from '@rspack/core'
+
+const isDev = process.env.NODE_ENV === 'development'
+
+const dirname = process.cwd()
+
+export default {
+  context: dirname,
+  mode: isDev ? 'development' : 'production',
+  target: 'web',
+  cache: true,
+  entry: {
+    main: './src/index.jsx',
+  },
+  output: {
+    path: path.resolve(dirname, 'dist'),
+    filename: 'bundle.js',
+  },
+  resolve: {
+    extensions: ['.js', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'ecmascript',
+              jsx: true,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+  devServer: {
+    hot: true,
+    port: 4321,
+  },
+  plugins: [
+    styleXRSPackPlugin({
+      rsOptions: {
+        dev: isDev,
+        useCSSLayers: true,
+      },
+    }),
+    new rspack.HtmlRspackPlugin({
+      template: 'public/index.html',
+    }),
+  ],
+}

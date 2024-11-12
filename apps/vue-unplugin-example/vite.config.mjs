@@ -9,9 +9,9 @@ export default defineConfig({
   plugins: [
     vue(),
     styleXRSVitePlugin({
-      dev: true,
       pageExtensions: ['tsx', 'jsx', 'js', 'ts', 'vue'],
       rsOptions: {
+        dev: true,
         useCSSLayers: true,
         treeshakeCompensation: true,
       },

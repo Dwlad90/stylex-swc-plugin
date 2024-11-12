@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import solid from 'vite-plugin-solid'
 import styleXRSVitePlugin from '@stylexswc/unplugin/vite'
 
 export default defineConfig({
@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   plugins: [
-    react(),
+    solid(),
     styleXRSVitePlugin({
       rsOptions: {
         dev: true,

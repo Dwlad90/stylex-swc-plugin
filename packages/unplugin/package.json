@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/unplugin",
   "type": "module",
-  "version": "0.4.1-dev.1",
+  "version": "0.4.1-rc.1",
   "packageManager": "pnpm@9.9.0",
   "description": "",
   "license": "MIT",
@@ -125,7 +125,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.9.3",
-    "@stylexswc/rs-compiler": "0.4.1-dev.1",
+    "@stylexswc/rs-compiler": "0.4.1-rc.1",
     "unplugin": "^1.12.2"
   },
   "devDependencies": {

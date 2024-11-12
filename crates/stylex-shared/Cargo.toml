@@ -1,6 +1,6 @@
 [package]
 name = "stylex_shared"
-version = "0.4.1-rc.1"
+version = "0.4.1-rc.2"
 edition = "2021"
 rust-version = "1.82.0"
 description = "Shared SWC tranformer for StyleX"

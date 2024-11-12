@@ -166,6 +166,24 @@ mod css_tests {
       ),
       r#"auto 0fr 0fr"#
     );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklch(42.1% 0.192 328.6 / 1)"#,
+        &mut StateManager::default()
+      ),
+      r#"oklch(42.1% 0.192 328.6 / 1)"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklch(from var(--xs74gcj) l c h / 0.5)"#,
+        &mut StateManager::default()
+      ),
+      r#"oklch(from var(--xs74gcj) l c h / 0.5)"#
+    );
   }
 
   #[test]

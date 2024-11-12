@@ -1,4 +1,5 @@
 pub(crate) static DEFAULT_INJECT_PATH: &str = "@stylexjs/stylex/lib/stylex-inject";
+use once_cell::sync::Lazy;
 use phf::phf_set;
 
 // Using MDN data as a source of truth to populate the above sets
@@ -26,3 +27,6 @@ pub(crate) static SPLIT_TOKEN: &str = "__$$__";
 pub(crate) static ROOT_FONT_SIZE: i8 = 16;
 
 pub(crate) static THEME_NAME_KEY: &str = "__themeName__";
+
+pub(crate) static WHITE_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 4]> =
+  Lazy::new(|| ["oklch", "lch", "oklab", "hsla"]);

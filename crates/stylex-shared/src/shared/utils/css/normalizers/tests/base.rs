@@ -87,5 +87,15 @@ mod normalizers {
       )),
       r#"*{{gridtemplateareas:"content" "sidebar"}}"#
     );
+
+    assert_eq!(
+      stringify(&base_normalizer(
+        swc_parse_css("* {{ color: oklch(from var(--xs74gcj) l c h / 0.5) }}")
+          .0
+          .unwrap(),
+        false
+      )),
+      "*{{color:oklch(from var(--xs74gcj) l c h / 0.5)}}"
+    );
   }
 }

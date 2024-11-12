@@ -2,6 +2,7 @@ use core::panic;
 
 use crate::shared::{
   constants::{
+    common::WHITE_LISTED_NORMALIZED_PROPERTY_VALUES,
     long_hand_logical::LONG_HAND_LOGICAL,
     long_hand_physical::LONG_HAND_PHYSICAL,
     messages::LINT_UNCLOSED_FUNCTION,
@@ -473,6 +474,13 @@ pub(crate) fn normalize_css_property_value(
   css_property_value: &str,
   options: &StyleXStateOptions,
 ) -> String {
+  if WHITE_LISTED_NORMALIZED_PROPERTY_VALUES
+    .into_iter()
+    .any(|css_fnc| css_property_value.starts_with(format!("{}(", css_fnc).as_str()))
+  {
+    return css_property_value.to_string();
+  }
+
   let css_property = if css_property.starts_with("--") {
     "color"
   } else {

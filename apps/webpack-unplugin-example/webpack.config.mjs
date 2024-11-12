@@ -1,0 +1,68 @@
+import path from 'node:path'
+import HtmlWebpackPlugin from 'html-webpack-plugin'
+import stylexRsWebpackPlugin from '@stylexswc/unplugin/webpack'
+
+const isDev = process.env.NODE_ENV === 'development'
+
+const dirname = process.cwd()
+
+export default {
+  context: dirname,
+  mode: isDev ? 'development' : 'production',
+  target: 'web',
+  cache: true,
+  entry: {
+    main: './src/index.jsx',
+  },
+  output: {
+    path: path.resolve(dirname, 'dist'),
+    filename: 'bundle.js',
+  },
+  resolve: {
+    extensions: ['.js', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  runtime: 'automatic', // Use 'classic' if you are not using the new JSX transform
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  devServer: {
+    hot: true,
+    port: 8080,
+  },
+  performance: {
+    hints: false,
+    maxEntrypointSize: 512000,
+    maxAssetSize: 512000,
+  },
+  plugins: [
+    stylexRsWebpackPlugin({
+      rsOptions: {
+        dev: true,
+        useCSSLayers: true,
+      },
+    }),
+    new HtmlWebpackPlugin({
+      template: 'public/index.html',
+    }),
+  ],
+}

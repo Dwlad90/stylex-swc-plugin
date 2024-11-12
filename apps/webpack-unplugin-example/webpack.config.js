@@ -1,13 +1,11 @@
-import path from 'node:path'
-import HtmlWebpackPlugin from 'html-webpack-plugin'
-import stylexRsWebpackPlugin from '@stylexswc/unplugin/webpack'
+const path = require('node:path')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const styleXRSPlugin = require('@stylexswc/unplugin/webpack')
 
 const isDev = process.env.NODE_ENV === 'development'
 
-const dirname = process.cwd()
-
-export default {
-  context: dirname,
+module.exports = {
+  context: __dirname,
   mode: isDev ? 'development' : 'production',
   target: 'web',
   cache: true,
@@ -15,7 +13,7 @@ export default {
     main: './src/index.jsx',
   },
   output: {
-    path: path.resolve(dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
   },
   resolve: {
@@ -55,7 +53,7 @@ export default {
     maxAssetSize: 512000,
   },
   plugins: [
-    stylexRsWebpackPlugin({
+    styleXRSPlugin({
       rsOptions: {
         dev: true,
         useCSSLayers: true,

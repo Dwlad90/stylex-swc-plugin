@@ -42,12 +42,10 @@ pub fn transform(
   };
 
   let source_map = match options.source_map.as_ref() {
-    Some(source_map) => match source_map {
-      SourceMaps::True => SourceMapsConfig::Bool(true),
-      SourceMaps::False => SourceMapsConfig::Bool(false),
-      SourceMaps::Inline => SourceMapsConfig::Str("inline".to_string()),
-    },
-    None => SourceMapsConfig::Bool(false),
+    Some(SourceMaps::True) => SourceMapsConfig::Bool(true),
+    Some(SourceMaps::False) => SourceMapsConfig::Bool(false),
+    Some(SourceMaps::Inline) => SourceMapsConfig::Str("inline".to_string()),
+    None => SourceMapsConfig::Bool(true),
   };
 
   let mut config: StyleXOptionsParams = options.into();

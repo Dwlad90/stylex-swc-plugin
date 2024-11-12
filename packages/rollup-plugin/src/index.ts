@@ -1,5 +1,5 @@
 import stylexRsCompiler from '@stylexswc/rs-compiler';
-import type {  Rule } from '@stylexjs/babel-plugin';
+import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
 import type { TransformOptions } from 'lightningcss';
 import type { Plugin, PluginContext, TransformResult, TransformPluginContext } from 'rollup';

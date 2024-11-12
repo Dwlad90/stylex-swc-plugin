@@ -1,11 +1,11 @@
 # SWC Stylex plugin for Next.js
 
 > [!WARNING]
-> **Deprecated**: This package is deprecated as of version `0.3.0` and may be removed in the future. Please use the [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin) instead.
+> **Deprecated**: This package is deprecated as of version `0.3.0` and may be removed in the future. Please use the [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin) instead.
 
 
 Next.js plugin for an unofficial
-[`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-swc-plugin)
+[`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-swc-plugin)
 plugin.
 
 ## Why SWC instead of Babel
@@ -80,4 +80,4 @@ module.exports = stylexPlugin({
 ## Documentation
 
 - [StyleX Documentation](https://stylexjs.com)
-- [SWC plugin for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/master/packages/swc-plugin)
+- [SWC plugin for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/swc-plugin)

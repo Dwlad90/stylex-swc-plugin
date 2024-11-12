@@ -1,6 +1,6 @@
 import { defineConfig } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
-import styleXRSPackPlugin from '@stylexswc/unplugin/rspack'
+import styleXRSPlugin from '@stylexswc/unplugin/rspack'
 
 export default defineConfig({
   plugins: [pluginReact()],
@@ -10,7 +10,7 @@ export default defineConfig({
   tools: {
     rspack: {
       plugins: [
-        styleXRSPackPlugin({
+        styleXRSPlugin({
           rsOptions: {
             dev: true,
             useCSSLayers: true,

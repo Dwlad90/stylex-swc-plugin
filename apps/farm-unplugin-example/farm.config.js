@@ -1,6 +1,6 @@
 import { defineConfig } from '@farmfe/core'
-import styleXRSFarmPlugin from '@stylexswc/unplugin/farm'
-import {} from '@stylexswc/rs-compiler'
+import styleXRSPlugin from '@stylexswc/unplugin/farm'
+import { SourceMaps } from '@stylexswc/rs-compiler'
 
 export default defineConfig({
   compilation: {
@@ -27,13 +27,10 @@ export default defineConfig({
         runtime: 'automatic',
       },
     ],
-    styleXRSFarmPlugin({
+    styleXRSPlugin({
       rsOptions: {
-        sourceMap: "Inline",
+        sourceMap: SourceMaps.Inline,
         dev: true,
-        // debug: true,
-        // runtimeInjection: false,
-
         useCSSLayers: true,
         // this must set `true` in farm
         treeshakeCompensation: true,

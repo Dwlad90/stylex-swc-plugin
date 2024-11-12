@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import styleXRSVitePlugin from '@stylexswc/unplugin/vite'
+import styleXRSPlugin from '@stylexswc/unplugin/vite'
 
 export default defineConfig({
   build: {
@@ -8,7 +8,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    styleXRSVitePlugin({
+    styleXRSPlugin({
       rsOptions: {
         dev: true,
         useCSSLayers: true,

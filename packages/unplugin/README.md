@@ -1,45 +1,42 @@
-# unplugin-starter
+# Unplugin with NAPI-RS StyleX compiler integration
 
-[![NPM version](https://img.shields.io/npm/v/unplugin-starter?color=a1b858&label=)](https://www.npmjs.com/package/unplugin-starter)
+`Uplugin` for an unofficial
+[`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
+compiler that includes the StyleX SWC code transformation under the hood.
 
-Starter template for [unplugin](https://github.com/unjs/unplugin).
+## Installation
 
-## Template Usage
-
-To use this template, clone it down using:
-
-```bash
-npx degit unplugin/unplugin-starter my-unplugin
-```
-
-And do a global replacement of `unplugin-starter` with your plugin name.
-
-Then you can start developing your unplugin 🔥
-
-To test your plugin, run: `pnpm run dev`
-To release a new version, run: `pnpm run release`
-
-## Install
+To install the package, run the following command:
 
 ```bash
-npm i unplugin-starter
+npm install --save-dev @stylexswc/unplugin
 ```
+
+## Usage
+
+To use the plugin, you need to add it to your build tool configuration.
+
+For every plugin have an example of how to use it in
+[`apps/{pluginName}-unplugin-example`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/apps)
+folder.
+
+## Plugins
 
 <details>
 <summary>Vite</summary><br>
 
 ```ts
 // vite.config.ts
-import Starter from 'unplugin-starter/vite'
+import StylexRsPlugin from '@stylexswc/unplugin/vite';
 
 export default defineConfig({
   plugins: [
-    Starter({ /* options */ }),
+    StylexRsPlugin({
+      /* options */
+    }),
   ],
-})
+});
 ```
-
-Example: [`playground/`](./playground/)
 
 <br></details>
 
@@ -48,13 +45,15 @@ Example: [`playground/`](./playground/)
 
 ```ts
 // rollup.config.js
-import Starter from 'unplugin-starter/rollup'
+import StylexRsPlugin from '@stylexswc/unplugin/rollup';
 
 export default {
   plugins: [
-    Starter({ /* options */ }),
+    StylexRsPlugin({
+      /* options */
+    }),
   ],
-}
+};
 ```
 
 <br></details>
@@ -67,9 +66,11 @@ export default {
 module.exports = {
   /* ... */
   plugins: [
-    require('unplugin-starter/webpack')({ /* options */ })
-  ]
-}
+    require('@stylexswc/unplugin/webpack')({
+      /* options */
+    }),
+  ],
+};
 ```
 
 <br></details>
@@ -81,12 +82,18 @@ module.exports = {
 // nuxt.config.js
 export default defineNuxtConfig({
   modules: [
-    ['unplugin-starter/nuxt', { /* options */ }],
+    [
+      '@stylexswc/unplugin/nuxt',
+      {
+        /* options */
+      },
+    ],
   ],
-})
+});
 ```
 
-> This module works for both Nuxt 2 and [Nuxt Vite](https://github.com/nuxt/vite)
+> This module works for both Nuxt 2 and
+> [Nuxt Vite](https://github.com/nuxt/vite)
 
 <br></details>
 
@@ -98,10 +105,12 @@ export default defineNuxtConfig({
 module.exports = {
   configureWebpack: {
     plugins: [
-      require('unplugin-starter/webpack')({ /* options */ }),
+      require('@stylexswc/unplugin/webpack')({
+        /* options */
+      }),
     ],
   },
-}
+};
 ```
 
 <br></details>
@@ -111,12 +120,12 @@ module.exports = {
 
 ```ts
 // esbuild.config.js
-import { build } from 'esbuild'
-import Starter from 'unplugin-starter/esbuild'
+import { build } from 'esbuild';
+import StylexRsPlugin from '@stylexswc/unplugin/esbuild';
 
 build({
-  plugins: [Starter()],
-})
+  plugins: [StylexRsPlugin()],
+});
 ```
 
 <br></details>

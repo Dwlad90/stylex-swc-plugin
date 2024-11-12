@@ -3,8 +3,9 @@
   "type": "module",
   "version": "0.4.1-rc.1",
   "packageManager": "pnpm@9.9.0",
-  "description": "",
+  "description": "Unplugin for StyleX RS compiler",
   "license": "MIT",
+  "private": false,
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -21,54 +22,68 @@
     "webpack",
     "rollup",
     "transform",
-    "stylex"
+    "stylex",
+    "farm",
+    "esbuild",
+    "rspack",
+    "rsbuild"
   ],
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
     "./astro": {
+      "types": "./dist/astro.d.ts",
       "import": "./dist/astro.js",
       "require": "./dist/astro.cjs"
     },
     "./rspack": {
+      "types": "./dist/rspack.d.ts",
       "import": "./dist/rspack.js",
       "require": "./dist/rspack.cjs"
     },
     "./vite": {
+      "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js",
       "require": "./dist/vite.cjs"
     },
     "./webpack": {
+      "types": "./dist/webpack.d.ts",
       "import": "./dist/webpack.js",
       "require": "./dist/webpack.cjs"
     },
     "./rollup": {
+      "types": "./dist/rollup.d.ts",
       "import": "./dist/rollup.js",
       "require": "./dist/rollup.cjs"
     },
     "./esbuild": {
+      "types": "./dist/esbuild.d.ts",
       "import": "./dist/esbuild.js",
       "require": "./dist/esbuild.cjs"
     },
     "./nuxt": {
+      "types": "./dist/nuxt.d.ts",
       "import": "./dist/nuxt.js",
       "require": "./dist/nuxt.cjs"
     },
     "./farm": {
+      "types": "./dist/farm.d.ts",
       "import": "./dist/farm.js",
       "require": "./dist/farm.cjs"
     },
     "./types": {
+      "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
       "require": "./dist/types.cjs"
     },
     "./*": "./*"
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
       "*": [
@@ -87,9 +102,10 @@
     "lint": "eslint .",
     "play": "pnpm -C playground run dev",
     "prepublishOnly": "pnpm run build",
-    "release": "bumpp && pnpm publish",
     "start": "esno src/index.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "test:update": "vitest -u",
+    "test:cov": "vitest --coverage"
   },
   "peerDependencies": {
     "@farmfe/core": ">=1",
@@ -126,13 +142,14 @@
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.9.3",
     "@stylexswc/rs-compiler": "0.4.1-rc.1",
-    "unplugin": "^1.12.2"
+    "unplugin": "^1.12.2",
+    "vite": "^5.4.10",
+    "vite-plugin-inspect": "^0.8.7"
   },
   "devDependencies": {
     "@nuxt/kit": "^3.13.0",
     "@nuxt/schema": "^3.13.0",
     "@types/node": "^22.5.1",
-    "bumpp": "^9.5.2",
     "chalk": "^5.3.0",
     "eslint": "^8.57.0",
     "esno": "^4.7.0",

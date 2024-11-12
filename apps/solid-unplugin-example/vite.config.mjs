@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import solid from 'vite-plugin-solid'
-import styleXRSVitePlugin from '@stylexswc/unplugin/vite'
+import styleXRSPlugin from '@stylexswc/unplugin/vite'
 
 export default defineConfig({
   build: {
@@ -8,7 +8,7 @@ export default defineConfig({
   },
   plugins: [
     solid(),
-    styleXRSVitePlugin({
+    styleXRSPlugin({
       rsOptions: {
         dev: true,
         useCSSLayers: true,

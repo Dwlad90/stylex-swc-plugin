@@ -20,35 +20,55 @@ This project is organized into several packages:
 
 **Core:**
 
-* [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler) -
+* [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler) -
   Rust-based [`napi-rs`](https://napi.rs/) compiler for transforming StyleX code.
 
 **Integration:**
 
-* [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin) -
+* [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin) -
   A wrapper for [`Next.JS configuration`](https://nextjs.org/docs/app/api-reference/next-config-js) that integrates the StyleX [napi-rs](https://napi.rs/) compiler into the Webpack processing pipeline.
 
-* [`webpack-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/webpack-plugin) -
-  A wrapper for `Webpack configuration` that integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+* [`webpack-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/webpack-plugin) -
+  A `Webpack pluign` that integrates the StyleX
+  [napi-rs](https://napi.rs/) compiler.
+
+* [`rollup-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/rollup-plugin) -
+  A `Rollup plugin` that integrates the StyleX [napi-rs](https://napi.rs/)
+  compiler.
+
+* [`unplugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin) -
+  Plugin collection for various build tools that integrates the StyleX [napi-rs](https://napi.rs/)
+  compiler.
+
+  Supported build tools and libraries:
+
+  * Farm
+  * Rollup
+  * Rsbuild
+  * Rspack
+  * Solid
+  * Vite
+  * Vue
+  * Webpack
 
 **Utilities:**
 
-* [`stylex-shared`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-shared) -
+* [`stylex-shared`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-shared) -
  Shared Rust codebase for the StyleX RS compiler and SWC plugin.
 
-* [`path-resolver`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-path-resolver) -
+* [`path-resolver`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-path-resolver) -
    Path handling and resolving utilities for the StyleX NAPI-RS / SWC plugin.
 
-* [`test-parser`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-test-parser) -
+* [`test-parser`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-test-parser) -
   Parser for [StyleX](https://github.com/facebook/stylex) repo Jest tests that
   helps to understand last changes and keeps the project up to date
 
 **Internal Configurations:**
 
-* [`eslint-config`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/eslint-config) -
+* [`eslint-config`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/eslint-config) -
   Internal [ESLint](https://eslint.org/) configuration
 
-* [`typescript-config`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/typescript-config) -
+* [`typescript-config`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/typescript-config) -
   Internal
   [Typescript](https://www.typescriptlang.org/docs/handbook/tsconfig-json.htm)
   configuration
@@ -60,16 +80,16 @@ This project is organized into several packages:
 
 **Core:**
 
-* [`swc-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-swc-plugin) -
+* [`swc-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-swc-plugin) -
   Unofficial SWC implementation of the native
   [StyleX](https://github.com/facebook/stylex) plugin. The new alternative is
-  [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler)
+  [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 
 **Integration:**
 
-* [`nextjs-swc-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-swc-plugin) -
+* [`nextjs-swc-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-swc-plugin) -
   Wrapper for
   [`Next.JS config`](https://nextjs.org/docs/app/api-reference/next-config-js)
   that inject the StyleX SWC plugin to webpack processing. The new alternative
   is
-  [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin)
+  [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin)

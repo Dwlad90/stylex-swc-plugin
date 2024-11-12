@@ -1,5 +1,5 @@
 import vue from '@vitejs/plugin-vue'
-import styleXRSVitePlugin from '@stylexswc/unplugin/vite'
+import styleXRSPlugin from '@stylexswc/unplugin/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
@@ -8,7 +8,7 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    styleXRSVitePlugin({
+    styleXRSPlugin({
       pageExtensions: ['tsx', 'jsx', 'js', 'ts', 'vue'],
       rsOptions: {
         dev: true,

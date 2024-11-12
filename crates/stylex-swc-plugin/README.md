@@ -1,7 +1,7 @@
 # SWC plugin for StyleX (\*\*unofficial)
 
 > [!WARNING]
-> **Deprecated**: This package is deprecated as of version `0.3.0` and may be removed in the future. Please use the [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler) instead.
+> **Deprecated**: This package is deprecated as of version `0.3.0` and may be removed in the future. Please use the [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler) instead.
 
 ## Overview
 
@@ -17,7 +17,7 @@ This plugin successfully passes almost all tests from the official StyleX librar
 
 This plugin is particularly beneficial for Next.js projets as it allows the use of the [SWC Next.js Compiler](https://nextjs.org/docs/architecture/nextjs-compiler).
 
-* [Next.js plugin](https://github.com/dwlad90/stylex-swc-plugin/tree/master/packages/nextjs-plugin)
+* [Next.js plugin](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin)
 * [StyleX Documentation](https://stylexjs.com)
 
 ## Installation

@@ -1,6 +1,6 @@
 import { defineConfig } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
-import styleXRSPackPlugin from '@stylexswc/unplugin/rspack'
+import styleXRSPlugin from '@stylexswc/unplugin/rspack'
 import path from 'node:path'
 import rspack from '@rspack/core'
 
@@ -50,7 +50,7 @@ export default {
     port: 4321,
   },
   plugins: [
-    styleXRSPackPlugin({
+    styleXRSPlugin({
       rsOptions: {
         dev: isDev,
         useCSSLayers: true,

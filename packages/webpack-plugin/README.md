@@ -1,7 +1,7 @@
 # Webpack plugin with NAPI-RS StyleX compiler integration
 
 `Webpack plugin` for an unofficial
-[`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler)
+[`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 compiler that includes the StyleX SWC code transformation under the hood.
 
 ## Installation
@@ -52,4 +52,4 @@ The options are similar like `@stylexjs/babel-plugin` and can be found [here](ht
 ## Documentation
 
 * [StyleX Documentation](https://stylexjs.com)
-* [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/master/crates/stylex-rs-compiler)
+* [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)

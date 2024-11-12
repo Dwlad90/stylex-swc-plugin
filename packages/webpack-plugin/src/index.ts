@@ -119,6 +119,11 @@ class StylexPlugin {
         const getContentHash = (source: string) => {
           const { outputOptions } = compilation;
           const { hashDigest, hashDigestLength, hashFunction, hashSalt } = outputOptions;
+
+          if (!hashFunction) {
+            throw new Error('webpack output options must have a hashFunction');
+          }
+
           const hash = compiler.webpack.util.createHash(hashFunction);
 
           if (hashSalt) {

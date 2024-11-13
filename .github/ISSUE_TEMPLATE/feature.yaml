@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an idea for this project
+labels:
+  - enhancement
+assignees:
+  - dwlad90
+
+body:
+  - type: textarea
+    attributes:
+      label: Is your feature request related to a problem or something you'd like to improve? Please describe.
+      description: A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_description
+    attributes:
+      label: Problem Description
+      description: A clear and concise description of what the problem is.
+
+  - type: textarea
+    id: suggested_feature
+    attributes:
+      label: Suggested feature
+      description: a clear and concise description of suggested feature or improvement.
+
+  - type: textarea
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear and concise description of what you want to happen.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Add any other context or screenshots about the feature request here.

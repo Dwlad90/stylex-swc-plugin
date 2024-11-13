@@ -1,0 +1,76 @@
+name: Bug report
+description: Create a report to help us improve
+labels:
+  - bug
+assignees:
+  - dwlad90
+
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: Please provide a clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_stack
+    attributes:
+      label: Error stack
+      description: If applicable, add the error stack trace to help explain your problem.
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      description: e.g. macOS
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: e.g. Chrome 132.0.6834.6
+
+  - type: input
+    id: compiler_version
+    attributes:
+      label: Compiler version
+      description: e.g. @stylexswc/rs-compiler 1.2.3
+    validations:
+      required: true
+
+  - type: input
+    id: bundler_plugins_version
+    attributes:
+      label: Bundler plugin(s) version
+      description: e.g. @stylexswc/nextjs-plugin 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: To Reproduce
+      description: |
+        Steps to reproduce the behavior:
+
+        1. ....
+        2. ....
+        3. ....
+    validations:
+      required: true
+
+  - type: input
+    id: reproduction_link
+    attributes:
+      label: Provide link to a repository with a minimal reproduction case.
+      description: e.g. https://github.com/Dwlad90/nextjs-app-dir-stylex
+
+  - type: checkboxes
+    id: additional_info
+    attributes:
+      label: Additional information
+      options:
+        - label: I have checked with the latest version
+          required: false

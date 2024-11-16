@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/swc-plugin",
   "description": "SWC plugin for transforming StyleX code",
-  "version": "0.4.1",
+  "version": "0.4.2-rc.1",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"

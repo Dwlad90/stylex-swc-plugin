@@ -228,7 +228,7 @@ pub(crate) fn get_import_from<'a>(
   })
 }
 
-pub(crate) fn get_var_decl_by_ident_or_member<'a>(
+pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
   state: &'a StateManager,
   ident: &'a Ident,
 ) -> Option<VarDeclarator> {
@@ -511,7 +511,9 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
               *decl_init.clone(),
               Some(decl.name.as_ident().unwrap().sym.clone()),
             ));
-            state.declarations.push(decl.clone());
+            if !state.declarations.contains(&Box::new(&decl)) {
+              state.declarations.push(decl.clone());
+            }
           }
         }
       }
@@ -540,7 +542,10 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
               *decl_init.clone(),
               Some(decl.name.as_ident().unwrap().sym.clone()),
             ));
-            state.declarations.push(decl.clone());
+
+            if !state.declarations.contains(&Box::new(&decl)) {
+              state.declarations.push(decl.clone());
+            }
           }
         }
       }

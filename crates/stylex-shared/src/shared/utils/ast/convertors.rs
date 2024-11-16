@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use swc_core::ecma::{
   ast::BigInt,
   utils::{quote_ident, quote_str, ExprExt},
@@ -14,7 +15,7 @@ use swc_ecma_parser::Context;
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
-  enums::misc::VarDeclAction,
+  enums::misc::{BinaryExprType, VarDeclAction},
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
   utils::{
     common::{
@@ -34,24 +35,28 @@ pub fn expr_to_num(
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
-) -> f64 {
-  match &expr_num {
+) -> Result<f64, anyhow::Error> {
+  let result = match &expr_num {
     Expr::Ident(ident) => ident_to_number(ident, state, traversal_state, &FunctionMap::default()),
-    Expr::Lit(lit) => lit_to_num(lit),
+    Expr::Lit(lit) => return lit_to_num(lit),
     Expr::Unary(unary) => unari_to_num(unary, state, traversal_state, fns),
     Expr::Bin(lit) => {
       let mut state = Box::new(EvaluationState::new());
 
-      match binary_expr_to_num(lit, &mut state, traversal_state, fns) {
-        Some(result) => result,
-        None => panic!(
+      match binary_expr_to_num(lit, &mut state, traversal_state, fns)
+        .unwrap_or_else(|error| panic!("{}", error))
+      {
+        BinaryExprType::Number(number) => number,
+        _ => panic!(
           "Binary expression is not a number: {:?}",
           expr_num.get_type()
         ),
       }
     }
     _ => panic!("Expression in not a number: {:?}", expr_num.get_type()),
-  }
+  };
+
+  Result::Ok(result)
 }
 
 fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> String {
@@ -104,8 +109,14 @@ pub fn unari_to_num(
   let op = unary_expr.op;
 
   match &op {
-    UnaryOp::Minus => expr_to_num(arg, state, traversal_state, fns) * -1.0,
-    UnaryOp::Plus => expr_to_num(arg, state, traversal_state, fns),
+    UnaryOp::Minus => match expr_to_num(arg, state, traversal_state, fns) {
+      Ok(result) => result * -1.0,
+      Err(error) => panic!("{}", error),
+    },
+    UnaryOp::Plus => match expr_to_num(arg, state, traversal_state, fns) {
+      Ok(result) => result,
+      Err(error) => panic!("{}", error),
+    },
     _ => panic!(
       "Union operation '{:?}' is invalid",
       Expr::from(unary_expr.clone()).get_type()
@@ -118,11 +129,11 @@ pub fn binary_expr_to_num(
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
-) -> Option<f64> {
+) -> Result<BinaryExprType, anyhow::Error> {
   let op = binary_expr.op;
   let Some(left) = evaluate_cached(&binary_expr.left, state, traversal_state, fns) else {
     if !state.confident {
-      return None;
+      return Result::Ok(BinaryExprType::Null);
     }
 
     panic!("Left expression is not a number")
@@ -130,140 +141,128 @@ pub fn binary_expr_to_num(
 
   let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
     if !state.confident {
-      return None;
+      return Result::Ok(BinaryExprType::Null);
     }
 
     panic!("Right expression is not a number")
   };
 
+  let left_num = expr_to_num(
+    left.as_expr().expect("Argument not expression!"),
+    state,
+    traversal_state,
+    fns,
+  )?;
+
+  let right_num = expr_to_num(
+    right.as_expr().expect("Argument not expression!"),
+    state,
+    traversal_state,
+    fns,
+  )?;
+
   let result = match &op {
     BinaryOp::Add => {
-      expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        + expr_to_num(right.as_expr()?, state, traversal_state, fns)
+      let left_expr = left.as_expr().expect("Argument not expression");
+      let right_expr = right.as_expr().expect("Argument not expression");
+
+      let left_result = expr_to_num(left_expr, state, traversal_state, fns);
+
+      let right_result = expr_to_num(right_expr, state, traversal_state, fns);
+      if left_result.is_err() || right_result.is_err() {
+        let left_str = match left_expr {
+          Expr::Lit(Lit::Str(_)) => get_string_val_from_lit(left_expr.as_lit().unwrap())
+            .unwrap_or_else(|| panic!("Left is not a string: {:?}", left_expr.get_type())),
+          _ => String::default(),
+        };
+
+        let right_str = match right_expr {
+          Expr::Lit(Lit::Str(_)) => get_string_val_from_lit(right_expr.as_lit().unwrap())
+            .unwrap_or_else(|| panic!("Right is not a string: {:?}", left_expr.get_type())),
+          _ => String::default(),
+        };
+
+        if !left_str.is_empty() && !right_str.is_empty() {
+          return Result::Ok(BinaryExprType::String(format!("{}{}", left_str, right_str)));
+        }
+      }
+      left_num + right_num
     }
-    BinaryOp::Sub => {
-      expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        - expr_to_num(right.as_expr()?, state, traversal_state, fns)
-    }
-    BinaryOp::Mul => {
-      expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        * expr_to_num(right.as_expr()?, state, traversal_state, fns)
-    }
-    BinaryOp::Div => {
-      expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        / expr_to_num(right.as_expr()?, state, traversal_state, fns)
-    }
-    BinaryOp::Mod => {
-      expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        % expr_to_num(right.as_expr()?, state, traversal_state, fns)
-    }
-    BinaryOp::Exp => expr_to_num(left.as_expr()?, state, traversal_state, fns).powf(expr_to_num(
-      right.as_expr()?,
-      state,
-      traversal_state,
-      fns,
-    )),
-    BinaryOp::RShift => {
-      ((expr_to_num(left.as_expr()?, state, traversal_state, fns) as i32)
-        >> expr_to_num(right.as_expr()?, state, traversal_state, fns) as i32) as f64
-    }
-    BinaryOp::LShift => {
-      ((expr_to_num(left.as_expr()?, state, traversal_state, fns) as i32)
-        << expr_to_num(right.as_expr()?, state, traversal_state, fns) as i32) as f64
-    }
-    BinaryOp::BitAnd => {
-      ((expr_to_num(left.as_expr()?, state, traversal_state, fns) as i32)
-        & expr_to_num(right.as_expr()?, state, traversal_state, fns) as i32) as f64
-    }
-    BinaryOp::BitOr => {
-      ((expr_to_num(left.as_expr()?, state, traversal_state, fns) as i32)
-        | expr_to_num(right.as_expr()?, state, traversal_state, fns) as i32) as f64
-    }
-    BinaryOp::BitXor => {
-      ((expr_to_num(left.as_expr()?, state, traversal_state, fns) as i32)
-        ^ expr_to_num(right.as_expr()?, state, traversal_state, fns) as i32) as f64
-    }
+    BinaryOp::Sub => left_num - right_num,
+    BinaryOp::Mul => left_num * right_num,
+    BinaryOp::Div => left_num / right_num,
+    BinaryOp::Mod => left_num % right_num,
+    BinaryOp::Exp => left_num.powf(right_num),
+    BinaryOp::RShift => ((left_num as i32) >> right_num as i32) as f64,
+    BinaryOp::LShift => ((left_num as i32) << right_num as i32) as f64,
+    BinaryOp::BitAnd => ((left_num as i32) & right_num as i32) as f64,
+    BinaryOp::BitOr => ((left_num as i32) | right_num as i32) as f64,
+    BinaryOp::BitXor => ((left_num as i32) ^ right_num as i32) as f64,
     BinaryOp::In => {
-      if expr_to_num(right.as_expr()?, state, traversal_state, fns) == 0.0 {
+      if right_num == 0.0 {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::InstanceOf => {
-      if expr_to_num(right.as_expr()?, state, traversal_state, fns) == 0.0 {
+      if right_num == 0.0 {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::EqEq => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        == expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num == right_num {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::NotEq => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        != expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num != right_num {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::EqEqEq => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        == expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num == right_num {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::NotEqEq => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        != expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num != right_num {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::Lt => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        < expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num < right_num {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::LtEq => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        <= expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num <= right_num {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::Gt => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        > expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num > right_num {
         1.0
       } else {
         0.0
       }
     }
     BinaryOp::GtEq => {
-      if expr_to_num(left.as_expr()?, state, traversal_state, fns)
-        >= expr_to_num(right.as_expr()?, state, traversal_state, fns)
-      {
+      if left_num >= right_num {
         1.0
       } else {
         0.0
@@ -273,7 +272,12 @@ pub fn binary_expr_to_num(
     BinaryOp::LogicalOr => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(&Box::new(left.as_expr()?), state, traversal_state, fns);
+      let result = evaluate_cached(
+        &Box::new(left.as_expr().expect("Argument not expression")),
+        state,
+        traversal_state,
+        fns,
+      );
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -282,19 +286,27 @@ pub fn binary_expr_to_num(
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(&Box::new(right.as_expr()?), state, traversal_state, fns);
+      let result = evaluate_cached(
+        &Box::new(right.as_expr().expect("Argument not expression")),
+        state,
+        traversal_state,
+        fns,
+      );
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
       let right_confident = state.confident;
 
-      let left = expr_to_num(left, state, traversal_state, fns);
-      let right = expr_to_num(right, state, traversal_state, fns);
+      let left =
+        expr_to_num(left, state, traversal_state, fns).unwrap_or_else(|error| panic!("{}", error));
+
+      let right =
+        expr_to_num(right, state, traversal_state, fns).unwrap_or_else(|error| panic!("{}", error));
 
       state.confident = left_confident && (left != 0.0 || right_confident);
 
       if !state.confident {
-        return None;
+        return Result::Ok(BinaryExprType::Null);
       }
 
       if left != 0.0 {
@@ -306,7 +318,12 @@ pub fn binary_expr_to_num(
     BinaryOp::LogicalAnd => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(&Box::new(left.as_expr()?), state, traversal_state, fns);
+      let result = evaluate_cached(
+        &Box::new(left.as_expr().expect("Argument not expression")),
+        state,
+        traversal_state,
+        fns,
+      );
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -315,19 +332,24 @@ pub fn binary_expr_to_num(
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(&Box::new(right.as_expr()?), state, traversal_state, fns);
+      let result = evaluate_cached(
+        &Box::new(right.as_expr().expect("Argument not expression")),
+        state,
+        traversal_state,
+        fns,
+      );
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
       let right_confident = state.confident;
 
-      let left = expr_to_num(left, state, traversal_state, fns);
-      let right = expr_to_num(right, state, traversal_state, fns);
+      let left = expr_to_num(left, state, traversal_state, fns).expect("Left is not a number");
+      let right = expr_to_num(right, state, traversal_state, fns).expect("Right is not a number");
 
       state.confident = left_confident && (left == 0.0 || right_confident);
 
       if !state.confident {
-        return None;
+        return Result::Ok(BinaryExprType::Null);
       }
 
       if left != 0.0 {
@@ -339,7 +361,12 @@ pub fn binary_expr_to_num(
     BinaryOp::NullishCoalescing => {
       let was_confident = state.confident;
 
-      let result = evaluate_cached(&Box::new(left.as_expr()?), state, traversal_state, fns);
+      let result = evaluate_cached(
+        &Box::new(left.as_expr().expect("Argument not expression")),
+        state,
+        traversal_state,
+        fns,
+      );
 
       let left = result.unwrap();
       let left = left.as_expr().unwrap();
@@ -348,19 +375,24 @@ pub fn binary_expr_to_num(
 
       state.confident = was_confident;
 
-      let result = evaluate_cached(&Box::new(right.as_expr()?), state, traversal_state, fns);
+      let result = evaluate_cached(
+        &Box::new(right.as_expr().expect("Argument not expression")),
+        state,
+        traversal_state,
+        fns,
+      );
 
       let right = result.unwrap();
       let right = right.as_expr().unwrap();
       let right_confident = state.confident;
 
-      let left = expr_to_num(left, state, traversal_state, fns);
-      let right = expr_to_num(right, state, traversal_state, fns);
+      let left = expr_to_num(left, state, traversal_state, fns).expect("Left is not a number");
+      let right = expr_to_num(right, state, traversal_state, fns).expect("Right is not a number");
 
       state.confident = left_confident && !!(left == 0.0 || right_confident);
 
       if !state.confident {
-        return None;
+        return Result::Ok(BinaryExprType::Null);
       }
 
       if left == 0.0 {
@@ -370,13 +402,10 @@ pub fn binary_expr_to_num(
       }
     }
     // #endregion Logical
-    BinaryOp::ZeroFillRShift => {
-      ((expr_to_num(left.as_expr()?, state, traversal_state, fns) as i32)
-        >> expr_to_num(right.as_expr()?, state, traversal_state, fns) as i32) as f64
-    }
+    BinaryOp::ZeroFillRShift => ((left_num as i32) >> right_num as i32) as f64,
   };
 
-  Some(result)
+  Result::Ok(BinaryExprType::Number(result))
 }
 
 pub fn ident_to_number(
@@ -392,12 +421,17 @@ pub fn ident_to_number(
       let var_decl_expr = get_expr_from_var_decl(var_decl);
 
       match &var_decl_expr {
-        Expr::Bin(bin_expr) => match binary_expr_to_num(bin_expr, state, traversal_state, fns) {
-          Some(result) => result,
-          None => panic!("Binary expression is not a number"),
+        Expr::Bin(bin_expr) => match binary_expr_to_num(bin_expr, state, traversal_state, fns)
+          .unwrap_or_else(|error| panic!("{}", error))
+        {
+          BinaryExprType::Number(number) => number,
+          _ => panic!(
+            "Binary expression is not a number: {:?}",
+            var_decl_expr.get_type()
+          ),
         },
         Expr::Unary(unary_expr) => unari_to_num(unary_expr, state, traversal_state, fns),
-        Expr::Lit(lit) => lit_to_num(lit),
+        Expr::Lit(lit) => lit_to_num(lit).unwrap_or_else(|error| panic!("{}", error)),
         _ => panic!("Varable {:?} is not a number", var_decl_expr.get_type()),
       }
     }
@@ -405,8 +439,8 @@ pub fn ident_to_number(
   }
 }
 
-pub fn lit_to_num(lit_num: &Lit) -> f64 {
-  match &lit_num {
+pub fn lit_to_num(lit_num: &Lit) -> Result<f64, anyhow::Error> {
+  let result = match &lit_num {
     Lit::Bool(Bool { value, .. }) => {
       if value == &true {
         1.0
@@ -417,18 +451,20 @@ pub fn lit_to_num(lit_num: &Lit) -> f64 {
     Lit::Num(num) => num.value,
     Lit::Str(strng) => {
       let Result::Ok(num) = strng.value.parse::<f64>() else {
-        panic!("Value in not a number: {}", strng.value);
+        return Err(anyhow!("Value in not a number: {}", strng.value));
       };
 
       num
     }
     _ => {
-      panic!(
+      return Err(anyhow!(
         "Value in not a number: {:?}",
         Expr::from(lit_num.clone()).get_type()
-      );
+      ));
     }
-  }
+  };
+
+  Result::Ok(result)
 }
 
 pub fn handle_tpl_to_expression(
@@ -526,8 +562,14 @@ pub fn transform_bin_expr_to_number(
       bin.right.get_type()
     )
   };
-  let left = expr_to_num(left.as_expr().unwrap(), state, traversal_state, fns);
-  let right = expr_to_num(right.as_expr().unwrap(), state, traversal_state, fns);
+
+  let left_expr = left.as_expr().expect("Left argument not expression");
+  let right_expr = right.as_expr().expect("Right argument not expression");
+
+  let left =
+    expr_to_num(left_expr, state, traversal_state, fns).unwrap_or_else(|error| panic!("{}", error));
+  let right = expr_to_num(right_expr, state, traversal_state, fns)
+    .unwrap_or_else(|error| panic!("{}", error));
 
   evaluate_bin_expr(op, left, right)
 }

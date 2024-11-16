@@ -22,11 +22,8 @@ use crate::shared::{
   regex::INCLUDED_IDENT_REGEX,
   structures::state_manager::StateManager,
   utils::{
-    ast::{
-      convertors::string_to_expression,
-      factories::{ident_factory, key_value_factory},
-    },
-    common::{get_string_val_from_lit, get_var_decl_by_ident_or_member},
+    ast::{convertors::string_to_expression, factories::key_value_factory},
+    common::get_string_val_from_lit,
   },
 };
 
@@ -37,20 +34,17 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
     return;
   }
 
-  let ident = ident_factory("create");
-
   assert!(
-    get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state
-        .top_level_expressions
-        .iter()
-        .any(|TopLevelExpression(_, call_item, _)| {
-          match call_item {
-            Expr::Call(call_item_call) => call_item_call == call,
-            Expr::Array(_) => true,
-            _ => false,
-          }
-        }),
+    state
+      .top_level_expressions
+      .iter()
+      .any(|TopLevelExpression(_, call_item, _)| {
+        match call_item {
+          Expr::Call(call_item_call) => call_item_call == call,
+          Expr::Array(_) => true,
+          _ => false,
+        }
+      }),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -72,16 +66,13 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
     return;
   }
 
-  let ident = ident_factory("keyframes");
-
   let expr = Expr::Call(init.clone());
 
   assert!(
-    get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state
-        .top_level_expressions
-        .iter()
-        .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
+    state
+      .top_level_expressions
+      .iter()
+      .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -116,16 +107,13 @@ pub(crate) fn validate_stylex_create_theme_indent(
     return;
   }
 
-  let ident = ident_factory("keyframes");
-
   let expr = Expr::Call(init.clone());
 
   assert!(
-    get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state
-        .top_level_expressions
-        .iter()
-        .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
+    state
+      .top_level_expressions
+      .iter()
+      .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );
@@ -138,16 +126,13 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager)
     return;
   }
 
-  let ident = ident_factory("defineVars");
-
   let expr = Expr::from(call.clone());
 
   assert!(
-    get_var_decl_by_ident_or_member(state, &ident).is_some()
-      || state
-        .top_level_expressions
-        .iter()
-        .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
+    state
+      .top_level_expressions
+      .iter()
+      .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
     "{}",
     UNBOUND_STYLEX_CALL_VALUE
   );

@@ -4,3 +4,9 @@ pub enum VarDeclAction {
   Reduce,
   None,
 }
+
+pub enum BinaryExprType {
+  Number(f64),
+  String(String),
+  Null,
+}

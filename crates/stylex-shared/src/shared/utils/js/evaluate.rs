@@ -29,7 +29,7 @@ use crate::shared::{
       value_with_default::ValueWithDefault,
     },
     js::{ArrayJS, MathJS, ObjectJS, StringJS},
-    misc::VarDeclAction,
+    misc::{BinaryExprType, VarDeclAction},
   },
   structures::{
     evaluate_result::EvaluateResult,
@@ -511,19 +511,22 @@ fn _evaluate(
           Some(EvaluateResultValue::Expr(bool_to_expression(!value)))
         }
         UnaryOp::Plus => {
-          let value = expr_to_num(&arg, state, traversal_state, fns);
+          let value = expr_to_num(&arg, state, traversal_state, fns)
+            .unwrap_or_else(|error| panic!("{}", error));
 
           Some(EvaluateResultValue::Expr(number_to_expression(value)))
         }
         UnaryOp::Minus => {
-          let value = expr_to_num(&arg, state, traversal_state, fns);
+          let value = expr_to_num(&arg, state, traversal_state, fns)
+            .unwrap_or_else(|error| panic!("{}", error));
 
           Some(EvaluateResultValue::Expr(number_to_expression(
             value * -1.0,
           )))
         }
         UnaryOp::Tilde => {
-          let value = expr_to_num(&arg, state, traversal_state, fns);
+          let value = expr_to_num(&arg, state, traversal_state, fns)
+            .unwrap_or_else(|error| panic!("{}", error));
 
           Some(EvaluateResultValue::Expr(number_to_expression(
             (!(value as i64)) as f64,
@@ -723,11 +726,17 @@ fn _evaluate(
       return Some(EvaluateResultValue::Expr(Expr::Object(obj)));
     }
     Expr::Bin(bin) => {
-      if let Some(result) = binary_expr_to_num(bin, state, traversal_state, fns) {
-        return Some(EvaluateResultValue::Expr(number_to_expression(result)));
+      match binary_expr_to_num(bin, state, traversal_state, fns)
+        .unwrap_or_else(|error| panic!("{}", error))
+      {
+        BinaryExprType::Number(result) => {
+          return Some(EvaluateResultValue::Expr(number_to_expression(result)))
+        }
+        BinaryExprType::String(strng) => {
+          return Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
+        }
+        BinaryExprType::Null => None,
       }
-
-      None
     }
     Expr::Call(call) => {
       let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
@@ -1418,7 +1427,10 @@ fn _evaluate(
                     .map(|arg| {
                       arg
                         .as_expr()
-                        .map(|expr| expr_to_num(expr, state, traversal_state, fns))
+                        .map(|expr| {
+                          expr_to_num(expr, state, traversal_state, fns)
+                            .unwrap_or_else(|error| panic!("{}", error))
+                        })
                         .expect("All arguments must be a number")
                     })
                     .collect::<Vec<f64>>();
@@ -1432,7 +1444,8 @@ fn _evaluate(
                     panic!("Math.(round | ceil | floor) requires an argument")
                   };
 
-                  let num = expr_to_num(expr, state, traversal_state, fns);
+                  let num = expr_to_num(expr, state, traversal_state, fns)
+                    .unwrap_or_else(|error| panic!("{}", error));
 
                   let result = match func.as_ref() {
                     CallbackType::Math(MathJS::Round) => num.round(),
@@ -1501,7 +1514,10 @@ fn _evaluate(
                     .map(|arg| {
                       arg
                         .as_expr()
-                        .map(|expr| expr_to_num(expr, state, traversal_state, fns))
+                        .map(|expr| {
+                          expr_to_num(expr, state, traversal_state, fns)
+                            .unwrap_or_else(|error| panic!("{}", error))
+                        })
                         .expect("First argument must be a number")
                     })
                     .collect::<Vec<f64>>();
@@ -1546,12 +1562,9 @@ fn _evaluate(
         unimplemented!("Binding")
       }
 
-      return evaluate_cached(
-        &Box::new(*binding.init.expect("Binding not found")),
-        state,
-        traversal_state,
-        fns,
-      );
+      if let Some(init) = binding.init.as_ref() {
+        return evaluate_cached(&init.clone(), state, traversal_state, fns);
+      }
     }
 
     let name = ident.sym.to_string();
@@ -1659,7 +1672,8 @@ fn args_to_numbers(
     .flat_map(|arg| match arg {
       Some(arg) => match arg {
         EvaluateResultValue::Expr(expr) => {
-          vec![expr_to_num(expr, state, traversal_state, fns)]
+          vec![expr_to_num(expr, state, traversal_state, fns)
+            .unwrap_or_else(|error| panic!("{}", error))]
         }
         EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, traversal_state, fns),
         _ => unreachable!("Math.min/max requires a number"),

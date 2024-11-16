@@ -34,6 +34,10 @@ where
   ) -> VarDeclarator {
     match self.state.cycle {
       TransformationCycle::StateFilling => {
+        if !self.state.declarations.contains(&Box::new(&var_declarator)) {
+          self.state.declarations.push(var_declarator.clone());
+        }
+
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
           if let Some((declaration, member)) = self.process_declaration(call) {
             let stylex_imports = self.state.stylex_import_stringified();
@@ -81,6 +85,7 @@ where
                   NonNullProp::Atom(namespace_name) => NonNullProps::Vec(vec![namespace_name]),
                   NonNullProp::True => NonNullProps::True,
                 };
+
                 entry.insert(value);
               }
             }

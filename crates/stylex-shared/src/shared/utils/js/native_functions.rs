@@ -178,7 +178,7 @@ pub(crate) fn evaluate_filter_cb(
     panic!("Expr is not a literal");
   };
 
-  if lit_to_num(lit) == 0.0 {
+  if lit_to_num(lit).unwrap_or_else(|error| panic!("{}", error)) == 0.0 {
     None
   } else {
     Some(item.clone())

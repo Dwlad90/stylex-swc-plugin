@@ -154,7 +154,6 @@ mod stylex_define_vars {
         &[],
       ),
     ]);
-    dbg!(&default_vars);
 
     let mut state = Box::new(StateManager {
       theme_name: Some(theme_name.to_string()),

@@ -91,7 +91,7 @@ pub struct StateManager {
   pub(crate) style_vars: FxHashMap<String, VarDeclarator>,
 
   // results of `stylex.create` calls that should be kept
-  pub(crate) style_vars_to_keep: FxHashSet<StyleVarsToKeep>,
+  pub(crate) style_vars_to_keep: IndexSet<StyleVarsToKeep>,
   pub(crate) member_object_ident_count_map: AtomHashMap,
 
   pub(crate) in_stylex_create: bool,
@@ -134,7 +134,7 @@ impl StateManager {
       inject_import_inserted: None,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
-      style_vars_to_keep: FxHashSet::default(),
+      style_vars_to_keep: IndexSet::default(),
       member_object_ident_count_map: FxHashMap::default(),
       theme_name: None,
 
@@ -555,7 +555,7 @@ impl StateManager {
     self.style_map = chain_collect_hash_map(self.style_map.clone(), other.style_map.clone());
     self.style_vars = chain_collect_hash_map(self.style_vars.clone(), other.style_vars.clone());
     self.style_vars_to_keep =
-      union_hash_set(&self.style_vars_to_keep.clone(), &other.style_vars_to_keep);
+      union_index_set(&self.style_vars_to_keep.clone(), &other.style_vars_to_keep);
     self.member_object_ident_count_map = chain_collect_hash_map(
       self.member_object_ident_count_map.clone(),
       other.member_object_ident_count_map.clone(),
@@ -738,7 +738,7 @@ fn chain_collect_hash_map<K: Eq + Hash, V: Clone + PartialEq>(
   map1.into_iter().chain(map2).collect()
 }
 
-fn _union_index_set<T: Clone + Eq + Hash>(set1: &IndexSet<T>, set2: &IndexSet<T>) -> IndexSet<T> {
+fn union_index_set<T: Clone + Eq + Hash>(set1: &IndexSet<T>, set2: &IndexSet<T>) -> IndexSet<T> {
   if set1 == set2 {
     return set1.clone();
   }

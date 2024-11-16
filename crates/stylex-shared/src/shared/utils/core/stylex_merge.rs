@@ -1,5 +1,5 @@
 use swc_core::ecma::{
-  ast::{BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread},
+  ast::{BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Lit},
   utils::ExprExt,
   visit::FoldWith,
 };
@@ -77,6 +77,7 @@ pub(crate) fn stylex_merge(
           let ident = match alt.as_ref() {
             Expr::Ident(ident) => ident,
             Expr::Member(member) => member.obj.as_ident().expect("Member obj is not an ident"),
+            Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => return None,
             _ => panic!("Illegal argument: {:?}", alt.get_type()),
           };
 

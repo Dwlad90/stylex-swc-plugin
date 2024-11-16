@@ -273,3 +273,25 @@ test!(
         stylex.props([styles.red, isActive && styles.blue]);
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  stylex_call_with_conditions_and_null_collisions_tranform_successfully,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            red: {
+                color: 'red',
+            },
+        });
+        stylex.props(Math.random() > 1 ? styles.red : null);
+    "#
+);

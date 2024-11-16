@@ -125,7 +125,6 @@ pub(crate) fn validate_stylex_create_theme_indent(
   assert!(init.args.len() == 2, "{}", ILLEGAL_ARGUMENT_LENGTH);
 
   let second_args = &init.args[1];
-  dbg!(&second_args, &second_args.expr.get_type());
 
   assert!(
     second_args.expr.is_object(),

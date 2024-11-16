@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-swc-example",
-  "version": "0.4.2-rc.1",
+  "version": "0.4.2-rc.2",
   "private": true,
   "scripts": {
     "clean": "rimraf .next",
@@ -22,8 +22,8 @@
   },
   "devDependencies": {
     "@stylexjs/eslint-plugin": "^0.9.3",
-    "@stylexswc/nextjs-swc-plugin": "0.4.2-rc.1",
-    "@stylexswc/swc-plugin": "0.4.2-rc.1",
+    "@stylexswc/nextjs-swc-plugin": "0.4.2-rc.2",
+    "@stylexswc/swc-plugin": "0.4.2-rc.2",
     "@types/node": "^22.5.1",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",

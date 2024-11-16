@@ -103,7 +103,8 @@
     "play": "pnpm -C playground run dev",
     "prepublishOnly": "pnpm run build",
     "start": "esno src/index.ts",
-    "test": "vitest",
+    "test": "vitest  --run",
+    "test:watch": "vitest",
     "test:update": "vitest -u",
     "test:cov": "vitest --coverage"
   },

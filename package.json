@@ -3,13 +3,16 @@
   "version": "0.4.2-rc.2",
   "private": true,
   "scripts": {
-    "build": "turbo build",
+    "build": "pnpm run -r build",
     "clean": "turbo clean",
     "dev": "turbo dev",
     "docs": "scripty  --rust",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format:check": "pnpm run -r format:check",
     "lint": "turbo lint",
-    "prepare": "husky"
+    "lint:check": "pnpm run -r lint:check",
+    "prepare": "husky",
+    "test": "pnpm run --filter=\"!@stylexswc/rs-compiler\" test"
   },
   "config": {
     "scripty": {

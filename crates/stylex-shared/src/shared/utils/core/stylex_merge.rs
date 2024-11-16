@@ -169,7 +169,9 @@ pub(crate) fn stylex_merge(
         parents: vec![],
       };
 
-      arg_path.expr = arg_path.expr.clone().fold_with(&mut member_transform);
+      let transformed_expr = arg_path.expr.clone().fold_with(&mut member_transform);
+
+      arg_path.expr = transformed_expr;
 
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;

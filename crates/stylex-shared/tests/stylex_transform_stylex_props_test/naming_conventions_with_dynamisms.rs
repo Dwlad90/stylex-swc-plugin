@@ -155,3 +155,34 @@ test!(
         }
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  stylex_call_props_with_override_dynamic_styles,
+  r#"
+        import stylex from 'stylex';
+
+        const styles = stylex.create({
+          'primary-variant': {
+              color: 'red'
+          },
+          secondaryVariant: {
+              color: 'blue'
+          },
+        });
+
+        function TestComponent({ variant }) {
+            return (
+                <div {...stylex.props(styles.secondaryVariant, styles[`${variant}-variant`])} />
+            );
+        }
+    "#
+);

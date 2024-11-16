@@ -74,9 +74,13 @@ where
           {
             match vars_to_keep.entry(var_name) {
               Entry::Occupied(mut entry) => {
-                if let NonNullProps::Vec(vec) = entry.get_mut() {
+                let entry_value = entry.get_mut();
+
+                if let NonNullProps::Vec(vec) = entry_value {
                   if let NonNullProp::Atom(id) = namespace_name {
                     vec.push(id);
+                  } else {
+                    *entry_value = NonNullProps::True;
                   }
                 }
               }

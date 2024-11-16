@@ -9,7 +9,10 @@ use crate::shared::{
     style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
   },
   structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{common::increase_ident_count, js::evaluate::evaluate},
+  utils::{
+    common::{get_string_val_from_lit, increase_ident_count},
+    js::evaluate::evaluate,
+  },
 };
 
 pub(crate) fn member_expression(
@@ -24,7 +27,7 @@ pub(crate) fn member_expression(
   let property = &member.prop;
 
   let mut obj_name: Option<&Atom> = None;
-  let mut prop_name: Option<&Atom> = None;
+  let mut prop_name: Option<Atom> = None;
 
   if let Expr::Ident(ident) = object {
     let obj_ident_name = &ident.sym;
@@ -34,13 +37,12 @@ pub(crate) fn member_expression(
     if state.style_map.contains_key(&obj_ident_name.to_string()) {
       match property {
         MemberProp::Ident(ident) => {
-          prop_name = Some(&ident.sym);
+          prop_name = Some(ident.sym.clone());
         }
         MemberProp::Computed(computed) => {
-          assert!(
-            !computed.expr.is_lit(),
-            "Computed not implemented yet for non literal expressions"
-          );
+          if let Expr::Lit(lit) = computed.expr.as_ref() {
+            prop_name = get_string_val_from_lit(lit).map(Atom::from);
+          }
         }
         _ => {}
       }

@@ -1,7 +1,10 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{CallExpr, Expr, KeyValueProp, Lit, Pat, PropName, VarDeclarator},
+  ecma::{
+    ast::{CallExpr, Expr, KeyValueProp, Lit, Pat, PropName, VarDeclarator},
+    utils::ExprExt,
+  },
 };
 
 use crate::shared::{
@@ -11,7 +14,8 @@ use crate::shared::{
       DUPLICATE_CONDITIONAL, ILLEGAL_ARGUMENT_LENGTH, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
       INVALID_PSEUDO_OR_AT_RULE, NON_EXPORT_NAMED_DECLARATION, NON_OBJECT_FOR_STYLEX_CALL,
       NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, NON_OBJECT_KEYFRAME, NON_STATIC_KEYFRAME_VALUE,
-      NON_STATIC_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS, ONLY_TOP_LEVEL_INCLUDES,
+      NON_STATIC_SECOND_ARG_KEYFRAME_VALUE, NON_STATIC_VALUE,
+      ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS, ONLY_TOP_LEVEL_INCLUDES,
       UNBOUND_STYLEX_CALL_VALUE,
     },
   },
@@ -119,6 +123,16 @@ pub(crate) fn validate_stylex_create_theme_indent(
   );
 
   assert!(init.args.len() == 2, "{}", ILLEGAL_ARGUMENT_LENGTH);
+
+  let second_args = &init.args[1];
+  dbg!(&second_args, &second_args.expr.get_type());
+
+  assert!(
+    second_args.expr.is_object(),
+    "{} Got: {:?}",
+    NON_STATIC_SECOND_ARG_KEYFRAME_VALUE,
+    second_args.expr.get_type()
+  )
 }
 
 pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager) {

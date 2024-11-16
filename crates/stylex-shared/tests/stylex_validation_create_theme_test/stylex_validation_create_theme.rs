@@ -261,3 +261,31 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
     false,
   )
 }
+
+#[test]
+#[should_panic(
+  expected = "stylex.keyframes() can only accept an object as the second argument. Got: Unknown"
+)]
+fn second_arg_should_be_object_in_stylex_create_theme_fn() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+            import stylex from 'stylex';
+            import { buttonTokens } from "./ButtonTokens.stylex";
+
+            export const variables = stylex.createTheme(buttonTokens, buttonTokens);
+        "#,
+    r#""#,
+    false,
+  )
+}

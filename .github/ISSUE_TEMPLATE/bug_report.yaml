@@ -4,6 +4,7 @@ labels:
   - bug
 assignees:
   - dwlad90
+title: "[BUG] "
 
 body:
   - type: textarea

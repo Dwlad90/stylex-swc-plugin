@@ -1,3 +1,4 @@
+use core::panic;
 use log::warn;
 use once_cell::sync::Lazy;
 use path_clean::PathClean;
@@ -12,7 +13,7 @@ use swc_core::{
 use std::fs;
 
 use crate::{
-  package_json::get_package_json,
+  package_json::{find_nearest_package_json, get_package_json},
   utils::{contains_subpath, relative_path},
 };
 
@@ -25,20 +26,14 @@ pub static FILE_PATTERN: Lazy<Regex> =
 
 pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
   if !FILE_PATTERN.is_match(processing_file.to_str().unwrap()) {
-    let processing_path: PathBuf;
-
-    #[cfg(test)]
-    {
-      processing_path = processing_file
+    let processing_path = if !cfg!(feature = "wasm") || cfg!(test) {
+      processing_file
         .strip_prefix(root_dir.parent().unwrap().parent().unwrap())
         .unwrap()
-        .to_path_buf();
-    }
-
-    #[cfg(not(test))]
-    {
-      processing_path = processing_file.to_path_buf();
-    }
+        .to_path_buf()
+    } else {
+      processing_file.to_path_buf()
+    };
 
     panic!(
       r#"Resolve path must be a file, but got: {}"#,
@@ -46,17 +41,11 @@ pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
     );
   }
 
-  let cwd: PathBuf;
-
-  #[cfg(test)]
-  {
-    cwd = root_dir.to_path_buf();
-  }
-
-  #[cfg(not(test))]
-  {
-    cwd = "cwd".into();
-  }
+  let cwd = if !cfg!(feature = "wasm") || cfg!(test) {
+    root_dir.to_path_buf()
+  } else {
+    "cwd".into()
+  };
 
   let mut stripped_path = match processing_file.strip_prefix(root_dir) {
     Ok(stripped) => stripped.to_path_buf(),
@@ -160,8 +149,7 @@ pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
 
   let resolved_path = stripped_path.clean().display().to_string();
 
-  #[cfg(test)]
-  {
+  if cfg!(test) {
     let cwd_resolved_path = format!("{}/{}", root_dir.display(), resolved_path);
 
     assert!(
@@ -209,9 +197,13 @@ fn resolve_package_json_exports(
 
   values.sort_by_key(|k| -(k.len() as isize));
 
-  let real_resolved_package_path = real_resolved_node_modules_path
-    .parent()
-    .expect("Path must have a parent");
+  let real_resolved_package_path = find_nearest_package_json(real_resolved_node_modules_path)
+    .unwrap_or_else(|| {
+      panic!(
+        "package.json not found near: {}",
+        real_resolved_node_modules_path.display()
+      )
+    });
 
   for value in values {
     if value.contains(&potential_file_path_without_extension) {

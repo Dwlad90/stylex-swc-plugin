@@ -5,6 +5,7 @@
     "stylex-lib-dist-main": "*",
     "stylex-lib-dist-module": "*",
     "stylex-lib-dist-exports": "*",
+    "stylex-lib-dist-exports-with-main": "*",
     "stylex-lib-dist-main-local": "workspace:*",
     "stylex-lib-dist-module-local": "workspace:*",
     "stylex-lib-dist-exports-local": "workspace:*"

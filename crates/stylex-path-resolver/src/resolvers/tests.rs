@@ -213,6 +213,24 @@ mod resolve_path_tests {
   }
 
   #[test]
+  fn workspace_package_main_dist_with_namespace() {
+    let test_path = PathBuf::from("workspace");
+    let local_package_test_path = PathBuf::from("");
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &local_package_test_path,
+          "packages/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path()
+      ),
+      "node_modules/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
+    );
+  }
+
+  #[test]
   fn external_package_main_exports() {
     let test_path = PathBuf::from("exports");
 
@@ -259,6 +277,23 @@ mod resolve_path_tests {
         get_root_dir(&test_path).as_path()
       ),
       "node_modules/stylex-lib-dist-exports/dist/index.js"
+    );
+  }
+
+  #[test]
+  fn external_package_exports_with_main() {
+    let test_path = PathBuf::from("exports");
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &test_path,
+          "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path()
+      ),
+      "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
     );
   }
 
@@ -336,6 +371,18 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(
+          &test_path,
+          "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path()
+      ),
+      "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
+    );
+
+    assert_eq!(
+      resolve_path(
+        fixture(
           &local_package_test_path,
           "packages/stylex-lib-dist-exports-local/dist/index.js"
         )
@@ -396,6 +443,24 @@ mod resolve_path_tests {
 
   #[test]
   #[should_panic(
+    expected = "Resolve path must be a file, but got: fixtures/packages/stylex-lib-dist-exports-with-main/colors.stylex"
+  )]
+  fn resolve_work_dir_not_existed_workspace_package_exports_with_main() {
+    let test_path = PathBuf::from("exports");
+    let local_package_test_path = PathBuf::from("");
+
+    resolve_path(
+      fixture(
+        &local_package_test_path,
+        "packages/stylex-lib-dist-exports-with-main/colors.stylex",
+      )
+      .as_path(),
+      get_root_dir(&test_path).as_path(),
+    );
+  }
+
+  #[test]
+  #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports/colors.stylex"
   )]
   fn resolve_work_dir_not_existed_external_package_exports() {
@@ -405,6 +470,23 @@ mod resolve_path_tests {
       fixture(
         &test_path,
         "node_modules/stylex-lib-dist-exports/colors.stylex",
+      )
+      .as_path(),
+      get_root_dir(&test_path).as_path(),
+    );
+  }
+
+  #[test]
+  #[should_panic(
+    expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports-with-main/colors.stylex"
+  )]
+  fn resolve_work_dir_not_existed_external_package_exports_with_main() {
+    let test_path = PathBuf::from("exports");
+
+    resolve_path(
+      fixture(
+        &test_path,
+        "node_modules/stylex-lib-dist-exports-with-main/colors.stylex",
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
@@ -429,6 +511,22 @@ mod resolve_path_tests {
 
   #[test]
   #[should_panic(
+    expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports"
+  )]
+  fn failed_resolve_root_package_path_with_main() {
+    let test_path = PathBuf::from("exports");
+
+    assert_eq!(
+      resolve_path(
+        fixture(&test_path, "node_modules/stylex-lib-dist-exports-with-main").as_path(),
+        get_root_dir(&test_path).as_path()
+      ),
+      "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
+    );
+  }
+
+  #[test]
+  #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports/colors.stylex"
   )]
   fn failed_resolve_package_exports_dir_path() {
@@ -438,6 +536,23 @@ mod resolve_path_tests {
       fixture(
         &test_path,
         "node_modules/stylex-lib-dist-exports/colors.stylex",
+      )
+      .as_path(),
+      get_root_dir(&test_path).as_path(),
+    );
+  }
+
+  #[test]
+  #[should_panic(
+    expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports-with-main/colors.stylex"
+  )]
+  fn failed_resolve_package_exports_dir_path_with_main() {
+    let test_path = PathBuf::from("exports");
+
+    resolve_path(
+      fixture(
+        &test_path,
+        "node_modules/stylex-lib-dist-exports-with-main/colors.stylex",
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),

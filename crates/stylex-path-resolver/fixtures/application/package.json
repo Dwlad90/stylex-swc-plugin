@@ -1,0 +1,8 @@
+{
+  "name": "appplication",
+  "version": "0.1.0",
+  "dependencies": {
+    "stylex-lib-dist-main": "*",
+    "stylex-lib-dist-exports-with-main": "*"
+  }
+}

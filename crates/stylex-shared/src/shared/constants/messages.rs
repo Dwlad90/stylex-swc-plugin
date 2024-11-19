@@ -65,8 +65,8 @@ pub(crate) static NON_STATIC_KEYFRAME_VALUE: &str =
 pub(crate) static NON_OBJECT_KEYFRAME: &str =
   "Every frame within a stylex.keyframes() call must be an object.";
 
-pub(crate) static NON_STATIC_SECOND_ARG_KEYFRAME_VALUE: &str =
-  "stylex.keyframes() can only accept an object as the second argument.";
+pub(crate) static NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE: &str =
+  "stylex.createTheme() can only accept an object as the second argument.";
 
 pub(crate) static LINT_UNCLOSED_FUNCTION: &str = "Rule contains an unclosed function";
 pub(crate) static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";

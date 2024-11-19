@@ -264,7 +264,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
 
 #[test]
 #[should_panic(
-  expected = "stylex.keyframes() can only accept an object as the second argument. Got: Unknown"
+  expected = "stylex.createTheme() can only accept an object as the second argument. Got: Unknown"
 )]
 fn second_arg_should_be_object_in_stylex_create_theme_fn() {
   test_transform(

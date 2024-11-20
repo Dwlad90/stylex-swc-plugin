@@ -19,5 +19,6 @@
   "search.exclude": {
     "**/node_modules": true,
     "**/.cargo/**": true,
-  }
+  },
+  "git.ignoreLimitWarning": true
 }

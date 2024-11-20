@@ -1,0 +1,66 @@
+{
+  "name": "Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20.17.0",
+      "pnpmVersion": "9.9.0"
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "1.82.0",
+      "targets": [
+        "wasm32-wasip1",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl",
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu"
+      ],
+      "profile": "minimal"
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "GitHub.copilot",
+        "ms-vscode.vscode-typescript-next",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "eslint.workingDirectories": [
+          {
+            "mode": "auto"
+          }
+        ],
+        "javascript.validate.enable": false,
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        },
+        "[toml]": {
+          "editor.defaultFormatter": "tamasfe.even-better-toml"
+        },
+        "files.exclude": {
+          "node_modules": true,
+          "**/node_modules": false,
+          "**/.cargo/**": true
+        },
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/.cargo/**": true
+        }
+      }
+    }
+  },
+  "postCreateCommand": "pnpm install",
+  "remoteUser": "vscode",
+  "forwardPorts": [
+    3000
+  ]
+}

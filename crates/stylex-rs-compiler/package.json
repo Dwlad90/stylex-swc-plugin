@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler",
   "description": "NAPI-RS compiler for transform StyleX code",
-  "version": "0.4.3",
+  "version": "0.4.4-rc.1",
   "ava": {
     "extensions": {
       "ts": "module"

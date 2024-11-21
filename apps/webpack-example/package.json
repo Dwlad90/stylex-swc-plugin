@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/webpack-example",
-  "version": "0.4.3",
+  "version": "0.4.4-rc.1",
   "description": "A simple webpack example to test stylexswc/webpack-plugin",
   "main": "./dist/index.js",
   "private": true,
@@ -13,7 +13,7 @@
     "@stylexjs/stylex": "^0.9.3"
   },
   "devDependencies": {
-    "@stylexswc/webpack-plugin": "0.4.3",
+    "@stylexswc/webpack-plugin": "0.4.4-rc.1",
     "html-webpack-plugin": "^5.6.0",
     "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4"

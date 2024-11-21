@@ -16,7 +16,7 @@
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
     "bright": "^0.8.4",
-    "next": "14.2.3",
+    "next": "14.2.10",
     "react": "^18",
     "react-dom": "^18"
   },

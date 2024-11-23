@@ -43,3 +43,5 @@ pub(crate) static CLEAN_CSS_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\\3(\d
 
 pub(crate) static IS_CSS_VAR: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"^var\(--[a-zA-Z0-9-_]+\)$"#).unwrap());
+
+pub(crate) static MANY_SPACES: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\s+"#).unwrap());

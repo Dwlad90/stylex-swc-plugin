@@ -184,6 +184,15 @@ mod css_tests {
       ),
       r#"oklch(from var(--xs74gcj) l c h / 0.5)"#
     );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"radial-gradient(circle at 0% 0%, oklch(from   var(--colors-tile-background) calc(l + 0.1) calc(c + 0.2) h) 0, transparent 15%), radial-gradient(circle at 80% 100%,oklch(from var(--colors-tile-background) calc(l - 0.25) calc(c + 0.01) h) 0, transparent 30%), linear-gradient(45deg,var(--colors-tile-background) 0%, oklch(from var(--colors-tile-background) calc(l - 0.1) calc(c + 0.3) h) 100%)"#,
+        &mut StateManager::default()
+      ),
+      r#"radial-gradient(circle at 0% 0%, oklch(from var(--colors-tile-background) calc(l + 0.1) calc(c + 0.2) h) 0, transparent 15%), radial-gradient(circle at 80% 100%,oklch(from var(--colors-tile-background) calc(l - 0.25) calc(c + 0.01) h) 0, transparent 30%), linear-gradient(45deg,var(--colors-tile-background) 0%, oklch(from var(--colors-tile-background) calc(l - 0.1) calc(c + 0.3) h) 100%)"#
+    );
   }
 
   #[test]

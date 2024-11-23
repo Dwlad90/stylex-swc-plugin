@@ -28,5 +28,5 @@ pub(crate) static ROOT_FONT_SIZE: i8 = 16;
 
 pub(crate) static THEME_NAME_KEY: &str = "__themeName__";
 
-pub(crate) static WHITE_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 4]> =
-  Lazy::new(|| ["oklch", "lch", "oklab", "hsla"]);
+pub(crate) static WHITE_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 5]> =
+  Lazy::new(|| ["oklch", "lch", "oklab", "hsla", "radial-gradient"]);

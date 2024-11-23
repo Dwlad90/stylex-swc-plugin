@@ -14,7 +14,7 @@ use crate::shared::{
     shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
     unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
   },
-  regex::{CLEAN_CSS_VAR, CSS_ATTRIBUTE},
+  regex::{CLEAN_CSS_VAR, CSS_ATTRIBUTE, MANY_SPACES},
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
     stylex_state_options::StyleXStateOptions,
@@ -478,7 +478,7 @@ pub(crate) fn normalize_css_property_value(
     .into_iter()
     .any(|css_fnc| css_property_value.starts_with(format!("{}(", css_fnc).as_str()))
   {
-    return css_property_value.to_string();
+    return MANY_SPACES.replace_all(css_property_value, " ").to_string();
   }
 
   let css_property = if css_property.starts_with("--") {

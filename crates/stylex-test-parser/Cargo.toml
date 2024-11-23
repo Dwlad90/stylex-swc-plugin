@@ -1,6 +1,6 @@
 [package]
 name = "stylex_test_parser"
-version = "0.4.4-rc.1"
+version = "0.4.4-rc.2"
 edition = "2021"
 rust-version = "1.82.0"
 description = "Test parser for StyleX"

@@ -747,6 +747,67 @@ mod resolve_path_tests {
   }
 
   #[test]
+  fn resolve_package_with_pnpm_path() {
+    let test_path = PathBuf::from("application");
+
+    let import_path_str = "stylex-lib-pnpm";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let ext = ".js";
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = FxHashMap::default();
+
+    let expected_result =
+      "node_modules/.pnpm/stylex-lib-pnpm@0.1.0/node_modules/stylex-lib-pnpm/dist/index.jsx";
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        ext,
+        root_path.as_str(),
+        &aliases,
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_organisation_package_with_pnpm_path() {
+    let test_path = PathBuf::from("application");
+
+    let import_path_str = "@stylex/lib-exports-pnpm/dist/colors.stylex";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let ext = ".js";
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = FxHashMap::default();
+
+    let expected_result = "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js";
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        ext,
+        root_path.as_str(),
+        &aliases,
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
   fn get_import_path_when_no_aliases() {
     assert_eq!(
       possible_aliased_paths("@stylexjs/stylex", &FxHashMap::default()),

@@ -13,9 +13,10 @@ use swc_core::{
 use std::fs;
 
 use crate::{
+  file_system::get_directories,
   package_json::{
     find_nearest_package_json, get_package_json, get_package_json_with_deps,
-    resolve_package_from_package_json,
+    resolve_package_from_package_json, PackageJsonExtended,
   },
   utils::{contains_subpath, relative_path},
 };
@@ -258,7 +259,7 @@ pub fn resolve_file_path(
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
 ) -> std::io::Result<PathBuf> {
-  let source_dir = Path::new(source_file_path).parent().unwrap();
+  let source_file_dir = Path::new(source_file_path).parent().unwrap();
   let root_path = Path::new(root_path);
 
   let cwd = if cfg!(feature = "wasm") {
@@ -270,7 +271,7 @@ pub fn resolve_file_path(
   let cwd_path = Path::new(cwd);
 
   let resolved_file_paths: Vec<PathBuf> = if import_path_str.starts_with('.') {
-    vec![resolve_path(&source_dir.join(import_path_str), root_path).into()]
+    vec![resolve_path(&source_file_dir.join(import_path_str), root_path).into()]
   } else if import_path_str.starts_with('/') {
     vec![root_path.join(import_path_str)]
   } else {
@@ -280,37 +281,47 @@ pub fn resolve_file_path(
       .map(PathBuf::from)
       .collect::<Vec<PathBuf>>();
 
-    if let Some((package_resolution, name)) =
-      find_node_modules_resolution(cwd_path, import_path_str)
+    if let Ok(mut resolved_node_modules_path_buf) =
+      resolve_node_modules_path_buff(cwd_path, import_path_str)
     {
-      if let FileName::Real(resolved_node_modules_path_buf) = package_resolution.filename {
-        let (package_json, _) = get_package_json(&resolved_node_modules_path_buf);
+      let (mut package_json, _) = get_package_json(&resolved_node_modules_path_buf);
 
-        let potential_import_path_segment = import_path_str.split(&name).last().unwrap_or_default();
+      let package_name = package_json.name.clone();
 
-        let import_path_segment = if potential_import_path_segment.is_empty() {
-          name
-        } else {
-          potential_import_path_segment.to_string()
-        };
-
-        let mut potential_package_path = String::default();
-
-        if let Some(exports) = &package_json.exports {
-          resolve_package_json_exports(
-            &import_path_segment,
-            exports,
-            &mut potential_package_path,
-            &resolved_node_modules_path_buf,
-          );
-        }
-
-        if !potential_package_path.is_empty() {
-          aliased_file_paths.push(Path::new(&potential_package_path).to_path_buf().clean());
-        }
-
-        aliased_file_paths.push(resolved_node_modules_path_buf.clean());
+      if let Some((pnpm_package_json, pnpm_package_path)) =
+        resolve_package_with_pnpm_path(source_file_dir, &package_name, import_path_str)
+      {
+        package_json = pnpm_package_json;
+        resolved_node_modules_path_buf = pnpm_package_path;
       }
+
+      let potential_import_path_segment = import_path_str
+        .split(&package_name)
+        .last()
+        .unwrap_or_default();
+
+      let import_path_segment = if potential_import_path_segment.is_empty() {
+        package_name
+      } else {
+        potential_import_path_segment.to_string()
+      };
+
+      let mut potential_package_path = String::default();
+
+      if let Some(exports) = &package_json.exports {
+        resolve_package_json_exports(
+          &import_path_segment,
+          exports,
+          &mut potential_package_path,
+          &resolved_node_modules_path_buf,
+        );
+      }
+
+      if !potential_package_path.is_empty() {
+        aliased_file_paths.push(Path::new(&potential_package_path).to_path_buf().clean());
+      }
+
+      aliased_file_paths.push(resolved_node_modules_path_buf.clean());
     }
 
     aliased_file_paths.push(Path::new("node_modules").join(import_path_str));
@@ -364,15 +375,58 @@ pub fn resolve_file_path(
   ))
 }
 
-fn find_node_modules_resolution(
-  cwd: &Path,
+fn resolve_package_with_pnpm_path(
+  source_file_dir: &Path,
+  package_name: &String,
   import_path_str: &str,
-) -> Option<(swc_core::ecma::loader::resolve::Resolution, String)> {
-  let (resolver, _) = get_package_json_with_deps(cwd);
+) -> Option<(PackageJsonExtended, PathBuf)> {
+  let nearest_package_json_path = find_nearest_package_json(&PathBuf::from(source_file_dir));
+  if let Some(nearest_package_json_directory) = nearest_package_json_path {
+    if let Ok(directories) =
+      get_directories(&nearest_package_json_directory.join("node_modules/.pnpm"))
+    {
+      let normalized_name = if package_name.starts_with('@') {
+        package_name.replace('/', "+")
+      } else {
+        package_name.to_string()
+      };
 
-  let file_name = FileName::Real(cwd.to_path_buf());
+      for path in directories.iter() {
+        if path.to_string_lossy().contains(&normalized_name) {
+          if let Ok(resolved_node_modules_path_buff) =
+            resolve_node_modules_path_buff(path, import_path_str)
+          {
+            let (package_json, _) = get_package_json(path);
 
-  resolve_package_from_package_json(&resolver, &file_name, import_path_str)
+            return Some((package_json, resolved_node_modules_path_buff));
+          };
+        }
+      }
+    }
+  };
+
+  None
+}
+
+fn resolve_node_modules_path_buff(
+  path: &Path,
+  import_path_str: &str,
+) -> Result<PathBuf, std::io::Error> {
+  let (resolver, _) = get_package_json_with_deps(path);
+
+  if let Some(package_resolution) = resolve_package_from_package_json(
+    &resolver,
+    &FileName::Real(path.to_path_buf()),
+    import_path_str,
+  ) {
+    if let FileName::Real(resolved_node_modules_path_buf) = package_resolution.filename {
+      return Ok::<PathBuf, std::io::Error>(resolved_node_modules_path_buf);
+    }
+  }
+  Result::Err(std::io::Error::new(
+    std::io::ErrorKind::NotFound,
+    "File not found",
+  ))
 }
 
 fn possible_aliased_paths(

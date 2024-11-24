@@ -1,3 +1,4 @@
+mod file_system;
 mod package_json;
 pub mod resolvers;
 mod utils;

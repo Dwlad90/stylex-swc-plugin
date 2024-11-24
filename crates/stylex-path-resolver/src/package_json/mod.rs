@@ -29,9 +29,9 @@ pub struct PackageJsonExtended {
 }
 
 pub(crate) fn get_package_json(path: &Path) -> (PackageJsonExtended, PackageJsonManager) {
-  let (package_json_content, manager) = get_package_json_path(path);
+  let (package_json_path, manager) = get_package_json_path(path);
 
-  match package_json_content {
+  match package_json_path {
     Some(file) => {
       let data = read_to_string(file.display().to_string().as_str());
 
@@ -83,11 +83,11 @@ pub(crate) fn resolve_package_from_package_json(
   resolver: &NodeModulesResolver,
   file_name: &FileName,
   import_path_str: &str,
-) -> Option<(swc_core::ecma::loader::resolve::Resolution, String)> {
+) -> Option<swc_core::ecma::loader::resolve::Resolution> {
   const PATH_SEPARATOR: char = '/';
 
   if let Some(parent) = get_node_modules_path(resolver, file_name, import_path_str) {
-    return Some((parent, import_path_str.to_string()));
+    return Some(parent);
   }
 
   let parts: Vec<&str> = import_path_str.split(PATH_SEPARATOR).collect();

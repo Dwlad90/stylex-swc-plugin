@@ -293,5 +293,39 @@ test!(
             },
         });
         stylex.props(Math.random() > 1 ? styles.red : null);
+        stylex.props(true ? styles.red : null);
+        stylex.props(false ? styles.red : null);
+
+        stylex.props(Math.random() > 1 ? null: styles.red);
+        stylex.props(true ? null: styles.red );
+        stylex.props(false ? null : styles.red);
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  stylex_call_with_conditions_and_undefined_collisions_tranform_successfully,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            red: {
+                color: 'red',
+            },
+        });
+        stylex.props(Math.random() > 1 ? styles.red : undefined);
+        stylex.props(true ? styles.red : undefined);
+        stylex.props(false ? styles.red : undefined);
+
+        stylex.props(Math.random() > 1 ? undefined: styles.red);
+        stylex.props(true ? undefined: styles.red );
+        stylex.props(false ? undefined : styles.red);
     "#
 );

@@ -75,7 +75,13 @@ pub(crate) fn stylex_merge(
           bail_out = true;
         } else {
           let ident = match alt.as_ref() {
-            Expr::Ident(ident) => ident,
+            Expr::Ident(ident) => {
+              if ident.sym == "undefined" {
+                return None;
+              }
+
+              ident
+            }
             Expr::Member(member) => member.obj.as_ident().expect("Member obj is not an ident"),
             Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => return None,
             _ => panic!("Illegal argument: {:?}", alt.get_type()),

@@ -9,9 +9,9 @@ const styles = {
         $$css: true
     }
 };
-stylex.props(Math.random() > 1 ? styles.red : null);
-stylex.props(true ? styles.red : null);
-stylex.props(false ? styles.red : null);
-stylex.props(Math.random() > 1 ? null : styles.red);
-stylex.props(true ? null : styles.red);
-stylex.props(false ? null : styles.red);
+stylex.props(Math.random() > 1 ? styles.red : undefined);
+stylex.props(true ? styles.red : undefined);
+stylex.props(false ? styles.red : undefined);
+stylex.props(Math.random() > 1 ? undefined : styles.red);
+stylex.props(true ? undefined : styles.red);
+stylex.props(false ? undefined : styles.red);

@@ -578,20 +578,22 @@ mod resolve_path_tests {
   }
 
   #[test]
-  #[should_panic(
-    expected = "Path resolution failed: node_modules/stylex-lib-dist-exports-local/colors.stylex.js"
-  )]
-  fn resolve_work_dir_not_existed_local_package_exports_path() {
+  fn resolve_work_dir_existed_local_package_exports_path() {
     let test_path = PathBuf::from("exports");
     let local_package_test_path = PathBuf::from("");
 
-    resolve_path(
-      fixture(
-        &local_package_test_path,
-        "packages/stylex-lib-dist-exports-local/colors.stylex.js",
-      )
-      .as_path(),
-      get_root_dir(&test_path).as_path(),
+    let expected_result = "node_modules/stylex-lib-dist-exports-local/dist/colors.stylex.js";
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &local_package_test_path,
+          "packages/stylex-lib-dist-exports-local/colors.stylex.js",
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+      ),
+      expected_result
     );
   }
 
@@ -779,6 +781,36 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_organisation_package_with_pnpm_path() {
+    let test_path = PathBuf::from("application");
+
+    let import_path_str = "@stylex/lib-exports-pnpm/colors.stylex";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let ext = ".js";
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = FxHashMap::default();
+
+    let expected_result = "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js";
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        ext,
+        root_path.as_str(),
+        &aliases,
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_organisation_package_with_pnpm_with_same_path() {
     let test_path = PathBuf::from("application");
 
     let import_path_str = "@stylex/lib-exports-pnpm/dist/colors.stylex";

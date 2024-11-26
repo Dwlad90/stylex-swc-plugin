@@ -7,13 +7,16 @@ use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 use swc_core::{
   common::FileName,
-  ecma::loader::{resolve::Resolve, resolvers::node::NodeModulesResolver},
+  ecma::loader::{
+    resolve::{Resolution, Resolve},
+    resolvers::node::NodeModulesResolver,
+  },
 };
 
 use std::fs;
 
 use crate::{
-  file_system::get_directories,
+  file_system::{get_directories, get_directory_path_recursive},
   package_json::{
     find_nearest_package_json, get_package_json, get_package_json_with_deps,
     resolve_package_from_package_json, PackageJsonExtended,
@@ -113,7 +116,7 @@ fn resolve_from_package_json(
 fn get_package_path_by_package_json(cwd: &Path, relative_package_path: &Path) -> PathBuf {
   let (resolver, package_dependencies) = get_package_json_with_deps(cwd);
 
-  let mut potential_package_path: String = Default::default();
+  let mut potential_package_path: PathBuf = Default::default();
 
   for (name, _) in package_dependencies.iter() {
     let file_name = FileName::Real(cwd.to_path_buf());
@@ -137,35 +140,16 @@ fn get_package_path_by_package_json(cwd: &Path, relative_package_path: &Path) ->
           if let FileName::Real(real_resolved_node_modules_path) =
             resolved_node_modules_path.filename
           {
-            let (potential_package_json, _) =
-              get_package_json(real_resolved_node_modules_path.as_path());
-
-            match &potential_package_json.exports {
-              Some(exports) => resolve_package_json_exports(
-                potential_file_path,
-                exports,
-                &mut potential_package_path,
-                &real_resolved_node_modules_path,
-              ),
-              None => {
-                let node_modules_regex = Regex::new(r".*node_modules").unwrap();
-
-                potential_package_path = node_modules_regex
-                  .replace(
-                    real_resolved_node_modules_path
-                      .display()
-                      .to_string()
-                      .as_str(),
-                    "node_modules",
-                  )
-                  .to_string();
-              }
-            }
+            potential_package_path = resolve_exports_path(
+              &real_resolved_node_modules_path,
+              Path::new(potential_file_path),
+            );
           }
         }
 
-        if potential_package_path.is_empty() {
-          potential_package_path = format!("node_modules/{}{}", name, potential_file_path);
+        if potential_package_path.as_os_str().is_empty() {
+          potential_package_path =
+            PathBuf::from(format!("node_modules/{}{}", name, potential_file_path));
         }
 
         break;
@@ -173,7 +157,36 @@ fn get_package_path_by_package_json(cwd: &Path, relative_package_path: &Path) ->
     }
   }
 
-  PathBuf::from(potential_package_path)
+  potential_package_path
+}
+
+fn resolve_exports_path(
+  real_resolved_node_modules_path: &Path,
+  potential_file_path: &Path,
+) -> PathBuf {
+  let (potential_package_json, _) = get_package_json(real_resolved_node_modules_path);
+
+  match &potential_package_json.exports {
+    Some(exports) => resolve_package_json_exports(
+      potential_file_path,
+      exports,
+      real_resolved_node_modules_path,
+    ),
+    None => {
+      let node_modules_regex = Regex::new(r".*node_modules").unwrap();
+
+      node_modules_regex
+        .replace(
+          real_resolved_node_modules_path
+            .display()
+            .to_string()
+            .as_str(),
+          "node_modules",
+        )
+        .to_string()
+        .into()
+    }
+  }
 }
 
 pub(crate) fn get_node_modules_path(
@@ -191,17 +204,58 @@ pub(crate) fn get_node_modules_path(
         }
         None
       }
-      Err(_) => None,
+      Err(_) => get_potential_node_modules_path(file_name, name),
     }
   }
 }
 
+fn get_potential_node_modules_path(file_name: &FileName, name: &str) -> Option<Resolution> {
+  let file_name_real = if let FileName::Real(real_filename) = file_name {
+    real_filename
+  } else {
+    return None;
+  };
+
+  let formatted_path = format!("node_modules/{}", name);
+  let potential_package_path = file_name_real.join(formatted_path);
+
+  if let Some(resolved_potential_package_path) =
+    get_directory_path_recursive(&potential_package_path)
+  {
+    let (potential_package_json, _) = get_package_json(&resolved_potential_package_path);
+
+    let package_name = potential_package_json.name.clone();
+
+    let potential_import_path_segment = name.split(&package_name).last().unwrap_or_default();
+
+    let potential_package_path = resolve_exports_path(
+      &resolved_potential_package_path,
+      Path::new(potential_import_path_segment),
+    );
+
+    let file_name_real_lossy = file_name_real.to_string_lossy();
+    let root_subst_file_name = file_name_real_lossy.split("node_modules").next().unwrap();
+
+    let path = Path::new(&potential_package_path);
+
+    let stripped_path = path.strip_prefix(root_subst_file_name).unwrap_or(path);
+
+    return Some(Resolution {
+      filename: FileName::Real(stripped_path.to_path_buf()),
+      slug: None,
+    });
+  }
+
+  None
+}
+
 fn resolve_package_json_exports(
-  potential_import_segment_path: &str,
+  potential_import_segment_path: &Path,
   exports: &FxHashMap<String, String>,
-  potential_package_path: &mut String,
   resolved_node_modules_path: &Path,
-) {
+) -> PathBuf {
+  let mut result: PathBuf = Default::default();
+
   let import_segment_path_without_extension = PathBuf::from(potential_import_segment_path)
     .with_extension("")
     .display()
@@ -209,7 +263,7 @@ fn resolve_package_json_exports(
 
   let mut exports_values: Vec<&String> = exports.values().collect();
 
-  exports_values.sort_by_key(|k| -(k.len() as isize));
+  exports_values.sort_by_key(|k| (k.to_string(), k.len()));
 
   let resolved_package_path =
     find_nearest_package_json(resolved_node_modules_path).unwrap_or_else(|| {
@@ -221,35 +275,29 @@ fn resolve_package_json_exports(
 
   for export_value in exports_values {
     if export_value.contains(&import_segment_path_without_extension) {
-      *potential_package_path = resolved_package_path
-        .join(export_value)
-        .display()
-        .to_string();
+      result = resolved_package_path.join(export_value);
 
       break;
     }
   }
 
-  if potential_package_path.is_empty() {
+  if result.components().count() == 0 {
     let mut keys: Vec<&String> = exports.keys().collect();
-    keys.sort_by_key(|k| -(k.len() as isize));
+    keys.sort_by_key(|k| (k.to_string(), k.len()));
 
     for key in keys {
       if key.contains(&import_segment_path_without_extension) {
-        *potential_package_path = resolved_package_path
-          .join(exports.get(key).unwrap())
-          .display()
-          .to_string();
-
-        break;
+        result = resolved_package_path.join(exports.get(key).unwrap());
       }
     }
   }
 
-  if potential_package_path.is_empty() {
+  if result.components().count() == 0 {
     warn!("Unfortunatly, the exports field is not yet fully supported, so path resolving may work not as expected");
     // TODO: implement exports field resolution
   }
+
+  result
 }
 
 pub fn resolve_file_path(
@@ -306,18 +354,17 @@ pub fn resolve_file_path(
         potential_import_path_segment.to_string()
       };
 
-      let mut potential_package_path = String::default();
+      let mut potential_package_path = Default::default();
 
       if let Some(exports) = &package_json.exports {
-        resolve_package_json_exports(
-          &import_path_segment,
+        potential_package_path = resolve_package_json_exports(
+          Path::new(&import_path_segment),
           exports,
-          &mut potential_package_path,
           &resolved_node_modules_path_buf,
         );
       }
 
-      if !potential_package_path.is_empty() {
+      if !potential_package_path.as_os_str().is_empty() {
         aliased_file_paths.push(Path::new(&potential_package_path).to_path_buf().clean());
       }
 
@@ -325,6 +372,7 @@ pub fn resolve_file_path(
     }
 
     aliased_file_paths.push(Path::new("node_modules").join(import_path_str));
+
     aliased_file_paths
   };
 

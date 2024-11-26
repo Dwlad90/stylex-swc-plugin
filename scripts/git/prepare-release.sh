@@ -137,6 +137,9 @@ done
 # Install the dependencies
 pnpm install
 
+# Update Cargo.lock by building the project
+cargo build
+
 # Add the changes to the staging area
 git add .
 

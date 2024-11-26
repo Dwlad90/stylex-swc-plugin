@@ -3,7 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-pub(crate) fn _check_directory(path: &Path) -> bool {
+pub(crate) fn check_directory(path: &Path) -> bool {
   match fs::metadata(path) {
     Ok(metadata) => metadata.is_dir(),
     Err(_) => false,
@@ -25,4 +25,19 @@ pub(crate) fn get_directories(path: &Path) -> Result<Vec<PathBuf>, std::io::Erro
       })
       .collect::<Vec<_>>(),
   )
+}
+
+pub(crate) fn get_directory_path_recursive(path: &Path) -> Option<PathBuf> {
+  if path.as_os_str().is_empty() {
+    return None;
+  }
+
+  if check_directory(path) {
+    return Some(path.to_path_buf());
+  }
+
+  match path.parent() {
+    Some(parent) => get_directory_path_recursive(parent),
+    None => None,
+  }
 }

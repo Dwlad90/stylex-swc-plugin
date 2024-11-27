@@ -97,5 +97,35 @@ mod normalizers {
       )),
       "*{{color:oklch(from var(--xs74gcj) l c h / 0.5)}}"
     );
+
+    assert_eq!(
+      stringify(&base_normalizer(
+        swc_parse_css("* {{ color: oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9)) }}")
+          .0
+          .unwrap(),
+        false
+      )),
+      "*{{color:oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9))}}"
+    );
+
+    assert_eq!(
+      stringify(&base_normalizer(
+        swc_parse_css("* {{ color: oklab(from hsl(180 100% 50%) calc(l - 0.1) a b) }}")
+          .0
+          .unwrap(),
+        false
+      )),
+      "*{{color:oklab(from hsl(180 100% 50%) calc(l - 0.1) a b)}}"
+    );
+
+    assert_eq!(
+      stringify(&base_normalizer(
+        swc_parse_css("* {{ color: oklab(from green l a b / 0.5) }}")
+          .0
+          .unwrap(),
+        false
+      )),
+      "*{{color:oklab(from green l a b / 0.5)}}"
+    );
   }
 }

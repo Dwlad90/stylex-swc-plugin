@@ -188,10 +188,55 @@ mod css_tests {
     assert_eq!(
       transform_value_cached(
         "color",
-        r#"radial-gradient(circle at 0% 0%, oklch(from   var(--colors-tile-background) calc(l + 0.1) calc(c + 0.2) h) 0, transparent 15%), radial-gradient(circle at 80% 100%,oklch(from var(--colors-tile-background) calc(l - 0.25) calc(c + 0.01) h) 0, transparent 30%), linear-gradient(45deg,var(--colors-tile-background) 0%, oklch(from var(--colors-tile-background) calc(l - 0.1) calc(c + 0.3) h) 100%)"#,
+        r#"radial-gradient(circle at 0% 0%, oklch(from   var(--colors-tile-background) calc(l +  0.1) calc(c + 0.2) h) 0,  transparent  15%),  radial-gradient(circle at 80% 100%,oklch(from   var(--colors-tile-background)  calc(l - 0.25) calc(c + 0.01) h) 0, transparent 30%), linear-gradient(45deg,var(--colors-tile-background) 0%, oklch(from var(--colors-tile-background) calc(l - 0.1) calc(c + 0.3) h) 100%)"#,
         &mut StateManager::default()
       ),
       r#"radial-gradient(circle at 0% 0%, oklch(from var(--colors-tile-background) calc(l + 0.1) calc(c + 0.2) h) 0, transparent 15%), radial-gradient(circle at 80% 100%,oklch(from var(--colors-tile-background) calc(l - 0.25) calc(c + 0.01) h) 0, transparent 30%), linear-gradient(45deg,var(--colors-tile-background) 0%, oklch(from var(--colors-tile-background) calc(l - 0.1) calc(c + 0.3) h) 100%)"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"linear-gradient(to right, oklch(from #000 calc(l + 0.1)  c  h  /  0.1) 10%, oklch(from #000 calc(l  +  0.2)  c  h)  18%,  oklch(from #000 calc(l  + 0.1)  c h / 0.1) 33%)"#,
+        &mut StateManager::default()
+      ),
+      r#"linear-gradient(to right, oklch(from #000 calc(l + 0.1) c h / 0.1) 10%, oklch(from #000 calc(l + 0.2) c h) 18%, oklch(from #000 calc(l + 0.1) c h / 0.1) 33%)"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklab(from #0000FF calc(l  +  0.1)  a  b  /  calc(alpha  *  0.9))"#,
+        &mut StateManager::default()
+      ),
+      r#"oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9))"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklab(from hsl(180 100% 50%) calc(l  -  0.1)  a  b)"#,
+        &mut StateManager::default()
+      ),
+      r#"oklab(from hsl(180 100% 50%) calc(l - 0.1) a b)"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklab(from green l  a  b  /  0.5)"#,
+        &mut StateManager::default()
+      ),
+      r#"oklab(from green l a b / 0.5)"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklch(59.69% 0.156 49.77  /  .5)"#,
+        &mut StateManager::default()
+      ),
+      r#"oklch(59.69% 0.156 49.77 / .5)"#
     );
   }
 

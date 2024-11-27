@@ -476,7 +476,7 @@ pub(crate) fn normalize_css_property_value(
 ) -> String {
   if WHITE_LISTED_NORMALIZED_PROPERTY_VALUES
     .into_iter()
-    .any(|css_fnc| css_property_value.starts_with(format!("{}(", css_fnc).as_str()))
+    .any(|css_fnc| css_property_value.contains(format!("{}(", css_fnc).as_str()))
   {
     return MANY_SPACES.replace_all(css_property_value, " ").to_string();
   }

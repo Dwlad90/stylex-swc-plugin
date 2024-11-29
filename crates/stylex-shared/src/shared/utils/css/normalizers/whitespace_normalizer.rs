@@ -1,48 +1,68 @@
 use crate::shared::regex::{
   CSS_RULE_REGEX, CSS_URL_REGEX, HASH_WHITESPACE_NORMALIZER_REGEX,
-  WHITESPACE_FUNC_NORMALIZER_REGEX, WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX,
-  WHITESPACE_NORMALIZER_REGEX, WHITESPACE_NORMALIZER_SPACES_EMPTY_STRING_REGEX,
-  WHITESPACE_NORMALIZER_SPACES_REGEX,
+  WHITESPACE_BRACKET_NORMALIZER_REGEX, WHITESPACE_FUNC_NORMALIZER_REGEX,
+  WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX, WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX,
 };
 
-pub(crate) fn whitespace_normalizer(result: String) -> String {
-  if let Some(captures) = CSS_URL_REGEX.captures(result.as_str()) {
-    if let Some(url) = captures.get(0) {
-      return url.as_str().to_string();
-    } else {
-      panic!("Failed to get URL from captures: {}", result);
-    }
+pub(crate) fn whitespace_normalizer(content: String) -> String {
+  // Handle URL case
+  if let Some(url) = CSS_URL_REGEX.captures(&content).and_then(|c| c.get(0)) {
+    return url.as_str().to_string();
   }
 
-  let css_string: &str = if result.contains('{') {
-    match CSS_RULE_REGEX.captures(result.as_str()) {
-      Some(captures) => match captures.get(1) {
-        Some(rule) => rule.as_str(),
-        None => panic!("Failed to get CSS rule of: {}", result),
-      },
-      None => panic!("Failed to parse CSS rule of: {}", result),
-    }
+  // Extract CSS rule if present
+  let mut css = if content.contains('{') {
+    CSS_RULE_REGEX
+      .captures(&content)
+      .and_then(|c| c.get(1))
+      .map(|m| m.as_str().to_string())
+      .unwrap_or(content)
   } else {
-    result.as_str()
+    content
   };
 
-  let normalized_css_string =
-    WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX.replace_all(css_string, " $1 $2");
+  // Normalize math signs
+  css = WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX
+    .replace_all(&css, |caps: &regex::Captures| {
+      let num1 = &caps[1];
+      let op = &caps[2];
+      let num2 = &caps[3];
 
-  let normalized_css_string =
-    WHITESPACE_NORMALIZER_REGEX.replace_all(&normalized_css_string, "$1$3 $2$4");
+      if op == "%" {
+        format!("{}{} {}", num1, op, num2)
+      } else {
+        format!("{} {} {}", num1, op, num2)
+      }
+    })
+    .to_string();
 
-  let normalized_css_string =
-    WHITESPACE_NORMALIZER_SPACES_EMPTY_STRING_REGEX.replace_all(&normalized_css_string, "$1$2");
+  // Normalize brackets
+  css = WHITESPACE_BRACKET_NORMALIZER_REGEX
+    .replace_all(&css, "$1$3 $2$4")
+    .to_string();
 
-  let normalized_css_string =
-    WHITESPACE_NORMALIZER_SPACES_REGEX.replace_all(&normalized_css_string, "$1$2");
+  // Normalize extra spaces
+  css = WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX
+    .replace_all(&css, |caps: &regex::Captures| {
+      if let (Some(q1), Some(q2)) = (caps.get(1), caps.get(2)) {
+        format!("{}{}", q1.as_str(), q2.as_str())
+      } else if let (Some(p1), Some(p2)) = (caps.get(3), caps.get(4)) {
+        format!("{}{}", p1.as_str(), p2.as_str())
+      } else {
+        caps[0].to_string()
+      }
+    })
+    .to_string();
 
-  let normalized_css_string =
-    HASH_WHITESPACE_NORMALIZER_REGEX.replace_all(&normalized_css_string, "$1 #");
+  // Normalize hash
+  css = HASH_WHITESPACE_NORMALIZER_REGEX
+    .replace_all(&css, "$1 #")
+    .to_string();
 
-  let normalized_css_string =
-    WHITESPACE_FUNC_NORMALIZER_REGEX.replace_all(&normalized_css_string, "($1),");
+  // Normalize functions
+  css = WHITESPACE_FUNC_NORMALIZER_REGEX
+    .replace_all(&css, "($1),")
+    .to_string();
 
-  normalized_css_string.trim().to_string()
+  css.trim().to_string()
 }

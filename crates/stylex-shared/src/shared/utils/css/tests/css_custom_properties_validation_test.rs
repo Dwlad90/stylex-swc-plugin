@@ -23,7 +23,7 @@ mod css_tests {
   }
 
   #[test]
-  fn allow_custom_properties() {
+  fn basic_var_properties() {
     assert_eq!(
       transform_value_cached("color", "var(--foo)", &mut StateManager::default()),
       "var(--foo)",
@@ -36,6 +36,10 @@ mod css_tests {
       ),
       "var(--bar)"
     );
+  }
+
+  #[test]
+  fn transition_properties() {
     assert_eq!(
       transform_value_cached(
         "transitionProperty",
@@ -44,7 +48,6 @@ mod css_tests {
       ),
       "opacity,margin-top"
     );
-
     assert_eq!(
       transform_value_cached(
         "transitionProperty",
@@ -53,7 +56,10 @@ mod css_tests {
       ),
       "opacity,margin-top"
     );
+  }
 
+  #[test]
+  fn shadow_properties() {
     assert_eq!(
       transform_value_cached(
         "boxShadow",
@@ -62,7 +68,14 @@ mod css_tests {
       ),
       "0 2px 4px var(--shadow-1)"
     );
+    assert_eq!(
+      transform_value_cached("boxShadow", "1px 1px #000", &mut StateManager::default()),
+      "1px 1px #000",
+    );
+  }
 
+  #[test]
+  fn spacing_and_calculations() {
     assert_eq!(
       transform_value_cached(
         "padding",
@@ -79,7 +92,6 @@ mod css_tests {
       ),
       "calc((100% - 50px) * .5) var(--rightpadding,20px)"
     );
-
     assert_eq!(
       transform_value_cached(
         "margin",
@@ -88,7 +100,10 @@ mod css_tests {
       ),
       "max(0px,(48px - var(--x16dnrjz)) / 2)"
     );
+  }
 
+  #[test]
+  fn hashed_vars() {
     assert_eq!(
       transform_value_cached(
         "backgroundColor",
@@ -97,7 +112,6 @@ mod css_tests {
       ),
       "var(----__hashed_var__1jqb1tb,revert)"
     );
-
     assert_eq!(
       transform_value_cached(
         "--__hashed_var__1jqb1tb",
@@ -106,22 +120,22 @@ mod css_tests {
       ),
       "var(----__hashed_var__1jqb1tb,revert)"
     );
+  }
 
-    assert_eq!(
-      transform_value_cached("boxShadow", "1px 1px #000", &mut StateManager::default()),
-      "1px 1px #000",
-    );
-
+  #[test]
+  fn quotes_handling() {
     assert_eq!(
       transform_value_cached("quotes", r#""''""#, &mut StateManager::default()),
       r#""""#
     );
-
     assert_eq!(
       transform_value_cached("quotes", r#""'123'""#, &mut StateManager::default()),
       r#""123""#
     );
+  }
 
+  #[test]
+  fn grid_properties() {
     assert_eq!(
       transform_value_cached(
         "gridTemplateAreas",
@@ -130,7 +144,6 @@ mod css_tests {
       ),
       r#""content""#
     );
-
     assert_eq!(
       transform_value_cached(
         "gridTemplateAreas",
@@ -139,7 +152,6 @@ mod css_tests {
       ),
       r#""content" "sidebar""#
     );
-
     assert_eq!(
       transform_value_cached(
         "gridTemplateAreas",
@@ -148,16 +160,6 @@ mod css_tests {
       ),
       r#""content" "sidebar""#
     );
-
-    assert_eq!(
-      transform_value_cached(
-        "--span-t",
-        r#"translateX(4px)"#,
-        &mut StateManager::default()
-      ),
-      r#"translateX(4px)"#
-    );
-
     assert_eq!(
       transform_value_cached(
         "gridTemplateColumns",
@@ -166,7 +168,22 @@ mod css_tests {
       ),
       r#"auto 0fr 0fr"#
     );
+  }
 
+  #[test]
+  fn transform_properties() {
+    assert_eq!(
+      transform_value_cached(
+        "--span-t",
+        r#"translateX(4px)"#,
+        &mut StateManager::default()
+      ),
+      r#"translateX(4px)"#
+    );
+  }
+
+  #[test]
+  fn modern_color_formats() {
     assert_eq!(
       transform_value_cached(
         "color",
@@ -175,7 +192,6 @@ mod css_tests {
       ),
       r#"oklch(42.1% 0.192 328.6 / 1)"#
     );
-
     assert_eq!(
       transform_value_cached(
         "color",
@@ -184,7 +200,18 @@ mod css_tests {
       ),
       r#"oklch(from var(--xs74gcj) l c h / 0.5)"#
     );
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklch(59.69% 0.156 49.77  /  .5)"#,
+        &mut StateManager::default()
+      ),
+      r#"oklch(59.69% 0.156 49.77 / .5)"#
+    );
+  }
 
+  #[test]
+  fn complex_gradients() {
     assert_eq!(
       transform_value_cached(
         "color",
@@ -193,7 +220,6 @@ mod css_tests {
       ),
       r#"radial-gradient(circle at 0% 0%, oklch(from var(--colors-tile-background) calc(l + 0.1) calc(c + 0.2) h) 0, transparent 15%), radial-gradient(circle at 80% 100%,oklch(from var(--colors-tile-background) calc(l - 0.25) calc(c + 0.01) h) 0, transparent 30%), linear-gradient(45deg,var(--colors-tile-background) 0%, oklch(from var(--colors-tile-background) calc(l - 0.1) calc(c + 0.3) h) 100%)"#
     );
-
     assert_eq!(
       transform_value_cached(
         "color",
@@ -201,6 +227,27 @@ mod css_tests {
         &mut StateManager::default()
       ),
       r#"linear-gradient(to right, oklch(from #000 calc(l + 0.1) c h / 0.1) 10%, oklch(from #000 calc(l + 0.2) c h) 18%, oklch(from #000 calc(l + 0.1) c h / 0.1) 33%)"#
+    );
+  }
+
+  #[test]
+  fn oklab_colors() {
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"oklab(40.101%   0.1147   0.0453)"#,
+        &mut StateManager::default()
+      ),
+      r#"oklab(40.101% 0.1147 0.0453)"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"var(--a)   var(--b)      var(--c)"#,
+        &mut StateManager::default()
+      ),
+      r#"var(--a) var(--b) var(--c)"#
     );
 
     assert_eq!(
@@ -211,7 +258,6 @@ mod css_tests {
       ),
       r#"oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9))"#
     );
-
     assert_eq!(
       transform_value_cached(
         "color",
@@ -220,7 +266,6 @@ mod css_tests {
       ),
       r#"oklab(from hsl(180 100% 50%) calc(l - 0.1) a b)"#
     );
-
     assert_eq!(
       transform_value_cached(
         "color",
@@ -228,15 +273,6 @@ mod css_tests {
         &mut StateManager::default()
       ),
       r#"oklab(from green l a b / 0.5)"#
-    );
-
-    assert_eq!(
-      transform_value_cached(
-        "color",
-        r#"oklch(59.69% 0.156 49.77  /  .5)"#,
-        &mut StateManager::default()
-      ),
-      r#"oklch(59.69% 0.156 49.77 / .5)"#
     );
   }
 

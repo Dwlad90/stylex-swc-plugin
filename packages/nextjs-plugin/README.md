@@ -43,7 +43,6 @@ npm install --save-dev @stylexswc/rs-compiler
 Modify Next.js config. For example:
 
 ```js
-/** @type {import('next').NextConfig} */
 const stylexPlugin = require('@stylexswc/nextjs-plugin');
 
 const nextConfig = {
@@ -55,17 +54,94 @@ const nextConfig = {
 };
 
 module.exports = stylexPlugin({
-  rootDir: __dirname,
-  // Stylex RS compiler options
-  dev: false,
-  runtimeInjection: false,
-  genConditionalClasses: true,
-  treeshakeCompensation: true,
-  unstable_moduleResolution: {
-    type: 'commonJS',
-    rootDir: __dirname,
+  stylexImports: ['stylex', '@stylexjs/stylex'],
+  rsOptions:{
+    // Stylex RS compiler options
+    dev: false,
+    runtimeInjection: false,
+    genConditionalClasses: true,
+    treeshakeCompensation: true,
+    unstable_moduleResolution: {
+      type: 'commonJS',
+      rootDir: __dirname,
+    }
+  },
+  transformCss: css => {
+    // Transform CSS here, for example, using PostCSS
+    const transformedCSS = css;
+
+    return transformedCSS;
   },
 })(nextConfig);
+```
+
+## Plugin Options
+
+### Basic Options
+
+#### `rsOptions`
+
+* Type: `Partial<StyleXOptions>`
+* Optional
+* Description: StyleX compiler options that will be passed to the NAPI-RS
+  compiler. See
+  [StyleX configuration docs](https://stylexjs.com/docs/api/configuration/babel-plugin/)
+  for details.
+
+#### `stylexImports`
+
+* Type: `Array<string | { as: string, from: string }>`
+* Default: `['stylex', '@stylexjs/stylex']`
+* Description: Specifies where StyleX will be imported from. Supports both
+  string paths and import aliases.
+
+#### `useCSSLayers`
+
+* Type: `boolean`
+* Default: `false`
+* Description: Enables CSS cascade layers support for better style isolation.
+
+### Advanced Options
+
+#### `transformCss`
+
+* Type: `(css: string) => string | Buffer | Promise<string | Buffer>`
+* Optional
+* Description: Custom CSS transformation function. Since the plugin injects CSS
+  after all loaders, use this to apply PostCSS or other CSS transformations.
+
+### Example Configuration
+
+```javascript
+const path = require('path');
+const stylexPlugin = require('@stylexswc/nextjs-plugin');
+const rootDir = __dirname;
+
+module.exports = stylexPlugin({
+  // Add any StyleX options here
+  rsOptions: {
+    dev: process.env.NODE_ENV !== 'production',
+    useRemForFontSize: true,
+    aliases: {
+      '@/*': [path.join(rootDir, '*'),],
+    },
+    unstable_moduleResolution: {
+      type: 'commonJS',
+      rootDir
+    },
+  },
+  stylexImports: ['@stylexjs/stylex', { from: './theme', as: 'tokens' }],
+  useCSSLayers: true,
+  transformCss: async css => {
+    const postcss = require('postcss');
+    const result = await postcss([require('autoprefixer')]).process(css);
+    return result.css;
+  },
+})({
+  transpilePackages: ['@stylexjs/open-props'],
+  // Optionally, add any other Next.js config below
+  swcMinify: true,
+});
 ```
 
 ## Examples
@@ -77,3 +153,7 @@ module.exports = stylexPlugin({
 
 * [StyleX Documentation](https://stylexjs.com)
 * [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
+
+## Acknowledgments
+
+This plugin was inspired by [`stylex-webpack`](https://github.com/SukkaW/stylex-webpack).

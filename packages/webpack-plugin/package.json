@@ -8,7 +8,8 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.9.3"
+    "@stylexjs/babel-plugin": "^0.9.3",
+    "loader-utils": "^3.3.1"
   },
   "devDependencies": {
     "@babel/types": "^7.23.9",
@@ -16,7 +17,9 @@
     "@stylexswc/rs-compiler": "0.4.4",
     "@stylexswc/typescript-config": "0.4.4",
     "@types/babel__core": "^7.20.5",
+    "@types/loader-utils": "^2.0.6",
     "@types/node": "^22.5.1",
+    "mini-css-extract-plugin": "^2.9.2",
     "webpack": "^5.94.0"
   },
   "files": [

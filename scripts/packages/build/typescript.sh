@@ -11,4 +11,11 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 
 if [ "$build_ts" = true ]; then
   pnpm tsc || handle_error "Failed to build the TypeScript project"
+
+
+  # Copy virtual CSS if exists
+  if [ -f "src/stylex.virtual.css" ]; then
+    mkdir -p dist
+    cp src/stylex.virtual.css dist/ || handle_error "Failed to copy stylex.virtual.css"
+  fi
 fi

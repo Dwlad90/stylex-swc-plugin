@@ -266,9 +266,17 @@ fn _evaluate(
 
       None
     }
-    Expr::TsAs(tsas) => evaluate_cached(&tsas.expr, state, traversal_state, fns),
     Expr::TsSatisfies(ts_satisfaies) => {
       evaluate_cached(&ts_satisfaies.expr, state, traversal_state, fns)
+    }
+    Expr::TsConstAssertion(ts_const) => {
+      evaluate_cached(&ts_const.expr, state, traversal_state, fns)
+    }
+    Expr::TsAs(ts_as) => evaluate_cached(&ts_as.expr, state, traversal_state, fns),
+    Expr::TsNonNull(ts_non_null) => evaluate_cached(&ts_non_null.expr, state, traversal_state, fns),
+    Expr::TsTypeAssertion(ts_type) => evaluate_cached(&ts_type.expr, state, traversal_state, fns),
+    Expr::TsInstantiation(ts_instantiation) => {
+      evaluate_cached(&ts_instantiation.expr, state, traversal_state, fns)
     }
     Expr::Seq(sec) => {
       let expr = sec

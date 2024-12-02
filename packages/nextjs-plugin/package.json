@@ -7,17 +7,16 @@
       "path": "../../scripts/packages"
     }
   },
-  "dependencies": {
-    "@stylexjs/babel-plugin": "^0.9.3"
-  },
   "devDependencies": {
     "@babel/types": "^7.23.9",
     "@stylexswc/eslint-config": "0.4.4",
     "@stylexswc/rs-compiler": "0.4.4",
     "@stylexswc/typescript-config": "0.4.4",
+    "@stylexswc/webpack-plugin": "0.4.4",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^22.5.1",
     "next": "^14.2.10",
+    "postcss": "^8.4.49",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "webpack": "^5.94.0"

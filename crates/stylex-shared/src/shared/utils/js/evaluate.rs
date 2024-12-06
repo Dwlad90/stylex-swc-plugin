@@ -1610,7 +1610,8 @@ fn _evaluate(
         .clone()
         .unwrap_or_else(|| ModuleExportName::Ident(import_specifier.local.clone()));
 
-      let abs_path = traversal_state.import_path_resolver(&import_path.src.value);
+      let abs_path =
+        traversal_state.import_path_resolver(&import_path.src.value, &mut FxHashMap::default());
 
       let imported_name = match imported {
         ModuleExportName::Ident(ident) => ident.sym.to_string(),

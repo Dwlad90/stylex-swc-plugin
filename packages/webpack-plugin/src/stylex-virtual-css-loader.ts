@@ -3,8 +3,6 @@ import { getHashDigest } from 'loader-utils';
 import type webpack from 'webpack';
 import { InputCode, SourceMap } from './types';
 
-
-
 export default function (
   this: webpack.LoaderContext<unknown>,
   inputCode: InputCode,

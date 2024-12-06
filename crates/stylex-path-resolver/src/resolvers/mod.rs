@@ -4,7 +4,10 @@ use once_cell::sync::Lazy;
 use path_clean::PathClean;
 use regex::Regex;
 use rustc_hash::FxHashMap;
-use std::path::{Path, PathBuf};
+use std::{
+  collections::HashSet,
+  path::{Path, PathBuf},
+};
 use swc_core::{
   common::FileName,
   ecma::loader::{
@@ -31,7 +34,11 @@ pub const EXTENSIONS: [&str; 8] = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs",
 pub static FILE_PATTERN: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"\.(jsx?|tsx?|mdx?|mjs|cjs)$"#).unwrap());
 
-pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
+pub fn resolve_path(
+  processing_file: &Path,
+  root_dir: &Path,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+) -> String {
   if !FILE_PATTERN.is_match(processing_file.to_str().unwrap()) {
     let processing_path = if !cfg!(feature = "wasm") || cfg!(test) {
       processing_file
@@ -54,10 +61,11 @@ pub fn resolve_path(processing_file: &Path, root_dir: &Path) -> String {
     "cwd".into()
   };
 
-  let mut path_by_package_json = match resolve_from_package_json(processing_file, root_dir, &cwd) {
-    Ok(value) => value,
-    Err(value) => return value,
-  };
+  let mut path_by_package_json =
+    match resolve_from_package_json(processing_file, root_dir, &cwd, package_json_seen) {
+      Ok(value) => value,
+      Err(value) => return value,
+    };
 
   if path_by_package_json.starts_with(&cwd) {
     path_by_package_json = path_by_package_json
@@ -85,6 +93,7 @@ fn resolve_from_package_json(
   processing_file: &Path,
   root_dir: &Path,
   cwd: &Path,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> Result<PathBuf, String> {
   let resolved_path = match processing_file.strip_prefix(root_dir) {
     Ok(stripped) => stripped.to_path_buf(),
@@ -106,17 +115,21 @@ fn resolve_from_package_json(
 
       let relative_package_path = relative_path(processing_file, root_dir);
 
-      get_package_path_by_package_json(cwd, &relative_package_path)
+      get_package_path_by_package_json(cwd, &relative_package_path, package_json_seen)
     }
   };
 
   Ok(resolved_path)
 }
 
-fn get_package_path_by_package_json(cwd: &Path, relative_package_path: &Path) -> PathBuf {
-  let (resolver, package_dependencies) = get_package_json_with_deps(cwd);
+fn get_package_path_by_package_json(
+  cwd: &Path,
+  relative_package_path: &Path,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+) -> PathBuf {
+  let (resolver, package_dependencies) = get_package_json_with_deps(cwd, package_json_seen);
 
-  let mut potential_package_path: PathBuf = Default::default();
+  let mut potential_package_path: PathBuf = PathBuf::default();
 
   for (name, _) in package_dependencies.iter() {
     let file_name = FileName::Real(cwd.to_path_buf());
@@ -134,7 +147,8 @@ fn get_package_path_by_package_json(cwd: &Path, relative_package_path: &Path) ->
       if !potential_file_path.is_empty()
         || relative_package_path_str.ends_with(format!("/{}", potential_path_section).as_str())
       {
-        let resolved_node_modules_path = get_node_modules_path(&resolver, &file_name, name);
+        let resolved_node_modules_path =
+          get_node_modules_path(&resolver, &file_name, name, package_json_seen);
 
         if let Some(resolved_node_modules_path) = resolved_node_modules_path {
           if let FileName::Real(real_resolved_node_modules_path) =
@@ -143,6 +157,7 @@ fn get_package_path_by_package_json(cwd: &Path, relative_package_path: &Path) ->
             potential_package_path = resolve_exports_path(
               &real_resolved_node_modules_path,
               Path::new(potential_file_path),
+              package_json_seen,
             );
           }
         }
@@ -163,8 +178,10 @@ fn get_package_path_by_package_json(cwd: &Path, relative_package_path: &Path) ->
 fn resolve_exports_path(
   real_resolved_node_modules_path: &Path,
   potential_file_path: &Path,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> PathBuf {
-  let (potential_package_json, _) = get_package_json(real_resolved_node_modules_path);
+  let (potential_package_json, _) =
+    get_package_json(real_resolved_node_modules_path, package_json_seen);
 
   match &potential_package_json.exports {
     Some(exports) => resolve_package_json_exports(
@@ -193,23 +210,32 @@ pub(crate) fn get_node_modules_path(
   resolver: &NodeModulesResolver,
   file_name: &FileName,
   name: &str,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> Option<swc_core::ecma::loader::resolve::Resolution> {
   {
     match resolver.resolve(file_name, name) {
-      Ok(resolution) => {
+      Ok(mut resolution) => {
         if let FileName::Real(real_filename) = &resolution.filename {
           if real_filename.starts_with("node_modules") {
+            if cfg!(feature = "wasm") {
+              resolution.filename = FileName::Real(PathBuf::from("cwd").join(real_filename));
+            };
+
             return Some(resolution);
           }
         }
         None
       }
-      Err(_) => get_potential_node_modules_path(file_name, name),
+      Err(_) => get_potential_node_modules_path(file_name, name, package_json_seen),
     }
   }
 }
 
-fn get_potential_node_modules_path(file_name: &FileName, name: &str) -> Option<Resolution> {
+fn get_potential_node_modules_path(
+  file_name: &FileName,
+  name: &str,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+) -> Option<Resolution> {
   let file_name_real = if let FileName::Real(real_filename) = file_name {
     real_filename
   } else {
@@ -222,7 +248,8 @@ fn get_potential_node_modules_path(file_name: &FileName, name: &str) -> Option<R
   if let Some(resolved_potential_package_path) =
     get_directory_path_recursive(&potential_package_path)
   {
-    let (potential_package_json, _) = get_package_json(&resolved_potential_package_path);
+    let (potential_package_json, _) =
+      get_package_json(&resolved_potential_package_path, package_json_seen);
 
     let package_name = potential_package_json.name.clone();
 
@@ -231,6 +258,7 @@ fn get_potential_node_modules_path(file_name: &FileName, name: &str) -> Option<R
     let potential_package_path = resolve_exports_path(
       &resolved_potential_package_path,
       Path::new(potential_import_path_segment),
+      package_json_seen,
     );
 
     let file_name_real_lossy = file_name_real.to_string_lossy();
@@ -254,7 +282,7 @@ fn resolve_package_json_exports(
   exports: &FxHashMap<String, String>,
   resolved_node_modules_path: &Path,
 ) -> PathBuf {
-  let mut result: PathBuf = Default::default();
+  let mut result: PathBuf = PathBuf::default();
 
   let import_segment_path_without_extension = PathBuf::from(potential_import_segment_path)
     .with_extension("")
@@ -306,6 +334,7 @@ pub fn resolve_file_path(
   ext: &str,
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> std::io::Result<PathBuf> {
   let source_file_dir = Path::new(source_file_path).parent().unwrap();
   let root_path = Path::new(root_path);
@@ -318,8 +347,13 @@ pub fn resolve_file_path(
 
   let cwd_path = Path::new(cwd);
 
-  let resolved_file_paths: Vec<PathBuf> = if import_path_str.starts_with('.') {
-    vec![resolve_path(&source_file_dir.join(import_path_str), root_path).into()]
+  let mut resolved_file_paths: Vec<PathBuf> = if import_path_str.starts_with('.') {
+    vec![resolve_path(
+      &source_file_dir.join(import_path_str),
+      root_path,
+      package_json_seen,
+    )
+    .into()]
   } else if import_path_str.starts_with('/') {
     vec![root_path.join(import_path_str)]
   } else {
@@ -327,18 +361,22 @@ pub fn resolve_file_path(
       .iter()
       .filter_map(|path| path.strip_prefix(root_path).ok())
       .map(PathBuf::from)
-      .collect::<Vec<PathBuf>>();
+      .collect::<HashSet<PathBuf>>();
 
     if let Ok(mut resolved_node_modules_path_buf) =
-      resolve_node_modules_path_buff(cwd_path, import_path_str)
+      resolve_node_modules_path_buff(cwd_path, import_path_str, package_json_seen)
     {
-      let (mut package_json, _) = get_package_json(&resolved_node_modules_path_buf);
+      let (mut package_json, _) =
+        get_package_json(&resolved_node_modules_path_buf, package_json_seen);
 
       let package_name = package_json.name.clone();
 
-      if let Some((pnpm_package_json, pnpm_package_path)) =
-        resolve_package_with_pnpm_path(source_file_dir, &package_name, import_path_str)
-      {
+      if let Some((pnpm_package_json, pnpm_package_path)) = resolve_package_with_pnpm_path(
+        source_file_dir,
+        &package_name,
+        import_path_str,
+        package_json_seen,
+      ) {
         package_json = pnpm_package_json;
         resolved_node_modules_path_buf = pnpm_package_path;
       }
@@ -354,7 +392,7 @@ pub fn resolve_file_path(
         potential_import_path_segment.to_string()
       };
 
-      let mut potential_package_path = Default::default();
+      let mut potential_package_path = PathBuf::default();
 
       if let Some(exports) = &package_json.exports {
         potential_package_path = resolve_package_json_exports(
@@ -365,16 +403,42 @@ pub fn resolve_file_path(
       }
 
       if !potential_package_path.as_os_str().is_empty() {
-        aliased_file_paths.push(Path::new(&potential_package_path).to_path_buf().clean());
+        aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
+
+        if cfg!(feature = "wasm") {
+          if let Ok(potential_package_path_stripped) = potential_package_path.strip_prefix("cwd/") {
+            aliased_file_paths.insert(
+              Path::new(&potential_package_path_stripped)
+                .to_path_buf()
+                .clean(),
+            );
+          }
+        }
       }
 
-      aliased_file_paths.push(resolved_node_modules_path_buf.clean());
+      if !resolved_node_modules_path_buf.ends_with("node_modules") {
+        aliased_file_paths.insert(resolved_node_modules_path_buf.clean());
+      }
     }
 
-    aliased_file_paths.push(Path::new("node_modules").join(import_path_str));
+    if !import_path_str.is_empty() {
+      aliased_file_paths.insert(Path::new("node_modules").join(import_path_str));
 
-    aliased_file_paths
+      if cfg!(feature = "wasm") {
+        aliased_file_paths.insert(Path::new("cwd/node_modules").join(import_path_str));
+      }
+    }
+
+    aliased_file_paths.into_iter().collect()
   };
+
+  if cfg!(feature = "wasm") {
+    resolved_file_paths.sort_by_key(|file_path| {
+      let lossy_file_path = file_path.to_string_lossy().to_string();
+
+      (lossy_file_path.len(), lossy_file_path.clone())
+    });
+  }
 
   for resolved_file_path in resolved_file_paths.iter() {
     let mut resolved_file_path = resolved_file_path.clean();
@@ -427,6 +491,7 @@ fn resolve_package_with_pnpm_path(
   source_file_dir: &Path,
   package_name: &String,
   import_path_str: &str,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> Option<(PackageJsonExtended, PathBuf)> {
   let nearest_package_json_path = find_nearest_package_json(&PathBuf::from(source_file_dir));
   if let Some(nearest_package_json_directory) = nearest_package_json_path {
@@ -442,9 +507,9 @@ fn resolve_package_with_pnpm_path(
       for path in directories.iter() {
         if path.to_string_lossy().contains(&normalized_name) {
           if let Ok(resolved_node_modules_path_buff) =
-            resolve_node_modules_path_buff(path, import_path_str)
+            resolve_node_modules_path_buff(path, import_path_str, package_json_seen)
           {
-            let (package_json, _) = get_package_json(path);
+            let (package_json, _) = get_package_json(path, package_json_seen);
 
             return Some((package_json, resolved_node_modules_path_buff));
           };
@@ -459,13 +524,15 @@ fn resolve_package_with_pnpm_path(
 fn resolve_node_modules_path_buff(
   path: &Path,
   import_path_str: &str,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> Result<PathBuf, std::io::Error> {
-  let (resolver, _) = get_package_json_with_deps(path);
+  let (resolver, _) = get_package_json_with_deps(path, package_json_seen);
 
   if let Some(package_resolution) = resolve_package_from_package_json(
     &resolver,
     &FileName::Real(path.to_path_buf()),
     import_path_str,
+    package_json_seen,
   ) {
     if let FileName::Real(resolved_node_modules_path_buf) = package_resolution.filename {
       return Ok::<PathBuf, std::io::Error>(resolved_node_modules_path_buf);

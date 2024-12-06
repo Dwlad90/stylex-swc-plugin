@@ -41,7 +41,7 @@ mod resolve_path_tests {
     tests::{fixture, get_root_dir},
   };
 
-  use std::path::PathBuf;
+  use std::{collections::HashMap, path::PathBuf};
 
   #[test]
   fn resolve_work_dir_packages() {
@@ -50,7 +50,8 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(&test_path, "test/index.js").as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "test/index.js"
     );
@@ -58,7 +59,8 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(&test_path, "index.js").as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "index.js"
     );
@@ -72,6 +74,7 @@ mod resolve_path_tests {
     resolve_path(
       fixture(&test_path, "index.jsx").as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -86,7 +89,8 @@ mod resolve_path_tests {
           "node_modules/@stylex/open-props/lib/colors.stylex.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/@stylex/open-props/lib/colors.stylex.js"
     );
@@ -106,6 +110,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -123,6 +128,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -133,7 +139,8 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(&test_path, "node_modules/stylex-lib/colors.stylex.js").as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib/colors.stylex.js"
     );
@@ -144,7 +151,9 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(& PathBuf::from("workspace"), "../../node_modules/.pnpm/@stylexjs+open-props@0.7.5/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
-        get_root_dir(& PathBuf::from("workspace")).as_path()
+        get_root_dir(& PathBuf::from("workspace")).as_path(),
+        &mut HashMap::default(),
+
       ),
       "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
     );
@@ -159,7 +168,8 @@ mod resolve_path_tests {
           "../../node_modules/@stylexjs/open-props/lib/colors.stylex.js"
         )
         .as_path(),
-        get_root_dir(&PathBuf::from("workspace")).as_path()
+        get_root_dir(&PathBuf::from("workspace")).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
     );
@@ -170,7 +180,9 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(& PathBuf::from("workspace"), "../../app/node_modules/.yarn/__virtual__/swc-virtual-123123/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
-        get_root_dir(& PathBuf::from("workspace")).as_path()
+        get_root_dir(& PathBuf::from("workspace")).as_path(),
+        &mut HashMap::default(),
+
       ),
       "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
     );
@@ -188,7 +200,8 @@ mod resolve_path_tests {
           "packages/stylex-lib/colors.stylex.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib/colors.stylex.js"
     );
@@ -206,7 +219,8 @@ mod resolve_path_tests {
           "packages/@stylex/theme-lib/colors.stylex.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/@stylex/theme-lib/colors.stylex.js"
     );
@@ -224,7 +238,8 @@ mod resolve_path_tests {
           "packages/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
     );
@@ -241,7 +256,8 @@ mod resolve_path_tests {
           "node_modules/stylex-lib-dist-main/dist/index.jsx"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-main/dist/index.jsx"
     );
@@ -257,7 +273,8 @@ mod resolve_path_tests {
           "node_modules/stylex-lib-dist-module/dist/index.jsx"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-module/dist/index.jsx"
     );
@@ -274,7 +291,8 @@ mod resolve_path_tests {
           "node_modules/stylex-lib-dist-exports/dist/index.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports/dist/index.js"
     );
@@ -291,7 +309,8 @@ mod resolve_path_tests {
           "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
     );
@@ -309,7 +328,8 @@ mod resolve_path_tests {
           "packages/stylex-lib-dist-main-local/dist/index.jsx"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-main-local/dist/index.jsx"
     );
@@ -330,6 +350,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -345,7 +366,8 @@ mod resolve_path_tests {
           "packages/stylex-lib-dist-module-local/dist/index.jsx"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-module-local/dist/index.jsx"
     );
@@ -363,7 +385,8 @@ mod resolve_path_tests {
           "node_modules/stylex-lib-dist-exports/dist/index.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports/dist/index.js"
     );
@@ -375,7 +398,8 @@ mod resolve_path_tests {
           "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
     );
@@ -387,7 +411,8 @@ mod resolve_path_tests {
           "packages/stylex-lib-dist-exports-local/dist/index.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports-local/dist/index.js"
     );
@@ -399,9 +424,10 @@ mod resolve_path_tests {
           "packages/stylex-lib-dist-exports-local/dist/colors.stylex.js"
         )
         .as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
-      "node_modules/stylex-lib-dist-exports-local/dist/colors.stylex.js"
+      "node_modules/stylex-lib-dist-exports-local/dist/colors.stylex.js",
     );
   }
 
@@ -420,6 +446,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -438,6 +465,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -456,6 +484,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -473,6 +502,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -490,6 +520,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -503,7 +534,8 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(&test_path, "node_modules/stylex-lib-dist-exports").as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports/dist/index.js"
     );
@@ -519,7 +551,8 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(&test_path, "node_modules/stylex-lib-dist-exports-with-main").as_path(),
-        get_root_dir(&test_path).as_path()
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
     );
@@ -539,6 +572,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -556,6 +590,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -574,6 +609,7 @@ mod resolve_path_tests {
       )
       .as_path(),
       get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
     );
   }
 
@@ -592,6 +628,7 @@ mod resolve_path_tests {
         )
         .as_path(),
         get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
       ),
       expected_result
     );
@@ -619,6 +656,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()
@@ -649,6 +687,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()
@@ -680,6 +719,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()
@@ -710,6 +750,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()
@@ -740,6 +781,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()
@@ -771,6 +813,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()
@@ -801,6 +844,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()
@@ -831,6 +875,7 @@ mod resolve_path_tests {
         ext,
         root_path.as_str(),
         &aliases,
+        &mut HashMap::default(),
       )
       .unwrap_or_default()
       .display()

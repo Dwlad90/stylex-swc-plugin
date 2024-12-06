@@ -2,6 +2,7 @@ use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
 use crate::shared::{
   regex::IS_CSS_VAR,
+  structures::{functions::FunctionMap, state_manager::StateManager},
   utils::ast::{
     convertors::{expr_to_str, string_to_expression},
     factories::array_expression_factory,
@@ -9,7 +10,7 @@ use crate::shared::{
 };
 
 fn is_var(arg: &Expr) -> bool {
-  let str_arg = expr_to_str(arg, &mut Default::default(), &Default::default());
+  let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default());
 
   IS_CSS_VAR.is_match(&str_arg)
 }
@@ -46,7 +47,7 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
         .into_iter()
         .map(|arg| {
           if is_var(arg) {
-            let str_arg = expr_to_str(arg, &mut Default::default(), &Default::default());
+            let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default());
             let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
             string_to_expression(cleared_str_arg)
           } else {
@@ -58,7 +59,11 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
       let return_value = {
         let mut so_far = String::new();
         for var_name in vars.iter() {
-          let var_name_str = expr_to_str(var_name, &mut Default::default(), &Default::default());
+          let var_name_str = expr_to_str(
+            var_name,
+            &mut StateManager::default(),
+            &FunctionMap::default(),
+          );
           so_far = if !so_far.is_empty() {
             format!("var({}, {})", var_name_str, so_far)
           } else if var_name_str.starts_with("--") {

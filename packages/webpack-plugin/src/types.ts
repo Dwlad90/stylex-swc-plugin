@@ -1,14 +1,15 @@
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
 import type { LoaderContext } from 'webpack';
+import type webpack from 'webpack';
+import type { RegisterStyleXRules } from '.';
 
 type AsyncFnParams = Parameters<ReturnType<LoaderContext<unknown>['async']>>;
 
 export type InputCode = AsyncFnParams['1'];
 export type SourceMap = AsyncFnParams['2'];
 
-
 export type CSSTransformer = (css: string) => string | Buffer | Promise<string | Buffer>;
-export interface StyleXPluginOption {
+export interface StyleXPluginOption extends Pick<StyleXWebpackLoaderOptions, 'transformer'> {
   /**
    * stylex options passed to stylex babel plugin
    *
@@ -42,3 +43,28 @@ export interface StyleXPluginOption {
    */
   transformCss?: CSSTransformer;
 }
+export type StyleXWebpackLoaderOptions = {
+  stylexImports: StyleXOptions['importSources'];
+  rsOptions: Partial<StyleXOptions>;
+  nextjsMode: boolean;
+
+  /**
+   * Specify the transformer to transform StyleX code
+   *
+   * @default 'rs-compiler'
+   */
+  transformer?: 'rs-compiler' | 'swc';
+};
+
+export type SupplementedLoaderContext<Options = unknown> = webpack.LoaderContext<Options> & {
+  StyleXWebpackContextKey: {
+    registerStyleXRules: RegisterStyleXRules;
+  };
+};
+
+
+export type SWCPluginRule = {
+  class_name: string;
+  style: { ltr: string; rtl?: null | string };
+  priority: number;
+};

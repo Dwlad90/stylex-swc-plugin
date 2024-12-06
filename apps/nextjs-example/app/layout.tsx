@@ -9,6 +9,21 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html {...stylex.props(styles.html, styles.reset)} lang="en">
+      <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            @layer reset {
+              * {
+                box-sizing: border-box;
+                padding: 0;
+                margin: 0;
+              }
+            }
+          `,
+          }}
+        />
+      </head>
       <body {...stylex.props(styles.reset, styles.body)}>{children}</body>
     </html>
   );

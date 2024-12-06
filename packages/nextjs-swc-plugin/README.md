@@ -3,6 +3,10 @@
 > [!WARNING]
 > **Deprecated**: This package is deprecated as of version `0.3.0` and may be removed in the future. Please use the [`nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin) instead.
 
+## Breaking Changes in v0.5.0
+
+> [!IMPORTANT]
+> The plugin API has been updated since version [0.5.0](https://www.npmjs.com/package/@stylexswc/swc-plugin/v/0.5.0). If you're upgrading from an earlier version, please note that the configuration options have changed. See the [Plugin Options](#plugin-options) section for the updated API.
 
 Next.js plugin for an unofficial
 [`StyleX SWC`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-swc-plugin)
@@ -30,46 +34,70 @@ Install the package and SWC plugin by using:
 npm install --save-dev @stylexswc/nextjs-plugin
 ```
 
-Please install `@stylexswc/swc-plugin` if you haven't done so already:
+## Plugin Options
 
-```bash
-npm install --save-dev @stylexswc/swc-plugin
-```
+### Basic Options
 
-## Usage
+#### `stylexImports`
 
-Modify Next.js config. For example:
+- Type: `Array<string | { as: string, from: string }>`
+- Default: `['stylex', '@stylexjs/stylex']`
+- Description: Specifies where StyleX will be imported from. Supports both
+  string paths and import aliases.
 
-```js
-/** @type {import('next').NextConfig} */
-const stylexPlugin = require('@stylexswc/nextjs-plugin');
+#### `useCSSLayers`
 
-const nextConfig = {
-  // Configure `pageExtensions` to include MDX files
-  pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
+- Type: `boolean`
+- Default: `false`
+- Description: Enables CSS cascade layers support for better style isolation.
+
+### Advanced Options
+
+#### `transformCss`
+
+- Type: `(css: string) => string | Buffer | Promise<string | Buffer>`
+- Optional
+- Description: Custom CSS transformation function. Since the plugin injects CSS
+  after all loaders, use this to apply PostCSS or other CSS transformations.
+
+### SWC Plugin Options
+
+- Type: `Partial<StyleXOptions>`
+- Optional
+- Description: StyleX compiler options that will be passed to the NAPI-RS
+  compiler. See
+  [StyleX configuration docs](https://stylexjs.com/docs/api/configuration/babel-plugin/)
+  for details.
+
+### Example Configuration
+
+```javascript
+const path = require('path');
+const stylexPlugin = require('@stylexswc/nextjs-swc-plugin');
+const rootDir = __dirname;
+
+module.exports = stylexPlugin({})({
   transpilePackages: ['@stylexjs/open-props'],
   // Optionally, add any other Next.js config below
   swcMinify: true,
   experimental: {
-    swcPlugins: [
-      '@stylexswc/swc-plugin',
+    swcPlugins: [[
+      "@stylexswc/swc-plugin",
       {
-        dev: false,
-        runtimeInjection: false,
+        dev: process.env.NODE_ENV === 'development',
         genConditionalClasses: true,
         treeshakeCompensation: true,
+        aliases: {
+          '@/*': [path.join(rootDir, '*')],
+        },
         unstable_moduleResolution: {
           type: 'commonJS',
-          rootDir: __dirname,
+          rootDir: rootDir,
         },
       },
-    ],
+    ]],
   },
-};
-
-module.exports = stylexPlugin({
-  rootDir: __dirname,
-})(nextConfig);
+});
 ```
 
 ## Examples

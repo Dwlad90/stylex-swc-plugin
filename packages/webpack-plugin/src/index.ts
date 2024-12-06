@@ -11,9 +11,13 @@ import {
 
 import type webpack from 'webpack';
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
-import type { StyleXWebpackLoaderOptions, SupplementedLoaderContext } from './constants';
+import type {
+  CSSTransformer,
+  StyleXPluginOption,
+  StyleXWebpackLoaderOptions,
+  SupplementedLoaderContext,
+} from './types';
 import type { CssModule } from 'mini-css-extract-plugin';
-import type { CSSTransformer, StyleXPluginOption } from './types';
 
 const stylexLoaderPath = require.resolve('./stylex-loader');
 const stylexVirtualLoaderPath = require.resolve('./stylex-virtual-css-loader');
@@ -46,11 +50,12 @@ export default class StyleXPlugin {
     rsOptions = {},
     nextjsMode = false,
     transformCss = identityTransfrom,
+    transformer = 'rs-compiler',
   }: StyleXPluginOption = {}) {
     this.useCSSLayers = useCSSLayers;
     this.loaderOption = {
       stylexImports,
-      rsOption: {
+      rsOptions: {
         dev: IS_DEV_ENV,
         useRemForFontSize: true,
         runtimeInjection: false,
@@ -60,6 +65,7 @@ export default class StyleXPlugin {
         ...rsOptions,
       },
       nextjsMode,
+      transformer,
     };
     this.transformCss = transformCss;
   }

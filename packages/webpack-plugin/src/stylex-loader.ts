@@ -1,15 +1,14 @@
-import {
-  SupplementedLoaderContext,
-  VIRTUAL_CSS_PATH,
-  StyleXWebpackLoaderOptions,
-  isSupplementedLoaderContext,
-  PLUGIN_NAME,
-} from './constants';
+import { VIRTUAL_CSS_PATH, PLUGIN_NAME } from './constants';
 import loaderUtils from 'loader-utils';
-import stylexPlugin from '@stylexswc/rs-compiler';
-import { stringifyRequest } from './utils';
+import { generateStyleXOutput, isSupplementedLoaderContext, stringifyRequest } from './utils';
 
-import type { InputCode, SourceMap } from './types';
+import type {
+  InputCode,
+  SourceMap,
+  StyleXWebpackLoaderOptions,
+  SupplementedLoaderContext,
+} from './types';
+
 
 export default async function stylexLoader(
   this: SupplementedLoaderContext<StyleXWebpackLoaderOptions>,
@@ -18,7 +17,7 @@ export default async function stylexLoader(
 ) {
   const callback = this.async();
 
-  const { stylexImports, rsOption, nextjsMode } = this.getOptions();
+  const { stylexImports, rsOptions, nextjsMode, transformer } = this.getOptions();
 
   const logger = this._compiler?.getInfrastructureLogger(PLUGIN_NAME);
 
@@ -47,10 +46,11 @@ export default async function stylexLoader(
   }
 
   try {
-    const { code, map, metadata } = stylexPlugin.transform(
+    const { code, map, metadata } = generateStyleXOutput(
       this.resourcePath,
       stringifiedInputCode,
-      rsOption
+      rsOptions,
+      transformer
     );
 
     // If metadata.stylex doesn't exist at all, we only need to return the transformed code

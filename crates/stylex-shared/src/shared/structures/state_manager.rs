@@ -5,7 +5,10 @@ use std::path::Path;
 use std::{option::Option, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
-use stylex_path_resolver::resolvers::{resolve_file_path, resolve_path, EXTENSIONS};
+use stylex_path_resolver::{
+  package_json::PackageJsonExtended,
+  resolvers::{resolve_file_path, resolve_path, EXTENSIONS},
+};
 use swc_core::ecma::ast::{
   CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
   ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
@@ -272,14 +275,19 @@ impl StateManager {
 
         let processing_file = Path::new(&filename);
 
-        let filename_for_hashing = resolve_path(processing_file, root_dir);
+        let filename_for_hashing =
+          resolve_path(processing_file, root_dir, &mut FxHashMap::default());
 
         Some(filename_for_hashing)
       }
     }
   }
 
-  pub(crate) fn import_path_resolver(&self, import_path: &str) -> ImportPathResolution {
+  pub(crate) fn import_path_resolver(
+    &self,
+    import_path: &str,
+    package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+  ) -> ImportPathResolution {
     let source_file_path = self.get_filename();
 
     if source_file_path.is_empty() {
@@ -308,8 +316,13 @@ impl StateManager {
           return ImportPathResolution::False;
         }
 
-        let resolved_file_path =
-          file_path_resolver(import_path, source_file_path, root_dir, &aliases);
+        let resolved_file_path = file_path_resolver(
+          import_path,
+          source_file_path,
+          root_dir,
+          &aliases,
+          package_json_seen,
+        );
 
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
       }
@@ -762,6 +775,7 @@ fn file_path_resolver(
   source_file_path: &str,
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
   if EXTENSIONS
     .iter()
@@ -777,8 +791,14 @@ fn file_path_resolver(
       relative_file_path.to_string()
     };
 
-    let resolved_file_path =
-      resolve_file_path(&import_path_str, source_file_path, ext, root_path, aliases);
+    let resolved_file_path = resolve_file_path(
+      &import_path_str,
+      source_file_path,
+      ext,
+      root_path,
+      aliases,
+      package_json_seen,
+    );
 
     if let Ok(resolved_path) = resolved_file_path {
       let resolved_path_str = resolved_path.display().to_string();

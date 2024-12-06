@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use crate::resolvers::get_node_modules_path;
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageJsonExtended {
   pub name: String,
@@ -28,21 +28,31 @@ pub struct PackageJsonExtended {
   pub dev_dependencies: Option<PackageDependencies>,
 }
 
-pub(crate) fn get_package_json(path: &Path) -> (PackageJsonExtended, PackageJsonManager) {
+pub(crate) fn get_package_json(
+  path: &Path,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+) -> (PackageJsonExtended, PackageJsonManager) {
   let (package_json_path, manager) = get_package_json_path(path);
 
   match package_json_path {
     Some(file) => {
-      let data = read_to_string(file.display().to_string().as_str());
+      let file_path_string = file.display().to_string();
+      let file_path = file_path_string.as_str();
+      let data = package_json_seen.get(file_path).cloned().or_else(|| {
+        let data = read_to_string(file_path);
 
-      match data {
-        Ok(package_json_raw) => {
+        data.ok().map(|package_json_raw| {
           let json =
             serde_json::from_str::<PackageJsonExtended>(package_json_raw.as_str()).unwrap();
 
-          (json, manager)
-        }
-        Err(_) => panic!(
+          package_json_seen.insert(file_path.to_string(), json.clone());
+          json
+        })
+      });
+
+      match data {
+        Some(json) => (json, manager),
+        None => panic!(
           "Failed to read package.json file: {}/{}",
           env::current_dir().unwrap().display(),
           file.display()
@@ -83,11 +93,19 @@ pub(crate) fn resolve_package_from_package_json(
   resolver: &NodeModulesResolver,
   file_name: &FileName,
   import_path_str: &str,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> Option<swc_core::ecma::loader::resolve::Resolution> {
   const PATH_SEPARATOR: char = '/';
 
-  if let Some(parent) = get_node_modules_path(resolver, file_name, import_path_str) {
-    return Some(parent);
+  if let Some(mut resolution) =
+    get_node_modules_path(resolver, file_name, import_path_str, package_json_seen)
+  {
+    if let FileName::Real(path) = &resolution.filename {
+      if cfg!(feature = "wasm") {
+        resolution.filename = FileName::Real(PathBuf::from("cwd").join(path));
+      }
+      return Some(resolution);
+    }
   }
 
   let parts: Vec<&str> = import_path_str.split(PATH_SEPARATOR).collect();
@@ -98,16 +116,17 @@ pub(crate) fn resolve_package_from_package_json(
 
   let parent_path = parts[..parts.len() - 1].join(&PATH_SEPARATOR.to_string());
 
-  resolve_package_from_package_json(resolver, file_name, &parent_path)
+  resolve_package_from_package_json(resolver, file_name, &parent_path, package_json_seen)
 }
 
 pub(crate) fn get_package_json_with_deps(
   cwd: &Path,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> (NodeModulesResolver, HashMap<String, String>) {
   let node_modules_resolver = NodeModulesResolver::new(TargetEnv::Node, Default::default(), true);
   let resolver = node_modules_resolver;
 
-  let (package_json, _) = get_package_json(cwd);
+  let (package_json, _) = get_package_json(cwd, package_json_seen);
 
   let mut package_dependencies = package_json.dependencies.unwrap_or_default();
   let package_dev_dependencies = package_json.dev_dependencies.unwrap_or_default();

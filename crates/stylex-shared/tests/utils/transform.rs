@@ -2,16 +2,22 @@ use std::{rc::Rc, sync::Arc};
 
 use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 
-use swc_core::common::{chain, comments::SingleThreadedComments, DUMMY_SP};
-use swc_core::ecma::ast::{
-  CallExpr, Decl, Expr, ImportSpecifier, ModuleDecl, ModuleItem, Stmt, VarDecl, VarDeclKind,
-  VarDeclarator,
+use swc_core::{
+  common::SyntaxContext,
+  ecma::ast::{
+    CallExpr, Decl, Expr, ImportSpecifier, ModuleDecl, ModuleItem, Pass, Stmt, VarDecl,
+    VarDeclKind, VarDeclarator,
+  },
+};
+use swc_core::{
+  common::{comments::SingleThreadedComments, DUMMY_SP},
+  ecma::visit::visit_mut_pass,
 };
 
 use swc_core::ecma::transforms::base::{fixer, hygiene};
 use swc_core::ecma::transforms::testing::{HygieneVisualizer, Tester};
 use swc_core::ecma::utils::{quote_ident, quote_str, DropSpan, ExprFactory};
-use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut};
+use swc_core::ecma::visit::{noop_visit_mut_type, VisitMut};
 use swc_core::{
   common::{
     errors::{ColorConfig, Handler},
@@ -32,8 +38,10 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
   let cm: Arc<SourceMap> = Default::default();
   let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
 
+  let file_name = Arc::new(FileName::Custom("input.js".into()));
+
   // This is the JavaScript code you want to parse.
-  let fm = cm.new_source_file(FileName::Custom("input.js".into()), source_code.into());
+  let fm = cm.new_source_file(file_name, source_code.into());
 
   let lexer = Lexer::new(
     Syntax::default(),
@@ -89,6 +97,7 @@ impl VisitMut for RegeneratorHandler {
         callee: quote_ident!("require").as_callee(),
         args: vec![quote_str!("regenerator-runtime").as_arg()],
         type_args: Default::default(),
+        ctxt: SyntaxContext::empty(),
       }));
 
       let decl = VarDeclarator {
@@ -102,28 +111,22 @@ impl VisitMut for RegeneratorHandler {
         kind: VarDeclKind::Var,
         declare: false,
         decls: vec![decl],
+        ctxt: SyntaxContext::empty(),
       }))))
     }
   }
 }
 
-fn make_tr<F, P>(op: F, tester: &mut Tester<'_>) -> impl Fold
-where
-  F: FnOnce(&mut Tester<'_>) -> P,
-  P: Fold,
-{
-  chain!(op(tester), as_folder(RegeneratorHandler))
-}
-
 pub(crate) fn stringify_js<F, P>(input: &str, syntax: Syntax, tr: F) -> String
 where
   F: FnOnce(&mut Tester) -> P,
-  P: Fold,
+  P: Pass,
 {
   Tester::run(|tester| {
-    let tr = make_tr(tr, tester);
+    // let tr = make_tr(tr, tester);
 
-    let actual = tester.apply_transform(tr, "input.js", syntax, input)?;
+    let tr = (tr(tester), visit_mut_pass(RegeneratorHandler));
+    let actual = tester.apply_transform(tr, "input.js", syntax, Option::None, input)?;
 
     match ::std::env::var("PRINT_HYGIENE") {
       Ok(ref s) if s == "1" => {
@@ -137,12 +140,12 @@ where
     }
 
     let actual = actual
-      .fold_with(&mut as_folder(DropSpan {
-        preserve_ctxt: true,
-      }))
-      .fold_with(&mut hygiene::hygiene())
-      .fold_with(&mut fixer::fixer(Some(&tester.comments)));
+      .apply(DropSpan)
+      .apply(&mut hygiene::hygiene())
+      .apply(&mut fixer::fixer(Some(&tester.comments)));
 
-    Result::Ok(tester.print(&actual, &tester.comments.clone()))
+    let actual_str = tester.print(&actual, &tester.comments.clone());
+
+    Result::Ok(actual_str)
   })
 }

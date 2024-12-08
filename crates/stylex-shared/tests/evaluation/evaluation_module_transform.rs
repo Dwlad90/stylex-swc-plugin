@@ -7,14 +7,20 @@ use stylex_shared::shared::{
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Pat, Stmt, VarDeclarator},
-    visit::{Fold, FoldWith},
+    ast::{ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Pass, Pat, Stmt, VarDeclarator},
+    visit::{fold_pass, Fold, FoldWith},
   },
 };
 pub(crate) struct EvaluationStyleXTransform {
   pub(crate) functions: FunctionMap,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) state: StateManager,
+}
+
+impl EvaluationStyleXTransform {
+  pub fn default_with_pass() -> impl Pass {
+    fold_pass(Self::default())
+  }
 }
 
 impl Default for EvaluationStyleXTransform {

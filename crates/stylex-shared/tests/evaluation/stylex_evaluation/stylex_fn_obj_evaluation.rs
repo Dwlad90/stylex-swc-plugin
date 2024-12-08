@@ -12,14 +12,14 @@ fn evaluates_empty_object() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsStyleXTransform::default(),
+    Option::None,
+    |_| ArgsStyleXTransform::default_with_pass(),
     r#"
           const x = {};
         "#,
     r#"
             ({});
         "#,
-    false,
   )
 }
 
@@ -30,7 +30,8 @@ fn evaluates_static_style_object() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsStyleXTransform::default(),
+    Option::None,
+    |_| ArgsStyleXTransform::default_with_pass(),
     r#"
           const x = {
             default: {
@@ -49,7 +50,6 @@ fn evaluates_static_style_object() {
             },
           })
         "#,
-    false,
   )
 }
 
@@ -60,7 +60,8 @@ fn evaluates_object_with_function_styles_identifier() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsStyleXTransform::default(),
+    Option::None,
+    |_| ArgsStyleXTransform::default_with_pass(),
     r#"
           const x = {
             default: (width) => ({
@@ -79,7 +80,6 @@ fn evaluates_object_with_function_styles_identifier() {
             }
           })
         "#,
-    false,
   )
 }
 
@@ -90,7 +90,8 @@ fn evaluates_object_with_function_styles_binary_expression() {
       tsx: true,
       ..Default::default()
     }),
-    |_| ArgsStyleXTransform::default(),
+    Option::None,
+    |_| ArgsStyleXTransform::default_with_pass(),
     r#"
           const x = {
             default: (width) => ({
@@ -109,6 +110,5 @@ fn evaluates_object_with_function_styles_binary_expression() {
             }
           })
         "#,
-    false,
   )
 }

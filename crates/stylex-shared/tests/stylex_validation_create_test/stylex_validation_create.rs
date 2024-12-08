@@ -12,8 +12,9 @@ fn must_be_bound_to_a_variable() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -25,7 +26,6 @@ fn must_be_bound_to_a_variable() {
             stylex.create({});
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -36,8 +36,9 @@ fn can_be_item_of_array() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -54,7 +55,6 @@ fn can_be_item_of_array() {
           {}
       ];
     "#,
-    false,
   )
 }
 
@@ -66,8 +66,9 @@ fn must_be_called_at_top_level() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -81,7 +82,6 @@ fn must_be_called_at_top_level() {
             }
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -93,8 +93,9 @@ fn its_only_argument_must_be_a_single_object_non_object() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -106,7 +107,6 @@ fn its_only_argument_must_be_a_single_object_non_object() {
             const styles = stylex.create(genStyles());
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -118,8 +118,9 @@ fn its_only_argument_must_be_a_single_object_argument() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -131,7 +132,6 @@ fn its_only_argument_must_be_a_single_object_argument() {
             const styles = stylex.create();
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -143,8 +143,9 @@ fn its_only_argument_must_be_a_single_object_illegal_argument_length() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -156,14 +157,13 @@ fn its_only_argument_must_be_a_single_object_illegal_argument_length() {
             const styles = stylex.create({}, {});
         "#,
     r#""#,
-    false,
   )
 }
 
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -189,8 +189,9 @@ fn namespace_values_must_be_an_object() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -204,7 +205,6 @@ fn namespace_values_must_be_an_object() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -216,8 +216,9 @@ fn namespace_keys_must_be_a_static_value() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -233,7 +234,6 @@ fn namespace_keys_must_be_a_static_value() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -245,8 +245,9 @@ fn properties_must_be_a_static_value() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -262,14 +263,13 @@ fn properties_must_be_a_static_value() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -288,7 +288,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -323,8 +323,9 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -340,7 +341,6 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -352,8 +352,9 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_illegal_pro
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -369,7 +370,6 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_illegal_pro
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -381,8 +381,9 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -398,7 +399,6 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -410,8 +410,9 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -427,14 +428,13 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
             });
         "#,
     r#""#,
-    false,
   )
 }
 
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -461,7 +461,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -484,7 +484,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -507,7 +507,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -530,7 +530,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -559,8 +559,9 @@ fn pseudo_classes_throw_invalid_pseudo() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -579,14 +580,13 @@ fn pseudo_classes_throw_invalid_pseudo() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,

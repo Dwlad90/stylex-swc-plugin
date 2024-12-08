@@ -15,14 +15,20 @@ use stylex_shared::shared::{
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{Decl, Expr, ExprOrSpread, ExprStmt, Pat, Prop, PropOrSpread, Stmt, VarDeclarator},
-    visit::{Fold, FoldWith},
+    ast::{Decl, Expr, ExprOrSpread, ExprStmt, Pass, Pat, Prop, PropOrSpread, Stmt, VarDeclarator},
+    visit::{fold_pass, Fold, FoldWith},
   },
 };
 pub(crate) struct ArgsStyleXTransform {
   pub(crate) functions: FunctionMap,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) state: StateManager,
+}
+
+impl ArgsStyleXTransform {
+  pub fn default_with_pass() -> impl Pass {
+    fold_pass(Self::default())
+  }
 }
 
 impl Default for ArgsStyleXTransform {

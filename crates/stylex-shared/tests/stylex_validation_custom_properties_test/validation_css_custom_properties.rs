@@ -16,6 +16,7 @@ fn disallow_unclosed_style_value_functions() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
       let mut config = StyleXOptionsParams::default();
 
@@ -25,7 +26,7 @@ fn disallow_unclosed_style_value_functions() {
 
       config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         Some(&mut config),
@@ -36,7 +37,6 @@ fn disallow_unclosed_style_value_functions() {
         const styles = stylex.create({default: {color: 'var(--foo'}})
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -48,6 +48,7 @@ fn disallow_unprefixed_custom_properties() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
       let mut config = StyleXOptionsParams::default();
 
@@ -57,7 +58,7 @@ fn disallow_unprefixed_custom_properties() {
 
       config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         Some(&mut config),
@@ -68,7 +69,6 @@ fn disallow_unprefixed_custom_properties() {
         const styles = stylex.create({default: {color: 'var(foo)'}})
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -86,7 +86,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       Some(&mut config),
@@ -114,7 +114,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       Some(&mut config),
@@ -132,7 +132,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
     None,
@@ -156,7 +156,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       Some(&mut config),
@@ -184,7 +184,7 @@ test!(
 
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
 
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       Some(&mut config),

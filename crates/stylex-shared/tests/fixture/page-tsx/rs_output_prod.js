@@ -16,7 +16,7 @@ export default function Home(_props: Props) {
         <p {...{
         className: "xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x13ekbdn xqxyaa3 x12h1x1l x5b8z1 x14kqxm4 x19g2c9c xa7o7q9 xmkeg23 x1m60m6i         x1y0btm7 x15t7hjr xgepp9j x12ugs8o xd22jv         x1los6se"
     }}>
-          Get started by editing 
+          Get started by editing&nbsp;
           <code {...{
         className: "x1xlr1w8 x1nlbcxq"
     }}>app/page.tsx</code>

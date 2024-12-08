@@ -7,7 +7,7 @@ use swc_core::ecma::{
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -29,7 +29,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -66,7 +66,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,

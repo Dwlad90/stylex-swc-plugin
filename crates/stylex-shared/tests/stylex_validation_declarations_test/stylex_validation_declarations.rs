@@ -31,7 +31,7 @@ fn validation_stylex_invalid_properties() {
         ..Default::default()
       }),
       |tr| {
-        StyleXTransform::new_test_force_runtime_injection(
+        StyleXTransform::new_test_force_runtime_injection_with_pass(
           tr.comments.clone(),
           PluginPass::default(),
           None,
@@ -65,7 +65,7 @@ fn stylex_invalid_property_values() {
         ..Default::default()
       }),
       |tr| {
-        StyleXTransform::new_test_force_runtime_injection(
+        StyleXTransform::new_test_force_runtime_injection_with_pass(
           tr.comments.clone(),
           PluginPass::default(),
           None,

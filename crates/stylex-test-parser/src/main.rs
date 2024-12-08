@@ -12,7 +12,7 @@ use std::{
 use swc_core::{
   common::{
     errors::{ColorConfig, Handler},
-    FileName, SourceMap, DUMMY_SP,
+    FileName, SourceMap, SyntaxContext, DUMMY_SP,
   },
   ecma::{
     ast::{
@@ -108,6 +108,7 @@ impl Fold for TestsTransformer {
           kind: VarDeclKind::Var,
           declare: false,
           decls: vec![var_declarator.clone()],
+          ctxt: SyntaxContext::empty(),
         })))));
     }
 
@@ -141,7 +142,7 @@ fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
     let file_path_string = file_path.to_string_lossy().into_owned();
     let file_name = FileName::Custom(file_path_string);
 
-    let fm = cm.new_source_file(file_name, source_code);
+    let fm = cm.new_source_file(file_name.into(), source_code);
     // let compiler = Compiler::new(Default::default());
     let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
 

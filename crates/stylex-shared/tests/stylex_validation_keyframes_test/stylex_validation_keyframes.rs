@@ -17,8 +17,9 @@ fn only_argument_must_be_an_object_of_objects_null() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -29,7 +30,6 @@ fn only_argument_must_be_an_object_of_objects_null() {
             const name = stylex.keyframes(null);
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -41,8 +41,9 @@ fn only_argument_must_be_an_object_of_objects_non_keyframe() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -55,7 +56,6 @@ fn only_argument_must_be_an_object_of_objects_non_keyframe() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -64,7 +64,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
     None
@@ -84,7 +84,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_force_runtime_injection(
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
     None
@@ -119,7 +119,7 @@ test!(
 
     config.runtime_injection = Some(true);
 
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       Some(&mut config),

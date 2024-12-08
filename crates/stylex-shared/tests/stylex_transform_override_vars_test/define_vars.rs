@@ -26,7 +26,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test(
+  |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
@@ -54,7 +54,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test(
+  |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
@@ -91,7 +91,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test(
+  |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
       cwd: None,

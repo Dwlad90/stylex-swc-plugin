@@ -9,14 +9,17 @@ use stylex_path_resolver::{
   package_json::PackageJsonExtended,
   resolvers::{resolve_file_path, resolve_path, EXTENSIONS},
 };
-use swc_core::ecma::ast::{
-  CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
-  ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
-  Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
-};
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, FileName, DUMMY_SP},
+};
+use swc_core::{
+  common::SyntaxContext,
+  ecma::ast::{
+    CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
+    ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
+    Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+  },
 };
 
 use crate::shared::utils::{
@@ -491,6 +494,7 @@ impl StateManager {
       type_args: None,
       callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
       args: stylex_inject_args,
+      ctxt: SyntaxContext::empty(),
     };
 
     let stylex_call = Expr::Call(stylex_call_expr);
@@ -661,6 +665,7 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
     }],
     kind: VarDeclKind::Var,
     span: DUMMY_SP,
+    ctxt: SyntaxContext::empty(),
   }))))
 }
 

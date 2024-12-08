@@ -1,14 +1,10 @@
 use anyhow::anyhow;
+use swc_core::ecma::ast::{
+  BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl, UnaryExpr, UnaryOp,
+};
 use swc_core::ecma::{
   ast::BigInt,
   utils::{quote_ident, quote_str, ExprExt},
-};
-use swc_core::{
-  atoms::Atom,
-  ecma::ast::{
-    BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl, UnaryExpr,
-    UnaryOp,
-  },
 };
 
 use swc_ecma_parser::Context;
@@ -602,7 +598,7 @@ fn should_wrap_prop_name_key_with_quotes(key: &str) -> bool {
   Ident::verify_symbol(key).is_err() && {
     let ctx = Context::default();
 
-    !ctx.is_reserved_word(&Atom::from(key))
+    !ctx.is_reserved_word(&key.into())
   }
 }
 pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {

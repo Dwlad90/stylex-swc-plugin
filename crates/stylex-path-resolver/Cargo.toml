@@ -29,6 +29,7 @@ ctor.workspace = true
 env_logger.workspace = true
 rustc-hash.workspace = true
 once_cell.workspace = true
+indexmap.workspace = true
 
 package-json = "0.4.0"
-pathdiff = { version = "0.2.1" }
+pathdiff = { version = "0.2.3" }

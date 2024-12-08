@@ -8,7 +8,7 @@ use stylex_shared::{
   StyleXTransform,
 };
 use swc_core::{
-  common::{chain, FileName, Mark},
+  common::{FileName, Mark},
   ecma::{
     parser::{Syntax, TsSyntax},
     transforms::{base::resolver, testing::test_fixture},
@@ -49,16 +49,16 @@ fn fixture(input: PathBuf) {
         ..StyleXOptionsParams::default()
       };
 
-      chain!(
+      (
         resolver(unresolved_mark, top_level_mark, false),
-        StyleXTransform::new_test_force_runtime_injection(
+        StyleXTransform::new_test_force_runtime_injection_with_pass(
           tr.comments.clone(),
           PluginPass {
             cwd: None,
             filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
           },
-          Some(&mut config)
-        )
+          Some(&mut config),
+        ),
       )
     },
     &input,
@@ -84,16 +84,16 @@ fn fixture(input: PathBuf) {
         ..StyleXOptionsParams::default()
       };
 
-      chain!(
+      (
         resolver(unresolved_mark, top_level_mark, false),
-        StyleXTransform::new_test(
+        StyleXTransform::new_test_with_pass(
           tr.comments.clone(),
           PluginPass {
             cwd: None,
             filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
           },
-          Some(&mut config)
-        )
+          Some(&mut config),
+        ),
       )
     },
     &input,

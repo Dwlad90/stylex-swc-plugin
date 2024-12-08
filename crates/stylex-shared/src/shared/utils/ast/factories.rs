@@ -1,4 +1,6 @@
-use swc_core::ecma::ast::{BigInt, BindingIdent, Ident, KeyValueProp, Lit, Null, Prop, PropName};
+use swc_core::ecma::ast::{
+  BigInt, BindingIdent, Ident, IdentName, KeyValueProp, Lit, Null, Prop, PropName,
+};
 use swc_core::{
   common::{Span, DUMMY_SP},
   ecma::ast::{ArrayLit, Expr, ExprOrSpread, ObjectLit, PropOrSpread},
@@ -78,7 +80,7 @@ pub(crate) fn prop_or_spread_expr_factory(key: &str, values: Vec<PropOrSpread>) 
 
 pub fn key_value_factory(key: &str, value: Expr) -> KeyValueProp {
   KeyValueProp {
-    key: PropName::Ident(Ident::new(key.into(), DUMMY_SP)),
+    key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
     value: Box::new(value),
   }
 }

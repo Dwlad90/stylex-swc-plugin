@@ -12,8 +12,9 @@ fn must_be_bound_to_a_variable() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -24,7 +25,6 @@ fn must_be_bound_to_a_variable() {
             stylex.createTheme({__themeName__: 'x568ih9'}, {});
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -36,8 +36,9 @@ fn it_must_have_two_arguments_no_args() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -48,7 +49,6 @@ fn it_must_have_two_arguments_no_args() {
             const variables = stylex.createTheme();
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -60,8 +60,9 @@ fn it_must_have_two_arguments_one_args() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -72,7 +73,6 @@ fn it_must_have_two_arguments_one_args() {
             const variables = stylex.createTheme({});
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -84,8 +84,9 @@ fn it_must_have_two_arguments_fn_args() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -96,7 +97,6 @@ fn it_must_have_two_arguments_fn_args() {
             const variables = stylex.createTheme(genStyles(),{});
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -108,8 +108,9 @@ fn it_must_have_two_arguments_empty_object_args() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -120,14 +121,13 @@ fn it_must_have_two_arguments_empty_object_args() {
             const variables = stylex.createTheme({},{});
         "#,
     r#""#,
-    false,
   )
 }
 
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -151,8 +151,9 @@ fn variable_keys_must_be_a_static_value() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -166,14 +167,13 @@ fn variable_keys_must_be_a_static_value() {
             );
         "#,
     r#""#,
-    false,
   )
 }
 
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -192,7 +192,7 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -216,8 +216,9 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -231,7 +232,6 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
             );
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -243,8 +243,9 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -258,7 +259,6 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
             );
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -272,8 +272,9 @@ fn second_arg_should_be_object_in_stylex_create_theme_fn() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -286,6 +287,5 @@ fn second_arg_should_be_object_in_stylex_create_theme_fn() {
             export const variables = stylex.createTheme(buttonTokens, buttonTokens);
         "#,
     r#""#,
-    false,
   )
 }

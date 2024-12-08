@@ -14,8 +14,9 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -30,7 +31,6 @@ fn dynamic_style_function_only_accepts_named_parameters_default_value() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -44,8 +44,9 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -60,7 +61,6 @@ fn dynamic_style_function_only_accepts_named_parameters_default_string_value() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -74,8 +74,9 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -90,7 +91,6 @@ fn dynamic_style_function_only_accepts_named_parameters_object_arg() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -104,8 +104,9 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection(
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
         None,
@@ -120,14 +121,13 @@ fn dynamic_style_function_only_accepts_named_parameters_rest_arg() {
             });
         "#,
     r#""#,
-    false,
   )
 }
 
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -150,7 +150,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -184,7 +184,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,
@@ -210,7 +210,7 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection(
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
       None,

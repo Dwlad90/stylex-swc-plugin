@@ -155,7 +155,7 @@ mod normalizers {
       vec![
         Error::new(DUMMY_SP, ErrorKind::InvalidSelector),
         Error::new(
-          Span::new(BytePos(38), BytePos(39), Default::default()),
+          Span::new(BytePos(38), BytePos(39)),
           ErrorKind::Expected("'none' value of an ident token")
         )
       ]
@@ -203,11 +203,11 @@ mod normalizers {
       vec![
         Error::new(DUMMY_SP, ErrorKind::InvalidSelector),
         Error::new(
-          Span::new(BytePos(36), BytePos(37), Default::default()),
+          Span::new(BytePos(36), BytePos(37)),
           ErrorKind::Expected("'e', 'pi', 'infinity', '-infinity' or 'NaN', ident tokens")
         ),
         Error::new(
-          Span::new(BytePos(45), BytePos(46), Default::default()),
+          Span::new(BytePos(45), BytePos(46)),
           ErrorKind::Expected("'none' value of an ident token")
         )
       ]
@@ -228,11 +228,11 @@ mod normalizers {
       vec![
         Error::new(DUMMY_SP, ErrorKind::InvalidSelector),
         Error::new(
-          Span::new(BytePos(46), BytePos(47), Default::default()),
+          Span::new(BytePos(46), BytePos(47)),
           ErrorKind::Expected("'e', 'pi', 'infinity', '-infinity' or 'NaN', ident tokens")
         ),
         Error::new(
-          Span::new(BytePos(55), BytePos(56), Default::default()),
+          Span::new(BytePos(55), BytePos(56)),
           ErrorKind::Expected("'none' value of an ident token")
         )
       ]
@@ -252,7 +252,7 @@ mod normalizers {
       vec![
         Error::new(DUMMY_SP, ErrorKind::InvalidSelector),
         Error::new(
-          Span::new(BytePos(29), BytePos(30), Default::default()),
+          Span::new(BytePos(29), BytePos(30)),
           ErrorKind::Expected("'none' value of an ident token")
         )
       ]

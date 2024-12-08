@@ -33,32 +33,32 @@ opt-level = "z"
 strip = "symbols"
 
 [workspace.dependencies]
-serde = "1.0.204"
-swc_core = { version = "0.96.9" }
+serde = "1.0.215"
+swc_core = { version = "9.0.0" }
 lazy_static = "1.5.0"
-serde_json = "1.0.120"
-regex = "1.10.5"
-indexmap = "2.2.6"
-derive_more = { version = "0.99.18" }
+serde_json = "1.0.133"
+regex = "1.11.1"
+indexmap = "2.7.0"
+derive_more = { version = "1.0.0", features = ["display"] }
 stringcase="0.3.0"
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }
 phf = { version = "0.11.2" }
-once_cell = { version = "1.19.0" }
+once_cell = { version = "1.20.2" }
 colored = { version = "2.1.0" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
 cssparser = { version = "0.34.0" }
 stylex_path_resolver = { path = "../path-resolver" }
-testing = "0.38.1"
-insta = { version = "1.39.0" }
-anyhow = "1.0.89"
+testing = "5.0.0"
+insta = { version = "1.41.1" }
+anyhow = "1.0.94"
 log = "0.4.22"
 pretty_env_logger = "0.5.0"
 color-backtrace = { version = "0.6.1" }
-ctor = "0.2.8"
+ctor = "0.2.9"
 env_logger = "0.10.2"
-rustc-hash="2.0.0"
+rustc-hash="2.1.0"
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

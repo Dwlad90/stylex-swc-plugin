@@ -14,14 +14,14 @@ fn function_with_a_single_params() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const double = x => x * 2;
         "#,
     r#"
             4;
         "#,
-    false,
   )
 }
 
@@ -32,14 +32,14 @@ fn function_with_a_two_params() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const double = (a, b) => a + b;
         "#,
     r#"
             9;
         "#,
-    false,
   )
 }
 
@@ -50,14 +50,14 @@ fn array_map() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = [1, 2, 3].map(x => x * 2);
         "#,
     r#"
             [2, 4, 6];
         "#,
-    false,
   )
 }
 
@@ -68,14 +68,14 @@ fn array_filter() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = [1, 2, 3].filter(x => x % 2 === 0);
         "#,
     r#"
             [2]
         "#,
-    false,
   )
 }
 
@@ -86,7 +86,8 @@ fn array_join() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = [1, 2, 3].join(", ");
             const x = ['a', 'b', 'c'].join(":");
@@ -95,7 +96,6 @@ fn array_join() {
             "1, 2, 3";
             "a:b:c";
         "#,
-    false,
   )
 }
 
@@ -106,7 +106,8 @@ fn array_map_and_filter() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = [1, 2, 3].map(x => x * 2).filter(x => x % 2 === 0);
             const y = [1, 2, 3].map(x => x ** 2).filter(x => x % 3 !== 0).map(x => x * 3);
@@ -117,7 +118,6 @@ fn array_map_and_filter() {
             [3, 12];
             [12];
         "#,
-    false,
   )
 }
 
@@ -128,7 +128,8 @@ fn array_methods() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const a = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(x => x * 2);
             const b = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(x => x % 3 !== 0);
@@ -139,7 +140,6 @@ fn array_methods() {
             [1, 2, 4, 5, 7, 8];
             [2, 4, 8, 10, 14, 16];
         "#,
-    false,
   )
 }
 
@@ -150,7 +150,8 @@ fn object_methods() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const a = Object.keys({a: 1, b: 2, c: 3});
             const b = Object.values({a: 1, b: 2, c: 3});
@@ -167,7 +168,6 @@ fn object_methods() {
                 c: 3,
             });
         "#,
-    false,
   )
 }
 
@@ -178,7 +178,8 @@ fn object_entries() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = Object.entries({a: 1, b: 2, c: 4}).filter((entry) => entry[1] % 2 === 0);
             const x = Object.fromEntries(Object.entries({a: 1, b: 2, c: 4}).filter((entry) => entry[1] % 2 === 0));
@@ -194,7 +195,6 @@ fn object_entries() {
                 c: 4,
             });
         "#,
-    false,
   )
 }
 
@@ -205,7 +205,8 @@ fn methods_called_by_string_should_be_bind() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = "".concat("10px"," ").concat("10px");
             const x = "abc".charCodeAt(0);
@@ -217,7 +218,6 @@ fn methods_called_by_string_should_be_bind() {
             97;
             99;
         "#,
-    false,
   )
 }
 
@@ -228,7 +228,8 @@ fn math_pow() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = Math.pow(2, 3);
             const x = Math.pow(8, 4);
@@ -237,7 +238,6 @@ fn math_pow() {
             8;
             4096;
         "#,
-    false,
   )
 }
 
@@ -248,7 +248,8 @@ fn math_round() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
           const x = Math.round(2);
           const x = Math.round(2.5);
@@ -261,7 +262,6 @@ fn math_round() {
             3;
             2;
         "#,
-    false,
   )
 }
 
@@ -272,7 +272,8 @@ fn math_ceil() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
           const x = Math.ceil(2);
           const x = Math.ceil(2.5);
@@ -285,7 +286,6 @@ fn math_ceil() {
             3;
             3;
         "#,
-    false,
   )
 }
 
@@ -296,7 +296,8 @@ fn math_floor() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
           const x = Math.floor(2);
           const x = Math.floor(2.5);
@@ -313,7 +314,6 @@ fn math_floor() {
             2;
             3;
         "#,
-    false,
   )
 }
 
@@ -324,7 +324,8 @@ fn math_min() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
           const x = Math.min(2);
           const x = Math.min(3,1,2);
@@ -337,7 +338,6 @@ fn math_min() {
             0.5;
             0.1;
         "#,
-    false,
   )
 }
 
@@ -348,7 +348,8 @@ fn math_max() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
           const x = Math.max(2);
           const x = Math.max(2,3,1);
@@ -361,7 +362,6 @@ fn math_max() {
             5;
             5;
         "#,
-    false,
   )
 }
 
@@ -374,7 +374,8 @@ fn math_complicated() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
           const x =  Math.min(Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100);
           const x =  Math.round(100 * (Math.round(16 / Math.pow(1.2, 3) / 0.16) / 100 - (16 * (Math.round(20 / Math.pow(1.333, 3) / 0.16) / 100 - Math.round(15 / Math.pow(1.2, 2) / 0.16) / 10016)) / (1240 - 320) * (320 / 16))) / 100
@@ -383,6 +384,5 @@ fn math_complicated() {
           0.58;
           0.4;
         "#,
-    false,
   )
 }

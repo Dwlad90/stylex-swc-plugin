@@ -19,7 +19,7 @@ export default function Home() {
         <p {...{
         className: "Page__style.descP display-xjg0vao position-x1n2onr6 position-x15f3dyk justifyContent-xo5s888 alignItems-xu8adaz width-x1v68ji2 margin-x1ghz6dp paddingInline-x13ekbdn paddingTop-xqxyaa3 paddingTop-x12h1x1l paddingBottom-x5b8z1 paddingBottom-x14kqxm4 backgroundColor-x19g2c9c backgroundImage-xa7o7q9 borderWidth-xmkeg23 borderWidth-x1m60m6i         borderStyle-x1y0btm7 borderColor-x15t7hjr borderBottomColor-xgepp9j borderRadius-x12ugs8o borderRadius-xd22jv         inset-x1los6se"
     }}>
-          Get started by editing 
+          Get started by editing&nbsp;
           <code {...{
         className: "Page__style.code fontWeight-x1xlr1w8 fontFamily-x1nlbcxq"
     }}>app/page.tsx</code>

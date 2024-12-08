@@ -9,7 +9,7 @@ use stylex_shared::shared::{
 };
 use swc_core::{
   atoms::Atom,
-  common::DUMMY_SP,
+  common::{SyntaxContext, DUMMY_SP},
   ecma::{
     ast::{
       ArrayLit, Expr, ExprOrSpread, KeyValueProp, NewExpr, ObjectLit, Prop, PropName, PropOrSpread,
@@ -17,6 +17,7 @@ use swc_core::{
     parser::{Syntax, TsSyntax},
     transforms::testing::{test, test_transform},
     utils::quote_ident,
+    visit::fold_pass,
   },
 };
 
@@ -29,7 +30,8 @@ fn evaluates_primitive_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             1 + 2;
             1 - 2;
@@ -72,7 +74,6 @@ fn evaluates_primitive_value_expressions() {
             false
             "hello"
         "#,
-    false,
   )
 }
 
@@ -83,7 +84,8 @@ fn evaluates_simple_arrays_and_objects() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = {};
             const x = {name: "Name", age: 43};
@@ -98,7 +100,6 @@ fn evaluates_simple_arrays_and_objects() {
             [1, 2, 3];
             [1, 2, 3, 4, 5];
         "#,
-    false,
   )
 }
 
@@ -109,7 +110,8 @@ fn evaluates_objects_with_spreads() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = {name: "Name", ...({hero: true}), age: 43};
             const x = {name: "Name", ...({name: "StyleXToOverride", age: 1, name: "StyleX"}), age: 43};
@@ -120,7 +122,6 @@ fn evaluates_objects_with_spreads() {
             ({ name: "StyleX", age: 43 });
             ({ age: 43 , name: "StyleX", });
         "#,
-    false,
   )
 }
 
@@ -132,12 +133,12 @@ fn evaluates_built_in_functions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             const x = Object.getOwnPropertyNames({a: 2});
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -148,6 +149,7 @@ fn evaluates_customs_functions() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
 
@@ -183,14 +185,14 @@ fn evaluates_customs_functions() {
         Box::new(identifiers.clone()),
       );
 
-      EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions,
         },
         declarations: vec![],
         state: StateManager::default(),
-      }
+      })
     },
     r#"
             const x = makeArray(1, 2, 3);
@@ -200,7 +202,6 @@ fn evaluates_customs_functions() {
             [3, 2, 1];
             [3, 2, 1];
         "#,
-    false,
   )
 }
 
@@ -211,6 +212,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
 
@@ -224,6 +226,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
               expr: Box::new(arg),
             }]),
             type_args: None,
+            ctxt: SyntaxContext::empty(),
           };
 
           Expr::New(new_expr)
@@ -236,14 +239,14 @@ fn evaluates_custom_functions_that_return_non_static_values() {
         Box::new(FunctionConfigType::Regular(make_class)),
       );
 
-      EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
         },
         declarations: vec![],
         state: StateManager::default(),
-      }
+      })
     },
     r#"
             const x = makeClass("Hello");
@@ -251,7 +254,6 @@ fn evaluates_custom_functions_that_return_non_static_values() {
     r#"
             new MyClass("Hello");
         "#,
-    false,
   )
 }
 
@@ -262,6 +264,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
 
@@ -285,14 +288,14 @@ fn evaluates_custom_functions_used_as_spread_values() {
         Box::new(FunctionConfigType::Regular(make_obj)),
       );
 
-      EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
         },
         declarations: vec![],
         state: StateManager::default(),
-      }
+      })
     },
     r#"
             const x = {name: "Name", ...makeObj("Hello"), age: 30};
@@ -300,7 +303,6 @@ fn evaluates_custom_functions_used_as_spread_values() {
     r#"
         ({ name: "Name", spreadValue: "Hello", age: 30 });
         "#,
-    false,
   )
 }
 
@@ -311,6 +313,7 @@ fn evaluates_custom_functions_that_take_paths() {
       tsx: true,
       ..Default::default()
     }),
+    Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
 
@@ -340,14 +343,14 @@ fn evaluates_custom_functions_that_take_paths() {
         Box::new(FunctionConfigType::Regular(get_node)),
       );
 
-      EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
         },
         declarations: vec![],
         state: StateManager::default(),
-      }
+      })
     },
     r#"
             const x = getNode("Hello");
@@ -355,7 +358,6 @@ fn evaluates_custom_functions_that_take_paths() {
     r#"
             ({ type: "StringLiteral", value: "Hello" });
         "#,
-    false,
   )
 }
 
@@ -366,7 +368,8 @@ fn evaluates_unary_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             !1;
             !0;
@@ -405,7 +408,6 @@ fn evaluates_unary_value_expressions() {
             "object";
             "undefined";
         "#,
-    false,
   )
 }
 
@@ -417,13 +419,13 @@ fn evaluates_void_unary_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
               void 1;
 
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -435,13 +437,13 @@ fn evaluates_delete_unary_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
               delete a.b;
 
         "#,
     r#""#,
-    false,
   )
 }
 
@@ -452,7 +454,8 @@ fn evaluates_sequence_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             (1,2,3);
             (1,2,3,4,5);
@@ -469,7 +472,6 @@ fn evaluates_sequence_value_expressions() {
             -5;
             -10;
         "#,
-    false,
   )
 }
 
@@ -480,14 +482,14 @@ fn evaluates_ts_as_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             (3 as number) * (4 as number);
         "#,
     r#"
             12
         "#,
-    false,
   )
 }
 
@@ -498,14 +500,14 @@ fn evaluates_ts_satisfies_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             (3 satisfies number) * (4 satisfies number);
         "#,
     r#"
             12
         "#,
-    false,
   )
 }
 
@@ -516,7 +518,8 @@ fn evaluates_condition_value_expressions() {
       tsx: true,
       ..Default::default()
     }),
-    |_| EvaluationStyleXTransform::default(),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
     r#"
             2 > 1 ? 1 : 0
             2 < 1 ? 1 : 0
@@ -525,6 +528,5 @@ fn evaluates_condition_value_expressions() {
             1
             0
         "#,
-    false,
   )
 }

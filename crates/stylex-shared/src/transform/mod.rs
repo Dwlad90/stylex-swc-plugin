@@ -1,7 +1,10 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
   common::comments::Comments,
-  ecma::ast::{CallExpr, Callee, Expr, Id, MemberProp, VarDeclarator},
+  ecma::{
+    ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
+    visit::fold_pass,
+  },
 };
 
 use crate::{
@@ -89,6 +92,18 @@ where
     }
   }
 
+  pub fn new_test_force_runtime_injection_with_pass(
+    comments: C,
+    plugin_pass: PluginPass,
+    config: Option<&mut StyleXOptionsParams>,
+  ) -> impl Pass {
+    fold_pass(Self::new_test_force_runtime_injection(
+      comments,
+      plugin_pass,
+      config,
+    ))
+  }
+
   pub fn new_test(
     comments: C,
     plugin_pass: PluginPass,
@@ -119,6 +134,13 @@ where
       props_declaration: None,
       state,
     }
+  }
+  pub fn new_test_with_pass(
+    comments: C,
+    plugin_pass: PluginPass,
+    config: Option<&mut StyleXOptionsParams>,
+  ) -> impl Pass {
+    fold_pass(Self::new_test(comments, plugin_pass, config))
   }
 
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {

@@ -2,12 +2,13 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use swc_core::ecma::ast::{
-  ArrowExpr, BinaryOp, BlockStmtOrExpr, CondExpr, ExprOrSpread, Pat, Prop, PropName,
-};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr, PropOrSpread},
+};
+use swc_core::{
+  common::SyntaxContext,
+  ecma::ast::{ArrowExpr, BinaryOp, BlockStmtOrExpr, CondExpr, ExprOrSpread, Pat, Prop, PropName},
 };
 use swc_core::{common::DUMMY_SP, ecma::ast::BinExpr};
 
@@ -407,6 +408,7 @@ where
                     is_generator: false,
                     type_params: None,
                     return_type: None,
+                    ctxt: SyntaxContext::empty(),
                   });
 
                   prop = Some(prop_or_spread_expression_factory(orig_key.as_str(), value));

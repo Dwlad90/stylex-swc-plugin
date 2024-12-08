@@ -1,13 +1,11 @@
 use core::panic;
+use indexmap::IndexSet;
 use log::warn;
 use once_cell::sync::Lazy;
 use path_clean::PathClean;
 use regex::Regex;
 use rustc_hash::FxHashMap;
-use std::{
-  collections::HashSet,
-  path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use swc_core::{
   common::FileName,
   ecma::loader::{
@@ -361,7 +359,7 @@ pub fn resolve_file_path(
       .iter()
       .filter_map(|path| path.strip_prefix(root_path).ok())
       .map(PathBuf::from)
-      .collect::<HashSet<PathBuf>>();
+      .collect::<IndexSet<PathBuf>>();
 
     if let Ok(mut resolved_node_modules_path_buf) =
       resolve_node_modules_path_buff(cwd_path, import_path_str, package_json_seen)

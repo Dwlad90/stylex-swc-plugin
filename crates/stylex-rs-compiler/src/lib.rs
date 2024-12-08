@@ -1,8 +1,8 @@
 mod structs;
 mod utils;
 use napi::{Env, Result};
-use std::env;
 use std::panic;
+use std::{env, sync::Arc};
 use structs::{SourceMaps, StyleXMetadata, StyleXOptions, StyleXTransformResult};
 use swc_compiler_base::{print, PrintArgs, SourceMapsConfig};
 
@@ -13,8 +13,12 @@ use stylex_shared::{
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax, TsSyntax};
 
 use swc_core::{
-  common::{sync::Lrc, FileName, SourceMap},
-  ecma::{ast::EsVersion, transforms::base::fixer::fixer, visit::FoldWith},
+  common::{FileName, SourceMap},
+  ecma::{
+    ast::EsVersion,
+    transforms::base::fixer::fixer,
+    visit::{fold_pass, visit_mut_pass},
+  },
   plugin::proxies::PluginCommentsProxy,
 };
 
@@ -31,10 +35,10 @@ pub fn transform(
   color_backtrace::install();
 
   let result = panic::catch_unwind(|| {
-    let cm: Lrc<SourceMap> = Default::default();
+    let cm: Arc<SourceMap> = Default::default();
     let filename = FileName::Real(filename.into());
 
-    let fm = cm.new_source_file(filename.clone(), code);
+    let fm = cm.new_source_file(filename.clone().into(), code);
 
     let cwd = env::current_dir()?;
 
@@ -67,7 +71,11 @@ pub fn transform(
 
     let program = parser.parse_program().unwrap();
 
-    let program = program.fold_with(&mut stylex).fold_with(&mut fixer(None));
+    let program = program
+      .apply(&mut fold_pass(&mut stylex))
+      .apply(&mut visit_mut_pass(fixer(None)));
+
+    let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
 
     let transformed_code = print(
       cm,
@@ -79,8 +87,6 @@ pub fn transform(
     );
 
     let result = transformed_code.unwrap();
-
-    let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
 
     let js_result = StyleXTransformResult {
       code: result.code,

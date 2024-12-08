@@ -6,7 +6,7 @@ use log::warn;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{EqIgnoreSpan, DUMMY_SP},
+  common::{EqIgnoreSpan, SyntaxContext, DUMMY_SP},
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
@@ -557,6 +557,7 @@ fn _evaluate(
           Some(EvaluateResultValue::Expr(string_to_expression(arg_type)))
         }
         UnaryOp::Void => Some(EvaluateResultValue::Expr(Expr::Ident(quote_ident!(
+          SyntaxContext::empty(),
           "undefined"
         )))),
         _ => deopt(&Expr::from(unary.clone()), state),

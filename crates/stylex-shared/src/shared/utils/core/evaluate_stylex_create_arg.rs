@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use swc_core::{
-  common::DUMMY_SP,
+  common::{SyntaxContext, DUMMY_SP},
   ecma::{
     ast::{
       ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, CondExpr,
@@ -347,12 +347,14 @@ fn evaluate_partial_object_recursively(
                         is_generator: false,
                         type_params: None,
                         return_type: None,
+                        ctxt: SyntaxContext::empty(),
                       }))),
                       args: vec![ExprOrSpread {
                         spread: None,
                         expr: value_path.clone(),
                       }],
                       type_args: None,
+                      ctxt: SyntaxContext::empty(),
                     })
                   } else {
                     Expr::from(CondExpr {

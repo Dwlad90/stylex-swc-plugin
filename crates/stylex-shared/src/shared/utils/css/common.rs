@@ -27,7 +27,7 @@ use crate::shared::{
 
 use rustc_hash::FxHashMap;
 use swc_core::{
-  common::{input::StringInput, source_map::Pos, BytePos},
+  common::{input::StringInput, source_map::SmallPos, BytePos},
   css::{
     ast::{Ident, Stylesheet},
     codegen::{

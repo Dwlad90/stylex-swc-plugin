@@ -57,7 +57,7 @@ where
             }
           }
         }
-        member_expression
+        member_expression.fold_children_with(self)
       }
       _ => member_expression.fold_children_with(self),
     }

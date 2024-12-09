@@ -128,7 +128,8 @@ const withStyleX =
           lazyPostCSSPromise ||= lazyPostCSS(
             ctx.dir,
             getSupportedBrowsers(ctx.dir, ctx.dev),
-            undefined
+            undefined,
+            false
           );
           return lazyPostCSSPromise;
         };

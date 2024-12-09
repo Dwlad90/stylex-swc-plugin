@@ -19,5 +19,4 @@ module.exports = stylexPlugin({
 })({
   transpilePackages: ['@stylexjs/open-props'],
   // Optionally, add any other Next.js config below
-  swcMinify: true,
 });

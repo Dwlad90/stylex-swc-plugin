@@ -13,13 +13,13 @@
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
     "@stylexswc/unplugin": "0.4.4",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.3",
     "vite": "^5.4.10",
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1"
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0"
   }
 }

@@ -16,20 +16,20 @@
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
     "bright": "^0.8.4",
-    "next": "14.2.10",
-    "react": "^18",
-    "react-dom": "^18"
+    "next": "15.0.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@stylexjs/eslint-plugin": "^0.9.3",
     "@stylexswc/nextjs-swc-plugin": "0.4.4",
     "@stylexswc/swc-plugin": "0.4.4",
     "@types/node": "^22.5.1",
-    "@types/react": "^18.2.45",
-    "@types/react-dom": "^18.2.18",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
     "@typescript-eslint/parser": "^6.14.0",
     "eslint": "^8.57.0",
-    "eslint-config-next": "14.0.1",
+    "eslint-config-next": "15.0.4",
     "rimraf": "^5.0.5",
     "typescript": "^5.5.4"
   }

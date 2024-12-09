@@ -5,7 +5,6 @@ const rootDir = __dirname;
 module.exports = stylexPlugin({})({
   transpilePackages: ['@stylexjs/open-props'],
   // Optionally, add any other Next.js config below
-  swcMinify: true,
   experimental: {
     swcPlugins: [[
       "@stylexswc/swc-plugin",

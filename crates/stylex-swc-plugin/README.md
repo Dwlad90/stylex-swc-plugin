@@ -45,7 +45,6 @@ For example:
 
 ```ts
 module.exports = {
-  swcMinify: true,
   experimental: {
     swcPlugins: [[
       "@stylexswc/swc-plugin",

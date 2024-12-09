@@ -13,8 +13,8 @@
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
     "@stylexswc/unplugin": "0.4.4",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "html-webpack-plugin": "^5.6.0",
@@ -23,7 +23,7 @@
     "webpack-dev-server": "^5.0.4",
     "@swc/core": "^1.6.13",
     "swc-loader": "^0.2.6",
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1"
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0"
   }
 }

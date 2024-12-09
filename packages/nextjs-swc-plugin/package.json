@@ -10,6 +10,7 @@
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.9.3"
   },
+  "deprecated": "Package deprecated since v0.5.0. Please use @stylexswc/nextjs-plugin instead. This package will be removed in the next minor release.",
   "devDependencies": {
     "@babel/types": "^7.23.9",
     "@stylexswc/eslint-config": "0.4.4",

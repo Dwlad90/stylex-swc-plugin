@@ -2,6 +2,7 @@
   "name": "@stylexswc/next-swc-example",
   "version": "0.4.4",
   "private": true,
+  "deprecated": "This example deprecated since v0.5.0. Please use  @stylexswc/next-example instead.",
   "scripts": {
     "clean": "rimraf .next",
     "predev": "pnpm run clean",

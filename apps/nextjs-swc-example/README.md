@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+> [!CAUTION]
+> **DEPRECATED**: This example is deprecated as of version 0.5.0. Please migrate to [` @stylexswc/next-example`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/apps/nextjs-example) which is the official replacement.
+
+
 ## Getting Started
 
 First, run the development server:

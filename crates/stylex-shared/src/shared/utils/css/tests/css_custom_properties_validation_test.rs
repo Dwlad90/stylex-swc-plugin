@@ -277,6 +277,36 @@ mod css_tests {
   }
 
   #[test]
+  fn clamp_colors() {
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"clamp(200px,  40%,     400px)"#,
+        &mut StateManager::default()
+      ),
+      r#"clamp(200px, 40%, 400px)"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"clamp(min(10vw,      20rem),     300px,     max(90vw,     55rem))"#,
+        &mut StateManager::default()
+      ),
+      r#"clamp(min(10vw, 20rem), 300px, max(90vw, 55rem))"#
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"clamp(0, (var(--l-threshold, 0.623)   /  l - 1)   *    infinity,    1)"#,
+        &mut StateManager::default()
+      ),
+      r#"clamp(0, (var(--l-threshold, 0.623) / l - 1) * infinity, 1)"#
+    );
+  }
+
+  #[test]
   fn allow_url_properties() {
     assert_eq!(
       transform_value_cached(

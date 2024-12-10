@@ -258,4 +258,55 @@ mod normalizers {
       ]
     );
   }
+
+  #[test]
+  fn should_normalize_color_clamp() {
+    let (stylesheet, errors) = swc_parse_css(r#"* {{ color: clamp(200px,  40%,     400px) }}"#);
+
+    assert_eq!(
+      whitespace_normalizer(stringify(&base_normalizer(stylesheet.unwrap(), false))),
+      r#"clamp(200px,40%,400px)"#
+    );
+
+    assert_eq!(
+      errors,
+      vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
+    );
+
+    let (stylesheet2, errors2) = swc_parse_css(
+      r#"* {{ color: clamp(min(10vw,      20rem),     300px,     max(90vw,     55rem)) }}"#,
+    );
+
+    assert_eq!(
+      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      r#"*{{color:clamp(min(10vw,20rem),300px,max(90vw,55rem))}}"#
+    );
+
+    assert_eq!(
+      errors2,
+      vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
+    );
+
+    let (stylesheet3, errors3) = swc_parse_css(
+      "* {{ color: clamp(0, (var(--l-threshold, 0.623)   /  l - 1)   *    infinity,    1) }}",
+    );
+
+    assert_eq!(
+      stringify(&base_normalizer(stylesheet3.unwrap(), false)),
+      "*{{color:clamp(0, (var(--l-threshold, 0.623)   /  l - 1)   *    infinity,    1)}}"
+    );
+
+    // TODO: remove this once when https://github.com/swc-project/swc/issues/9766 will be fixed
+    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from the codebase
+    assert_eq!(
+      errors3,
+      vec![
+        Error::new(DUMMY_SP, ErrorKind::InvalidSelector),
+        Error::new(
+          Span::new(BytePos(53), BytePos(54)),
+          ErrorKind::Expected("'e', 'pi', 'infinity', '-infinity' or 'NaN', ident tokens")
+        ),
+      ]
+    );
+  }
 }

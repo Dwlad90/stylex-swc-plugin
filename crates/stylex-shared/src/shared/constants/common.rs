@@ -28,5 +28,20 @@ pub(crate) static ROOT_FONT_SIZE: i8 = 16;
 
 pub(crate) static THEME_NAME_KEY: &str = "__themeName__";
 
-pub(crate) static COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 2]> =
-  Lazy::new(|| ["oklab", "oklch"]);
+pub(crate) static COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 9]> =
+  Lazy::new(|| {
+    [
+      "oklch",
+      "lch",
+      "oklab",
+      "hsla",
+      "radial-gradient",
+      "hwb",
+      "lab",
+      "clamp",
+      "hsl",
+    ]
+  });
+
+pub(crate) static COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 7]> =
+  Lazy::new(|| [" a ", " b ", " c ", " l ", " h ", " s ", " w "]);

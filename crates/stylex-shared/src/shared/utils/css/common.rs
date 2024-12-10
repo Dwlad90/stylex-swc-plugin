@@ -2,7 +2,10 @@ use core::panic;
 
 use crate::shared::{
   constants::{
-    common::COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
+    common::{
+      COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
+      COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
+    },
     long_hand_logical::LONG_HAND_LOGICAL,
     long_hand_physical::LONG_HAND_PHYSICAL,
     messages::LINT_UNCLOSED_FUNCTION,
@@ -475,8 +478,12 @@ pub(crate) fn normalize_css_property_value(
   options: &StyleXStateOptions,
 ) -> String {
   if COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES
-    .into_iter()
-    .any(|css_fnc| css_property_value.contains(format!("{}(", css_fnc).as_str()))
+    .iter()
+    .chain(COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES.iter())
+    .any(|css_fnc| {
+      css_property_value.contains(format!("{}(", css_fnc).as_str())
+        || css_property_value.to_lowercase().contains(css_fnc)
+    })
   {
     return MANY_SPACES.replace_all(css_property_value, " ").to_string();
   }

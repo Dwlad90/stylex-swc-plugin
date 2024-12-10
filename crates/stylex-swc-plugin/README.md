@@ -1,7 +1,7 @@
 # SWC plugin for StyleX (\*\*unofficial)
 
-> [!WARNING]
-> **Deprecated**: This package is deprecated as of version `0.3.0` and may be removed in the future. Please use the [`rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler) instead.
+> [!CAUTION]
+> **DEPRECATED**: This package is deprecated as of version 0.5.0. Please migrate to [`@stylexswc/rs-compiler`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler) which is the official replacement.
 
 ## Overview
 

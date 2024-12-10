@@ -49,8 +49,15 @@
   "packageManager": "pnpm@9.9.0",
   "pnpm": {
     "overrides": {
-      "webpack@<5.0.0": "^5",
-      "@types/webpack@<5.0.0": "^5"
+      "webpack@<5.0.0": "^5.0.0",
+      "@types/webpack@<5.0.0": "^5.0.0",
+      "micromatch@<4.0.8": "^4.0.8",
+      "cross-spawn@<6.0.6": "^6.0.6",
+      "cross-spawn@>=7.0.0 <7.0.5": "^7.0.5",
+      "path-to-regexp@<0.1.12": "^0.1.12",
+      "nanoid@<3.3.8": "^3.3.8",
+      "lexical-core@<1.0.0": "^1.0.0",
+      "lexical@<=6.1.1": "^6.1.1"
     }
   }
 }

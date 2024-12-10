@@ -9,7 +9,6 @@ import type {
   SupplementedLoaderContext,
 } from './types';
 
-
 export default async function stylexLoader(
   this: SupplementedLoaderContext<StyleXWebpackLoaderOptions>,
   inputCode: InputCode,
@@ -22,7 +21,11 @@ export default async function stylexLoader(
   const logger = this._compiler?.getInfrastructureLogger(PLUGIN_NAME);
 
   if (!inputCode) {
-    logger?.warn(`@stylexswc/webpack-plugin: inputCode is empty for resource ${this.resourcePath}`);
+    if (!this.resourcePath.includes('empty')) {
+      logger?.warn(
+        `@stylexswc/webpack-plugin: inputCode is empty for resource ${this.resourcePath}`
+      );
+    }
 
     return callback(null, inputCode, inputSourceMap);
   }

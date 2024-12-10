@@ -78,7 +78,7 @@ NEW_TAG=$(increment_version "$LAST_TAG" "$RELEASE_TYPE" "$PRE_RELEASE_TYPE")
 printf "New version tag: %s\n\n" "$NEW_TAG"
 
 # Wait for user confirmation to continue
-printf "\nDo you want to continue with the merge? (y/n): "
+printf "\nDo you want to continue with the release? (y/N): "
 read -r confirmation
 if [ "$confirmation" != "y" ]; then
   printf "Merge aborted by user.\n"

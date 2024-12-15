@@ -1,4 +1,4 @@
-# SWC Stylex plugin for Next.js
+# SWC StyleX plugin for Next.js
 
 > [!CAUTION]
 > **DEPRECATED**: This package is deprecated as of version 0.5.0. Please migrate to [`@stylexswc/nextjs-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin) which is the official replacement.

@@ -52,7 +52,7 @@ export default {
     }),
     html({
       publicPath: '/',
-      title: 'Stylex With Rollup',
+      title: 'StyleX With Rollup',
       template: ({ attributes, files, publicPath, title }) => {
         const htmlTemplate = 'public/index.html'
         const { css, js } = files

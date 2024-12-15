@@ -42,6 +42,13 @@ export interface StyleXPluginOption extends Pick<StyleXWebpackLoaderOptions, 'tr
    * With this you can incovate `postcss()` here.
    */
   transformCss?: CSSTransformer;
+
+  /**
+   * Whether to extract CSS
+   *
+   * @default true
+   */
+  extractCSS?: boolean;
 }
 export type StyleXWebpackLoaderOptions = {
   stylexImports: StyleXOptions['importSources'];
@@ -54,6 +61,7 @@ export type StyleXWebpackLoaderOptions = {
    * @default 'rs-compiler'
    */
   transformer?: 'rs-compiler' | 'swc';
+  extractCSS?: boolean
 };
 
 export type SupplementedLoaderContext<Options = unknown> = webpack.LoaderContext<Options> & {

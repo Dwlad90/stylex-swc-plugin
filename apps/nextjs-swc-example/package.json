@@ -16,7 +16,6 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
-    "bright": "^0.8.4",
     "next": "15.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

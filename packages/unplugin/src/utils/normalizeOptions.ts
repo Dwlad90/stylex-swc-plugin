@@ -19,5 +19,6 @@ export default function normalizeOptions(
       },
       importSources: options.rsOptions?.importSources ?? ['stylex', '@stylexjs/stylex'],
     },
+    extractCSS: options.extractCSS ?? true,
   };
 }

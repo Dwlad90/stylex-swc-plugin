@@ -26,7 +26,8 @@
     "farm",
     "esbuild",
     "rspack",
-    "rsbuild"
+    "rsbuild",
+    "swc"
   ],
   "exports": {
     ".": {

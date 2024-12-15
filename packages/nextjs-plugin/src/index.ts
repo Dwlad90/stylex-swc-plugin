@@ -120,6 +120,10 @@ const withStyleX =
         config.optimization.splitChunks ||= {};
         config.optimization.splitChunks.cacheGroups ||= {};
 
+        const extractCSS = pluginOptions?.extractCSS ?? true;
+
+        config.plugins ??= [];
+
         let lazyPostCSSPromise: Promise<{
           postcss: typeof import('postcss');
           postcssWithPlugins: PostCSSProcessor;
@@ -134,68 +138,68 @@ const withStyleX =
           return lazyPostCSSPromise;
         };
 
-        const MiniCssExtractPlugin = getNextMiniCssExtractPlugin(ctx.dev);
-        // Based on https://github.com/vercel/next.js/blob/88a5f263f11cb55907f0d89a4cd53647ee8e96ac/packages/next/build/webpack/config/helpers.ts#L12-L18
-        const cssRules = (
-          config.module?.rules?.find(
-            rule =>
-              typeof rule === 'object' &&
-              rule !== null &&
-              Array.isArray(rule.oneOf) &&
-              rule.oneOf.some(
-                setRule =>
-                  setRule &&
-                  setRule.test instanceof RegExp &&
-                  typeof setRule.test.test === 'function' &&
-                  setRule.test.test('filename.css')
-              )
-          ) as webpack.RuleSetRule
-        ).oneOf;
-        // Here we matches virtual css file emitted by StyleXPlugin
-        cssRules?.unshift({
-          test: VIRTUAL_CSS_PATTERN,
-          use: getStyleXVirtualCssLoader(ctx, MiniCssExtractPlugin, postcss),
-        });
+        if (extractCSS) {
+          const MiniCssExtractPlugin = getNextMiniCssExtractPlugin(ctx.dev);
+          // Based on https://github.com/vercel/next.js/blob/88a5f263f11cb55907f0d89a4cd53647ee8e96ac/packages/next/build/webpack/config/helpers.ts#L12-L18
+          const cssRules = (
+            config.module?.rules?.find(
+              rule =>
+                typeof rule === 'object' &&
+                rule !== null &&
+                Array.isArray(rule.oneOf) &&
+                rule.oneOf.some(
+                  setRule =>
+                    setRule &&
+                    setRule.test instanceof RegExp &&
+                    typeof setRule.test.test === 'function' &&
+                    setRule.test.test('filename.css')
+                )
+            ) as webpack.RuleSetRule
+          ).oneOf;
+          // Here we matches virtual css file emitted by StyleXPlugin
+          cssRules?.unshift({
+            test: VIRTUAL_CSS_PATTERN,
+            use: getStyleXVirtualCssLoader(ctx, MiniCssExtractPlugin, postcss),
+          });
 
-        config.plugins ??= [];
+          // StyleX need to emit the css file on both server and client, both during the
+          // development and production.
+          // However, Next.js only add MiniCssExtractPlugin on client + production.
+          //
+          // To simplify the logic at our side, we will add MiniCssExtractPlugin based on
+          // the "instanceof" check (We will only add our required MiniCssExtractPlugin if
+          // Next.js hasn't added it yet).
+          // This also prevent multiple MiniCssExtractPlugin being added (which will cause
+          // RealContentHashPlugin to panic)
+          if (!config.plugins.some((plugin: unknown) => plugin instanceof MiniCssExtractPlugin)) {
+            // HMR reloads the CSS file when the content changes but does not use
+            // the new file name, which means it can't contain a hash.
+            const filename = ctx.dev ? 'static/css/[name].css' : 'static/css/[contenthash].css';
 
-        // StyleX need to emit the css file on both server and client, both during the
-        // development and production.
-        // However, Next.js only add MiniCssExtractPlugin on client + production.
-        //
-        // To simplify the logic at our side, we will add MiniCssExtractPlugin based on
-        // the "instanceof" check (We will only add our required MiniCssExtractPlugin if
-        // Next.js hasn't added it yet).
-        // This also prevent multiple MiniCssExtractPlugin being added (which will cause
-        // RealContentHashPlugin to panic)
-        if (!config.plugins.some((plugin: unknown) => plugin instanceof MiniCssExtractPlugin)) {
-          // HMR reloads the CSS file when the content changes but does not use
-          // the new file name, which means it can't contain a hash.
-          const filename = ctx.dev ? 'static/css/[name].css' : 'static/css/[contenthash].css';
-
-          // Logic adopted from https://git.io/JtdBy
-          config.plugins.push(
-            new MiniCssExtractPlugin({
-              filename,
-              chunkFilename: filename,
-              // Next.js guarantees that CSS order "doesn't matter", due to imposed
-              // restrictions:
-              // 1. Global CSS can only be defined in a single entrypoint (_app)
-              // 2. CSS Modules generate scoped class names by default and cannot
-              //    include Global CSS (:global() selector).
-              //
-              // While not a perfect guarantee (e.g. liberal use of `:global()`
-              // selector), this assumption is required to code-split CSS.
-              //
-              // As for StyleX, the CSS is always atomic (so classes are always unique),
-              // and StyleX Plugin will always sort the css based on media query and pseudo
-              // selector.
-              //
-              // If this warning were to trigger, it'd be unactionable by the user,
-              // but likely not valid -- so just disable it.
-              ignoreOrder: true,
-            })
-          );
+            // Logic adopted from https://git.io/JtdBy
+            config.plugins.push(
+              new MiniCssExtractPlugin({
+                filename,
+                chunkFilename: filename,
+                // Next.js guarantees that CSS order "doesn't matter", due to imposed
+                // restrictions:
+                // 1. Global CSS can only be defined in a single entrypoint (_app)
+                // 2. CSS Modules generate scoped class names by default and cannot
+                //    include Global CSS (:global() selector).
+                //
+                // While not a perfect guarantee (e.g. liberal use of `:global()`
+                // selector), this assumption is required to code-split CSS.
+                //
+                // As for StyleX, the CSS is always atomic (so classes are always unique),
+                // and StyleX Plugin will always sort the css based on media query and pseudo
+                // selector.
+                //
+                // If this warning were to trigger, it'd be unactionable by the user,
+                // but likely not valid -- so just disable it.
+                ignoreOrder: true,
+              })
+            );
+          }
         }
 
         config.plugins.push(
@@ -207,16 +211,20 @@ const withStyleX =
             },
             // Enforce nextjsMode to true
             nextjsMode: true,
-            async transformCss(css) {
-              const { postcssWithPlugins } = await postcss();
-              const result = await postcssWithPlugins.process(css);
+            ...(extractCSS
+              ? {
+                  async transformCss(css) {
+                    const { postcssWithPlugins } = await postcss();
+                    const result = await postcssWithPlugins.process(css);
 
-              if (typeof pluginOptions?.transformCss === 'function') {
-                return pluginOptions.transformCss(result.css);
-              }
+                    if (typeof pluginOptions?.transformCss === 'function') {
+                      return pluginOptions.transformCss(result.css);
+                    }
 
-              return result.css;
-            },
+                    return result.css;
+                  },
+                }
+              : { transformCss: undefined }),
           })
         );
 

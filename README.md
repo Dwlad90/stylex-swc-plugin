@@ -51,6 +51,8 @@ This project is organized into several packages:
   * Vue
   * Webpack
 
+* [`postcss-plugin`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin) - A `PostCSS plugin` that integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+
 **Utilities:**
 
 * [`stylex-shared`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-shared) -

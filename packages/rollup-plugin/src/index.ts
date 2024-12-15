@@ -16,6 +16,7 @@ export type PluginOptions = {
   fileName?: string;
   useCSSLayers?: boolean;
   lightningcssOptions?: Omit<TransformOptions<{}>, 'code' | 'filename' | 'visitor'>;
+  extractCSS?: boolean;
 };
 
 export default function stylexPlugin({
@@ -23,6 +24,7 @@ export default function stylexPlugin({
   fileName = 'stylex.css',
   useCSSLayers = false,
   lightningcssOptions,
+  extractCSS = true,
 }: PluginOptions = {}): Plugin {
   const {
     dev = IS_DEV_ENV,
@@ -113,7 +115,7 @@ export default function stylexPlugin({
         }
       }
 
-      if (!dev && metadata.stylex != null && metadata.stylex.length > 0) {
+      if (extractCSS && !dev && metadata.stylex != null && metadata.stylex.length > 0) {
         stylexRules[id] = metadata.stylex;
       }
 

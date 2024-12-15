@@ -5,4 +5,5 @@ export interface UnpluginStylexRSOptions {
   useCSSLayers?: boolean;
   pageExtensions?: string[];
   rsOptions?: StyleXOptions;
+  extractCSS?: boolean;
 }

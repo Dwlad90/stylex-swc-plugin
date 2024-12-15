@@ -116,4 +116,4 @@ const styleProps = {
 
 ## License
 
-StyleX is MIT licensed. Stylex NAPI-RS compiler is also MIT licensed.
+StyleX is MIT licensed. StyleX NAPI-RS compiler is also MIT licensed.

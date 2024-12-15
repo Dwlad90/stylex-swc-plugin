@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/webpack-plugin",
-  "description": "Stylex webpack plugin with NAPI-RS compiler",
+  "description": "StyleX webpack plugin with NAPI-RS compiler",
   "version": "0.5.1",
   "config": {
     "scripty": {
@@ -27,6 +27,7 @@
   ],
   "keywords": [
     "stylex",
+    "swc",
     "webpack",
     "webpack-plugin"
   ],

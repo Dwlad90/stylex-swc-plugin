@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/nextjs-swc-plugin",
-  "description": "Stylex NextJS plugin with swc plugin",
+  "description": "StyleX NextJS plugin with swc plugin",
   "version": "0.5.1",
   "config": {
     "scripty": {
@@ -32,7 +32,8 @@
     "next",
     "nextjs",
     "nextjs-plugin",
-    "stylex"
+    "stylex",
+    "swc"
   ],
   "license": "MIT",
   "main": "dist/index.js",

@@ -217,7 +217,7 @@ fn main() {
 
     let file_paths = file_paths
       .into_iter()
-      .filter(|f| re.is_match(&f.display().to_string()))
+      .filter(|f| re.is_match(&f.display().to_string()) || f.display().to_string().contains("__tests__"))
       .collect::<Vec<PathBuf>>();
 
     let dir = format!("./output/__tests__/{}", package);

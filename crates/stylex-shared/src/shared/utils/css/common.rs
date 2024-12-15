@@ -4,7 +4,8 @@ use crate::shared::{
   constants::{
     common::{
       COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
-      COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
+      COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES, CSS_CONTENT_FUNCTIONS,
+      CSS_CONTENT_KEYWORDS,
     },
     long_hand_logical::LONG_HAND_LOGICAL,
     long_hand_physical::LONG_HAND_PHYSICAL,
@@ -17,7 +18,7 @@ use crate::shared::{
     shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
     unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
   },
-  regex::{CLEAN_CSS_VAR, CSS_ATTRIBUTE, MANY_SPACES},
+  regex::{CLEAN_CSS_VAR, MANY_SPACES},
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
     stylex_state_options::StyleXStateOptions,
@@ -408,7 +409,7 @@ pub(crate) fn get_priority(key: &str) -> f64 {
   3000.0
 }
 
-fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
+pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
   let css_property_value = value.trim();
 
   let value = match &css_property_value.parse::<f64>() {
@@ -421,16 +422,22 @@ fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
   };
 
   if key == "content" || key == "hyphenateCharacter" || key == "hyphenate-character" {
-    let val = value.trim();
-    if CSS_ATTRIBUTE.is_match(val) {
-      return val.to_string();
-    }
-    if !(val.starts_with('"') && val.ends_with('"') || val.starts_with('\'') && val.ends_with('\''))
-    {
-      return format!("\"{}\"", val);
+    let is_css_function = CSS_CONTENT_FUNCTIONS
+      .iter()
+      .any(|func| value.contains(func));
+
+    let is_keyword = CSS_CONTENT_KEYWORDS.contains(&value.as_str());
+
+    let double_quote_count = value.matches('"').count();
+    let single_quote_count = value.matches('\'').count();
+
+    let has_matching_quotes = double_quote_count >= 2 || single_quote_count >= 2;
+
+    if is_css_function || is_keyword || has_matching_quotes {
+      return value.to_string();
     }
 
-    return val.to_string();
+    return format!("\"{}\"", value);
   }
 
   let result = normalize_css_property_value(key, value.as_ref(), &state.options);

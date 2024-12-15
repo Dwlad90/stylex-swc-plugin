@@ -14,6 +14,7 @@ use swc_core::{common::DUMMY_SP, ecma::ast::BinExpr};
 
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
+  structures::injectable_style::InjectableStyle,
   utils::core::dev_class_name::{convert_to_test_styles, inject_dev_class_names},
 };
 use crate::shared::{
@@ -138,6 +139,29 @@ where
 
       assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
 
+      let mut injected_inherit_styles: IndexMap<String, Rc<InjectableStyle>> = IndexMap::default();
+
+      if let Some(fns) = &evaluated_arg.fns {
+        let dynamic_fns_names: Vec<String> = fns
+          .values()
+          .flat_map(|entry| {
+            let (_, map) = entry;
+            map.keys().cloned().collect::<Vec<String>>()
+          })
+          .collect();
+
+        for fns_name in dynamic_fns_names {
+          injected_inherit_styles.insert(
+            fns_name.clone(),
+            Rc::new(InjectableStyle {
+              priority: Some(0f64),
+              ltr: format!("@property {} {{ syntax: \"*\"; inherits: false; initial-value: \"*\"; }}", fns_name),
+              rtl: None,
+            }),
+          );
+        }
+      }
+
       let (mut compiled_styles, injected_styles_sans_keyframes, class_paths_per_namespace) =
         stylex_create_set(
           &value,
@@ -156,6 +180,8 @@ where
       let mut injected_styles = self.state.injected_keyframes.clone();
 
       injected_styles.extend(injected_styles_sans_keyframes);
+
+      injected_styles.extend(injected_inherit_styles);
 
       let (var_name, parent_var_decl) = self.get_call_var_name(call);
 

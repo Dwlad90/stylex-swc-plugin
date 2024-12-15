@@ -1,6 +1,7 @@
 ---
 source: crates/stylex-shared/tests/evaluation/stylex_evaluation/stylex_import_evaluation/evaluation_of_imported_values_works_based_on_configuration/theme_name_hashing_based_on_filename_alone_works.rs
 expression: transformation
+snapshot_kind: text
 ---
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
@@ -8,6 +9,7 @@ import "otherFile.stylex";
 import stylex from 'stylex';
 import { MyTheme } from 'otherFile.stylex';
 _inject2(".__hashed_var__b69i2g{--__hashed_var__1jqb1tb:var(----__hashed_var__1jqb1tb)}", 1);
+_inject2('@property ----__hashed_var__1jqb1tb { syntax: "*"; inherits: false; initial-value: "*"; }', 0);
 export const styles = {
     color: (color)=>[
             {

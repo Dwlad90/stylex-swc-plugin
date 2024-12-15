@@ -69,7 +69,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           normalizedOptions.rsOptions
         );
 
-        if (metadata.stylex && metadata.stylex.length > 0) {
+        if (normalizedOptions.extractCSS && metadata.stylex && metadata.stylex.length > 0) {
           stylexRules[id] = metadata.stylex;
         }
 

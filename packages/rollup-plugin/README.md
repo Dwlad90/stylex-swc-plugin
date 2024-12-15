@@ -47,9 +47,44 @@ module.exports = config;
 ```
 
 ## Plugin Options
-The options are similar like `@stylexjs/babel-plugin` and can be found [here](https://stylexjs.com/docs/api/configuration/babel-plugin/)
+
+The plugin accepts the following configuration options:
+
+### `rsOptions`
+
+- Type: `StyleXOptions`
+- Optional
+- Default: `{}`
+- Description: StyleX compiler options that extend from `@stylexswc/rs-compiler`
+
+### `fileName`
+
+- Type: `string`
+- Optional
+- Default: `'stylex.css'`
+- Description: Name of the output CSS file
+
+### `useCSSLayers`
+
+- Type: `boolean`
+- Optional
+- Default: `false`
+- Description: Enable CSS Layers support for better style isolation
+
+### `lightningcssOptions`
+
+- Type: `TransformOptions`
+- Optional
+- Description: LightningCSS transform options (excluding code, filename, and visitor properties)
+
+### `extractCSS`
+
+- Type: `boolean`
+- Optional
+- Default: `true`
+- Description: Controls whether CSS should be extracted into a separate file
 
 ## Documentation
 
-* [StyleX Documentation](https://stylexjs.com)
-* [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
+- [StyleX Documentation](https://stylexjs.com)
+- [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)

@@ -26,7 +26,7 @@ experience with StyleX:
   experience.
 - Integrates seamlessly with Next.js SWC Compiler for a streamlined workflow.
 
-### Stylex NAPI-RS Compiler
+### StyleX NAPI-RS Compiler
 
 - Utilizes NAPI-RS to compile StyleX code, offering advantages over the SWC
   plugin approach.
@@ -73,6 +73,13 @@ npm install --save-dev @stylexswc/nextjs-plugin
 - Type: `boolean`
 - Default: `false`
 - Description: Enables CSS cascade layers support for better style isolation.
+
+#### `extractCSS`
+
+- Type: `boolean`
+- Optional
+- Default: `true`
+- Description: Controls whether CSS should be extracted into a separate file
 
 ### Advanced Options
 

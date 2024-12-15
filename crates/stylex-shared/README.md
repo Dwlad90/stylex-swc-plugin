@@ -9,4 +9,4 @@ of your StyleX-related build processes.
 
 ## License
 
-StyleX is MIT licensed. Stylex SWC plugin is also MIT licensed.
+StyleX is MIT licensed. StyleX SWC plugin is also MIT licensed.

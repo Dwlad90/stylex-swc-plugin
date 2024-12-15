@@ -26,7 +26,8 @@
     "farm",
     "esbuild",
     "rspack",
-    "rsbuild"
+    "rsbuild",
+    "swc"
   ],
   "exports": {
     ".": {
@@ -142,12 +143,12 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.9.3",
-    "@stylexswc/rs-compiler": "0.5.0",
     "unplugin": "^1.12.2",
     "vite": "^5.4.10",
     "vite-plugin-inspect": "^0.8.7"
   },
   "devDependencies": {
+    "@stylexswc/rs-compiler": "0.5.0",
     "@nuxt/kit": "^3.13.0",
     "@nuxt/schema": "^3.13.0",
     "@types/node": "^22.5.1",

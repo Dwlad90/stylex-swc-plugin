@@ -3,7 +3,7 @@ const stylexPlugin = require('@stylexswc/nextjs-plugin');
 const rootDir = __dirname;
 
 module.exports = stylexPlugin({
-  // Add any Stylex options here
+  // Add any StyleX options here
   rsOptions: {
     aliases: {
       '@/*': [
@@ -15,7 +15,6 @@ module.exports = stylexPlugin({
       rootDir
     },
   }
-
 })({
   transpilePackages: ['@stylexjs/open-props'],
   // Optionally, add any other Next.js config below

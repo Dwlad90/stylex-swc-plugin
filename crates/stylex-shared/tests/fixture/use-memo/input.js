@@ -22,7 +22,7 @@ export default function Button(param) {
         ]),
         children: "Test"
     }, void 0, false, {
-        fileName: "/Users/vladislavbuinovski/Downloads/nextjs-app-dir-stylex-15/app/components/Button.tsx",
+        fileName: "/root/app/components/Button.tsx",
         lineNumber: 22,
         columnNumber: 10
     }, this);

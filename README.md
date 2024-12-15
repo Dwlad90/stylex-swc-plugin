@@ -76,7 +76,7 @@ This project is organized into several packages:
 ## Deprecated Packages
 
 > [!WARNING]
-> The packages below are deprecated as of version `0.3.0` and may be removed in the future. Please use the newer alternatives listed above.
+> The packages below are finaly deprecated as of version `0.5.0` and will be removed in the next minor release. Please use the newer alternatives listed above.
 
 **Core:**
 

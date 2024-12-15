@@ -1170,6 +1170,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         import stylex from 'stylex';
         _inject2(".xrkmrrc{background-color:red}", 3000);
         _inject2(".xfx01vb{color:var(--color)}", 3000);
+        _inject2("@property --color { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: color => [{
             backgroundColor: "xrkmrrc",
@@ -1196,6 +1197,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         import stylex from 'stylex';
         _inject2(".xrkmrrc{background-color:red}", 3000);
         _inject2(".x1bl4301{width:var(--width)}", 4000);
+        _inject2("@property --width { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: width => [{
             backgroundColor: "xrkmrrc",
@@ -1226,6 +1228,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".xrkmrrc{background-color:red}", 3000);
         _inject2(".xfx01vb{color:var(--color)}", 3000);
         _inject2(".x1mqxbix{color:black}", 3000);
+        _inject2("@property --color { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: color => [{
             backgroundColor: "xrkmrrc",
@@ -1254,6 +1257,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         var _inject2 = _inject;
         import stylex from 'stylex';
         _inject2(".x15mgraa{--background-color:var(----background-color)}", 1);
+        _inject2("@property ----background-color { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: bgColor => [{
             "--background-color": bgColor == null ? null : "x15mgraa",
@@ -1281,6 +1285,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         import stylex from 'stylex';
         _inject2(".x1gykpug:hover{background-color:red}", 3130);
         _inject2(".xtyu0qe:hover{color:var(--1ijzsae)}", 3130);
+        _inject2("@property --1ijzsae { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: color => [{
             ":hover_backgroundColor": "x1gykpug",
@@ -1311,6 +1316,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".xrkmrrc{background-color:red}", 3000);
         _inject2(".xfx01vb{color:var(--color)}", 3000);
         _inject2(".x1mqxbix{color:black}", 3000);
+        _inject2("@property --color { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: color => [{
             backgroundColor: "xrkmrrc",
@@ -1339,6 +1345,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         var _inject2 = _inject;
         import stylex from 'stylex';
         _inject2(".x15mgraa{--background-color:var(----background-color)}", 1);
+        _inject2("@property ----background-color { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: bgColor => [{
             "--background-color": bgColor == null ? null : "x15mgraa",
@@ -1372,6 +1379,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1n25116{color:var(--4xs81a)}", 3000);
         _inject2("@media (min-width: 1000px){.xtljkjt.xtljkjt:hover{color:green}}", 3330);
         _inject2(".x17z2mba:hover{color:blue}", 3130);
+        _inject2("@property --4xs81a { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: color => [{
             backgroundColor: "xrkmrrc",
@@ -1406,6 +1414,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1n25116{color:var(--4xs81a)}", 3000);
         _inject2("@media (min-width: 1000px){.xtljkjt.xtljkjt:hover{color:green}}", 3330);
         _inject2(".x1d4gdy3:hover{color:var(--w5m4kq)}", 3130);
+        _inject2("@property --4xs81a { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
+        _inject2("@property --w5m4kq { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: color => [{
             backgroundColor: "xrkmrrc",
@@ -1445,6 +1455,9 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1k44ad6{margin-left:var(--14mfytm)}", 3000, ".x1k44ad6{margin-right:var(--14mfytm)}");
         _inject2(".x10ktymb:hover{margin-left:var(--yepcm9)}", 3130, ".x10ktymb:hover{margin-right:var(--yepcm9)}");
         _inject2(".x17zef60{margin-top:var(--marginTop)}", 4000);
+        _inject2("@property --14mfytm { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
+        _inject2("@property --yepcm9 { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
+        _inject2("@property --marginTop { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
         export const styles = {
           default: margin => [{
             backgroundColor: "xrkmrrc",

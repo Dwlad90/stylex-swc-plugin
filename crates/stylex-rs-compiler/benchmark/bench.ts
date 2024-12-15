@@ -53,7 +53,7 @@ fixtureFilePaths.forEach(file => {
 
 const rollupPluginApp = path.join(rootDir, '../../apps/rollup-example');
 
-const rollupPluginAppFiles = ['lotsOfStyles.js'];
+const rollupPluginAppFiles = ['lotsOfStyles.js', 'lotsOfStylesDynamic.js'];
 
 rollupPluginAppFiles.forEach(file => {
   b.add(`Rollup plugin - ${file}`, () => {

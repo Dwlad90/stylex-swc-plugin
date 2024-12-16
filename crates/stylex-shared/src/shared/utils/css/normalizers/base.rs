@@ -1,4 +1,3 @@
-use stringcase::kebab_case;
 use swc_core::{
   common::DUMMY_SP,
   css::{
@@ -10,7 +9,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::constants::common::ROOT_FONT_SIZE;
+use crate::shared::{constants::common::ROOT_FONT_SIZE, utils::common::dashify};
 
 struct CssFolder {
   use_rem_for_font_size: bool,
@@ -131,7 +130,9 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
 
   declaration.value.iter_mut().for_each(|value| {
     if let ComponentValue::Ident(ident) = value {
-      ident.value = kebab_case(ident.value.as_str()).into();
+      if !ident.value.starts_with("--") {
+        ident.value = dashify(ident.value.as_str()).into();
+      }
     }
   });
 

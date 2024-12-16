@@ -51,3 +51,6 @@ pub(crate) static WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX: Lazy<Regex> = Lazy::
   )
   .unwrap()
 });
+
+pub(crate) static DASHIFY_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(^|[a-z])([A-Z])").unwrap());

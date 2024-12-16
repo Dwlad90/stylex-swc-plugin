@@ -34,7 +34,6 @@ serde_json.workspace = true
 regex.workspace = true
 indexmap.workspace = true
 derive_more.workspace = true
-stringcase.workspace = true
 murmur2.workspace = true
 radix_fmt.workspace = true
 phf = { workspace = true, features = ["macros"] }

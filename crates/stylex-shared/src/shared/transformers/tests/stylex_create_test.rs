@@ -320,6 +320,48 @@ mod stylex_create {
   }
 
   #[test]
+  fn webkit() {
+    let object = style_object_factory(&[(
+      "default",
+      &[("WebkitBoxOrient", "vertical"), ("WebkitLineClamp", "2")],
+    )]);
+
+    let (resolved_namespaces, injected_styles, class_paths_in_namespace) = stylex_create(object);
+
+    let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
+      exprected_result_factory(
+        &[(
+          "default",
+          &[
+            ("WebkitBoxOrient", "x1ua5tub"),
+            ("WebkitLineClamp", "x1h7i4cw"),
+          ],
+        )],
+        &[(
+          "default",
+          &[
+            (
+              "x1ua5tub",
+              (".x1ua5tub{-webkit-box-orient:vertical}", 3000.0),
+            ),
+            ("x1h7i4cw", (".x1h7i4cw{-webkit-line-clamp:2}", 3000.0)),
+          ],
+        )],
+        &[(
+          "default",
+          &[
+            ("x1ua5tub", &["WebkitBoxOrient"]),
+            ("x1h7i4cw", &["WebkitLineClamp"]),
+          ],
+        )],
+      );
+
+    assert_eq!(resolved_namespaces, expected_resolved_namespaces);
+    assert_eq!(injected_styles, expected_injected_styles);
+    assert_eq!(class_paths_in_namespace, expected_class_paths_in_namespace);
+  }
+
+  #[test]
   fn transition_property_margin_top() {
     let camel_case_object =
       style_object_factory(&[("default", &[("transitionProperty", "marginTop")])]);

@@ -1,12 +1,10 @@
-use stringcase::kebab_case;
-
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},
   structures::{
     injectable_style::InjectableStyle, pre_rule::PreRuleValue, state_manager::StateManager,
   },
   utils::{
-    common::create_hash,
+    common::{create_hash, dashify},
     css::common::{generate_rule, transform_value_cached},
     pre_rule::{sort_at_rules, sort_pseudos},
   },
@@ -23,9 +21,9 @@ pub(crate) fn convert_style_to_class_name(
   let (key, raw_value) = obj_entry;
 
   let dashed_key = if key.starts_with("--") {
-    key.to_string()
+    key.to_lowercase()
   } else {
-    kebab_case(key)
+    dashify(key)
   };
 
   let unsorted_pseudos = &mut pseudos.to_vec();

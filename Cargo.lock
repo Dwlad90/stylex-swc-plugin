@@ -2019,12 +2019,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stringcase"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04028eeb851ed08af6aba5caa29f2d59a13ed168cee4d6bd753aeefcf1d636b0"
-
-[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2101,7 +2095,6 @@ dependencies = [
  "rustc-hash 2.1.0",
  "serde",
  "serde_json",
- "stringcase",
  "stylex_path_resolver",
  "swc_core",
  "swc_ecma_parser",

@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stringcase::kebab_case;
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::{
@@ -19,7 +18,7 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{expr_to_str, string_to_expression},
-    common::{create_hash, get_key_str},
+    common::{create_hash, dashify, get_key_str},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::common::{generate_ltr, generate_rtl, transform_value_cached},
     object::{obj_entries, obj_from_entries, obj_map, obj_map_keys, Pipe},
@@ -47,7 +46,7 @@ pub(crate) fn stylex_keyframes(
 
     let pipe_result = Pipe::create(frame)
       .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| obj_map_keys(&entries, kebab_case))
+      .pipe(|entries| obj_map_keys(&entries, dashify))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),

@@ -162,6 +162,30 @@ test!(
     PluginPass::default(),
     None
   ),
+  transforms_style_object_with_webkit_property_as_value,
+  r#"
+        import stylex from 'stylex';
+        const styles = stylex.create({
+            default: {
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 2,
+                display: "-webkit-box",
+                overflow: "hidden"
+            }
+        });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   transforms_multiple_namespaces,
   r#"
         import stylex from 'stylex';

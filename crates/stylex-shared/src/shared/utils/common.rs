@@ -23,6 +23,7 @@ use crate::shared::{
     data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
     misc::VarDeclAction,
   },
+  regex::DASHIFY_REGEX,
   structures::{
     base_css_type::BaseCSSType,
     functions::{FunctionConfigType, FunctionMap, FunctionType},
@@ -419,6 +420,10 @@ pub(crate) fn sum_hash_map_values(
   }
 
   sum_map
+}
+
+pub(crate) fn dashify(s: &str) -> String {
+  DASHIFY_REGEX.replace_all(s, "$1-$2").to_lowercase()
 }
 
 pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {

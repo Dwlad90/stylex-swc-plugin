@@ -57,7 +57,7 @@ This project is organized into several packages:
  Shared Rust codebase for the StyleX RS compiler and SWC plugin.
 
 * [`path-resolver`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-path-resolver) -
-   Path handling and resolving utilities for the StyleX NAPI-RS / SWC plugin.
+   Path handling and resolving utilities for the StyleX NAPI-RS/SWC plugin.
 
 * [`test-parser`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-test-parser) -
   Parser for [StyleX](https://github.com/facebook/stylex) repo Jest tests that

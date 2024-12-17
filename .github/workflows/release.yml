@@ -1,0 +1,201 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Release tag'
+        required: true
+        type: choice
+        options:
+          # - 'major'
+          - 'minor'
+          - 'patch'
+        default: 'patch'
+      prerelease:
+        description: 'Is this a prerelease?'
+        type: boolean
+        default: false
+      prerelease-type:
+        description: 'Prerelease tag'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  calculate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.calculate.outputs.new_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find previous version tag
+        id: previoustag
+        run: |
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            regex='^[0-9]+\.[0-9]+\.[0-9]-${{ github.event.inputs.prerelease-type }}\.[0-9]{0,2}$'
+          else
+            regex='^[0-9]{0,2}\.[0-9]{0,2}\.[0-9]{0,2}$'
+          fi
+          previousTag=$(git tag --list | grep -E "$regex" | sort -V | tail -n 1)
+
+          echo "previousTag=${previousTag}"
+          echo "previousTag=${previousTag}" >> $GITHUB_OUTPUT
+
+      - name: Calculate new version
+        id: calculate
+        run: |
+          . ./scripts/functions.sh
+
+          previousTag=${{ steps.previoustag.outputs.previousTag }}
+
+          if [ -z "$previousTag" ]; then
+            previousTag="0.0.0"
+          fi
+
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            newVersion=$(increment_version "$previousTag" "${{ github.event.inputs.type }}" "${{ github.event.inputs.prerelease-type }}")
+          else
+            newVersion=$(increment_version "$previousTag" "${{ github.event.inputs.type }}")
+          fi
+
+          echo "newVersion=$newVersion"
+          echo "new_version=$newVersion" >> $GITHUB_OUTPUT
+
+  release:
+    needs: calculate-version
+    environment: release-approval
+    env:
+      HUSKY_SKIP_HOOKS: 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Git for pushing
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        run: ./scripts/git/bump-version.sh ${{ needs.calculate-version.outputs.new_version }}
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Update Cargo lock
+        run: |
+          cargo update --workspace
+
+      - name: Commit version bump
+        id: commit
+        run: |
+          git add .
+          git commit --no-verify -m "Bump version to ${{ needs.calculate-version.outputs.new_version }}"
+          git log --oneline | head -n 3
+
+      - name: Create new version tag
+        id: newtag
+        run: |
+          newVersion=${{ needs.calculate-version.outputs.new_version }}
+          git tag $newVersion -m "Release $newVersion"
+
+  publish:
+    needs: [release, calculate-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to NPM
+        id: npm
+        run: |
+          run_id=$(gh workflow run .github/workflows/npm.yml \
+            --ref ${{ github.sha }} \
+            --repo ${{ github.repository }} \
+            --json) || exit 1
+
+          for i in {1..5}; do
+            sleep 5
+            run_id=$(gh run list --workflow=npm.yml --limit=5 --json databaseId,status -q 'map(select(.status == "in_progress" or .status == "queued")) | .[0].databaseId')
+            if [ ! -z "$run_id" ]; then
+              break
+            fi
+          done
+
+          if [ -z "$run_id" ]; then
+            echo "Error: Failed to get run ID"
+            exit 1
+          fi
+
+          timeout 30m gh run watch "$run_id"
+
+          status=$(gh run view "$run_id" --json status --jq '.status')
+
+          if [ "$status" != "completed" ] || [ "$status" = "failure" ] || [ "$status" = "cancelled" ]; then
+            echo "Workflow failed with status: $status"
+            exit 1
+          fi`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push new version tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          newVersion=${{ needs.calculate-version.outputs.new_version }}
+          git push origin "$newVersion"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          prerelease: ${{ github.event.inputs.prerelease }}
+          generate_release_notes: true
+          draft: false
+          fail_on_unmatched_files: true
+          tag_name: ${{ needs.calculate-version.outputs.new_version }}
+          target_commitish: ${{ github.sha }}
+          name: Release ${{ needs.calculate-version.outputs.new_version }}
+
+  merge-develop:
+    needs: [publish, calculate-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge to develop
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout develop
+          git merge --no-ff ${{ needs.calculate-version.outputs.new_version }}
+          git push origin develop --follow-tags
+
+  merge-master:
+    needs: [merge-develop, calculate-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge to master
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout master
+          git merge -ff-only ${{ needs.calculate-version.outputs.new_version }}
+          git push origin master --follow-tags

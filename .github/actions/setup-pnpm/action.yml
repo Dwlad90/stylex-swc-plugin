@@ -18,4 +18,8 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        pnpm install --recursive --frozen-lockfile --link-workspace-packages
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          pnpm install --recursive --link-workspace-packages --no-frozen-lockfile
+        else
+          pnpm install --recursive --frozen-lockfile --link-workspace-packages
+        fi

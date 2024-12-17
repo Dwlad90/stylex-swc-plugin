@@ -3,8 +3,8 @@ name: Pre-release
 on:
   push:
     branches:
-      - "*.*.*"
-      - "*.*.*-*.*"
+      - "release/*.*.*"
+      - "release/*.*.*-*.*"
 
 jobs:
   generate-pre-release:
@@ -23,32 +23,102 @@ jobs:
           else
             echo "::set-output name=prerelease::false"
           fi
-
-      - name: Generate Release Notes
-        id: release_notes
-        uses: TriPSs/conventional-changelog-action@v5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          skip-commit: "true"
-          skip-tag: "false"
-          output-file: "false"
-          skip-git-pull: "false"
-          git-push: "true"
-          preset: "angular"
-          tag-prefix: ""
-          # create-summary: "true"
-          pre-release: ${{ steps.prerelease.outputs.prerelease }}
-          pre-release-identifier: "rc"
-          skip-bump: "false"
-          git-message: "chore(release): ${GITHUB_SHA}"
-
-          # release-count: 5
-
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ steps.prerelease.outputs.prerelease }}
-          body: ${{ steps.release_notes.outputs.clean_changelog }}
+          generate_release_notes: false
           draft: true
           fail_on_unmatched_files: true
+
+      # - name: Build Changelog
+      #   id: github_release
+      #   uses: mikepenz/release-changelog-builder-action@v5
+      #   with:
+      #     fromTag: "0.4.0"
+      #     toTag: "release/0.5.1-rc.2"
+      #     mode: "COMMIT"
+      #     # commitMode: "true"
+      #     fetchViaCommits: "true"
+      #     fetchReleaseInformation: "true"
+      #     platform: "github"
+      #     configurationJson: |
+      #       {
+      #         "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+      #         "pr_template": "- #{{TITLE}} (#{{NUMBER}})",
+      #         "commit_template": "- #{{SUBJECT}} (#{{HASH}})",
+      #         "categories": [
+      #           {
+      #               "title": "## 💬 Other",
+      #               "labels": ["other", "misc", "general", "uncategorized", "chore"],
+      #               "exhaustive": true,
+      #           },
+      #           {
+      #               "title": "## 📦 Dependencies",
+      #               "labels": ["dependencies", "dependency", "deps"],
+      #               "exhaustive": true
+      #           },
+      #           {
+      #               "title": "## 🐛 Bug Fixes",
+      #               "labels": ["bug", "fix"],
+      #               "exhaustive": true
+      #           },
+      #           {
+      #               "title": "## 🚀 Features",
+      #               "labels": ["feature","enhancement","feat"],
+      #               "exhaustive": true
+      #           },
+      #           {
+      #               "title": "## 📖 Documentation",
+      #               "labels": ["documentation", "docs", "readme"],
+      #               "exhaustive": true
+      #           },
+      #           {
+      #               "title": "## 🧰 Maintenance",
+      #               "labels": ["maintenance", "refactor", "cleanup"],
+      #               "exhaustive": true
+      #           },
+      #           {
+      #               "title": "## 🚧 Work in Progress",
+      #               "labels": ["wip", "work in progress", "in progress", "in-progress"],
+      #               "exhaustive": true
+      #           },
+      #           {
+      #               "title": "## 🚨 Breaking Changes",
+      #               "labels": ["breaking", "breaking change", "breaking changes"],
+      #               "exhaustive": true
+      #           },
+      #           {
+      #               "title": "## 🚨 CI",
+      #               "labels": ["ci", "github actions", "actions", "workflow", "workflows", "ci/cd"],
+      #               "exhaustive": true
+      #           }
+      #         ],
+      #         label_extractor: [
+      #           {
+      #             pattern: '^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\(.+\\))?(!)?: ([\\w ])+([\\s\\S]*)',
+      #             target: '$1'
+      #           }
+      #         ]
+      #       }
+
+      # - name: Print Release Notes
+      #   run: echo "${{ steps.github_release.outputs.changelog }}"
+      # - name: "✏️ Generate release changelog"
+      #   id: github_release
+      #   uses: janheinrichmerker/action-github-changelog-generator@v2.3
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     sinceTag: 0.5.0
+      #     dueTag: 0.5.1-rc.1
+      # - name: Print Release Notes
+      #   run: echo "${{ steps.github_release.outputs.changelog }}"
+
+
+      # - name: Release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     prerelease: ${{ steps.prerelease.outputs.prerelease }}
+      #     body: ${{ steps.release_notes.outputs.clean_changelog }}
+      #     draft: true
+      #     fail_on_unmatched_files: true

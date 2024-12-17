@@ -2,27 +2,53 @@ name: Pre-release
 
 on:
   push:
-    tags:
+    branches:
       - "*.*.*"
       - "*.*.*-*.*"
+
 jobs:
   generate-pre-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Set prerelease variable
         id: prerelease
         run: |
-          if [[ "${GITHUB_REF#refs/tags/}" == *-* ]]; then
+          if [[ "${GITHUB_REF#refs/heads/}" == *-* ]]; then
             echo "::set-output name=prerelease::true"
           else
             echo "::set-output name=prerelease::false"
           fi
+
+      - name: Generate Release Notes
+        id: release_notes
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          skip-commit: "true"
+          skip-tag: "false"
+          output-file: "false"
+          skip-git-pull: "false"
+          git-push: "true"
+          preset: "angular"
+          tag-prefix: ""
+          # create-summary: "true"
+          pre-release: ${{ steps.prerelease.outputs.prerelease }}
+          pre-release-identifier: "rc"
+          skip-bump: "false"
+          git-message: "chore(release): ${GITHUB_SHA}"
+
+          # release-count: 5
+
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ steps.prerelease.outputs.prerelease }}
-          generate_release_notes: true
+          body: ${{ steps.release_notes.outputs.clean_changelog }}
           draft: true
           fail_on_unmatched_files: true

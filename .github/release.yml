@@ -11,33 +11,56 @@ changelog:
     - title: Features 🎉
       labels:
         - 'feat'
+        - 'feature'
+        - 'enhancement'
     - title: Bug Fixes 🐛
       labels:
         - 'fix'
+        - 'bug'
+        - 'bugfix'
     - title: Documentation 📚
       labels:
         - 'docs'
+        - 'doc'
+        - 'documentation'
+        - 'readme'
     - title: Performance Improvements ⚡
       labels:
         - 'perf'
+        - 'performance'
+        - 'speed'
     - title: Code Refactoring 🔨
       labels:
         - 'refactor'
+        - 'refactoring'
+        - 'clean'
     - title: Tests ✅
       labels:
         - 'test'
+        - 'tests'
+        - 'testing'
+        - 'spec'
+        - 'specs'
     - title: Build System 🏗️
       labels:
         - 'build'
     - title: Continuous Integration 🤖
       labels:
         - 'ci'
+        - 'continuous-integration'
+        - 'pipeline'
+        - 'workflows'
+        - 'github-actions'
+        - 'actions'
+        - 'ci-cd'
     - title: Chores 🧹
       labels:
         - 'chore'
     - title: Reverts 🔄
       labels:
         - 'revert'
+        - 'reverts'
+        - 'reverted'
     - title: Other Changes
       labels:
         - '*'

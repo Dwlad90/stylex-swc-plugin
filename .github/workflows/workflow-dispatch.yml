@@ -1,4 +1,4 @@
-name: Dispatch Workflow
+name: Bump version
 
 on:
   workflow_dispatch:
@@ -11,37 +11,97 @@ on:
           # - 'major'
           - 'minor'
           - 'patch'
+        default: 'patch'
       prerelease:
         description: 'Is this a prerelease?'
         type: boolean
-        default: false
-      prerelease-tag:
+        default: true
+      prerelease-type:
         description: 'Prerelease tag'
         required: false
         type: string
+        default: 'rc'
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Find previous release
-        id: find
+        id: previoustag
         run: |
           if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
-            regex='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+\.[0-9]+)?$'
+            regex='^[0-9]+\.[0-9]+\.[0-9]-${{ github.event.inputs.prerelease-type }}\.[0-9]{0,2}$'
           else
-            regex='^[0-9]+\.[0-9]+\.[0-9]+$'
+            regex='^[0-9]{0,2}\.[0-9]{0,2}\.[0-9]{0,2}$'
           fi
           previousTag=$(git tag --list | grep -E "$regex" | sort -V | tail -n 1)
-          echo "::set-output name=previousTag::$previousTag"
+          echo "All tags: $(git tag --list)"
+          echo "Regex: $regex"
+          echo "previousTag=${previousTag}"
+          echo "previousTag=${previousTag}" >> $GITHUB_OUTPUT
+      - name: Print previous tag
+        run: |
+          echo "Previous tag: ${{ steps.previoustag.outputs.previousTag }}"
+
+      - name: Calculate new version
+        id: calculate
+        run: |
+          # Source the functions file
+          . ./scripts/functions.sh
+
+          previousTag=${{ steps.previoustag.outputs.previousTag }}
+          if [ -z "$previousTag" ]; then
+            previousTag="0.0.0"
+          fi
+
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            newVersion=$(increment_version "$previousTag" "${{ github.event.inputs.type }}" "${{ github.event.inputs.prerelease-type }}")
+          else
+            newVersion=$(increment_version "$previousTag" "${{ github.event.inputs.type }}")
+          fi
+
+          echo "newVersion=$newVersion"
+          echo "newVersion=$newVersion" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        run: ./scripts/bump-version.sh ${{ steps.calculate.outputs.newVersion }}
+
+      - name: Set up Git for pushing
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create new version tag
+        id: newtag
+        run: |
+          newVersion=${{ steps.calculate.outputs.newVersion }}
+          git tag $newVersion -m "Release $newVersion"
+
+
+      - name: Push new tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          newVersion=${{ steps.calculate.outputs.newVersion }}
+          git push origin "$newVersion"
 
       - name: Create Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.find.outputs.previousTag }}
-          release_name: Release ${{ steps.find.outputs.previousTag }}
-          draft: false
+          # tag_name: ${{ steps.find.outputs.previousTag }}
+          # release_name: Release ${{ steps.find.outputs.previousTag }}
+          # draft: false
+          # prerelease: ${{ github.event.inputs.prerelease }}
+
           prerelease: ${{ github.event.inputs.prerelease }}
+          generate_release_notes: true
+          draft: true
+          fail_on_unmatched_files: true
+          tag_name: ${{ steps.previoustag.outputs.newVersion }}
+          target_commitish: ${{ github.sha }}

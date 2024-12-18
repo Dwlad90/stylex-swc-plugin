@@ -50,58 +50,25 @@ jobs:
       - name: Calculate new version
         id: calculate
         run: |
-          previousTag=${{ steps.previoustag.outputs.previousTag }}
-          prerelease=${{ github.event.inputs.prerelease }}
-          prereleaseType=${{ github.event.inputs.prerelease-type }}
-          type=${{ github.event.inputs.type }}
+          # Source the functions file
+          . ./scripts/functions.sh
 
+          previousTag=${{ steps.previoustag.outputs.previousTag }}
           if [ -z "$previousTag" ]; then
             previousTag="0.0.0"
           fi
 
-          # Extract version components
-          if [[ "$previousTag" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-([a-zA-Z]+)\.([0-9]+))?$ ]]; then
-            major=${BASH_REMATCH[1]}
-            minor=${BASH_REMATCH[2]}
-            patch=${BASH_REMATCH[3]}
-            existingPrereleaseType=${BASH_REMATCH[5]}
-            existingPrereleaseVersion=${BASH_REMATCH[6]}
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            newVersion=$(increment_version "$previousTag" "${{ github.event.inputs.type }}" "${{ github.event.inputs.prerelease-type }}")
           else
-            echo "Error: Invalid previous tag format."
-            exit 1
-          fi
-
-          if [ "$prerelease" = "false" ]; then
-            # Increment version
-            case "$type" in
-              major)
-                major=$((major + 1))
-                minor=0
-                patch=0
-                ;;
-              minor)
-                minor=$((minor + 1))
-                patch=0
-                ;;
-              patch)
-                patch=$((patch + 1))
-                ;;
-            esac
-          fi
-
-          if [ "$prerelease" = "true" ]; then
-            if [ "$existingPrereleaseType" = "$prereleaseType" ]; then
-              prereleaseVersion=$((existingPrereleaseVersion + 1))
-            else
-              prereleaseVersion=1
-            fi
-            newVersion="$major.$minor.$patch-$prereleaseType.$prereleaseVersion"
-          else
-            newVersion="$major.$minor.$patch"
+            newVersion=$(increment_version "$previousTag" "${{ github.event.inputs.type }}")
           fi
 
           echo "newVersion=$newVersion"
           echo "newVersion=$newVersion" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        run: ./scripts/bump-version.sh ${{ steps.calculate.outputs.newVersion }}
 
       - name: Set up Git for pushing
         run: |

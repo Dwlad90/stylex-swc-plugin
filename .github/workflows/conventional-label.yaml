@@ -1,0 +1,20 @@
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+name: Conventional Release Labels
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    steps:
+      - uses: bcoe/conventional-release-labels@v1
+        with:
+          type_labels:
+            '{"feat": "feature", "fix": "fix", "breaking": "breaking", "chore": "chore", "docs": "docs",
+            "style": "style", "refactor": "refactor", "perf": "perf", "test": "test",
+            "build": "build", "ci": "ci", "revert": "revert"}'

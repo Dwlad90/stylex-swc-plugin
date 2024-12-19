@@ -109,16 +109,31 @@ jobs:
         run: |
           newVersion=${{ needs.calculate-version.outputs.new_version }}
           git tag $newVersion -m "Release $newVersion"
+          git push origin $newVersion
 
   publish:
     needs: [release, calculate-version]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout to new version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout ${{ needs.calculate-version.outputs.new_version }}
+
       - name: Publish to NPM
         id: npm
         run: |
+          BRANCH=$(git rev-parse --short HEAD)
+
           run_id=$(gh workflow run .github/workflows/npm.yml \
-            --ref ${{ github.sha }} \
+            --ref $BRANCH \
             --repo ${{ github.repository }} \
             --json) || exit 1
 

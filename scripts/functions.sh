@@ -34,25 +34,23 @@ EOF
 $(echo "$core_version" | tr '.' ' ')
 EOF
 
-  if [ -z "$pre_release_type" ]; then
-    case $release_type in
-      major)
-        major=$((major + 1))
-        minor=0
-        patch=0
-        pre_release=""
-        ;;
-      minor)
-        minor=$((minor + 1))
-        patch=0
-        pre_release=""
-        ;;
-      patch)
-        patch=$((patch + 1))
-        pre_release=""
-        ;;
-    esac
-  fi
+  case $release_type in
+    major)
+      major=$((major + 1))
+      minor=0
+      patch=0
+      pre_release=""
+      ;;
+    minor)
+      minor=$((minor + 1))
+      patch=0
+      pre_release=""
+      ;;
+    patch)
+      patch=$((patch + 1))
+      pre_release=""
+      ;;
+  esac
 
   if [ -n "$pre_release_type" ]; then
     # Get the highest existing pre-release version for the current version

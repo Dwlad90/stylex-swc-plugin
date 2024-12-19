@@ -1,4 +1,7 @@
 name: Release
+run-name:
+  ${{ inputs.type }} | ${{ github.event.inputs.prerelease == 'true' && format('{0}',
+  inputs.prerelease-type) || 'stable' }} | ${{ github.ref_name }} | @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -26,30 +29,78 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  calculate-version:
+  inputs-validation:
+    name: Validate inputs
     runs-on: ubuntu-latest
+    steps:
+      - name: 🧪 Validate inputs
+        id: validate
+        run: |
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ] && [ -z "${{ github.event.inputs.prerelease-type }}" ]; then
+            echo "Error: prerelease-type is required when prerelease is checked"
+            exit 1
+          fi
+
+          if [ "${{ github.event.inputs.prerelease }}" = "false" ] && [ ! -z "${{ github.event.inputs.prerelease-type }}" ]; then
+            echo "Error: prerelease-type is not allowed when prerelease is not checked"
+            exit 1
+          fi
+
+          echo "All inputs are valid"
+  calculate-version:
+    name: Calculate version
+    runs-on: ubuntu-latest
+    needs: inputs-validation
     outputs:
       new_version: ${{ steps.calculate.outputs.new_version }}
     steps:
-      - name: Checkout code
+      - name: 🛠️ Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Find previous version tag
+      - name: 🔄 Check if can be fast-forwarded to develop
+        run: |
+          # Skip check if on develop
+          if [ "${{ github.ref_name }}" = "develop" ]; then
+            echo "✅ On develop branch, skipping rebase check"
+            exit 0
+          fi
+
+          # Fetch both branches
+          git fetch origin develop
+
+          # Get latest commits
+          current_commit=$(git rev-parse HEAD)
+          develop_commit=$(git rev-parse origin/develop)
+
+          # Get merge base
+          merge_base=$(git merge-base $current_commit $develop_commit)
+
+          # Check if current branch is behind develop
+          if [ "$merge_base" != "$develop_commit" ]; then
+            echo "::error::Branch is behind develop. Please rebase first."
+            exit 1
+          fi
+
+          # Check if fast-forward is possible
+          if ! git merge-tree $merge_base $develop_commit $current_commit | grep -q "^changed in both"; then
+            echo "✅ Branch can be fast-forwarded to develop"
+          else
+            echo "::error::Branch has conflicts with develop. Please resolve conflicts first."
+            exit 1
+          fi
+
+      - name: 🔍 Find previous version tag
         id: previoustag
         run: |
-          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
-            regex='^[0-9]+\.[0-9]+\.[0-9]-${{ github.event.inputs.prerelease-type }}\.[0-9]{0,2}$'
-          else
-            regex='^[0-9]{0,2}\.[0-9]{0,2}\.[0-9]{0,2}$'
-          fi
+          regex='^[0-9]+\.[0-9]+\.[0-9]+$'
           previousTag=$(git tag --list | grep -E "$regex" | sort -V | tail -n 1)
 
           echo "previousTag=${previousTag}"
           echo "previousTag=${previousTag}" >> $GITHUB_OUTPUT
 
-      - name: Calculate new version
+      - name: 🧮 Calculate new version
         id: calculate
         run: |
           . ./scripts/functions.sh
@@ -66,59 +117,109 @@ jobs:
             newVersion=$(increment_version "$previousTag" "${{ github.event.inputs.type }}")
           fi
 
-          echo "newVersion=$newVersion"
+          echo "Next version: $newVersion"
           echo "new_version=$newVersion" >> $GITHUB_OUTPUT
 
-  release:
+  pre-release:
+    name: Prepare release ${{ needs.calculate-version.outputs.new_version }}
     needs: calculate-version
-    environment: release-approval
+    environment:
+      name: release-approval
     env:
       HUSKY_SKIP_HOOKS: 1
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: 🛠️ Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Git for pushing
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Git configure
+        uses: ./.github/actions/gitconfig
 
-      - name: Bump version
+      - name: 🔧 Bump version
         run: ./scripts/git/bump-version.sh ${{ needs.calculate-version.outputs.new_version }}
 
-      - name: Setup environment
+      - name: 🛠️ Setup environment
         uses: ./.github/actions/setup
 
-      - name: Update Cargo lock
+      - name: 🔄 Update Cargo lock
         run: |
           cargo update --workspace
 
-      - name: Commit version bump
+      - name: 📝 Commit version bump
         id: commit
         run: |
           git add .
           git commit --no-verify -m "Bump version to ${{ needs.calculate-version.outputs.new_version }}"
           git log --oneline | head -n 3
 
-      - name: Create new version tag
+      - name: 🏷️ Create new version tag
         id: newtag
         run: |
           newVersion=${{ needs.calculate-version.outputs.new_version }}
-          git tag $newVersion -m "Release $newVersion"
 
-  publish:
-    needs: [release, calculate-version]
+          if git rev-parse "$newVersion" >/dev/null 2>&1; then
+            git tag -d "$newVersion"
+            git push --delete origin "$newVersion"
+          fi
+
+          git tag $newVersion -m "Release $newVersion"
+          git push origin $newVersion
+  release-draft:
+    name: Draft release ${{ needs.calculate-version.outputs.new_version }}
+    needs: [pre-release, calculate-version]
     runs-on: ubuntu-latest
     steps:
-      - name: Publish to NPM
+      - name: 🛠️ Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git configure
+        uses: ./.github/actions/gitconfig
+
+      - name: 🔀 Checkout to ${{ needs.calculate-version.outputs.new_version }}
+        run: |
+          git checkout ${{ needs.calculate-version.outputs.new_version }}
+
+      - name: 🚀 Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          prerelease: ${{ github.event.inputs.prerelease }}
+          generate_release_notes: true
+          draft: true
+          fail_on_unmatched_files: true
+          tag_name: ${{ needs.calculate-version.outputs.new_version }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.calculate-version.outputs.new_version }}
+
+  upload-npm:
+    name: Upload ${{ needs.calculate-version.outputs.new_version }} version to NPM
+    needs: [release-draft, calculate-version]
+    runs-on: ubuntu-latest
+    environment:
+      name: changlog-approval
+    steps:
+      - name: 🛠️ Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git configure
+        uses: ./.github/actions/gitconfig
+
+      - name: 🔀 Checkout to ${{ needs.calculate-version.outputs.new_version }}
+        run: |
+          git checkout ${{ needs.calculate-version.outputs.new_version }}
+
+      - name: 📦 Publish to NPM
         id: npm
         run: |
           run_id=$(gh workflow run .github/workflows/npm.yml \
-            --ref ${{ github.sha }} \
+            --ref ${{ needs.calculate-version.outputs.new_version }} \
             --repo ${{ github.repository }} \
             --json) || exit 1
 
@@ -146,56 +247,72 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push new version tag
+  release:
+    name: Release ${{ needs.calculate-version.outputs.new_version }}
+    needs: [upload-npm, calculate-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛠️ Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📢 Update Release Status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          newVersion=${{ needs.calculate-version.outputs.new_version }}
-          git push origin "$newVersion"
+          if ! gh release view ${{ needs.calculate-version.outputs.new_version }}; then
+            echo "::error::Release not found"
+            exit 1
+          fi
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          prerelease: ${{ github.event.inputs.prerelease }}
-          generate_release_notes: true
-          draft: false
-          fail_on_unmatched_files: true
-          tag_name: ${{ needs.calculate-version.outputs.new_version }}
-          target_commitish: ${{ github.sha }}
-          name: Release ${{ needs.calculate-version.outputs.new_version }}
+          gh release edit ${{ needs.calculate-version.outputs.new_version }} \
+            --draft=false \
+            ${{ github.event.inputs.prerelease != 'true' && '--latest' || '' }} \
+            --verify-tag
+
+          gh release view ${{ needs.calculate-version.outputs.new_version }} \
+            --json isDraft,tagName,url \
+            --template '✅ Release {{.tagName}} published: {{.url}}'
 
   merge-develop:
-    needs: [publish, calculate-version]
+    name: Merge to develop branch
+    needs: [release, calculate-version]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: 🛠️ Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Merge to develop
+      - name: Git config
+        uses: ./.github/actions/gitconfig
+
+      - name: 🔀 Merge to develop
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout develop
-          git merge --no-ff ${{ needs.calculate-version.outputs.new_version }}
-          git push origin develop --follow-tags
+          git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}
+          git push origin develop
 
   merge-master:
+    name: Merge to master branch
     needs: [merge-develop, calculate-version]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: 🛠️ Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Merge to master
+      - name: Git configure
+        uses: ./.github/actions/gitconfig
+
+      - name: 🔀 Merge to master
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout master
-          git merge -ff-only ${{ needs.calculate-version.outputs.new_version }}
-          git push origin master --follow-tags
+          git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}
+          git push origin master

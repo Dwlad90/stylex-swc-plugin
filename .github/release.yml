@@ -8,59 +8,56 @@ changelog:
     - title: Breaking Changes 🛠
       labels:
         - 'BREAKING CHANGE'
-    - title: Features 🎉
-      labels:
-        - 'feat'
-        - 'feature'
-        - 'enhancement'
     - title: Bug Fixes 🐛
       labels:
         - 'fix'
         - 'bug'
         - 'bugfix'
-    - title: Documentation 📚
+    - title: Features 🎉
       labels:
-        - 'docs'
-        - 'doc'
-        - 'documentation'
-        - 'readme'
-    - title: Performance Improvements ⚡
+        - 'feature'
+        - 'enhancement'
+    - title: Performance Improvements 🚀
       labels:
-        - 'perf'
         - 'performance'
         - 'speed'
     - title: Code Refactoring 🔨
       labels:
         - 'refactor'
-        - 'refactoring'
         - 'clean'
-    - title: Tests ✅
-      labels:
-        - 'test'
-        - 'tests'
-        - 'testing'
-        - 'spec'
-        - 'specs'
     - title: Build System 🏗️
       labels:
         - 'build'
     - title: Continuous Integration 🤖
       labels:
         - 'ci'
-        - 'continuous-integration'
         - 'pipeline'
         - 'workflows'
         - 'github-actions'
         - 'actions'
         - 'ci-cd'
+    - title: Tests ✅
+      labels:
+        - 'test'
+        - 'testing'
+        - 'spec'
+    - title: Documentation 📚
+      labels:
+        - 'docs'
+        - 'documentation'
+        - 'readme'
+    - title: Styles 🎨
+      labels:
+        - 'style'
+        - 'css'
+        - 'design'
+    - title: Reverts ⏪
+      labels:
+        - 'revert'
+        - 'reverted'
     - title: Chores 🧹
       labels:
         - 'chore'
-    - title: Reverts 🔄
-      labels:
-        - 'revert'
-        - 'reverts'
-        - 'reverted'
-    - title: Other Changes
+    - title: Other Changes 🔄
       labels:
         - '*'

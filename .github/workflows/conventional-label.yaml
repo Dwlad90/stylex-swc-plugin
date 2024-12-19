@@ -20,42 +20,42 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           conventional-commits: |
             conventional-commits:
-              - type: 'fix'
-                nouns: ['FIX', 'Fix', 'fix', 'FIXED', 'Fixed', 'fixed']
-                labels: ['bug']
-              - type: 'feature'
-                nouns: ['FEATURE', 'Feature', 'feature', 'FEAT', 'Feat', 'feat']
-                labels: ['feat']
-              - type: 'chore'
-                nouns: ['CHORE', 'Chore', 'chore']
-                labels: ['chore']
-              - type: 'docs'
-                nouns: ['DOCS', 'Docs', 'docs']
-                labels: ['docs']
-              - type: 'style'
-                nouns: ['STYLE', 'Style', 'style']
-                labels: ['style']
-              - type: 'refactor'
-                nouns: ['REFACTOR', 'Refactor', 'refactor']
-                labels: ['refactor']
-              - type: 'perf'
-                nouns: ['PERF', 'Perf', 'perf']
-                labels: ['perf']
-              - type: 'test'
-                nouns: ['TEST', 'Test', 'test']
-                labels: ['test']
-              - type: 'ci'
-                nouns: ['CI', 'Ci', 'ci']
-                labels: ['ci']
-              - type: 'revert'
-                nouns: ['REVERT', 'Revert', 'revert']
-                labels: ['revert']
-              - type: 'build'
-                nouns: ['BUILD', 'Build', 'build']
-                labels: ['build']
               - type: 'breaking_change'
                 nouns: ['BREAKING CHANGE', 'BREAKING', 'MAJOR']
                 labels: ['BREAKING CHANGE']
+              - type: 'fix'
+                nouns: ['FIX', 'Fix', 'fix', 'FIXED', 'Fixed', 'fixed', 'BUG', 'Bug', 'bug', 'BUGS', 'Bugs', 'bugs', 'BUGFIX', 'Bugfix', 'bugfix']
+                labels: ['bug', 'fix']
+              - type: 'feature'
+                nouns: ['FEATURE', 'Feature', 'feature', 'FEAT', 'Feat', 'feat', 'FEATURES', 'Features', 'features']
+                labels: ['feature']
+              - type: 'perfomance'
+                nouns: ['PERF', 'Perf', 'perf', 'perfomance', 'PERFORMANCE', 'Performance', 'performance']
+                labels: ['performance']
+              - type: 'refactor'
+                nouns: ['REFACTOR', 'Refactor', 'refactor']
+                labels: ['refactor']
+              - type: 'build'
+                nouns: ['BUILD', 'Build', 'build']
+                labels: ['build']
+              - type: 'CI'
+                nouns: ['CI', 'Ci', 'ci', 'CI/CD', 'Ci/Cd', 'ci/cd', 'CI-CD', 'Ci-Cd', 'ci-cd', 'PIPELINE', 'Pipeline', 'pipeline', 'WORKFLOWS', 'Workflows', 'workflows', 'GITHUB ACTIONS', 'Github Actions', 'github actions', 'ACTIONS', 'Actions', 'actions']
+                labels: ['CI']
+              - type: 'test'
+                nouns: ['TEST', 'Test', 'test']
+                labels: ['test']
+              - type: 'documentation'
+                nouns: ['DOCS', 'Docs', 'docs', 'DOCUMENTATION', 'Documentation', 'documentation']
+                labels: ['documentation']
+              - type: 'style'
+                nouns: ['STYLE', 'Style', 'style']
+                labels: ['style']
+              - type: 'revert'
+                nouns: ['REVERT', 'Revert', 'revert']
+                labels: ['revert']
+              - type: 'chore'
+                nouns: ['CHORE', 'Chore', 'chore', 'CHORES', 'Chores', 'chores']
+                labels: ['chore']
 
           maintain-labels-not-matched: false
           apply-changes: true

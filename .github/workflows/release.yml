@@ -236,7 +236,48 @@ jobs:
             exit 1
           fi
 
-          timeout 30m gh run watch "$run_id"
+          echo "run_id=${run_id}" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check NPM publish status
+        run: |
+          run_id=${{ steps.npm.outputs.run_id }}
+          start_time=$(date +%s)
+          timeout_minutes=30
+
+          while true; do
+            current_time=$(date +%s)
+            elapsed_minutes=$(( (current_time - start_time) / 60 ))
+
+            if [ $elapsed_minutes -ge $timeout_minutes ]; then
+              echo "::error::Workflow timeout after $timeout_minutes minutes"
+              exit 1
+            fi
+
+            status=$(gh run view "$run_id" --json status --jq '.status')
+            echo "Current status: $status"
+
+            case $status in
+              "completed")
+                conclusion=$(gh run view "$run_id" --json conclusion --jq '.conclusion')
+                if [ "$conclusion" = "success" ]; then
+                  echo "✅ Workflow completed successfully"
+                  exit 0
+                else
+                  echo "::error::Workflow failed with conclusion: $conclusion"
+                  exit 1
+                fi
+                ;;
+              "in_progress"|"queued")
+                sleep 30
+                ;;
+              *)
+                echo "::error::Unexpected status: $status"
+                exit 1
+                ;;
+            esac
+          done
 
           status=$(gh run view "$run_id" --json status --jq '.status')
 

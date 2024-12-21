@@ -36,6 +36,9 @@ changelog:
         - 'github-actions'
         - 'actions'
         - 'ci-cd'
+        - 'CI'
+        - 'CI/CD'
+        - 'CI-CD'
     - title: Tests ✅
       labels:
         - 'test'

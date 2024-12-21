@@ -327,7 +327,7 @@ jobs:
             --ref "${{ github.ref }}" \
             --limit 100 \
             --json key,id \
-            --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
+            --jq '.[] | select(.key | endswith("-benchmark") | not) | .id')
 
           if [ -z "$cacheKeys" ]; then
             echo "ℹ️ No caches found to clean"

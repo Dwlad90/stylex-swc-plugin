@@ -3,6 +3,10 @@ on:
   pull_request:
     types:
       - closed
+  push:
+    branches:
+      - develop
+      - master
 
 jobs:
   cleanup:
@@ -11,13 +15,23 @@ jobs:
       - name: 🧹 Cleanup
         shell: bash
         run: |
-          sleep 30
+          if [ "${{ github.event_name }}" = "push" ]; then
+            sleep 300
 
-          PR_REF="refs/pull/${{ github.event.pull_request.number }}/merge"
+            BRANCH_REF="refs/heads/${{ github.ref_name }}"
 
-          echo "Cleaning PR #${{ github.event.pull_request.number }} caches (excluding benchmarks)..."
+            echo "Cleaning ${{ github.ref_name }} branch caches (excluding benchmarks)..."
 
-          cacheKeys=$(gh cache list --ref $PR_REF --limit 100 --json key,id --jq '.[] | select(.key | endswith("-benchmark") | not) | .id')
+            cacheKeys=$(gh cache list --ref $BRANCH_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
+          else
+            sleep 5
+
+            PR_REF="refs/pull/${{ github.event.pull_request.number }}/merge"
+
+            echo "Cleaning PR #${{ github.event.pull_request.number }} caches (excluding benchmarks)..."
+
+            cacheKeys=$(gh cache list --ref $PR_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
+          fi
 
           for key in $cacheKeys; do
             echo "Cache \"$key will\" will be deleted"

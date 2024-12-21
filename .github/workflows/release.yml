@@ -236,25 +236,7 @@ jobs:
             exit 1
           fi
 
-          echo "run_id=${run_id}" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check NPM publish status
-        run: |
-          run_id=${{ steps.npm.outputs.run_id }}
-          start_time=$(date +%s)
-          timeout_minutes=30
-
           while true; do
-            current_time=$(date +%s)
-            elapsed_minutes=$(( (current_time - start_time) / 60 ))
-
-            if [ $elapsed_minutes -ge $timeout_minutes ]; then
-              echo "::error::Workflow timeout after $timeout_minutes minutes"
-              exit 1
-            fi
-
             status=$(gh run view "$run_id" --json status --jq '.status')
             echo "Current status: $status"
 

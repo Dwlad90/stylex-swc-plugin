@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/rs-compiler-win32-x64-msvc",
-  "version": "0.5.1-rc.2",
+  "version": "0.5.1",
   "private": false,
   "os": [
     "win32"

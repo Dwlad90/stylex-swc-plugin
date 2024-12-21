@@ -313,8 +313,8 @@ jobs:
 
       - name: 🔀 Merge to develop
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           git checkout develop
           git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}
           git push origin develop
@@ -334,8 +334,8 @@ jobs:
 
       - name: 🔀 Merge to master
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           git checkout master
           git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}
           git push origin master

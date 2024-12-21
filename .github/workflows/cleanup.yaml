@@ -16,7 +16,7 @@ jobs:
       - name: 🧹 Cleanup
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
             sleep 5
 
             PR_REF="refs/pull/${{ github.event.pull_request.number }}/merge"

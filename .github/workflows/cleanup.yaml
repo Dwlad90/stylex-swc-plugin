@@ -11,35 +11,32 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Cleanup
+      - name: 🧹 Cleanup
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            BRANCH_REF="refs/heads/develop"
+            sleep 100
+
+            BRANCH_REF="refs/heads/${{ github.ref_name }}"
+
+            echo "Cleaning ${{ github.ref_name }} branch caches (excluding benchmarks)..."
+
+            cacheKeys=$(gh cache list --ref $BRANCH_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
+          else
+            sleep 30
+
             PR_REF="refs/pull/${{ github.event.pull_request.number }}/merge"
 
-            echo "Cleaning develop branch caches (excluding benchmarks)..."
-            cacheKeys=$(gh cache list --ref $BRANCH_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
-            for key in $cacheKeys; do
-              echo "Cache \"$key will\" will be deleted"
-              gh cache delete $key
-            done
+            echo "Cleaning PR #${{ github.event.pull_request.number }} caches (excluding benchmarks)..."
 
-            echo "Cleaning PR caches (excluding benchmarks)..."
-            prCacheKeys=$(gh cache list --ref $PR_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
-            for key in $prCacheKeys; do
-              echo "Cache \"$key will\" will be deleted"
-              gh cache delete $key
-            done
-          else
-            BRANCH_REF="refs/pull/${{ github.event.pull_request.number }}/merge"
-            echo "Cleaning PR caches (excluding benchmarks)..."
-            cacheKeys=$(gh cache list --ref $BRANCH_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
-            for key in $cacheKeys; do
-              echo "Cache \"$key will\" will be deleted"
-              gh cache delete $key
-            done
+            cacheKeys=$(gh cache list --ref $PR_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
           fi
+
+          for key in $cacheKeys; do
+            echo "Cache \"$key will\" will be deleted"
+            gh cache delete $key
+          done
+
           echo "Cache cleanup completed"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

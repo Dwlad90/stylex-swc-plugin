@@ -9,6 +9,10 @@ on:
       - master
   delete:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest

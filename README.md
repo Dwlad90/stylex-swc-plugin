@@ -1,4 +1,4 @@
-# StyleX in Rust &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Dwlad90/stylex-swc-plugin/blob/master/LICENSE) [![npm version](https://img.shields.io/npm/v/@stylexswc/swc-plugin.svg?style=flat)](https://www.npmjs.com/package/@stylexswc/swc-plugin) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Dwlad90/stylex-swc-plugin/validate.yml?branch=master&label=Validation)
+# StyleX in Rust &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Dwlad90/stylex-swc-plugin/blob/master/LICENSE) [![npm version](https://img.shields.io/npm/v/@stylexswc/swc-plugin.svg?style=flat)](https://www.npmjs.com/package/@stylexswc/swc-plugin) ![GitHub tag check runs](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/0.5.1?label=Release%20status)
 
 This is a monorepo for an unofficial [`napi-rs`](https://napi.rs/) compiler and
 an [SWC](https://swc.rs/) plugin for

@@ -309,7 +309,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
   cleanup:
-    if: always()
     needs: [publish]
     runs-on: ubuntu-latest
     steps:

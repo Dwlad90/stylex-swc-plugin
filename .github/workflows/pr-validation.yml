@@ -14,17 +14,21 @@ on:
       - '**/*.gitignore'
       - .editorconfig
       - docs/**
+  push:
+    branches:
+      - develop
+
 env:
   APP_NAME: 'rs-compiler'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.ref }}
   cancel-in-progress: true
 
 jobs:
   lint:
     name: Lint code
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.number == null || !github.event.pull_request.draft
     runs-on: ubuntu-latest
 
     steps:
@@ -39,7 +43,7 @@ jobs:
 
   format:
     name: Format code
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.number == null || !github.event.pull_request.draft
     runs-on: ubuntu-latest
 
     steps:
@@ -54,7 +58,7 @@ jobs:
 
   test:
     name: Run tests
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.number == null || !github.event.pull_request.draft
     runs-on: ubuntu-latest
 
     steps:

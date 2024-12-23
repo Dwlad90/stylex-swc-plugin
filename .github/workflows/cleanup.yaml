@@ -40,7 +40,7 @@ jobs:
 
           for key in $cacheKeys; do
             echo "Cache \"$key will\" will be deleted"
-            gh cache delete $key
+            gh cache delete $key || true
           done
 
           echo "Cache cleanup completed"

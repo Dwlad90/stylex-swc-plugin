@@ -111,7 +111,7 @@ where
 
       let mut variables = match evaluated_arg1.value {
         Some(ref value) => {
-          validate_theme_variables(value);
+          validate_theme_variables(value, &self.state);
           value.clone()
         }
         None => panic!("Can only override variables theme created with stylex.defineVars()."),

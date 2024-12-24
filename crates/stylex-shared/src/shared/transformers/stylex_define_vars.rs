@@ -49,6 +49,13 @@ pub(crate) fn stylex_define_vars(
           // Created hashed variable names with fileName//themeName//key
           let name_hash = if key.starts_with("--") {
             key.get(2..).unwrap_or_default()
+          } else if state.options.debug {
+            &format!(
+              "{}-{}{}",
+              key,
+              &state.options.class_name_prefix,
+              create_hash(str_to_hash.as_str())
+            )
           } else {
             &format!(
               "{}{}",

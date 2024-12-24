@@ -478,7 +478,7 @@ fn _evaluate(
               None => panic!("Member not found"),
             };
 
-            let value = theme_ref.get(&key);
+            let value = theme_ref.get(&key, &traversal_state);
 
             return Some(EvaluateResultValue::Expr(string_to_expression(
               value.as_str(),

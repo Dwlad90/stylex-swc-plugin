@@ -30,7 +30,7 @@ pub(crate) fn stylex_create_theme(
   IndexMap<String, Rc<FlatCompiledStylesValue>>,
   IndexMap<String, Rc<InjectableStyle>>,
 ) {
-  let theme_name_key_value = validate_theme_variables(theme_vars);
+  let theme_name_key_value = validate_theme_variables(theme_vars, &state);
 
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
@@ -73,7 +73,7 @@ pub(crate) fn stylex_create_theme(
           &FunctionMap::default(),
         )
       }
-      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str()).clone(),
+      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str(), &state).clone(),
       _ => unimplemented!("Unsupported theme vars type"),
     };
 
@@ -160,7 +160,7 @@ pub(crate) fn stylex_create_theme(
       state,
       &FunctionMap::default(),
     ),
-    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY).to_owned(),
+    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY, &state).to_owned(),
     _ => unimplemented!("Unsupported theme vars type"),
   };
 

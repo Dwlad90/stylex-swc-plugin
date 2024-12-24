@@ -369,11 +369,14 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
   }
 }
 
-pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> KeyValueProp {
+pub(crate) fn validate_theme_variables(
+  variables: &EvaluateResultValue,
+  state: &StateManager,
+) -> KeyValueProp {
   if let Some(theme_ref) = variables.as_theme_ref() {
     let mut cloned_theme_ref = theme_ref.clone();
 
-    let value = cloned_theme_ref.get(THEME_NAME_KEY);
+    let value = cloned_theme_ref.get(THEME_NAME_KEY, state);
 
     let key_value = key_value_factory(THEME_NAME_KEY, string_to_expression(value.as_str()));
 

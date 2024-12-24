@@ -2,6 +2,8 @@ use rustc_hash::FxHashMap;
 
 use crate::shared::utils::common::{create_hash, gen_file_based_identifier};
 
+use super::state_manager::StateManager;
+
 #[derive(Debug, Clone)]
 pub struct ThemeRef {
   file_name: String,
@@ -20,7 +22,7 @@ impl ThemeRef {
     }
   }
 
-  pub(crate) fn get(&mut self, key: &str) -> String {
+  pub(crate) fn get(&mut self, key: &str, state: &StateManager) -> String {
     if key.starts_with("--") {
       let css_key = format!("var({})", key);
       return css_key;
@@ -36,7 +38,18 @@ impl ThemeRef {
         },
       );
 
-      let var_name = format!("{}{}", self.class_name_prefix, create_hash(&str_to_hash));
+      let debug = state.options.debug;
+
+      let var_name = if debug {
+        format!(
+          "{}-{}{}",
+          key,
+          self.class_name_prefix,
+          create_hash(&str_to_hash)
+        )
+      } else {
+        format!("{}{}", self.class_name_prefix, create_hash(&str_to_hash))
+      };
 
       if key == "__themeName__" {
         return var_name;

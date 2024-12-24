@@ -3,6 +3,7 @@ var defaultConfig = {
         metadata: {}
     } as any,
     key: 'key',
+    debug: false,
     opts: {},
     cwd: '/home/test/',
     filename: '/home/test/main.js',
@@ -106,6 +107,17 @@ describe('StateManager config parsing', ()=>{
         expect(stateManager2.options.classNamePrefix).toBe('');
         const stateManager3 = makeState({});
         expect(stateManager3.options.classNamePrefix).toBe('x');
+        expect(warnings).toEqual([]);
+    });
+    it('parses valid debug option', ()=>{
+        const stateManager = makeState({
+            debug: true
+        });
+        expect(stateManager.options.debug).toBe(true);
+        const stateManager2 = makeState({
+            debug: false
+        });
+        expect(stateManager2.options.debug).toBe(false);
         expect(warnings).toEqual([]);
     });
     it('logs errors on invalid classNamePrefix option', ()=>{

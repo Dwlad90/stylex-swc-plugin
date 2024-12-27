@@ -13,12 +13,13 @@ use super::{
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
-#[derive(Debug, Hash, PartialEq, Clone, Copy)]
+#[derive(Debug, Hash, PartialEq, Clone)]
 pub enum CallbackType {
   Array(ArrayJS),
   Object(ObjectJS),
   Math(MathJS),
   String(StringJS),
+  Custom(Expr),
 }
 
 pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;

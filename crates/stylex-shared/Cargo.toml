@@ -26,7 +26,6 @@ swc_core = { workspace = true, features = [
   "css_visit",
   "css_parser",
   "css_ast",
-  "ecma_parser",
 ] }
 
 lazy_static.workspace = true
@@ -51,6 +50,7 @@ env_logger.workspace = true
 rustc-hash.workspace = true
 
 swc_ecma_parser = { version = "*", features = ["verify"] }
+swc_compiler_base = { version = "*", features = ["node"] }
 
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 

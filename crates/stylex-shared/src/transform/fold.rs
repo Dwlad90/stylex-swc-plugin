@@ -1,4 +1,5 @@
 mod fold_computed_prop_name_impl;
+mod fold_decl;
 mod fold_export_decl;
 mod fold_export_default_expr;
 mod fold_expr;
@@ -19,7 +20,7 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{
-      ComputedPropName, ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr,
+      ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr,
       MemberProp, Module, ModuleItem, PropName, Stmt, VarDeclarator,
     },
     visit::{noop_fold_type, Fold},
@@ -93,5 +94,9 @@ where
 
   fn fold_ident(&mut self, ident: Ident) -> Ident {
     self.fold_ident_impl(ident)
+  }
+
+  fn fold_decl(&mut self, decl: Decl) -> Decl {
+    self.fold_decl_impl(decl)
   }
 }

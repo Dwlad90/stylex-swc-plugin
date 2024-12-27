@@ -10,8 +10,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
-      KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Pat, Prop, PropName,
-      PropOrSpread, TplElement, UnaryOp, VarDeclarator,
+      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Pat,
+      Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
     },
     utils::{drop_span, ident::IdentLike, quote_ident, ExprExt},
   },
@@ -20,6 +20,10 @@ use swc_core::{
 use crate::shared::{
   constants::{
     common::{INVALID_METHODS, VALID_CALLEES},
+    evaluation_errors::{
+      unsupported_expression, unsupported_operator, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT,
+      OBJECT_METHOD, PATH_WITHOUT_NODE, UNEXPECTED_MEMBER_LOOKUP,
+    },
     messages::{BUILT_IN_FUNCTION, ILLEGAL_PROP_ARRAY_VALUE},
   },
   enums::{
@@ -44,20 +48,24 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{
-        big_int_to_expression, binary_expr_to_num, bool_to_expression, expr_to_bool, expr_to_num,
-        expr_to_str, number_to_expression, string_to_expression, transform_shorthand_to_key_values,
+        big_int_to_expression, binary_expr_to_num, binary_expr_to_string, bool_to_expression,
+        expr_to_bool, expr_to_num, expr_to_str, number_to_expression, string_to_expression,
+        transform_shorthand_to_key_values,
       },
       factories::{array_expression_factory, lit_str_factory, object_expression_factory},
     },
     common::{
       char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
-      get_import_by_ident, get_key_str, get_string_val_from_lit, get_var_decl_by_ident,
-      get_var_decl_from, normalize_expr, reduce_ident_count, reduce_member_expression_count,
-      remove_duplicates, sort_numbers_factory, stable_hash, sum_hash_map_values,
+      get_import_by_ident, get_key_str, get_key_values_from_object, get_string_val_from_lit,
+      get_var_decl_by_ident, get_var_decl_from, normalize_expr, reduce_ident_count,
+      reduce_member_expression_count, remove_duplicates, sort_numbers_factory, stable_hash,
+      sum_hash_map_values,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
 };
+
+use super::check_declaration::{check_ident_declaration, DeclarationType};
 
 pub(crate) fn evaluate_obj_key(
   prop_kv: &KeyValueProp,
@@ -79,6 +87,7 @@ pub(crate) fn evaluate_obj_key(
         return EvaluateResult {
           confident: false,
           deopt: computed_result.deopt,
+          reason: computed_result.reason,
           value: None,
           inline_styles: None,
           fns: None,
@@ -95,6 +104,7 @@ pub(crate) fn evaluate_obj_key(
   EvaluateResult {
     confident: true,
     deopt: None,
+    reason: None,
     value: Some(EvaluateResultValue::Expr(key_expr)),
     inline_styles: None,
     fns: None,
@@ -109,6 +119,7 @@ pub fn evaluate(
   let mut state = Box::new(EvaluationState {
     confident: true,
     deopt_path: None,
+    deopt_reason: None,
     added_imports: FxHashSet::default(),
     functions: fns.clone(),
   });
@@ -123,15 +134,21 @@ pub fn evaluate(
     confident: state.confident,
     value,
     deopt: state.deopt_path,
+    reason: state.deopt_reason,
     inline_styles: None,
     fns: None,
   })
 }
 
-fn deopt(path: &Expr, state: &mut EvaluationState) -> Option<EvaluateResultValue> {
+pub(crate) fn deopt(
+  path: &Expr,
+  state: &mut EvaluationState,
+  reason: &str,
+) -> Option<EvaluateResultValue> {
   if state.confident {
     state.confident = false;
     state.deopt_path = Some(path.clone());
+    state.deopt_reason = Some(reason.to_string());
   }
 
   None
@@ -255,7 +272,7 @@ fn _evaluate(
             if let FunctionType::Mapper(func) = &func.fn_ptr {
               return Some(EvaluateResultValue::Expr(func()));
             } else {
-              panic!("Function not found");
+              return deopt(path, state, "Function not found");
             }
           }
           FunctionConfigType::Map(func_map) => {
@@ -368,7 +385,7 @@ fn _evaluate(
             result
           }
           MemberProp::PrivateName(_) => {
-            return deopt(path, state);
+            return deopt(path, state, UNEXPECTED_MEMBER_LOOKUP);
           }
         };
 
@@ -478,7 +495,7 @@ fn _evaluate(
               None => panic!("Member not found"),
             };
 
-            let value = theme_ref.get(&key, &traversal_state);
+            let value = theme_ref.get(&key, traversal_state);
 
             return Some(EvaluateResultValue::Expr(string_to_expression(
               value.as_str(),
@@ -560,7 +577,11 @@ fn _evaluate(
           SyntaxContext::empty(),
           "undefined"
         )))),
-        _ => deopt(&Expr::from(unary.clone()), state),
+        _ => deopt(
+          &Expr::from(unary.clone()),
+          state,
+          &unsupported_operator(unary.op.as_str()),
+        ),
       }
     }
     Expr::Array(arr_path) => {
@@ -587,7 +608,7 @@ fn _evaluate(
             let spread_expression = evaluate_cached(&prop.expr, state, traversal_state, fns);
 
             if !state.confident {
-              return deopt(path, state);
+              return deopt(path, state, OBJECT_METHOD);
             }
 
             let new_props = spread_expression
@@ -603,7 +624,13 @@ fn _evaluate(
           }
           PropOrSpread::Prop(prop) => {
             if prop.is_method() {
-              return deopt(path, state);
+              let deopt_reason = state
+                .deopt_reason
+                .as_deref()
+                .unwrap_or("unknown error")
+                .to_string();
+
+              return deopt(path, state, &deopt_reason);
             }
 
             let mut prop = prop.clone();
@@ -622,7 +649,18 @@ fn _evaluate(
 
                     if !evaluated_result.confident {
                       if let Some(deopt_val) = evaluated_result.deopt {
-                        deopt(&deopt_val, state);
+                        let deopt_reason = state
+                          .deopt_reason
+                          .as_deref()
+                          .unwrap_or(
+                            evaluated_result
+                              .reason
+                              .as_deref()
+                              .unwrap_or("unknown error"),
+                          )
+                          .to_string();
+
+                        deopt(&deopt_val, state, &deopt_reason);
                       }
 
                       return None;
@@ -641,17 +679,23 @@ fn _evaluate(
                   PropName::BigInt(big_int) => Some(big_int.value.to_string()),
                 };
 
-                let value = evaluate(&path_key_value.value, traversal_state, &state.functions);
+                let eval_value = evaluate(&path_key_value.value, traversal_state, &state.functions);
 
-                if !value.confident {
-                  if let Some(deopt_val) = value.deopt {
-                    deopt(&deopt_val, state);
+                if !eval_value.confident {
+                  if let Some(deopt_val) = eval_value.deopt {
+                    let deopt_reason = state
+                      .deopt_reason
+                      .as_deref()
+                      .unwrap_or(eval_value.reason.as_deref().unwrap_or("unknown error"))
+                      .to_string();
+
+                    deopt(&deopt_val, state, &deopt_reason);
                   }
 
                   return None;
                 }
 
-                let value = value.value.unwrap_or_else(|| {
+                let value = eval_value.value.unwrap_or_else(|| {
                   panic!(
                     "Value of key '{}' must be present, but got {:?}",
                     key.clone().unwrap_or_else(|| "Unknown".to_string()),
@@ -710,7 +754,30 @@ fn _evaluate(
                       elems,
                     }))
                   }
-                  EvaluateResultValue::Callback(_) => None,
+                  EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
+                    Expr::Call(call_expr) => {
+                      let cb_args: Vec<Option<EvaluateResultValue>> = call_expr
+                        .args
+                        .iter()
+                        .map(|arg| {
+                          let eval_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
+
+                          if !state.confident {
+                            return None;
+                          }
+
+                          eval_arg
+                        })
+                        .collect();
+
+                      Some(cb(cb_args))
+                    }
+                    Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
+                    _ => unimplemented!(
+                      "Callback type not supported: {:?}",
+                      path_key_value.value.get_type()
+                    ),
+                  },
                   _ => panic!("Property value must be an expression"),
                 };
 
@@ -734,19 +801,19 @@ fn _evaluate(
 
       return Some(EvaluateResultValue::Expr(Expr::Object(obj)));
     }
-    Expr::Bin(bin) => {
-      match binary_expr_to_num(bin, state, traversal_state, fns)
-        .unwrap_or_else(|error| panic!("{}", error))
-      {
-        BinaryExprType::Number(result) => {
-          return Some(EvaluateResultValue::Expr(number_to_expression(result)))
-        }
+    Expr::Bin(bin) => binary_expr_to_num(bin, state, traversal_state, fns)
+      .or_else(|num_error| {
+        binary_expr_to_string(bin, state, traversal_state, fns)
+          .map_err(|str_error| format!("{} and {}", num_error, str_error))
+      })
+      .map(|result| match result {
+        BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(number_to_expression(num))),
         BinaryExprType::String(strng) => {
-          return Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
+          Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
         }
         BinaryExprType::Null => None,
-      }
-    }
+      })
+      .unwrap_or_else(|error| panic!("{}", error)),
     Expr::Call(call) => {
       let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
       let mut func: Option<Box<FunctionConfig>> = None;
@@ -767,6 +834,26 @@ fn _evaluate(
             {
               FunctionConfigType::Map(_) => unimplemented!("FunctionConfigType::Map"),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
+            }
+          } else {
+            let _maybe_function = evaluate_cached(callee_expr, state, traversal_state, fns);
+
+            if state.confident {
+              match _maybe_function {
+                Some(EvaluateResultValue::FunctionConfig(fc)) => func = Some(Box::new(fc.clone())),
+                Some(EvaluateResultValue::Callback(cb)) => {
+                  return Some(EvaluateResultValue::Callback(cb));
+                  // func = Some(Box::new(FunctionConfig {
+                  //   fn_ptr: FunctionType::Callback(Box::new(CallbackType::Custom())),
+                  //   takes_path: false,
+                  // }));
+                }
+                _ => {
+                  return deopt(path, state, NON_CONSTANT);
+                }
+              }
+            } else {
+              return deopt(path, state, NON_CONSTANT);
             }
           }
         }
@@ -1151,7 +1238,7 @@ fn _evaluate(
 
                 let value = parsed_obj.value.expect("Parsed object has no value");
 
-                match value {
+                match value.clone() {
                   EvaluateResultValue::Map(map) => {
                     let result_fn = map.get(&Expr::from(prop_ident.clone()));
 
@@ -1205,7 +1292,46 @@ fn _evaluate(
 
                       context = Some(vec![Some(EvaluateResultValue::Expr(expr.clone()))]);
                     }
-                    _ => unimplemented!("Expression evaluation not implemented"),
+                    Expr::Object(object) => {
+                      let key_values = get_key_values_from_object(&object);
+
+                      let key_value = key_values
+                        .into_iter()
+                        .find(|key_value| {
+                          if let Some(key_ident) = key_value.key.as_ident() {
+                            key_ident.sym == prop_name
+                          } else {
+                            false
+                          }
+                        })
+                        .expect("Property not found");
+
+                      func = Some(Box::new(FunctionConfig {
+                        fn_ptr: FunctionType::Callback(Box::new(CallbackType::Custom(
+                          *key_value.value,
+                        ))),
+                        takes_path: false,
+                      }));
+
+                      let args: Vec<Option<EvaluateResultValue>> = call
+                        .args
+                        .iter()
+                        .map(|arg| {
+                          let arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
+
+                          if !state.confident {
+                            return None;
+                          }
+
+                          arg
+                        })
+                        .collect();
+
+                      context = Some(args);
+                    }
+                    _ => {
+                      unimplemented!("Expression evaluation not implemented")
+                    }
                   },
                   EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
                     FunctionType::StylexFnsFactory(sxfns) => {
@@ -1542,6 +1668,21 @@ fn _evaluate(
                     char_code as f64,
                   )));
                 }
+                CallbackType::Custom(arrow_fn) => {
+                  let args = evaluate_func_call_args(call, state, traversal_state, fns);
+
+                  let aaaa = evaluate_cached(arrow_fn, state, traversal_state, fns);
+
+                  let bbb = match aaaa.as_ref() {
+                    Some(EvaluateResultValue::Callback(cb)) => {
+                      cb(args.into_iter().map(Some).collect())
+                    }
+                    _ => panic!("Arrow function not found"),
+                  };
+                  // panic!("Custom callback");
+
+                  return Some(EvaluateResultValue::Expr(bbb));
+                }
               }
             }
             _ => panic!("Function type"),
@@ -1549,12 +1690,20 @@ fn _evaluate(
         }
       }
 
-      return deopt(path, state);
+      return deopt(
+        path,
+        state,
+        &unsupported_expression(&format!("{:?}", path.get_type())),
+      );
     }
     _ => {
       warn!("Unsupported type of expression: {:?}", path.get_type());
 
-      return deopt(path, state);
+      return deopt(
+        path,
+        state,
+        &unsupported_expression(&format!("{:?}", path.get_type())),
+      );
     }
   };
 
@@ -1578,38 +1727,38 @@ fn _evaluate(
 
     let name = ident.sym.to_string();
 
-    if name == "undefined" || name == "infinity" || name == "NaN" {
+    if name == "undefined" || name == "Infinity" || name == "NaN" {
       return Some(EvaluateResultValue::Expr(Expr::from(ident.clone())));
     }
 
-    if let Some(import_path) = get_import_by_ident(ident, traversal_state).and_then(|import_decl| {
-      if import_decl
-        .specifiers
-        .iter()
-        .any(|import| import.is_named())
-      {
-        Some(import_decl)
-      } else {
-        None
-      }
-    }) {
-      let import_specifier = import_path
+    if let Some(import_path) = get_import_by_ident(ident, traversal_state) {
+      let (local_name, imported) = import_path
         .specifiers
         .iter()
         .find_map(|import| {
-          if let Some(name_import) = import.as_named() {
-            if ident.sym == name_import.local.sym {
-              return Some(name_import);
-            }
+          let (local_name, imported) = match import {
+            ImportSpecifier::Default(default) => (
+              default.local.clone(),
+              Some(ModuleExportName::Ident(default.local.clone())),
+            ),
+            ImportSpecifier::Named(named) => (named.local.clone(), named.imported.clone()),
+            ImportSpecifier::Namespace(namespace) => (
+              namespace.local.clone(),
+              Some(ModuleExportName::Ident(namespace.local.clone())),
+            ),
+          };
+
+          if ident.sym == local_name.sym {
+            Some((local_name, imported))
+          } else {
+            None
           }
-          None
         })
         .expect("Import specifier not found");
 
-      let imported = import_specifier
-        .imported
+      let imported = imported
         .clone()
-        .unwrap_or_else(|| ModuleExportName::Ident(import_specifier.local.clone()));
+        .unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
 
       let abs_path =
         traversal_state.import_path_resolver(&import_path.src.value, &mut FxHashMap::default());
@@ -1623,7 +1772,7 @@ fn _evaluate(
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, value) => {
           evaluate_theme_ref(&value, imported_name, traversal_state)
         }
-        _ => return deopt(path, state),
+        _ => return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR),
       };
 
       if state.confident {
@@ -1649,10 +1798,30 @@ fn _evaluate(
         return Some(EvaluateResultValue::ThemeRef(return_value));
       }
     }
+
+    return check_ident_declaration(
+      ident,
+      &[
+        (
+          DeclarationType::Class,
+          &traversal_state.class_name_declarations,
+        ),
+        (
+          DeclarationType::Function,
+          &traversal_state.function_name_declarations,
+        ),
+      ],
+      state,
+      path,
+    );
   }
 
   if result.is_none() {
-    return deopt(path, state);
+    return deopt(
+      path,
+      state,
+      &unsupported_expression(&format!("{:?}", path.get_type())),
+    );
   }
 
   result
@@ -1824,7 +1993,8 @@ pub(crate) fn evaluate_cached(
 
         return resolved;
       }
-      deopt(path, state)
+
+      deopt(path, state, PATH_WITHOUT_NODE)
     }
     None => {
       let should_save_var_decl_count = path.is_object();

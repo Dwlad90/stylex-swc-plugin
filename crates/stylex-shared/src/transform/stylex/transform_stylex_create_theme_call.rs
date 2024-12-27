@@ -7,7 +7,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::{functions::FunctionMap, types::FunctionMapIdentifiers};
 use crate::shared::{
   constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
   utils::{
@@ -27,6 +26,10 @@ use crate::shared::{
       is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
     },
   },
+};
+use crate::shared::{
+  structures::{functions::FunctionMap, types::FunctionMapIdentifiers},
+  utils::log::build_code_frame_error::build_code_frame_error,
 };
 use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
@@ -103,18 +106,50 @@ where
 
       let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(evaluated_arg1.confident, "{}", NON_STATIC_VALUE);
+      assert!(
+        evaluated_arg1.confident,
+        "{}",
+        build_code_frame_error(
+          &Expr::Call(call.clone()),
+          &evaluated_arg1
+            .deopt
+            .unwrap_or_else(|| *first_arg.to_owned()),
+          NON_STATIC_VALUE,
+          self.state.get_filename(),
+        )
+      );
 
       let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
 
-      assert!(evaluated_arg2.confident, "{}", NON_STATIC_VALUE);
+      assert!(
+        evaluated_arg2.confident,
+        "{}",
+        build_code_frame_error(
+          &Expr::Call(call.clone()),
+          &evaluated_arg2
+            .deopt
+            .unwrap_or_else(|| *second_arg.to_owned()),
+          NON_STATIC_VALUE,
+          self.state.get_filename(),
+        )
+      );
 
       let mut variables = match evaluated_arg1.value {
         Some(ref value) => {
           validate_theme_variables(value, &self.state);
           value.clone()
         }
-        None => panic!("Can only override variables theme created with stylex.defineVars()."),
+        None => panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &evaluated_arg1
+              .deopt
+              .unwrap_or_else(|| *first_arg.to_owned()),
+            "Can only override variables theme created with stylex.defineVars().",
+            self.state.get_filename(),
+          )
+        ),
       };
 
       let overrides = match evaluated_arg2.value {
@@ -125,11 +160,28 @@ where
               .map(|expr| expr.is_object())
               .unwrap_or(false),
             "{}",
-            NON_OBJECT_FOR_STYLEX_CALL
+            build_code_frame_error(
+              &Expr::Call(call.clone()),
+              &evaluated_arg2
+                .deopt
+                .unwrap_or_else(|| *second_arg.to_owned()),
+              NON_OBJECT_FOR_STYLEX_CALL,
+              self.state.get_filename(),
+            )
           );
           value.clone()
         }
-        None => panic!("{}", NON_OBJECT_FOR_STYLEX_CALL),
+        None => panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &evaluated_arg2
+              .deopt
+              .unwrap_or_else(|| *second_arg.to_owned()),
+            NON_OBJECT_FOR_STYLEX_CALL,
+            self.state.get_filename(),
+          )
+        ),
       };
 
       let (mut overrides_obj, inject_styles) = stylex_create_theme(

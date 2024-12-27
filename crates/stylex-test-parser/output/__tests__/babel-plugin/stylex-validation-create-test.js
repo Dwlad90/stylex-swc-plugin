@@ -1,3 +1,22 @@
+var ST = '(?:\\u0007|\\u001B\\u005C|\\u009C)';
+var regex = new RegExp(pattern, 'g');
+function stripAnsi(string: string): string {
+    if (typeof string !== 'string') {
+        throw new TypeError(`Expected a \`string\`, got \`${typeof string}\``);
+    }
+    return string.replace(regex, '');
+}
+function cleanError(fn: () => mixed) {
+    return ()=>{
+        try {
+            fn();
+        } catch (error) {
+            error.message = stripAnsi(error.message);
+            throw error;
+        }
+    };
+}
+var cleanExpect = (fn: () => mixed)=>expect(cleanError(fn));
 function transform(source: string, opts: {
     [key: string]: any;
 } = {}) {
@@ -142,7 +161,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             }).not.toThrow();
         });
         test('properties must be a static value', ()=>{
-            expect(()=>{
+            cleanExpect(()=>{
                 transform(`
           import stylex from 'stylex';
           const styles = stylex.create({
@@ -151,7 +170,16 @@ describe('@stylexjs/babel-plugin', ()=>{
             }
           });
         `);
-            }).toThrow(messages.NON_STATIC_VALUE);
+            }).toThrowErrorMatchingInlineSnapshot(`
+        "unknown file: Referenced constant is not defined.
+          3 |           const styles = stylex.create({
+          4 |             root: {
+        > 5 |               [backgroundColor]: 'red',
+            |                ^^^^^^^^^^^^^^^
+          6 |             }
+          7 |           });
+          8 |         "
+      `);
         });
         test('values must be static (arrays of) number or string in stylex.create()', ()=>{
             expect(()=>{
@@ -194,7 +222,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           });
         `);
             }).not.toThrow();
-            expect(()=>{
+            cleanExpect(()=>{
                 transform(`
           import stylex from 'stylex';
           const styles = stylex.create({
@@ -203,7 +231,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             },
           });
         `);
-            }).toThrow(messages.ILLEGAL_PROP_ARRAY_VALUE);
+            }).toThrowErrorMatchingInlineSnapshot('"unknown file: A style array value can only contain strings or numbers."');
             expect(()=>{
                 transform(`
           import stylex from 'stylex';
@@ -214,7 +242,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           });
         `);
             }).toThrow(messages.ILLEGAL_PROP_VALUE);
-            expect(()=>{
+            cleanExpect(()=>{
                 transform(`
           import stylex from 'stylex';
           const styles = stylex.create({
@@ -223,8 +251,17 @@ describe('@stylexjs/babel-plugin', ()=>{
             }
           });
         `);
-            }).toThrow(messages.NON_STATIC_VALUE);
-            expect(()=>{
+            }).toThrowErrorMatchingInlineSnapshot(`
+        "unknown file: Referenced constant is not defined.
+          3 |           const styles = stylex.create({
+          4 |             root: {
+        > 5 |               backgroundColor: backgroundColor,
+            |                                ^^^^^^^^^^^^^^^
+          6 |             }
+          7 |           });
+          8 |         "
+      `);
+            cleanExpect(()=>{
                 transform(`
           import stylex from 'stylex';
           const styles = stylex.create({
@@ -233,7 +270,115 @@ describe('@stylexjs/babel-plugin', ()=>{
             }
           });
         `);
-            }).toThrow(messages.NON_STATIC_VALUE);
+            }).toThrowErrorMatchingInlineSnapshot(`
+        "unknown file: Referenced constant is not defined.
+          3 |           const styles = stylex.create({
+          4 |             root: {
+        > 5 |               backgroundColor: generateBg(),
+            |                                ^^^^^^^^^^
+          6 |             }
+          7 |           });
+          8 |         "
+      `);
+            cleanExpect(()=>{
+                transform(`
+          import stylex from 'stylex';
+          import {generateBg} from './other-file';
+          const styles = stylex.create({
+            root: {
+              backgroundColor: generateBg(),
+            }
+          });
+        `);
+            }).toThrowErrorMatchingInlineSnapshot(`
+        "unknown file: Could not resolve the path to the imported file.
+        Please ensure that the theme file has a .stylex.js or .stylex.ts file extension and follows the
+        rules for defining variariables: 
+
+        https://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables
+
+          1 |
+          2 |           import stylex from 'stylex';
+        > 3 |           import {generateBg} from './other-file';
+            |                   ^^^^^^^^^^
+          4 |           const styles = stylex.create({
+          5 |             root: {
+          6 |               backgroundColor: generateBg(),"
+      `);
+            cleanExpect(()=>{
+                transform(`
+          import stylex from 'stylex';
+          import generateBg from './other-file';
+          const styles = stylex.create({
+            root: {
+              backgroundColor: generateBg(),
+            }
+          });
+        `);
+            }).toThrowErrorMatchingInlineSnapshot(`
+        "unknown file: There was an error when attempting to evaluate the imported file.
+        Please ensure that the imported file is self-contained and does not rely on dynamic behavior.
+
+          1 |
+          2 |           import stylex from 'stylex';
+        > 3 |           import generateBg from './other-file';
+            |                  ^^^^^^^^^^
+          4 |           const styles = stylex.create({
+          5 |             root: {
+          6 |               backgroundColor: generateBg(),"
+      `);
+        });
+        test('[validation] can evaluate single-expr function calls', ()=>{
+            expect(()=>transform(`
+          import stylex from 'stylex';
+          const generateBg = () => 'red';
+          export const styles = stylex.create({
+            root: {
+              backgroundColor: generateBg(),
+            }
+          });
+        `)).not.toThrow();
+        });
+        test('[validation] can evaluate single-expr function calls in objects', ()=>{
+            let result;
+            expect(()=>{
+                result = transform(`
+          import stylex from 'stylex';
+          const fns = {
+            generateBg: () => 'red',
+          };
+          export const styles = stylex.create({
+            root: {
+              backgroundColor: fns.generateBg(),
+            }
+          });
+        `);
+            }).not.toThrow();
+            expect(result).not.toBeFalsy();
+            expect(result?.code).toMatchInlineSnapshot(`
+        "import stylex from 'stylex';
+        const fns = {
+          generateBg: () => 'red'
+        };
+        export const styles = {
+          root: {
+            backgroundColor: "xrkmrrc",
+            $$css: true
+          }
+        };"
+      `);
+            expect(result?.metadata?.stylex).toMatchInlineSnapshot(`
+        [
+          [
+            "xrkmrrc",
+            {
+              "ltr": ".xrkmrrc{background-color:red}",
+              "rtl": null,
+            },
+            3000,
+          ],
+        ]
+      `);
         });
         test('values can reference local bindings in stylex.create()', ()=>{
             expect(()=>{
@@ -297,7 +442,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             },
           });
         `);
-            }).not.toThrow(messages.INVALID_PSEUDO);
+            }).not.toThrow();
             expect(()=>{
                 transform(`
           import stylex from 'stylex';

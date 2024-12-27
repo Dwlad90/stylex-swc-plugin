@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use stylex_shared::{
   shared::{
     structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-    utils::log::log_formatter,
+    utils::log::formatter::log_formatter,
   },
   StyleXTransform,
 };

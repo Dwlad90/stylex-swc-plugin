@@ -208,7 +208,7 @@ fn importing_file_with_stylex_js_with_an_alias_suffix_works() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts file extension and follows the\nrules for defining variariables:\n\nhttps://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables")]
 fn importing_file_without_a_stylex_suffix_fails() {
   let input = r#"import stylex from 'stylex';
     import { MyTheme } from 'otherFile';

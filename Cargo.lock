@@ -2096,6 +2096,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_path_resolver",
+ "swc_compiler_base",
  "swc_core",
  "swc_ecma_parser",
  "testing",

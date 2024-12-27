@@ -209,7 +209,7 @@ fn namespace_values_must_be_an_object() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Referenced constant is not defined.")]
 fn namespace_keys_must_be_a_static_value() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -238,7 +238,7 @@ fn namespace_keys_must_be_a_static_value() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Referenced constant is not defined.")]
 fn properties_must_be_a_static_value() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -374,7 +374,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_illegal_pro
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Referenced constant is not defined.")]
 fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_var() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -403,7 +403,7 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Referenced constant is not defined.")]
 fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_fn() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -426,6 +426,234 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
                     backgroundColor: generateBg(),
                 },
             });
+        "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(
+  expected = "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts file extension and follows the\nrules for defining variariables:\n\nhttps://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables"
+)]
+fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_named_import_fn(
+) {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+          import stylex from 'stylex';
+          import {generateBg} from './other-file';
+          const styles = stylex.create({
+            root: {
+              backgroundColor: generateBg(),
+            }
+          });
+        "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(
+  expected = "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts file extension and follows the\nrules for defining variariables:\n\nhttps://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables"
+)]
+fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_named_default_fn(
+) {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+          import stylex from 'stylex';
+          import generateBg from './other-file';
+          const styles = stylex.create({
+            root: {
+              backgroundColor: generateBg(),
+            }
+          });
+        "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(expected = "Unsupported expression: FunctionDeclaration")]
+fn can_evaluate_single_expr_function_calls() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+          import stylex from 'stylex';
+          function generateBg () {
+            return 'red';
+          };
+          export const styles = stylex.create({
+            root: {
+              backgroundColor: generateBg(),
+            }
+          });
+        "#,
+    r#""#,
+  )
+}
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  can_evaluate_single_expr_arrow_function_calls,
+  r#"
+      import stylex from 'stylex';
+      const generateBg = () => 'red';
+      export const styles = stylex.create({
+        root: {
+          backgroundColor: generateBg(),
+        }
+      });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  can_evaluate_single_expr_arrow_function_calls_with_args,
+  r#"
+      import stylex from 'stylex';
+      const generateBg = color => color + "d";
+      export const styles = stylex.create({
+        root: {
+          backgroundColor: generateBg('re'),
+        }
+      });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  can_evaluate_single_expr_arrow_function_calls_in_object,
+  r#"
+      import stylex from 'stylex';
+      const fns = {
+        generateBg: () => "red",
+      };
+      export const styles = stylex.create({
+        root: {
+          backgroundColor: fns.generateBg(),
+        }
+      });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  can_evaluate_single_expr_arrow_function_calls_in_object_with_args,
+  r#"
+      import stylex from 'stylex';
+      const fns = {
+        generateBg: (color) => "re" + color,
+      };
+      export const styles = stylex.create({
+        root: {
+          backgroundColor: fns.generateBg('d'),
+        }
+      });
+    "#
+);
+
+#[test]
+#[should_panic(expected = "Unsupported expression: Unknown\n\n")]
+fn can_evaluate_single_expr_function_calls_in_object() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+          import stylex from 'stylex';
+          const fns = {
+            generateBg: function generateBg () {
+              return 'red';
+            },
+          };
+          export const styles = stylex.create({
+            root: {
+              backgroundColor: fns.generateBg(),
+            }
+          });
         "#,
     r#""#,
   )

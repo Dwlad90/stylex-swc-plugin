@@ -5,7 +5,6 @@ use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::utils::{
   ast::convertors::string_to_expression,
   validators::{assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent},
@@ -13,6 +12,10 @@ use crate::shared::utils::{
 use crate::shared::{
   constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
   transformers::stylex_first_that_works::stylex_first_that_works,
+};
+use crate::shared::{
+  structures::functions::FunctionConfigType,
+  utils::log::build_code_frame_error::build_code_frame_error,
 };
 use crate::shared::{
   structures::{
@@ -98,7 +101,16 @@ where
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
+      assert!(
+        evaluated_arg.confident,
+        "{}",
+        build_code_frame_error(
+          &Expr::Call(call.clone()),
+          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+          NON_STATIC_VALUE,
+          self.state.get_filename(),
+        )
+      );
 
       let value = match evaluated_arg.value {
         Some(value) => {
@@ -108,14 +120,27 @@ where
               .map(|expr| expr.is_object())
               .unwrap_or(false),
             "{}",
-            NON_OBJECT_FOR_STYLEX_CALL
+            build_code_frame_error(
+              &Expr::Call(call.clone()),
+              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+              NON_OBJECT_FOR_STYLEX_CALL,
+              self.state.get_filename(),
+            )
           );
           value
         }
-        None => panic!("{}", NON_STATIC_VALUE),
+        None => panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+            NON_STATIC_VALUE,
+            self.state.get_filename(),
+          )
+        ),
       };
 
-      assert_valid_keyframes(&value);
+      assert_valid_keyframes(&value, &self.state);
 
       let (animation_name, injectable_style) = stylex_keyframes(&value, &mut self.state);
 

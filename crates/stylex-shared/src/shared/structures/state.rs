@@ -3,12 +3,13 @@ use swc_core::ecma::ast::Expr;
 
 use super::functions::FunctionMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EvaluationState {
   pub(crate) confident: bool,
   pub(crate) deopt_path: Option<Expr>,
   pub(crate) added_imports: FxHashSet<String>,
   pub(crate) functions: FunctionMap,
+  pub(crate) deopt_reason: Option<String>,
 }
 
 impl Default for EvaluationState {
@@ -17,6 +18,7 @@ impl Default for EvaluationState {
       confident: true,
       deopt_path: None,
       added_imports: FxHashSet::default(),
+      deopt_reason: None,
       functions: FunctionMap {
         identifiers: FxHashMap::default(),
         member_expressions: FxHashMap::default(),
@@ -27,14 +29,6 @@ impl Default for EvaluationState {
 
 impl EvaluationState {
   pub(crate) fn new() -> Self {
-    EvaluationState {
-      confident: true,
-      deopt_path: None,
-      added_imports: FxHashSet::default(),
-      functions: FunctionMap {
-        identifiers: FxHashMap::default(),
-        member_expressions: FxHashMap::default(),
-      },
-    }
+    EvaluationState::default()
   }
 }

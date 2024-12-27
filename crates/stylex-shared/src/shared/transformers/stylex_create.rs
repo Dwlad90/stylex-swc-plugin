@@ -36,7 +36,7 @@ pub(crate) fn stylex_create_set(
   let mut namespace_to_class_paths: IndexMap<String, Rc<ClassPathsInNamespace>> = IndexMap::new();
 
   for (namespace_name, namespace) in namespaces.as_map().unwrap() {
-    validate_namespace(namespace, &[]);
+    validate_namespace(namespace, &[], traversal_state);
 
     let mut class_paths_in_namespace: ClassPathsInNamespace = IndexMap::new();
 

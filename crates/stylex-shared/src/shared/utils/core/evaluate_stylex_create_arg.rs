@@ -63,6 +63,7 @@ pub fn evaluate_stylex_create_arg(
                   return Box::new(EvaluateResult {
                     confident: false,
                     deopt: key_result.deopt,
+                    reason: key_result.reason,
                     value: None,
                     inline_styles: None,
                     fns: None,
@@ -76,7 +77,7 @@ pub fn evaluate_stylex_create_arg(
                 match value_path.as_mut() {
                   Expr::Arrow(fn_path) => {
                     let all_params = fn_path.params.clone();
-                    validate_dynamic_style_params(&all_params);
+                    validate_dynamic_style_params(fn_path, &all_params, traversal_state);
 
                     let params = all_params
                       .into_iter()
@@ -96,6 +97,7 @@ pub fn evaluate_stylex_create_arg(
                           return Box::new(EvaluateResult {
                             confident: eval_result.confident,
                             deopt: eval_result.deopt,
+                            reason: eval_result.reason,
                             value: eval_result.value,
                             inline_styles: None,
                             fns: None,
@@ -170,6 +172,7 @@ pub fn evaluate_stylex_create_arg(
       Box::new(EvaluateResult {
         confident: true,
         deopt: None,
+        reason: None,
         value: Some(EvaluateResultValue::Map(result_value)),
         inline_styles: None,
         fns: if fns.is_empty() { None } else { Some(fns) },
@@ -211,6 +214,7 @@ fn evaluate_partial_object_recursively(
               return Box::new(EvaluateResult {
                 confident: false,
                 deopt: key_result.deopt,
+                reason: key_result.reason,
                 value: None,
                 inline_styles: None,
                 fns: None,
@@ -247,6 +251,7 @@ fn evaluate_partial_object_recursively(
                   return Box::new(EvaluateResult {
                     confident: false,
                     deopt: result.deopt,
+                    reason: result.reason,
                     value: None,
                     inline_styles: None,
                     fns: None,
@@ -399,6 +404,7 @@ fn evaluate_partial_object_recursively(
             return Box::new(EvaluateResult {
               confident: false,
               deopt: None,
+              reason: None,
               value: None,
               inline_styles: None,
               fns: None,
@@ -413,6 +419,7 @@ fn evaluate_partial_object_recursively(
   Box::new(EvaluateResult {
     confident: true,
     deopt: None,
+    reason: None,
     value: Some(EvaluateResultValue::Expr(object_expression_factory(obj))),
     inline_styles: Some(inline_styles),
     fns: None,

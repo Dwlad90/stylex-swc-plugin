@@ -4,7 +4,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::utils::{common::gen_file_based_identifier, js::evaluate::evaluate};
 use crate::shared::{
   constants::messages::NON_OBJECT_FOR_STYLEX_CALL,
@@ -24,6 +23,10 @@ use crate::shared::{
     stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
     stylex_types::get_types_fn,
   },
+};
+use crate::shared::{
+  structures::functions::FunctionConfigType,
+  utils::log::build_code_frame_error::build_code_frame_error,
 };
 
 use crate::StyleXTransform;
@@ -87,7 +90,16 @@ where
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
+      assert!(
+        evaluated_arg.confident,
+        "{}",
+        build_code_frame_error(
+          &Expr::Call(call.clone()),
+          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+          NON_STATIC_VALUE,
+          self.state.get_filename(),
+        )
+      );
 
       let value = match evaluated_arg.value {
         Some(value) => {
@@ -97,7 +109,12 @@ where
               .map(|expr| expr.is_object())
               .unwrap_or(false),
             "{}",
-            NON_OBJECT_FOR_STYLEX_CALL
+            build_code_frame_error(
+              &Expr::Call(call.clone()),
+              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+              NON_OBJECT_FOR_STYLEX_CALL,
+              self.state.get_filename(),
+            )
           );
           value
         }

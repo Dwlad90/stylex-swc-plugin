@@ -1,9 +1,8 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
-  ecma::{
-    ast::{CallExpr, Expr, KeyValueProp, Lit, Pat, PropName, VarDeclarator},
-    utils::ExprExt,
+  ecma::ast::{
+    ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, PropName, VarDeclarator,
   },
 };
 
@@ -28,6 +27,7 @@ use crate::shared::{
   utils::{
     ast::{convertors::string_to_expression, factories::key_value_factory},
     common::get_string_val_from_lit,
+    log::build_code_frame_error::build_code_frame_error_and_panic,
   },
 };
 
@@ -38,58 +38,91 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
     return;
   }
 
-  assert!(
-    state
-      .top_level_expressions
-      .iter()
-      .any(|TopLevelExpression(_, call_item, _)| {
-        match call_item {
-          Expr::Call(call_item_call) => call_item_call == call,
-          Expr::Array(_) => true,
-          _ => false,
-        }
-      }),
-    "{}",
-    UNBOUND_STYLEX_CALL_VALUE
-  );
+  if !state
+    .top_level_expressions
+    .iter()
+    .any(|TopLevelExpression(_, call_item, _)| {
+      matches!(call_item, Expr::Call(c) if c == call) || matches!(call_item, Expr::Array(_))
+    })
+  {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &Expr::Call(call.clone()),
+      UNBOUND_STYLEX_CALL_VALUE,
+      state.get_filename(),
+    );
+  }
 
-  assert!(call.args.len() == 1, "{}", ILLEGAL_ARGUMENT_LENGTH);
+  if call.args.len() != 1 {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &Expr::Call(call.clone()),
+      ILLEGAL_ARGUMENT_LENGTH,
+      state.get_filename(),
+    );
+  }
 
   let first_arg = &call.args[0];
-
-  assert!(first_arg.expr.is_object(), "{}", NON_OBJECT_FOR_STYLEX_CALL)
+  if !first_arg.expr.is_object() {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &first_arg.expr,
+      NON_OBJECT_FOR_STYLEX_CALL,
+      state.get_filename(),
+    );
+  }
 }
 
 pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &StateManager) {
-  let init = match &var_decl.init {
-    Some(init) => init.clone().call().expect(NON_STATIC_KEYFRAME_VALUE),
-    None => panic!("{}", NON_STATIC_KEYFRAME_VALUE),
-  };
-
   if !is_keyframes_call(var_decl, state) {
     return;
   }
 
-  let expr = Expr::Call(init.clone());
+  let init_expr = match &var_decl.init {
+    Some(init) => init.clone(),
+    None => panic!("{}", NON_STATIC_KEYFRAME_VALUE),
+  };
 
-  assert!(
-    state
-      .top_level_expressions
-      .iter()
-      .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
-    "{}",
-    UNBOUND_STYLEX_CALL_VALUE
-  );
+  let init_call = init_expr.as_call().unwrap_or_else(|| {
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      NON_STATIC_KEYFRAME_VALUE,
+      state.get_filename(),
+    );
+  });
 
-  assert!(init.args.len() == 1, "{}", ILLEGAL_ARGUMENT_LENGTH);
+  if !state
+    .top_level_expressions
+    .iter()
+    .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&init_expr))
+  {
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      UNBOUND_STYLEX_CALL_VALUE,
+      state.get_filename(),
+    );
+  }
 
-  let first_args = &init.args[0];
+  if init_call.args.len() != 1 {
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      ILLEGAL_ARGUMENT_LENGTH,
+      state.get_filename(),
+    );
+  }
 
-  assert!(
-    first_args.expr.is_object(),
-    "{}",
-    NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL
-  )
+  let first_arg: &_ = &init_call.args[0];
+  if !first_arg.expr.is_object() {
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &first_arg.expr,
+      NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL,
+      state.get_filename(),
+    );
+  }
 }
 
 pub(crate) fn validate_stylex_create_theme_indent(
@@ -97,41 +130,70 @@ pub(crate) fn validate_stylex_create_theme_indent(
   call: &CallExpr,
   state: &StateManager,
 ) {
-  let var_decl = var_decl.as_ref().expect(UNBOUND_STYLEX_CALL_VALUE);
-
-  let init = var_decl
-    .init
-    .as_ref()
-    .expect(NON_STATIC_KEYFRAME_VALUE)
-    .clone()
-    .call()
-    .expect(NON_STATIC_KEYFRAME_VALUE);
-
   if !is_create_theme_call(call, state) {
     return;
   }
 
+  let var_decl = var_decl.as_ref().unwrap_or_else(|| {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &Expr::Call(call.clone()),
+      UNBOUND_STYLEX_CALL_VALUE,
+      state.get_filename(),
+    );
+  });
+
+  let init_expr = var_decl.init.as_ref().unwrap_or_else(|| {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &Expr::Call(call.clone()),
+      NON_STATIC_KEYFRAME_VALUE,
+      state.get_filename(),
+    );
+  });
+
+  let init = init_expr.as_call().unwrap_or_else(|| {
+    build_code_frame_error_and_panic(
+      init_expr,
+      &Expr::Call(call.clone()),
+      NON_STATIC_KEYFRAME_VALUE,
+      state.get_filename(),
+    );
+  });
+
   let expr = Expr::Call(init.clone());
 
-  assert!(
-    state
-      .top_level_expressions
-      .iter()
-      .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
-    "{}",
-    UNBOUND_STYLEX_CALL_VALUE
-  );
+  if !state
+    .top_level_expressions
+    .iter()
+    .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr))
+  {
+    build_code_frame_error_and_panic(
+      init_expr,
+      &Expr::Call(call.clone()),
+      UNBOUND_STYLEX_CALL_VALUE,
+      state.get_filename(),
+    );
+  }
 
-  assert!(init.args.len() == 2, "{}", ILLEGAL_ARGUMENT_LENGTH);
+  if init.args.len() != 2 {
+    build_code_frame_error_and_panic(
+      init_expr,
+      &Expr::Call(call.clone()),
+      ILLEGAL_ARGUMENT_LENGTH,
+      state.get_filename(),
+    );
+  }
 
   let second_args = &init.args[1];
-
-  assert!(
-    second_args.expr.is_object(),
-    "{} Got: {:?}",
-    NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
-    second_args.expr.get_type()
-  )
+  if !second_args.expr.is_object() {
+    build_code_frame_error_and_panic(
+      init_expr,
+      &Expr::Call(call.clone()),
+      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
+      state.get_filename(),
+    );
+  }
 }
 
 pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager) {
@@ -139,26 +201,57 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager)
     return;
   }
 
-  let expr = Expr::from(call.clone());
+  let call_expr = Expr::from(call.clone());
 
-  assert!(
-    state
-      .top_level_expressions
-      .iter()
-      .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&expr)),
-    "{}",
-    UNBOUND_STYLEX_CALL_VALUE
-  );
+  if !state
+    .top_level_expressions
+    .iter()
+    .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&call_expr))
+  {
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &call
+        .args
+        .get(2)
+        .cloned()
+        .unwrap_or_else(|| ExprOrSpread {
+          spread: None,
+          expr: Box::new(call_expr.clone()),
+        })
+        .expr,
+      UNBOUND_STYLEX_CALL_VALUE,
+      state.get_filename(),
+    );
+  }
 
-  assert!(call.args.len() == 1, "{}", ILLEGAL_ARGUMENT_LENGTH);
+  if call.args.len() != 1 {
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &call
+        .args
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| ExprOrSpread {
+          spread: None,
+          expr: Box::new(call_expr.clone()),
+        })
+        .expr,
+      ILLEGAL_ARGUMENT_LENGTH,
+      state.get_filename(),
+    );
+  }
 
-  assert!(
-    state
-      .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call)
-      .is_some(),
-    "{}",
-    NON_EXPORT_NAMED_DECLARATION
-  );
+  if state
+    .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call)
+    .is_none()
+  {
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &call_expr,
+      NON_EXPORT_NAMED_DECLARATION,
+      state.get_filename(),
+    );
+  }
 }
 
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
@@ -231,7 +324,11 @@ pub(crate) fn is_target_call(
 
   is_create_ident || is_create_member
 }
-pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[String]) {
+pub(crate) fn validate_namespace(
+  namespaces: &[KeyValueProp],
+  conditions: &[String],
+  state: &StateManager,
+) {
   for namespace in namespaces {
     let key = match &namespace.key {
       PropName::Ident(key) => key.sym.to_string(),
@@ -241,7 +338,12 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
           || key.value == "default"
           || namespace.value.is_lit())
         {
-          panic!("{}", INVALID_PSEUDO_OR_AT_RULE)
+          build_code_frame_error_and_panic(
+            &Expr::Lit(Lit::Str(key.clone())),
+            &Expr::Lit(Lit::Str(key.clone())),
+            INVALID_PSEUDO_OR_AT_RULE,
+            state.get_filename(),
+          );
         }
         key.value.to_string()
       }
@@ -254,7 +356,12 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
           lit,
           Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
         ) {
-          panic!("{}", ILLEGAL_PROP_VALUE);
+          build_code_frame_error_and_panic(
+            &Expr::Lit(lit.clone()),
+            &Expr::Lit(lit.clone()),
+            ILLEGAL_PROP_VALUE,
+            state.get_filename(),
+          );
         }
       }
       Expr::Array(array) => {
@@ -266,7 +373,12 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
           );
 
           if !matches!(elem.expr.as_ref(), Expr::Lit(_)) {
-            panic!("{}", ILLEGAL_PROP_ARRAY_VALUE);
+            build_code_frame_error_and_panic(
+              &Expr::Array(array.clone()),
+              &Expr::Array(array.clone()),
+              ILLEGAL_PROP_ARRAY_VALUE,
+              state.get_filename(),
+            );
           }
         }
       }
@@ -275,7 +387,12 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
 
         if key.starts_with('@') || key.starts_with(':') {
           if conditions.contains(&key) {
-            panic!("{}", DUPLICATE_CONDITIONAL);
+            build_code_frame_error_and_panic(
+              &Expr::Object(object.clone()),
+              &Expr::Object(object.clone()),
+              DUPLICATE_CONDITIONAL,
+              state.get_filename(),
+            );
           }
 
           let nested_key_values = get_key_values_from_object(object);
@@ -283,12 +400,12 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
           let mut extended_conditions = conditions.to_vec();
           extended_conditions.push(key);
 
-          validate_namespace(&nested_key_values, &extended_conditions);
+          validate_namespace(&nested_key_values, &extended_conditions, state);
         } else {
           let conditional_styles_key_values = get_key_values_from_object(object);
 
           for conditional_style in &conditional_styles_key_values {
-            validate_conditional_styles(conditional_style, &[]);
+            validate_conditional_styles(conditional_style, &[], state);
           }
         }
       }
@@ -301,13 +418,28 @@ pub(crate) fn validate_namespace(namespaces: &[KeyValueProp], conditions: &[Stri
   }
 }
 
-pub(crate) fn validate_dynamic_style_params(params: &[Pat]) {
+pub(crate) fn validate_dynamic_style_params(
+  path: &ArrowExpr,
+  params: &[Pat],
+  state: &StateManager,
+) {
   if params.iter().any(|param| !param.is_ident()) {
-    panic!("{}", ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS);
+    let path_expr = Expr::Arrow(path.clone());
+
+    build_code_frame_error_and_panic(
+      &path_expr,
+      &path_expr,
+      ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
+      state.get_filename(),
+    )
   }
 }
 
-pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, conditions: &[String]) {
+pub(crate) fn validate_conditional_styles(
+  inner_key_value: &KeyValueProp,
+  conditions: &[String],
+  state: &StateManager,
+) {
   let inner_key = get_key_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
 
@@ -327,7 +459,12 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
       for elem in array.elems.iter().flatten() {
         match elem.expr.as_ref() {
           Expr::Lit(_) => {}
-          _ => panic!("{}", ILLEGAL_PROP_VALUE),
+          _ => build_code_frame_error_and_panic(
+            &Expr::Array(array.clone()),
+            &Expr::Array(array.clone()),
+            ILLEGAL_PROP_VALUE,
+            state.get_filename(),
+          ),
         }
       }
     }
@@ -338,19 +475,29 @@ pub(crate) fn validate_conditional_styles(inner_key_value: &KeyValueProp, condit
       extended_conditions.push(inner_key);
 
       for nested_key_value in nested_key_values.iter() {
-        validate_conditional_styles(nested_key_value, &extended_conditions);
+        validate_conditional_styles(nested_key_value, &extended_conditions, state);
       }
     }
     Expr::Ident(_) => {
       if INCLUDED_IDENT_REGEX.is_match(&inner_key) {
-        panic!("{}", ONLY_TOP_LEVEL_INCLUDES);
+        build_code_frame_error_and_panic(
+          &inner_value,
+          &inner_value,
+          ONLY_TOP_LEVEL_INCLUDES,
+          state.get_filename(),
+        )
       }
     }
-    _ => panic!("{}", ILLEGAL_PROP_VALUE),
+    _ => build_code_frame_error_and_panic(
+      &inner_value,
+      &inner_value,
+      ILLEGAL_PROP_VALUE,
+      state.get_filename(),
+    ),
   }
 }
 
-pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
+pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &StateManager) {
   match obj {
     EvaluateResultValue::Expr(expr) => match expr {
       Expr::Object(object) => {
@@ -359,11 +506,25 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue) {
         for key_value in key_values.iter() {
           match key_value.value.as_ref() {
             Expr::Object(_) => {}
-            _ => panic!("{}", NON_OBJECT_KEYFRAME),
+            _ => {
+              build_code_frame_error_and_panic(
+                expr,
+                expr,
+                NON_OBJECT_KEYFRAME,
+                state.get_filename(),
+              );
+            }
           }
         }
       }
-      _ => panic!("{}", NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL),
+      _ => {
+        build_code_frame_error_and_panic(
+          expr,
+          expr,
+          NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL,
+          state.get_filename(),
+        );
+      }
     },
     _ => panic!("{}", NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL),
   }
@@ -383,13 +544,9 @@ pub(crate) fn validate_theme_variables(
     return key_value;
   }
 
-  assert!(
-    variables
-      .as_expr()
-      .map(|expr| expr.is_object())
-      .unwrap_or(false),
-    "Can only override variables theme created with stylex.defineVars()."
-  );
+  if !variables.as_expr().map_or(false, |expr| expr.is_object()) {
+    panic!("Can only override variables theme created with stylex.defineVars().");
+  }
 
   variables
     .as_expr()

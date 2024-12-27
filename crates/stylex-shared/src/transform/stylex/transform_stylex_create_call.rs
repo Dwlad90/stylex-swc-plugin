@@ -15,7 +15,10 @@ use swc_core::{common::DUMMY_SP, ecma::ast::BinExpr};
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
   structures::injectable_style::InjectableStyle,
-  utils::core::dev_class_name::{convert_to_test_styles, inject_dev_class_names},
+  utils::{
+    core::dev_class_name::{convert_to_test_styles, inject_dev_class_names},
+    log::build_code_frame_error::build_code_frame_error,
+  },
 };
 use crate::shared::{
   structures::functions::{FunctionConfig, FunctionMap, FunctionType},
@@ -135,9 +138,29 @@ where
       let evaluated_arg =
         evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
+      assert!(
+        evaluated_arg.confident,
+        "{}",
+        build_code_frame_error(
+          &Expr::Call(call.clone()),
+          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+          evaluated_arg.reason.as_deref().unwrap_or(NON_STATIC_VALUE),
+          self.state.get_filename(),
+        )
+      );
+
       let value = evaluated_arg.value.expect(NON_STATIC_VALUE);
 
-      assert!(evaluated_arg.confident, "{}", NON_STATIC_VALUE);
+      assert!(
+        evaluated_arg.confident,
+        "{}",
+        build_code_frame_error(
+          &Expr::Call(call.clone()),
+          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+          evaluated_arg.reason.as_deref().unwrap_or(NON_STATIC_VALUE),
+          self.state.get_filename(),
+        )
+      );
 
       let mut injected_inherit_styles: IndexMap<String, Rc<InjectableStyle>> = IndexMap::default();
 
@@ -155,7 +178,10 @@ where
             fns_name.clone(),
             Rc::new(InjectableStyle {
               priority: Some(0f64),
-              ltr: format!("@property {} {{ syntax: \"*\"; inherits: false; initial-value: \"*\"; }}", fns_name),
+              ltr: format!(
+                "@property {} {{ syntax: \"*\"; inherits: false; initial-value: \"*\"; }}",
+                fns_name
+              ),
               rtl: None,
             }),
           );

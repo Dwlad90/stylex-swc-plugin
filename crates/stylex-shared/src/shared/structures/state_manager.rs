@@ -85,6 +85,8 @@ pub struct StateManager {
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) theme_name: Option<String>,
 
+  pub(crate) class_name_declarations: Vec<Ident>,
+  pub(crate) function_name_declarations: Vec<Ident>,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) all_call_expressions: Vec<CallExpr>,
@@ -150,6 +152,8 @@ impl StateManager {
       top_imports: vec![],
 
       declarations: vec![],
+      class_name_declarations: vec![],
+      function_name_declarations: vec![],
       top_level_expressions: vec![],
       all_call_expressions: vec![],
       var_decl_count_map: FxHashMap::default(),

@@ -6,10 +6,19 @@ import type { Plugin, PluginContext, TransformResult, TransformPluginContext } f
 import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import crypto from 'crypto';
 
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
 
 const IS_DEV_ENV = process.env.NODE_ENV === 'development';
+
+function replaceFileName(original: string, css: string) {
+  if (!original.includes('[hash]')) {
+    return original;
+  }
+  const hash = crypto.createHash('sha256').update(css).digest('hex').slice(0, 8);
+  return original.replace(/\[hash\]/g, hash);
+}
 
 export type PluginOptions = {
   rsOptions?: StyleXOptions;
@@ -48,7 +57,7 @@ export default function stylexPlugin({
         const { code } = transform({
           targets: browserslistToTargets(browserslist('>= 1%')),
           ...lightningcssOptions,
-          filename: fileName,
+          filename: 'stylex.css',
           code: Buffer.from(collectedCSS),
         });
 
@@ -56,7 +65,7 @@ export default function stylexPlugin({
         const processedCSS = code.toString();
 
         this.emitFile({
-          fileName,
+          fileName: replaceFileName(fileName, processedCSS),
           source: processedCSS,
           type: 'asset',
         });

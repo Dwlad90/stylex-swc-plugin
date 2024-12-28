@@ -51,3 +51,9 @@ pub(crate) static WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX: Lazy<Regex> = Lazy::
 
 pub(crate) static DASHIFY_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(^|[a-z])([A-Z])").unwrap());
+
+pub(crate) static URL_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(
+        r"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)"
+    ).unwrap()
+});

@@ -97,7 +97,7 @@ where
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
           NON_STATIC_VALUE,
-          self.state.get_filename(),
+          &self.state,
         )
       );
 
@@ -113,7 +113,7 @@ where
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
               NON_OBJECT_FOR_STYLEX_CALL,
-              self.state.get_filename(),
+              &self.state,
             )
           );
           value

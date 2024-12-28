@@ -49,7 +49,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
       UNBOUND_STYLEX_CALL_VALUE,
-      state.get_filename(),
+      state,
     );
   }
 
@@ -58,7 +58,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
       ILLEGAL_ARGUMENT_LENGTH,
-      state.get_filename(),
+      state,
     );
   }
 
@@ -68,7 +68,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
       &Expr::Call(call.clone()),
       &first_arg.expr,
       NON_OBJECT_FOR_STYLEX_CALL,
-      state.get_filename(),
+      state,
     );
   }
 }
@@ -84,12 +84,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
   };
 
   let init_call = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      NON_STATIC_KEYFRAME_VALUE,
-      state.get_filename(),
-    );
+    build_code_frame_error_and_panic(&init_expr, &init_expr, NON_STATIC_KEYFRAME_VALUE, state);
   });
 
   if !state
@@ -97,21 +92,11 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
     .iter()
     .any(|TopLevelExpression(_, call_item, _)| call_item.eq(&init_expr))
   {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      UNBOUND_STYLEX_CALL_VALUE,
-      state.get_filename(),
-    );
+    build_code_frame_error_and_panic(&init_expr, &init_expr, UNBOUND_STYLEX_CALL_VALUE, state);
   }
 
   if init_call.args.len() != 1 {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      ILLEGAL_ARGUMENT_LENGTH,
-      state.get_filename(),
-    );
+    build_code_frame_error_and_panic(&init_expr, &init_expr, ILLEGAL_ARGUMENT_LENGTH, state);
   }
 
   let first_arg: &_ = &init_call.args[0];
@@ -120,7 +105,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
       &init_expr,
       &first_arg.expr,
       NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL,
-      state.get_filename(),
+      state,
     );
   }
 }
@@ -139,7 +124,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
       UNBOUND_STYLEX_CALL_VALUE,
-      state.get_filename(),
+      state,
     );
   });
 
@@ -148,7 +133,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
       NON_STATIC_KEYFRAME_VALUE,
-      state.get_filename(),
+      state,
     );
   });
 
@@ -157,7 +142,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
       init_expr,
       &Expr::Call(call.clone()),
       NON_STATIC_KEYFRAME_VALUE,
-      state.get_filename(),
+      state,
     );
   });
 
@@ -172,7 +157,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
       init_expr,
       &Expr::Call(call.clone()),
       UNBOUND_STYLEX_CALL_VALUE,
-      state.get_filename(),
+      state,
     );
   }
 
@@ -181,7 +166,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
       init_expr,
       &Expr::Call(call.clone()),
       ILLEGAL_ARGUMENT_LENGTH,
-      state.get_filename(),
+      state,
     );
   }
 
@@ -191,7 +176,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
       init_expr,
       &Expr::Call(call.clone()),
       NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
-      state.get_filename(),
+      state,
     );
   }
 }
@@ -220,7 +205,7 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager)
         })
         .expr,
       UNBOUND_STYLEX_CALL_VALUE,
-      state.get_filename(),
+      state,
     );
   }
 
@@ -237,7 +222,7 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager)
         })
         .expr,
       ILLEGAL_ARGUMENT_LENGTH,
-      state.get_filename(),
+      state,
     );
   }
 
@@ -245,12 +230,7 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager)
     .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call)
     .is_none()
   {
-    build_code_frame_error_and_panic(
-      &call_expr,
-      &call_expr,
-      NON_EXPORT_NAMED_DECLARATION,
-      state.get_filename(),
-    );
+    build_code_frame_error_and_panic(&call_expr, &call_expr, NON_EXPORT_NAMED_DECLARATION, state);
   }
 }
 
@@ -342,7 +322,7 @@ pub(crate) fn validate_namespace(
             &Expr::Lit(Lit::Str(key.clone())),
             &Expr::Lit(Lit::Str(key.clone())),
             INVALID_PSEUDO_OR_AT_RULE,
-            state.get_filename(),
+            state,
           );
         }
         key.value.to_string()
@@ -360,7 +340,7 @@ pub(crate) fn validate_namespace(
             &Expr::Lit(lit.clone()),
             &Expr::Lit(lit.clone()),
             ILLEGAL_PROP_VALUE,
-            state.get_filename(),
+            state,
           );
         }
       }
@@ -377,7 +357,7 @@ pub(crate) fn validate_namespace(
               &Expr::Array(array.clone()),
               &Expr::Array(array.clone()),
               ILLEGAL_PROP_ARRAY_VALUE,
-              state.get_filename(),
+              state,
             );
           }
         }
@@ -391,7 +371,7 @@ pub(crate) fn validate_namespace(
               &Expr::Object(object.clone()),
               &Expr::Object(object.clone()),
               DUPLICATE_CONDITIONAL,
-              state.get_filename(),
+              state,
             );
           }
 
@@ -430,7 +410,7 @@ pub(crate) fn validate_dynamic_style_params(
       &path_expr,
       &path_expr,
       ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-      state.get_filename(),
+      state,
     )
   }
 }
@@ -463,7 +443,7 @@ pub(crate) fn validate_conditional_styles(
             &Expr::Array(array.clone()),
             &Expr::Array(array.clone()),
             ILLEGAL_PROP_VALUE,
-            state.get_filename(),
+            state,
           ),
         }
       }
@@ -480,20 +460,10 @@ pub(crate) fn validate_conditional_styles(
     }
     Expr::Ident(_) => {
       if INCLUDED_IDENT_REGEX.is_match(&inner_key) {
-        build_code_frame_error_and_panic(
-          &inner_value,
-          &inner_value,
-          ONLY_TOP_LEVEL_INCLUDES,
-          state.get_filename(),
-        )
+        build_code_frame_error_and_panic(&inner_value, &inner_value, ONLY_TOP_LEVEL_INCLUDES, state)
       }
     }
-    _ => build_code_frame_error_and_panic(
-      &inner_value,
-      &inner_value,
-      ILLEGAL_PROP_VALUE,
-      state.get_filename(),
-    ),
+    _ => build_code_frame_error_and_panic(&inner_value, &inner_value, ILLEGAL_PROP_VALUE, state),
   }
 }
 
@@ -507,23 +477,13 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &StateMan
           match key_value.value.as_ref() {
             Expr::Object(_) => {}
             _ => {
-              build_code_frame_error_and_panic(
-                expr,
-                expr,
-                NON_OBJECT_KEYFRAME,
-                state.get_filename(),
-              );
+              build_code_frame_error_and_panic(expr, expr, NON_OBJECT_KEYFRAME, state);
             }
           }
         }
       }
       _ => {
-        build_code_frame_error_and_panic(
-          expr,
-          expr,
-          NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL,
-          state.get_filename(),
-        );
+        build_code_frame_error_and_panic(expr, expr, NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, state);
       }
     },
     _ => panic!("{}", NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL),

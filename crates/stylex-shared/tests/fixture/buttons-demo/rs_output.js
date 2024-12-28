@@ -36,11 +36,11 @@ export default function ButtonsDemo(_props) {
       </ThemeableButton>
     </div>;
 }
-_inject2(".x8j0i83, .x8j0i83:root{--x1tvn83n:red;--xlb9c25:4px;--xk30bbq:4px;--xkhjxis:8px;--xte9ugm:white;}", 0.5);
+_inject2(".x13au1tt, .x13au1tt:root{--bgColor-x1tvn83n:red;--cornerRadius-xlb9c25:4px;--paddingBlock-xk30bbq:4px;--paddingInline-xkhjxis:8px;--textColor-xte9ugm:white;}", 0.5);
 const redTheme = {
     Page__redTheme: "Page__redTheme",
     $$css: true,
-    x1p0kudt: "x8j0i83 "
+    "__themeName__-x1p0kudt": "x13au1tt "
 };
 _inject2(".display-x78zum5{display:flex}", 3000);
 _inject2(".flexDirection-xdt5ytf{flex-direction:column}", 3000);

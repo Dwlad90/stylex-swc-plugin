@@ -21,7 +21,8 @@ pub(crate) static IMPORT_PATH_RESOLUTION_ERROR: &str = r#"Could not resolve the 
 Please ensure that the theme file has a .stylex.js or .stylex.ts file extension and follows the
 rules for defining variariables:
 
-https://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables"#;
+https://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables
+"#;
 
 pub(crate) static NON_CONSTANT: &str = "Referenced value is not a constant.\n\n";
 

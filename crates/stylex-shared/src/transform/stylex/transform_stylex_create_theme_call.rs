@@ -115,7 +115,7 @@ where
             .deopt
             .unwrap_or_else(|| *first_arg.to_owned()),
           NON_STATIC_VALUE,
-          self.state.get_filename(),
+          &self.state,
         )
       );
 
@@ -130,7 +130,7 @@ where
             .deopt
             .unwrap_or_else(|| *second_arg.to_owned()),
           NON_STATIC_VALUE,
-          self.state.get_filename(),
+          &self.state,
         )
       );
 
@@ -147,7 +147,7 @@ where
               .deopt
               .unwrap_or_else(|| *first_arg.to_owned()),
             "Can only override variables theme created with stylex.defineVars().",
-            self.state.get_filename(),
+            &self.state,
           )
         ),
       };
@@ -166,7 +166,7 @@ where
                 .deopt
                 .unwrap_or_else(|| *second_arg.to_owned()),
               NON_OBJECT_FOR_STYLEX_CALL,
-              self.state.get_filename(),
+              &self.state,
             )
           );
           value.clone()
@@ -179,7 +179,7 @@ where
               .deopt
               .unwrap_or_else(|| *second_arg.to_owned()),
             NON_OBJECT_FOR_STYLEX_CALL,
-            self.state.get_filename(),
+            &self.state,
           )
         ),
       };

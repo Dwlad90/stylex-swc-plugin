@@ -1,10 +1,12 @@
-use std::sync::Arc;
-use swc_compiler_base::{parse_js, print, IsModule, PrintArgs, SourceMapsConfig};
+use std::{fs, path::Path, sync::Arc};
+use swc_compiler_base::{parse_js, print, IsModule, PrintArgs, SourceMapsConfig, TransformOutput};
 use swc_core::{
   common::{errors::*, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, DUMMY_SP},
   ecma::{ast::*, visit::*},
 };
-use swc_ecma_parser::Syntax;
+use swc_ecma_parser::{Syntax, TsSyntax};
+
+use crate::shared::{regex::URL_REGEX, structures::state_manager::StateManager};
 
 struct CodeFrame {
   source_map: Arc<SourceMap>,
@@ -16,6 +18,7 @@ impl CodeFrame {
     let source_map: Arc<SourceMap> = Default::default();
     let handler =
       Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(source_map.clone()));
+
     Self {
       source_map,
       handler,
@@ -23,41 +26,55 @@ impl CodeFrame {
   }
 
   fn create_error<'a>(&'a self, span: Span, message: &str) -> DiagnosticBuilder<'a> {
-    let mut diagnostic = self.handler.struct_err(message);
-    diagnostic.set_span(span);
+    let mut diagnostic = self.handler.struct_span_err(span, message);
 
-    let loc = self.source_map.lookup_char_pos(span.lo);
-    let error_message = format!(
-      "{}: {}\n{}",
-      loc.file.name,
-      message,
-      self.format_code_frame(span)
-    );
-    diagnostic.note(&error_message);
+    let urls = URL_REGEX
+      .find_iter(message)
+      .map(|m| m.as_str())
+      .collect::<Vec<_>>();
+
+    let note = format!("\n{}", urls.join("\n"));
+
+    diagnostic.warn("Line number isn't real, it's just a placeholder, Please check the actual line number in your editor.");
+
+    diagnostic.note(note.as_str());
+
     diagnostic
   }
+}
 
-  fn format_code_frame(&self, span: Span) -> String {
-    let loc = self.source_map.lookup_char_pos(span.lo);
-    let file = loc.file;
-    let start_line = loc.line.saturating_sub(2);
-    let end_line = loc.line + 2;
+// fn format_code_frame(&self, span: Span) -> String {
+//   let loc = self.source_map.lookup_char_pos(span.lo);
+//   let file = loc.file;
+//   let start_line = loc.line.saturating_sub(2);
+//   let end_line = loc.line + 2;
 
-    (start_line..=end_line)
-      .filter_map(|line_idx| {
-        file.get_line(line_idx).map(|line| {
-          let mut output = format!("  {}\n", line);
-          if line_idx == loc.line {
-            output.push_str(&format!(
-              "  {}{}\n",
-              " ".repeat(loc.col.0),
-              "^".repeat((span.hi - span.lo).0 as usize)
-            ));
-          }
-          output
-        })
-      })
-      .collect()
+//   (start_line..=end_line)
+//     .filter_map(|line_idx| {
+//       file.get_line(line_idx).map(|line| {
+//         let mut output = format!("  {}\n", line);
+//         if line_idx == loc.line - 1 {
+//           output.push_str(&format!(
+//             "  {}{}\n",
+//             " ".repeat(loc.col.0),
+//             "^".repeat((span.hi - span.lo).0 as usize)
+//           ));
+//         }
+//         output
+//       })
+//     })
+//     .collect()
+// }
+
+fn read_source_file(file_name: &FileName) -> Result<String, std::io::Error> {
+  match file_name {
+    FileName::Real(path) => fs::read_to_string(path),
+    FileName::Custom(path) => fs::read_to_string(path),
+    FileName::Url(url) => fs::read_to_string(Path::new(url.path())),
+    _ => Err(std::io::Error::new(
+      std::io::ErrorKind::Other,
+      "Unsupported file name type",
+    )),
   }
 }
 
@@ -65,47 +82,62 @@ pub(crate) fn build_code_frame_error<'a>(
   wrapped_expression: &'a Expr,
   fault_expression: &'a Expr,
   error_message: &'a str,
-  file_name: &'a str,
+  state: &StateManager,
 ) -> &'a str {
+  let file_name = FileName::Custom(state.get_filename().to_owned());
   let code_frame = CodeFrame::new();
-  let file_name = FileName::Custom(file_name.to_owned());
 
-  let program = Program::Module(Module {
-    span: DUMMY_SP,
-    body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+  let source_code = read_source_file(&file_name);
+
+  let frame_source_code = source_code.unwrap_or_else(|_| {
+    let program = Program::Module(Module {
       span: DUMMY_SP,
-      expr: Box::new(wrapped_expression.clone()),
-    }))],
-    shebang: None,
+      body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+        span: DUMMY_SP,
+        expr: Box::new(wrapped_expression.clone()),
+      }))],
+      shebang: None,
+    });
+
+    let printed_source_code = print(
+      code_frame.source_map.clone(),
+      &program,
+      PrintArgs {
+        source_map: SourceMapsConfig::Bool(false),
+        ..Default::default()
+      },
+    )
+    .unwrap_or_else(|_| TransformOutput {
+      code: "".to_string(),
+      map: None,
+      output: None,
+    });
+
+    printed_source_code.code
   });
 
-  if let Ok(output_code) = print(
+  let file = code_frame
+    .source_map
+    .new_source_file(Arc::new(file_name), frame_source_code);
+
+  let mut finder = ExpressionFinder::new(fault_expression);
+
+  if let Ok(program) = parse_js(
     code_frame.source_map.clone(),
-    &program,
-    PrintArgs {
-      source_map: SourceMapsConfig::Bool(false),
+    file.clone(),
+    &code_frame.handler,
+    EsVersion::EsNext,
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
       ..Default::default()
-    },
+    }),
+    IsModule::Bool(true),
+    None,
   ) {
-    let file = code_frame
-      .source_map
-      .new_source_file(Arc::new(file_name), output_code.code);
+    program.fold_with(&mut finder);
 
-    let mut finder = ExpressionFinder::new(fault_expression);
-
-    if let Ok(program) = parse_js(
-      code_frame.source_map.clone(),
-      file.clone(),
-      &code_frame.handler,
-      EsVersion::EsNext,
-      Syntax::Typescript(Default::default()),
-      IsModule::Bool(true),
-      None,
-    ) {
-      program.fold_with(&mut finder);
-      if let Some(span) = finder.get_span() {
-        code_frame.create_error(span, error_message).emit();
-      }
+    if let Some(span) = finder.get_span() {
+      code_frame.create_error(span, error_message).emit();
     }
   }
 
@@ -148,15 +180,10 @@ pub(crate) fn build_code_frame_error_and_panic(
   wrapped_expression: &Expr,
   fault_expression: &Expr,
   error_message: &str,
-  file_name: &str,
+  state: &StateManager,
 ) -> ! {
   panic!(
     "{}",
-    build_code_frame_error(
-      wrapped_expression,
-      fault_expression,
-      error_message,
-      file_name,
-    )
+    build_code_frame_error(wrapped_expression, fault_expression, error_message, state)
   );
 }

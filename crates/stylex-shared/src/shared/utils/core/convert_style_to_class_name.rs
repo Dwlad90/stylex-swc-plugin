@@ -21,7 +21,7 @@ pub(crate) fn convert_style_to_class_name(
   let (key, raw_value) = obj_entry;
 
   let dashed_key = if key.starts_with("--") {
-    key.to_lowercase()
+    key.to_string()
   } else {
     dashify(key)
   };

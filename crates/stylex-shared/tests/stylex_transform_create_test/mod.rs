@@ -5,3 +5,4 @@ mod stylex_create_call_pseudo_elements;
 mod stylex_create_call_queries;
 mod stylex_create_call_queries_with_functions;
 mod stylex_create_call_queries_with_properties;
+mod stylex_create_call_setting_vars;

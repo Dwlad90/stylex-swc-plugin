@@ -43,7 +43,6 @@ module.exports = stylexPlugin({
     },
     unstable_moduleResolution: {
       type: 'commonJS',
-      rootDir,
     },
   },
   // It's important to prevent creating a new CSS file with StyleX classes twice

@@ -15,7 +15,7 @@ const stylexOptions: StyleXOptions = {
   genConditionalClasses: true,
   treeshakeCompensation: true,
   unstable_moduleResolution: {
-    type: 'commonJS',
+    type: 'haste',
     rootDir,
   },
 };

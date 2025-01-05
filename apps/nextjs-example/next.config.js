@@ -12,7 +12,6 @@ module.exports = stylexPlugin({
     },
     unstable_moduleResolution: {
       type: 'commonJS',
-      rootDir
     },
   }
 })({

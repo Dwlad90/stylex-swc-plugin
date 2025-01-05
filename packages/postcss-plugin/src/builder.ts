@@ -149,10 +149,6 @@ function createBuilder() {
         shouldSkipTransformError,
       });
 
-      // if (transformedResult.code !== contents) {
-      //   fs.writeFileSync(filePath, transformedResult.code, 'utf-8');
-      // }
-
       return transformedResult;
     });
 

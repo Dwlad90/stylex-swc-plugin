@@ -6,8 +6,9 @@ use std::{option::Option, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
 use stylex_path_resolver::{
-  package_json::PackageJsonExtended,
-  resolvers::{resolve_file_path, resolve_path, EXTENSIONS},
+  package_json::{find_nearest_package_json, get_package_json, PackageJsonExtended},
+  resolvers::{resolve_file_path, EXTENSIONS},
+  utils::relative_path,
 };
 use swc_core::{
   atoms::Atom,
@@ -234,7 +235,10 @@ impl StateManager {
   pub(crate) fn get_filename(&self) -> &str {
     extract_path(&self._state.filename)
   }
-  pub(crate) fn get_filename_for_hashing(&self) -> Option<String> {
+  pub(crate) fn get_filename_for_hashing(
+    &self,
+    package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+  ) -> Option<String> {
     let filename = self.get_filename();
 
     let unstable_module_resolution = self
@@ -271,23 +275,77 @@ impl StateManager {
         let filename = FileName::Real(filename.into());
         extract_filename_with_ext_from_path(&filename).map(|s| s.to_string())
       }
-      CheckModuleResolution::CommonJS(module_resolution)
-      | CheckModuleResolution::CrossFileParsing(module_resolution) => {
-        let root_dir = module_resolution
-          .root_dir
-          .as_deref()
-          .expect("root_dir is required for CommonJS");
-
-        let root_dir = Path::new(root_dir);
-
-        let processing_file = Path::new(&filename);
-
-        let filename_for_hashing =
-          resolve_path(processing_file, root_dir, &mut FxHashMap::default());
-
-        Some(filename_for_hashing)
+      CheckModuleResolution::CommonJS(_) | CheckModuleResolution::CrossFileParsing(_) => {
+        Some(self.get_canonical_file_path(filename, package_json_seen))
       }
     }
+  }
+  pub(crate) fn get_package_name_and_path(
+    filepath: &str,
+    package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+  ) -> Option<(String, String)> {
+    let folder = Path::new(filepath).parent()?;
+    let package_json_path = find_nearest_package_json(Path::new(filepath));
+
+    if let Some(package_json_path) = package_json_path {
+      let (package_json, _) = get_package_json(&package_json_path, package_json_seen);
+      // Try to read and parse package.json
+      return Some((
+        package_json.name,
+        package_json_path.to_string_lossy().into_owned(),
+      ));
+    } else {
+      // Recursively check parent directory if not at root
+      if folder.parent().is_some() && !folder.as_os_str().is_empty() {
+        StateManager::get_package_name_and_path(
+          folder.to_string_lossy().as_ref(),
+          package_json_seen,
+        )
+      } else {
+        None
+      }
+    }
+  }
+  pub(crate) fn get_canonical_file_path(
+    &self,
+    file_path: &str,
+    package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+  ) -> String {
+    if let Some(pkg_info) = StateManager::get_package_name_and_path(file_path, package_json_seen) {
+      let (package_name, package_dir) = pkg_info;
+
+      let package_dir_path = Path::new(&package_dir);
+      let file_path = Path::new(file_path);
+      let relative_package_path = relative_path(file_path, package_dir_path);
+
+      if let Some(package_dir) = relative_package_path.to_str() {
+        return format!("{}:{}", package_name, package_dir);
+      }
+    }
+
+    if let Some(module_resolution) = &self.options.unstable_module_resolution {
+      if let Some(root_dir) = match &module_resolution {
+        CheckModuleResolution::CommonJS(module_resolution) => module_resolution.root_dir.as_deref(),
+        CheckModuleResolution::Haste(module_resolution) => module_resolution.root_dir.as_deref(),
+        CheckModuleResolution::CrossFileParsing(module_resolution) => {
+          module_resolution.root_dir.as_deref()
+        }
+      } {
+        let file_path = Path::new(file_path);
+        let root_dir = Path::new(root_dir);
+
+        if let Some(root_dir) = relative_path(file_path, root_dir).to_str() {
+          return root_dir.to_string();
+        }
+      }
+    }
+
+    let file_name = Path::new(file_path)
+      .file_name()
+      .unwrap_or_default()
+      .to_string_lossy();
+
+    format!("_unknown_path_:{}", file_name)
   }
 
   pub(crate) fn import_path_resolver(
@@ -307,10 +365,10 @@ impl StateManager {
 
     match unstable_module_resolution {
       CheckModuleResolution::CommonJS(module_resolution) => {
-        let root_dir = module_resolution
-          .root_dir
-          .as_deref()
-          .expect("root_dir is required for CommonJS");
+        let filename = self.get_filename();
+
+        let (_, root_dir) = StateManager::get_package_name_and_path(filename, package_json_seen)
+          .unwrap_or_else(|| panic!("Cannot get package name and path for: {}", filename));
 
         let theme_file_extension = module_resolution
           .theme_file_extension
@@ -326,10 +384,13 @@ impl StateManager {
         let resolved_file_path = file_path_resolver(
           import_path,
           source_file_path,
-          root_dir,
+          &root_dir,
           &aliases,
           package_json_seen,
         );
+
+        let resolved_file_path =
+          self.get_canonical_file_path(&resolved_file_path, package_json_seen);
 
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
       }

@@ -28,7 +28,7 @@ pub struct PackageJsonExtended {
   pub dev_dependencies: Option<PackageDependencies>,
 }
 
-pub(crate) fn get_package_json(
+pub fn get_package_json(
   path: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> (PackageJsonExtended, PackageJsonManager) {
@@ -76,7 +76,7 @@ pub(crate) fn get_package_json_path(path: &Path) -> (Option<PathBuf>, PackageJso
   }
 }
 
-pub(crate) fn find_nearest_package_json(path: &Path) -> Option<PathBuf> {
+pub fn find_nearest_package_json(path: &Path) -> Option<PathBuf> {
   let package_json_path: PathBuf = path.join("package.json");
 
   if package_json_path.exists() {

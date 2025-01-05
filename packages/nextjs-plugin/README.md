@@ -107,7 +107,6 @@ module.exports = stylexPlugin({
     },
     unstable_moduleResolution: {
       type: 'commonJS',
-      rootDir,
     },
   },
   stylexImports: ['@stylexjs/stylex', { from: './theme', as: 'tokens' }],

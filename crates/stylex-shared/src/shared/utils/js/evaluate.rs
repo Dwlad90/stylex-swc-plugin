@@ -843,10 +843,6 @@ fn _evaluate(
                 Some(EvaluateResultValue::FunctionConfig(fc)) => func = Some(Box::new(fc.clone())),
                 Some(EvaluateResultValue::Callback(cb)) => {
                   return Some(EvaluateResultValue::Callback(cb));
-                  // func = Some(Box::new(FunctionConfig {
-                  //   fn_ptr: FunctionType::Callback(Box::new(CallbackType::Custom())),
-                  //   takes_path: false,
-                  // }));
                 }
                 _ => {
                   return deopt(path, state, NON_CONSTANT);
@@ -1679,7 +1675,6 @@ fn _evaluate(
                     }
                     _ => panic!("Arrow function not found"),
                   };
-                  // panic!("Custom callback");
 
                   return Some(EvaluateResultValue::Expr(bbb));
                 }

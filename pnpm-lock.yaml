@@ -845,6 +845,9 @@ importers:
       '@stylexjs/babel-plugin':
         specifier: ^0.9.3
         version: 0.9.3
+      '@stylexswc/rs-compiler':
+        specifier: 0.5.1
+        version: link:../../crates/stylex-rs-compiler
       esbuild:
         specifier: '*'
         version: 0.24.0
@@ -864,9 +867,6 @@ importers:
       '@nuxt/schema':
         specifier: ^3.13.0
         version: 3.14.159(rollup@4.25.0)(webpack-sources@3.2.3)
-      '@stylexswc/rs-compiler':
-        specifier: 0.5.1
-        version: link:../../crates/stylex-rs-compiler
       '@types/node':
         specifier: ^22.5.1
         version: 22.8.5
@@ -10905,13 +10905,13 @@ snapshots:
 
   '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4)(webpack@5.96.1)':
     dependencies:
-      webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
-      webpack-cli: 5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1)
+      webpack: 5.96.1(webpack-cli@5.1.4)
+      webpack-cli: 5.1.4(webpack@5.96.1)
 
   '@webpack-cli/info@2.0.2(webpack-cli@5.1.4)(webpack@5.96.1)':
     dependencies:
-      webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
-      webpack-cli: 5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1)
+      webpack: 5.96.1(webpack-cli@5.1.4)
+      webpack-cli: 5.1.4(webpack@5.96.1)
 
   '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack-dev-server@5.0.4)(webpack@5.96.1)':
     dependencies:
@@ -13423,7 +13423,7 @@ snapshots:
       tapable: 2.2.1
     optionalDependencies:
       '@rspack/core': 1.1.6(@swc/helpers@0.5.15)
-      webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
+      webpack: 5.96.1(webpack-cli@5.1.4)
 
   htmlparser2@6.1.0:
     dependencies:

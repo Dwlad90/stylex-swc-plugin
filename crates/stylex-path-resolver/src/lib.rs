@@ -1,7 +1,7 @@
 mod file_system;
 pub mod package_json;
 pub mod resolvers;
-mod utils;
+pub mod utils;
 
 #[cfg(test)]
 mod tests {

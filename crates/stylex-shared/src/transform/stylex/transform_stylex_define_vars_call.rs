@@ -123,7 +123,7 @@ where
 
       let file_name = self
         .state
-        .get_filename_for_hashing()
+        .get_filename_for_hashing(&mut FxHashMap::default())
         .expect("No filename found for generating theme name.");
 
       let export_expr = self

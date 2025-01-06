@@ -339,7 +339,7 @@ jobs:
           echo "🗑️ Deleting caches..."
           for key in $cacheKeys; do
             echo "Deleting cache: $key"
-            gh cache delete "$key" --confirm
+            gh cache delete "$key" || true
           done
 
           echo "✅ Cache cleanup completed"

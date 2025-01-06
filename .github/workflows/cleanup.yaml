@@ -3,6 +3,9 @@ on:
   pull_request_target:
     types:
       - closed
+  pull_request:
+    types:
+      - closed
   push:
     branches:
       - develop
@@ -40,7 +43,7 @@ jobs:
 
           for key in $cacheKeys; do
             echo "Cache \"$key will\" will be deleted"
-            gh cache delete $key || true
+            gh cache delete "$key" || true
           done
 
           echo "Cache cleanup completed"

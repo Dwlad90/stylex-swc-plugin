@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/test-parser",
   "description": "Parse origin jest stylex test files",
-  "version": "0.5.1",
+  "version": "0.6.0-rc.1",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"

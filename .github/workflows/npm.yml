@@ -251,9 +251,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ./cache
-          key: ${{ matrix.settings.target }}-benchmark-${{ github.ref }}
-          restore-keys: |
-            ${{ matrix.settings.target }}-benchmark-
+          key: ${{ matrix.settings.target }}-benchmark
       - name: Run benchmarks
         run: pnpm run --filter @stylexswc/rs-compiler bench
       - name: Store benchmark result

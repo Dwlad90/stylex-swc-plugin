@@ -97,13 +97,10 @@ pub(crate) fn resolve_package_from_package_json(
 ) -> Option<swc_core::ecma::loader::resolve::Resolution> {
   const PATH_SEPARATOR: char = '/';
 
-  if let Some(mut resolution) =
+  if let Some(resolution) =
     get_node_modules_path(resolver, file_name, import_path_str, package_json_seen)
   {
-    if let FileName::Real(path) = &resolution.filename {
-      if cfg!(feature = "wasm") {
-        resolution.filename = FileName::Real(PathBuf::from("cwd").join(path));
-      }
+    if let FileName::Real(_) = &resolution.filename {
       return Some(resolution);
     }
   }

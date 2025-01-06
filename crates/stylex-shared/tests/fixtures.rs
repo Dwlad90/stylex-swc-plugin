@@ -17,20 +17,8 @@ use swc_core::{
 
 #[testing::fixture("tests/fixture/**/input.js")]
 fn fixture(input: PathBuf) {
-  let output: PathBuf;
-  let output_prod: PathBuf;
-
-  #[cfg(feature = "wasm")]
-  {
-    output = input.parent().unwrap().join("wasm_output.js");
-    output_prod = input.parent().unwrap().join("wasm_output_prod.js");
-  }
-
-  #[cfg(not(feature = "wasm"))]
-  {
-    output = input.parent().unwrap().join("rs_output.js");
-    output_prod = input.parent().unwrap().join("rs_output_prod.js");
-  }
+  let output = input.parent().unwrap().join("output.js");
+  let output_prod = input.parent().unwrap().join("output_prod.js");
 
   test_fixture(
     Syntax::Typescript(TsSyntax {

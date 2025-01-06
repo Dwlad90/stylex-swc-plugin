@@ -40,7 +40,7 @@
   "peerDependencies": {
     "next": ">=15.0.0"
   },
-  "private": false,
+  "private": true,
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"

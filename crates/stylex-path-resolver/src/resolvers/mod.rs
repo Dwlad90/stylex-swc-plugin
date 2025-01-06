@@ -38,7 +38,7 @@ pub fn resolve_path(
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
   if !FILE_PATTERN.is_match(processing_file.to_str().unwrap()) {
-    let processing_path = if !cfg!(feature = "wasm") || cfg!(test) {
+    let processing_path = if cfg!(test) {
       processing_file
         .strip_prefix(root_dir.parent().unwrap().parent().unwrap())
         .unwrap()
@@ -53,7 +53,7 @@ pub fn resolve_path(
     );
   }
 
-  let cwd = if !cfg!(feature = "wasm") || cfg!(test) {
+  let cwd = if cfg!(test) {
     root_dir.to_path_buf()
   } else {
     "cwd".into()
@@ -212,13 +212,9 @@ pub(crate) fn get_node_modules_path(
 ) -> Option<swc_core::ecma::loader::resolve::Resolution> {
   {
     match resolver.resolve(file_name, name) {
-      Ok(mut resolution) => {
+      Ok(resolution) => {
         if let FileName::Real(real_filename) = &resolution.filename {
           if real_filename.starts_with("node_modules") {
-            if cfg!(feature = "wasm") {
-              resolution.filename = FileName::Real(PathBuf::from("cwd").join(real_filename));
-            };
-
             return Some(resolution);
           }
         }
@@ -337,15 +333,9 @@ pub fn resolve_file_path(
   let source_file_dir = Path::new(source_file_path).parent().unwrap();
   let root_path = Path::new(root_path);
 
-  let cwd = if cfg!(feature = "wasm") {
-    "cwd"
-  } else {
-    root_path.to_str().unwrap()
-  };
+  let cwd_path = Path::new(root_path);
 
-  let cwd_path = Path::new(cwd);
-
-  let mut resolved_file_paths: Vec<PathBuf> = if import_path_str.starts_with('.') {
+  let resolved_file_paths = if import_path_str.starts_with('.') {
     vec![resolve_path(
       &source_file_dir.join(import_path_str),
       root_path,
@@ -402,16 +392,6 @@ pub fn resolve_file_path(
 
       if !potential_package_path.as_os_str().is_empty() {
         aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
-
-        if cfg!(feature = "wasm") {
-          if let Ok(potential_package_path_stripped) = potential_package_path.strip_prefix("cwd/") {
-            aliased_file_paths.insert(
-              Path::new(&potential_package_path_stripped)
-                .to_path_buf()
-                .clean(),
-            );
-          }
-        }
       }
 
       if !resolved_node_modules_path_buf.ends_with("node_modules") {
@@ -421,22 +401,10 @@ pub fn resolve_file_path(
 
     if !import_path_str.is_empty() {
       aliased_file_paths.insert(Path::new("node_modules").join(import_path_str));
-
-      if cfg!(feature = "wasm") {
-        aliased_file_paths.insert(Path::new("cwd/node_modules").join(import_path_str));
-      }
     }
 
     aliased_file_paths.into_iter().collect()
   };
-
-  if cfg!(feature = "wasm") {
-    resolved_file_paths.sort_by_key(|file_path| {
-      let lossy_file_path = file_path.to_string_lossy().to_string();
-
-      (lossy_file_path.len(), lossy_file_path.clone())
-    });
-  }
 
   for resolved_file_path in resolved_file_paths.iter() {
     let mut resolved_file_path = resolved_file_path.clean();
@@ -462,7 +430,7 @@ pub fn resolve_file_path(
     let path_to_check: PathBuf;
     let node_modules_path_to_check: PathBuf;
 
-    if !cleaned_path.contains(cwd) {
+    if !cleaned_path.contains(root_path.to_str().expect("root path is not valid")) {
       if !cleaned_path.starts_with("node_modules") {
         node_modules_path_to_check = cwd_path.join("node_modules").join(&cleaned_path);
       } else {

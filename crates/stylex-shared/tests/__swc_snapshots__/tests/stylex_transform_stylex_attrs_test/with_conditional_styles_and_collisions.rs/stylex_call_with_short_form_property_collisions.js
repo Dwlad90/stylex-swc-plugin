@@ -1,4 +1,3 @@
-//__stylex_metadata_start__[{"class_name":"x14odnwx","style":{"rtl":null,"ltr":".x14odnwx{padding:5px}"},"priority":1000},{"class_name":"x2vl965","style":{"rtl":null,"ltr":".x2vl965{padding-inline-end:10px}"},"priority":3000},{"class_name":"x1i3ajwb","style":{"rtl":null,"ltr":".x1i3ajwb{padding:2px}"},"priority":1000},{"class_name":"xe2zdcy","style":{"rtl":null,"ltr":".xe2zdcy{padding-inline-start:10px}"},"priority":3000}]__stylex_metadata_end__
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';

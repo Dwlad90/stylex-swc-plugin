@@ -34,8 +34,8 @@ env_logger.workspace = true
 
 swc_ecma_parser = { version = "*", features = ["verify"] }
 
-stylex_path_resolver = { path = "../stylex-path-resolver", features = ["wasm"] }
-stylex_shared = { path = "../stylex-shared", features = ["wasm"] }
+stylex_path_resolver = { path = "../stylex-path-resolver" }
+stylex_shared = { path = "../stylex-shared" }
 
 
 # .cargo/config defines few alias to build plugin.

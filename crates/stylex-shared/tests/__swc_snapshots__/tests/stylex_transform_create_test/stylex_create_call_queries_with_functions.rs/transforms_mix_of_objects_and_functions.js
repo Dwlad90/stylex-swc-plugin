@@ -1,4 +1,3 @@
-//__stylex_metadata_start__[{"class_name":"xrkmrrc","style":{"rtl":null,"ltr":".xrkmrrc{background-color:red}"},"priority":3000},{"class_name":"xfx01vb","style":{"rtl":null,"ltr":".xfx01vb{color:var(--color)}"},"priority":3000},{"class_name":"x1mqxbix","style":{"rtl":null,"ltr":".x1mqxbix{color:black}"},"priority":3000},{"class_name":"--color","style":{"rtl":null,"ltr":"@property --color { syntax: \"*\"; inherits: false; initial-value: \"*\"; }"},"priority":0}]__stylex_metadata_end__
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';

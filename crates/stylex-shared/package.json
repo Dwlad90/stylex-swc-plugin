@@ -25,7 +25,6 @@
   "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --rust",
-    "check:artifacts": "[ -f ./dist/stylex_swc_plugin.wasm ] || { echo 'Artifacts does not exist'; exit 1; }",
     "clean": "del-cli dist",
     "docs": "scripty --rust",
     "docs:open": "pnpm run docs --open",
@@ -35,10 +34,8 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "pnpm run test:rs && pnpm run test:wasm",
-    "test:profile": "NODE_ENV=test cargo flamegraph --root --test",
-    "test:rs": "NODE_ENV=test cargo test --lib --bins --tests fixture_",
-    "test:wasm": "NODE_ENV=test cargo test --lib --bins --tests --features wasm"
+    "test": "NODE_ENV=test cargo test --lib --bins --tests",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
   "sideEffects": false
 }

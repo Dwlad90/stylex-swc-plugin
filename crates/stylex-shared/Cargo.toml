@@ -11,9 +11,6 @@ repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 crate-type = ["cdylib", "rlib"]
 doctest = false
 
-[features]
-wasm = []
-
 [dependencies]
 serde.workspace = true
 swc_core = { workspace = true, features = [
@@ -56,7 +53,11 @@ stylex_path_resolver = { path = "../stylex-path-resolver" }
 
 
 [dev-dependencies]
-swc_core = { workspace = true, features = ["testing_transform", "ecma_parser", 'ecma_utils'] }
+swc_core = { workspace = true, features = [
+  "testing_transform",
+  "ecma_parser",
+  'ecma_utils',
+] }
 testing.workspace = true
 insta = { workspace = true, features = ["yaml"] }
 

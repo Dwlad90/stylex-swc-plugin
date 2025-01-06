@@ -8,11 +8,6 @@ use crate::{
   StyleXTransform,
 };
 
-#[cfg(feature = "wasm")]
-use crate::shared::structures::meta_data::MetaData;
-#[cfg(feature = "wasm")]
-use swc_core::common::comments::{Comment, CommentKind};
-
 impl<C> StyleXTransform<C>
 where
   C: Comments,
@@ -31,37 +26,6 @@ where
 
       self.state.cycle = TransformationCycle::TransformExit;
       module = module.fold_children_with(self);
-
-      #[cfg(feature = "wasm")]
-      {
-        if !&self.state.metadata.is_empty() {
-          if self.comments.has_leading(module.span.lo) {
-            self.comments.take_leading(module.span.lo);
-          }
-
-          // Preparing stylex metadata for css extraction
-          self.comments.add_leading(
-            module.span.lo,
-            Comment {
-              kind: CommentKind::Line,
-              text: format!(
-                "__stylex_metadata_start__{}__stylex_metadata_end__",
-                serde_json::to_string(
-                  &self
-                    .state
-                    .metadata
-                    .iter()
-                    .flat_map(|v| v.1.clone())
-                    .collect::<Vec<MetaData>>()
-                )
-                .unwrap()
-              )
-              .into(),
-              span: module.span,
-            },
-          );
-        }
-      }
 
       if self.state.options.runtime_injection.is_some() {
         self.state.cycle = TransformationCycle::InjectStyles;

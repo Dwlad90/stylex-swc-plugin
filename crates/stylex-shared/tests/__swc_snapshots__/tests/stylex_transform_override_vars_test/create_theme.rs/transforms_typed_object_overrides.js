@@ -1,4 +1,3 @@
-//__stylex_metadata_start__[{"class_name":"x41sqjo","style":{"rtl":null,"ltr":".x41sqjo, .x41sqjo:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:4px;--x4y59db:coral;}"},"priority":0.5},{"class_name":"x41sqjo-1lveb7","style":{"rtl":null,"ltr":"@media (prefers-color-scheme: dark){.x41sqjo, .x41sqjo:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}"},"priority":0.6},{"class_name":"x41sqjo-bdddrq","style":{"rtl":null,"ltr":"@media print{.x41sqjo, .x41sqjo:root{--xgck17p:transparent;}}"},"priority":0.6}]__stylex_metadata_end__
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';

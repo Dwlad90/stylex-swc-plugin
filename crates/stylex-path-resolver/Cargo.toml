@@ -12,9 +12,6 @@ repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 crate-type = ["cdylib", "rlib"]
 doctest = false
 
-[features]
-wasm=[]
-
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true

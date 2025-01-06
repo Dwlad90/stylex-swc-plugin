@@ -18,7 +18,7 @@
   ],
   "license": "MIT",
   "main": "./dist/stylex_swc_plugin.wasm",
-  "private": false,
+  "private": true,
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"

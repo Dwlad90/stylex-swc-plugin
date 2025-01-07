@@ -14,6 +14,7 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build:
     strategy:
@@ -317,31 +318,17 @@ jobs:
       - name: 🛠️ Checkout code
         uses: actions/checkout@v4
       - name: 🧹 Cleanup Caches
+        run: |
+          REF="${{ github.ref }}"
+
+          run_id=$(gh workflow run .github/workflows/cleanup.yaml \
+            --ref ${{ github.ref }} \
+            --inputs reference=${{ github.ref }} \
+            --repo ${{ github.repository }} \
+            --json) || exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Wait for cache propagation
-          sleep 10
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
 
-          echo "🔍 Listing caches..."
 
-          # Get cache keys excluding benchmarks
-          cacheKeys=$(gh cache list \
-            --ref "${{ github.ref }}" \
-            --limit 100 \
-            --json key,id \
-            --jq '.[] | select(.key | endswith("-benchmark") | not) | .id')
-
-          if [ -z "$cacheKeys" ]; then
-            echo "ℹ️ No caches found to clean"
-            exit 0
-          fi
-
-          # Delete each cache
-          echo "🗑️ Deleting caches..."
-          for key in $cacheKeys; do
-            echo "Deleting cache: $key"
-            gh cache delete "$key" || true
-          done
-
-          echo "✅ Cache cleanup completed"

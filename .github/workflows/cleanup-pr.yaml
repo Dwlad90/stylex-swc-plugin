@@ -15,20 +15,13 @@ jobs:
       - name: 🧹 Cleanup
         shell: bash
         run: |
-          sleep 5
+          REF="refs/pull/${{ github.event.pull_request.number }}/merge"
 
-          PR_REF="refs/pull/${{ github.event.pull_request.number }}/merge"
-
-          echo "Cleaning PR #${{ github.event.pull_request.number }} caches (excluding benchmarks)..."
-
-          cacheKeys=$(gh cache list --ref $PR_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
-
-          for key in $cacheKeys; do
-            echo "Cache \"$key will\" will be deleted"
-            gh cache delete "$key" || true
-          done
-
-          echo "Cache cleanup completed"
+          run_id=$(gh workflow run .github/workflows/cleanup.yaml \
+            --ref ${{ github.ref }} \
+            --inputs reference=$REF \
+            --repo ${{ github.repository }} \
+            --json) || exit 1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

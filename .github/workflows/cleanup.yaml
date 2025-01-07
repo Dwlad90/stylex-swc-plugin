@@ -1,0 +1,38 @@
+name: Clean up caches
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      reference:
+        description: 'Chache reference'
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.reference }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧹 Cleanup
+        shell: bash
+        run: |
+          REF="${{ github.event.inputs.reference }}"
+
+          sleep 5
+
+          echo "Cleaning  #${{ github.event.inputs.reference }} caches (excluding benchmarks)..."
+
+          cacheKeys=$(gh cache list --ref $REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
+
+          for key in $cacheKeys; do
+            echo "Cache \"$key will\" will be deleted"
+            gh cache delete "$key" || true
+          done
+
+          echo "Cache cleanup completed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

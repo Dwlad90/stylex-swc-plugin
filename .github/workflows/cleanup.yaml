@@ -1,8 +1,5 @@
-name: Clean up caches by branch
+name: Clean up caches
 on:
-  pull_request_target:
-    types:
-      - closed
   pull_request:
     types:
       - closed
@@ -23,8 +20,9 @@ jobs:
       - name: 🧹 Cleanup
         shell: bash
         run: |
+          sleep 5
+
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            sleep 5
 
             PR_REF="refs/pull/${{ github.event.pull_request.number }}/merge"
 
@@ -32,8 +30,6 @@ jobs:
 
             cacheKeys=$(gh cache list --ref $PR_REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
           else
-            sleep 300
-
             REF="${{ github.ref }}"
 
             echo "Cleaning $REF caches (excluding benchmarks)..."

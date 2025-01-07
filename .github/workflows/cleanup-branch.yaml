@@ -1,0 +1,36 @@
+name: Clean up branch caches
+on:
+  push:
+    branches:
+      - develop
+      - master
+  delete:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧹 Cleanup
+        shell: bash
+        run: |
+          sleep 5
+
+          REF="${{ github.ref }}"
+
+          echo "Cleaning $REF caches (excluding benchmarks)..."
+
+          cacheKeys=$(gh cache list --ref $REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
+
+          for key in $cacheKeys; do
+            echo "Cache \"$key will\" will be deleted"
+            gh cache delete "$key" || true
+          done
+
+          echo "Cache cleanup completed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

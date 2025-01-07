@@ -52,7 +52,7 @@ jobs:
                 nouns: ['STYLE', 'Style', 'style']
                 labels: ['style']
               - type: 'revert'
-                nouns: ['REVERT', 'Revert', 'revert']
+                nouns: ['REVERT', 'Revert', 'revert', 'REVERTED', 'Reverted', 'reverted', 'Reapply', 'REAPPLY', 'Reapply', 'reapply', 'REVERTING', 'Reverting', 'reverting']
                 labels: ['revert']
               - type: 'chore'
                 nouns: ['CHORE', 'Chore', 'chore', 'CHORES', 'Chores', 'chores']

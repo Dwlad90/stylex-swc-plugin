@@ -1,0 +1,23 @@
+name: Self Approve Pull Request
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  self-approve:
+    name: Self Approve PR
+    if: |
+      github.event.issue.pull_request != '' &&
+      contains(github.event.comment.body, '/approve') &&
+      contains(fromJson('["dwlad90"]'), github.event.comment.user.login)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code into workspace directory
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Approve Pull Request
+        run: |
+          gh pr review ${{ github.event.issue.number }} --approve -R ${{ github.repository }}

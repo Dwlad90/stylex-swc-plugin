@@ -49,7 +49,7 @@ jobs:
                 nouns: ['DOCS', 'Docs', 'docs', 'DOCUMENTATION', 'Documentation', 'documentation']
                 labels: ['documentation']
               - type: 'style'
-                nouns: ['STYLE', 'Style', 'style']
+                nouns: ['STYLE', 'Style', 'style', 'CSS', 'Css', 'css', 'DESIGN', 'Design', 'design']
                 labels: ['style']
               - type: 'revert'
                 nouns: ['REVERT', 'Revert', 'revert', 'REVERTED', 'Reverted', 'reverted', 'Reapply', 'REAPPLY', 'Reapply', 'reapply', 'REVERTING', 'Reverting', 'reverting']

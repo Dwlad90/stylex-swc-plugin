@@ -4,10 +4,7 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{
-    constants::messages::MUST_BE_DEFAULT_IMPORT, enums::core::TransformationCycle,
-    structures::named_import_source::ImportSources,
-  },
+  shared::{enums::core::TransformationCycle, structures::named_import_source::ImportSources},
   StyleXTransform,
 };
 
@@ -169,9 +166,7 @@ where
         "types" => {
           self.state.stylex_types_import.insert(local_name_ident_atom);
         }
-        _ => {
-          unreachable!("{}", MUST_BE_DEFAULT_IMPORT)
-        }
+        _ => {}
       }
     }
   }

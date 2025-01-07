@@ -1,7 +1,7 @@
 use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
+  transforms::testing::test,
 };
 
 test!(
@@ -28,30 +28,78 @@ test!(
     "#
 );
 
-#[test]
-#[should_panic(expected = "Must be default import")]
-fn throw_when_named_import() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
-    },
-    r#"
-            import { foo } from "@stylexjs/stylex";
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  not_throw_when_named_import,
+  r#"
+        import { foo } from "@stylexjs/stylex";
 
-            foo('bar');
-        "#,
-    r#""#,
-  )
-}
+        foo('bar');
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  support_stylex_imports_with_types,
+  r#"
+      import stylex, { StyleXStyles } from "@stylexjs/stylex";
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  support_stylex_imports_with_types_v2,
+  r#"
+      import stylex, { type StyleXStyles } from "@stylexjs/stylex";
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  support_stylex_imports_and_types,
+  r#"
+      import stylex from "@stylexjs/stylex";
+      import { StyleXStyles } from "@stylexjs/stylex";
+    "#
+);
 
 test!(
   Syntax::Typescript(TsSyntax {

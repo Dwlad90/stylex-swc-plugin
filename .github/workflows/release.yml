@@ -237,7 +237,7 @@ jobs:
       - name: 📦 Publish to NPM
         id: npm
         run: |
-          run_id=$(gh workflow run .github/workflows/npm.yml \
+          run_id=$(gh workflow run npm.yml \
             --ref ${{ needs.calculate-version.outputs.new_version }} \
             --repo ${{ github.repository }} \
             --json) || exit 1

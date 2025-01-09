@@ -321,11 +321,10 @@ jobs:
         run: |
           REF="${{ github.ref }}"
 
-          run_id=$(gh workflow run .github/workflows/cleanup.yaml \
+          run_id=$(gh workflow run cleanup.yaml \
             --ref ${{ github.ref }} \
-            --inputs reference=${{ github.ref }} \
-            --repo ${{ github.repository }} \
-            --json) || exit 1
+            --field reference=$REF \
+            --repo ${{ github.repository }}) || exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

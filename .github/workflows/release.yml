@@ -153,9 +153,28 @@ jobs:
           git add .
           git commit --no-verify -m "Bump version to ${{ needs.calculate-version.outputs.new_version }}"
           git log --oneline | head -n 3
+      - name: ✅ Check if tag can be fast-forwarded
+        id: ff_check
+        run: |
+          git fetch --all --tags
+
+          # Get the merge base between current HEAD and master
+          merge_base=$(git merge-base HEAD origin/master)
+          master_commit=$(git rev-parse origin/master)
+
+          # Check if HEAD is ahead of or equal to master
+          if [ "$merge_base" = "$master_commit" ]; then
+            echo "Tag can be fast-forwarded to master"
+            echo "can_ff=true" >> $GITHUB_OUTPUT
+          else
+            echo "Error: Current HEAD cannot be fast-forwarded to master"
+            echo "can_ff=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
 
       - name: 🏷️ Create new version tag
         id: newtag
+        if: steps.ff_check.outputs.can_ff == 'true'
         run: |
           newVersion=${{ needs.calculate-version.outputs.new_version }}
 
@@ -316,7 +335,7 @@ jobs:
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           git checkout develop
-          git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}
+          git merge ${{ needs.calculate-version.outputs.new_version }}
           git push origin develop
 
   merge-master:

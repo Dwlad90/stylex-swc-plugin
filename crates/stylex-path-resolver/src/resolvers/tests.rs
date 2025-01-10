@@ -643,7 +643,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = Default::default();
 
@@ -653,7 +652,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),
@@ -674,7 +672,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = Default::default();
 
@@ -684,7 +681,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),
@@ -705,7 +701,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let mut aliases = FxHashMap::default();
     aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
@@ -716,7 +711,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),
@@ -737,7 +731,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
@@ -747,7 +740,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),
@@ -768,7 +760,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
@@ -778,7 +769,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),
@@ -799,7 +789,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
@@ -810,7 +799,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),
@@ -831,7 +819,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
@@ -841,7 +828,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),
@@ -862,7 +848,6 @@ mod resolve_path_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let ext = ".js";
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
@@ -872,7 +857,6 @@ mod resolve_path_tests {
       resolve_file_path(
         import_path_str,
         source_file_path.as_str(),
-        ext,
         root_path.as_str(),
         &aliases,
         &mut HashMap::default(),

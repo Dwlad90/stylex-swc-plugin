@@ -325,7 +325,6 @@ fn resolve_package_json_exports(
 pub fn resolve_file_path(
   import_path_str: &str,
   source_file_path: &str,
-  ext: &str,
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
@@ -394,7 +393,9 @@ pub fn resolve_file_path(
         aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
       }
 
-      if !resolved_node_modules_path_buf.ends_with("node_modules") {
+      if !resolved_node_modules_path_buf.as_os_str().is_empty()
+        && !resolved_node_modules_path_buf.ends_with("node_modules")
+      {
         aliased_file_paths.insert(resolved_node_modules_path_buf.clean());
       }
     }
@@ -406,44 +407,51 @@ pub fn resolve_file_path(
     aliased_file_paths.into_iter().collect()
   };
 
-  for resolved_file_path in resolved_file_paths.iter() {
-    let mut resolved_file_path = resolved_file_path.clean();
+  let valid_file_paths = resolved_file_paths
+    .iter()
+    .filter(|path| path.as_path() != Path::new("."))
+    .collect::<Vec<&PathBuf>>();
 
-    if let Some(extension) = resolved_file_path.extension() {
-      let subpath = extension.to_string_lossy();
-      if EXTENSIONS
-        .iter()
-        .all(|ext| !ext.ends_with(subpath.as_ref()))
-      {
-        resolved_file_path.set_extension(format!("{}{}", subpath, ext));
-      }
-    } else {
-      resolved_file_path.set_extension(ext);
-    }
+  for ext in EXTENSIONS.iter() {
+    for resolved_file_path in valid_file_paths.iter() {
+      let mut resolved_file_path = resolved_file_path.clean();
 
-    let cleaned_path = resolved_file_path
-      .to_str()
-      .unwrap()
-      .replace("..", ".")
-      .to_string();
-
-    let path_to_check: PathBuf;
-    let node_modules_path_to_check: PathBuf;
-
-    if !cleaned_path.contains(root_path.to_str().expect("root path is not valid")) {
-      if !cleaned_path.starts_with("node_modules") {
-        node_modules_path_to_check = cwd_path.join("node_modules").join(&cleaned_path);
+      if let Some(extension) = resolved_file_path.extension() {
+        let subpath = extension.to_string_lossy();
+        if EXTENSIONS
+          .iter()
+          .all(|ext| !ext.ends_with(subpath.as_ref()))
+        {
+          resolved_file_path.set_extension(format!("{}{}", subpath, ext));
+        }
       } else {
-        node_modules_path_to_check = cwd_path.join(&cleaned_path);
+        resolved_file_path.set_extension(ext);
       }
-      path_to_check = cwd_path.join(cleaned_path);
-    } else {
-      path_to_check = PathBuf::from(&cleaned_path);
-      node_modules_path_to_check = path_to_check.clone();
-    }
 
-    if fs::metadata(&path_to_check).is_ok() || fs::metadata(&node_modules_path_to_check).is_ok() {
-      return Ok(resolved_file_path.to_path_buf());
+      let cleaned_path = resolved_file_path
+        .to_str()
+        .unwrap()
+        .replace("..", ".")
+        .to_string();
+
+      let path_to_check: PathBuf;
+      let node_modules_path_to_check: PathBuf;
+
+      if !cleaned_path.contains(root_path.to_str().expect("root path is not valid")) {
+        if !cleaned_path.starts_with("node_modules") {
+          node_modules_path_to_check = cwd_path.join("node_modules").join(&cleaned_path);
+        } else {
+          node_modules_path_to_check = cwd_path.join(&cleaned_path);
+        }
+        path_to_check = cwd_path.join(cleaned_path);
+      } else {
+        path_to_check = PathBuf::from(&cleaned_path);
+        node_modules_path_to_check = path_to_check.clone();
+      }
+
+      if fs::metadata(&path_to_check).is_ok() || fs::metadata(&node_modules_path_to_check).is_ok() {
+        return Ok(resolved_file_path.to_path_buf());
+      }
     }
   }
 

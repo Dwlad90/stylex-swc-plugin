@@ -854,30 +854,21 @@ fn file_path_resolver(
     unimplemented!("Extension match found, but handling is unimplemented");
   }
 
-  for ext in EXTENSIONS.iter() {
-    let import_path_str = if relative_file_path.starts_with('.') {
-      format!("{}{}", relative_file_path, ext)
+  let resolved_file_path = resolve_file_path(
+    relative_file_path,
+    source_file_path,
+    root_path,
+    aliases,
+    package_json_seen,
+  );
+
+  if let Ok(resolved_path) = resolved_file_path {
+    let resolved_path_str = resolved_path.display().to_string();
+
+    if resolved_path_str.contains("/app/@") {
+      return resolved_path_str.replace("/app/@", "/node_modules/@");
     } else {
-      relative_file_path.to_string()
-    };
-
-    let resolved_file_path = resolve_file_path(
-      &import_path_str,
-      source_file_path,
-      ext,
-      root_path,
-      aliases,
-      package_json_seen,
-    );
-
-    if let Ok(resolved_path) = resolved_file_path {
-      let resolved_path_str = resolved_path.display().to_string();
-
-      if resolved_path_str.contains("/app/@") {
-        return resolved_path_str.replace("/app/@", "/node_modules/@");
-      } else {
-        return resolved_path_str;
-      }
+      return resolved_path_str;
     }
   }
 

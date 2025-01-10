@@ -141,7 +141,6 @@ function createBuilder() {
       const filePath = path.resolve(cwd || '/', file);
       const contents = fs.readFileSync(filePath, 'utf-8');
       if (!bundler.shouldTransform(contents)) {
-        console.log('contents: ', contents);
         return;
       }
       const transformedResult = bundler.transform(file, contents, rsOptions || {}, {

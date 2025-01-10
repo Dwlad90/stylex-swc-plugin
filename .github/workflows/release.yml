@@ -255,6 +255,8 @@ jobs:
             exit 1
           fi
 
+          sleep 780; # Wait for 13 minutes before checking the status
+
           while true; do
             status=$(gh run view "$run_id" --json status --jq '.status')
             echo "Current status: $status"
@@ -271,7 +273,7 @@ jobs:
                 fi
                 ;;
               "in_progress"|"queued")
-                sleep 30
+                sleep 60 # Wait for 1 minute
                 ;;
               *)
                 echo "::error::Unexpected status: $status"
@@ -285,7 +287,7 @@ jobs:
           if [ "$status" != "completed" ] || [ "$status" = "failure" ] || [ "$status" = "cancelled" ]; then
             echo "Workflow failed with status: $status"
             exit 1
-          fi`
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

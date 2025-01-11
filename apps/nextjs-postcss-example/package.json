@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-postcss-example",
-  "version": "0.6.1-rc.1",
+  "version": "0.6.1-rc.2",
   "private": true,
   "scripts": {
     "clean": "rimraf .next",
@@ -13,7 +13,7 @@
     "next:lint": "next lint"
   },
   "dependencies": {
-    "@stylexswc/postcss-plugin": "0.6.1-rc.1",
+    "@stylexswc/postcss-plugin": "0.6.1-rc.2",
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
     "next": "15.1.2",

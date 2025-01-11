@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-example",
-  "version": "0.6.1-rc.1",
+  "version": "0.6.1-rc.2",
   "private": true,
   "scripts": {
     "clean": "rimraf .next",
@@ -13,7 +13,7 @@
     "next:lint": "next lint"
   },
   "dependencies": {
-    "@stylexswc/nextjs-plugin": "0.6.1-rc.1",
+    "@stylexswc/nextjs-plugin": "0.6.1-rc.2",
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
     "next": "15.1.2",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@stylexjs/eslint-plugin": "^0.9.3",
-    "@stylexswc/rs-compiler": "0.6.1-rc.1",
+    "@stylexswc/rs-compiler": "0.6.1-rc.2",
     "@types/node": "^22.5.1",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",

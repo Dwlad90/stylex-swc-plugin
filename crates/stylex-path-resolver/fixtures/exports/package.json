@@ -1,6 +1,6 @@
 {
   "name": "exports-app",
-  "version": "0.6.1-rc.1",
+  "version": "0.6.1-rc.2",
   "dependencies": {
     "stylex-lib-dist-main": "*",
     "stylex-lib-dist-module": "*",

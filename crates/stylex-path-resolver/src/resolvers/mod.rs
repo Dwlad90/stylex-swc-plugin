@@ -335,12 +335,26 @@ pub fn resolve_file_path(
   let cwd_path = Path::new(root_path);
 
   let resolved_file_paths = if import_path_str.starts_with('.') {
-    vec![resolve_path(
-      &source_file_dir.join(import_path_str),
-      root_path,
-      package_json_seen,
-    )
-    .into()]
+    if FILE_PATTERN.is_match(import_path_str) {
+      vec![PathBuf::from(resolve_path(
+        &source_file_dir.join(import_path_str),
+        root_path,
+        package_json_seen,
+      ))]
+    } else {
+      EXTENSIONS
+        .iter()
+        .map(|ext| {
+          let import_path_str_with_ext = format!("{}{}", import_path_str, ext);
+
+          PathBuf::from(resolve_path(
+            &source_file_dir.join(import_path_str_with_ext),
+            root_path,
+            package_json_seen,
+          ))
+        })
+        .collect()
+    }
   } else if import_path_str.starts_with('/') {
     vec![root_path.join(import_path_str)]
   } else {

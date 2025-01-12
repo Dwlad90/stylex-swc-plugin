@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/vue-unplugin-example",
-  "version": "0.6.1-rc.2",
+  "version": "0.6.1",
   "description": "A simple vue unplugin example to test @stylexswc/unplugin/vue",
   "private": true,
   "scripts": {
@@ -9,10 +9,10 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.6.1-rc.2",
+    "@stylexswc/rs-compiler": "0.6.1",
     "@stylexjs/open-props": "^0.9.3",
     "@stylexjs/stylex": "^0.9.3",
-    "@stylexswc/unplugin": "0.6.1-rc.2",
+    "@stylexswc/unplugin": "0.6.1",
     "vue": "^3.5.12"
   },
   "devDependencies": {

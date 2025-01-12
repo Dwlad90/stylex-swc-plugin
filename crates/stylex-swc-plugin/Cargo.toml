@@ -1,6 +1,6 @@
 [package]
 name = "stylex_swc_plugin"
-version = "0.6.1-rc.2"
+version = "0.6.1"
 edition = "2021"
 rust-version = "1.82.0"
 description = "SWC plugin for StyleX"

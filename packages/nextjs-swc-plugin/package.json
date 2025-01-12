@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-swc-plugin",
   "description": "StyleX NextJS plugin with swc plugin",
-  "version": "0.6.1-rc.2",
+  "version": "0.6.1",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -13,10 +13,10 @@
   "deprecated": "Package deprecated since v0.5.0. Please use @stylexswc/nextjs-plugin instead. This package will be removed in the next minor release.",
   "devDependencies": {
     "@babel/types": "^7.23.9",
-    "@stylexswc/eslint-config": "0.6.1-rc.2",
-    "@stylexswc/swc-plugin": "0.6.1-rc.2",
-    "@stylexswc/typescript-config": "0.6.1-rc.2",
-    "@stylexswc/webpack-plugin": "0.6.1-rc.2",
+    "@stylexswc/eslint-config": "0.6.1",
+    "@stylexswc/swc-plugin": "0.6.1",
+    "@stylexswc/typescript-config": "0.6.1",
+    "@stylexswc/webpack-plugin": "0.6.1",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^22.5.1",
     "next": "^15.1.2",

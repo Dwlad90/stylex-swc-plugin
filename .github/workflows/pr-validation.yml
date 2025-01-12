@@ -14,6 +14,19 @@ on:
       - '**/*.gitignore'
       - .editorconfig
       - docs/**
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - converted_to_draft
+    paths-ignore:
+      - '**/*.md'
+      - LICENSE
+      - '**/*.gitignore'
+      - .editorconfig
+      - docs/**
   push:
     branches:
       - develop

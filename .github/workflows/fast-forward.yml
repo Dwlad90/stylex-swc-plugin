@@ -28,3 +28,16 @@ jobs:
           production_branch: 'master'
           staging_branch: 'develop'
           update_status: true
+      - name: 🧹 Cleanup
+        shell: bash
+        id: cleanup
+        run: |
+          REF="${{ github.ref }}"
+
+          run_id=$(gh workflow run cleanup.yaml \
+            --ref $REF \
+            --field reference=$REF \
+            --repo ${{ github.repository }}) || exit 1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

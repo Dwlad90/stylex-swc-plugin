@@ -7,6 +7,7 @@ env:
 permissions:
   contents: write
   id-token: write
+  actions: write
 'on':
   workflow_call:
   workflow_dispatch:
@@ -317,17 +318,12 @@ jobs:
     needs: [publish]
     runs-on: ubuntu-latest
     steps:
-      - name: 🛠️ Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: 🧹 Cleanup Caches
         run: |
           REF="${{ github.ref }}"
 
           run_id=$(gh workflow run cleanup.yaml \
-            --ref ${{ github.ref }} \
+            --ref $REF \
             --field reference=$REF \
             --repo ${{ github.repository }}) || exit 1
         env:

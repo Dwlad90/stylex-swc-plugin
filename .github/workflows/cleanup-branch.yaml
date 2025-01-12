@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🧹 Cleanup
+        id: cleanup
         shell: bash
         run: |
           REF="${{ github.ref }}"

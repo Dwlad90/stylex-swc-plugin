@@ -237,14 +237,26 @@ jobs:
       - name: 📦 Publish to NPM
         id: npm
         run: |
+          MAX_ATTEMPTS=10
+          SLEEP_BASE=5
+
           run_id=$(gh workflow run npm.yml \
             --ref ${{ needs.calculate-version.outputs.new_version }} \
-            --repo ${{ github.repository }} \
-            --json) || exit 1
+            --repo ${{ github.repository }}) || exit 1
 
-          for i in {1..5}; do
-            sleep 5
-            run_id=$(gh run list --workflow=npm.yml --limit=5 --json databaseId,status -q 'map(select(.status == "in_progress" or .status == "queued")) | .[0].databaseId')
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            wait_time=$(( SLEEP_BASE * i ))
+
+            echo "Waiting for $wait_time seconds before checking the status"
+
+            sleep "$wait_time"
+
+            run_id=$(gh run list \
+              --workflow=npm.yml \
+              --limit=5 \
+              --json databaseId,status \
+              -q 'map(select(.status == "in_progress" or .status == "queued" or .status == "waiting")) | .[0].databaseId')
+
             if [ ! -z "$run_id" ]; then
               break
             fi
@@ -254,6 +266,8 @@ jobs:
             echo "Error: Failed to get run ID"
             exit 1
           fi
+
+          sleep 780; # Wait for 13 minutes before checking the status
 
           while true; do
             status=$(gh run view "$run_id" --json status --jq '.status')
@@ -270,8 +284,8 @@ jobs:
                   exit 1
                 fi
                 ;;
-              "in_progress"|"queued")
-                sleep 30
+              "in_progress"|"queued"|"waiting")
+                sleep 60 # Wait for 1 minute
                 ;;
               *)
                 echo "::error::Unexpected status: $status"
@@ -285,7 +299,7 @@ jobs:
           if [ "$status" != "completed" ] || [ "$status" = "failure" ] || [ "$status" = "cancelled" ]; then
             echo "Workflow failed with status: $status"
             exit 1
-          fi`
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

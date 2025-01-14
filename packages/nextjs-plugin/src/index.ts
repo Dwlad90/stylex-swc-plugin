@@ -103,7 +103,7 @@ const withStyleX =
 
         const { buildId, dev, isServer } = ctx;
 
-        if (pluginOptions?.rsOptions.debug || process.env.STYLEX_DEBUG) {
+        if (pluginOptions?.rsOptions?.debug || process.env.STYLEX_DEBUG) {
           console.log(
             [
               '!!!GETTING WEBPACK CONFIG!!!',

@@ -42,8 +42,17 @@ pub fn get_package_json(
         let data = read_to_string(file_path);
 
         data.ok().map(|package_json_raw| {
-          let json =
-            serde_json::from_str::<PackageJsonExtended>(package_json_raw.as_str()).unwrap();
+          let json = serde_json::from_str::<PackageJsonExtended>(package_json_raw.as_str())
+            .unwrap_or_else(|error| {
+              panic!(
+                "Failed to parse `{}` file. Error: {}.\n\nPossible reasons:\n\
+                  - The required field `name` might be missing.\n\
+                  - The JSON structure might be incorrect.\n\
+                  - There might be a syntax error in the JSON.\n\
+                  - Ensure all required fields are present and correctly formatted.",
+                file_path_string, error
+              );
+            });
 
           package_json_seen.insert(file_path.to_string(), json.clone());
           json

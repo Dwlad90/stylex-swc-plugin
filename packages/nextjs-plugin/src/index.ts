@@ -103,16 +103,18 @@ const withStyleX =
 
         const { buildId, dev, isServer } = ctx;
 
-        console.log(
-          [
-            '!!!GETTING WEBPACK CONFIG!!!',
-            '======================',
-            `Count: ${++count}`,
-            `Build ID: ${buildId}`,
-            `Server: ${isServer}`,
-            `Env: ${dev ? 'dev' : 'prod'}`,
-          ].join('\n')
-        );
+        if (pluginOptions?.rsOptions.debug || process.env.STYLEX_DEBUG) {
+          console.log(
+            [
+              '!!!GETTING WEBPACK CONFIG!!!',
+              '======================',
+              `Count: ${++count}`,
+              `Build ID: ${buildId}`,
+              `Server: ${isServer}`,
+              `Env: ${dev ? 'dev' : 'prod'}`,
+            ].join('\n')
+          );
+        }
 
         // For some reason, Next 11.0.1 has `config.optimization.splitChunks`
         // set to `false` when webpack 5 is enabled.

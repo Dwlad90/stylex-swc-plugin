@@ -21,27 +21,27 @@ export default function createBundler() {
   ) {
     const { shouldSkipTransformError } = options;
 
-    let transformReult: ReturnType<typeof stylexTransform> = {
+    let transformResult: ReturnType<typeof stylexTransform> = {
       code: sourceCode,
       map: undefined,
       metadata: { stylex: [] },
     };
 
     try {
-      transformReult = stylexTransform(id, sourceCode, rsConfig);
+      transformResult = stylexTransform(id, sourceCode, rsConfig);
     } catch (error) {
       if (shouldSkipTransformError) {
         console.warn(
           `[@stylexswc/postcss-plugin] Failed to transform "${id}": ${(error as Error).message}`
         );
 
-        return transformReult;
+        return transformResult;
       }
 
       throw error;
     }
 
-    const { code, map, metadata } = transformReult;
+    const { code, map, metadata } = transformResult;
 
     const stylex = metadata.stylex;
     if (stylex != null && stylex.length > 0) {

@@ -13,6 +13,9 @@ module.exports = stylexPlugin({
     unstable_moduleResolution: {
       type: 'commonJS',
     },
+    isDev: process.env.NODE_ENV === 'development',
+    genConditionalClasses: true,
+    treeshakeCompensation: true,
   },
   extractCSS: false,
 })({

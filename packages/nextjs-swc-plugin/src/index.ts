@@ -21,7 +21,9 @@ const getSupportedBrowsers = (dir: string, isDevelopment: boolean) => {
       path: dir,
       env: isDevelopment ? 'development' : 'production',
     });
-  } catch {}
+  } catch {
+    // Ignore
+  }
 };
 
 const getNextMiniCssExtractPlugin = (isDev: boolean) => {

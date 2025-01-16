@@ -44,11 +44,15 @@
   "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --ts",
+    "check:artifacts": "scripty",
     "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "typecheck": "scripty"
   },
   "sideEffects": false
 }

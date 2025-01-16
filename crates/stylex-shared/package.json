@@ -7,6 +7,11 @@
       "path": "../../scripts/packages"
     }
   },
+  "devDependencies": {
+    "@taplo/cli": "^0.7.0",
+    "npm-run-all2": "^6.2.2",
+    "prettier": "^3.3.3"
+  },
   "files": [
     "dist"
   ],
@@ -24,12 +29,17 @@
   },
   "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
-    "build": "scripty --rust",
     "clean": "del-cli dist",
     "docs": "scripty --rust",
     "docs:open": "pnpm run docs --open",
-    "format": "cargo fmt --all",
-    "format:check": "cargo fmt -- --check",
+    "format": "run-p format:prettier format:rs format:toml",
+    "format:check": "run-p format:rs:check format:toml:check",
+    "format:prettier": "prettier . -w",
+    "format:rs": "cargo fmt --all",
+    "format:rs:check": "cargo fmt -- --check",
+    "format:toml": "taplo format",
+    "format:toml:check": "taplo format --check",
+    "lint": "eslint . --color",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",

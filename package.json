@@ -3,16 +3,17 @@
   "version": "0.6.2-rc.2",
   "private": true,
   "scripts": {
-    "build": "pnpm run -r build",
+    "build": "turbo run -r build",
     "clean": "turbo clean",
     "dev": "turbo dev",
     "docs": "scripty  --rust",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "format:check": "pnpm run -r format:check",
-    "lint": "turbo lint",
-    "lint:check": "pnpm run -r lint:check",
+    "format:check": "turbo run format:check",
+    "lint": "turbo lint --continue",
+    "lint:check": "turbo run lint:check",
     "prepare": "husky",
-    "test": "pnpm run --filter=\"!@stylexswc/rs-compiler\" test"
+    "test": "turbo run --filter=\"!@stylexswc/rs-compiler\" test --continue",
+    "typecheck": "turbo run typecheck --continue"
   },
   "config": {
     "scripty": {
@@ -57,7 +58,8 @@
       "path-to-regexp@<0.1.12": "^0.1.12",
       "nanoid@<3.3.8": "^3.3.8",
       "lexical-core@<1.0.0": "^1.0.0",
-      "lexical@<=6.1.1": "^6.1.1"
+      "lexical@<=6.1.1": "^6.1.1",
+      "@farmfe/runtime@<=0.12.8": "^0.12.10"
     }
   }
 }

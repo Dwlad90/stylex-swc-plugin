@@ -25,7 +25,7 @@ jobs:
 
           echo "Cleaning  #${{ github.event.inputs.reference }} caches (excluding benchmarks)..."
 
-          cacheKeys=$(gh cache list --ref $REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") | not) | .id')
+          cacheKeys=$(gh cache list --ref $REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") || contains("-turbo") | not) | .id')
 
           for key in $cacheKeys; do
             echo "Cache \"$key will\" will be deleted"

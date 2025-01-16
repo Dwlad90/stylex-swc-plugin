@@ -100,14 +100,17 @@
     "build": "tsup",
     "dev": "tsup --watch src",
     "build:fix": "esno scripts/postbuild.ts",
-    "lint": "eslint .",
+    "check:artifacts": "scripty",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "play": "pnpm -C playground run dev",
     "prepublishOnly": "pnpm run build",
     "start": "esno src/index.ts",
     "test": "vitest  --run",
     "test:watch": "vitest",
     "test:update": "vitest -u",
-    "test:cov": "vitest --coverage"
+    "test:cov": "vitest --coverage",
+    "typecheck": "scripty"
   },
   "peerDependencies": {
     "@farmfe/core": ">=1",
@@ -144,7 +147,7 @@
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.9.3",
     "@stylexswc/rs-compiler": "0.6.2-rc.2",
-    "unplugin": "^1.12.2",
+    "unplugin": "^1.16.1",
     "vite": "^5.4.10",
     "vite-plugin-inspect": "^0.8.7"
   },
@@ -163,5 +166,10 @@
     "vite": "^5.4.2",
     "vitest": "^2.0.5",
     "webpack": "^5.94.0"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
   }
 }

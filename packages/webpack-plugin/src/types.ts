@@ -8,7 +8,7 @@ type AsyncFnParams = Parameters<ReturnType<LoaderContext<unknown>['async']>>;
 export type InputCode = AsyncFnParams['1'];
 export type SourceMap = AsyncFnParams['2'];
 
-export type CSSTransformer = (css: string) => string | Buffer | Promise<string | Buffer>;
+export type CSSTransformer = (_css: string) => string | Buffer | Promise<string | Buffer>;
 export interface StyleXPluginOption extends Pick<StyleXWebpackLoaderOptions, 'transformer'> {
   /**
    * stylex options passed to stylex babel plugin

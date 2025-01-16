@@ -10,8 +10,14 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 : "${build_ts:=false}"
 
 if [ "$build_ts" = true ]; then
-  pnpm tsc || handle_error "Failed to build the TypeScript project"
+  tsconfig_name="tsconfig.build.json"
 
+  if [ ! -f "${tsconfig_name}" ]; then
+    echo "${tsconfig_name} not found at ${tsconfig_name}"
+    exit 1
+  fi
+
+  pnpm tsc -p "${tsconfig_name}"|| handle_error "Failed to build the TypeScript project"
 
   # Copy virtual CSS if exists
   if [ -f "src/stylex.virtual.css" ]; then

@@ -1,4 +1,5 @@
 module.exports = {
+  ignorePatterns: ["__tests__/**", "output/**"],
   extends: 'next/core-web-vitals',
   plugins: ['@stylexjs'],
   rules: {

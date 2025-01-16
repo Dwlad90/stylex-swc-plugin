@@ -1,19 +1,19 @@
 name: Pull Request Validation
 
 on:
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
-      - converted_to_draft
-    paths-ignore:
-      - '**/*.md'
-      - LICENSE
-      - '**/*.gitignore'
-      - .editorconfig
-      - docs/**
+  # pull_request:
+  #   types:
+  #     - opened
+  #     - reopened
+  #     - synchronize
+  #     - ready_for_review
+  #     - converted_to_draft
+  #   paths-ignore:
+  #     - '**/*.md'
+  #     - LICENSE
+  #     - '**/*.gitignore'
+  #     - .editorconfig
+  #     - docs/**
   pull_request_target:
     types:
       - opened
@@ -39,57 +39,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint code
+  pr-validation:
+    name: PR Validation
     if: github.event.pull_request.number == null || !github.event.pull_request.draft
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup environment
-        uses: ./.github/actions/setup
-
-      - name: Lint code
-        run: pnpm run -r lint:check
-
-  format:
-    name: Format code
-    if: github.event.pull_request.number == null || !github.event.pull_request.draft
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup environment
-        uses: ./.github/actions/setup
-
-      - name: Format code
-        run: pnpm run -r format:check
-
-  test:
-    name: Run tests
-    if: github.event.pull_request.number == null || !github.event.pull_request.draft
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup environment
-        uses: ./.github/actions/setup
-
-      - name: Run tests
-        run: pnpm run -r --filter='!@stylexswc/rs-compiler' test
-        env:
-          RUST_MIN_STACK: 16777216
-
-  build:
-    name: Build RS compiler
-    runs-on: ${{ matrix.settings.host }}
-    needs: [test, lint, format]
     strategy:
       fail-fast: false
       matrix:
@@ -97,54 +51,40 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup environment
-        uses: ./.github/actions/setup
-
-      - name: Build project
-        run: pnpm run --filter @stylexswc/rs-compiler build
-
-      - name: Check build artifacts
-        run: pnpm run --filter @stylexswc/rs-compiler check:artifacts
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bindings-${{ matrix.settings.target }}
-          path: crates/stylex-rs-compiler/dist/${{ env.APP_NAME }}.*.node
-          if-no-files-found: error
-
-  benchmark:
-    name: Benchmark on ${{ matrix.settings.target }} - node@20
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-    runs-on: ${{ matrix.settings.host }}
     permissions:
       contents: write
       pull-requests: write
       repository-projects: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup environment
         uses: ./.github/actions/setup
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Cache turbo build setup
+        uses: ./.github/actions/turbo
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: bindings-${{ matrix.settings.target }}
-          path: crates/stylex-rs-compiler/dist
+      - name: Format code
+        run: pnpm run format:check
+
+      - name: Lint code
+        run: pnpm run lint:check
+
+      - name: Typecheck code
+        run: pnpm run typecheck
+
+      - name: Run tests
+        run: pnpm run test
+        env:
+          RUST_MIN_STACK: 16777216
+
+      - name: Build all public packages
+        run: pnpm exec turbo run --filter "{./packages/*}..." --filter "{./crates/*}..." build
+
+      - name: Check artifacts
+        run: pnpm run --filter "{./packages/*}..." --filter "{./crates/*}..." check:artifacts
 
       - name: Download previous benchmark data
         uses: actions/cache@v4

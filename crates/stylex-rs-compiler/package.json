@@ -16,6 +16,11 @@
       "@swc-node/register/esm-register"
     ]
   },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
     "@stylexjs/open-props": "^0.9.3",
@@ -79,12 +84,16 @@
     "bench": "node --import @swc-node/register/esm-register benchmark/bench.ts",
     "build": "napi build --platform --release dist",
     "build:debug": "napi build --platform",
-    "check:artifacts": "[ -f ./dist/rs-compiler.*.node ] || { echo 'Artifacts does not exist'; exit 1; }",
+    "check:artifacts": "scripty ./dist/rs-compiler.*.node",
     "format": "run-p format:prettier format:rs format:toml",
+    "format:check": "run-p format:rs:check format:toml:check",
     "format:prettier": "prettier . -w",
-    "format:rs": "cargo fmt",
+    "format:rs": "cargo fmt --all",
+    "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
+    "format:toml:check": "taplo format --check",
     "lint": "oxlint .",
+    "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
     "prepublishOnly": "napi prepublish --skip-gh-release",
     "test": "ava",
     "version": "napi version"

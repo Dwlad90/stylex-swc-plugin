@@ -2,7 +2,7 @@ import stylexRsCompiler from '@stylexswc/rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
 import type { TransformOptions } from 'lightningcss';
-import type { Plugin, PluginContext, TransformResult, TransformPluginContext } from 'rollup';
+import type { Plugin, TransformResult, TransformPluginContext } from 'rollup';
 import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
@@ -48,7 +48,7 @@ export default function stylexPlugin({
     buildStart() {
       stylexRules = {};
     },
-    generateBundle(this: PluginContext) {
+    generateBundle() {
       const rules: Array<Rule> = Object.values(stylexRules).flat();
       if (rules.length > 0) {
         const collectedCSS = stylexBabelPlugin.processStylexRules(rules, useCSSLayers);

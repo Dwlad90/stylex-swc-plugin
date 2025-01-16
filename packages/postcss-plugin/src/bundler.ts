@@ -16,7 +16,7 @@ export default function createBundler() {
   function transform(
     id: string,
     sourceCode: string,
-    rsConfig: StyleXOptions,
+    rsOptions: StyleXOptions,
     options: TransformOptions
   ) {
     const { shouldSkipTransformError } = options;
@@ -28,7 +28,7 @@ export default function createBundler() {
     };
 
     try {
-      transformResult = stylexTransform(id, sourceCode, rsConfig);
+      transformResult = stylexTransform(id, sourceCode, rsOptions);
     } catch (error) {
       if (shouldSkipTransformError) {
         console.warn(

@@ -1,11 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
-    "^node",
-    "^pnpm"
+    ".eslintrc.js",
+    ".prettierrc.js",
+    "package.json",
+    "Cargo.toml",
+    "clippy.toml",
+    "turbo.json",
+    "typings/**"
   ],
   "globalEnv": [
-    "NODE_ENV"
+    "NODE_ENV",
+    "STYLEX_DEBUG"
   ],
   "tasks": {
     "build": {
@@ -14,7 +20,8 @@
         "clean"
       ],
       "outputs": [
-        "dist/**/*"
+        "dist/**/*",
+        "npm/**/*"
       ]
     },
     "clean": {
@@ -25,19 +32,75 @@
         "^lint"
       ]
     },
+    "lint:check": {
+      "outputs": [
+        "dist/eslint_report.json"
+      ]
+    },
+    "@stylexswc/rs-compiler#lint:check": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ]
+    },
+    "@stylexswc/path-resolver#lint:check": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ]
+    },
+    "@stylexswc/swc-plugin#lint:check": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ]
+    },
+    "@stylexswc/shared#lint:check": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ]
+    },
+    "@stylexswc/test-parser#lint:check": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ]
+    },
     "dev": {
       "cache": false,
       "persistent": true
     },
+    "typecheck": {
+      "dependsOn": [
+        "^build",
+        "clean"
+      ],
+      "outputs": []
+    },
     "test": {
       "dependsOn": [
-        "^test"
+        "^build",
+        "clean"
       ],
       "outputs": [
-        "**/__swc_snapshots__"
+        "**/__swc_snapshots__",
+        "**/__snapshots__"
       ]
     },
     "format:check": {},
-    "lint:check": {}
+    "bench": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ],
+      "cache": false
+    }
   }
 }

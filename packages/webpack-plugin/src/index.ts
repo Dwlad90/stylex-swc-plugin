@@ -34,7 +34,7 @@ const getStyleXRules = (stylexRules: Map<string, readonly StyleXRule[]>, useCSSL
 
 const identityTransfrom: CSSTransformer = css => css;
 
-export type RegisterStyleXRules = (resourcePath: string, stylexRules: StyleXRule[]) => void;
+export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 
 export default class StyleXPlugin {
   stylexRules = new Map<string, readonly StyleXRule[]>();

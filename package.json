@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/stylexswc",
-  "version": "0.6.2-rc.2",
+  "version": "0.6.2-rc.4",
   "private": true,
   "scripts": {
     "build": "turbo run -r build",

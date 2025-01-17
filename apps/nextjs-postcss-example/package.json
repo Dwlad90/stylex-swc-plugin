@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-postcss-example",
-  "version": "0.6.2-rc.2",
+  "version": "0.6.2-rc.4",
   "private": true,
   "scripts": {
     "clean": "rimraf .next",
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
-    "@stylexswc/postcss-plugin": "0.6.2-rc.2",
+    "@stylexswc/postcss-plugin": "0.6.2-rc.4",
     "@stylexjs/eslint-plugin": "^0.10.0",
     "@types/node": "^22.5.1",
     "@types/react": "^19.0.1",

@@ -10,8 +10,8 @@
   "license": "MIT",
   "dependencies": {
     "@stylexswc/rs-compiler": "0.6.2-rc.2",
-    "@stylexjs/open-props": "^0.9.3",
-    "@stylexjs/stylex": "^0.9.3",
+    "@stylexjs/open-props": "^0.10.0",
+    "@stylexjs/stylex": "^0.10.0",
     "@stylexswc/unplugin": "0.6.2-rc.2",
     "vue": "^3.5.12"
   },

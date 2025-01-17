@@ -145,7 +145,7 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.9.3",
+    "@stylexjs/babel-plugin": "^0.10.0",
     "@stylexswc/rs-compiler": "0.6.2-rc.2",
     "unplugin": "^1.16.1",
     "vite": "^5.4.10",

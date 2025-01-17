@@ -4,7 +4,7 @@
   "dependencies": {
     "@stylex/theme-lib-main-dist": "workspace:^",
     "@stylex/theme-lib": "workspace:^",
-    "@stylexjs/open-props": "^0.9.3",
+    "@stylexjs/open-props": "^0.10.0",
     "stylex-lib": "workspace:^"
   }
 }

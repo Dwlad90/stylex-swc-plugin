@@ -119,8 +119,6 @@ jobs:
           architecture: ${{ matrix.settings.architecture }}
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Cache turbo build setup
-        uses: ./.github/actions/turbo
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -153,8 +151,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Cache turbo build setup
-        uses: ./.github/actions/turbo
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -191,8 +187,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Cache turbo build setup
-        uses: ./.github/actions/turbo
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -292,8 +286,8 @@ jobs:
       - test-linux-x64-musl-binding
     steps:
       - uses: actions/checkout@v4
-      - name: Setup environment
-        uses: ./.github/actions/setup
+      - name: Setup pnpm
+        uses: ./.github/actions/setup-pnpm
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -302,7 +296,16 @@ jobs:
         run: pnpm run --filter @stylexswc/rs-compiler artifacts
       - name: Move and list artifacts
         run: |
-          ls -R crates/stylex-rs-compiler/npm/*
+          mkdir -p crates/stylex-rs-compiler/dist
+
+          yes | cp -rf crates/stylex-rs-compiler/artifacts/bindings-aarch64-apple-darwin/index.* crates/stylex-rs-compiler/dist/
+
+          ls -R crates/stylex-rs-compiler/dist/*
+      - name: Build all public packages
+        run: pnpm run --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" build
+
+      - name: Check artifacts
+        run: pnpm run --filter "{./packages/*}" --filter "!@stylexswc/*swc*"  check:artifacts
       - name: Publish
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

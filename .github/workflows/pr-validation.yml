@@ -84,7 +84,7 @@ jobs:
         run: pnpm exec turbo run --filter "{./packages/*}..." --filter "{./crates/*}..." build
 
       - name: Check artifacts
-        run: pnpm run --filter "{./packages/*}..." --filter "{./crates/*}..." check:artifacts
+        run: pnpm run --filter "{./packages/*}" --filter "{./crates/*}" check:artifacts
 
       - name: Download previous benchmark data
         uses: actions/cache@v4

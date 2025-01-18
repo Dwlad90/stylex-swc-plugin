@@ -15,7 +15,8 @@ use crate::resolvers::get_node_modules_path;
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageJsonExtended {
-  pub name: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub name: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub main: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -46,7 +47,6 @@ pub fn get_package_json(
             .unwrap_or_else(|error| {
               panic!(
                 "Failed to parse `{}` file. Error: {}.\n\nPossible reasons:\n\
-                  - The required field `name` might be missing.\n\
                   - The JSON structure might be incorrect.\n\
                   - There might be a syntax error in the JSON.\n\
                   - Ensure all required fields are present and correctly formatted.",

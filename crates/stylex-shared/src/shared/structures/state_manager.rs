@@ -283,7 +283,7 @@ impl StateManager {
   pub(crate) fn get_package_name_and_path(
     filepath: &str,
     package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-  ) -> Option<(String, String)> {
+  ) -> Option<(Option<String>, String)> {
     let folder = Path::new(filepath).parent()?;
     let package_json_path = find_nearest_package_json(Path::new(filepath));
 
@@ -319,7 +319,11 @@ impl StateManager {
       let relative_package_path = relative_path(file_path, package_dir_path);
 
       if let Some(package_dir) = relative_package_path.to_str() {
-        return format!("{}:{}", package_name, package_dir);
+        return format!(
+          "{}:{}",
+          package_name.unwrap_or_else(|| "_unknown_name_".to_string()),
+          package_dir
+        );
       }
     }
 

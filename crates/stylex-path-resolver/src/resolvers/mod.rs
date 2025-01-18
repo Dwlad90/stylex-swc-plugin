@@ -245,7 +245,10 @@ fn get_potential_node_modules_path(
     let (potential_package_json, _) =
       get_package_json(&resolved_potential_package_path, package_json_seen);
 
-    let package_name = potential_package_json.name.clone();
+    let package_name = potential_package_json
+      .name
+      .unwrap_or_else(|| panic!("Package name is not found in package.json of '{}'", name))
+      .clone();
 
     let potential_import_path_segment = name.split(&package_name).last().unwrap_or_default();
 
@@ -370,7 +373,15 @@ pub fn resolve_file_path(
       let (mut package_json, _) =
         get_package_json(&resolved_node_modules_path_buf, package_json_seen);
 
-      let package_name = package_json.name.clone();
+      let package_name = package_json
+        .name
+        .unwrap_or_else(|| {
+          panic!(
+            "Package name is not found in package.json of '{}'",
+            import_path_str
+          )
+        })
+        .clone();
 
       if let Some((pnpm_package_json, pnpm_package_path)) = resolve_package_with_pnpm_path(
         source_file_dir,

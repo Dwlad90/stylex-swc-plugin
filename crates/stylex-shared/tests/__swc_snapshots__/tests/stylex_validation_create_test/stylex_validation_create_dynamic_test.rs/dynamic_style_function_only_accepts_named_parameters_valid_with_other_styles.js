@@ -4,7 +4,7 @@ import stylex from "@stylexjs/stylex";
 _inject2(".x6zurak{font-size:var(--fontSize)}", 3000);
 _inject2(".x3stwaq{font-weight:100}", 3000);
 _inject2(".xngnso2{font-size:1.5rem}", 3000);
-_inject2('@property --fontSize { syntax: "*"; inherits: false; initial-value: "*"; }', 0);
+_inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     size: (size: number)=>[
             {

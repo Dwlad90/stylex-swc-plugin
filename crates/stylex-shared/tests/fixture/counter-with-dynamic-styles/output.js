@@ -61,7 +61,7 @@ _inject2(".minWidth-x1843ork{min-width:6rem}", 4000);
 _inject2(".textAlign-x2b8uid{text-align:center}", 3000);
 _inject2(".fontFamily-xovafh8{font-family:var(--fontMono-xur0yta)}", 3000);
 _inject2(".fontSize-x1c27omx{font-size:var(--h3-x1yfd0fu)}", 3000);
-_inject2('@property --fontSize { syntax: "*"; inherits: false; initial-value: "*"; }', 0);
+_inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     size: (size)=>[
             {

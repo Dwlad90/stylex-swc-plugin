@@ -322,7 +322,7 @@ describe('Evaluation of imported values works based on configuration', ()=>{
         import 'otherFile.stylex';
         import { MyTheme } from 'otherFile.stylex';
         _inject2(".__hashed_var__b69i2g{--__hashed_var__1jqb1tb:var(----__hashed_var__1jqb1tb)}", 1);
-        _inject2("@property ----__hashed_var__1jqb1tb { syntax: \\"*\\"; inherits: false; initial-value: \\"*\\";}", 0);
+        _inject2("@property ----__hashed_var__1jqb1tb { syntax: \\"*\\"; inherits: false;}", 0);
         const styles = {
           color: color => [{
             "--__hashed_var__1jqb1tb": color == null ? null : "__hashed_var__b69i2g",
@@ -346,12 +346,48 @@ describe('Evaluation of imported values works based on configuration', ()=>{
           [
             "----__hashed_var__1jqb1tb",
             {
-              "ltr": "@property ----__hashed_var__1jqb1tb { syntax: "*"; inherits: false; initial-value: "*";}",
+              "ltr": "@property ----__hashed_var__1jqb1tb { syntax: "*"; inherits: false;}",
               "rtl": null,
             },
             0,
           ],
         ]
+      `);
+        });
+    });
+    describe('Module resolution commonJS', ()=>{
+        afterEach(()=>{
+            moduleResolve.mockReset();
+        });
+        test('Recognizes .ts stylex imports when resolving .js relative imports', ()=>{
+            moduleResolve.mockImplementation((value)=>{
+                if (!value.endsWith('/otherFile.stylex.ts')) {
+                    throw new Error('File not found');
+                }
+                return new URL('file:///project/otherFile.stylex.ts');
+            });
+            const transformation = transform(`
+        import stylex from 'stylex';
+        import { MyTheme } from './otherFile.stylex.js';
+        const styles = stylex.create({
+          red: {
+            color: MyTheme.__themeName__,
+          }
+        });
+        stylex(styles.red);
+        `, {
+                unstable_moduleResolution: {
+                    type: 'commonJS'
+                }
+            });
+            expect(transformation.code).toMatchInlineSnapshot(`
+        "import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        var _inject2 = _inject;
+        import stylex from 'stylex';
+        import './otherFile.stylex.js';
+        import { MyTheme } from './otherFile.stylex.js';
+        _inject2(".xoh8dld{color:xb897f7}", 3000);
+        "xoh8dld";"
       `);
         });
     });

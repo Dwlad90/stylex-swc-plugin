@@ -179,7 +179,7 @@ where
             Rc::new(InjectableStyle {
               priority: Some(0f64),
               ltr: format!(
-                "@property {} {{ syntax: \"*\"; inherits: false; initial-value: \"*\"; }}",
+                "@property {} {{ syntax: \"*\"; inherits: false; }}",
                 fns_name
               ),
               rtl: None,

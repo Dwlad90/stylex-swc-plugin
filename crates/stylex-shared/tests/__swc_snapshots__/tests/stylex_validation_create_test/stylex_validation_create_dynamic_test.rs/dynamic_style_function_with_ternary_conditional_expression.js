@@ -2,7 +2,7 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from "@stylexjs/stylex";
 _inject2(".x6zurak{font-size:var(--fontSize)}", 3000);
-_inject2('@property --fontSize { syntax: "*"; inherits: false; initial-value: "*"; }', 0);
+_inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     fontSizeTernary: (size: number)=>[
             {

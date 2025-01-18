@@ -18,8 +18,8 @@
   "dependencies": {
     "@stylexswc/jest": "0.6.2-rc.4",
     "@stylexswc/nextjs-plugin": "0.6.2-rc.4",
-    "@stylexjs/open-props": "^0.10.0",
-    "@stylexjs/stylex": "^0.10.0",
+    "@stylexjs/open-props": "^0.10.1",
+    "@stylexjs/stylex": "^0.10.1",
     "next": "15.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -32,7 +32,7 @@
     "@types/jest": "^29.5.14",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "29.7.0",
-    "@stylexjs/eslint-plugin": "^0.10.0",
+    "@stylexjs/eslint-plugin": "^0.10.1",
     "@stylexswc/rs-compiler": "0.6.2-rc.4",
     "@types/node": "^22.5.1",
     "@types/react": "^19.0.1",

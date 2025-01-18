@@ -8,7 +8,7 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.10.0",
+    "@stylexjs/babel-plugin": "^0.10.1",
     "fast-glob": "^3.3.2",
     "glob-parent": "^6.0.2",
     "is-glob": "^4.0.3",

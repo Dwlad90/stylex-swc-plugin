@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-swc-example",
-  "version": "0.6.2-rc.5",
+  "version": "0.6.2",
   "private": true,
   "deprecated": "This example deprecated since v0.5.0. Please use  @stylexswc/next-example instead.",
   "scripts": {
@@ -22,8 +22,8 @@
   },
   "devDependencies": {
     "@stylexjs/eslint-plugin": "^0.10.1",
-    "@stylexswc/nextjs-swc-plugin": "0.6.2-rc.5",
-    "@stylexswc/swc-plugin": "0.6.2-rc.5",
+    "@stylexswc/nextjs-swc-plugin": "0.6.2",
+    "@stylexswc/swc-plugin": "0.6.2",
     "@types/node": "^22.5.1",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",

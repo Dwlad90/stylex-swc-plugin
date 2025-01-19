@@ -26,6 +26,7 @@
   },
   "scripts": {
     "build": "scripty --rust",
+    "check:artifacts": "scripty ./dist/stylex_test_parser",
     "clean": "del-cli dist",
     "format": "run-p format:prettier format:rs format:toml",
     "format:check": "run-p format:rs:check format:toml:check",
@@ -35,6 +36,7 @@
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
+    "postbuild": "pnpm run check:artifacts",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",

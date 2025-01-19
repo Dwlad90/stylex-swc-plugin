@@ -52,6 +52,7 @@
     "clean": "del-cli dist",
     "lint": "eslint . --color",
     "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",

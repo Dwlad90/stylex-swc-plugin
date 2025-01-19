@@ -19,6 +19,8 @@ if [ "$build_rust" = true ]; then
     verbose_flag=""
   fi
 
+  cargo_name=$(grep '^name' Cargo.toml | sed 's/name = "\(.*\)"/\1/')
+
   mkdir -p ./dist || handle_error "Failed to create the dist directory"
 
   if [ ! -f "src/lib.rs" ]; then
@@ -26,7 +28,7 @@ if [ "$build_rust" = true ]; then
     # Build the Rust application if there is no src/lib.rs file
     cargo build --release $verbose_flag || handle_error "Failed to build the Rust project"
 
-    built_path="$(find ../../target/release/* -type f -perm /a=x | tail -1)"
+    built_path="$(find ../../target/release/"${cargo_name}" -type f | tail -1)"
 
     if [ -z "$built_path" ]; then
       handle_error "Could not find a built file"
@@ -35,7 +37,7 @@ if [ "$build_rust" = true ]; then
     # Build the Rust library if there is a src/lib.rs file
     cargo build --lib --release --target=wasm32-wasip1 $verbose_flag || handle_error "Failed to build the Rust library"
 
-    built_path="$(find ../../target/wasm32-wasip1/release/*.wasm | tail -1)"
+    built_path="$(find ../../target/wasm32-wasip1/release/"${cargo_name}".wasm -type f | tail -1)"
 
     if [ -z "$built_path" ]; then
       handle_error "No .wasm file found in the target directory"

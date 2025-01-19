@@ -26,7 +26,6 @@
     "access": "public"
   },
   "scripts": {
-    "build": "scripty --rust",
     "clean": "del-cli dist",
     "format": "run-p format:prettier format:rs format:toml",
     "format:check": "run-p format:rs:check format:toml:check",

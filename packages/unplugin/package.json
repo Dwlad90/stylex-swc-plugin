@@ -104,6 +104,7 @@
     "lint": "eslint . --color",
     "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "play": "pnpm -C playground run dev",
+    "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
     "start": "esno src/index.ts",
     "test": "vitest  --run",

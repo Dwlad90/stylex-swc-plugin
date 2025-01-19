@@ -4,7 +4,7 @@
   "description": "A simple rollup unplugin example to test @stylexswc/unplugin/rollup",
   "private": true,
   "scripts": {
-    "build": "pnpx rollup --config ./rollup.config.mjs",
+    "build": "NODE_ENV=production rollup --config ./rollup.config.mjs",
     "start": "pnpx rollup --config ./rollup.config.mjs --watch"
   },
   "license": "MIT",

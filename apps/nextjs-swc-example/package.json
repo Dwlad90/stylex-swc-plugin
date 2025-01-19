@@ -9,7 +9,7 @@
     "prebuild": "pnpm run clean",
     "prestart": "pnpm run build",
     "dev": "next dev",
-    "build": "next build",
+    "build:deprecated": "next build",
     "start": "next start",
     "next:lint": "next lint"
   },

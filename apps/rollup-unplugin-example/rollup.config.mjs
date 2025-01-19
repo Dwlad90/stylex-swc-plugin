@@ -7,6 +7,9 @@ import replace from '@rollup/plugin-replace'
 import serve from 'rollup-plugin-serve'
 import styleXRSPlugin from '@stylexswc/unplugin/rollup'
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+
 export default {
   input: 'src/index.jsx',
   output: {
@@ -45,6 +48,7 @@ export default {
         treeshakeCompensation: true,
       },
     }),
+    isDev &&
     serve({
       contentBase: ['dist'],
       host: '127.0.0.1',

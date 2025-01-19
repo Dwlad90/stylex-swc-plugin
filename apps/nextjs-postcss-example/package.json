@@ -15,6 +15,7 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.10.1",
     "@stylexjs/stylex": "^0.10.1",
+    "@stylexswc/nextjs-plugin": "0.6.2",
     "next": "15.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

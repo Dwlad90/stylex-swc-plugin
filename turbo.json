@@ -51,13 +51,6 @@
         "clean"
       ]
     },
-    "@stylexswc/swc-plugin#lint:check": {
-      "dependsOn": [
-        "^build",
-        "build",
-        "clean"
-      ]
-    },
     "@stylexswc/shared#lint:check": {
       "dependsOn": [
         "^build",

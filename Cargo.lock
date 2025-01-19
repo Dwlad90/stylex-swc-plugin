@@ -2103,23 +2103,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylex_swc_plugin"
-version = "0.6.2"
-dependencies = [
- "color-backtrace",
- "ctor",
- "env_logger",
- "log",
- "pretty_env_logger",
- "serde",
- "serde_json",
- "stylex_path_resolver",
- "stylex_shared",
- "swc_core",
- "swc_ecma_parser",
-]
-
-[[package]]
 name = "stylex_test_parser"
 version = "0.6.2"
 dependencies = [

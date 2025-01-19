@@ -272,58 +272,6 @@ importers:
         specifier: ^5.5.4
         version: 5.6.3
 
-  apps/nextjs-swc-example:
-    dependencies:
-      '@stylexjs/open-props':
-        specifier: ^0.10.1
-        version: 0.10.1
-      '@stylexjs/stylex':
-        specifier: ^0.10.1
-        version: 0.10.1
-      next:
-        specifier: 15.1.2
-        version: 15.1.2(@babel/core@7.26.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      react:
-        specifier: ^19.0.0
-        version: 19.0.0
-      react-dom:
-        specifier: ^19.0.0
-        version: 19.0.0(react@19.0.0)
-    devDependencies:
-      '@stylexjs/eslint-plugin':
-        specifier: ^0.10.1
-        version: 0.10.1
-      '@stylexswc/nextjs-swc-plugin':
-        specifier: 0.6.2
-        version: link:../../packages/nextjs-swc-plugin
-      '@stylexswc/swc-plugin':
-        specifier: 0.6.2
-        version: link:../../crates/stylex-swc-plugin
-      '@types/node':
-        specifier: ^22.5.1
-        version: 22.8.5
-      '@types/react':
-        specifier: ^19.0.1
-        version: 19.0.1
-      '@types/react-dom':
-        specifier: ^19.0.2
-        version: 19.0.2(@types/react@19.0.1)
-      '@typescript-eslint/parser':
-        specifier: ^6.14.0
-        version: 6.21.0(eslint@8.57.0)(typescript@5.6.2)
-      eslint:
-        specifier: ^8.57.0
-        version: 8.57.0
-      eslint-config-next:
-        specifier: 15.0.4
-        version: 15.0.4(eslint@8.57.0)(typescript@5.6.2)
-      rimraf:
-        specifier: ^5.0.5
-        version: 5.0.10
-      typescript:
-        specifier: ^5.5.4
-        version: 5.6.2
-
   apps/rollup-example:
     dependencies:
       '@stylexjs/stylex':
@@ -704,18 +652,6 @@ importers:
         specifier: ^3.3.3
         version: 3.3.3
 
-  crates/stylex-swc-plugin:
-    devDependencies:
-      '@taplo/cli':
-        specifier: ^0.7.0
-        version: 0.7.0
-      npm-run-all2:
-        specifier: ^6.2.2
-        version: 6.2.3
-      prettier:
-        specifier: ^3.3.3
-        version: 3.3.3
-
   crates/stylex-test-parser:
     devDependencies:
       '@taplo/cli':
@@ -789,49 +725,6 @@ importers:
       '@stylexswc/rs-compiler':
         specifier: 0.6.2
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/typescript-config':
-        specifier: 0.6.2
-        version: link:../typescript-config
-      '@stylexswc/webpack-plugin':
-        specifier: 0.6.2
-        version: link:../webpack-plugin
-      '@types/babel__core':
-        specifier: ^7.20.5
-        version: 7.20.5
-      '@types/node':
-        specifier: ^22.5.1
-        version: 22.8.5
-      next:
-        specifier: ^15.1.2
-        version: 15.1.2(@babel/core@7.26.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      postcss:
-        specifier: ^8.4.49
-        version: 8.4.49
-      react:
-        specifier: ^19.0.0
-        version: 19.0.0
-      react-dom:
-        specifier: ^19.0.0
-        version: 19.0.0(react@19.0.0)
-      webpack:
-        specifier: ^5.94.0
-        version: 5.96.1(webpack-cli@5.1.4)
-
-  packages/nextjs-swc-plugin:
-    dependencies:
-      '@stylexjs/babel-plugin':
-        specifier: ^0.10.1
-        version: 0.10.1
-    devDependencies:
-      '@babel/types':
-        specifier: ^7.23.9
-        version: 7.24.0
-      '@stylexswc/eslint-config':
-        specifier: 0.6.2
-        version: link:../eslint-config
-      '@stylexswc/swc-plugin':
-        specifier: 0.6.2
-        version: link:../../crates/stylex-swc-plugin
       '@stylexswc/typescript-config':
         specifier: 0.6.2
         version: link:../typescript-config

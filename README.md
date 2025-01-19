@@ -76,24 +76,3 @@ This project is organized into several packages:
   Internal
   [Typescript](https://www.typescriptlang.org/docs/handbook/tsconfig-json.htm)
   configuration
-
-## Deprecated Packages
-
-> [!WARNING]
-> The packages below are finaly deprecated as of version `0.5.0` and will be removed in the next minor release. Please use the newer alternatives listed above.
-
-**Core:**
-
-* [`swc-plugin`](./crates/stylex-swc-plugin) -
-  Unofficial SWC implementation of the native
-  [StyleX](https://github.com/facebook/stylex) plugin. The new alternative is
-  [`rs-compiler`](./crates/stylex-rs-compiler)
-
-**Integration:**
-
-* [`nextjs-swc-plugin`](./packages/nextjs-swc-plugin) -
-  Wrapper for
-  [`Next.JS config`](https://nextjs.org/docs/app/api-reference/next-config-js)
-  that inject the StyleX SWC plugin to webpack processing. The new alternative
-  is
-  [`nextjs-plugin`](./packages/nextjs-plugin)

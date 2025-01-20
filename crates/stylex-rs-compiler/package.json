@@ -84,7 +84,7 @@
     "bench": "node --import @swc-node/register/esm-register benchmark/bench.ts",
     "build": "napi build --platform --release dist",
     "build:debug": "napi build --platform",
-    "check:artifacts:disable": "scripty ./dist/rs-compiler.*.node",
+    "check:artifacts": "scripty ./dist/rs-compiler.*.node",
     "format": "run-p format:prettier format:rs format:toml",
     "format:check": "run-p format:rs:check format:toml:check",
     "format:prettier": "prettier . -w",
@@ -94,7 +94,7 @@
     "format:toml:check": "taplo format --check",
     "lint": "oxlint .",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
-    "postbuild": "pnpm run check:artifacts",
+    "postbuild:disable": "pnpm run check:artifacts",
     "prepublishOnly": "napi prepublish --skip-gh-release",
     "test": "ava",
     "version": "napi version"

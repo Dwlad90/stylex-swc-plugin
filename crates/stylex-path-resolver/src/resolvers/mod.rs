@@ -19,8 +19,8 @@ use std::fs;
 use crate::{
   file_system::{get_directories, get_directory_path_recursive},
   package_json::{
-    find_nearest_package_json, get_package_json, get_package_json_with_deps,
-    resolve_package_from_package_json, PackageJsonExtended,
+    find_nearest_node_modules, find_nearest_package_json, get_package_json,
+    get_package_json_with_deps, resolve_package_from_package_json, PackageJsonExtended,
   },
   utils::{contains_subpath, relative_path},
 };
@@ -214,7 +214,7 @@ pub(crate) fn get_node_modules_path(
     match resolver.resolve(file_name, name) {
       Ok(resolution) => {
         if let FileName::Real(real_filename) = &resolution.filename {
-          if real_filename.starts_with("node_modules") {
+          if real_filename.to_string_lossy().contains("node_modules/") {
             return Some(resolution);
           }
         }
@@ -236,8 +236,13 @@ fn get_potential_node_modules_path(
     return None;
   };
 
-  let formatted_path = format!("node_modules/{}", name);
-  let potential_package_path = file_name_real.join(formatted_path);
+  let potential_package_path = PathBuf::from(format!(
+    "{}/{}",
+    find_nearest_node_modules(file_name_real)
+      .unwrap_or(file_name_real.clone())
+      .to_string_lossy(),
+    name
+  ));
 
   if let Some(resolved_potential_package_path) =
     get_directory_path_recursive(&potential_package_path)
@@ -453,11 +458,7 @@ pub fn resolve_file_path(
         resolved_file_path.set_extension(ext);
       }
 
-      let cleaned_path = resolved_file_path
-        .to_str()
-        .unwrap()
-        .replace("..", ".")
-        .to_string();
+      let cleaned_path = resolved_file_path.to_string_lossy().to_string();
 
       let path_to_check: PathBuf;
       let node_modules_path_to_check: PathBuf;
@@ -537,6 +538,7 @@ fn resolve_node_modules_path_buff(
       return Ok::<PathBuf, std::io::Error>(resolved_node_modules_path_buf);
     }
   }
+
   Result::Err(std::io::Error::new(
     std::io::ErrorKind::NotFound,
     "File not found",

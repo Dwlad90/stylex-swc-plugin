@@ -33,11 +33,9 @@ fn fixture(test_path: &PathBuf, part: &str) -> PathBuf {
 }
 
 #[cfg(test)]
-mod resolve_path_tests {
-  use rustc_hash::FxHashMap;
-
+mod resolve_path_pnpm_tests {
   use crate::resolvers::{
-    possible_aliased_paths, resolve_file_path, resolve_path,
+    resolve_path,
     tests::{fixture, get_root_dir},
   };
 
@@ -45,7 +43,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_work_dir_packages() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
 
     assert_eq!(
       resolve_path(
@@ -69,7 +67,7 @@ mod resolve_path_tests {
   #[test]
   #[should_panic(expected = "Path resolution failed: index.jsx")]
   fn resolve_work_dir_not_existed_packages() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
 
     resolve_path(
       fixture(&test_path, "index.jsx").as_path(),
@@ -80,7 +78,7 @@ mod resolve_path_tests {
 
   #[test]
   fn external_package_with_namespace() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
 
     assert_eq!(
       resolve_path(
@@ -101,7 +99,7 @@ mod resolve_path_tests {
     expected = "Path resolution failed: node_modules/@stylex/open-props/lib/spaces.stylex.js"
   )]
   fn resolve_work_dir_not_existed_external_package_file_with_namespace() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
 
     resolve_path(
       fixture(
@@ -119,7 +117,7 @@ mod resolve_path_tests {
     expected = "Path resolution failed: node_modules/@stylex/close-props/lib/colors.stylex.js"
   )]
   fn resolve_work_dir_not_existed_external_package_with_namespace() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
 
     resolve_path(
       fixture(
@@ -134,7 +132,7 @@ mod resolve_path_tests {
 
   #[test]
   fn external_package_without_namespace() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
 
     assert_eq!(
       resolve_path(
@@ -150,8 +148,8 @@ mod resolve_path_tests {
   fn external_pnpm_package_file() {
     assert_eq!(
       resolve_path(
-        fixture(& PathBuf::from("workspace"), "../../node_modules/.pnpm/@stylexjs+open-props@0.7.5/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
-        get_root_dir(& PathBuf::from("workspace")).as_path(),
+        fixture(& PathBuf::from("workspace-pnpm"), "../../node_modules/.pnpm/@stylexjs+open-props@0.7.5/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
+        get_root_dir(& PathBuf::from("workspace-pnpm")).as_path(),
         &mut HashMap::default(),
 
       ),
@@ -164,11 +162,11 @@ mod resolve_path_tests {
     assert_eq!(
       resolve_path(
         fixture(
-          &PathBuf::from("workspace"),
+          &PathBuf::from("workspace-pnpm"),
           "../../node_modules/@stylexjs/open-props/lib/colors.stylex.js"
         )
         .as_path(),
-        get_root_dir(&PathBuf::from("workspace")).as_path(),
+        get_root_dir(&PathBuf::from("workspace-pnpm")).as_path(),
         &mut HashMap::default(),
       ),
       "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
@@ -179,8 +177,8 @@ mod resolve_path_tests {
   fn external_yarn_pnp_package_file() {
     assert_eq!(
       resolve_path(
-        fixture(& PathBuf::from("workspace"), "../../app/node_modules/.yarn/__virtual__/swc-virtual-123123/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
-        get_root_dir(& PathBuf::from("workspace")).as_path(),
+        fixture(& PathBuf::from("workspace-pnpm"), "../../app/node_modules/.yarn/__virtual__/swc-virtual-123123/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
+        get_root_dir(& PathBuf::from("workspace-pnpm")).as_path(),
         &mut HashMap::default(),
 
       ),
@@ -190,7 +188,7 @@ mod resolve_path_tests {
 
   #[test]
   fn workspace_package_without_namespace() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
     let local_package_test_path = PathBuf::from("");
 
     assert_eq!(
@@ -209,7 +207,7 @@ mod resolve_path_tests {
 
   #[test]
   fn workspace_package_with_namespace() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
     let local_package_test_path = PathBuf::from("");
 
     assert_eq!(
@@ -228,7 +226,7 @@ mod resolve_path_tests {
 
   #[test]
   fn workspace_package_main_dist_with_namespace() {
-    let test_path = PathBuf::from("workspace");
+    let test_path = PathBuf::from("workspace-pnpm");
     let local_package_test_path = PathBuf::from("");
 
     assert_eq!(
@@ -244,6 +242,229 @@ mod resolve_path_tests {
       "node_modules/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
     );
   }
+}
+
+#[cfg(test)]
+mod resolve_path_npm_tests {
+  use crate::resolvers::{
+    resolve_path,
+    tests::{fixture, get_root_dir},
+  };
+
+  use std::{collections::HashMap, path::PathBuf};
+
+  #[test]
+  fn resolve_work_dir_packages() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+
+    assert_eq!(
+      resolve_path(
+        fixture(&test_path, "test/index.js").as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "test/index.js"
+    );
+
+    assert_eq!(
+      resolve_path(
+        fixture(&test_path, "index.js").as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "index.js"
+    );
+  }
+
+  #[test]
+  #[should_panic(expected = "Path resolution failed: index.jsx")]
+  fn resolve_work_dir_not_existed_packages() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+
+    resolve_path(
+      fixture(&test_path, "index.jsx").as_path(),
+      get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
+    );
+  }
+
+  #[test]
+  fn external_package_with_namespace() {
+    let test_path = PathBuf::from("workspace-npm");
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &test_path,
+          "node_modules/@stylex/open-props/lib/colors.stylex.js"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "node_modules/@stylex/open-props/lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  #[should_panic(
+    expected = "Path resolution failed: node_modules/@stylex/open-props/lib/spaces.stylex.js"
+  )]
+  fn resolve_work_dir_not_existed_external_package_file_with_namespace() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+
+    resolve_path(
+      fixture(
+        &test_path,
+        "node_modules/@stylex/open-props/lib/spaces.stylex.js",
+      )
+      .as_path(),
+      get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
+    );
+  }
+
+  #[test]
+  #[should_panic(
+    expected = "Path resolution failed: node_modules/@stylex/close-props/lib/colors.stylex.js"
+  )]
+  fn resolve_work_dir_not_existed_external_package_with_namespace() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+
+    resolve_path(
+      fixture(
+        &test_path,
+        "node_modules/@stylex/close-props/lib/colors.stylex.js",
+      )
+      .as_path(),
+      get_root_dir(&test_path).as_path(),
+      &mut HashMap::default(),
+    );
+  }
+
+  #[test]
+  fn external_package_without_namespace() {
+    let test_path = PathBuf::from("workspace-npm");
+
+    assert_eq!(
+      resolve_path(
+        fixture(&test_path, "node_modules/stylex-lib/colors.stylex.js").as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "node_modules/stylex-lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn external_pnpm_package_file() {
+    assert_eq!(
+      resolve_path(
+        fixture(& PathBuf::from("workspace-npm/apps/web"), "../../node_modules/.pnpm/@stylexjs+open-props@0.7.5/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
+        get_root_dir(& PathBuf::from("workspace-pnpm")).as_path(),
+        &mut HashMap::default(),
+
+      ),
+      "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn external_npm_package_file() {
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &PathBuf::from("workspace-npm/apps/web"),
+          "../../node_modules/@stylexjs/open-props/lib/colors.stylex.js"
+        )
+        .as_path(),
+        get_root_dir(&PathBuf::from("workspace-npm/apps/web")).as_path(),
+        &mut HashMap::default(),
+      ),
+      "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn external_yarn_pnp_package_file() {
+    assert_eq!(
+      resolve_path(
+        fixture(& PathBuf::from("workspace-npm/apps/web"), "../../app/node_modules/.yarn/__virtual__/swc-virtual-123123/node_modules/@stylexjs/open-props/lib/colors.stylex.js").as_path(),
+        get_root_dir(& PathBuf::from("workspace-npm/apps/web")).as_path(),
+        &mut HashMap::default(),
+
+      ),
+      "node_modules/@stylexjs/open-props/lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn workspace_package_without_namespace() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+    let local_package_test_path = PathBuf::from("");
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &local_package_test_path,
+          "packages/stylex-lib/colors.stylex.js"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "../../node_modules/stylex-lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn workspace_package_with_namespace() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+    let local_package_test_path = PathBuf::from("");
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &local_package_test_path,
+          "packages/@stylex/theme-lib/colors.stylex.js"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "../../node_modules/@stylex/theme-lib/colors.stylex.js"
+    );
+  }
+
+  #[test]
+  fn workspace_package_main_dist_with_namespace() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+    let local_package_test_path = PathBuf::from("");
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &local_package_test_path,
+          "packages/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "../../node_modules/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
+    );
+  }
+}
+
+#[cfg(test)]
+mod resolve_path_exports_tests {
+
+  use crate::resolvers::{
+    resolve_path,
+    tests::{fixture, get_root_dir},
+  };
+
+  use std::{collections::HashMap, path::PathBuf};
 
   #[test]
   fn external_package_main_exports() {
@@ -633,10 +854,18 @@ mod resolve_path_tests {
       expected_result
     );
   }
+}
+#[cfg(test)]
+mod resolve_path_application_pnpm_tests {
+  use rustc_hash::FxHashMap;
+
+  use crate::resolvers::{resolve_file_path, tests::get_root_dir};
+
+  use std::{collections::HashMap, path::PathBuf};
 
   #[test]
   fn resolve_regular_local_import_from_src() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "../colors.stylex.js";
     let source_file_path = format!(
@@ -665,7 +894,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_regular_local_import_from_same_level_directory() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "../components/button.js";
     let source_file_path = format!(
@@ -694,7 +923,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_regular_local_import_from_alias() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "@/components/button.js";
     let source_file_path = format!(
@@ -724,7 +953,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_regular_external_import() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "stylex-lib-dist-main";
     let source_file_path = format!(
@@ -753,7 +982,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_regular_external_import_with_exports_dist() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "stylex-lib-dist-exports-with-main/colors.stylex";
     let source_file_path = format!(
@@ -782,7 +1011,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_package_with_pnpm_path() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "stylex-lib-pnpm";
     let source_file_path = format!(
@@ -812,7 +1041,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_organisation_package_with_pnpm_path() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "@stylex/lib-exports-pnpm/colors.stylex";
     let source_file_path = format!(
@@ -841,7 +1070,7 @@ mod resolve_path_tests {
 
   #[test]
   fn resolve_organisation_package_with_pnpm_with_same_path() {
-    let test_path = PathBuf::from("application");
+    let test_path = PathBuf::from("application-pnpm");
 
     let import_path_str = "@stylex/lib-exports-pnpm/dist/colors.stylex";
     let source_file_path = format!(
@@ -867,6 +1096,173 @@ mod resolve_path_tests {
       expected_result
     );
   }
+}
+
+#[cfg(test)]
+mod resolve_path_application_npm_tests {
+  use rustc_hash::FxHashMap;
+
+  use crate::resolvers::{resolve_file_path, tests::get_root_dir};
+
+  use std::{collections::HashMap, path::PathBuf};
+
+  #[test]
+  fn resolve_regular_local_import_from_src() {
+    let test_path = PathBuf::from("application-npm/apps/web");
+
+    let import_path_str = "../colors.stylex.js";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = Default::default();
+
+    let expected_result = "src/colors.stylex.js";
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_local_import_from_same_level_directory() {
+    let test_path = PathBuf::from("application-npm/apps/web");
+
+    let import_path_str = "../components/button.js";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = Default::default();
+
+    let expected_result = "src/components/button.js";
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_local_import_from_alias() {
+    let test_path = PathBuf::from("application-npm/apps/web");
+
+    let import_path_str = "@/components/button.js";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
+
+    let expected_result = "src/components/button.js";
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_external_import() {
+    let test_path = PathBuf::from("application-npm/apps/web");
+
+    let import_path_str = "stylex-lib-dist-main";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = FxHashMap::default();
+
+    let expected_result = "../../node_modules/stylex-lib-dist-main/dist/index.jsx";
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_external_import_with_exports_dist() {
+    let test_path = PathBuf::from("application-npm/apps/web");
+
+    let import_path_str = "stylex-lib-dist-exports-with-main/colors.stylex";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = FxHashMap::default();
+
+    let expected_result = format!(
+      "{}/{}",
+      root_path.replace("/apps/web", ""),
+      "node_modules/stylex-lib-dist-exports-with-main/dist/colors.stylex.js",
+    );
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+}
+#[cfg(test)]
+mod resolve_path_aliases_tests {
+  use rustc_hash::FxHashMap;
+
+  use crate::resolvers::possible_aliased_paths;
+
+  use std::path::PathBuf;
 
   #[test]
   fn get_import_path_when_no_aliases() {

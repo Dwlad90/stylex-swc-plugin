@@ -98,6 +98,19 @@ pub fn find_nearest_package_json(path: &Path) -> Option<PathBuf> {
   }
 }
 
+pub fn find_nearest_node_modules(path: &Path) -> Option<PathBuf> {
+  let node_modules_path: PathBuf = path.join("node_modules");
+
+  if node_modules_path.exists() {
+    return Some(node_modules_path);
+  }
+
+  match path.parent() {
+    Some(parent) => find_nearest_node_modules(parent),
+    None => None,
+  }
+}
+
 pub(crate) fn resolve_package_from_package_json(
   resolver: &NodeModulesResolver,
   file_name: &FileName,

@@ -11,6 +11,12 @@ pub(crate) fn contains_subpath(path: &Path, sub_path: &Path) -> bool {
 }
 pub fn relative_path(file_path: &Path, root: &Path) -> PathBuf {
   pathdiff::diff_paths(file_path, root)
-    .expect("Path resolution failed")
+    .unwrap_or_else(|| {
+      panic!(
+        "Failed to get relative path for file {} based on root {}",
+        file_path.display(),
+        root.display()
+      )
+    })
     .clean()
 }

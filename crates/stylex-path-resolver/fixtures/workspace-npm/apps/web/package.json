@@ -1,0 +1,10 @@
+{
+  "name": "workspace-app",
+  "version": "0.6.2",
+  "dependencies": {
+    "@stylex/theme-lib-main-dist": "workspace:^",
+    "@stylex/theme-lib": "workspace:^",
+    "@stylexjs/open-props": "^0.10.1",
+    "stylex-lib": "workspace:^"
+  }
+}

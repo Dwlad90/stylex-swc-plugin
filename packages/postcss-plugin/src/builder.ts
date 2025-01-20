@@ -101,7 +101,7 @@ function createBuilder() {
     });
 
     // Normalize file paths
-    files = files.map(file => (file.includes(cwd || '/') ? file : path.join(cwd || '/', file)));
+    files = files.map(file => (file.includes(cwd || '/') ? file : path.resolve(cwd || '/', file)));
 
     return files;
   }

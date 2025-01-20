@@ -90,7 +90,7 @@ pub struct StyleXOptions {
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
-  pub unstable_module_resolution: Option<CheckModuleResolution>,
+  pub unstable_module_resolution: CheckModuleResolution,
 }
 
 impl StyleXOptions {
@@ -126,22 +126,23 @@ impl Default for StyleXOptions {
       treeshake_compensation: None,
       gen_conditional_classes: false,
       aliases: None,
-      unstable_module_resolution: Some(CheckModuleResolution::Haste(
-        StyleXOptions::get_haste_module_resolution(None),
-      )),
+      unstable_module_resolution: CheckModuleResolution::Haste(
+        StyleXOptions::get_common_js_module_resolution(None),
+      ),
     }
   }
 }
 
 impl From<StyleXOptionsParams> for StyleXOptions {
   fn from(options: StyleXOptionsParams) -> Self {
-    let unstable_module_resolution = match options.unstable_module_resolution {
-      Some(module_resolution) => match module_resolution.r#type.to_lowercase().as_str() {
-        "haste" => Some(CheckModuleResolution::Haste(module_resolution)),
-        "cross-file-parsing" => Some(CheckModuleResolution::CrossFileParsing(module_resolution)),
-        _ => Some(CheckModuleResolution::CommonJS(module_resolution)),
-      },
-      None => None,
+    let module_resolution = options
+      .unstable_module_resolution
+      .unwrap_or_else(|| StyleXOptions::get_common_js_module_resolution(None));
+
+    let unstable_module_resolution = match module_resolution.r#type.to_lowercase().as_str() {
+      "haste" => CheckModuleResolution::Haste(module_resolution),
+      "cross-file-parsing" => CheckModuleResolution::CrossFileParsing(module_resolution),
+      _ => CheckModuleResolution::CommonJS(module_resolution),
     };
 
     let runtime_injection = match options.runtime_injection {
@@ -160,7 +161,12 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       runtime_injection,
       class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),
       // defined_stylex_css_variables: options.defined_stylex_css_variables.unwrap_or_default(),
-      import_sources: options.import_sources.unwrap_or_default(),
+      import_sources: options.import_sources.unwrap_or_else(|| {
+        vec![
+          ImportSources::Regular("stylex".to_string()),
+          ImportSources::Regular("@stylexjs/stylex".to_string()),
+        ]
+      }),
       dev: options.dev.unwrap_or(false),
       test: options.test.unwrap_or(false),
       debug: options.debug.or(options.dev).unwrap_or(false),

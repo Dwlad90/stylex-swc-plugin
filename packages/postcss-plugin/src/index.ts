@@ -42,14 +42,7 @@ const plugin = ({
           include,
           exclude,
           cwd,
-          rsOptions: {
-            useRemForFontSize: true,
-            runtimeInjection: false,
-            genConditionalClasses: true,
-            treeshakeCompensation: true,
-            importSources: ['stylex', '@stylexjs/stylex'],
-            ...rsOptions,
-          },
+          rsOptions,
           useCSSLayers,
           isDev,
         });

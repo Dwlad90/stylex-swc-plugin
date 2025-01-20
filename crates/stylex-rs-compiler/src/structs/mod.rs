@@ -7,6 +7,7 @@ use stylex_shared::shared::structures::{
 };
 
 #[napi(object)]
+#[derive(Debug)]
 pub struct StyleXModuleResolution {
   pub r#type: String,
   pub root_dir: Option<String>,
@@ -14,6 +15,7 @@ pub struct StyleXModuleResolution {
 }
 
 #[napi(string_enum)]
+#[derive(Debug)]
 pub enum SourceMaps {
   True,
   False,
@@ -21,6 +23,7 @@ pub enum SourceMaps {
 }
 
 #[napi(object)]
+#[derive(Debug)]
 pub struct StyleXOptions {
   pub style_resolution: Option<String>,
   pub use_rem_for_font_size: Option<bool>,

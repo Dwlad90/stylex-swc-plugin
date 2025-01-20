@@ -22,7 +22,7 @@ pub struct StyleXStateOptions {
   pub treeshake_compensation: Option<bool>,
   pub gen_conditional_classes: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
-  pub unstable_module_resolution: Option<CheckModuleResolution>,
+  pub unstable_module_resolution: CheckModuleResolution,
 }
 
 impl Default for StyleXStateOptions {
@@ -39,14 +39,16 @@ impl Default for StyleXStateOptions {
       runtime_injection: None,
       gen_conditional_classes: false,
       aliases: None,
-      unstable_module_resolution: None,
+      unstable_module_resolution: CheckModuleResolution::CommonJS(
+        StyleXOptions::get_common_js_module_resolution(None),
+      ),
     }
   }
 }
 
 impl Default for CheckModuleResolution {
   fn default() -> Self {
-    CheckModuleResolution::Haste(StyleXOptions::get_haste_module_resolution(None))
+    CheckModuleResolution::CommonJS(StyleXOptions::get_common_js_module_resolution(None))
   }
 }
 impl From<StyleXOptions> for StyleXStateOptions {

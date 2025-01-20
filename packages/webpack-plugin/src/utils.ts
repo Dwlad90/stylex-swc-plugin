@@ -1,4 +1,4 @@
-import stylexPlugin from '@stylexswc/rs-compiler';
+import stylexPlugin, { normalizeRsOptions } from '@stylexswc/rs-compiler';
 
 import type webpack from 'webpack';
 import type { Rule } from '@stylexjs/babel-plugin';
@@ -49,5 +49,5 @@ export function generateStyleXOutput(
     return { code, map, metadata };
   }
 
-  return stylexPlugin.transform(resourcePath, inputSource, rsOptions);
+  return stylexPlugin.transform(resourcePath, inputSource, normalizeRsOptions(rsOptions ?? {}));
 }

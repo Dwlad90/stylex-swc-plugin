@@ -241,14 +241,9 @@ impl StateManager {
   ) -> Option<String> {
     let filename = self.get_filename();
 
-    let unstable_module_resolution = self
-      .options
-      .unstable_module_resolution
-      .as_ref()
-      .cloned()
-      .unwrap_or_default();
+    let unstable_module_resolution = &self.options.unstable_module_resolution;
 
-    let theme_file_extension = match &unstable_module_resolution {
+    let theme_file_extension = match unstable_module_resolution {
       CheckModuleResolution::CommonJS(ModuleResolution {
         theme_file_extension,
         ..
@@ -263,10 +258,7 @@ impl StateManager {
       }) => theme_file_extension.as_deref().unwrap_or(".stylex"),
     };
 
-    if filename.is_empty()
-      || !matches_file_suffix(theme_file_extension, filename)
-      || self.options.unstable_module_resolution.is_none()
-    {
+    if filename.is_empty() || !matches_file_suffix(theme_file_extension, filename) {
       return None;
     }
 
@@ -327,22 +319,20 @@ impl StateManager {
       }
     }
 
-    if let Some(module_resolution) = &self.options.unstable_module_resolution {
-      if let Some(root_dir) = match &module_resolution {
-        CheckModuleResolution::CommonJS(module_resolution) => module_resolution.root_dir.as_deref(),
-        CheckModuleResolution::Haste(module_resolution) => module_resolution.root_dir.as_deref(),
-        CheckModuleResolution::CrossFileParsing(module_resolution) => {
-          module_resolution.root_dir.as_deref()
-        }
-      } {
-        let file_path = Path::new(file_path);
-        let root_dir = Path::new(root_dir);
-
-        if let Some(root_dir) = relative_path(file_path, root_dir).to_str() {
-          return root_dir.to_string();
-        }
+    if let Some(root_dir) = match &self.options.unstable_module_resolution {
+      CheckModuleResolution::CommonJS(module_resolution) => module_resolution.root_dir.as_deref(),
+      CheckModuleResolution::Haste(module_resolution) => module_resolution.root_dir.as_deref(),
+      CheckModuleResolution::CrossFileParsing(module_resolution) => {
+        module_resolution.root_dir.as_deref()
       }
-    }
+    } {
+      let file_path = Path::new(file_path);
+      let root_dir = Path::new(root_dir);
+
+      if let Some(root_dir) = relative_path(file_path, root_dir).to_str() {
+        return root_dir.to_string();
+      }
+    };
 
     let file_name = Path::new(file_path)
       .file_name()
@@ -363,11 +353,7 @@ impl StateManager {
       return ImportPathResolution::False;
     }
 
-    let Some(unstable_module_resolution) = &self.options.unstable_module_resolution else {
-      return ImportPathResolution::False;
-    };
-
-    match unstable_module_resolution {
+    match &self.options.unstable_module_resolution {
       CheckModuleResolution::CommonJS(module_resolution) => {
         let filename = self.get_filename();
 

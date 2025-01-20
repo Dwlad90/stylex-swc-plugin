@@ -8,8 +8,10 @@ import type { BuildOptions } from 'vite';
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions from './utils/normalizeOptions';
 import type { UnpluginStylexRSOptions } from './types';
-import stylexRsCompiler, { StyleXMetadata } from '@stylexswc/rs-compiler';
+import stylexRsCompiler from '@stylexswc/rs-compiler';
 import generateHash from './utils/generateHash';
+
+import type { StyleXMetadata } from '@stylexswc/rs-compiler';
 
 const { writeFile, mkdir } = promises;
 

@@ -1,6 +1,6 @@
-import type { UnpluginStylexRSOptions } from '../types';
+import { normalizeRsOptions } from '@stylexswc/rs-compiler';
 
-const IS_DEV_ENV = process.env.NODE_ENV === 'development';
+import type { UnpluginStylexRSOptions } from '../types';
 
 export default function normalizeOptions(
   options: UnpluginStylexRSOptions
@@ -10,15 +10,7 @@ export default function normalizeOptions(
     fileName: options.fileName ?? 'stylex.css',
     useCSSLayers: options.useCSSLayers ?? false,
     pageExtensions: options.pageExtensions ?? ['tsx', 'jsx', 'js', 'ts'],
-    rsOptions: {
-      ...options.rsOptions,
-      dev: options.rsOptions?.dev ?? IS_DEV_ENV,
-      unstable_moduleResolution: options.rsOptions?.unstable_moduleResolution ?? {
-        type: 'commonJS',
-        rootDir: process.cwd(),
-      },
-      importSources: options.rsOptions?.importSources ?? ['stylex', '@stylexjs/stylex'],
-    },
+    rsOptions: normalizeRsOptions(options.rsOptions || {}),
     extractCSS: options.extractCSS ?? true,
   };
 }

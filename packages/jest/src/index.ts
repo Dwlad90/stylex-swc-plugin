@@ -1,4 +1,4 @@
-import { transform } from '@stylexswc/rs-compiler';
+import { transform, normalizeRsOptions } from '@stylexswc/rs-compiler';
 import { createHash } from 'crypto';
 
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
@@ -16,7 +16,11 @@ const process: SyncTransformer<JestTransformerConfig>['process'] = function proc
   sourcePath,
   options
 ) {
-  const { code } = transform(sourcePath, sourceText, options.transformerConfig.rsOptions ?? {});
+  const { code } = transform(
+    sourcePath,
+    sourceText,
+    normalizeRsOptions(options.transformerConfig.rsOptions ?? {})
+  );
 
   return { code };
 };

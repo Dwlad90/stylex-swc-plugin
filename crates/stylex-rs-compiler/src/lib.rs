@@ -3,7 +3,9 @@ mod utils;
 use napi::{Env, Result};
 use std::panic;
 use std::{env, sync::Arc};
-use structs::{SourceMaps, StyleXMetadata, StyleXOptions, StyleXTransformResult};
+use structs::{
+  SourceMaps, StyleXMetadata, StyleXModuleResolution, StyleXOptions, StyleXTransformResult,
+};
 use swc_compiler_base::{print, PrintArgs, SourceMapsConfig};
 
 use stylex_shared::{
@@ -113,4 +115,28 @@ pub fn transform(
       Err(napi::Error::from_reason(error_msg))
     }
   }
+}
+
+#[napi]
+pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
+  Ok(StyleXOptions {
+    dev: options
+      .dev
+      .or_else(|| env::var("NODE_ENV").ok().map(|env| env == "development")),
+    use_rem_for_font_size: options.use_rem_for_font_size.or(Some(true)),
+    runtime_injection: options.runtime_injection.or(Some(false)),
+    treeshake_compensation: options.treeshake_compensation.or(Some(true)),
+    import_sources: options.import_sources.or(Some(vec![
+      "stylex".to_string(),
+      "@stylexjs/stylex".to_string(),
+    ])),
+    unstable_module_resolution: options.unstable_module_resolution.or_else(|| {
+      Some(StyleXModuleResolution {
+        r#type: "commonJS".to_string(),
+        root_dir: None,
+        theme_file_extension: None,
+      })
+    }),
+    ..options
+  })
 }

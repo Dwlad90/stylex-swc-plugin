@@ -1,4 +1,4 @@
-import stylexRsCompiler from '@stylexswc/rs-compiler';
+import stylexRsCompiler, { normalizeRsOptions } from '@stylexswc/rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
 import type { TransformOptions } from 'lightningcss';
@@ -9,8 +9,6 @@ import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import crypto from 'crypto';
 
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
-
-const IS_DEV_ENV = process.env.NODE_ENV === 'development';
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
@@ -35,13 +33,6 @@ export default function stylexPlugin({
   lightningcssOptions,
   extractCSS = true,
 }: PluginOptions = {}): Plugin {
-  const {
-    dev = IS_DEV_ENV,
-    unstable_moduleResolution = { type: 'commonJS', rootDir: process.cwd() },
-    importSources = ['stylex', '@stylexjs/stylex'],
-    ...options
-  } = rsOptions;
-
   let stylexRules: Record<string, Rule[]> = {};
   return {
     name: 'rollup-plugin-stylex',
@@ -80,8 +71,10 @@ export default function stylexPlugin({
       inputCode: string,
       id: string
     ): Promise<null | TransformResult> {
+      const normalizedRsOptions = normalizeRsOptions(rsOptions ?? {});
+
       if (
-        !importSources.some(importName =>
+        !normalizedRsOptions.importSources?.some(importName =>
           typeof importName === 'string'
             ? inputCode.includes(importName)
             : inputCode.includes(importName.from)
@@ -92,12 +85,7 @@ export default function stylexPlugin({
         return null;
       }
 
-      let result = stylexRsCompiler.transform(id, inputCode, {
-        ...options,
-        dev,
-        unstable_moduleResolution,
-        importSources,
-      });
+      let result = stylexRsCompiler.transform(id, inputCode, normalizedRsOptions);
 
       if (result == null) {
         console.warn('stylex: transformAsync returned null');
@@ -124,7 +112,12 @@ export default function stylexPlugin({
         }
       }
 
-      if (extractCSS && !dev && metadata.stylex != null && metadata.stylex.length > 0) {
+      if (
+        extractCSS &&
+        !normalizedRsOptions.dev &&
+        metadata.stylex != null &&
+        metadata.stylex.length > 0
+      ) {
         stylexRules[id] = metadata.stylex;
       }
 

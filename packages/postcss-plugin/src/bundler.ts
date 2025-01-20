@@ -1,5 +1,6 @@
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
-import { StyleXOptions, transform as stylexTransform } from '@stylexswc/rs-compiler';
+import { transform as stylexTransform, normalizeRsOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions } from '@stylexswc/rs-compiler';
 
 import type { TransformOptions, StyleXPluginOption } from './types';
 
@@ -28,7 +29,7 @@ export default function createBundler() {
     };
 
     try {
-      transformResult = stylexTransform(id, sourceCode, rsOptions);
+      transformResult = stylexTransform(id, sourceCode, normalizeRsOptions(rsOptions ?? {}));
     } catch (error) {
       if (shouldSkipTransformError) {
         console.warn(

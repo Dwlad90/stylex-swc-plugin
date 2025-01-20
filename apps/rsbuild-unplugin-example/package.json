@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/rsbuild-unplugin-example",
-  "version": "0.6.2",
+  "version": "0.6.3-rc.1",
   "description": "A simple rsbuild unplugin example to test @stylexswc/unplugin/rspack",
   "private": true,
   "scripts": {
@@ -9,10 +9,10 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.6.2",
+    "@stylexswc/rs-compiler": "0.6.3-rc.1",
     "@stylexjs/open-props": "^0.10.1",
     "@stylexjs/stylex": "^0.10.1",
-    "@stylexswc/unplugin": "0.6.2",
+    "@stylexswc/unplugin": "0.6.3-rc.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

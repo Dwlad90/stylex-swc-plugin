@@ -79,10 +79,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -110,10 +110,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -150,10 +150,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/jest':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/jest
       '@stylexswc/nextjs-plugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/nextjs-plugin
       next:
         specifier: 15.1.2
@@ -169,7 +169,7 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
         specifier: ^0.2.37
@@ -226,7 +226,7 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/nextjs-plugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/nextjs-plugin
       next:
         specifier: 15.1.2
@@ -242,7 +242,7 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/postcss-plugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/postcss-plugin
       '@types/node':
         specifier: ^22.5.1
@@ -278,7 +278,7 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rollup-plugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/rollup-plugin
 
   apps/rollup-unplugin-example:
@@ -290,10 +290,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -333,10 +333,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -367,10 +367,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -407,10 +407,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -444,10 +444,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -478,10 +478,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       vue:
         specifier: ^3.5.12
@@ -510,17 +510,17 @@ importers:
         version: 0.10.1
     devDependencies:
       '@stylexswc/webpack-plugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/webpack-plugin
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.2(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1)
+        version: 7.1.2(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1(webpack-cli@5.1.4))
       html-webpack-plugin:
         specifier: ^5.6.0
-        version: 5.6.3(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1)
+        version: 5.6.3(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1(webpack-cli@5.1.4))
       mini-css-extract-plugin:
         specifier: ^2.9.2
-        version: 2.9.2(webpack@5.96.1)
+        version: 2.9.2(webpack@5.96.1(webpack-cli@5.1.4))
       webpack:
         specifier: ^5.94.0
         version: 5.96.1(webpack-cli@5.1.4)
@@ -537,10 +537,10 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.0.0
@@ -560,10 +560,10 @@ importers:
         version: 19.0.0
       html-webpack-plugin:
         specifier: ^5.6.0
-        version: 5.6.3(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1)
+        version: 5.6.3(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))
       swc-loader:
         specifier: ^0.2.6
-        version: 0.2.6(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1)
+        version: 0.2.6(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))
       webpack:
         specifier: ^5.94.0
         version: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
@@ -705,13 +705,13 @@ importers:
         specifier: ^29.5.14
         version: 29.6.3
       '@stylexswc/eslint-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../eslint-config
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/typescript-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../typescript-config
 
   packages/nextjs-plugin:
@@ -720,16 +720,16 @@ importers:
         specifier: ^7.23.9
         version: 7.24.0
       '@stylexswc/eslint-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../eslint-config
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/typescript-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../typescript-config
       '@stylexswc/webpack-plugin':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../webpack-plugin
       '@types/babel__core':
         specifier: ^7.20.5
@@ -751,7 +751,7 @@ importers:
         version: 19.0.0(react@19.0.0)
       webpack:
         specifier: ^5.94.0
-        version: 5.96.1(webpack-cli@5.1.4)
+        version: 5.96.1
 
   packages/postcss-plugin:
     dependencies:
@@ -775,13 +775,13 @@ importers:
         specifier: ^7.23.9
         version: 7.26.0
       '@stylexswc/eslint-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../eslint-config
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/typescript-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -809,7 +809,7 @@ importers:
         version: 1.27.0
     devDependencies:
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@types/node':
         specifier: ^22.5.1
@@ -832,7 +832,7 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       esbuild:
         specifier: '*'
@@ -900,13 +900,13 @@ importers:
         specifier: ^7.23.9
         version: 7.24.0
       '@stylexswc/eslint-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../eslint-config
       '@stylexswc/rs-compiler':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/typescript-config':
-        specifier: 0.6.2
+        specifier: 0.6.3-rc.1
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -922,7 +922,7 @@ importers:
         version: 2.9.2(webpack@5.96.1)
       webpack:
         specifier: ^5.94.0
-        version: 5.96.1(webpack-cli@5.1.4)
+        version: 5.96.1
 
 packages:
 
@@ -11227,7 +11227,7 @@ snapshots:
     dependencies:
       '@types/node': 22.8.5
       tapable: 2.2.1
-      webpack: 5.96.1(webpack-cli@5.1.4)
+      webpack: 5.96.1
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
@@ -11541,7 +11541,7 @@ snapshots:
       '@typescript-eslint/eslint-plugin': 7.7.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint@8.57.0)(typescript@5.6.2)
       '@typescript-eslint/parser': 7.7.1(eslint@8.57.0)(typescript@5.6.2)
       eslint-config-prettier: 9.1.0(eslint@8.57.0)
-      eslint-import-resolver-alias: 1.1.2(eslint-plugin-import@2.29.1)
+      eslint-import-resolver-alias: 1.1.2(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0))
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-plugin-import@2.29.1)(eslint@8.57.0)
       eslint-plugin-eslint-comments: 3.2.0(eslint@8.57.0)
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
@@ -11823,24 +11823,34 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
 
-  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4)(webpack@5.96.1)':
+  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))':
+    dependencies:
+      webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
+      webpack-cli: 5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1)
+
+  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4(webpack@5.96.1))(webpack@5.96.1(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.96.1(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.96.1)
 
-  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4)(webpack@5.96.1)':
+  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))':
+    dependencies:
+      webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
+      webpack-cli: 5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1)
+
+  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4(webpack@5.96.1))(webpack@5.96.1(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.96.1(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.96.1)
 
-  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack-dev-server@5.0.4)(webpack@5.96.1)':
+  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1))(webpack-dev-server@5.0.4(webpack-cli@5.1.4)(webpack@5.96.1))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1)
     optionalDependencies:
       webpack-dev-server: 5.0.4(webpack-cli@5.1.4)(webpack@5.96.1)
 
-  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack@5.96.1)':
+  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4(webpack@5.96.1))(webpack@5.96.1(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.96.1(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.96.1)
@@ -12743,7 +12753,7 @@ snapshots:
 
   css-color-names@0.0.1: {}
 
-  css-loader@7.1.2(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1):
+  css-loader@7.1.2(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1(webpack-cli@5.1.4)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.4.49)
       postcss: 8.4.49
@@ -13413,7 +13423,7 @@ snapshots:
       eslint: 8.57.0
       eslint-plugin-turbo: 2.0.9(eslint@8.57.0)
 
-  eslint-import-resolver-alias@1.1.2(eslint-plugin-import@2.29.1):
+  eslint-import-resolver-alias@1.1.2(eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)):
     dependencies:
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
 
@@ -13430,7 +13440,7 @@ snapshots:
       debug: 4.3.4
       enhanced-resolve: 5.16.0
       eslint: 8.57.0
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.31.0)(eslint@8.57.0))(eslint@8.57.0)
       eslint-plugin-import: 2.31.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.6.2))(eslint@8.57.0)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.3
@@ -13447,7 +13457,7 @@ snapshots:
       debug: 4.3.4
       enhanced-resolve: 5.16.0
       eslint: 8.57.0
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-plugin-import@2.29.1)(eslint@8.57.0))(eslint@8.57.0)
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.3
@@ -13464,7 +13474,7 @@ snapshots:
       debug: 4.3.4
       enhanced-resolve: 5.16.0
       eslint: 8.57.0
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.31.0)(eslint@8.57.0))(eslint@8.57.0)
       eslint-plugin-import: 2.31.0(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.3
@@ -13486,7 +13496,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.0(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0):
+  eslint-module-utils@2.12.0(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.31.0)(eslint@8.57.0))(eslint@8.57.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -13497,7 +13507,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.31.0)(eslint@8.57.0))(eslint@8.57.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -13508,17 +13518,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-plugin-import@2.29.1)(eslint@8.57.0))(eslint@8.57.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 7.7.1(eslint@8.57.0)(typescript@5.6.2)
       eslint: 8.57.0
+      eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-plugin-import@2.29.1)(eslint@8.57.0)
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.31.0)(eslint@8.57.0))(eslint@8.57.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -13545,7 +13556,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.2))(eslint-plugin-import@2.29.1)(eslint@8.57.0))(eslint@8.57.0)
       hasown: 2.0.2
       is-core-module: 2.13.1
       is-glob: 4.0.3
@@ -13602,7 +13613,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.0)
+      eslint-module-utils: 2.12.0(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.31.0)(eslint@8.57.0))(eslint@8.57.0)
       hasown: 2.0.2
       is-core-module: 2.15.1
       is-glob: 4.0.3
@@ -14505,7 +14516,18 @@ snapshots:
 
   html-tags@3.3.1: {}
 
-  html-webpack-plugin@5.6.3(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1):
+  html-webpack-plugin@5.6.3(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)):
+    dependencies:
+      '@types/html-minifier-terser': 6.1.0
+      html-minifier-terser: 6.1.0
+      lodash: 4.17.21
+      pretty-error: 4.0.0
+      tapable: 2.2.1
+    optionalDependencies:
+      '@rspack/core': 1.1.6(@swc/helpers@0.5.15)
+      webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
+
+  html-webpack-plugin@5.6.3(@rspack/core@1.1.6(@swc/helpers@0.5.15))(webpack@5.96.1(webpack-cli@5.1.4)):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -15801,11 +15823,17 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  mini-css-extract-plugin@2.9.2(webpack@5.96.1):
+  mini-css-extract-plugin@2.9.2(webpack@5.96.1(webpack-cli@5.1.4)):
     dependencies:
       schema-utils: 4.2.0
       tapable: 2.2.1
       webpack: 5.96.1(webpack-cli@5.1.4)
+
+  mini-css-extract-plugin@2.9.2(webpack@5.96.1):
+    dependencies:
+      schema-utils: 4.2.0
+      tapable: 2.2.1
+      webpack: 5.96.1
 
   minimalistic-assert@1.0.1: {}
 
@@ -17291,7 +17319,7 @@ snapshots:
 
   svg-tags@1.0.0: {}
 
-  swc-loader@0.2.6(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1):
+  swc-loader@0.2.6(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)):
     dependencies:
       '@swc/core': 1.7.26(@swc/helpers@0.5.15)
       '@swc/counter': 0.1.3
@@ -17363,7 +17391,7 @@ snapshots:
       '@swc/core': 1.7.26(@swc/helpers@0.5.15)
       esbuild: 0.24.0
 
-  terser-webpack-plugin@5.3.10(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1):
+  terser-webpack-plugin@5.3.10(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       jest-worker: 27.5.1
@@ -17374,7 +17402,7 @@ snapshots:
     optionalDependencies:
       '@swc/core': 1.7.26(@swc/helpers@0.5.15)
 
-  terser-webpack-plugin@5.3.10(webpack@5.96.1):
+  terser-webpack-plugin@5.3.10(webpack@5.96.1(webpack-cli@5.1.4)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       jest-worker: 27.5.1
@@ -17382,6 +17410,15 @@ snapshots:
       serialize-javascript: 6.0.2
       terser: 5.31.0
       webpack: 5.96.1(webpack-cli@5.1.4)
+
+  terser-webpack-plugin@5.3.10(webpack@5.96.1):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.25
+      jest-worker: 27.5.1
+      schema-utils: 3.3.0
+      serialize-javascript: 6.0.2
+      terser: 5.31.0
+      webpack: 5.96.1
 
   terser@5.31.0:
     dependencies:
@@ -17922,9 +17959,9 @@ snapshots:
   webpack-cli@5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1):
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4)(webpack@5.96.1)
-      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4)(webpack@5.96.1)
-      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4)(webpack-dev-server@5.0.4)(webpack@5.96.1)
+      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))
+      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))
+      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4(webpack-dev-server@5.0.4)(webpack@5.96.1))(webpack-dev-server@5.0.4(webpack-cli@5.1.4)(webpack@5.96.1))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))
       colorette: 2.0.20
       commander: 10.0.1
       cross-spawn: 7.0.6
@@ -17941,9 +17978,9 @@ snapshots:
   webpack-cli@5.1.4(webpack@5.96.1):
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4)(webpack@5.96.1)
-      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4)(webpack@5.96.1)
-      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4)(webpack@5.96.1)
+      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4(webpack@5.96.1))(webpack@5.96.1(webpack-cli@5.1.4))
+      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4(webpack@5.96.1))(webpack@5.96.1(webpack-cli@5.1.4))
+      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4(webpack@5.96.1))(webpack@5.96.1(webpack-cli@5.1.4))
       colorette: 2.0.20
       commander: 10.0.1
       cross-spawn: 7.0.6
@@ -17955,7 +17992,7 @@ snapshots:
       webpack: 5.96.1(webpack-cli@5.1.4)
       webpack-merge: 5.10.0
 
-  webpack-dev-middleware@7.4.2(webpack@5.96.1):
+  webpack-dev-middleware@7.4.2(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)):
     dependencies:
       colorette: 2.0.20
       memfs: 4.14.0
@@ -17965,6 +18002,17 @@ snapshots:
       schema-utils: 4.2.0
     optionalDependencies:
       webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
+
+  webpack-dev-middleware@7.4.2(webpack@5.96.1):
+    dependencies:
+      colorette: 2.0.20
+      memfs: 4.14.0
+      mime-types: 2.1.35
+      on-finished: 2.4.1
+      range-parser: 1.2.1
+      schema-utils: 4.2.0
+    optionalDependencies:
+      webpack: 5.96.1
 
   webpack-dev-server@5.0.4(webpack-cli@5.1.4)(webpack@5.96.1):
     dependencies:
@@ -17996,7 +18044,7 @@ snapshots:
       serve-index: 1.9.1
       sockjs: 0.3.24
       spdy: 4.0.2
-      webpack-dev-middleware: 7.4.2(webpack@5.96.1)
+      webpack-dev-middleware: 7.4.2(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))
       ws: 8.18.0
     optionalDependencies:
       webpack: 5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
@@ -18040,7 +18088,7 @@ snapshots:
       webpack-dev-middleware: 7.4.2(webpack@5.96.1)
       ws: 8.18.0
     optionalDependencies:
-      webpack: 5.96.1(webpack-cli@5.1.4)
+      webpack: 5.96.1
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -18056,6 +18104,36 @@ snapshots:
   webpack-sources@3.2.3: {}
 
   webpack-virtual-modules@0.6.2: {}
+
+  webpack@5.96.1:
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.6
+      '@webassemblyjs/ast': 1.12.1
+      '@webassemblyjs/wasm-edit': 1.12.1
+      '@webassemblyjs/wasm-parser': 1.12.1
+      acorn: 8.14.0
+      browserslist: 4.24.2
+      chrome-trace-event: 1.0.3
+      enhanced-resolve: 5.17.1
+      es-module-lexer: 1.5.2
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.0
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 3.3.0
+      tapable: 2.2.1
+      terser-webpack-plugin: 5.3.10(webpack@5.96.1)
+      watchpack: 2.4.1
+      webpack-sources: 3.2.3
+    transitivePeerDependencies:
+      - '@swc/core'
+      - esbuild
+      - uglify-js
 
   webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(esbuild@0.24.0):
     dependencies:
@@ -18109,7 +18187,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 3.3.0
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.10(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1)
+      terser-webpack-plugin: 5.3.10(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack@5.96.1(@swc/core@1.7.26(@swc/helpers@0.5.15))(webpack-cli@5.1.4))
       watchpack: 2.4.1
       webpack-sources: 3.2.3
     optionalDependencies:
@@ -18141,7 +18219,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 3.3.0
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.10(webpack@5.96.1)
+      terser-webpack-plugin: 5.3.10(webpack@5.96.1(webpack-cli@5.1.4))
       watchpack: 2.4.1
       webpack-sources: 3.2.3
     optionalDependencies:

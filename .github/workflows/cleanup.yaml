@@ -21,15 +21,26 @@ jobs:
         run: |
           REF="${{ github.event.inputs.reference }}"
 
-          sleep 5
+          echo "Cleaning #${REF} caches..."
 
-          echo "Cleaning  #${{ github.event.inputs.reference }} caches (excluding benchmarks)..."
+          ALL_CACHES=$(gh cache list --ref $REF --limit 100 --json key,id)
 
-          cacheKeys=$(gh cache list --ref $REF --limit 100 --json key,id --jq '.[] | select(.key | contains("-benchmark") || contains("-turbo") | not) | .id')
+          NO_BENCHMARK=$(echo "${ALL_CACHES}" | jq '[.[] | select(.key | contains("-benchmark") | not)]')
 
-          for key in $cacheKeys; do
-            echo "Cache \"$key will\" will be deleted"
-            gh cache delete "$key" || true
+          NO_TURBO=$(echo "${NO_BENCHMARK}" | jq '[.[] | select(.key | contains("-turbo") | not)]')
+
+          NO_CODEQL=$(echo "${NO_TURBO}" | jq '[.[] | select(.key | contains("codeql-trap-") | not)]')
+
+          NO_PNPM=$(echo "${NO_CODEQL}" | jq '[.[] | select(.key | contains("pnpm-") | not)]')
+
+          FINAL_CACHES="${NO_PNPM}"
+
+          echo "Filtered caches:"
+          echo "${FINAL_CACHES}" | jq .
+
+          echo "${FINAL_CACHES}" | jq -r '.[].id' | while read -r id; do
+            echo "Deleting cache ${id}..."
+            gh cache delete "$id" || true
           done
 
           echo "Cache cleanup completed"

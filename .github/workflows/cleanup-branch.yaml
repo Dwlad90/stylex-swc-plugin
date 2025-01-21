@@ -13,6 +13,7 @@ concurrency:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    if: false
     steps:
       - name: 🧹 Cleanup
         id: cleanup

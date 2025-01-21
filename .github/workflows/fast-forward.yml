@@ -31,6 +31,7 @@ jobs:
       - name: 🧹 Cleanup
         shell: bash
         id: cleanup
+        if: false
         run: |
           REF="${{ github.ref }}"
 

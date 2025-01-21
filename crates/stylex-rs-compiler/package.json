@@ -94,7 +94,7 @@
     "format:toml:check": "taplo format --check",
     "lint": "oxlint .",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
-    "postbuild:disable": "pnpm run check:artifacts",
+    "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "napi prepublish --skip-gh-release",
     "test": "ava",
     "version": "napi version"

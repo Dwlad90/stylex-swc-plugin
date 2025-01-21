@@ -60,6 +60,9 @@
       "lexical-core@<1.0.0": "^1.0.0",
       "lexical@<=6.1.1": "^6.1.1",
       "@farmfe/runtime@<=0.12.8": "^0.12.10"
+    },
+    "patchedDependencies": {
+      "scripty@2.1.1": "patches/scripty@2.1.1.patch"
     }
   }
 }

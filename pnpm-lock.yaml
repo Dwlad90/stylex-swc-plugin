@@ -16,13 +16,18 @@ overrides:
   lexical@<=6.1.1: ^6.1.1
   '@farmfe/runtime@<=0.12.8': ^0.12.10
 
+patchedDependencies:
+  scripty@2.1.1:
+    hash: atqsngqqlys2ip3ev7bmrtxbhu
+    path: patches/scripty@2.1.1.patch
+
 importers:
 
   .:
     dependencies:
       scripty:
         specifier: ^2.1.1
-        version: 2.1.1
+        version: 2.1.1(patch_hash=atqsngqqlys2ip3ev7bmrtxbhu)
     devDependencies:
       '@changesets/cli':
         specifier: ^2.27.7
@@ -17028,7 +17033,7 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.17.1)
       ajv-keywords: 5.1.0(ajv@8.17.1)
 
-  scripty@2.1.1:
+  scripty@2.1.1(patch_hash=atqsngqqlys2ip3ev7bmrtxbhu):
     dependencies:
       async: 2.6.4
       glob: 7.2.3

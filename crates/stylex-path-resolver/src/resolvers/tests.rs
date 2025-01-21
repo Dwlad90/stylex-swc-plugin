@@ -992,8 +992,10 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result = "node_modules/stylex-lib-dist-exports-with-main/dist/colors.stylex.js";
-
+    let expected_result = format!(
+      "{}/{}",
+      root_path, "node_modules/stylex-lib-dist-exports-with-main/dist/colors.stylex.js",
+    );
     assert_eq!(
       resolve_file_path(
         import_path_str,

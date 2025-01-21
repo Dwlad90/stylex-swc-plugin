@@ -372,17 +372,6 @@ pub fn resolve_file_path(
       .map(PathBuf::from)
       .collect::<IndexSet<PathBuf>>();
 
-    if let Ok(resolved_node_modules_path_buf) =
-      resolve_node_modules_path_buff(cwd_path, import_path_str, package_json_seen)
-    {
-      possible_file_paths.extend(resolve_package_with_node_modules_path(
-        resolved_node_modules_path_buf,
-        import_path_str,
-        source_file_dir,
-        package_json_seen,
-      ));
-    }
-
     if !import_path_str.is_empty() {
       possible_file_paths.insert(Path::new("node_modules").join(import_path_str));
 
@@ -398,6 +387,17 @@ pub fn resolve_file_path(
           package_json_seen,
         ));
       };
+    }
+
+    if let Ok(resolved_node_modules_path_buf) =
+      resolve_node_modules_path_buff(cwd_path, import_path_str, package_json_seen)
+    {
+      possible_file_paths.extend(resolve_package_with_node_modules_path(
+        resolved_node_modules_path_buf,
+        import_path_str,
+        source_file_dir,
+        package_json_seen,
+      ));
     }
 
     possible_file_paths.into_iter().collect()

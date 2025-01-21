@@ -366,75 +366,41 @@ pub fn resolve_file_path(
   } else if import_path_str.starts_with('/') {
     vec![root_path.join(import_path_str)]
   } else {
-    let mut aliased_file_paths = possible_aliased_paths(import_path_str, aliases)
+    let mut possible_file_paths = possible_aliased_paths(import_path_str, aliases)
       .iter()
       .filter_map(|path| path.strip_prefix(root_path).ok())
       .map(PathBuf::from)
       .collect::<IndexSet<PathBuf>>();
 
-    if let Ok(mut resolved_node_modules_path_buf) =
+    if let Ok(resolved_node_modules_path_buf) =
       resolve_node_modules_path_buff(cwd_path, import_path_str, package_json_seen)
     {
-      let (mut package_json, _) =
-        get_package_json(&resolved_node_modules_path_buf, package_json_seen);
-
-      let package_name = package_json
-        .name
-        .unwrap_or_else(|| {
-          panic!(
-            "Package name is not found in package.json of '{}'",
-            import_path_str
-          )
-        })
-        .clone();
-
-      if let Some((pnpm_package_json, pnpm_package_path)) = resolve_package_with_pnpm_path(
-        source_file_dir,
-        &package_name,
+      possible_file_paths.extend(resolve_package_with_node_modules_path(
+        resolved_node_modules_path_buf,
         import_path_str,
+        source_file_dir,
         package_json_seen,
-      ) {
-        package_json = pnpm_package_json;
-        resolved_node_modules_path_buf = pnpm_package_path;
-      }
-
-      let potential_import_path_segment = import_path_str
-        .split(&package_name)
-        .last()
-        .unwrap_or_default();
-
-      let import_path_segment = if potential_import_path_segment.is_empty() {
-        package_name
-      } else {
-        potential_import_path_segment.to_string()
-      };
-
-      let mut potential_package_path = PathBuf::default();
-
-      if let Some(exports) = &package_json.exports {
-        potential_package_path = resolve_package_json_exports(
-          Path::new(&import_path_segment),
-          exports,
-          &resolved_node_modules_path_buf,
-        );
-      }
-
-      if !potential_package_path.as_os_str().is_empty() {
-        aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
-      }
-
-      if !resolved_node_modules_path_buf.as_os_str().is_empty()
-        && !resolved_node_modules_path_buf.ends_with("node_modules")
-      {
-        aliased_file_paths.insert(resolved_node_modules_path_buf.clean());
-      }
+      ));
     }
 
     if !import_path_str.is_empty() {
-      aliased_file_paths.insert(Path::new("node_modules").join(import_path_str));
+      possible_file_paths.insert(Path::new("node_modules").join(import_path_str));
+
+      if let Some(nearest_node_modules_path) = find_nearest_node_modules(source_file_dir) {
+        let nearest_node_modules_path = nearest_node_modules_path.join(import_path_str);
+
+        possible_file_paths.insert(nearest_node_modules_path.clone());
+
+        possible_file_paths.extend(resolve_package_with_node_modules_path(
+          nearest_node_modules_path,
+          import_path_str,
+          source_file_dir,
+          package_json_seen,
+        ));
+      };
     }
 
-    aliased_file_paths.into_iter().collect()
+    possible_file_paths.into_iter().collect()
   };
 
   let valid_file_paths = resolved_file_paths
@@ -485,6 +451,74 @@ pub fn resolve_file_path(
     std::io::ErrorKind::NotFound,
     "File not found",
   ))
+}
+
+fn resolve_package_with_node_modules_path(
+  mut resolved_node_modules_path_buf: PathBuf,
+  import_path_str: &str,
+  source_file_dir: &Path,
+  package_json_seen: &mut std::collections::HashMap<
+    String,
+    PackageJsonExtended,
+    rustc_hash::FxBuildHasher,
+  >,
+) -> IndexSet<PathBuf> {
+  let mut aliased_file_paths: IndexSet<PathBuf> = IndexSet::new();
+
+  let (mut package_json, _) = get_package_json(&resolved_node_modules_path_buf, package_json_seen);
+
+  let package_name = package_json
+    .name
+    .unwrap_or_else(|| {
+      panic!(
+        "Package name is not found in package.json of '{}'",
+        import_path_str
+      )
+    })
+    .clone();
+
+  if let Some((pnpm_package_json, pnpm_package_path)) = resolve_package_with_pnpm_path(
+    source_file_dir,
+    &package_name,
+    import_path_str,
+    package_json_seen,
+  ) {
+    package_json = pnpm_package_json;
+    resolved_node_modules_path_buf = pnpm_package_path;
+  }
+
+  let potential_import_path_segment = import_path_str
+    .split(&package_name)
+    .last()
+    .unwrap_or_default();
+
+  let import_path_segment = if potential_import_path_segment.is_empty() {
+    package_name
+  } else {
+    potential_import_path_segment.to_string()
+  };
+
+  let mut potential_package_path = PathBuf::default();
+
+  if let Some(exports) = &package_json.exports {
+    potential_package_path = resolve_package_json_exports(
+      Path::new(&import_path_segment),
+      exports,
+      &resolved_node_modules_path_buf,
+    );
+  }
+
+  if !potential_package_path.as_os_str().is_empty() {
+    aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
+  }
+
+  if !resolved_node_modules_path_buf.as_os_str().is_empty()
+    && !resolved_node_modules_path_buf.ends_with("node_modules")
+  {
+    aliased_file_paths.insert(resolved_node_modules_path_buf.clean());
+  }
+
+  aliased_file_paths
 }
 
 fn resolve_package_with_pnpm_path(

@@ -54,6 +54,9 @@ jobs:
               - type: 'revert'
                 nouns: ['REVERT', 'Revert', 'revert', 'REVERTED', 'Reverted', 'reverted', 'Reapply', 'REAPPLY', 'Reapply', 'reapply', 'REVERTING', 'Reverting', 'reverting']
                 labels: ['revert']
+              - type: 'dependencies'
+                nouns: ['DEPS', 'Deps', 'deps', 'DEPENDENCIES', 'Dependencies', 'dependencies', 'DEPS-UPDATE', 'Deps-Update', 'deps-update', 'DEPS-UPDATES', 'Deps-Updates', 'deps-updates', 'DEPS-UPDATE', 'Deps-Update', 'deps-update']
+                labels: ['dependencies']
               - type: 'chore'
                 nouns: ['CHORE', 'Chore', 'chore', 'CHORES', 'Chores', 'chores']
                 labels: ['chore']

@@ -9,10 +9,10 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.10.1",
+    "@stylexswc/rs-compiler": "0.6.3-rc.1",
     "lightningcss": "^1.27.0"
   },
   "devDependencies": {
-    "@stylexswc/rs-compiler": "0.6.3-rc.1",
     "@types/node": "^22.5.1",
     "browserslist": "^4.24.2",
     "rollup": "^4.25.0"

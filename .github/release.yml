@@ -58,6 +58,17 @@ changelog:
       labels:
         - 'revert'
         - 'reverted'
+    - title: Dependency Updates 📦
+      labels:
+        - 'dependencies'
+        - 'dependency'
+        - 'deps'
+        - 'deps-update'
+        - 'deps-updates'
+        - 'deps-update'
+        - 'deps-updates'
+        - 'deps-update'
+        - 'deps-updates'
     - title: Chores 🧹
       labels:
         - 'chore'

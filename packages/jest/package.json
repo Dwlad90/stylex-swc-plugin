@@ -7,12 +7,14 @@
       "path": "../../scripts/packages"
     }
   },
+  "dependencies": {
+    "@stylexswc/rs-compiler": "0.6.3-rc.1"
+  },
   "devDependencies": {
     "@babel/types": "^7.23.9",
     "@jest/transform": "^29.7.0",
     "@jest/types": "^29.5.14",
     "@stylexswc/eslint-config": "0.6.3-rc.1",
-    "@stylexswc/rs-compiler": "0.6.3-rc.1",
     "@stylexswc/typescript-config": "0.6.3-rc.1"
   },
   "files": [

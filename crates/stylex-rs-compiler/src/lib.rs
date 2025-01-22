@@ -10,6 +10,7 @@ use swc_compiler_base::{print, PrintArgs, SourceMapsConfig};
 
 use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::utils::log::logger,
   StyleXTransform,
 };
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax, TsSyntax};
@@ -35,6 +36,7 @@ pub fn transform(
   options: StyleXOptions,
 ) -> Result<StyleXTransformResult> {
   color_backtrace::install();
+  logger::initialize();
 
   let result = panic::catch_unwind(|| {
     let cm: Arc<SourceMap> = Default::default();

@@ -45,6 +45,7 @@ pretty_env_logger.workspace = true
 color-backtrace.workspace = true
 ctor.workspace = true
 env_logger.workspace = true
+chrono.workspace = true
 rustc-hash.workspace = true
 
 swc_ecma_parser = { version = "*", features = ["verify"] }

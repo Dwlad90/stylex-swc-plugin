@@ -2,7 +2,7 @@ use core::panic;
 use std::{borrow::Borrow, rc::Rc};
 
 use indexmap::IndexMap;
-use log::warn;
+use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
@@ -1727,6 +1727,11 @@ fn _evaluate(
     }
 
     if let Some(import_path) = get_import_by_ident(ident, traversal_state) {
+      debug!(
+        "importing: {} from {}",
+        ident.sym.to_string(),
+        import_path.src.value
+      );
       let (local_name, imported) = import_path
         .specifiers
         .iter()

@@ -5,7 +5,7 @@ use std::path::Path;
 use std::{option::Option, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
-use log::{debug, error, info, warn};
+use log::debug;
 use stylex_path_resolver::{
   package_json::{find_nearest_package_json, get_package_json, PackageJsonExtended},
   resolvers::{resolve_file_path, EXTENSIONS},
@@ -379,6 +379,8 @@ impl StateManager {
           &aliases,
           package_json_seen,
         );
+
+        debug!("  resolved import path: {}", resolved_file_path);
 
         let resolved_file_path =
           self.get_canonical_file_path(&resolved_file_path, package_json_seen);
@@ -852,14 +854,6 @@ fn file_path_resolver(
     aliases,
     package_json_seen,
   );
-
-  println!("Resolving path {}", source_file_path);
-
-  // Example log messages at different levels
-  error!("Error err");
-  warn!("warning msg");
-  info!("some information: {}", "hello world");
-  debug!("Variable x = {:?}", Some(42));
 
   if let Ok(resolved_path) = resolved_file_path {
     let resolved_path_str = resolved_path.display().to_string();

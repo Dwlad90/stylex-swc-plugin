@@ -1,5 +1,6 @@
 mod structs;
 mod utils;
+use log::info;
 use napi::{Env, Result};
 use std::panic;
 use std::{env, sync::Arc};
@@ -37,6 +38,8 @@ pub fn transform(
 ) -> Result<StyleXTransformResult> {
   color_backtrace::install();
   logger::initialize();
+
+  info!("Transforming source file: {}", filename);
 
   let result = panic::catch_unwind(|| {
     let cm: Arc<SourceMap> = Default::default();

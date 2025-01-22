@@ -19,7 +19,7 @@ pub fn initialize() {
           record.args()
         )
       })
-      .filter_level(LevelFilter::Off)
+      .filter_level(LevelFilter::Warn)
       .parse_env("STYLEX_DEBUG") // Allow override via environment variable
       .write_style(WriteStyle::Always)
       .init();

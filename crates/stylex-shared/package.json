@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/shared",
   "description": "Shared code for stylex-swc-plugin and stylex-rs-compiler",
-  "version": "0.6.3-rc.2",
+  "version": "0.6.3-rc.3",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"

@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-postcss-example",
-  "version": "0.6.3-rc.2",
+  "version": "0.6.3-rc.3",
   "private": true,
   "scripts": {
     "clean": "rimraf .next",
@@ -15,14 +15,14 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.10.1",
     "@stylexjs/stylex": "^0.10.1",
-    "@stylexswc/nextjs-plugin": "0.6.3-rc.2",
+    "@stylexswc/nextjs-plugin": "0.6.3-rc.3",
     "next": "15.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
-    "@stylexswc/postcss-plugin": "0.6.3-rc.2",
+    "@stylexswc/postcss-plugin": "0.6.3-rc.3",
     "@stylexjs/eslint-plugin": "^0.10.1",
     "@types/node": "^22.5.1",
     "@types/react": "^19.0.1",

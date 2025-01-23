@@ -8,6 +8,7 @@
     }
   },
   "devDependencies": {
+    "@stylexswc/path-resolver": "^0.6.3-rc.3",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^6.2.2",
     "prettier": "^3.3.3"

@@ -1327,12 +1327,15 @@ mod resolve_path_aliases_tests {
 mod resolve_nested_external_imports_tests {
   use rustc_hash::FxHashMap;
 
-  use crate::resolvers::{resolve_file_path, tests::get_root_dir};
+  use crate::{
+    package_json::find_closest_node_modules,
+    resolvers::{resolve_file_path, tests::get_root_dir},
+  };
 
   use std::{collections::HashMap, path::PathBuf};
 
   #[test]
-  fn resolve_regular_nextsted_import() {
+  fn resolve_regular_nested_import() {
     let test_path = PathBuf::from("exports/node_modules/stylex-lib-dist-main");
 
     let import_path_str = "stylex-lib-dist-exports-with-main/colors.stylex";
@@ -1341,7 +1344,6 @@ mod resolve_nested_external_imports_tests {
       get_root_dir(&test_path).as_path().display()
     );
     let root_path = get_root_dir(&test_path).display().to_string();
-    dbg!(&source_file_path, &root_path);
     let aliases = FxHashMap::default();
 
     let expected_result = format!(
@@ -1362,6 +1364,53 @@ mod resolve_nested_external_imports_tests {
       .display()
       .to_string(),
       expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_nested_import_with_exports_and_nested_node_modules() {
+    let test_path = PathBuf::from("exports/node_modules/stylex-lib-dist-main");
+
+    let import_path_str = "stylex-lib-dist-exports/colors.stylex";
+    let source_file_path = format!(
+      "{}/dist/index.jsx",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = FxHashMap::default();
+
+    let expected_result = format!(
+      "{}/{}",
+      root_path.replace("/node_modules/stylex-lib-dist-main", ""),
+      "node_modules/stylex-lib-dist-exports/dist/colors.stylex.js"
+    );
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+
+    let test_nested_package_path = &get_root_dir(&test_path);
+
+    let closest_node_modules = find_closest_node_modules(test_nested_package_path);
+
+    assert_eq!(
+      closest_node_modules
+        .unwrap_or_default()
+        .display()
+        .to_string(),
+      test_nested_package_path
+        .join("node_modules")
+        .to_string_lossy()
     );
   }
 }

@@ -7,7 +7,7 @@ use std::{option::Option, rc::Rc};
 use indexmap::{IndexMap, IndexSet};
 use log::debug;
 use stylex_path_resolver::{
-  package_json::{find_nearest_package_json, get_package_json, PackageJsonExtended},
+  package_json::{find_closest_package_json_folder, get_package_json, PackageJsonExtended},
   resolvers::{resolve_file_path, EXTENSIONS},
   utils::relative_path,
 };
@@ -278,7 +278,7 @@ impl StateManager {
     package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   ) -> Option<(Option<String>, String)> {
     let folder = Path::new(filepath).parent()?;
-    let package_json_path = find_nearest_package_json(Path::new(filepath));
+    let package_json_path = find_closest_package_json_folder(Path::new(filepath));
 
     if let Some(package_json_path) = package_json_path {
       let (package_json, _) = get_package_json(&package_json_path, package_json_seen);

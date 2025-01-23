@@ -1,3 +1,4 @@
+use indexmap::IndexSet;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env};
@@ -10,7 +11,7 @@ use swc_core::{
 use package_json::{PackageDependencies, PackageJsonManager};
 use std::path::{Path, PathBuf};
 
-use crate::resolvers::get_node_modules_path;
+use crate::{file_system::find_closest_path, resolvers::get_node_modules_path};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -85,30 +86,63 @@ pub(crate) fn get_package_json_path(path: &Path) -> (Option<PathBuf>, PackageJso
   }
 }
 
-pub fn find_nearest_package_json(path: &Path) -> Option<PathBuf> {
-  let package_json_path: PathBuf = path.join("package.json");
-
-  if package_json_path.exists() {
-    return package_json_path.parent().map(|p| p.to_path_buf());
-  }
-
-  match path.parent() {
-    Some(parent) => find_nearest_package_json(parent),
-    None => None,
-  }
+pub fn find_closest_package_json(path: &Path) -> Option<PathBuf> {
+  find_closest_path(path, "package.json")
 }
 
-pub fn find_nearest_node_modules(path: &Path) -> Option<PathBuf> {
-  let node_modules_path: PathBuf = path.join("node_modules");
+pub fn find_closest_package_json_folder(path: &Path) -> Option<PathBuf> {
+  find_closest_package_json(path).map(|path| path.parent().unwrap().to_path_buf())
+}
 
-  if node_modules_path.exists() {
-    return Some(node_modules_path);
+pub fn find_closest_node_modules(path: &Path) -> Option<PathBuf> {
+  find_closest_path(path, "node_modules")
+}
+
+pub fn recursive_find_node_modules(
+  path: &Path,
+  known_git_dir: Option<PathBuf>,
+) -> IndexSet<PathBuf> {
+  let mut node_modules_paths = IndexSet::new();
+
+  if path.eq(Path::new("/")) {
+    let root_node_modules = path.join("node_modules");
+
+    if root_node_modules.exists() {
+      node_modules_paths.insert(root_node_modules);
+    }
+
+    return node_modules_paths;
   }
 
-  match path.parent() {
-    Some(parent) => find_nearest_node_modules(parent),
-    None => None,
+  let Some(closest_node_modules_path) = find_closest_node_modules(path) else {
+    return node_modules_paths;
+  };
+
+  node_modules_paths.insert(closest_node_modules_path.clone());
+
+  if let Some(repository_git_dir) = known_git_dir.or_else(|| find_closest_path(path, ".git")) {
+    let repository_root = repository_git_dir.parent().unwrap_or(Path::new("/"));
+
+    let closest_modules_parent = closest_node_modules_path
+      .parent()
+      .and_then(|p| p.parent())
+      .unwrap_or(Path::new("/"));
+
+    if repository_root.eq(closest_modules_parent) {
+      let root_node_modules = repository_root.join("node_modules");
+
+      if root_node_modules.exists() {
+        node_modules_paths.insert(root_node_modules);
+      }
+    } else if closest_modules_parent.starts_with(repository_root) {
+      node_modules_paths.extend(recursive_find_node_modules(
+        closest_modules_parent,
+        Some(repository_git_dir),
+      ));
+    }
   }
+
+  node_modules_paths
 }
 
 pub(crate) fn resolve_package_from_package_json(

@@ -19,8 +19,9 @@ use std::fs;
 use crate::{
   file_system::{get_directories, get_directory_path_recursive},
   package_json::{
-    find_nearest_node_modules, find_nearest_package_json, get_package_json,
-    get_package_json_with_deps, resolve_package_from_package_json, PackageJsonExtended,
+    find_closest_node_modules, find_closest_package_json_folder, get_package_json,
+    get_package_json_with_deps, recursive_find_node_modules, resolve_package_from_package_json,
+    PackageJsonExtended,
   },
   utils::{contains_subpath, relative_path},
 };
@@ -238,7 +239,7 @@ fn get_potential_node_modules_path(
 
   let potential_package_path = PathBuf::from(format!(
     "{}/{}",
-    find_nearest_node_modules(file_name_real)
+    find_closest_node_modules(file_name_real)
       .unwrap_or(file_name_real.clone())
       .to_string_lossy(),
     name
@@ -295,8 +296,8 @@ fn resolve_package_json_exports(
 
   exports_values.sort_by_key(|k| (k.to_string(), k.len()));
 
-  let resolved_package_path =
-    find_nearest_package_json(resolved_node_modules_path).unwrap_or_else(|| {
+  let resolved_package_path = find_closest_package_json_folder(resolved_node_modules_path)
+    .unwrap_or_else(|| {
       panic!(
         "package.json not found near: {}",
         resolved_node_modules_path.display()
@@ -375,18 +376,20 @@ pub fn resolve_file_path(
     if !import_path_str.is_empty() {
       possible_file_paths.insert(Path::new("node_modules").join(import_path_str));
 
-      if let Some(nearest_node_modules_path) = find_nearest_node_modules(source_file_dir) {
-        let nearest_node_modules_path = nearest_node_modules_path.join(import_path_str);
+      let closest_node_modules_paths = recursive_find_node_modules(source_file_dir, None);
 
-        possible_file_paths.insert(nearest_node_modules_path.clone());
+      for closest_node_modules_path in closest_node_modules_paths.iter() {
+        let closest_node_modules_path = closest_node_modules_path.join(import_path_str);
+
+        possible_file_paths.insert(closest_node_modules_path.clone());
 
         possible_file_paths.extend(resolve_package_with_node_modules_path(
-          nearest_node_modules_path,
+          closest_node_modules_path,
           import_path_str,
           source_file_dir,
           package_json_seen,
         ));
-      };
+      }
     }
 
     if let Ok(resolved_node_modules_path_buf) =
@@ -403,17 +406,18 @@ pub fn resolve_file_path(
     possible_file_paths.into_iter().collect()
   };
 
-  let valid_file_paths = resolved_file_paths
+  let resolved_potential_file_paths = resolved_file_paths
     .iter()
     .filter(|path| path.as_path() != Path::new("."))
     .collect::<Vec<&PathBuf>>();
 
+  debug!(
+    "Resolved potential paths: {:?} for import `{}`",
+    resolved_potential_file_paths, import_path_str
+  );
+
   for ext in EXTENSIONS.iter() {
-    debug!(
-      "Resolved potential paths: {:?} for import `{}`",
-      valid_file_paths, import_path_str
-    );
-    for resolved_file_path in valid_file_paths.iter() {
+    for resolved_file_path in resolved_potential_file_paths.iter() {
       let mut resolved_file_path = resolved_file_path.clean();
 
       if let Some(extension) = resolved_file_path.extension() {
@@ -471,15 +475,12 @@ fn resolve_package_with_node_modules_path(
 
   let (mut package_json, _) = get_package_json(&resolved_node_modules_path_buf, package_json_seen);
 
-  let package_name = package_json
-    .name
-    .unwrap_or_else(|| {
-      panic!(
-        "Package name is not found in package.json of '{}'",
-        import_path_str
-      )
-    })
-    .clone();
+  let package_name = package_json.name.clone().unwrap_or_else(|| {
+    panic!(
+      "Package name is not found in package.json of '{}'",
+      import_path_str
+    )
+  });
 
   if let Some((pnpm_package_json, pnpm_package_path)) = resolve_package_with_pnpm_path(
     source_file_dir,
@@ -502,18 +503,16 @@ fn resolve_package_with_node_modules_path(
     potential_import_path_segment.to_string()
   };
 
-  let mut potential_package_path = PathBuf::default();
-
   if let Some(exports) = &package_json.exports {
-    potential_package_path = resolve_package_json_exports(
+    let potential_package_path = resolve_package_json_exports(
       Path::new(&import_path_segment),
       exports,
       &resolved_node_modules_path_buf,
     );
-  }
 
-  if !potential_package_path.as_os_str().is_empty() {
-    aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
+    if !potential_package_path.as_os_str().is_empty() {
+      aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
+    }
   }
 
   if !resolved_node_modules_path_buf.as_os_str().is_empty()
@@ -531,10 +530,10 @@ fn resolve_package_with_pnpm_path(
   import_path_str: &str,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> Option<(PackageJsonExtended, PathBuf)> {
-  let nearest_package_json_path = find_nearest_package_json(&PathBuf::from(source_file_dir));
-  if let Some(nearest_package_json_directory) = nearest_package_json_path {
+  let closest_package_json_path = find_closest_package_json_folder(&PathBuf::from(source_file_dir));
+  if let Some(closest_package_json_directory) = closest_package_json_path {
     if let Ok(directories) =
-      get_directories(&nearest_package_json_directory.join("node_modules/.pnpm"))
+      get_directories(&closest_package_json_directory.join("node_modules/.pnpm"))
     {
       let normalized_name = if package_name.starts_with('@') {
         package_name.replace('/', "+")

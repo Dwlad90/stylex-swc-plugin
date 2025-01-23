@@ -1,6 +1,6 @@
 use core::panic;
 use indexmap::IndexSet;
-use log::warn;
+use log::{debug, warn};
 use once_cell::sync::Lazy;
 use path_clean::PathClean;
 use regex::Regex;
@@ -409,6 +409,10 @@ pub fn resolve_file_path(
     .collect::<Vec<&PathBuf>>();
 
   for ext in EXTENSIONS.iter() {
+    debug!(
+      "Resolved potential paths: {:?} for import `{}`",
+      valid_file_paths, import_path_str
+    );
     for resolved_file_path in valid_file_paths.iter() {
       let mut resolved_file_path = resolved_file_path.clean();
 

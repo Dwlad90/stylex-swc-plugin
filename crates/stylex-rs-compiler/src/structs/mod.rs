@@ -1,7 +1,6 @@
 use napi::JsObject;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
-use std::fmt;
 use stylex_shared::shared::structures::{
   named_import_source::ImportSources,
   stylex_options::{ModuleResolution, StyleResolution, StyleXOptionsParams},
@@ -43,49 +42,6 @@ pub struct StyleXOptions {
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
   pub source_map: Option<SourceMaps>,
-}
-
-impl fmt::Debug for StyleXOptions {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(f, "StyleXOptions {{")?;
-    writeln!(f, "    dev: {:?}", self.dev)?;
-    writeln!(
-      f,
-      "    use_rem_for_font_size: {:?}",
-      self.use_rem_for_font_size
-    )?;
-    writeln!(f, "    runtime_injection: {:?}", self.runtime_injection)?;
-    writeln!(
-      f,
-      "    treeshake_compensation: {:?}",
-      self.treeshake_compensation
-    )?;
-
-    write!(f, "    import_sources: [")?;
-    if let Some(sources) = &self.import_sources {
-      for (i, source) in sources.iter().enumerate() {
-        if i > 0 {
-          write!(f, ", ")?;
-        }
-        write!(f, "\"{}\"", source)?;
-      }
-    }
-    writeln!(f, "]")?;
-
-    if let Some(res) = &self.unstable_module_resolution {
-      writeln!(f, "    unstable_module_resolution: {{")?;
-      writeln!(f, "        type: \"{}\"", res.r#type)?;
-      writeln!(f, "        root_dir: {:?}", res.root_dir)?;
-      writeln!(
-        f,
-        "        theme_file_extension: {:?}",
-        res.theme_file_extension
-      )?;
-      write!(f, "    }}")?;
-    }
-
-    write!(f, "}}")
-  }
 }
 
 #[napi(object)]

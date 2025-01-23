@@ -380,7 +380,7 @@ impl StateManager {
           package_json_seen,
         );
 
-        debug!("  resolved import path: {}", resolved_file_path);
+        debug!("Resolved import path: {}", resolved_file_path);
 
         let resolved_file_path =
           self.get_canonical_file_path(&resolved_file_path, package_json_seen);

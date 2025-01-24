@@ -48,6 +48,9 @@ jobs:
               - type: 'documentation'
                 nouns: ['DOCS', 'Docs', 'docs', 'DOCUMENTATION', 'Documentation', 'documentation']
                 labels: ['documentation']
+              - type: 'test'
+                nouns: ['TEST', 'Test', 'test', 'TESTS', 'Tests', 'tests']
+                labels: ['test']
               - type: 'style'
                 nouns: ['STYLE', 'Style', 'style', 'CSS', 'Css', 'css', 'DESIGN', 'Design', 'design']
                 labels: ['style']

@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/rs-compiler-linux-x64-musl",
-  "version": "0.6.3-rc.4",
+  "version": "0.6.3",
   "private": false,
   "os": [
     "linux"

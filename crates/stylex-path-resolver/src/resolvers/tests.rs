@@ -274,6 +274,8 @@ mod resolve_path_npm_tests {
       ),
       "index.js"
     );
+
+    assert!(get_root_dir(&test_path).join("node_modules").exists());
   }
 
   #[test]

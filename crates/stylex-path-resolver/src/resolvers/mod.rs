@@ -449,8 +449,12 @@ pub fn resolve_file_path(
         node_modules_path_to_check = path_to_check.clone();
       }
 
-      if fs::metadata(&path_to_check).is_ok() || fs::metadata(&node_modules_path_to_check).is_ok() {
-        return Ok(resolved_file_path.to_path_buf());
+      if fs::metadata(&path_to_check).is_ok() {
+        return Ok(path_to_check.to_path_buf().clean());
+      }
+
+      if fs::metadata(&node_modules_path_to_check).is_ok() {
+        return Ok(node_modules_path_to_check.to_path_buf().clean());
       }
     }
   }

@@ -2,7 +2,7 @@ use core::panic;
 use std::{borrow::Borrow, rc::Rc};
 
 use indexmap::IndexMap;
-use log::warn;
+use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
@@ -1692,6 +1692,8 @@ fn _evaluate(
       );
     }
     _ => {
+      debug!("Unsupported type of expression: {:?}", path);
+
       warn!("Unsupported type of expression: {:?}", path.get_type());
 
       return deopt(

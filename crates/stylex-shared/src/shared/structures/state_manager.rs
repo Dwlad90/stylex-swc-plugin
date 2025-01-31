@@ -858,11 +858,7 @@ fn file_path_resolver(
   if let Ok(resolved_path) = resolved_file_path {
     let resolved_path_str = resolved_path.display().to_string();
 
-    if resolved_path_str.contains("/app/@") {
-      return resolved_path_str.replace("/app/@", "/node_modules/@");
-    } else {
-      return resolved_path_str;
-    }
+    return resolved_path_str;
   }
 
   panic!("Cannot resolve file path: {}", relative_file_path)

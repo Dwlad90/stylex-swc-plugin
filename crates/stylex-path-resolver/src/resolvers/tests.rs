@@ -877,7 +877,7 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = Default::default();
 
-    let expected_result = "src/colors.stylex.js";
+    let expected_result = format!("{}/{}", root_path, "src/colors.stylex.js");
 
     assert_eq!(
       resolve_file_path(
@@ -906,7 +906,7 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = Default::default();
 
-    let expected_result = "src/components/button.js";
+    let expected_result = format!("{}/{}", root_path, "src/components/button.js");
 
     assert_eq!(
       resolve_file_path(
@@ -936,7 +936,7 @@ mod resolve_path_application_pnpm_tests {
     let mut aliases = FxHashMap::default();
     aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
 
-    let expected_result = "src/components/button.js";
+    let expected_result = format!("{}/{}", root_path, "src/components/button.js");
 
     assert_eq!(
       resolve_file_path(
@@ -965,7 +965,10 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result = "node_modules/stylex-lib-dist-main/dist/index.jsx";
+    let expected_result = format!(
+      "{}/{}",
+      root_path, "node_modules/stylex-lib-dist-main/dist/index.jsx"
+    );
 
     assert_eq!(
       resolve_file_path(
@@ -1025,8 +1028,11 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result =
-      "node_modules/.pnpm/stylex-lib-pnpm@0.1.0/node_modules/stylex-lib-pnpm/dist/index.jsx";
+    let expected_result = format!(
+      "{}/{}",
+      root_path,
+      "node_modules/.pnpm/stylex-lib-pnpm@0.1.0/node_modules/stylex-lib-pnpm/dist/index.jsx"
+    );
 
     assert_eq!(
       resolve_file_path(
@@ -1055,7 +1061,7 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result = "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js";
+    let expected_result = format!("{}/{}", root_path, "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js");
 
     assert_eq!(
       resolve_file_path(
@@ -1084,7 +1090,7 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result = "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js";
+    let expected_result = format!("{}/{}", root_path, "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js");
 
     assert_eq!(
       resolve_file_path(
@@ -1122,7 +1128,7 @@ mod resolve_path_application_npm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = Default::default();
 
-    let expected_result = "src/colors.stylex.js";
+    let expected_result = format!("{}/{}", root_path, "src/colors.stylex.js");
 
     assert_eq!(
       resolve_file_path(
@@ -1151,7 +1157,7 @@ mod resolve_path_application_npm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = Default::default();
 
-    let expected_result = "src/components/button.js";
+    let expected_result = format!("{}/{}", root_path, "src/components/button.js");
 
     assert_eq!(
       resolve_file_path(
@@ -1181,7 +1187,7 @@ mod resolve_path_application_npm_tests {
     let mut aliases = FxHashMap::default();
     aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
 
-    let expected_result = "src/components/button.js";
+    let expected_result = format!("{}/{}", root_path, "src/components/button.js");
 
     assert_eq!(
       resolve_file_path(
@@ -1210,7 +1216,11 @@ mod resolve_path_application_npm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result = "../../node_modules/stylex-lib-dist-main/dist/index.jsx";
+    let expected_result = format!(
+      "{}/{}",
+      root_path.replace("/apps/web", ""),
+      "node_modules/stylex-lib-dist-main/dist/index.jsx"
+    );
 
     assert_eq!(
       resolve_file_path(
@@ -1236,13 +1246,15 @@ mod resolve_path_application_npm_tests {
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
     );
-    let root_path = get_root_dir(&test_path).display().to_string();
+    let root_path = get_root_dir(&test_path)
+      .display()
+      .to_string()
+      .replace("/apps/web", "");
     let aliases = FxHashMap::default();
 
     let expected_result = format!(
       "{}/{}",
-      root_path.replace("/apps/web", ""),
-      "node_modules/stylex-lib-dist-exports-with-main/dist/colors.stylex.js",
+      root_path, "node_modules/stylex-lib-dist-exports-with-main/dist/colors.stylex.js",
     );
 
     assert_eq!(
@@ -1345,13 +1357,15 @@ mod resolve_nested_external_imports_tests {
       "{}/dist/index.jsx",
       get_root_dir(&test_path).as_path().display()
     );
-    let root_path = get_root_dir(&test_path).display().to_string();
+    let root_path = get_root_dir(&test_path)
+      .display()
+      .to_string()
+      .replace("/node_modules/stylex-lib-dist-main", "");
     let aliases = FxHashMap::default();
 
     let expected_result = format!(
       "{}/{}",
-      root_path.replace("/node_modules/stylex-lib-dist-main", ""),
-      "node_modules/stylex-lib-dist-exports-with-main/dist/colors.stylex.js"
+      root_path, "node_modules/stylex-lib-dist-exports-with-main/dist/colors.stylex.js"
     );
 
     assert_eq!(
@@ -1378,13 +1392,15 @@ mod resolve_nested_external_imports_tests {
       "{}/dist/index.jsx",
       get_root_dir(&test_path).as_path().display()
     );
-    let root_path = get_root_dir(&test_path).display().to_string();
+    let root_path = get_root_dir(&test_path)
+      .display()
+      .to_string()
+      .replace("/node_modules/stylex-lib-dist-main", "");
     let aliases = FxHashMap::default();
 
     let expected_result = format!(
       "{}/{}",
-      root_path.replace("/node_modules/stylex-lib-dist-main", ""),
-      "node_modules/stylex-lib-dist-exports/dist/colors.stylex.js"
+      root_path, "node_modules/stylex-lib-dist-exports/dist/colors.stylex.js"
     );
 
     assert_eq!(

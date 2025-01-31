@@ -16,6 +16,7 @@
     "test": "pnpm test:ci"
   },
   "dependencies": {
+    "@stylexswc/design-system": "workspace:*",
     "@stylexswc/jest": "0.6.3",
     "@stylexswc/nextjs-plugin": "0.6.3",
     "@stylexjs/open-props": "^0.10.1",

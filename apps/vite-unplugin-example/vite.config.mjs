@@ -14,6 +14,9 @@ export default defineConfig({
         useCSSLayers: true,
         genConditionalClasses: true,
         treeshakeCompensation: true,
+        unstable_moduleResolution: {
+          type: "commonJS",
+        },
       },
     }),
   ],

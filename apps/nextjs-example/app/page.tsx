@@ -1,13 +1,12 @@
 import React from 'react';
 import stylex from '@stylexjs/stylex';
 import Card from '@/components/Card';
-import {
-  globalTokens as $,
-  spacing,
-  text,
-  scales,
-} from './globalTokens.stylex';
+import { globalTokens as $, spacing, text, scales } from './globalTokens.stylex';
 import Counter from './Counter';
+import { tokens } from '@stylexswc/design-system/tokens.stylex';
+import { Text } from '@stylexswc/design-system';
+import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
+import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
 
 const HOMEPAGE = 'https://stylexjs.com';
 
@@ -25,7 +24,10 @@ export default function Home(_props: Props) {
         <h1 {...stylex.props(style.h1)}>
           Next.js App Dir<span {...stylex.props(style.emoji)}>♥️</span>️StyleX
         </h1>
-          <Counter />
+        <Counter />
+      </div>
+      <div {...stylex.props(style.card, style.pinkBg)}>
+        <Text>Pink rounded rectangle with blue text</Text>
       </div>
 
       <div {...stylex.props(style.grid)}>
@@ -55,8 +57,7 @@ export default function Home(_props: Props) {
 }
 
 const MEDIA_MOBILE = '@media (max-width: 700px)' as const;
-const MEDIA_TABLET =
-  '@media (min-width: 701px) and (max-width: 1120px)' as const;
+const MEDIA_TABLET = '@media (min-width: 701px) and (max-width: 1120px)' as const;
 
 const beat = stylex.keyframes({
   '0%': { transform: scales.medium },
@@ -189,5 +190,19 @@ const style = stylex.create({
       [MEDIA_MOBILE]: 320,
     },
     textAlign: { [MEDIA_MOBILE]: 'center' },
+  },
+  card: {
+    padding: sizes.spacing5,
+    borderRadius: sizes.spacing2,
+    justifyContent: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    fontFamily: fonts.mono,
+  },
+  pinkBg: {
+    backgroundColor: tokens.pink7,
+  },
+  blueFg: {
+    color: tokens.blue9,
   },
 });

@@ -76,3 +76,7 @@ This project is organized into several packages:
   Internal
   [Typescript](https://www.typescriptlang.org/docs/handbook/tsconfig-json.htm)
   configuration
+
+**Other packages:**
+
+* [`design-system`](./packages/design-system) - Design system for the StyleX project that uses in workspace examples

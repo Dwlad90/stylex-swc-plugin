@@ -1,8 +1,9 @@
-import { colors } from '@stylexjs/open-props/lib/colors.stylex'
-import { fonts } from '@stylexjs/open-props/lib/fonts.stylex'
-import { sizes } from '@stylexjs/open-props/lib/sizes.stylex'
-import * as stylex from '@stylexjs/stylex'
-import { createRoot } from 'react-dom/client'
+import { colors } from '@stylexjs/open-props/lib/colors.stylex';
+import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
+import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
+import * as stylex from '@stylexjs/stylex';
+import { createRoot } from 'react-dom/client';
+import { tokens } from '@stylexswc/design-system/tokens.stylex';
 
 const styles = stylex.create({
   main: {
@@ -10,33 +11,47 @@ const styles = stylex.create({
     height: '100vh',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.pink7,
+    justifyContent: 'space-around',
+    backgroundColor: colors.violet1,
+    flexDirection: 'column',
   },
   card: {
-    backgroundColor: colors.blue9,
     padding: sizes.spacing5,
     borderRadius: sizes.spacing2,
     justifyContent: 'center',
     display: 'flex',
     alignItems: 'center',
-    color: colors.gray0,
     fontFamily: fonts.mono,
   },
-})
+  blueBg: {
+    backgroundColor: colors.blue3,
+  },
+  pinkBg: {
+    backgroundColor: tokens.pink7,
+  },
+  orangeFg: {
+    color: colors.orange7,
+  },
+  blueFg: {
+    color: tokens.blue9,
+  },
+});
 
 function App() {
   return (
     <div {...stylex.props(styles.main)}>
-      <div {...stylex.props(styles.card)}>
-        <span>Blue rounded rectangle</span>
+      <div {...stylex.props(styles.card, styles.blueBg)}>
+        <span {...stylex.props(styles.orangeFg)}>Blue rounded rectangle with orange text</span>
+      </div>
+      <div {...stylex.props(styles.card, styles.pinkBg)}>
+        <span {...stylex.props(styles.blueFg)}>Pink rounded rectangle with blue text</span>
       </div>
     </div>
-  )
+  );
 }
 
-const root = document.getElementById('root')
+const root = document.getElementById('root');
 
 if (root) {
-  createRoot(document.getElementById('root')).render(<App />)
+  createRoot(document.getElementById('root')).render(<App />);
 }

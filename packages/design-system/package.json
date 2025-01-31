@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/design-system",
   "description": "A design system for stylex workspace examples",
-  "version": "0.6.3",
+  "version": "0.6.4-rc.1",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"

@@ -2,7 +2,7 @@
   "name": "@stylexswc/unplugin",
   "type": "module",
   "version": "0.6.4-rc.1",
-  "packageManager": "pnpm@9.9.0",
+  "packageManager": "pnpm@9.15.4",
   "description": "Unplugin for StyleX RS compiler",
   "license": "MIT",
   "private": false,

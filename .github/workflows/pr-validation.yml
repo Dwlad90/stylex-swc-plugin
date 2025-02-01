@@ -57,7 +57,24 @@ jobs:
       repository-projects: write
 
     steps:
-      - name: Checkout code
+      - uses: actions/github-script@v6
+        if: github.event.pull_request.number != null
+        id: pr
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            return pullRequest
+      - name: Checkout PR code
+        if: github.event.pull_request.number != null
+        uses: actions/checkout@v4
+        with:
+          ref: ${{fromJSON(steps.pr.outputs.result).merge_commit_sha}}
+
+      - name: Checkout branch code
+        if: github.event.pull_request.number == null
         uses: actions/checkout@v4
 
       - name: Setup environment

@@ -869,7 +869,6 @@ mod stylex_create {
 
   #[test]
   #[ignore]
-
   fn transforms_nested_pseudo_classes_within_pseudo_elements_v2() {
     let before_hover_object = style_multiple_depth_nested_object_factory(&[(
       "default",

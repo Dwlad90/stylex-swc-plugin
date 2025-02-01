@@ -165,7 +165,7 @@ impl<'a> ExpressionFinder<'a> {
   }
 }
 
-impl<'a> Fold for ExpressionFinder<'a> {
+impl Fold for ExpressionFinder<'_> {
   fn fold_expr(&mut self, expr: Expr) -> Expr {
     if self.target.eq_ignore_span(&expr) {
       self.found_expr = Some(expr.clone());

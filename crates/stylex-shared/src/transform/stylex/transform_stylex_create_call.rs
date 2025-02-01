@@ -329,9 +329,8 @@ where
                                     let expr = dynamic_match
                                       .iter()
                                       .find(|dynamic_style| {
-                                        orig_class_paths
-                                          .get(&cls.to_string())
-                                          .map_or(false, |path| path == &dynamic_style.path)
+                                        orig_class_paths.get(&cls.to_string())
+                                          == Some(&dynamic_style.path)
                                       })
                                       .map(|dynamic_style| {
                                         let expression = &dynamic_style.expression;
@@ -354,9 +353,8 @@ where
                                     }
                                   } else if class_list.iter().any(|cls| {
                                     dynamic_match.iter().any(|dynamic_style| {
-                                      orig_class_paths
-                                        .get(&cls.to_string())
-                                        .map_or(false, |path| path == &dynamic_style.path)
+                                      orig_class_paths.get(&cls.to_string())
+                                        == Some(&dynamic_style.path)
                                     })
                                   }) {
                                     let expr_array: Vec<Expr> = class_list
@@ -366,9 +364,8 @@ where
                                         let expr = dynamic_match
                                           .iter()
                                           .find(|dynamic_style| {
-                                            orig_class_paths
-                                              .get(&cls.to_string())
-                                              .map_or(false, |path| path == &dynamic_style.path)
+                                            orig_class_paths.get(&cls.to_string())
+                                              == Some(&dynamic_style.path)
                                           })
                                           .map(|dynamic_style| dynamic_style.expression.clone());
 

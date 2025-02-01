@@ -283,10 +283,10 @@ impl StateManager {
     if let Some(package_json_path) = package_json_path {
       let (package_json, _) = get_package_json(&package_json_path, package_json_seen);
       // Try to read and parse package.json
-      return Some((
+      Some((
         package_json.name,
         package_json_path.to_string_lossy().into_owned(),
-      ));
+      ))
     } else {
       // Recursively check parent directory if not at root
       if folder.parent().is_some() && !folder.as_os_str().is_empty() {
@@ -481,8 +481,7 @@ impl StateManager {
 
     // Update declarations
     if let Some(item) = self.declarations.iter_mut().find(|decl| {
-      decl.init.as_ref().map_or(
-        false,
+      decl.init.as_ref().is_some_and(
         |boxed_expr| matches!(**boxed_expr, Expr::Call(ref existing_call) if existing_call == call),
       )
     }) {
@@ -491,8 +490,7 @@ impl StateManager {
 
     // Update style_vars
     if let Some((_, item)) = self.style_vars.iter_mut().find(|(_, decl)| {
-      decl.init.as_ref().map_or(
-        false,
+      decl.init.as_ref().is_some_and(
         |expr| matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
       )
     }) {

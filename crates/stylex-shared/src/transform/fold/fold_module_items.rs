@@ -81,8 +81,8 @@ where
                   .filter(|decl| {
                     decl
                       .init
-                      .as_ref() // Use as_ref to convert Option<T> to Option<&T>
-                      .map_or(false, |init| init.is_object() || init.is_lit())
+                      .as_ref()
+                      .is_some_and(|init| init.is_object() || init.is_lit())
                   })
                   .cloned() // Clone only the filtered elements
                   .collect::<Vec<VarDeclarator>>()
@@ -107,7 +107,7 @@ where
                   decl
                     .init
                     .as_ref()
-                    .map_or(false, |init| init.is_object() || init.is_lit())
+                    .is_some_and(|init| init.is_object() || init.is_lit())
                 })
                 .cloned()
                 .collect::<Vec<VarDeclarator>>(),

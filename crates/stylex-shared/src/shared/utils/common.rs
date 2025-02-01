@@ -250,7 +250,7 @@ pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
         .and_then(|call| call.callee.as_expr())
         .and_then(|callee| callee.as_member())
         .and_then(|member| member.prop.as_ident())
-        .map_or(false, |member_ident| member_ident.sym == ident.sym)
+        .is_some_and(|member_ident| member_ident.sym == ident.sym)
     })
     .cloned()
 }

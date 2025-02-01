@@ -201,6 +201,8 @@ fn main() {
 
   let packages = ["babel-plugin", "shared", "stylex", "open-props"];
 
+  let re = Regex::new(r"(test\.js|test\.js\.snap)$").unwrap();
+
   for package in packages.iter() {
     let path = format!("{}/{}", stylex_dir, package);
     let root_path = Path::new(path.as_str());
@@ -212,8 +214,6 @@ fn main() {
         return;
       }
     };
-
-    let re = Regex::new(r"(test\.js|test\.js\.snap)$").unwrap();
 
     let file_paths = file_paths
       .into_iter()

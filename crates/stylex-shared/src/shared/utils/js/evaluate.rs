@@ -1692,9 +1692,9 @@ fn _evaluate(
       );
     }
     _ => {
-      debug!("Unsupported type of expression: {:?}", path);
+      warn!("Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details", path.get_type());
 
-      warn!("Unsupported type of expression: {:?}", path.get_type());
+      debug!("Unsupported type of expression: {:?}", path);
 
       return deopt(
         path,

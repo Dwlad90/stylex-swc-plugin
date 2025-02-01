@@ -281,15 +281,15 @@ pub(crate) fn is_target_call(
     .callee
     .as_expr()
     .and_then(|arg| arg.as_ident())
-    .map_or(false, |ident| imports_map.contains(&ident.sym));
+    .is_some_and(|ident| imports_map.contains(&ident.sym));
 
   let is_create_member = call
     .callee
     .as_expr()
     .and_then(|expr| expr.as_member())
-    .map_or(false, |member| {
+    .is_some_and(|member| {
       member.obj.is_ident()
-        && member.prop.as_ident().map_or(false, |ident| {
+        && member.prop.as_ident().is_some_and(|ident| {
           ident.sym == call_name
             && state.stylex_import_stringified().contains(
               &member
@@ -504,7 +504,7 @@ pub(crate) fn validate_theme_variables(
     return key_value;
   }
 
-  if !variables.as_expr().map_or(false, |expr| expr.is_object()) {
+  if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
     panic!("Can only override variables theme created with stylex.defineVars().");
   }
 

@@ -12,7 +12,7 @@
     "lint": "turbo lint --continue",
     "lint:check": "turbo run lint:check",
     "prepare": "husky",
-    "test": "turbo run --filter=\"!@stylexswc/rs-compiler\" test --continue",
+    "test": "turbo run test --continue",
     "typecheck": "turbo run typecheck --continue"
   },
   "config": {

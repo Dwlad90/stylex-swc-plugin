@@ -201,8 +201,5 @@ const style = stylex.create({
   },
   pinkBg: {
     backgroundColor: tokens.pink7,
-  },
-  blueFg: {
-    color: tokens.blue9,
-  },
+  }
 });

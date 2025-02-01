@@ -5,6 +5,7 @@ import * as stylex from '@stylexjs/stylex'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
+import { Text } from '@stylexswc/design-system';
 
 const styles = stylex.create({
   main: {
@@ -32,10 +33,7 @@ const styles = stylex.create({
   },
   orangeFg: {
     color: colors.orange7,
-  },
-  blueFg: {
-    color: tokens.blue9,
-  },
+  }
 })
 
 function App() {
@@ -45,7 +43,7 @@ function App() {
         <span {...stylex.props(styles.orangeFg)}>Blue rounded rectangle with orange text</span>
       </div>
       <div {...stylex.props(styles.card, styles.pinkBg)}>
-        <span {...stylex.props(styles.blueFg)}>Pink rounded rectangle with blue text</span>
+        <Text>Pink rounded rectangle with blue text</Text>
       </div>
     </div>
   )

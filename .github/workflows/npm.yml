@@ -44,7 +44,7 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
         node:
-          - '20'
+          - '22.13.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -91,9 +91,9 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          # - host: windows-latest
-          #   target: x86_64-pc-windows-msvc
-          #   architecture: x64
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            architecture: x64
           - host: macos-latest
             target: aarch64-apple-darwin
             architecture: arm64
@@ -101,8 +101,9 @@ jobs:
             target: x86_64-apple-darwin
             architecture: x64
         node:
-          - '18'
-          - '20'
+          - '18.20.5'
+          - '20.18.1'
+          - '22.13.0'
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Enable long path support
@@ -137,8 +138,9 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - '18'
-          - '20'
+          - '18.20.5'
+          - '20.18.1'
+          - '22.13.0'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -173,8 +175,9 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - '18'
-          - '20'
+          - '18.20.5'
+          - '20.18.1'
+          - '22.13.0'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -209,9 +212,9 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          # - host: windows-latest
-          #   target: x86_64-pc-windows-msvc
-          #   architecture: x64
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            architecture: x64
           - host: macos-latest
             target: aarch64-apple-darwin
             architecture: arm64
@@ -222,8 +225,9 @@ jobs:
             target: x86_64-unknown-linux-gnu
             architecture: x64
         node:
-          - '18'
-          - '20'
+          - '18.20.5'
+          - '20.18.1'
+          - '22.13.0'
     runs-on: ${{ matrix.settings.host }}
     permissions:
       contents: write

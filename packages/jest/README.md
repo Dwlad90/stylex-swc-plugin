@@ -1,13 +1,13 @@
 # @stylexswc/jest
 
-Jest transformer that enables StyleX SWC integration for JavaScript and TypeScript testing with Jest.
+Jest transformer that enables StyleX SWC integration for JavaScript and
+TypeScript testing with Jest.
 
 ## Overview
 
 The `@stylexswc/jest` package provides a Jest transformer that integrates with
-the StyleX RS compiler. This allows to transform source code using
-StyleX during Jest tests, ensuring that styles are correctly processed and
-applied.
+the StyleX RS compiler. This allows to transform source code using StyleX during
+Jest tests, ensuring that styles are correctly processed and applied.
 
 ## Installation
 
@@ -134,7 +134,8 @@ const customJestConfig = {
 module.exports = customJestConfig;
 ```
 
-Real example can be found in the [@stylexswc/next-example](../../apps/nextjs-example/jest.config.js)
+Real example can be found in the
+[@stylexswc/next-example](../../apps/nextjs-example/jest.config.js)
 
 ## License
 

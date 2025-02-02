@@ -61,7 +61,7 @@ export type StyleXWebpackLoaderOptions = {
    * @default 'rs-compiler'
    */
   transformer?: 'rs-compiler' | 'swc';
-  extractCSS?: boolean
+  extractCSS?: boolean;
 };
 
 export type SupplementedLoaderContext<Options = unknown> = webpack.LoaderContext<Options> & {
@@ -69,7 +69,6 @@ export type SupplementedLoaderContext<Options = unknown> = webpack.LoaderContext
     registerStyleXRules: RegisterStyleXRules;
   };
 };
-
 
 export type SWCPluginRule = {
   class_name: string;

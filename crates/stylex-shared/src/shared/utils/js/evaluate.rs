@@ -45,6 +45,7 @@ use crate::shared::{
     theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
+  swc::get_default_expr_ctx,
   utils::{
     ast::{
       convertors::{
@@ -396,12 +397,18 @@ fn _evaluate(
 
               let expr = match eval_res {
                 EvaluateResultValue::Expr(expr) => expr,
-                _ => panic!("Property not found: {:?}", expr.get_type()),
+                _ => panic!(
+                  "Property not found: {:?}",
+                  expr.get_type(get_default_expr_ctx())
+                ),
               };
 
               let value = match expr {
                 Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
-                _ => panic!("Member not found: {:?}", expr.get_type()),
+                _ => panic!(
+                  "Member not found: {:?}",
+                  expr.get_type(get_default_expr_ctx())
+                ),
               };
 
               let property = elems.get(value)?;
@@ -415,7 +422,10 @@ fn _evaluate(
 
               let ident = match eval_res {
                 EvaluateResultValue::Expr(ident) => ident,
-                _ => panic!("Property not found: {:?}", expr.get_type()),
+                _ => panic!(
+                  "Property not found: {:?}",
+                  expr.get_type(get_default_expr_ctx())
+                ),
               };
 
               let ident = &mut ident.to_owned();
@@ -426,10 +436,13 @@ fn _evaluate(
                 Expr::Lit(lit) => get_string_val_from_lit(lit).unwrap_or_else(|| {
                   panic!(
                     "Property must be convertable to string: {:?}",
-                    normalized_ident.get_type()
+                    normalized_ident.get_type(get_default_expr_ctx())
                   )
                 }),
-                _ => unimplemented!("Member property: {:?}", normalized_ident.get_type()),
+                _ => unimplemented!(
+                  "Member property: {:?}",
+                  normalized_ident.get_type(get_default_expr_ctx())
+                ),
               };
 
               let property = props.iter().find(|prop| match prop {
@@ -459,17 +472,23 @@ fn _evaluate(
                     .clone(),
                 ));
               } else {
-                panic!("Member not found: {:?}", expr.get_type());
+                panic!(
+                  "Member not found: {:?}",
+                  expr.get_type(get_default_expr_ctx())
+                );
               }
             }
-            _ => unimplemented!("Expression: {:?}", expr.get_type()),
+            _ => unimplemented!("Expression: {:?}", expr.get_type(get_default_expr_ctx())),
           },
           EvaluateResultValue::FunctionConfigMap(fc_map) => {
             let key = match property {
               Some(property) => match property {
                 EvaluateResultValue::Expr(expr) => match expr {
                   Expr::Ident(ident) => Box::new(ident.clone()),
-                  _ => panic!("Member not found: {:?}", expr.get_type()),
+                  _ => panic!(
+                    "Member not found: {:?}",
+                    expr.get_type(get_default_expr_ctx())
+                  ),
                 },
                 _ => unimplemented!(),
               },
@@ -488,7 +507,10 @@ fn _evaluate(
                   Expr::Lit(lit) => {
                     get_string_val_from_lit(&lit).expect("Property must be a string")
                   }
-                  _ => panic!("Member not found: {:?}", expr.get_type()),
+                  _ => panic!(
+                    "Member not found: {:?}",
+                    expr.get_type(get_default_expr_ctx())
+                  ),
                 },
                 _ => unimplemented!(),
               },
@@ -568,7 +590,7 @@ fn _evaluate(
             Expr::Ident(ident) if ident.sym == *"undefined" => "undefined",
             Expr::Object(_) => "object",
             Expr::Array(_) => "object",
-            _ => unimplemented!("Unary TypeOf: {:?}", arg.get_type()),
+            _ => unimplemented!("Unary TypeOf: {:?}", arg.get_type(get_default_expr_ctx())),
           };
 
           Some(EvaluateResultValue::Expr(string_to_expression(arg_type)))
@@ -699,7 +721,7 @@ fn _evaluate(
                   panic!(
                     "Value of key '{}' must be present, but got {:?}",
                     key.clone().unwrap_or_else(|| "Unknown".to_string()),
-                    path_key_value.value.get_type()
+                    path_key_value.value.get_type(get_default_expr_ctx())
                   )
                 });
 
@@ -775,7 +797,7 @@ fn _evaluate(
                     Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
                     _ => unimplemented!(
                       "Callback type not supported: {:?}",
-                      path_key_value.value.get_type()
+                      path_key_value.value.get_type(get_default_expr_ctx())
                     ),
                   },
                   _ => panic!("Property value must be an expression"),
@@ -1531,7 +1553,7 @@ fn _evaluate(
                     } else {
                       panic!(
                         "Expected a string literal: {:?}",
-                        Expr::from(key.clone()).get_type()
+                        Expr::from(key.clone()).get_type(get_default_expr_ctx())
                       )
                     };
 
@@ -1688,18 +1710,18 @@ fn _evaluate(
       return deopt(
         path,
         state,
-        &unsupported_expression(&format!("{:?}", path.get_type())),
+        &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
       );
     }
     _ => {
-      warn!("Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details", path.get_type());
+      warn!("Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details", path.get_type(get_default_expr_ctx()));
 
       debug!("Unsupported type of expression: {:?}", path);
 
       return deopt(
         path,
         state,
-        &unsupported_expression(&format!("{:?}", path.get_type())),
+        &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
       );
     }
   };
@@ -1817,7 +1839,7 @@ fn _evaluate(
     return deopt(
       path,
       state,
-      &unsupported_expression(&format!("{:?}", path.get_type())),
+      &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
     );
   }
 

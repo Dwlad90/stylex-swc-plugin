@@ -5,11 +5,7 @@ import type {
   StaticStylesWithout,
   StyleXStylesWithout,
 } from '@stylexjs/stylex';
-import type {
-  StyleXClassNameFor,
-  InlineStyles,
-  StyleXVar,
-} from '@stylexjs/stylex/lib/StyleXTypes';
+import type { StyleXClassNameFor, InlineStyles, StyleXVar } from '@stylexjs/stylex/lib/StyleXTypes';
 
 /* eslint-disable no-unused-vars */
 

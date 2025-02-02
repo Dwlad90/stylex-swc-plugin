@@ -16,6 +16,7 @@ use crate::shared::{
     misc::{BinaryExprType, VarDeclAction},
   },
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
+  swc::get_default_expr_ctx,
   utils::{
     common::{
       evaluate_bin_expr, get_expr_from_var_decl, get_string_val_from_lit, get_var_decl_by_ident,
@@ -48,11 +49,14 @@ pub fn expr_to_num(
         BinaryExprType::Number(number) => number,
         _ => panic!(
           "Binary expression is not a number: {:?}",
-          expr_num.get_type()
+          expr_num.get_type(get_default_expr_ctx())
         ),
       }
     }
-    _ => panic!("Expression in not a number: {:?}", expr_num.get_type()),
+    _ => panic!(
+      "Expression in not a number: {:?}",
+      expr_num.get_type(get_default_expr_ctx())
+    ),
   };
 
   Result::Ok(result)
@@ -93,7 +97,7 @@ pub fn expr_to_str(
     Expr::Lit(lit) => get_string_val_from_lit(lit).expect("Value is not a string"),
     _ => panic!(
       "Expression in not a string, got {:?}",
-      expr_string.get_type()
+      expr_string.get_type(get_default_expr_ctx())
     ),
   }
 }
@@ -118,7 +122,7 @@ pub fn unari_to_num(
     },
     _ => panic!(
       "Union operation '{:?}' is invalid",
-      Expr::from(unary_expr.clone()).get_type()
+      Expr::from(unary_expr.clone()).get_type(get_default_expr_ctx())
     ),
   }
 }
@@ -374,13 +378,23 @@ fn evaluate_left_and_right_expression(
   if left_result.is_err() || right_result.is_err() {
     let left_str = match left_expr {
       Expr::Lit(Lit::Str(_)) => get_string_val_from_lit(left_expr.as_lit().unwrap())
-        .unwrap_or_else(|| panic!("Left is not a string: {:?}", left_expr.get_type())),
+        .unwrap_or_else(|| {
+          panic!(
+            "Left is not a string: {:?}",
+            left_expr.get_type(get_default_expr_ctx())
+          )
+        }),
       _ => String::default(),
     };
 
     let right_str = match right_expr {
       Expr::Lit(Lit::Str(_)) => get_string_val_from_lit(right_expr.as_lit().unwrap())
-        .unwrap_or_else(|| panic!("Right is not a string: {:?}", left_expr.get_type())),
+        .unwrap_or_else(|| {
+          panic!(
+            "Right is not a string: {:?}",
+            left_expr.get_type(get_default_expr_ctx())
+          )
+        }),
       _ => String::default(),
     };
 
@@ -439,13 +453,16 @@ pub fn ident_to_number(
             BinaryExprType::Number(number) => number,
             _ => panic!(
               "Binary expression is not a number: {:?}",
-              var_decl_expr.get_type()
+              var_decl_expr.get_type(get_default_expr_ctx())
             ),
           }
         }
         Expr::Unary(unary_expr) => unari_to_num(unary_expr, state, traversal_state, fns),
         Expr::Lit(lit) => lit_to_num(lit).unwrap_or_else(|error| panic!("{}", error)),
-        _ => panic!("Varable {:?} is not a number", var_decl_expr.get_type()),
+        _ => panic!(
+          "Varable {:?} is not a number",
+          var_decl_expr.get_type(get_default_expr_ctx())
+        ),
       }
     }
     None => panic!("Variable {} is not declared", ident.sym),
@@ -472,7 +489,7 @@ pub fn lit_to_num(lit_num: &Lit) -> Result<f64, anyhow::Error> {
     _ => {
       return Err(anyhow!(
         "Value in not a number: {:?}",
-        Expr::from(lit_num.clone()).get_type()
+        Expr::from(lit_num.clone()).get_type(get_default_expr_ctx())
       ));
     }
   };
@@ -550,7 +567,10 @@ pub fn expr_tpl_to_string(
         Expr::Lit(lit) => {
           tpl_str.push_str(&get_string_val_from_lit(lit).expect(ILLEGAL_PROP_VALUE))
         }
-        _ => unimplemented!("TPL expression: {:?}", tpl.exprs[i].get_type()),
+        _ => unimplemented!(
+          "TPL expression: {:?}",
+          tpl.exprs[i].get_type(get_default_expr_ctx())
+        ),
       }
     }
   }
@@ -566,13 +586,16 @@ pub fn transform_bin_expr_to_number(
 ) -> f64 {
   let op = bin.op;
   let Some(left) = evaluate_cached(&bin.left, state, traversal_state, fns) else {
-    panic!("Left expression is not a number: {:?}", bin.left.get_type())
+    panic!(
+      "Left expression is not a number: {:?}",
+      bin.left.get_type(get_default_expr_ctx())
+    )
   };
 
   let Some(right) = evaluate_cached(&bin.right, state, traversal_state, fns) else {
     panic!(
       "Left expression is not a number: {:?}",
-      bin.right.get_type()
+      bin.right.get_type(get_default_expr_ctx())
     )
   };
 
@@ -642,7 +665,10 @@ pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &Fu
       Lit::Num(n) => n.value != 0.0,
       Lit::Str(s) => !s.value.is_empty(),
       Lit::Null(_) => false,
-      _ => unimplemented!("Conversion {:?} expression to boolean", expr.get_type()),
+      _ => unimplemented!(
+        "Conversion {:?} expression to boolean",
+        expr.get_type(get_default_expr_ctx())
+      ),
     },
     Expr::Ident(ident) => expr_to_bool(&ident_to_expr(ident, state, functions), state, functions),
     Expr::Array(_) => true,
@@ -655,10 +681,16 @@ pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &Fu
       UnaryOp::Minus => !expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Plus => !expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Tilde => !expr_to_bool(&unary.arg, state, functions),
-      _ => unimplemented!("Conversion {:?} expression to boolean", expr.get_type()),
+      _ => unimplemented!(
+        "Conversion {:?} expression to boolean",
+        expr.get_type(get_default_expr_ctx())
+      ),
     },
     _ => {
-      unimplemented!("Conversion {:?} expression to boolean", expr.get_type())
+      unimplemented!(
+        "Conversion {:?} expression to boolean",
+        expr.get_type(get_default_expr_ctx())
+      )
     }
   }
 }

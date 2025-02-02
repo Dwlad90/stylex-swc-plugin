@@ -25,6 +25,7 @@ If you discover a security vulnerability, please:
 - Enable security alerts in your GitHub repository
 - Follow security best practices in your implementations
 
-Security updates are released through our [GitHub repository](https://github.com/Dwlad90/stylex-swc-plugin).
+Security updates are released through our
+[GitHub repository](https://github.com/Dwlad90/stylex-swc-plugin).
 
 Thank you for helping keep this project secure!

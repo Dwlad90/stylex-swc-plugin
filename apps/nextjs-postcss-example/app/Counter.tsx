@@ -10,24 +10,11 @@ export default function Counter() {
 
   return (
     <div {...stylex.props(styles.container)}>
-      <button
-        {...stylex.props(styles.button)}
-        onClick={() => setCount((c) => c - 1)}
-      >
+      <button {...stylex.props(styles.button)} onClick={() => setCount(c => c - 1)}>
         -
       </button>
-      <div
-        {...stylex.props(
-          styles.count,
-          Math.abs(count) > 99 && styles.largeNumber,
-        )}
-      >
-        {count}
-      </div>
-      <button
-        {...stylex.props(styles.button)}
-        onClick={() => setCount((c) => c + 1)}
-      >
+      <div {...stylex.props(styles.count, Math.abs(count) > 99 && styles.largeNumber)}>{count}</div>
+      <button {...stylex.props(styles.button)} onClick={() => setCount(c => c + 1)}>
         +
       </button>
     </div>

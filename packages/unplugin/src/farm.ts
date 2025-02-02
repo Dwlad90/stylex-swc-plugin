@@ -1,4 +1,4 @@
-import { createFarmPlugin } from 'unplugin'
-import { unpluginFactory } from './index'
+import { createFarmPlugin } from 'unplugin';
+import { unpluginFactory } from './index';
 
-export default createFarmPlugin(unpluginFactory)
+export default createFarmPlugin(unpluginFactory);

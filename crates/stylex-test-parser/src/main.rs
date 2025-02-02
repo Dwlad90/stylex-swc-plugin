@@ -9,6 +9,8 @@ use std::{
   path::{Path, PathBuf},
   sync::Arc,
 };
+use swc_ecma_parser::Syntax;
+
 use swc_core::{
   common::{
     errors::{ColorConfig, Handler},
@@ -19,7 +21,6 @@ use swc_core::{
       CallExpr, Decl, EsVersion, Expr, ExprStmt, FnDecl, ModuleItem, Stmt, VarDecl, VarDeclKind,
       VarDeclarator,
     },
-    parser::Syntax,
     visit::{Fold, FoldWith},
   },
 };

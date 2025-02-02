@@ -7,9 +7,9 @@ ditch Babel and make StyleX faster.
 
 **Key Benefits:**
 
-* Faster build times by leveraging NAPI-RS/SWC instead of Babel.
-* Seamless integration with Next.js SWC Compiler.
-* Almost 100% compatibility with official StyleX tests.
+- Faster build times by leveraging NAPI-RS/SWC instead of Babel.
+- Seamless integration with Next.js SWC Compiler.
+- Almost 100% compatibility with official StyleX tests.
 
 This is specifically useful for Next.js projets as it allows us to use
 [SWC Next.js Compiler](https://nextjs.org/docs/architecture/nextjs-compiler).
@@ -20,63 +20,64 @@ This project is organized into several packages:
 
 **Core:**
 
-* [`rs-compiler`](./crates/stylex-rs-compiler) -
-  Rust-based [`napi-rs`](https://napi.rs/) compiler for transforming StyleX code.
+- [`rs-compiler`](./crates/stylex-rs-compiler) - Rust-based
+  [`napi-rs`](https://napi.rs/) compiler for transforming StyleX code.
 
 **Integration:**
 
-* [`nextjs-plugin`](./packages/nextjs-plugin) -
-  A wrapper for [`Next.JS configuration`](https://nextjs.org/docs/app/api-reference/next-config-js) that integrates the StyleX [napi-rs](https://napi.rs/) compiler into the Webpack processing pipeline.
+- [`nextjs-plugin`](./packages/nextjs-plugin) - A wrapper for
+  [`Next.JS configuration`](https://nextjs.org/docs/app/api-reference/next-config-js)
+  that integrates the StyleX [napi-rs](https://napi.rs/) compiler into the
+  Webpack processing pipeline.
 
-* [`webpack-plugin`](./packages/webpack-plugin) -
-  A `Webpack pluign` that integrates the StyleX
-  [napi-rs](https://napi.rs/) compiler.
+- [`webpack-plugin`](./packages/webpack-plugin) - A `Webpack pluign` that
+  integrates the StyleX [napi-rs](https://napi.rs/) compiler.
 
-* [`rollup-plugin`](./packages/rollup-plugin) -
-  A `Rollup plugin` that integrates the StyleX [napi-rs](https://napi.rs/)
-  compiler.
+- [`rollup-plugin`](./packages/rollup-plugin) - A `Rollup plugin` that
+  integrates the StyleX [napi-rs](https://napi.rs/) compiler.
 
-* [`unplugin`](./packages/unplugin) -
-  Plugin collection for various build tools that integrates the StyleX [napi-rs](https://napi.rs/)
-  compiler.
+- [`unplugin`](./packages/unplugin) - Plugin collection for various build tools
+  that integrates the StyleX [napi-rs](https://napi.rs/) compiler.
 
   Supported build tools and libraries:
 
-  * Farm
-  * Rollup
-  * Rsbuild
-  * Rspack
-  * Solid
-  * Vite
-  * Vue
-  * Webpack
+  - Farm
+  - Rollup
+  - Rsbuild
+  - Rspack
+  - Solid
+  - Vite
+  - Vue
+  - Webpack
 
-* [`postcss-plugin`](./packages/postcss-plugin) - A `PostCSS plugin` that integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+- [`postcss-plugin`](./packages/postcss-plugin) - A `PostCSS plugin` that
+  integrates the StyleX [napi-rs](https://napi.rs/) compiler.
 
-* [`jest`](./packages/jest) - Jest transformer that integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+- [`jest`](./packages/jest) - Jest transformer that integrates the StyleX
+  [napi-rs](https://napi.rs/) compiler.
 
 **Utilities:**
 
-* [`stylex-shared`](./crates/stylex-shared) -
- Shared Rust codebase for the StyleX RS compiler and SWC plugin.
+- [`stylex-shared`](./crates/stylex-shared) - Shared Rust codebase for the
+  StyleX RS compiler and SWC plugin.
 
-* [`path-resolver`](./crates/stylex-path-resolver) -
-   Path handling and resolving utilities for the StyleX NAPI-RS/SWC plugin.
+- [`path-resolver`](./crates/stylex-path-resolver) - Path handling and resolving
+  utilities for the StyleX NAPI-RS/SWC plugin.
 
-* [`test-parser`](./crates/stylex-test-parser) -
-  Parser for [StyleX](https://github.com/facebook/stylex) repo Jest tests that
-  helps to understand last changes and keeps the project up to date
+- [`test-parser`](./crates/stylex-test-parser) - Parser for
+  [StyleX](https://github.com/facebook/stylex) repo Jest tests that helps to
+  understand last changes and keeps the project up to date
 
 **Internal Configurations:**
 
-* [`eslint-config`](./packages/eslint-config) -
-  Internal [ESLint](https://eslint.org/) configuration
+- [`eslint-config`](./packages/eslint-config) - Internal
+  [ESLint](https://eslint.org/) configuration
 
-* [`typescript-config`](./packages/typescript-config) -
-  Internal
+- [`typescript-config`](./packages/typescript-config) - Internal
   [Typescript](https://www.typescriptlang.org/docs/handbook/tsconfig-json.htm)
   configuration
 
 **Other packages:**
 
-* [`design-system`](./packages/design-system) - Design system for the StyleX project that uses in workspace examples
+- [`design-system`](./packages/design-system) - Design system for the StyleX
+  project that uses in workspace examples

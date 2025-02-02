@@ -54,9 +54,12 @@ module.exports = stylexPlugin({
 ```
 
 > [!WARNING]
-> Each plugin of `@stylexswc` namespace accepts an `extractCSS` option to control CSS
-> extraction. When using the `postcss` plugin, this option should be set to
-> `false` to avoid double generation of CSS files with StyleX styles.
+> Each plugin of `@stylexswc` namespace accepts an `extractCSS`
+> option to control CSS extraction. When using the `postcss` plugin, this option
+> should be set to `false` to avoid double generation of CSS files with StyleX
+> styles.
+
+&nbsp;
 
 > [!NOTE]
 > This approach requires transpiling JS/TS files with StyleX code twice:

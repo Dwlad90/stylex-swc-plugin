@@ -1,16 +1,22 @@
 # Contributing to This Project
 
-Thank you for considering contributing to this project! We welcome contributions from the community and are excited to collaborate with you.
+Thank you for considering contributing to this project! We welcome contributions
+from the community and are excited to collaborate with you.
 
 ## Code of Conduct
 
-Please note that this project is governed by a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [e-mail](mailto:dwlad90@gmail.com).
+Please note that this project is governed by a
+[Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to
+uphold this code. Please report unacceptable behavior to
+[e-mail](mailto:dwlad90@gmail.com).
 
 ## How to Contribute
 
 ### Reporting Bugs
 
-If you find a bug, please create an issue on GitHub with the following information:
+If you find a bug, please create an issue on GitHub with the following
+information:
+
 - A clear and descriptive title
 - A detailed description of the problem
 - Steps to reproduce the issue
@@ -18,7 +24,9 @@ If you find a bug, please create an issue on GitHub with the following informati
 
 ### Suggesting Enhancements
 
-We welcome suggestions for new features or improvements. Please create an issue on GitHub with the following information:
+We welcome suggestions for new features or improvements. Please create an issue
+on GitHub with the following information:
+
 - A clear and descriptive title
 - A detailed description of the enhancement
 - Any relevant examples or use cases
@@ -34,34 +42,38 @@ We welcome suggestions for new features or improvements. Please create an issue 
 ### Development Workflow
 
 1. Clone the repository:
-    ```sh
-    git clone https://github.com/Dwlad90/stylex-swc-plugin.git
-    cd stylex-swc-plugin
-    ```
+
+   ```sh
+   git clone https://github.com/Dwlad90/stylex-swc-plugin.git
+   cd stylex-swc-plugin
+   ```
 
 2. Install dependencies:
-    ```sh
-    pnpm install
-    ```
+
+   ```sh
+   pnpm install
+   ```
 
 3. Run tests:
-    ```sh
-    pnpm run test
-    ```
+   ```sh
+   pnpm run test
+   ```
 4. Run linter
-    ```sh
-    pnpm run lint:check
-    ```
+
+   ```sh
+   pnpm run lint:check
+   ```
 
 5. Run code formatter
-    ```sh
-    pnpm run format:check
-    ```
+
+   ```sh
+   pnpm run format:check
+   ```
 
 6. Build the project:
-    ```sh
-    pnpm run build
-    ```
+   ```sh
+   pnpm run build
+   ```
 
 ### Coding Standards
 
@@ -71,4 +83,5 @@ We welcome suggestions for new features or improvements. Please create an issue 
 
 ## Thank You!
 
-Thank you for your interest in contributing to this project. Your contributions are greatly appreciated!
+Thank you for your interest in contributing to this project. Your contributions
+are greatly appreciated!

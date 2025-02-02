@@ -75,7 +75,8 @@ The plugin accepts the following configuration options:
 
 - Type: `TransformOptions`
 - Optional
-- Description: LightningCSS transform options (excluding code, filename, and visitor properties)
+- Description: LightningCSS transform options (excluding code, filename, and
+  visitor properties)
 
 ### `extractCSS`
 

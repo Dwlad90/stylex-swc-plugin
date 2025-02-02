@@ -29,10 +29,10 @@ function getPackageIncludePaths(packageName, nodeModulePaths) {
   ];
 }
 
-const openPropsIncludePaths = getPackageIncludePaths('@stylexjs/open-props', [
+const includePaths = ['@stylexjs/open-props', '@stylexswc/design-system'].flatMap(packageName => getPackageIncludePaths(packageName, [
   path.join(projectRoot, 'node_modules'),
   path.join(monorepoRoot, 'node_modules'),
-]);
+]));
 
 module.exports = {
   plugins: {
@@ -40,7 +40,7 @@ module.exports = {
       include: [
         'app/**/*.{js,jsx,ts,tsx}',
         'components/**/*.{js,jsx,ts,tsx}',
-        ...openPropsIncludePaths,
+        ...includePaths
       ],
       useCSSLayers: true,
       rsOptions: {

@@ -32,7 +32,7 @@ const styles = stylex.create({
   },
   orangeFg: {
     color: colors.orange7,
-  }
+  },
 });
 
 function App() {

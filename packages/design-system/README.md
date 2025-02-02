@@ -1,10 +1,12 @@
 # @stylexswc/design-system
 
-A design system built with StyleX for workspace examples, providing reusable components and design tokens.
+A design system built with StyleX for workspace examples, providing reusable
+components and design tokens.
 
 ## Installation
 
-This package is private and intended for internal use within the StyleX workspace examples.
+This package is private and intended for internal use within the StyleX
+workspace examples.
 
 ```bash
 pnpm add @stylexswc/design-system
@@ -27,6 +29,6 @@ import tokens from '@stylexswc/design-system/tokens.stylex';
 const styles = stylex.create({
   container: {
     backgroundColor: tokens.pink7,
-  }
+  },
 });
 ```

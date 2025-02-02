@@ -201,5 +201,5 @@ const style = stylex.create({
   },
   pinkBg: {
     backgroundColor: tokens.pink7,
-  }
+  },
 });

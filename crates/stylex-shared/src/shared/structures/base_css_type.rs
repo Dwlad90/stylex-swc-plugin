@@ -6,6 +6,7 @@ use swc_core::ecma::{
 
 use crate::shared::{
   enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
+  swc::get_default_expr_ctx,
   utils::{
     ast::factories::{
       object_expression_factory, object_lit_factory, prop_or_spread_expression_factory,
@@ -97,7 +98,7 @@ impl From<ObjectLit> for BaseCSSType {
             }
             _ => panic!(
               "Value must be an object or string, but got: {:?}",
-              key_value.value.get_type()
+              key_value.value.get_type(get_default_expr_ctx())
             ),
           };
 
@@ -121,7 +122,7 @@ impl From<ObjectLit> for BaseCSSType {
                     }
                     _ => panic!(
                       "Value must be a string, but got: {:?}",
-                      key_value.value.get_type()
+                      key_value.value.get_type(get_default_expr_ctx())
                     ),
                   }
                 }
@@ -137,7 +138,7 @@ impl From<ObjectLit> for BaseCSSType {
               }
               _ => panic!(
                 "Value must be a string or object, but got: {:?}",
-                key_value.value.get_type()
+                key_value.value.get_type(get_default_expr_ctx())
               ),
             }
           }

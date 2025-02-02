@@ -18,7 +18,6 @@ export interface StyleXPluginOption {
   include?: string[];
   cwd?: string;
   isDev?: boolean;
-
 }
 
 export interface TransformOptions {

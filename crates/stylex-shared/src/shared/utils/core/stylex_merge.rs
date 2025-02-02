@@ -7,6 +7,7 @@ use swc_core::ecma::{
 use crate::shared::{
   enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
   structures::{member_transform::MemberTransform, state_manager::StateManager},
+  swc::get_default_expr_ctx,
   utils::{
     common::{reduce_ident_count, reduce_member_expression_count},
     core::{
@@ -84,12 +85,18 @@ pub(crate) fn stylex_merge(
             }
             Expr::Member(member) => member.obj.as_ident().expect("Member obj is not an ident"),
             Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => return None,
-            _ => panic!("Illegal argument: {:?}", alt.get_type()),
+            _ => panic!(
+              "Illegal argument: {:?}",
+              alt.get_type(get_default_expr_ctx())
+            ),
           };
 
           let member = match alt.as_ref() {
             Expr::Member(member) => member,
-            _ => panic!("Illegal argument: {:?}", alt.get_type()),
+            _ => panic!(
+              "Illegal argument: {:?}",
+              alt.get_type(get_default_expr_ctx())
+            ),
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(
@@ -122,12 +129,18 @@ pub(crate) fn stylex_merge(
           let ident = match right.as_ref() {
             Expr::Ident(ident) => ident,
             Expr::Member(member) => member.obj.as_ident().expect("Member obj is not an ident"),
-            _ => panic!("Illegal argument: {:?}", right.get_type()),
+            _ => panic!(
+              "Illegal argument: {:?}",
+              right.get_type(get_default_expr_ctx())
+            ),
           };
 
           let member = match right.as_ref() {
             Expr::Member(member) => member,
-            _ => panic!("Illegal argument: {:?}", right.get_type()),
+            _ => panic!(
+              "Illegal argument: {:?}",
+              right.get_type(get_default_expr_ctx())
+            ),
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(

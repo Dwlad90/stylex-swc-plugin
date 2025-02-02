@@ -1,10 +1,10 @@
-import test from 'ava'
+import test from 'ava';
 
-import { transform } from '../dist/index'
+import { transform } from '../dist/index';
 
-const rootDir = process.cwd()
+const rootDir = process.cwd();
 
-test('sync function from native code', (t) => {
+test('sync function from native code', t => {
   const fixture = `
     import stylex from "@stylexjs/stylex";
 
@@ -14,7 +14,7 @@ test('sync function from native code', (t) => {
         color: "blue",
       },
     });
-  `
+  `;
 
   const result = transform('page.tsx', fixture, {
     dev: false,
@@ -24,7 +24,7 @@ test('sync function from native code', (t) => {
       type: 'commonJS',
       rootDir,
     },
-  })
+  });
 
   const expected = {
     code: 'import stylex from "@stylexjs/stylex";\nexport const styles = {\n    default: {\n        backgroundColor: "xrkmrrc",\n        color: "xju2f9n",\n        $$css: true\n    }\n};\n',
@@ -49,7 +49,7 @@ test('sync function from native code', (t) => {
       ],
     },
     map: '{"version":3,"sources":["page.tsx"],"names":[],"mappings":"AACI;AAEA;;;;;;EAKG"}',
-  }
+  };
 
-  t.deepEqual(result, expected)
-})
+  t.deepEqual(result, expected);
+});

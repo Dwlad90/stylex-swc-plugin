@@ -237,7 +237,7 @@ jobs:
       - name: 📦 Publish to NPM
         id: npm
         run: |
-          MAX_ATTEMPTS=10
+          MAX_ATTEMPTS=100
           SLEEP_BASE=5
 
           run_id=$(gh workflow run npm.yml \
@@ -267,7 +267,7 @@ jobs:
             exit 1
           fi
 
-          SLEEP_BASE=$((60*13))
+          SLEEP_BASE=$((60*20))
           echo "Sleeping for $((SLEEP_BASE/60)) minutes before checking the status"
           sleep $SLEEP_BASE  # Wait before checking the status
 

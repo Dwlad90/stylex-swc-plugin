@@ -31,18 +31,24 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-gnu
+            build: |
+              corepack prepare pnpm@9.15.4 --activate
+              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-musl
+            build: |
+              corepack prepare pnpm@9.15.4 --activate
+              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
             build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-            build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
+            build: |
+              corepack prepare pnpm@9.15.4 --activate
+              pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
         node:
           - '22.13.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}

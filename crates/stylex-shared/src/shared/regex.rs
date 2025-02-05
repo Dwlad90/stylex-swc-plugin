@@ -8,7 +8,7 @@ pub(crate) static CSS_RULE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\w+:\s*([^;}]+);?").unwrap());
 
 pub(crate) static WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(\d+%?|\))\s*([+\-*/%])\s*(\d*\.?\d+|\()").unwrap());
+  Lazy::new(|| Regex::new(r"(\d+%?|\))(\s*)([+\-*/%])(\s*)(\d*\.?\d+|\()").unwrap());
 
 pub(crate) static SANITIZE_CLASS_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[^.a-zA-Z0-9_-]").unwrap());

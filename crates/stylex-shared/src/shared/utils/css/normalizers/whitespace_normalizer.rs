@@ -24,14 +24,25 @@ pub(crate) fn whitespace_normalizer(content: String) -> String {
   // Normalize math signs
   css = WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX
     .replace_all(&css, |caps: &regex::Captures| {
-      let num1 = &caps[1];
-      let op = &caps[2];
-      let num2 = &caps[3];
+      let left = &caps[1];
+      let op = &caps[3];
+      // Represents the trailing whitespace captured by the regular expression.
+      // Will be empty if there is no whitespace after the value.
+      let right_space = &caps[4];
+      let right = &caps[5];
 
       if op == "%" {
-        format!("{}{} {}", num1, op, num2)
+        // Attach percent to left with no space, then one space before right.
+        format!("{}{} {}", left, op, right)
+      } else if op == "-" {
+        if right_space.is_empty() {
+          format!("{} {}{}", left, op, right)
+        } else {
+          format!("{} {} {}", left, op, right)
+        }
       } else {
-        format!("{} {} {}", num1, op, num2)
+        // Other operators, always normalize to one space around.
+        format!("{} {} {}", left, op, right)
       }
     })
     .to_string();

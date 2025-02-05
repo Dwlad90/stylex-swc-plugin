@@ -380,4 +380,24 @@ mod css_tests {
       r#"url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==")"#,
     );
   }
+  #[test]
+  fn filter_properties() {
+    assert_eq!(
+      transform_value_cached(
+        "filter",
+        "drop-shadow(0 2px 10px rgba(0, 0, 0, 0.1))",
+        &mut StateManager::default()
+      ),
+      "drop-shadow(0 2px 10px rgba(0,0,0,.1))"
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "filter",
+        "drop-shadow(0 -2px 10px rgba(0, 0, 0, 0.1))",
+        &mut StateManager::default()
+      ),
+      "drop-shadow(0 -2px 10px rgba(0,0,0,.1))"
+    );
+  }
 }

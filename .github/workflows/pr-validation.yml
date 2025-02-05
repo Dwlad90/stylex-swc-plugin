@@ -107,9 +107,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ./cache
-          key: ${{ matrix.settings.target }}-benchmark-${{ github.ref }}
+          key: >-
+            ${{ matrix.settings.target }}-benchmark-${{
+              github.event.pull_request.number != null
+              && format('pr-{0}', github.event.pull_request.number)
+              || github.event.ref
+            }}
           restore-keys: |
+            ${{ matrix.settings.target }}-benchmark-22.13.0-
+            ${{ matrix.settings.target }}-benchmark-22.13.0
+            ${{ matrix.settings.target }}-benchmark-pr-
+            ${{ matrix.settings.target }}-benchmark-pr
             ${{ matrix.settings.target }}-benchmark-
+            ${{ matrix.settings.target }}-benchmark
 
       - name: Run benchmarks
         run: pnpm run --filter @stylexswc/rs-compiler bench

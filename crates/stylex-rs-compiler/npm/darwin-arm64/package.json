@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/rs-compiler-darwin-arm64",
-  "version": "0.6.5-rc.1",
+  "version": "0.6.5",
   "private": false,
   "os": [
     "darwin"

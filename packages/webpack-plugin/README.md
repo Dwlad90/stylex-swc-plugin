@@ -37,11 +37,16 @@ const config = (env, argv) => ({
   plugins: [
     new StylexPlugin({
       // ... Other StyleX options
-      transformCss: css => {
-        // Transform CSS here, for example, using PostCSS
-        const transformedCSS = css;
-
-        return transformedCSS;
+      transformCss: async (css, filePath) => {
+        const postcss = require('postcss');
+        const result = await postcss([require('autoprefixer')]).process(css, {
+          from: filePath,
+          map: {
+            inline: false,
+            annotation: false,
+          },
+        });
+        return result.css;
       },
     }),
   ],
@@ -95,7 +100,7 @@ module.exports = config;
 
 #### `transformCss`
 
-- Type: `(css: string) => string | Buffer | Promise<string | Buffer>`
+- Type: `(css: string, filePath: string | undefined) => string | Buffer | Promise<string | Buffer>`
 - Optional
 - Description: Custom CSS transformation function. Since the plugin injects CSS
   after all loaders, use this to apply PostCSS or other CSS transformations.

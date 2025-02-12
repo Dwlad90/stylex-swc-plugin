@@ -85,7 +85,7 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 #### `transformCss`
 
-- Type: `(css: string) => string | Buffer | Promise<string | Buffer>`
+- Type: `(css: string, filePath: string | undefined) => string | Buffer | Promise<string | Buffer>`
 - Optional
 - Description: Custom CSS transformation function. Since the plugin injects CSS
   after all loaders, use this to apply PostCSS or other CSS transformations.
@@ -111,9 +111,15 @@ module.exports = stylexPlugin({
   },
   stylexImports: ['@stylexjs/stylex', { from: './theme', as: 'tokens' }],
   useCSSLayers: true,
-  transformCss: async css => {
+  transformCss: async (css, filePath) => {
     const postcss = require('postcss');
-    const result = await postcss([require('autoprefixer')]).process(css);
+    const result = await postcss([require('autoprefixer')]).process(css, {
+      from: filePath,
+      map: {
+        inline: false,
+        annotation: false,
+      },
+    });
     return result.css;
   },
 })({

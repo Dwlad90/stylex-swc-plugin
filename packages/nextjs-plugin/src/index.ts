@@ -217,12 +217,19 @@ const withStyleX =
             nextjsMode: true,
             ...(extractCSS
               ? {
-                  async transformCss(css) {
+                  async transformCss(css, filePath) {
                     const { postcssWithPlugins } = await postcss();
-                    const result = await postcssWithPlugins.process(css);
+
+                    const result = await postcssWithPlugins.process(css, {
+                      from: filePath,
+                      map: {
+                        inline: false,
+                        annotation: false,
+                      },
+                    });
 
                     if (typeof pluginOptions?.transformCss === 'function') {
-                      return pluginOptions.transformCss(result.css);
+                      return pluginOptions.transformCss(result.css, filePath);
                     }
 
                     return result.css;

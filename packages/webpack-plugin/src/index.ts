@@ -214,8 +214,8 @@ export default class StyleXPlugin {
             return;
           }
 
-          const finalCss = await this.transformCss(stylexCSS);
           const cssAsset = stylexAsset?.[0];
+          const finalCss = await this.transformCss(stylexCSS, cssAsset);
 
           if (cssAsset) {
             compilation.updateAsset(

@@ -186,3 +186,47 @@ test!(
         }
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  stylex_call_props_with_renaming_dynamic_styles_prop,
+  r#"
+        import * as stylex from '@stylexjs/stylex';
+        import { fonts as f } from '@stylexjs/open-props/lib/fonts.stylex';
+
+        import { type ReactNode } from 'react';
+
+        const styles = stylex.create({
+          text: {
+            color: 'hotpink',
+          },
+        });
+
+        const variants = stylex.create({
+          small: {
+            fontSize: f.size1
+          },
+          big: {
+            fontSize: f.size7
+          }
+        })
+
+        export interface TextProps {
+          children: ReactNode;
+          size: keyof typeof variants;
+        }
+
+        export function Text2({ children, size: s }: TextProps) {
+          return <div {...stylex.props(styles.text, variants[s])}>{children}</div>;
+        }
+
+    "#
+);

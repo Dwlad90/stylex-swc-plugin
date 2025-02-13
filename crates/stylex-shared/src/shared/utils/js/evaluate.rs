@@ -422,10 +422,17 @@ fn _evaluate(
 
               let ident = match eval_res {
                 EvaluateResultValue::Expr(ident) => ident,
-                _ => panic!(
-                  "Property not found: {:?}",
-                  expr.get_type(get_default_expr_ctx())
-                ),
+                _ => {
+                  debug!(
+                    "Property not found. Expression: {:?}. Evaluation expression: {:?}",
+                    expr, eval_res
+                  );
+
+                  panic!(
+                    "Property not found: {:?}",
+                    expr.get_type(get_default_expr_ctx())
+                  )
+                }
               };
 
               let ident = &mut ident.to_owned();

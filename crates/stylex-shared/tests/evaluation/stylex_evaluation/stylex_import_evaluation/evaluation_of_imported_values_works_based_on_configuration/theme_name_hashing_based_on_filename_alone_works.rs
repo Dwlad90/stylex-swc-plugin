@@ -255,3 +255,19 @@ fn imported_vars_with_stylex_suffix_can_be_used_as_style_keys_dynamically() {
 
   assert_snapshot!(transformation);
 }
+
+#[test]
+fn imported_vars_with_stylex_suffix_used_as_renamed_style_keys_dynamically() {
+  let input = r#"import stylex from 'stylex';
+    import { theme as MyTheme } from 'otherFile.stylex';
+    export const styles = stylex.create({
+        color: (color) => ({
+            [MyTheme.foreground]: color,
+        })
+    });
+    stylex.props(styles.color('red'));"#;
+
+  let transformation = tranform(input);
+
+  assert_snapshot!(transformation);
+}

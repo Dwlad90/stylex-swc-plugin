@@ -422,14 +422,29 @@ fn _evaluate(
 
               let ident = match eval_res {
                 EvaluateResultValue::Expr(ident) => ident,
+                EvaluateResultValue::ThemeRef(theme) => {
+                  // NOTE: it's a very edge case, but it's possible to have a theme ref as a key
+                  // in an object, when theme import key is same as other variable name.
+                  // One of reasons is code minification or obfuscation,
+                  // when theme import key is renamed to a shorter name.
+                  // Also it may be a result of a bug in the code.
+
+                  warn!("A theme import key is being used as an object key. This might be caused by code minification or an internal error.\r\nFor additional details, please recompile using debug mode.");
+
+                  debug!("Evaluating member access on object:");
+                  debug!("Object expression: {:?}", expr);
+                  debug!("Theme reference: {:?}", theme);
+                  debug!("Original property: {:?}", prop_path);
+
+                  return None;
+                }
                 _ => {
-                  debug!(
-                    "Property not found. Expression: {:?}. Evaluation expression: {:?}",
-                    expr, eval_res
-                  );
+                  debug!("Property not found for expression: {:?}", expr);
+                  debug!("Evaluation result: {:?}", eval_res);
+                  debug!("Original property: {:?}", prop_path);
 
                   panic!(
-                    "Property not found: {:?}",
+                    "Property not found: {:?}. For additional details, please recompile using debug mode.",
                     expr.get_type(get_default_expr_ctx())
                   )
                 }

@@ -72,3 +72,6 @@ pub(crate) static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom proper
 
 pub(crate) static NON_CONTIGUOUS_VARS: &str =
   "All variables passed to `stylex.firstThatWorks` must be contiguous.";
+
+pub(crate) static THEME_IMPORT_KEY_AS_OBJECT_KEY: &str =
+  "Theme import keys cannot be used as object keys. Please use a valid object key.";

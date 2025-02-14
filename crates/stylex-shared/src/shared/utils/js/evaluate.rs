@@ -24,7 +24,7 @@ use crate::shared::{
       unsupported_expression, unsupported_operator, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT,
       OBJECT_METHOD, PATH_WITHOUT_NODE, UNEXPECTED_MEMBER_LOOKUP,
     },
-    messages::{BUILT_IN_FUNCTION, ILLEGAL_PROP_ARRAY_VALUE},
+    messages::{BUILT_IN_FUNCTION, ILLEGAL_PROP_ARRAY_VALUE, THEME_IMPORT_KEY_AS_OBJECT_KEY},
   },
   enums::{
     data_structures::{
@@ -165,9 +165,9 @@ fn _evaluate(
     return None;
   }
 
-  let path = normalize_expr(path);
+  let normalized_path = normalize_expr(path);
 
-  let result: Option<EvaluateResultValue> = match path {
+  let result: Option<EvaluateResultValue> = match normalized_path {
     Expr::Arrow(arrow) => {
       let body = &arrow.body;
       let params = &arrow.params;
@@ -436,7 +436,7 @@ fn _evaluate(
                   debug!("Theme reference: {:?}", theme);
                   debug!("Original property: {:?}", prop_path);
 
-                  return None;
+                  return deopt(path, state, THEME_IMPORT_KEY_AS_OBJECT_KEY);
                 }
                 _ => {
                   debug!("Property not found for expression: {:?}", expr);
@@ -1730,26 +1730,32 @@ fn _evaluate(
       }
 
       return deopt(
-        path,
+        normalized_path,
         state,
-        &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
+        &unsupported_expression(&format!(
+          "{:?}",
+          normalized_path.get_type(get_default_expr_ctx())
+        )),
       );
     }
     _ => {
-      warn!("Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details", path.get_type(get_default_expr_ctx()));
+      warn!("Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details", normalized_path.get_type(get_default_expr_ctx()));
 
-      debug!("Unsupported type of expression: {:?}", path);
+      debug!("Unsupported type of expression: {:?}", normalized_path);
 
       return deopt(
-        path,
+        normalized_path,
         state,
-        &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
+        &unsupported_expression(&format!(
+          "{:?}",
+          normalized_path.get_type(get_default_expr_ctx())
+        )),
       );
     }
   };
 
-  if result.is_none() && path.is_ident() {
-    let ident = path.as_ident().expect("Identifier not found");
+  if result.is_none() && normalized_path.is_ident() {
+    let ident = normalized_path.as_ident().expect("Identifier not found");
 
     if let Some(binding) = get_var_decl_by_ident(
       ident,
@@ -1757,7 +1763,7 @@ fn _evaluate(
       &state.functions,
       VarDeclAction::Reduce,
     ) {
-      if (*path).eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
+      if (*normalized_path).eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
         unimplemented!("Binding")
       }
 
@@ -1853,15 +1859,18 @@ fn _evaluate(
         ),
       ],
       state,
-      path,
+      normalized_path,
     );
   }
 
   if result.is_none() {
     return deopt(
-      path,
+      normalized_path,
       state,
-      &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
+      &unsupported_expression(&format!(
+        "{:?}",
+        normalized_path.get_type(get_default_expr_ctx())
+      )),
     );
   }
 

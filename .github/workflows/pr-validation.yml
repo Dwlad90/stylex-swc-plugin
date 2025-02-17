@@ -57,31 +57,20 @@ jobs:
       repository-projects: write
 
     steps:
-      - uses: actions/github-script@v6
-        if: github.event.pull_request.number != null
-        id: pr
-        with:
-          script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
-              ...context.repo,
-              pull_number: context.payload.pull_request.number,
-            });
-            return pullRequest
-      - name: Checkout PR code
-        if: github.event.pull_request.number != null
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{fromJSON(steps.pr.outputs.result).merge_commit_sha}}
-
-      - name: Checkout branch code
-        if: github.event.pull_request.number == null
-        uses: actions/checkout@v4
+          fetch-depth: 0
 
       - name: Setup environment
         uses: ./.github/actions/setup
 
       - name: Cache turbo build setup
         uses: ./.github/actions/turbo
+
+      - name: Validate commit messages
+        if: github.event.pull_request.number != null
+        run: pnpm exec commitlint --from=$(git merge-base origin/develop HEAD)
 
       - name: Format code
         run: pnpm run format:check

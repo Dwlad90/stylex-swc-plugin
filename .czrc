@@ -1,3 +1,67 @@
 {
-  "path": "cz-conventional-changelog"
+  "path": "cz-conventional-changelog",
+  "maxHeaderWidth": 120,
+  "maxLineWidth": 100,
+  "types": {
+    "build": {
+      "description": "Changes that affect the build system or external dependencies 🏗️",
+      "title": "Builds"
+    },
+    "chore": {
+      "description": "Other changes that don't modify src or test files 🧹",
+      "title": "Chores"
+    },
+    "ci": {
+      "description": "Changes to CI configuration 🤖",
+      "title": "Continuous Integrations"
+    },
+    "clean": {
+      "description": "Code quality improvements 🔨",
+      "title": "Clean"
+    },
+    "deps": {
+      "description": "Update or add dependencies 📦",
+      "title": "Dependencies"
+    },
+    "design": {
+      "description": "Design related changes 🎨",
+      "title": "Design"
+    },
+    "docs": {
+      "description": "Documentation only changes 📚",
+      "title": "Documentation"
+    },
+    "enhancement": {
+      "description": "A new feature enhancement 🎉",
+      "title": "Features"
+    },
+    "feat": {
+      "description": "A new feature 🎉",
+      "title": "Features"
+    },
+    "fix": {
+      "description": "A bug fix 🐛",
+      "title": "Bug Fixes"
+    },
+    "perf": {
+      "description": "A code change that improves performance 🚀",
+      "title": "Performance Improvements"
+    },
+    "refactor": {
+      "description": "A code change that neither fixes a bug nor adds a feature 🔨",
+      "title": "Code Refactoring"
+    },
+    "revert": {
+      "description": "Revert to a commit ⏪",
+      "title": "Reverts"
+    },
+    "style": {
+      "description": "Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)'🖌️",
+      "title": "Styles"
+    },
+    "test": {
+      "description": "Adding missing tests or correcting existing tests ✅",
+      "title": "Tests"
+    }
+  }
 }

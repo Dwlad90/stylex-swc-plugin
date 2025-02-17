@@ -1,7 +1,7 @@
 # @stylexswc/design-system
 
-A design system built with StyleX for workspace examples, providing reusable
-components and design tokens.
+A design system built with StyleX for workspace examples, offering reusable
+components and design tokens exclusively for internal use.
 
 ## Installation
 

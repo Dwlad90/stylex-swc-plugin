@@ -2183,6 +2183,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_css_parser"
+version = "0.6.6"
+dependencies = [
+ "anyhow",
+ "color-backtrace",
+ "cssparser",
+ "ctor 0.4.0",
+ "env_logger 0.11.6",
+ "indexmap",
+ "log",
+ "once_cell",
+ "package-json",
+ "path-clean 1.0.1",
+ "pathdiff",
+ "pretty_env_logger",
+ "regex",
+ "rustc-hash 2.1.1",
+ "serde",
+ "serde_json",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_path_resolver"
 version = "0.10.5"
 dependencies = [

@@ -15,7 +15,7 @@ impl Shorthands {
   }
 
   fn border_color(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref(), None);
 
     vec![
       OrderPair("borderTopColor".into(), Some(top)),
@@ -31,7 +31,7 @@ impl Shorthands {
     ]
   }
   fn border_style(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref(), None);
 
     vec![
       OrderPair("borderTopStyle".into(), Some(top)),
@@ -47,7 +47,7 @@ impl Shorthands {
     ]
   }
   fn border_width(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref(), None);
 
     vec![
       OrderPair("borderTopWidth".into(), Some(top)),
@@ -95,7 +95,8 @@ impl Shorthands {
   }
 
   fn border_radius(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+    let (top, right, bottom, left) =
+      split_value_required(raw_value.as_deref(), Some("borderRadius"));
 
     vec![
       OrderPair("borderTopStartRadius".into(), Some(top)),
@@ -106,7 +107,7 @@ impl Shorthands {
   }
 
   fn contain_intrinsic_size(raw_value: Option<String>) -> Vec<OrderPair> {
-    let parts = split_value_required(raw_value.as_deref());
+    let parts = split_value_required(raw_value.as_deref(), None);
     let parts = [parts.0, parts.1, parts.2, parts.3];
 
     let mut coll: Vec<String> = Vec::with_capacity(parts.len());
@@ -183,7 +184,7 @@ impl Shorthands {
   }
 
   fn gap(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (row, column, _, _) = split_value_required(raw_value.as_deref());
+    let (row, column, _, _) = split_value_required(raw_value.as_deref(), None);
 
     vec![
       OrderPair("rowGap".into(), Some(row)),
@@ -191,7 +192,7 @@ impl Shorthands {
     ]
   }
   fn margin(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref(), None);
 
     vec![
       OrderPair("marginTop".into(), Some(top)),
@@ -244,14 +245,14 @@ impl Shorthands {
   }
 
   fn overflow(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (x, y, _, _) = split_value_required(raw_value.as_deref());
+    let (x, y, _, _) = split_value_required(raw_value.as_deref(), None);
     vec![
       OrderPair("overflowX".into(), Some(x)),
       OrderPair("overflowY".into(), Some(y)),
     ]
   }
   fn padding(raw_value: Option<String>) -> Vec<OrderPair> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref(), None);
 
     vec![
       OrderPair("paddingTop".into(), Some(top)),

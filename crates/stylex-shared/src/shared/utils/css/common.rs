@@ -239,8 +239,11 @@ pub(crate) fn generate_rtl(pair: &Pair) -> Option<Pair> {
   result
 }
 
-pub(crate) fn split_value_required(strng: Option<&str>) -> (String, String, String, String) {
-  let values = split_value(strng);
+pub(crate) fn split_value_required(
+  strng: Option<&str>,
+  property_name: Option<&str>,
+) -> (String, String, String, String) {
+  let values = split_value(strng, property_name);
 
   let top = values.0;
   let right = values.1.unwrap_or(top.clone());
@@ -252,8 +255,21 @@ pub(crate) fn split_value_required(strng: Option<&str>) -> (String, String, Stri
 
 pub(crate) fn split_value(
   value: Option<&str>,
+  property_name: Option<&str>,
 ) -> (String, Option<String>, Option<String>, Option<String>) {
-  let nodes = parse_css(value.unwrap_or_default());
+  let mut nodes = parse_css(value.unwrap_or_default());
+
+  if property_name == Some("borderRadius") {
+    let groups = split_nodes_by_slash(&nodes);
+
+    if groups.len() > 1 {
+      let verical = expand_border_radius_shorthand(&groups[0]);
+      let horizontal = expand_border_radius_shorthand(&groups[1]);
+
+      nodes = combine_border_radius_values(&verical, &horizontal);
+    }
+  }
+  dbg!(&nodes);
 
   let top = nodes.first().cloned().unwrap_or(String::default());
   let right = nodes.get(1).cloned();
@@ -261,6 +277,51 @@ pub(crate) fn split_value(
   let left = nodes.get(3).cloned();
 
   (top, right, bottom, left)
+}
+
+// Expands a border-radius shorthand value to an array of four values.
+fn expand_border_radius_shorthand(groups: &[String]) -> Vec<String> {
+  match groups {
+    [] => Vec::new(),
+    [a] => vec![a.clone(); 4],
+    [a, b] => vec![a.clone(), b.clone(), a.clone(), b.clone()],
+    [a, b, c] => vec![a.clone(), b.clone(), c.clone(), b.clone()],
+    _ => groups.iter().take(4).cloned().collect(),
+  }
+}
+
+// Splits PostCSS value nodes for border-radius into horizontal and vertical groups by slash.
+fn split_nodes_by_slash(nodes: &[String]) -> Vec<Vec<String>> {
+  // Typically have at most 2 groups (before and after slash)
+  let mut result = Vec::with_capacity(2);
+  let mut current = Vec::new();
+
+  for node in nodes {
+    if node == "/" {
+      if !current.is_empty() {
+        result.push(std::mem::take(&mut current));
+      }
+    } else {
+      current.push(node.clone());
+    }
+  }
+
+  if !current.is_empty() {
+    result.push(current);
+  }
+
+  result
+}
+
+// Combines two arrays of border-radius values into a single formatted string.
+fn combine_border_radius_values(verticals: &[String], horizontals: &[String]) -> Vec<String> {
+  let fallback = String::new();
+
+  verticals
+    .iter()
+    .zip(horizontals.iter().chain(std::iter::repeat(&fallback)))
+    .map(|(vertical, horizontal)| format!("{} {}", vertical, horizontal))
+    .collect()
 }
 
 const THUMB_VARIANTS: [&str; 3] = [

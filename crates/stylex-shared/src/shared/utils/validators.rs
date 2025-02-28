@@ -1,9 +1,7 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{
-    ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, PropName, VarDeclarator,
-  },
+  ecma::ast::{ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
 use crate::shared::{
@@ -13,8 +11,7 @@ use crate::shared::{
       DUPLICATE_CONDITIONAL, ILLEGAL_ARGUMENT_LENGTH, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
       INVALID_PSEUDO_OR_AT_RULE, NON_EXPORT_NAMED_DECLARATION, NON_OBJECT_FOR_STYLEX_CALL,
       NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, NON_OBJECT_KEYFRAME, NON_STATIC_KEYFRAME_VALUE,
-      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, NON_STATIC_VALUE,
-      ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS, ONLY_TOP_LEVEL_INCLUDES,
+      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
       UNBOUND_STYLEX_CALL_VALUE,
     },
   },
@@ -22,7 +19,6 @@ use crate::shared::{
     evaluate_result_value::EvaluateResultValue,
     top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
   },
-  regex::INCLUDED_IDENT_REGEX,
   structures::state_manager::StateManager,
   utils::{
     ast::{convertors::string_to_expression, factories::key_value_factory},
@@ -310,26 +306,6 @@ pub(crate) fn validate_namespace(
   state: &StateManager,
 ) {
   for namespace in namespaces {
-    let key = match &namespace.key {
-      PropName::Ident(key) => key.sym.to_string(),
-      PropName::Str(key) => {
-        if !(key.value.starts_with('@')
-          || key.value.starts_with(':')
-          || key.value == "default"
-          || namespace.value.is_lit())
-        {
-          build_code_frame_error_and_panic(
-            &Expr::Lit(Lit::Str(key.clone())),
-            &Expr::Lit(Lit::Str(key.clone())),
-            INVALID_PSEUDO_OR_AT_RULE,
-            state,
-          );
-        }
-        key.value.to_string()
-      }
-      _ => panic!("{}", NON_STATIC_VALUE),
-    };
-
     match namespace.value.as_ref() {
       Expr::Lit(lit) => {
         if !matches!(
@@ -389,11 +365,7 @@ pub(crate) fn validate_namespace(
           }
         }
       }
-      _ => {
-        if INCLUDED_IDENT_REGEX.is_match(&key) {
-          assert!(conditions.is_empty(), "{}", ONLY_TOP_LEVEL_INCLUDES)
-        }
-      }
+      _ => {}
     }
   }
 }
@@ -458,11 +430,7 @@ pub(crate) fn validate_conditional_styles(
         validate_conditional_styles(nested_key_value, &extended_conditions, state);
       }
     }
-    Expr::Ident(_) => {
-      if INCLUDED_IDENT_REGEX.is_match(&inner_key) {
-        build_code_frame_error_and_panic(&inner_value, &inner_value, ONLY_TOP_LEVEL_INCLUDES, state)
-      }
-    }
+    Expr::Ident(_) => {}
     _ => build_code_frame_error_and_panic(&inner_value, &inner_value, ILLEGAL_PROP_VALUE, state),
   }
 }

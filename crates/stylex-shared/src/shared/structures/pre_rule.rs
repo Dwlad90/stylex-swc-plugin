@@ -10,8 +10,7 @@ use crate::shared::utils::{
 };
 
 use super::{
-  included_style::IncludedStyle, injectable_style::InjectableStyle, null_pre_rule::NullPreRule,
-  pre_included_styles_rule::PreIncludedStylesRule, pre_rule_set::PreRuleSet,
+  injectable_style::InjectableStyle, null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet,
   state_manager::StateManager, types::ClassesToOriginalPaths,
 };
 
@@ -34,18 +33,10 @@ pub(crate) struct ComputedStyle(
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum CompiledResult {
   Null,
-  IncludedStyle(IncludedStyle),
   ComputedStyles(Vec<ComputedStyle>),
 }
 
 impl CompiledResult {
-  pub(crate) fn as_included_style(&self) -> Option<&IncludedStyle> {
-    match self {
-      CompiledResult::IncludedStyle(included_style) => Some(included_style),
-      _ => None,
-    }
-  }
-
   pub(crate) fn as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
     match self {
       CompiledResult::ComputedStyles(computed_styles) => Some(computed_styles),
@@ -64,7 +55,6 @@ pub(crate) trait PreRule: Debug {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PreRules {
-  PreIncludedStylesRule(PreIncludedStylesRule),
   PreRuleSet(PreRuleSet),
   StylesPreRule(StylesPreRule),
   NullPreRule(NullPreRule),

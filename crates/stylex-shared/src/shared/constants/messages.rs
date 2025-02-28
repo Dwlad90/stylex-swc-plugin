@@ -41,8 +41,6 @@ pub(crate) static EXPECTED_FUNCTION_CALL: &str =
   "Expected a simple function call but found something else.";
 #[allow(dead_code)]
 pub(crate) static NO_PARENT_PATH: &str = "Unexpected AST node without a parent path.";
-pub(crate) static ONLY_TOP_LEVEL_INCLUDES: &str =
-  "stylex.include() is only at the top level of a style definition object.";
 pub(crate) static DUPLICATE_CONDITIONAL: &str =
   "The same pseudo selector or at-rule cannot be used more than once.";
 #[allow(dead_code)]

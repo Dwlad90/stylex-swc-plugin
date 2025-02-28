@@ -84,20 +84,11 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                     continue;
                   }
 
-                  match value.as_ref() {
-                    FlatCompiledStylesValue::IncludedStyle(_) => {
-                      warn!(
-                        "styleq: {} typeof IncludedStyle is not \"string\" or \"null\".",
-                        prop
-                      )
-                    }
-                    FlatCompiledStylesValue::Bool(_) => {
-                      warn!(
-                        "styleq: {} typeof {:?} is not \"string\" or \"null\".",
-                        prop, "Bool"
-                      )
-                    }
-                    _ => {}
+                  if let FlatCompiledStylesValue::Bool(_) = value.as_ref() {
+                    warn!(
+                      "styleq: {} typeof {:?} is not \"string\" or \"null\".",
+                      prop, "Bool"
+                    )
                   }
 
                   if !defined_properties.contains(prop) {

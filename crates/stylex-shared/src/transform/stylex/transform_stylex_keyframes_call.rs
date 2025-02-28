@@ -5,6 +5,10 @@ use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
+use crate::shared::structures::{
+  functions::{FunctionConfig, FunctionMap, FunctionType},
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
 use crate::shared::utils::{
   ast::convertors::string_to_expression,
   validators::{assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent},
@@ -16,13 +20,6 @@ use crate::shared::{
 use crate::shared::{
   structures::functions::FunctionConfigType,
   utils::log::build_code_frame_error::build_code_frame_error,
-};
-use crate::shared::{
-  structures::{
-    functions::{FunctionConfig, FunctionMap, FunctionType},
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
-  transformers::stylex_include::stylex_include,
 };
 use crate::shared::{
   transformers::stylex_keyframes::stylex_keyframes, utils::js::evaluate::evaluate,
@@ -56,22 +53,10 @@ where
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-      let include_fn = FunctionConfig {
-        fn_ptr: FunctionType::ArrayArgs(stylex_include),
-        takes_path: true,
-      };
-
       let first_that_works_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
         takes_path: false,
       };
-
-      for name in &self.state.stylex_include_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(include_fn.clone())),
-        );
-      }
 
       for name in &self.state.stylex_first_that_works_import {
         identifiers.insert(
@@ -82,11 +67,6 @@ where
 
       for name in &self.state.stylex_import {
         let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          "include".into(),
-          Box::new(FunctionConfigType::Regular(include_fn.clone())),
-        );
 
         member_expression.insert(
           "firstThatWorks".into(),

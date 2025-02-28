@@ -7,12 +7,11 @@ use swc_core::ecma::{
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
   enums::misc::VarDeclAction,
-  regex::{CSS_PROPERTY_KEY, INCLUDED_IDENT_REGEX},
+  regex::CSS_PROPERTY_KEY,
   structures::{
     functions::FunctionMap,
     null_pre_rule::NullPreRule,
     order_pair::OrderPair,
-    pre_included_styles_rule::PreIncludedStylesRule,
     pre_rule::{PreRuleValue, PreRules, StylesPreRule},
     pre_rule_set::PreRuleSet,
     state::EvaluationState,
@@ -62,14 +61,6 @@ pub(crate) fn flatten_raw_style_object(
     } else {
       key.clone()
     };
-
-    if INCLUDED_IDENT_REGEX.is_match(key.as_str()) {
-      let pre_rule =
-        PreRules::PreIncludedStylesRule(PreIncludedStylesRule::new(*property.value.clone()));
-      insert_or_update_rule_with_shifting_index(&mut flattened, &key, pre_rule);
-
-      continue;
-    }
 
     match property.value.as_ref() {
       Expr::Array(property_array) => {

@@ -513,59 +513,6 @@ test!(
     PluginPass::default(),
     None
   ),
-  uses_stylex_include_correctly_with_member_expressions,
-  r#"
-        import stylex from 'stylex';
-        export const styles = stylex.create({
-            foo: {
-                ...stylex.include(importedStyles.foo)
-            }
-        });
-    "#
-);
-
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
-  using_stylex_include_keeps_the_compiled_object,
-  r#"
-        import stylex from 'stylex';
-
-        const importedStyles = stylex.create({
-            foo: {
-                color: 'blue',
-            },
-        });
-
-
-        const styles = stylex.create({
-            foo: {
-                ...stylex.include(importedStyles.foo),
-                color: 'red',
-            }
-        });
-
-        stylex.props(styles.foo);
-    "#
-);
-
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
   uses_stylex_first_that_works_correctly,
   r#"
         import stylex from 'stylex';

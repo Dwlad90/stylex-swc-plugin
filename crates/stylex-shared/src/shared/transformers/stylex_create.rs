@@ -65,9 +65,6 @@ pub(crate) fn stylex_create_set(
           PreRules::PreRuleSet(rule_set) => rule_set.compiled(traversal_state),
           PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.compiled(traversal_state),
           PreRules::NullPreRule(rule_set) => rule_set.compiled(traversal_state),
-          PreRules::PreIncludedStylesRule(pre_included_styles_rule) => {
-            pre_included_styles_rule.compiled(traversal_state)
-          }
         };
         (key, compiled_value)
       })
@@ -76,15 +73,7 @@ pub(crate) fn stylex_create_set(
     let mut namespace_obj: FlatCompiledStyles = IndexMap::new();
 
     for (key, value) in compiled_namespace_tuples {
-      if let Some(included_styles) = value.as_included_style() {
-        // stylex.include calls are passed through as-is.
-        namespace_obj.insert(
-          key.clone(),
-          Rc::new(FlatCompiledStylesValue::IncludedStyle(
-            included_styles.clone(),
-          )),
-        );
-      } else if let Some(class_name_tuples) = value.as_computed_styles() {
+      if let Some(class_name_tuples) = value.as_computed_styles() {
         for ComputedStyle(_class_name, _, classes_to_original_path) in class_name_tuples.iter() {
           class_paths_in_namespace.extend(classes_to_original_path.clone());
         }

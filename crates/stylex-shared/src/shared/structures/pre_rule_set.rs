@@ -47,9 +47,6 @@ impl PreRule for PreRuleSet {
           PreRules::PreRuleSet(rule_set) => rule_set.compiled(state),
           PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.compiled(state),
           PreRules::NullPreRule(null_pre_rule) => null_pre_rule.compiled(state),
-          PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
-            pre_included_tyles_rule.compiled(state)
-          }
         };
 
         match compiled_rule {
@@ -68,9 +65,6 @@ impl PreRule for PreRuleSet {
       PreRules::PreRuleSet(rule_set) => rule_set.get_value(),
       PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.get_value(),
       PreRules::NullPreRule(null_pre_rule) => null_pre_rule.get_value(),
-      PreRules::PreIncludedStylesRule(pre_included_tyles_rule) => {
-        pre_included_tyles_rule.get_value()
-      }
     }
   }
 }

@@ -24,7 +24,7 @@ use crate::shared::{
   structures::functions::{FunctionConfig, FunctionMap, FunctionType},
   transformers::{
     stylex_create::stylex_create_set, stylex_first_that_works::stylex_first_that_works,
-    stylex_include::stylex_include, stylex_keyframes::get_keyframes_fn,
+    stylex_keyframes::get_keyframes_fn,
   },
 };
 use crate::shared::{
@@ -76,24 +76,12 @@ where
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-      let include_fn = FunctionConfig {
-        fn_ptr: FunctionType::ArrayArgs(stylex_include),
-        takes_path: true,
-      };
-
       let first_that_works_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
         takes_path: false,
       };
 
       let keyframes_fn = get_keyframes_fn();
-
-      for name in &self.state.stylex_include_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(include_fn.clone())),
-        );
-      }
 
       for name in &self.state.stylex_first_that_works_import {
         identifiers.insert(
@@ -113,11 +101,6 @@ where
         member_expressions.entry(name.clone()).or_default();
 
         let member_expression = member_expressions.get_mut(name).unwrap();
-
-        member_expression.insert(
-          "include".into(),
-          Box::new(FunctionConfigType::Regular(include_fn.clone())),
-        );
 
         member_expression.insert(
           "firstThatWorks".into(),

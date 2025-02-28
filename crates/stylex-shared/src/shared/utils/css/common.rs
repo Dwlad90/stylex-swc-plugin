@@ -599,7 +599,7 @@ pub fn stringify(node: &Stylesheet) -> String {
   let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
   let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
 
-  codegen.emit(&node).unwrap();
+  Emit::emit(&mut codegen, node).unwrap();
 
   let mut result = buf.replace('\'', "");
 

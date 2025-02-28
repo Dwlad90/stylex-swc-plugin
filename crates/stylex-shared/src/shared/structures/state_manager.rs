@@ -78,7 +78,6 @@ pub struct StateManager {
   pub(crate) stylex_props_import: AtomHashSet,
   pub(crate) stylex_attrs_import: AtomHashSet,
   pub(crate) stylex_create_import: AtomHashSet,
-  pub(crate) stylex_include_import: AtomHashSet,
   pub(crate) stylex_first_that_works_import: AtomHashSet,
   pub(crate) stylex_keyframes_import: AtomHashSet,
   pub(crate) stylex_define_vars_import: AtomHashSet,
@@ -135,7 +134,6 @@ impl StateManager {
       stylex_props_import: FxHashSet::default(),
       stylex_attrs_import: FxHashSet::default(),
       stylex_create_import: FxHashSet::default(),
-      stylex_include_import: FxHashSet::default(),
       stylex_first_that_works_import: FxHashSet::default(),
       stylex_keyframes_import: FxHashSet::default(),
       stylex_define_vars_import: FxHashSet::default(),
@@ -587,8 +585,6 @@ impl StateManager {
       union_hash_set(&self.stylex_attrs_import, &other.stylex_attrs_import);
     self.stylex_create_import =
       union_hash_set(&self.stylex_create_import, &other.stylex_create_import);
-    self.stylex_include_import =
-      union_hash_set(&self.stylex_include_import, &other.stylex_include_import);
     self.stylex_first_that_works_import = union_hash_set(
       &self.stylex_first_that_works_import,
       &other.stylex_first_that_works_import,

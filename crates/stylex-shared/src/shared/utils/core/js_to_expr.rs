@@ -1,10 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::ast::{Expr, PropOrSpread, SpreadElement},
-};
+use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
@@ -23,12 +20,7 @@ pub(crate) fn remove_objects_with_spreads(
   let mut new_obj = IndexMap::with_capacity(obj.len());
 
   for (key, value) in obj.iter() {
-    if value
-      .values()
-      .all(|keep_value| !matches!(**keep_value, FlatCompiledStylesValue::IncludedStyle(_)))
-    {
-      new_obj.insert(key.clone(), value.clone());
-    }
+    new_obj.insert(key.clone(), value.clone());
   }
 
   new_obj
@@ -79,12 +71,6 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           }
           FlatCompiledStylesValue::Null => {
             prop_or_spread_expression_factory(key.as_str(), null_to_expression())
-          }
-          FlatCompiledStylesValue::IncludedStyle(include_style) => {
-            PropOrSpread::Spread(SpreadElement {
-              dot3_token: DUMMY_SP,
-              expr: Box::new(include_style.get_expr().clone()),
-            })
           }
           FlatCompiledStylesValue::Bool(value) => {
             prop_or_spread_expression_factory(key.as_str(), bool_to_expression(*value))

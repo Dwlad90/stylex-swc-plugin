@@ -139,12 +139,6 @@ where
             .stylex_keyframes_import
             .insert(local_name_ident_atom);
         }
-        "include" => {
-          self
-            .state
-            .stylex_include_import
-            .insert(local_name_ident_atom);
-        }
         "firstThatWorks" => {
           self
             .state

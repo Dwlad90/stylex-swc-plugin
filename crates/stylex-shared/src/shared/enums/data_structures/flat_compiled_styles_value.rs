@@ -1,8 +1,7 @@
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::structures::{
-  base_css_type::BaseCSSType, included_style::IncludedStyle, injectable_style::InjectableStyle,
-  pair::Pair,
+  base_css_type::BaseCSSType, injectable_style::InjectableStyle, pair::Pair,
 };
 
 use super::css_syntax::CSSSyntax;
@@ -13,7 +12,6 @@ pub(crate) enum FlatCompiledStylesValue {
   KeyValue(Pair),
   KeyValues(Vec<Pair>),
   Null,
-  IncludedStyle(IncludedStyle),
   InjectableStyle(InjectableStyle),
   Bool(bool),
   Tuple(String, Box<Expr>, Option<BaseCSSType>),
@@ -53,13 +51,6 @@ impl FlatCompiledStylesValue {
   pub(crate) fn _as_null(&self) -> Option<()> {
     match self {
       FlatCompiledStylesValue::Null => Some(()),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn _as_included_style(&self) -> Option<&IncludedStyle> {
-    match self {
-      FlatCompiledStylesValue::IncludedStyle(value) => Some(value),
       _ => None,
     }
   }

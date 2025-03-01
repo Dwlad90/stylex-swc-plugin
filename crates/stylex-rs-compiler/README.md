@@ -73,7 +73,7 @@ generated styles, and an optional source map.
 
 ```json
 {
-  "code": "import stylex from '@stylexjs/stylex';\nexport const styles = {\n    default: {\n        backgroundColor: \"xrkmrrc\",\n        color: \"xju2f9n\",\n        $$css: true\n    }\n};\n",
+  "code": "import * as stylex from '@stylexjs/stylex';\nexport const styles = {\n    default: {\n        backgroundColor: \"xrkmrrc\",\n        color: \"xju2f9n\",\n        $$css: true\n    }\n};\n",
   "metadata": {
     "stylex": {
       "styles": [

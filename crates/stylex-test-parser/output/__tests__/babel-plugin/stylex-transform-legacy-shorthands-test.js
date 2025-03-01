@@ -58,7 +58,7 @@ describe('Legacy-shorthand-expansion resolution', ()=>{
               padding: 5,
               paddingEnd: 10,
             },
-  
+
             bar: {
               padding: 2,
               paddingStart: 10,
@@ -88,7 +88,7 @@ describe('Legacy-shorthand-expansion resolution', ()=>{
               padding: 5,
               paddingEnd: 10,
             },
-  
+
             bar: {
               padding: 2,
               paddingStart: null,
@@ -146,7 +146,7 @@ describe('Legacy-shorthand-expansion resolution', ()=>{
               padding: 5,
               paddingInlineEnd: 10,
             },
-  
+
             bar: {
               padding: 2,
               paddingInlineStart: 10,
@@ -176,7 +176,7 @@ describe('Legacy-shorthand-expansion resolution', ()=>{
               padding: 5,
               paddingInlineEnd: 10,
             },
-  
+
             bar: {
               padding: 2,
               paddingInlineStart: null,

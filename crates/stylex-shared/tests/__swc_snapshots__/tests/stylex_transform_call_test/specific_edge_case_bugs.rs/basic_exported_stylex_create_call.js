@@ -1,6 +1,6 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
-import stylex from '@stylexjs/stylex';
+import * as stylex from '@stylexjs/stylex';
 _inject2(".boxSizing-x9f619{box-sizing:border-box}", 3000);
 _inject2(".gridArea-x1yc5d2u{grid-area:sidebar}", 1000);
 _inject2(".gridArea-x1fdo2jl{grid-area:content}", 1000);

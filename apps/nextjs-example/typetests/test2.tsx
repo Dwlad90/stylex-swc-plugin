@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import stylex from '@stylexjs/stylex';
+import * as stylex from '@stylexjs/stylex';
 import type { StaticStyles } from '@stylexjs/stylex';
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 };
 
 function Component({ xstyle }: Props) {
-  return <div className={stylex(xstyle)} />;
+  return <div {...stylex.props(xstyle)} />;
 }
 
 const styles = stylex.create({

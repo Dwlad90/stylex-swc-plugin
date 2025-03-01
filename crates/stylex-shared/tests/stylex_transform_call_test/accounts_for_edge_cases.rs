@@ -23,7 +23,7 @@ test!(
   ),
   using_stylex_in_a_for_loop,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       function test(colors, obj) {
         for (const color of colors) {
           obj[color.key] = stylex(color.style);
@@ -48,7 +48,7 @@ test!(
   ),
   using_stylex_props_in_a_loop,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       function test(colors, obj) {
         for (const color of colors) {
           obj[color.key] = stylex.props(color.style);
@@ -73,7 +73,7 @@ test!(
   ),
   trying_to_use_an_unknown_style_in_stylex,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         tileHeading: {
           marginRight: 12,
@@ -99,7 +99,7 @@ test!(
   ),
   trying_to_use_an_unknown_style_in_stylex_props,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         tileHeading: {
           marginRight: 12,
@@ -126,7 +126,7 @@ test!(
   ),
   debug_mode_classnames_enabled,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         tileHeading: {
           marginRight: 12,
@@ -152,7 +152,7 @@ test!(
   ),
   debug_mode_classnames_disabled,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         tileHeading: {
           marginRight: 12,
@@ -178,7 +178,7 @@ test!(
   ),
   debug_mode_classnames_enabled_with_many_styles,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         tileHeading: {
           marginRight: 12,
@@ -212,7 +212,7 @@ test!(
   ),
   debug_mode_classnames_enabled_with_dev_disabled,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         tileHeading: {
           marginRight: 12,

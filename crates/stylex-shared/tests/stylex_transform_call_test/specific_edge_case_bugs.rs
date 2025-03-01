@@ -23,7 +23,7 @@ test!(
   ),
   basic_stylex_call,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         sidebar: {
           boxSizing: 'border-box',
@@ -74,7 +74,7 @@ test!(
   ),
   basic_exported_stylex_create_call,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       export const styles = stylex.create({
         sidebar: {
           boxSizing: 'border-box',
@@ -124,7 +124,7 @@ test!(
   ),
   basic_stylex_call_skip_conditional,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       export const styles = stylex.create({
         sidebar: {
           boxSizing: 'border-box',
@@ -175,7 +175,7 @@ test!(
   ),
   basic_stylex_call_extended,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         sidebar: {
           boxSizing: 'border-box',

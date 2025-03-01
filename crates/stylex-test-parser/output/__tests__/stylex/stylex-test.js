@@ -5,14 +5,14 @@ test('stylex.inject', ()=>{
 });
 describe('stylex', ()=>{
     test('basic resolve', ()=>{
-        expect(stylex({
+        expect(legacyMerge({
             a: 'aaa',
             b: 'bbb',
             $$css: true
         })).toBe('aaa bbb');
     });
     test('merge order', ()=>{
-        expect(stylex([
+        expect(legacyMerge([
             {
                 a: 'a',
                 ':hover__aa': 'aa',
@@ -30,7 +30,7 @@ describe('stylex', ()=>{
         ])).toBe('a aa b c cc');
     });
     test('with a top-level array of simple overridden classes', ()=>{
-        expect(stylex([
+        expect(legacyMerge([
             {
                 backgroundColor: 'nu7423ey',
                 $$css: true
@@ -42,7 +42,7 @@ describe('stylex', ()=>{
         ])).toEqual('gh25dzvf');
     });
     test('with nested arrays and pseudoClasses overriding things', ()=>{
-        expect(stylex([
+        expect(legacyMerge([
             {
                 backgroundColor: 'nu7423ey',
                 $$css: true
@@ -62,7 +62,7 @@ describe('stylex', ()=>{
         ])).toEqual('abcdefg gofk2cf1 rse6dlih');
     });
     test('with just pseudoclasses', ()=>{
-        expect(stylex({
+        expect(legacyMerge({
             ':hover__backgroundColor': 'rse6dlih',
             $$css: true
         }, {
@@ -167,8 +167,8 @@ describe('stylex', ()=>{
                 ]
             ]
         ];
-        const value = stylex(styles);
-        const repeat = stylex(styles);
+        const value = legacyMerge(styles);
+        const repeat = legacyMerge(styles);
         expect(value).toEqual(repeat);
         expect(value.split(' ').sort().join(' ')).toEqual('g5ia77u1 tpe1esc0 gewhe1h2 gcovof34 bdao358l a8c37x1j s5oniofx kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso oajrlxb2 i1ao9s8h myohyog2 n3t5jt4f gh25dzvf g4tp4svg nhd2j8a9 f1sip0of icdlwmnq e4t7hp5w gmql0nx0 ihxqhq3m l94mrbxd aenfhxwr k4urcfbm gofk2cf1 ksdfmwjs tm8avpzi bj9fd4vl'.split(' ').sort().join(' '));
     });

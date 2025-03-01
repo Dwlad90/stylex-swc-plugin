@@ -1,6 +1,6 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
-import stylex from '@stylexjs/stylex';
+import * as stylex from '@stylexjs/stylex';
 _inject2(".marginRight-x1wsuqlk{margin-right:12px}", 4000);
 _inject2(".gridArea-x1fdo2jl{grid-area:content}", 1000);
 _inject2(".display-xrvj5dj{display:grid}", 3000);

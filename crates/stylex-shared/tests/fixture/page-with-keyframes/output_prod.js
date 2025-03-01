@@ -1,7 +1,7 @@
 /**
  * Lead Comment
  */ import React from 'react';
-import stylex from '@stylexjs/stylex';
+import * as stylex from '@stylexjs/stylex';
 import Card from '@/components/Card';
 import { globalTokens as $, spacing, text, scales } from './globalTokens.stylex';
 import Counter from './Counter';

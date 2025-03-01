@@ -41,7 +41,7 @@ test!(
   ),
   stylex_keeps_spaces_around_operators,
   r#"
-      import stylex from '@stylexjs/stylex';
+      import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         default: {
           margin: 'max(0px, (48px - var(--x16dnrjz)) / 2)',

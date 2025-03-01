@@ -16,7 +16,7 @@ test!(
   ),
   ignores_valid_imports,
   r#"
-        import stylex from '@stylexjs/stylex';
+        import * as stylex from '@stylexjs/stylex';
         import {foo, bar} from 'other';
 
         export default stylex.create({
@@ -103,7 +103,7 @@ test!(
   ),
   named_property_export,
   r#"
-        import stylex from '@stylexjs/stylex';
+        import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
             foo: {
                 color: 'red'
@@ -125,7 +125,7 @@ test!(
   ),
   default_export,
   r#"
-        import stylex from '@stylexjs/stylex';
+        import * as stylex from '@stylexjs/stylex';
         export default stylex.create({
             foo: {
                 color: 'red'
@@ -146,7 +146,7 @@ test!(
   ),
   default_export_with_parenthesis,
   r#"
-        import stylex from '@stylexjs/stylex';
+        import * as stylex from '@stylexjs/stylex';
         export default (stylex.create({
             foo: {
                 color: 'red'
@@ -167,7 +167,7 @@ test!(
   ),
   module_export,
   r#"
-        import stylex from '@stylexjs/stylex';
+        import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
             foo: {
                 color: 'red'

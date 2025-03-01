@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import stylex from '@stylexjs/stylex';
+import * as stylex from '@stylexjs/stylex';
 import type {
   TokensFromVarGroup,
   StyleXVar,
@@ -77,7 +77,6 @@ correctTheme satisfies Theme<typeof buttonTokens, symbol>;
 
 correctTheme satisfies CompiledStyles;
 
-const result: string = stylex(correctTheme);
 const result2: Readonly<{
   className?: string;
   style?: Readonly<{ [key: string]: string | number }>;

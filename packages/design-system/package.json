@@ -8,7 +8,7 @@
     }
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.10.1",
+    "@stylexjs/stylex": "^0.11.0",
     "@stylexswc/rs-compiler": "0.6.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

@@ -11,8 +11,8 @@
   "dependencies": {
     "@stylexswc/design-system": "0.6.6",
     "@stylexswc/rs-compiler": "0.6.6",
-    "@stylexjs/open-props": "^0.10.1",
-    "@stylexjs/stylex": "^0.10.1",
+    "@stylexjs/open-props": "^0.11.0",
+    "@stylexjs/stylex": "^0.11.0",
     "@stylexswc/unplugin": "0.6.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

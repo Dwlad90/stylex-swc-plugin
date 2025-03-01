@@ -12,4 +12,11 @@ module.exports = {
     },
     warnOnUnsupportedTypeScriptVersion: true,
   },
+  overrides: [
+    {
+      files: ['*.json'],
+      extends: ["@stylexswc/eslint-config/json.js"],
+      rules: {},
+    },
+  ],
 };

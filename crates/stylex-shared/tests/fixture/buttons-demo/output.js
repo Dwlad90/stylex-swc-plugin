@@ -10,7 +10,8 @@ export default function ButtonsDemo(_props) {
         console.log("click");
     };
     return <div {...{
-        className: "Page__styles.container display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-xl56j7k gap-xou54vl paddingBottom-xzk7aed"
+        className: "display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-xl56j7k gap-xou54vl paddingBottom-xzk7aed",
+        "data-style-src": "input.stylex.js:49"
     }}>
       <ThemeableButton onClick={onClick}>Vanilla Button</ThemeableButton>
 
@@ -36,11 +37,11 @@ export default function ButtonsDemo(_props) {
       </ThemeableButton>
     </div>;
 }
-_inject2(".x13au1tt, .x13au1tt:root{--bgColor-x1tvn83n:red;--cornerRadius-xlb9c25:4px;--paddingBlock-xk30bbq:4px;--paddingInline-xkhjxis:8px;--textColor-xte9ugm:white;}", 0.5);
+_inject2(".x1582kvi, .x1582kvi:root{--bgColor-xxn4pt7:red;--cornerRadius-xebqz1:4px;--paddingBlock-x9c4myw:4px;--paddingInline-xscmh3t:8px;--textColor-xnblhe2:white;}", 0.5);
 const redTheme = {
-    Page__redTheme: "Page__redTheme",
+    input__redTheme: "input__redTheme",
     $$css: true,
-    "__themeName__-x1p0kudt": "x13au1tt "
+    "__themeName__-xhq9i64": "x1582kvi "
 };
 _inject2(".display-x78zum5{display:flex}", 3000);
 _inject2(".flexDirection-xdt5ytf{flex-direction:column}", 3000);
@@ -54,7 +55,6 @@ _inject2(".borderColor-x71xlcl{border-color:red}", 2000);
 _inject2(".borderColor-x1bg2uv5{border-color:green}", 2000);
 const styles = {
     bordered: {
-        "Page__styles.bordered": "Page__styles.bordered",
         borderWidth: "borderWidth-xdh2fpr",
         borderInlineWidth: null,
         borderInlineStartWidth: null,
@@ -82,10 +82,9 @@ const styles = {
         borderBlockColor: null,
         borderTopColor: null,
         borderBottomColor: null,
-        $$css: true
+        $$css: "input.stylex.js:57"
     },
     greenBorder: {
-        "Page__styles.greenBorder": "Page__styles.greenBorder",
         borderColor: "borderColor-x1bg2uv5",
         borderInlineColor: null,
         borderInlineStartColor: null,
@@ -95,6 +94,6 @@ const styles = {
         borderBlockColor: null,
         borderTopColor: null,
         borderBottomColor: null,
-        $$css: true
+        $$css: "input.stylex.js:62"
     }
 };

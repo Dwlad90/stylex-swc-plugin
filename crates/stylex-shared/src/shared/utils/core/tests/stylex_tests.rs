@@ -18,7 +18,9 @@ mod tests {
       ast::{convertors::string_to_expression, factories::ident_factory},
       common::get_string_val_from_lit,
       core::{
+        js_to_expr::NestedStringObject,
         parse_nullable_style::{ResolvedArg, StyleObject},
+        props::props,
         stylex::stylex,
       },
     },
@@ -434,5 +436,66 @@ mod tests {
     let expected_classname_string = parts.join(" ");
 
     assert_eq!(result_classname_string, expected_classname_string);
+  }
+
+  #[test]
+  fn data_prop_for_source_map_data() {
+    let first = [
+      (
+        "backgroundColor",
+        FlatCompiledStylesValue::String("backgroundColor-red".into()),
+      ),
+      (
+        "$$css",
+        FlatCompiledStylesValue::String("components/Foo.react.js:1".to_owned()),
+      ),
+    ];
+
+    let second = [
+      (
+        "color",
+        FlatCompiledStylesValue::String("color-blue".into()),
+      ),
+      (
+        "$$css",
+        FlatCompiledStylesValue::String("components/Bar.react.js:3".to_owned()),
+      ),
+    ];
+
+    let third = [
+      (
+        "display",
+        FlatCompiledStylesValue::String("display-block".into()),
+      ),
+      (
+        "$$css",
+        FlatCompiledStylesValue::String("components/Baz.react.js:5".to_owned()),
+      ),
+    ];
+
+    let args = create_style_object_args(&[&first, &second, &third]);
+
+    let binding = props(&args).expect("Expected result to be Some");
+    let props = binding.as_props().expect("Expected result to be Some");
+
+    let mut expected_props = IndexMap::new();
+
+    expected_props.insert(
+      "className".into(),
+      Rc::new(FlatCompiledStylesValue::String(
+        "backgroundColor-red color-blue display-block".into(),
+      )),
+    );
+    expected_props.insert(
+      "data-style-src".into(),
+      Rc::new(FlatCompiledStylesValue::String(
+        "components/Foo.react.js:1; components/Bar.react.js:3; components/Baz.react.js:5".into(),
+      )),
+    );
+
+    assert_eq!(
+      props,
+      &NestedStringObject::FlatCompiledStylesValues(expected_props)
+    );
   }
 }

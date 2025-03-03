@@ -1,0 +1,10 @@
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import stylex from 'stylex';
+_inject2(".position-x15oojuh{position:fixed;position:sticky}", 3000);
+export const styles = {
+    foo: {
+        position: "position-x15oojuh",
+        $$css: "Foo.react.js:3"
+    }
+};

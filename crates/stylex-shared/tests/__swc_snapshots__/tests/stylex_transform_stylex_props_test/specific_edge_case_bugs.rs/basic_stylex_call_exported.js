@@ -15,27 +15,35 @@ _inject2("@media (max-width: 640px){.gridTemplateColumns-x15nfgh4.gridTemplateCo
 _inject2(".gridTemplateColumns-x1mkdm3x{grid-template-columns:minmax(0,1fr)}", 3000);
 export const complex = {
     0: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4"
+        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
+        "data-style-src": "UnknownFile:10; UnknownFile:15"
     },
     4: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x"
+        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x",
+        "data-style-src": "UnknownFile:10; UnknownFile:25"
     },
     2: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u"
+        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1yc5d2u",
+        "data-style-src": "UnknownFile:10; UnknownFile:15; UnknownFile:3"
     },
     6: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u"
+        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1yc5d2u",
+        "data-style-src": "UnknownFile:10; UnknownFile:25; UnknownFile:3"
     },
     1: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 gridArea-x1fdo2jl",
+        "data-style-src": "UnknownFile:10; UnknownFile:15; UnknownFile:7"
     },
     5: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x gridArea-x1fdo2jl",
+        "data-style-src": "UnknownFile:10; UnknownFile:25; UnknownFile:7"
     },
     3: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.sidebar boxSizing-x9f619 UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1fdo2jl",
+        "data-style-src": "UnknownFile:10; UnknownFile:15; UnknownFile:3; UnknownFile:7"
     },
     7: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.sidebar boxSizing-x9f619 UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1fdo2jl",
+        "data-style-src": "UnknownFile:10; UnknownFile:25; UnknownFile:3; UnknownFile:7"
     }
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

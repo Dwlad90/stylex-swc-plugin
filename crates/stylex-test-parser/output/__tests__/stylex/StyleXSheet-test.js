@@ -2,6 +2,11 @@ var testOpts = {
     rootTheme: undefined,
     supportsVariables: true
 };
+test('stylexinject', ()=>{
+    const prevCount = styleSheet.getRuleCount();
+    styleSheet.insert('hey {}', 0);
+    expect(styleSheet.getRuleCount()).toBeGreaterThan(prevCount);
+});
 test('StyleXSheet.prototype.insert', ()=>{
     const sheet = new StyleXSheet(testOpts);
     expect(sheet.getRuleCount()).toBe(0);

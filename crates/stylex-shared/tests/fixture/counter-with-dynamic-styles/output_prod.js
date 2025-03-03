@@ -6,10 +6,10 @@ import { useState } from 'react';
 export default function Counter() {
     const [count, setCount] = useState(0);
     return <div {...{
-        className: "x78zum5 x6s0dn4 xl56j7k x1q0g3np xkorlav xmkeg23 x1y0btm7 xzj82u7 xhcr65l x1byiw6p x1l7lfc5"
+        className: "x78zum5 x6s0dn4 xl56j7k x1q0g3np x12xgqvu xmkeg23 x1y0btm7 xqpy6nh x87erls x1alyrvt x1749g51"
     }}>
       <button {...{
-        className: "x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 x1ynku2j xij5jp x6lnu34 xd84qqf x1lod3q0 xc342km xng3xce x12ugs8o x1kopudh xp822f4 x1ypdohk xf8wwq x1u4xmye xglsxx3"
+        className: "x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 xgopyf5 xpotius x1gk0e8 x10vqmf9 xnha941 xc342km xng3xce xvm41bv xsbzlvg x1i5nj67 x1ypdohk xtqx43c x1u4xmye xglsxx3"
     }} onClick={()=>setCount((c)=>c - 1)}>
         -
       </button>
@@ -17,7 +17,7 @@ export default function Counter() {
         {count}
       </div>
       <button {...{
-        className: "x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 x1ynku2j xij5jp x6lnu34 xd84qqf x1lod3q0 xc342km xng3xce x12ugs8o x1kopudh xp822f4 x1ypdohk xf8wwq x1u4xmye xglsxx3"
+        className: "x78zum5 x6s0dn4 xl56j7k x17frcva x1plog1 xgopyf5 xpotius x1gk0e8 x10vqmf9 xnha941 xc342km xng3xce xvm41bv xsbzlvg x1i5nj67 x1ypdohk xtqx43c x1u4xmye xglsxx3"
     }} onClick={()=>setCount((c)=>c + 1)}>
         +
       </button>
@@ -34,16 +34,16 @@ const styles = {
             }
         ],
     count: {
-        fontSize: "xf8wwq",
+        fontSize: "xtqx43c",
         fontWeight: "x3stwaq",
-        color: "x1fk3gbn",
+        color: "xxzazoc",
         minWidth: "x1843ork",
         textAlign: "x2b8uid",
-        fontFamily: "x1nlbcxq",
+        fontFamily: "xum72dy",
         $$css: true
     },
     largeNumber: {
-        fontSize: "x8c9cfh",
+        fontSize: "xs6c6ls",
         $$css: true
     }
 };

@@ -5,9 +5,11 @@ _inject2(".color-x1e2nbdu{color:red}", 3000);
 _inject2(".backgroundColor-x1t391ir{background-color:blue}", 3000);
 ({
     0: {
-        className: "FooBar__styles.default color-x1e2nbdu"
+        className: "color-x1e2nbdu",
+        "data-style-src": "js/FooBar.react.js:3"
     },
     1: {
-        className: "FooBar__styles.default color-x1e2nbdu FooBar__otherStyles.default backgroundColor-x1t391ir"
+        className: "color-x1e2nbdu backgroundColor-x1t391ir",
+        "data-style-src": "js/FooBar.react.js:3; js/FooBar.react.js:8"
     }
 })[!!isActive << 0];

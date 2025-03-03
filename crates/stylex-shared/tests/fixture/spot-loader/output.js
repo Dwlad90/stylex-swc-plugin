@@ -32,7 +32,6 @@ _inject2(".height-x17frcva{height:6rem}", 4000);
 _inject2(".width-xdvn7xf{width:6rem}", 4000);
 const styles = {
     root: {
-        "Page__styles.root": "Page__styles.root",
         display: "display-xrvj5dj",
         gridAutoFlow: "gridAutoFlow-x1mt1orb",
         gridTemplateColumns: "gridTemplateColumns-xernuvs",
@@ -41,10 +40,9 @@ const styles = {
         gap: "gap-xmjcfx9",
         rowGap: null,
         columnGap: null,
-        $$css: true
+        $$css: "input.stylex.js:15"
     },
     rect: {
-        "Page__styles.rect": "Page__styles.rect",
         backgroundColor: "backgroundColor-x1mdjlir",
         borderRadius: "borderRadius-x12oqio5",
         borderStartStartRadius: null,
@@ -60,69 +58,60 @@ const styles = {
         animationDuration: "animationDuration-x1m9vv7p",
         animationIterationCount: "animationIterationCount-xa4qsjk",
         animationTimingFunction: "animationTimingFunction-x4hg4is",
-        $$css: true
+        $$css: "input.stylex.js:23"
     },
     rect1: {
-        "Page__styles.rect1": "Page__styles.rect1",
         height: "height-x10buj8t",
-        $$css: true
+        $$css: "input.stylex.js:32"
     },
     rect2: {
-        "Page__styles.rect2": "Page__styles.rect2",
         animationDelay: "animationDelay-x1qdon1m",
         height: "height-x1lnynta",
-        $$css: true
+        $$css: "input.stylex.js:35"
     },
     rect3: {
-        "Page__styles.rect3": "Page__styles.rect3",
         animationDelay: "animationDelay-x123bg45",
         height: "height-x5yr21d",
-        $$css: true
+        $$css: "input.stylex.js:39"
     },
     rect4: {
-        "Page__styles.rect4": "Page__styles.rect4",
         animationDelay: "animationDelay-x1olj69",
         backgroundColor: "backgroundColor-xb4ade6",
         height: "height-x1lnynta",
-        $$css: true
+        $$css: "input.stylex.js:43"
     },
     rect5: {
-        "Page__styles.rect5": "Page__styles.rect5",
         animationDelay: "animationDelay-x1ryhrx7",
         height: "height-x10buj8t",
-        $$css: true
+        $$css: "input.stylex.js:48"
     },
     sizeSmall: {
-        "Page__styles.sizeSmall": "Page__styles.sizeSmall",
         height: "height-xettwda",
         width: "width-xs5h3dt",
-        $$css: true
+        $$css: "input.stylex.js:56"
     },
     size_small: {
-        "Page__styles.size_small": "Page__styles.size_small",
         height: "height-xettwda",
         width: "width-xs5h3dt",
-        $$css: true
+        $$css: "input.stylex.js:56"
     },
     size_normal: {
-        "Page__styles.size_normal": "Page__styles.size_normal",
         height: "height-x1sh0tsm",
         width: "width-xekueh",
-        $$css: true
+        $$css: "input.stylex.js:60"
     },
     size_large: {
-        "Page__styles.size_large": "Page__styles.size_large",
         height: "height-x17frcva",
         width: "width-xdvn7xf",
-        $$css: true
+        $$css: "input.stylex.js:64"
     }
 };
-
-const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal }) => {
+const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal })=>{
     return isLoading && <>
         <div {...stylex.props(styles[size])}>{size}</div>
         <div {...{
-        className: "Page__styles.root display-xrvj5dj gridAutoFlow-x1mt1orb gridTemplateColumns-xernuvs alignItems-x6s0dn4 justifyContent-xl56j7k gap-xmjcfx9 Page__styles.sizeSmall height-xettwda width-xs5h3dt"
+        className: "display-xrvj5dj gridAutoFlow-x1mt1orb gridTemplateColumns-xernuvs alignItems-x6s0dn4 justifyContent-xl56j7k gap-xmjcfx9 height-xettwda width-xs5h3dt",
+        "data-style-src": "input.stylex.js:15; input.stylex.js:56"
     }}>styles.sizeSmall</div>
         <div {...stylex.props(styles.root, styles.sizeSmall, style)}>styles.sizeSmall with styles</div>
       </>;

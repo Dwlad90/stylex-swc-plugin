@@ -35,7 +35,7 @@ export default function ButtonsDemo(_props) {
 }
 const redTheme = {
     $$css: true,
-    x1p0kudt: "x8j0i83 "
+    xhq9i64: "x1idg7kz "
 };
 const styles = {
     bordered: {

@@ -40,13 +40,11 @@ _inject2(".paddingRight-x1s7jvk7{padding-right:20px}", 4000);
 _inject2(".paddingTop-xz9dl7a{padding-top:12px}", 4000);
 const styles = {
     primary: {
-        "Page__styles.primary": "Page__styles.primary",
         backgroundColor: "backgroundColor-xrkmrrc",
         color: "color-x1awj2ng",
-        $$css: true
+        $$css: "input.stylex.js:33"
     },
     root: {
-        "Page__styles.root": "Page__styles.root",
         display: "display-x1lliihq",
         fontSize: "fontSize-x1j61zf2",
         paddingBottom: "paddingBottom-xsag5q8",
@@ -55,7 +53,7 @@ const styles = {
         paddingInlineStart: null,
         paddingInlineEnd: null,
         paddingTop: "paddingTop-xz9dl7a",
-        $$css: true
+        $$css: "input.stylex.js:37"
     }
 };
 var _c;

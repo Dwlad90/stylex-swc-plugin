@@ -1,28 +1,28 @@
 import stylex from "@stylexjs/stylex";
 export const text = {
-    xs: "var(--x1ogzt1a)",
-    __themeName__: "x1lzvrc9"
+    xs: "var(--x17clhcw)",
+    __themeName__: "x1vcjoem"
 };
 export const globalTokens = {
-    foregroundR: "var(--x9q2m40)",
-    foregroundG: "var(--xpzz690)",
-    foregroundB: "var(--x16lcx6o)",
-    bgStartRGB: "var(--xjk46kt)",
-    bgEndR: "var(--x19cfreg)",
-    bgEndG: "var(--x5f91dp)",
-    bgEndB: "var(--xtrkg9t)",
-    calloutRGB: "var(--xrj4b28)",
-    calloutRGB50: "var(--x13ytpr0)",
-    calloutBorderR: "var(--xjray)",
-    calloutBorderG: "var(--x1ats3qd)",
-    calloutBorderB: "var(--x12b45e3)",
-    cardR: "var(--x1efhglm)",
-    cardG: "var(--x1w81gmp)",
-    cardB: "var(--x13v9q97)",
-    cardBorderR: "var(--x14edl43)",
-    cardBorderG: "var(--xdi7wre)",
-    cardBorderB: "var(--x1livm2j)",
-    primaryGlow: "var(--x1r7qzpr)",
-    secondaryGlow: "var(--x1xmdc3p)",
-    __themeName__: "xsbqktv"
+    foregroundR: "var(--xfahlp9)",
+    foregroundG: "var(--x1anc4hk)",
+    foregroundB: "var(--x18091m3)",
+    bgStartRGB: "var(--x10o49gt)",
+    bgEndR: "var(--x1tnv2sv)",
+    bgEndG: "var(--x1dozjen)",
+    bgEndB: "var(--xt8u6bu)",
+    calloutRGB: "var(--x1ieqjdx)",
+    calloutRGB50: "var(--x1e8gd6o)",
+    calloutBorderR: "var(--xpippvu)",
+    calloutBorderG: "var(--xju2ue3)",
+    calloutBorderB: "var(--x23s1ip)",
+    cardR: "var(--xyz2t25)",
+    cardG: "var(--x15es35t)",
+    cardB: "var(--x12pn40c)",
+    cardBorderR: "var(--x1e98ev0)",
+    cardBorderG: "var(--x1ya7im0)",
+    cardBorderB: "var(--x1iubk2o)",
+    primaryGlow: "var(--xak0q76)",
+    secondaryGlow: "var(--x161d19a)",
+    __themeName__: "x1hleyp6"
 };

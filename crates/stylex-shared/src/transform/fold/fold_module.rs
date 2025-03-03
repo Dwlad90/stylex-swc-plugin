@@ -13,6 +13,10 @@ where
   C: Comments,
 {
   pub(crate) fn fold_module_impl(&mut self, module: Module) -> Module {
+    if cfg!(debug_assertions) {
+      self.state.set_debug_assertions_module(&module);
+    }
+
     let mut module = module.fold_children_with(self);
 
     if !self.state.import_paths.is_empty() {
@@ -45,6 +49,10 @@ where
       module = module.fold_children_with(self);
 
       module.body.reverse();
+
+      if !cfg!(debug_assertions) && self.state.debug_assertions_module.is_some() {
+        panic!("Debug assertions module is not empty in release mode");
+      }
 
       module
     } else {

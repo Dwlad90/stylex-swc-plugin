@@ -17,6 +17,7 @@ use crate::shared::{
 pub(crate) struct StyleQResult {
   pub(crate) class_name: String,
   pub(crate) inline_style: Option<FlatCompiledStyles>,
+  pub(crate) data_style_src: Option<String>,
 }
 
 fn get_hash<T>(obj: T) -> u64
@@ -30,19 +31,21 @@ where
 
 pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
   let mut class_name = String::default();
+  let mut debug_string = String::default();
 
   if arguments.is_empty() {
     // Early return if there are no arguments
     return StyleQResult {
       class_name,
       inline_style: None,
+      data_style_src: None,
     };
   }
 
   let mut defined_properties = vec![]; // The className and inline style to build up
 
   let inline_style = None;
-  let mut next_cache: Option<IndexMap<u64, (String, Vec<String>)>> = Some(IndexMap::new());
+  let mut next_cache: Option<IndexMap<u64, (String, Vec<String>, String)>> = Some(IndexMap::new());
   let mut styles = arguments.iter().collect::<Vec<_>>();
 
   while let Some(possible_style) = styles.pop() {
@@ -64,7 +67,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
             panic!("Style object does not contain a compiled key")
           };
 
-          if let FlatCompiledStylesValue::Bool(_) = a.as_ref() {
+          if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) = a.as_ref() {
             let btree_map: BTreeMap<_, _> = style.iter().collect();
 
             let style_hash = get_hash(btree_map);
@@ -72,15 +75,49 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
 
             // Build up the class names defined by this object
             if let Some(next_cache) = next_cache.as_mut() {
-              if let Some((cached_class_name, cached_properties)) = next_cache.get(&style_hash) {
+              if let Some((cached_class_name, cached_properties, cached_debug_string)) =
+                next_cache.get(&style_hash)
+              {
                 class_name_chunk = cached_class_name.clone();
                 defined_properties.extend(cached_properties.iter().cloned());
+                debug_string = cached_debug_string.clone();
               } else {
                 // The properties defined by this object
                 let mut defined_properties_chunk: Vec<String> = vec![];
 
                 for (prop, value) in style.iter() {
                   if prop.eq(COMPILED_KEY) {
+                    let compiled_key_value = &style[prop];
+
+                    let mut compiled_key_value_is_true = false;
+
+                    if let FlatCompiledStylesValue::Bool(value) = compiled_key_value.as_ref() {
+                      if *value {
+                        compiled_key_value_is_true = true;
+                      }
+                    }
+
+                    if !compiled_key_value_is_true {
+                      let compiled_key_string_value = match compiled_key_value.as_ref() {
+                        FlatCompiledStylesValue::String(strng) => strng.clone(),
+                        other => {
+                          let other_debug_info = format!("{:?}", other);
+                          let variant_name = other_debug_info.split("::").last().unwrap_or("unknown");
+
+                          unimplemented!(
+                            "String conversion not implemented for FlatCompiledStylesValue::{}",
+                            variant_name
+                          )
+                        }
+                      };
+
+                      debug_string = if !debug_string.is_empty() {
+                        format!("{}; {}", compiled_key_string_value, debug_string)
+                      } else {
+                        compiled_key_string_value
+                      };
+                    }
+
                     continue;
                   }
 
@@ -107,7 +144,11 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
 
                 next_cache.insert(
                   style_hash,
-                  (class_name_chunk.clone(), defined_properties_chunk),
+                  (
+                    class_name_chunk.clone(),
+                    defined_properties_chunk,
+                    debug_string.clone(),
+                  ),
                 );
               }
             }
@@ -135,5 +176,6 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
   StyleQResult {
     class_name,
     inline_style,
+    data_style_src: Some(debug_string),
   }
 }

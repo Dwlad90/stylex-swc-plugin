@@ -8,7 +8,7 @@ use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::shared::{regex::URL_REGEX, structures::state_manager::StateManager};
 
-struct CodeFrame {
+pub(crate) struct CodeFrame {
   source_map: Arc<SourceMap>,
   handler: Handler,
 }
@@ -25,7 +25,7 @@ impl CodeFrame {
     }
   }
 
-  fn create_error<'a>(&'a self, span: Span, message: &str) -> DiagnosticBuilder<'a> {
+  pub(crate) fn create_error<'a>(&'a self, span: Span, message: &str) -> DiagnosticBuilder<'a> {
     let mut diagnostic = self.handler.struct_span_err(span, message);
 
     let urls = URL_REGEX
@@ -41,30 +41,35 @@ impl CodeFrame {
 
     diagnostic
   }
+
+  pub(crate) fn get_span_line_number(&self, span: Span) -> usize {
+    let loc = self.source_map.lookup_char_pos(span.lo);
+
+    loc.line
+  }
+
+  // fn format_code_frame(&self, span: Span) -> String {
+  //   let loc = self.source_map.lookup_char_pos(span.lo);
+  //   let file = loc.file;
+  //   let start_line = loc.line.saturating_sub(2);
+  //   let end_line = loc.line + 2;
+
+  //   (start_line..=end_line)
+  //     .filter_map(|line_idx| {
+  //       file.get_line(line_idx).map(|line| {
+  //         let mut output = format!("  {}\n", line);
+  //         if line_idx == loc.line - 1 {
+  //           output.push_str(&format!(
+  //             "  {}{}\n",
+  //             " ".repeat(loc.col.0),
+  //             "^".repeat((span.hi - span.lo).0 as usize)
+  //           ));
+  //         }
+  //         output
+  //       })
+  //     })
+  //     .collect()
 }
-
-// fn format_code_frame(&self, span: Span) -> String {
-//   let loc = self.source_map.lookup_char_pos(span.lo);
-//   let file = loc.file;
-//   let start_line = loc.line.saturating_sub(2);
-//   let end_line = loc.line + 2;
-
-//   (start_line..=end_line)
-//     .filter_map(|line_idx| {
-//       file.get_line(line_idx).map(|line| {
-//         let mut output = format!("  {}\n", line);
-//         if line_idx == loc.line - 1 {
-//           output.push_str(&format!(
-//             "  {}{}\n",
-//             " ".repeat(loc.col.0),
-//             "^".repeat((span.hi - span.lo).0 as usize)
-//           ));
-//         }
-//         output
-//       })
-//     })
-//     .collect()
-// }
 
 fn read_source_file(file_name: &FileName) -> Result<String, std::io::Error> {
   match file_name {
@@ -84,20 +89,39 @@ pub(crate) fn build_code_frame_error<'a>(
   error_message: &'a str,
   state: &StateManager,
 ) -> &'a str {
+  let (code_frame, span) = get_span_from_source_code(wrapped_expression, fault_expression, state);
+
+  code_frame.create_error(span, error_message).emit();
+
+  error_message
+}
+
+pub(crate) fn get_span_from_source_code(
+  wrapped_expression: &Expr,
+  fault_expression: &Expr,
+  state: &StateManager,
+) -> (CodeFrame, Span) {
+  // let file_name = FileName::Custom("/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/stylexjs/crates/stylex-shared/tests/fixture/page/input.js".to_owned());
   let file_name = FileName::Custom(state.get_filename().to_owned());
   let code_frame = CodeFrame::new();
 
   let source_code = read_source_file(&file_name);
 
   let frame_source_code = source_code.unwrap_or_else(|_| {
-    let program = Program::Module(Module {
-      span: DUMMY_SP,
-      body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+    let module = if cfg!(debug_assertions) && state.get_debug_assertions_module().is_some() {
+      state.get_debug_assertions_module().unwrap().clone()
+    } else {
+      Module {
         span: DUMMY_SP,
-        expr: Box::new(wrapped_expression.clone()),
-      }))],
-      shebang: None,
-    });
+        body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+          span: DUMMY_SP,
+          expr: Box::new(wrapped_expression.clone()),
+        }))],
+        shebang: None,
+      }
+    };
+
+    let program = Program::Module(module);
 
     let printed_source_code = print(
       code_frame.source_map.clone(),
@@ -136,12 +160,13 @@ pub(crate) fn build_code_frame_error<'a>(
   ) {
     program.fold_with(&mut finder);
 
-    if let Some(span) = finder.get_span() {
-      code_frame.create_error(span, error_message).emit();
-    }
+    return (
+      code_frame,
+      finder.get_span().unwrap_or(fault_expression.span()),
+    );
   }
 
-  error_message
+  (code_frame, fault_expression.span())
 }
 
 #[derive(Debug)]

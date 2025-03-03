@@ -5,14 +5,12 @@ _inject2(".color-x1e2nbdu{color:red}", 3000);
 _inject2(".color-xju2f9n{color:blue}", 3000);
 const styles = {
     default: {
-        "FooBar__styles.default": "FooBar__styles.default",
         color: "color-x1e2nbdu",
-        $$css: true
+        $$css: "js/FooBar.react.js:3"
     },
     active: {
-        "FooBar__styles.active": "FooBar__styles.active",
         color: "color-xju2f9n",
-        $$css: true
+        $$css: "js/FooBar.react.js:6"
     }
 };
 stylex(styles.default, isActive && styles.active);

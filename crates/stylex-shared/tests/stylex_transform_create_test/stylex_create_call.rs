@@ -24,6 +24,118 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  supports_debug_data_haste_v1,
+  r#"
+      import stylex from 'stylex';
+      export const styles = stylex.create({
+        foo: {
+          position: stylex.firstThatWorks('sticky', 'fixed'),
+        }
+      });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  supports_debug_data_haste_v2,
+  r#"
+      import stylex from 'stylex';
+      export const styles = stylex.create({
+        foo: {
+          position: stylex.firstThatWorks('sticky', 'fixed'),
+        }
+      });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  supports_debug_data_commonjs_v1,
+  r#"
+      import stylex from 'stylex';
+      export const styles = stylex.create({
+        foo: {
+          position: stylex.firstThatWorks('sticky', 'fixed'),
+        }
+      });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  supports_debug_data_commonjs_v2,
+  r#"
+      import stylex from 'stylex';
+      export const styles = stylex.create({
+        foo: {
+          position: stylex.firstThatWorks('sticky', 'fixed'),
+        }
+      });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
     PluginPass::default(),
     None
   ),

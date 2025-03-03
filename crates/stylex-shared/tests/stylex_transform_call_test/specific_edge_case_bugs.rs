@@ -2,9 +2,12 @@ use stylex_shared::{
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
   StyleXTransform,
 };
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
+use swc_core::{
+  common::FileName,
+  ecma::{
+    parser::{Syntax, TsSyntax},
+    transforms::testing::test,
+  },
 };
 
 test!(
@@ -14,7 +17,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
-    PluginPass::default(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("src/js/components/Foo.react.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
       gen_conditional_classes: Some(true),

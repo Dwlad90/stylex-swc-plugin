@@ -31,7 +31,7 @@ function getFixtureFilePaths(dir: string): string[] {
 
     if (stat && stat.isDirectory()) {
       results = results.concat(getFixtureFilePaths(filePath));
-    } else if (file === 'input.js') {
+    } else if (file === 'input.stylex.js') {
       results.push(filePath);
     }
   });
@@ -47,7 +47,7 @@ fixtureFilePaths.forEach(file => {
   const separator = file.includes('/') ? '/' : '\\';
 
   b.add(file.split(separator).at(-2) ?? 'Default case', () => {
-    transform(file.replace('input.js', 'input.stylex.js'), content, stylexOptions);
+    transform(file, content, stylexOptions);
   });
 });
 

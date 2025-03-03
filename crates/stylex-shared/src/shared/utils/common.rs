@@ -72,16 +72,20 @@ pub(crate) fn get_key_str(key_value: &KeyValueProp) -> String {
   let mut should_wrap_in_quotes = false;
 
   let key = match key {
-    PropName::Ident(ident) => &*ident.sym,
+    PropName::Ident(ident) => ident.sym.to_string(),
     PropName::Str(strng) => {
       should_wrap_in_quotes = false;
 
-      &*strng.value
+      strng.value.to_string()
     }
+    PropName::Computed(computed) => match computed.expr.as_lit() {
+      Some(lit) => get_string_val_from_lit(lit).expect("Computed key is not a valid literal"),
+      None => unimplemented!("Computed key is not a literal"),
+    },
     _ => panic!("Key is not recognized"),
   };
 
-  wrap_key_in_quotes(key, should_wrap_in_quotes)
+  wrap_key_in_quotes(&key, should_wrap_in_quotes)
 }
 
 pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {

@@ -8,7 +8,8 @@ _inject2(".padding-x7z7khe{padding:10px}", 1000);
 _inject2(".marginLeft-x16ydxro{margin-left:10px}", 4000);
 export default function Card() {
     const { className, style } = {
-        className: "Page__c.base color-x1e2nbdu Page__c.test borderColor-x15hxx75 padding-x7z7khe"
+        className: "color-x1e2nbdu borderColor-x15hxx75 padding-x7z7khe",
+        "data-style-src": "input.stylex.js:4; input.stylex.js:8"
     };
     return <article className={className} style={style}>Card</article>;
 }

@@ -76,8 +76,7 @@ const styles = {
         $$css: true
     }
 };
-
-const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal }) => {
+const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal })=>{
     return isLoading && <>
         <div {...stylex.props(styles[size])}>{size}</div>
         <div {...{

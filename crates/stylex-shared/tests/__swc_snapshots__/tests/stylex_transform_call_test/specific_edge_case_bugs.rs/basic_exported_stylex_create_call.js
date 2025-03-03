@@ -15,7 +15,6 @@ _inject2("@media (max-width: 640px){.gridTemplateColumns-x15nfgh4.gridTemplateCo
 _inject2(".gridTemplateColumns-x1mkdm3x{grid-template-columns:minmax(0,1fr)}", 3000);
 export const styles = {
     sidebar: {
-        "UnknownFile__styles.sidebar": "UnknownFile__styles.sidebar",
         boxSizing: "boxSizing-x9f619",
         gridArea: "gridArea-x1yc5d2u",
         gridRow: null,
@@ -24,10 +23,9 @@ export const styles = {
         gridColumn: null,
         gridColumnStart: null,
         gridColumnEnd: null,
-        $$css: true
+        $$css: "UnknownFile:3"
     },
     content: {
-        "UnknownFile__styles.content": "UnknownFile__styles.content",
         gridArea: "gridArea-x1fdo2jl",
         gridRow: null,
         gridRowStart: null,
@@ -35,32 +33,29 @@ export const styles = {
         gridColumn: null,
         gridColumnStart: null,
         gridColumnEnd: null,
-        $$css: true
+        $$css: "UnknownFile:7"
     },
     root: {
-        "UnknownFile__styles.root": "UnknownFile__styles.root",
         display: "display-xrvj5dj",
         gridTemplateRows: "gridTemplateRows-x7k18q3",
         gridTemplateAreas: "gridTemplateAreas-x5gp9wm",
-        $$css: true
+        $$css: "UnknownFile:10"
     },
     withSidebar: {
-        "UnknownFile__styles.withSidebar": "UnknownFile__styles.withSidebar",
         gridTemplateColumns: "gridTemplateColumns-x1rkzygb",
         gridTemplateRows: "gridTemplateRows-x7k18q3",
         gridTemplateAreas: "gridTemplateAreas-x17lh93j",
         "@media (max-width: 640px)_gridTemplateRows": "gridTemplateRows-xmr4b4k",
         "@media (max-width: 640px)_gridTemplateAreas": "gridTemplateAreas-xesbpuc",
         "@media (max-width: 640px)_gridTemplateColumns": "gridTemplateColumns-x15nfgh4",
-        $$css: true
+        $$css: "UnknownFile:15"
     },
     noSidebar: {
-        "UnknownFile__styles.noSidebar": "UnknownFile__styles.noSidebar",
         gridTemplateColumns: "gridTemplateColumns-x1mkdm3x",
-        $$css: true
+        $$css: "UnknownFile:25"
     }
 };
 ({
-    0: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
-    1: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x"
+    0: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
+    1: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x"
 })[!!(sidebar == null) << 0];

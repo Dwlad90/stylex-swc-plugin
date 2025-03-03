@@ -12,7 +12,7 @@ use crate::shared::{
   },
 };
 
-pub(crate) fn inject_dev_class_names(
+pub(crate) fn _inject_dev_class_names(
   obj: &StylesObjectMap,
   var_name: &Option<String>,
   state: &StateManager,

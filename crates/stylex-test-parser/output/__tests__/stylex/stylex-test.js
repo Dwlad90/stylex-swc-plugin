@@ -1,18 +1,13 @@
-test('stylex.inject', ()=>{
-    const prevCount = styleSheet.getRuleCount();
-    styleSheet.inject('hey {}', 0);
-    expect(styleSheet.getRuleCount()).toBeGreaterThan(prevCount);
-});
 describe('stylex', ()=>{
     test('basic resolve', ()=>{
-        expect(legacyMerge({
+        expect(stylex.props({
             a: 'aaa',
             b: 'bbb',
             $$css: true
-        })).toBe('aaa bbb');
+        }).className).toBe('aaa bbb');
     });
     test('merge order', ()=>{
-        expect(legacyMerge([
+        expect(stylex.props([
             {
                 a: 'a',
                 ':hover__aa': 'aa',
@@ -27,10 +22,10 @@ describe('stylex', ()=>{
                 ':hover__cc': 'cc',
                 $$css: true
             }
-        ])).toBe('a aa b c cc');
+        ]).className).toBe('a aa b c cc');
     });
     test('with a top-level array of simple overridden classes', ()=>{
-        expect(legacyMerge([
+        expect(stylex.props([
             {
                 backgroundColor: 'nu7423ey',
                 $$css: true
@@ -39,10 +34,10 @@ describe('stylex', ()=>{
                 backgroundColor: 'gh25dzvf',
                 $$css: true
             }
-        ])).toEqual('gh25dzvf');
+        ]).className).toEqual('gh25dzvf');
     });
     test('with nested arrays and pseudoClasses overriding things', ()=>{
-        expect(legacyMerge([
+        expect(stylex.props([
             {
                 backgroundColor: 'nu7423ey',
                 $$css: true
@@ -59,16 +54,16 @@ describe('stylex', ()=>{
                 ':hover__backgroundColor': 'rse6dlih',
                 $$css: true
             }
-        ])).toEqual('abcdefg gofk2cf1 rse6dlih');
+        ]).className).toEqual('abcdefg gofk2cf1 rse6dlih');
     });
     test('with just pseudoclasses', ()=>{
-        expect(legacyMerge({
+        expect(stylex.props({
             ':hover__backgroundColor': 'rse6dlih',
             $$css: true
         }, {
             ':hover__color': 'gofk2cf1',
             $$css: true
-        })).toEqual('rse6dlih gofk2cf1');
+        }).className).toEqual('rse6dlih gofk2cf1');
     });
     test('with complicated set of arguments', ()=>{
         const styles = [
@@ -167,9 +162,32 @@ describe('stylex', ()=>{
                 ]
             ]
         ];
-        const value = legacyMerge(styles);
-        const repeat = legacyMerge(styles);
+        const value = stylex.props(styles).className;
+        const repeat = stylex.props(styles).className;
         expect(value).toEqual(repeat);
         expect(value.split(' ').sort().join(' ')).toEqual('g5ia77u1 tpe1esc0 gewhe1h2 gcovof34 bdao358l a8c37x1j s5oniofx kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso oajrlxb2 i1ao9s8h myohyog2 n3t5jt4f gh25dzvf g4tp4svg nhd2j8a9 f1sip0of icdlwmnq e4t7hp5w gmql0nx0 ihxqhq3m l94mrbxd aenfhxwr k4urcfbm gofk2cf1 ksdfmwjs tm8avpzi bj9fd4vl'.split(' ').sort().join(' '));
+    });
+    test('data prop for source map data', ()=>{
+        expect(stylex.props([
+            {
+                backgroundColor: 'backgroundColor-red',
+                $$css: 'components/Foo.react.js:1'
+            },
+            {
+                color: 'color-blue',
+                $$css: 'components/Bar.react.js:3'
+            },
+            [
+                {
+                    display: 'display-block',
+                    $$css: 'components/Baz.react.js:5'
+                }
+            ]
+        ])).toMatchInlineSnapshot(`
+      {
+        "className": "backgroundColor-red color-blue display-block",
+        "data-style-src": "components/Foo.react.js:1; components/Bar.react.js:3; components/Baz.react.js:5",
+      }
+    `);
     });
 });

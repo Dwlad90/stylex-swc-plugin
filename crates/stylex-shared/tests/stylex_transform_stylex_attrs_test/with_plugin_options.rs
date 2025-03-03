@@ -26,7 +26,7 @@ test!(
       ..StyleXOptionsParams::default()
     })
   ),
-  stylex_call_produces_dev_class_names,
+  stylex_call_produces_dev_class_names, // dev:true
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -55,7 +55,7 @@ test!(
       ..StyleXOptionsParams::default()
     })
   ),
-  stylex_call_produces_dev_class_name_with_conditions,
+  stylex_call_produces_dev_class_name_with_conditions, // dev:true and genConditionalClasses:true
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({

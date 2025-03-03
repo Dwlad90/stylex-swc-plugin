@@ -14,6 +14,7 @@ use stylex_path_resolver::{
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, FileName, DUMMY_SP},
+  ecma::ast::Module,
 };
 use swc_core::{
   common::SyntaxContext,
@@ -86,6 +87,8 @@ pub struct StateManager {
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) theme_name: Option<String>,
 
+  pub(crate) debug_assertions_module: Option<Module>,
+
   pub(crate) class_name_declarations: Vec<Ident>,
   pub(crate) function_name_declarations: Vec<Ident>,
   pub(crate) declarations: Vec<VarDeclarator>,
@@ -146,6 +149,8 @@ impl StateManager {
       member_object_ident_count_map: FxHashMap::default(),
       theme_name: None,
 
+      debug_assertions_module: None,
+
       seen: FxHashMap::default(),
       css_property_seen: FxHashMap::default(),
 
@@ -169,6 +174,21 @@ impl StateManager {
       injected_keyframes: IndexMap::new(),
 
       cycle: TransformationCycle::Initializing,
+    }
+  }
+
+  pub(crate) fn get_debug_assertions_module(&self) -> Option<&Module> {
+    if cfg!(debug_assertions) {
+      self.debug_assertions_module.as_ref()
+    } else {
+      panic!("Cannot get debug assertions module in release mode");
+    }
+  }
+  pub(crate) fn set_debug_assertions_module(&mut self, module: &Module) {
+    if cfg!(debug_assertions) {
+      self.debug_assertions_module = Some(module.clone());
+    } else {
+      panic!("Cannot set debug assertions module in release mode");
     }
   }
 
@@ -222,6 +242,9 @@ impl StateManager {
 
   pub(crate) fn is_dev(&self) -> bool {
     self.options.dev
+  }
+  pub(crate) fn is_debug(&self) -> bool {
+    self.options.debug
   }
 
   pub(crate) fn gen_conditional_classes(&self) -> bool {

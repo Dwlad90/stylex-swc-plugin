@@ -8,14 +8,14 @@ use stylex_shared::{
   StyleXTransform,
 };
 use swc_core::{
-  common::{FileName, Mark},
+  common::Mark,
   ecma::{
     parser::{Syntax, TsSyntax},
     transforms::{base::resolver, testing::test_fixture},
   },
 };
 
-#[testing::fixture("tests/fixture/**/input.js")]
+#[testing::fixture("tests/fixture/**/input.stylex.js")]
 fn fixture(input: PathBuf) {
   let output = input.parent().unwrap().join("output.js");
   let output_prod = input.parent().unwrap().join("output_prod.js");
@@ -38,12 +38,12 @@ fn fixture(input: PathBuf) {
       };
 
       (
-        resolver(unresolved_mark, top_level_mark, false),
+        resolver(unresolved_mark, top_level_mark, true),
         StyleXTransform::new_test_force_runtime_injection_with_pass(
           tr.comments.clone(),
           PluginPass {
             cwd: None,
-            filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
+            filename: input.clone().into(),
           },
           Some(&mut config),
         ),
@@ -78,7 +78,7 @@ fn fixture(input: PathBuf) {
           tr.comments.clone(),
           PluginPass {
             cwd: None,
-            filename: FileName::Real("/app/pages/Page.stylex.tsx".into()),
+            filename: input.clone().into(),
           },
           Some(&mut config),
         ),

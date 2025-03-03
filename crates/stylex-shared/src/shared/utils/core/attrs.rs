@@ -22,6 +22,10 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
     attrs_map.insert("class".to_string(), class_name);
   }
 
+  if let Some(data_style_src) = props.get("data-style-src") {
+    attrs_map.insert("data-style-src".to_string(), data_style_src);
+  }
+
   if props.get("style").is_some() {
     panic!("Implement inline style");
   }

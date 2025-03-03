@@ -14,52 +14,52 @@ const styles = {
         marginTop: null,
         marginBottom: null,
         overflowWrap: "xj0a0fe",
-        fontFamily: "x1ggk1up",
+        fontFamily: "xxtxygr",
         $$css: true
     },
     textXxxl: {
-        lineHeight: "x1sfvy2s",
-        fontSize: "x1cefvvz",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1q754lq",
         $$css: true
     },
     textXxl: {
-        lineHeight: "x1sfvy2s",
-        fontSize: "xvbwt3i",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1ikoez",
         $$css: true
     },
     textXl: {
-        lineHeight: "x1sfvy2s",
-        fontSize: "x1eku5rm",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1hr3gxt",
         $$css: true
     },
     textLg: {
-        lineHeight: "x1sfvy2s",
-        fontSize: "x8yxt08",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1p5zybj",
         $$css: true
     },
     textMd: {
-        lineHeight: "x1sfvy2s",
-        fontSize: "xr4ztqd",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1uv8d7c",
         $$css: true
     },
     textSm: {
-        lineHeight: "x1sfvy2s",
-        fontSize: "xx8g5au",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1dds9ib",
         $$css: true
     },
     body: {
-        fontSize: "x1t2qx1t",
-        lineHeight: "x59x7jn",
+        fontSize: "xcyum62",
+        lineHeight: "x10zqc4",
         $$css: true
     },
     bodySm: {
-        fontSize: "xx8g5au",
-        lineHeight: "x59x7jn",
+        fontSize: "x1dds9ib",
+        lineHeight: "x10zqc4",
         $$css: true
     },
     bodyMd: {
-        fontSize: "xr4ztqd",
-        lineHeight: "x59x7jn",
+        fontSize: "x1uv8d7c",
+        lineHeight: "x10zqc4",
         $$css: true
     },
     truncate: {
@@ -103,31 +103,31 @@ const styles = {
         $$css: true
     },
     colorSuccess: {
-        color: "xsxyzkr",
+        color: "x1le1rw7",
         $$css: true
     },
     colorError: {
-        color: "xmw8ie6",
+        color: "x1dtcyqj",
         $$css: true
     },
     colorInfo: {
-        color: "x1tz0j69",
+        color: "x1ymlcqv",
         $$css: true
     },
     colorWarning: {
-        color: "xdjdtrs",
+        color: "xasdade",
         $$css: true
     },
     colorPrimary: {
-        color: "x1kncsn5",
+        color: "x2d0hfl",
         $$css: true
     },
     color_primary: {
-        color: "x1kncsn5",
+        color: "x2d0hfl",
         $$css: true
     },
     colorSecondary: {
-        color: "xadi7i7",
+        color: "xxq4n0w",
         $$css: true
     }
 };

@@ -4,6 +4,6 @@ import stylex from 'stylex';
 _inject2(".color-x1e2nbdu{color:red}", 3000);
 _inject2(".backgroundColor-x1t391ir{background-color:blue}", 3000);
 ({
-    0: "FooBar__styles.default color-x1e2nbdu",
-    1: "FooBar__styles.default color-x1e2nbdu FooBar__otherStyles.default backgroundColor-x1t391ir"
+    0: "color-x1e2nbdu",
+    1: "color-x1e2nbdu backgroundColor-x1t391ir"
 })[!!isActive << 0];

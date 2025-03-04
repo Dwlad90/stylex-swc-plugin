@@ -48,8 +48,33 @@ mod convert_style_to_class_name {
     );
     assert!(class_name.starts_with("margin-"))
   }
+
   #[test]
-  fn prefixes_classname_with_property_name_when_options_debug_is_false() {
+  fn prefixes_classname_with_prefix_only_when_options_enable_debug_class_names_is_false() {
+    let (_, class_name, _) = convert_style_to_class_name(
+      ("margin", &PreRuleValue::String("10".to_string())),
+      &mut [],
+      &mut [],
+      &mut StateManager {
+        options: StyleXStateOptions {
+          class_name_prefix: 'x'.to_string(),
+          style_resolution: StyleResolution::ApplicationOrder,
+          use_rem_for_font_size: false,
+          dev: false,
+          test: false,
+          debug: true,
+          enable_debug_class_names: false,
+          ..Default::default()
+        },
+        ..Default::default()
+      },
+    );
+    assert!(class_name.starts_with("x"));
+    assert!(!class_name.starts_with("margin-x"));
+  }
+
+  #[test]
+  fn prefixes_classname_with_prefix_only_when_options_debug_is_false() {
     let (_, class_name, _) = convert_style_to_class_name(
       ("margin", &PreRuleValue::String("10".to_string())),
       &mut [],

@@ -16,7 +16,10 @@ use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
   structures::injectable_style::InjectableStyle,
   utils::{
-    core::{add_source_map_data::add_source_map_data, dev_class_name::convert_to_test_styles},
+    core::{
+      add_source_map_data::add_source_map_data,
+      dev_class_name::{convert_to_test_styles, inject_dev_class_names},
+    },
     log::build_code_frame_error::build_code_frame_error,
   },
 };
@@ -194,12 +197,16 @@ where
 
       let (var_name, parent_var_decl) = self.get_call_var_name(call);
 
-      if self.state.is_test() {
-        compiled_styles = convert_to_test_styles(&compiled_styles, &var_name, &self.state);
+      if self.state.is_debug() && self.state.options.enable_debug_data_prop {
+        compiled_styles = add_source_map_data(&compiled_styles, call, &self.state);
       }
 
-      if self.state.is_debug() {
-        compiled_styles = add_source_map_data(&compiled_styles, call, &self.state);
+      if self.state.is_dev() && self.state.options.enable_dev_class_names {
+        compiled_styles = inject_dev_class_names(&compiled_styles, &var_name, &self.state);
+      }
+
+      if self.state.is_test() {
+        compiled_styles = convert_to_test_styles(&compiled_styles, &var_name, &self.state);
       }
 
       if let Some(var_name) = var_name.as_ref() {

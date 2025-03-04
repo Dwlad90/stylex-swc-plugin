@@ -39,7 +39,13 @@ test!(
       import stylex from 'stylex';
       export const styles = stylex.create({
         foo: {
-          position: stylex.firstThatWorks('sticky', 'fixed'),
+          color: 'red'
+        },
+        'bar-baz': {
+          display: 'block'
+        },
+        1: {
+          fontSize: '1em'
         }
       });
   "#
@@ -67,7 +73,13 @@ test!(
       import stylex from 'stylex';
       export const styles = stylex.create({
         foo: {
-          position: stylex.firstThatWorks('sticky', 'fixed'),
+          color: 'red'
+        },
+        'bar-baz': {
+          display: 'block'
+        },
+        1: {
+          fontSize: '1em'
         }
       });
   "#
@@ -95,7 +107,13 @@ test!(
       import stylex from 'stylex';
       export const styles = stylex.create({
         foo: {
-          position: stylex.firstThatWorks('sticky', 'fixed'),
+          color: 'red'
+        },
+        'bar-baz': {
+          display: 'block'
+        },
+        1: {
+          fontSize: '1em'
         }
       });
   "#
@@ -123,7 +141,13 @@ test!(
       import stylex from 'stylex';
       export const styles = stylex.create({
         foo: {
-          position: stylex.firstThatWorks('sticky', 'fixed'),
+          color: 'red'
+        },
+        'bar-baz': {
+          display: 'block'
+        },
+        1: {
+          fontSize: '1em'
         }
       });
   "#

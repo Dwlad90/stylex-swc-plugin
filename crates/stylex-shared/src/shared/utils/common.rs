@@ -78,6 +78,11 @@ pub(crate) fn get_key_str(key_value: &KeyValueProp) -> String {
 
       strng.value.to_string()
     }
+    PropName::Num(num) => {
+      should_wrap_in_quotes = false;
+
+      num.value.to_string()
+    }
     PropName::Computed(computed) => match computed.expr.as_lit() {
       Some(lit) => get_string_val_from_lit(lit).expect("Computed key is not a valid literal"),
       None => unimplemented!("Computed key is not a literal"),

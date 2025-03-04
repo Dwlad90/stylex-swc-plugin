@@ -44,36 +44,37 @@ pub(crate) fn add_source_map_data(
         }
         _ => panic!("Expected object expression"),
       };
-
-      let style_node_path = if let Some(style_node_path) = style_node_path {
-        style_node_path
-      } else {
-        unimplemented!("Expected style node path")
-      };
-
-      let (code_frame, span) = get_span_from_source_code(
-        &Expr::Call(call_expr.clone()),
-        &style_node_path.value,
-        state,
-      );
-
-      let original_line_number = code_frame.get_span_line_number(span);
-
-      let short_filename = create_short_filename(current_filename, state);
-
-      let css_value = if !short_filename.is_empty() && original_line_number > 0 {
-        FlatCompiledStylesValue::String(format!("{}:{}", short_filename, original_line_number))
-      } else {
-        FlatCompiledStylesValue::Bool(true)
-      };
-
       let mut inner_map = IndexMap::new();
 
-      inner_map.extend((**value).clone());
+      if let Some(style_node_path) = style_node_path {
+        let (code_frame, span) = get_span_from_source_code(
+          &Expr::Call(call_expr.clone()),
+          &style_node_path.value,
+          state,
+        );
 
-      inner_map.insert(COMPILED_KEY.to_string(), Rc::new(css_value));
+        let original_line_number = code_frame.get_span_line_number(span);
 
-      result.insert(key.clone(), Rc::new(inner_map));
+        let short_filename = create_short_filename(current_filename, state);
+
+        let css_value = if !short_filename.is_empty() && original_line_number > 0 {
+          FlatCompiledStylesValue::String(format!("{}:{}", short_filename, original_line_number))
+        } else {
+          FlatCompiledStylesValue::Bool(true)
+        };
+
+        inner_map.extend((**value).clone());
+
+        inner_map.insert(COMPILED_KEY.to_string(), Rc::new(css_value));
+
+        result.insert(key.clone(), Rc::new(inner_map));
+      } else {
+        // fallback in case no sourcemap data is found
+
+        inner_map.extend((**value).clone());
+
+        result.insert(key.clone(), Rc::new(inner_map));
+      };
     } else {
       panic!("{}", ILLEGAL_ARGUMENT_LENGTH)
     };

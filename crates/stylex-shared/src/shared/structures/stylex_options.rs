@@ -19,6 +19,7 @@ pub struct StyleXOptionsParams {
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,
+  pub enable_debug_class_names: Option<bool>,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
@@ -38,6 +39,7 @@ impl Default for StyleXOptionsParams {
       dev: Some(false),
       test: Some(false),
       debug: None,
+      enable_debug_class_names: Some(true),
       aliases: None,
       unstable_module_resolution: None,
     }
@@ -80,6 +82,8 @@ pub struct StyleXOptions {
   pub dev: bool,
   pub test: bool,
   pub debug: bool,
+  pub enable_debug_class_names: bool,
+
   pub use_rem_for_font_size: bool,
   pub class_name_prefix: String,
   // pub defined_stylex_css_variables: FxHashMap<String, String>,
@@ -122,6 +126,7 @@ impl Default for StyleXOptions {
       dev: false,
       test: false,
       debug: false,
+      enable_debug_class_names: true,
       treeshake_compensation: None,
       gen_conditional_classes: false,
       aliases: None,
@@ -169,6 +174,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       dev: options.dev.unwrap_or(false),
       test: options.test.unwrap_or(false),
       debug: options.debug.or(options.dev).unwrap_or(false),
+      enable_debug_class_names: options.enable_debug_class_names.unwrap_or(true),
       treeshake_compensation: options.treeshake_compensation,
       gen_conditional_classes: options.gen_conditional_classes.unwrap_or(false),
       aliases: options.aliases,

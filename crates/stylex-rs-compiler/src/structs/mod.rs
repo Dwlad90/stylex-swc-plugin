@@ -37,6 +37,7 @@ pub struct StyleXOptions {
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,
+  pub enable_debug_class_names: Option<bool>,
   #[napi(ts_type = "Record<string, string[]>")]
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[napi(js_name = "unstable_moduleResolution")]
@@ -89,6 +90,7 @@ impl From<StyleXOptions> for StyleXOptionsParams {
       dev: val.dev,
       test: val.test,
       debug: val.debug.or(val.dev),
+      enable_debug_class_names: val.enable_debug_class_names,
       aliases: val.aliases,
       unstable_module_resolution,
     }

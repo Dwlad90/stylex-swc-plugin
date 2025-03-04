@@ -682,7 +682,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           };"
         `);
             });
-            test('transforms pseudo elements within legeacy pseudo class', ()=>{
+            test('transforms pseudo elements within legacy pseudo class', ()=>{
                 expect(transform(`
             import stylex from 'stylex';
             export const styles = stylex.create({

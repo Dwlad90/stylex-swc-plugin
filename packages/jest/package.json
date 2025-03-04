@@ -27,9 +27,6 @@
   ],
   "license": "MIT",
   "main": "dist/index.js",
-  "peerDependencies": {
-    "next": ">=14.0.0"
-  },
   "private": false,
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

@@ -8,11 +8,14 @@ use crate::shared::{
   enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
   swc::get_default_expr_ctx,
   utils::{
-    ast::factories::{
-      object_expression_factory, object_lit_factory, prop_or_spread_expression_factory,
-      prop_or_spread_string_factory,
+    ast::{
+      convertors::{key_value_to_str, lit_to_string},
+      factories::{
+        object_expression_factory, object_lit_factory, prop_or_spread_expression_factory,
+        prop_or_spread_string_factory,
+      },
     },
-    common::{get_key_str, get_key_values_from_object, get_string_val_from_lit},
+    common::get_key_values_from_object,
   },
 };
 
@@ -76,21 +79,21 @@ impl From<ObjectLit> for BaseCSSType {
     let mut values: IndexMap<String, ValueWithDefault> = IndexMap::new();
 
     for key_value in key_values {
-      let key = get_key_str(&key_value);
+      let key = key_value_to_str(&key_value);
 
       match key.as_str() {
         "syntax" => {
           syntax = key_value
             .value
             .as_lit()
-            .and_then(get_string_val_from_lit)
+            .and_then(lit_to_string)
             .map(|str_val| str_val.into())
         }
         "value" => {
           let obj_value = match key_value.value.as_ref() {
             Expr::Object(obj) => obj,
             Expr::Lit(obj) => {
-              let value = get_string_val_from_lit(obj).expect("Value must be a string");
+              let value = lit_to_string(obj).expect("Value must be a string");
 
               let prop = prop_or_spread_string_factory("default", value.as_str());
 
@@ -103,7 +106,7 @@ impl From<ObjectLit> for BaseCSSType {
           };
 
           for key_value in get_key_values_from_object(obj_value) {
-            let key = get_key_str(&key_value);
+            let key = key_value_to_str(&key_value);
 
             match key_value.value.as_ref() {
               Expr::Object(obj) => {
@@ -112,11 +115,11 @@ impl From<ObjectLit> for BaseCSSType {
                 let key_values = get_key_values_from_object(obj);
 
                 for key_value in key_values {
-                  let key = get_key_str(&key_value);
+                  let key = key_value_to_str(&key_value);
 
                   match key_value.value.as_ref() {
                     Expr::Lit(lit) => {
-                      let value = get_string_val_from_lit(lit).expect("Value must be a string");
+                      let value = lit_to_string(lit).expect("Value must be a string");
 
                       obj_map.insert(key, ValueWithDefault::String(value));
                     }
@@ -132,7 +135,7 @@ impl From<ObjectLit> for BaseCSSType {
                 values.insert(key, value);
               }
               Expr::Lit(lit) => {
-                let value = get_string_val_from_lit(lit).expect("Value must be a string");
+                let value = lit_to_string(lit).expect("Value must be a string");
 
                 values.insert(key, ValueWithDefault::String(value));
               }

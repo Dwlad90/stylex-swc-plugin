@@ -19,13 +19,10 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{
-      expr_tpl_to_string, handle_tpl_to_expression, number_to_expression,
-      transform_bin_expr_to_number, transform_shorthand_to_key_values,
+      expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, lit_to_string,
+      number_to_expression, transform_bin_expr_to_number, transform_shorthand_to_key_values,
     },
-    common::{
-      get_expr_from_var_decl, get_key_str, get_key_values_from_object, get_string_val_from_lit,
-      get_var_decl_by_ident,
-    },
+    common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
   },
 };
 
@@ -54,7 +51,7 @@ pub(crate) fn flatten_raw_style_object(
   let mut flattened: IndexMap<String, PreRules> = IndexMap::new();
 
   for property in style.iter() {
-    let key = get_key_str(property);
+    let key = key_value_to_str(property);
 
     let css_property_key = if CSS_PROPERTY_KEY.is_match(&key) {
       key[4..key.len() - 1].to_string()
@@ -77,7 +74,7 @@ pub(crate) fn flatten_raw_style_object(
                 let pairs = flat_map_expanded_shorthands(
                   (
                     css_property_key.clone(),
-                    match get_string_val_from_lit(property_lit) {
+                    match lit_to_string(property_lit) {
                       Some(val) => PreRuleValue::String(val),
                       None => PreRuleValue::Null,
                     },
@@ -139,7 +136,7 @@ pub(crate) fn flatten_raw_style_object(
       }
       Expr::Lit(property_lit) => {
         if !css_property_key.starts_with(':') && !css_property_key.starts_with('@') {
-          let value = get_string_val_from_lit(property_lit);
+          let value = lit_to_string(property_lit);
 
           let pairs = flat_map_expanded_shorthands(
             (
@@ -231,7 +228,7 @@ pub(crate) fn flatten_raw_style_object(
               if let Prop::KeyValue(key_value) = prop.as_ref() {
                 let mut inner_key_value: KeyValueProp = key_value.clone();
 
-                let condition = get_key_str(&inner_key_value);
+                let condition = key_value_to_str(&inner_key_value);
 
                 inner_key_value.key = PropName::Str(quote_str!(css_property_key.clone()));
 

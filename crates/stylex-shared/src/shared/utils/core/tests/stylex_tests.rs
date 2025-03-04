@@ -15,8 +15,10 @@ mod tests {
   use crate::shared::{
     enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
     utils::{
-      ast::{convertors::string_to_expression, factories::ident_factory},
-      common::get_string_val_from_lit,
+      ast::{
+        convertors::{lit_to_string, string_to_expression},
+        factories::ident_factory,
+      },
       core::{
         js_to_expr::NestedStringObject,
         parse_nullable_style::{ResolvedArg, StyleObject},
@@ -65,7 +67,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(get_string_val_from_lit)
+      .and_then(lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "aaa bbb");
@@ -99,7 +101,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(get_string_val_from_lit)
+      .and_then(lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "a aa b c cc");
@@ -132,7 +134,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(get_string_val_from_lit)
+      .and_then(lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "gh25dzvf");
@@ -178,7 +180,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(get_string_val_from_lit)
+      .and_then(lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "abcdefg gofk2cf1 rse6dlih");
@@ -416,13 +418,13 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(get_string_val_from_lit)
+      .and_then(lit_to_string)
       .expect("Expected classname_string to be Some");
 
     let repeat_classname_string = repeat
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(get_string_val_from_lit)
+      .and_then(lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, repeat_classname_string);

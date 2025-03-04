@@ -9,7 +9,7 @@ use crate::shared::{
     state_manager::StateManager, stylex_options::CheckModuleResolution, types::StylesObjectMap,
   },
   utils::{
-    common::{get_key_str, get_key_values_from_object},
+    ast::convertors::key_value_to_str, common::get_key_values_from_object,
     log::build_code_frame_error::get_span_from_source_code,
   },
 };
@@ -33,7 +33,7 @@ pub(crate) fn add_source_map_data(
           let key_values = get_key_values_from_object(object);
 
           for key_value in key_values {
-            let key_string = get_key_str(&key_value);
+            let key_string = key_value_to_str(&key_value);
 
             if key == &key_string {
               style_node_path = Some(key_value.clone());

@@ -17,8 +17,8 @@ use crate::shared::{
     state_manager::StateManager,
   },
   utils::{
-    ast::convertors::{expr_to_str, string_to_expression},
-    common::{create_hash, dashify, get_key_str},
+    ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
+    common::{create_hash, dashify},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::common::{generate_ltr, generate_rtl, transform_value_cached},
     object::{obj_entries, obj_from_entries, obj_map, obj_map_keys, Pipe},
@@ -158,7 +158,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
   let res: Vec<_> = obj_entries(&frame.clone())
     .iter()
     .flat_map(|pair| {
-      let key = get_key_str(pair);
+      let key = key_value_to_str(pair);
       let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default());
 
       flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)

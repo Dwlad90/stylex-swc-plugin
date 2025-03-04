@@ -12,10 +12,8 @@ use crate::shared::{
     functions::FunctionMap, injectable_style::InjectableStyle, state_manager::StateManager,
   },
   utils::{
-    ast::convertors::expr_to_str,
-    common::{
-      create_hash, find_and_swap_remove, get_css_value, get_key_str, get_key_values_from_object,
-    },
+    ast::convertors::{expr_to_str, key_value_to_str},
+    common::{create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object},
     core::define_vars_utils::{collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules},
     validators::validate_theme_variables,
   },
@@ -41,7 +39,7 @@ pub(crate) fn stylex_create_theme(
       .expect("Variables must be an object"),
   ));
 
-  variables_key_values.sort_by_key(get_key_str);
+  variables_key_values.sort_by_key(key_value_to_str);
 
   let mut __theme_name: String = String::new();
   let mut theme_vars_key_values: Vec<KeyValueProp> = Vec::new();
@@ -52,18 +50,18 @@ pub(crate) fn stylex_create_theme(
 
     __theme_name = theme_vars_key_values
       .iter()
-      .find(|key_value| get_key_str(key_value) == "__themeName__")
+      .find(|key_value| key_value_to_str(key_value) == "__themeName__")
       .map(|key_value| expr_to_str(&key_value.value, state, &FunctionMap::default()))
       .unwrap_or_default();
   };
 
   for key_value in variables_key_values.into_iter() {
-    let key = get_key_str(&key_value);
+    let key = key_value_to_str(&key_value);
 
     let theme_vars_str_value = match theme_vars {
       EvaluateResultValue::Expr(_) => {
         let theme_vars_item = find_and_swap_remove(&mut theme_vars_key_values, |key_value| {
-          get_key_str(key_value) == key
+          key_value_to_str(key_value) == key
         })
         .expect("Theme variable not found");
 

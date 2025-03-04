@@ -49,18 +49,15 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{
-        big_int_to_expression, binary_expr_to_num, binary_expr_to_string, bool_to_expression,
-        expr_to_bool, expr_to_num, expr_to_str, number_to_expression, string_to_expression,
-        transform_shorthand_to_key_values,
+        big_int_to_expression, binary_expr_to_num, binary_expr_to_string, bool_to_expression, expr_to_bool, expr_to_num, expr_to_str, key_value_to_str, lit_to_string, number_to_expression, string_to_expression, transform_shorthand_to_key_values
       },
       factories::{array_expression_factory, lit_str_factory, object_expression_factory},
     },
     common::{
       char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
-      get_import_by_ident, get_key_str, get_key_values_from_object, get_string_val_from_lit,
-      get_var_decl_by_ident, get_var_decl_from, normalize_expr, reduce_ident_count,
-      reduce_member_expression_count, remove_duplicates, sort_numbers_factory, stable_hash,
-      sum_hash_map_values,
+      get_import_by_ident, get_key_values_from_object, get_var_decl_by_ident, get_var_decl_from,
+      normalize_expr, reduce_ident_count, reduce_member_expression_count, remove_duplicates,
+      sort_numbers_factory, stable_hash, sum_hash_map_values,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
@@ -455,7 +452,7 @@ fn _evaluate(
 
               let ident_string_name = match normalized_ident {
                 Expr::Ident(ident) => ident.sym.to_string(),
-                Expr::Lit(lit) => get_string_val_from_lit(lit).unwrap_or_else(|| {
+                Expr::Lit(lit) => lit_to_string(lit).unwrap_or_else(|| {
                   panic!(
                     "Property must be convertable to string: {:?}",
                     normalized_ident.get_type(get_default_expr_ctx())
@@ -476,7 +473,7 @@ fn _evaluate(
 
                   match prop.as_ref() {
                     Prop::KeyValue(key_value) => {
-                      let key = get_key_str(key_value);
+                      let key = key_value_to_str(key_value);
 
                       ident_string_name == key
                     }
@@ -526,9 +523,7 @@ fn _evaluate(
               Some(property) => match property {
                 EvaluateResultValue::Expr(expr) => match expr {
                   Expr::Ident(Ident { sym, .. }) => sym.to_string(),
-                  Expr::Lit(lit) => {
-                    get_string_val_from_lit(&lit).expect("Property must be a string")
-                  }
+                  Expr::Lit(lit) => lit_to_string(&lit).expect("Property must be a string"),
                   _ => panic!(
                     "Member not found: {:?}",
                     expr.get_type(get_default_expr_ctx())
@@ -1114,7 +1109,7 @@ fn _evaluate(
                             .as_key_value()
                             .expect("Object.entries requires an object");
 
-                          let key = get_key_str(key_values);
+                          let key = key_value_to_str(key_values);
 
                           keys.push(Some(ExprOrSpread {
                             spread: None,
@@ -1196,7 +1191,7 @@ fn _evaluate(
                             .as_lit()
                             .expect("Object value should be a literal");
 
-                          let key = get_key_str(key_values);
+                          let key = key_value_to_str(key_values);
 
                           entries.insert(lit_str_factory(key.as_str()), value.clone());
                         }
@@ -1481,14 +1476,14 @@ fn _evaluate(
 
                     fn_args.insert(
                       key,
-                      ValueWithDefault::String(get_string_val_from_lit(value).unwrap()),
+                      ValueWithDefault::String(lit_to_string(value).unwrap()),
                     );
                   }
                 }
                 Expr::Lit(lit) => {
                   fn_args.insert(
                     "default".to_string(),
-                    ValueWithDefault::String(get_string_val_from_lit(lit).unwrap()),
+                    ValueWithDefault::String(lit_to_string(lit).unwrap()),
                   );
                 }
                 _ => {}
@@ -1990,7 +1985,7 @@ pub(crate) fn evaluate_quasis(
         if let Some(lit_str) = evaluated_expr
           .as_expr()
           .and_then(|expr| expr.as_lit())
-          .and_then(get_string_val_from_lit)
+          .and_then(lit_to_string)
         {
           strng.push_str(&lit_str);
         }

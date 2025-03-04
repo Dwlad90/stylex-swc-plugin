@@ -19,7 +19,7 @@ use crate::shared::{
   swc::get_default_expr_ctx,
   utils::{
     common::{
-      evaluate_bin_expr, get_expr_from_var_decl, get_string_val_from_lit, get_var_decl_by_ident,
+      evaluate_bin_expr, get_expr_from_var_decl, get_var_decl_by_ident, wrap_key_in_quotes,
     },
     js::evaluate::{deopt, evaluate_cached},
   },
@@ -70,7 +70,7 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
       let var_decl_expr = get_expr_from_var_decl(var_decl);
 
       match &var_decl_expr {
-        Expr::Lit(lit) => get_string_val_from_lit(lit).expect(ILLEGAL_PROP_VALUE),
+        Expr::Lit(lit) => lit_to_string(lit).expect(ILLEGAL_PROP_VALUE),
         Expr::Ident(ident) => ident_to_string(ident, state, functions),
         _ => panic!("{}", ILLEGAL_PROP_VALUE),
       }
@@ -94,7 +94,7 @@ pub fn expr_to_str(
 ) -> String {
   match &expr_string {
     Expr::Ident(ident) => ident_to_string(ident, state, functions),
-    Expr::Lit(lit) => get_string_val_from_lit(lit).expect("Value is not a string"),
+    Expr::Lit(lit) => lit_to_string(lit).expect("Value is not a string"),
     _ => panic!(
       "Expression in not a string, got {:?}",
       expr_string.get_type(get_default_expr_ctx())
@@ -377,24 +377,26 @@ fn evaluate_left_and_right_expression(
 
   if left_result.is_err() || right_result.is_err() {
     let left_str = match left_expr {
-      Expr::Lit(Lit::Str(_)) => get_string_val_from_lit(left_expr.as_lit().unwrap())
-        .unwrap_or_else(|| {
+      Expr::Lit(Lit::Str(_)) => {
+        lit_to_string(left_expr.as_lit().unwrap()).unwrap_or_else(|| {
           panic!(
             "Left is not a string: {:?}",
             left_expr.get_type(get_default_expr_ctx())
           )
-        }),
+        })
+      }
       _ => String::default(),
     };
 
     let right_str = match right_expr {
-      Expr::Lit(Lit::Str(_)) => get_string_val_from_lit(right_expr.as_lit().unwrap())
-        .unwrap_or_else(|| {
+      Expr::Lit(Lit::Str(_)) => {
+        lit_to_string(right_expr.as_lit().unwrap()).unwrap_or_else(|| {
           panic!(
             "Right is not a string: {:?}",
             left_expr.get_type(get_default_expr_ctx())
           )
-        }),
+        })
+      }
       _ => String::default(),
     };
 
@@ -550,7 +552,7 @@ pub fn expr_tpl_to_string(
               let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
               let value = match &var_decl_expr {
-                Expr::Lit(lit) => get_string_val_from_lit(lit).expect(ILLEGAL_PROP_VALUE),
+                Expr::Lit(lit) => lit_to_string(lit).expect(ILLEGAL_PROP_VALUE),
                 _ => panic!("{}", ILLEGAL_PROP_VALUE),
               };
 
@@ -564,9 +566,7 @@ pub fn expr_tpl_to_string(
             .to_string()
             .as_str(),
         ),
-        Expr::Lit(lit) => {
-          tpl_str.push_str(&get_string_val_from_lit(lit).expect(ILLEGAL_PROP_VALUE))
-        }
+        Expr::Lit(lit) => tpl_str.push_str(&lit_to_string(lit).expect(ILLEGAL_PROP_VALUE)),
         _ => unimplemented!(
           "TPL expression: {:?}",
           tpl.exprs[i].get_type(get_default_expr_ctx())
@@ -692,5 +692,44 @@ pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &Fu
         expr.get_type(get_default_expr_ctx())
       )
     }
+  }
+}
+
+pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
+  let key = &key_value.key;
+  let mut should_wrap_in_quotes = false;
+
+  let key = match key {
+    PropName::Ident(ident) => ident.sym.to_string(),
+    PropName::Str(strng) => {
+      should_wrap_in_quotes = false;
+
+      strng.value.to_string()
+    }
+    PropName::Num(num) => {
+      should_wrap_in_quotes = false;
+
+      num.value.to_string()
+    }
+    PropName::BigInt(big_int) => {
+      should_wrap_in_quotes = false;
+
+      big_int.value.to_string()
+    }
+    PropName::Computed(computed) => match computed.expr.as_lit() {
+      Some(lit) => lit_to_string(lit).expect("Computed key is not a valid literal"),
+      None => unimplemented!("Computed key is not a literal"),
+    },
+  };
+
+  wrap_key_in_quotes(&key, should_wrap_in_quotes)
+}
+
+pub(crate) fn lit_to_string(value: &Lit) -> Option<String> {
+  match value {
+    Lit::Str(strng) => Some(format!("{}", strng.value)),
+    Lit::Num(num) => Some(format!("{}", num.value)),
+    Lit::BigInt(big_int) => Some(format!("{}", big_int.value)),
+    _ => None,
   }
 }

@@ -8,8 +8,10 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
   },
   structures::{order_pair::OrderPair, pair::Pair, state_manager::StateManager},
-  utils::common::{get_key_str, get_key_values_from_object},
+  utils::common::get_key_values_from_object,
 };
+
+use super::ast::convertors::key_value_to_str;
 
 pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,
@@ -26,7 +28,7 @@ where
       let key_values = get_key_values_from_object(&obj);
 
       for key_value in key_values.iter() {
-        let key = get_key_str(key_value);
+        let key = key_value_to_str(key_value);
 
         let value = Rc::new(FlatCompiledStylesValue::Tuple(
           key.clone(),

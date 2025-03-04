@@ -22,12 +22,14 @@ use crate::shared::{
   structures::state_manager::StateManager,
   utils::{
     ast::{convertors::string_to_expression, factories::key_value_factory},
-    common::get_string_val_from_lit,
     log::build_code_frame_error::build_code_frame_error_and_panic,
   },
 };
 
-use super::common::{get_key_str, get_key_values_from_object};
+use super::{
+  ast::convertors::{key_value_to_str, lit_to_string},
+  common::get_key_values_from_object,
+};
 
 pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
   if !is_create_call(call, state) {
@@ -339,7 +341,7 @@ pub(crate) fn validate_namespace(
         }
       }
       Expr::Object(object) => {
-        let key = get_key_str(namespace);
+        let key = key_value_to_str(namespace);
 
         if key.starts_with('@') || key.starts_with(':') {
           if conditions.contains(&key) {
@@ -392,7 +394,7 @@ pub(crate) fn validate_conditional_styles(
   conditions: &[String],
   state: &StateManager,
 ) {
-  let inner_key = get_key_str(inner_key_value);
+  let inner_key = key_value_to_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
 
   assert!(
@@ -482,13 +484,13 @@ pub(crate) fn validate_theme_variables(
     .map(get_key_values_from_object)
     .and_then(|key_values| {
       for key_value in key_values.into_iter() {
-        let key = get_key_str(&key_value);
+        let key = key_value_to_str(&key_value);
 
         if key == "__themeName__" {
           let value = &key_value.value;
 
           if let Some(lit) = value.as_lit() {
-            let value = get_string_val_from_lit(lit);
+            let value = lit_to_string(lit);
 
             if value
               .and_then(|value| if value.is_empty() { None } else { Some(value) })

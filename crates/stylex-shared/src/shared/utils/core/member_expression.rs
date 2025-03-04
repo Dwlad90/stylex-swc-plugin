@@ -10,8 +10,7 @@ use crate::shared::{
   },
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    common::{get_string_val_from_lit, increase_ident_count},
-    js::evaluate::evaluate,
+    ast::convertors::lit_to_string, common::increase_ident_count, js::evaluate::evaluate,
   },
 };
 
@@ -41,7 +40,7 @@ pub(crate) fn member_expression(
         }
         MemberProp::Computed(computed) => {
           if let Expr::Lit(lit) = computed.expr.as_ref() {
-            prop_name = get_string_val_from_lit(lit).map(Atom::from);
+            prop_name = lit_to_string(lit).map(Atom::from);
           }
         }
         _ => {}

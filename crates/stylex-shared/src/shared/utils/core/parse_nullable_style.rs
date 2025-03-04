@@ -6,7 +6,7 @@ use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp};
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::state_manager::StateManager,
-  utils::common::{get_string_val_from_lit, reduce_ident_count},
+  utils::{ast::convertors::lit_to_string, common::reduce_ident_count},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -71,7 +71,7 @@ pub(crate) fn parse_nullable_style(
             MemberProp::Computed(computed) => {
               if let Some(lit) = computed.expr.as_lit() {
                 obj_name = Some(obj_ident.sym.as_str().to_string());
-                prop_name = get_string_val_from_lit(lit);
+                prop_name = lit_to_string(lit);
               }
             }
             MemberProp::PrivateName(_) => {}

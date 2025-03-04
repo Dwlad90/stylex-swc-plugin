@@ -16,6 +16,7 @@ use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
   structures::injectable_style::InjectableStyle,
   utils::{
+    ast::convertors::{key_value_to_str, lit_to_string},
     core::{
       add_source_map_data::add_source_map_data,
       dev_class_name::{convert_to_test_styles, inject_dev_class_names},
@@ -42,7 +43,6 @@ use crate::shared::{
   structures::{dynamic_style::DynamicStyle, stylex_options::StyleResolution},
   utils::{
     ast::{convertors::null_to_expression, factories::array_expression_factory},
-    common::get_string_val_from_lit,
     core::js_to_expr::{convert_object_to_ast, remove_objects_with_spreads, NestedStringObject},
   },
 };
@@ -56,7 +56,7 @@ use crate::shared::{
   },
   utils::{
     ast::{convertors::string_to_expression, factories::object_expression_factory},
-    common::{get_key_str, get_key_values_from_object},
+    common::get_key_values_from_object,
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
   },
 };
@@ -233,7 +233,7 @@ where
           let props = key_values
             .iter()
             .map(|key_value| {
-              let orig_key = get_key_str(key_value);
+              let orig_key = key_value_to_str(key_value);
               let mut value = key_value.value.clone();
 
               let key = match &key_value.key {
@@ -307,8 +307,8 @@ where
                                 let value = &obj_prop.value;
 
                                 if let Expr::Lit(lit) = value.as_ref() {
-                                  let class_names_string = get_string_val_from_lit(lit)
-                                    .expect("Lit cannot be stringified");
+                                  let class_names_string =
+                                    lit_to_string(lit).expect("Lit cannot be stringified");
 
                                   let class_list =
                                     class_names_string.split(' ').collect::<Vec<&str>>();

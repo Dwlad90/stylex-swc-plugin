@@ -9,7 +9,10 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
   },
   structures::injectable_style::InjectableStyle,
-  utils::common::{create_hash, get_key_str, get_key_values_from_object, get_string_val_from_lit},
+  utils::{
+    ast::convertors::{key_value_to_str, lit_to_string},
+    common::{create_hash, get_key_values_from_object},
+  },
 };
 
 pub(crate) fn construct_css_variables_string(
@@ -86,7 +89,7 @@ pub(crate) fn collect_vars_by_at_rules(
         return;
       }
 
-      let val = get_string_val_from_lit(lit).expect("Value must be a string");
+      let val = lit_to_string(lit).expect("Value must be a string");
 
       let key = if at_rules.is_empty() {
         "default".to_string()
@@ -105,7 +108,7 @@ pub(crate) fn collect_vars_by_at_rules(
       let key_values = get_key_values_from_object(obj);
 
       if !key_values.iter().any(|key_value| {
-        let key = get_key_str(key_value);
+        let key = key_value_to_str(key_value);
 
         key == "default"
       }) {
@@ -113,7 +116,7 @@ pub(crate) fn collect_vars_by_at_rules(
       }
 
       for key_value in key_values.iter() {
-        let at_rule = get_key_str(key_value);
+        let at_rule = key_value_to_str(key_value);
 
         let extended_at_rules = if at_rule == "default" {
           at_rules.to_vec()

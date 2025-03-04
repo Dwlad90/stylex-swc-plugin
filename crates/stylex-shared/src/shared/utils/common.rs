@@ -11,9 +11,9 @@ use swc_core::{
   atoms::Atom,
   common::{FileName, DUMMY_SP},
   ecma::ast::{
-    BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Lit, MemberExpr,
-    Module, ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName, PropOrSpread,
-    Stmt, VarDeclarator,
+    BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
+    ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt,
+    VarDeclarator,
   },
 };
 
@@ -56,41 +56,6 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
 
 pub fn create_hash(value: &str) -> String {
   radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
-}
-
-pub(crate) fn get_string_val_from_lit(value: &Lit) -> Option<String> {
-  match value {
-    Lit::Str(strng) => Some(format!("{}", strng.value)),
-    Lit::Num(num) => Some(format!("{}", num.value)),
-    Lit::BigInt(big_int) => Some(format!("{}", big_int.value)),
-    _ => None,
-  }
-}
-
-pub(crate) fn get_key_str(key_value: &KeyValueProp) -> String {
-  let key = &key_value.key;
-  let mut should_wrap_in_quotes = false;
-
-  let key = match key {
-    PropName::Ident(ident) => ident.sym.to_string(),
-    PropName::Str(strng) => {
-      should_wrap_in_quotes = false;
-
-      strng.value.to_string()
-    }
-    PropName::Num(num) => {
-      should_wrap_in_quotes = false;
-
-      num.value.to_string()
-    }
-    PropName::Computed(computed) => match computed.expr.as_lit() {
-      Some(lit) => get_string_val_from_lit(lit).expect("Computed key is not a valid literal"),
-      None => unimplemented!("Computed key is not a literal"),
-    },
-    _ => panic!("Key is not recognized"),
-  };
-
-  wrap_key_in_quotes(&key, should_wrap_in_quotes)
 }
 
 pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {

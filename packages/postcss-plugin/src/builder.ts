@@ -143,7 +143,7 @@ function createBuilder() {
       if (!bundler.shouldTransform(contents)) {
         return;
       }
-      const transformedResult = bundler.transform(file, contents, rsOptions || {}, {
+      const transformedResult = bundler.transform(filePath, contents, rsOptions || {}, {
         isDev,
         shouldSkipTransformError,
       });

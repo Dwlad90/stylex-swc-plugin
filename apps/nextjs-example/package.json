@@ -21,7 +21,7 @@
     "@stylexswc/nextjs-plugin": "0.6.6",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.11.1",
-    "next": "15.1.2",
+    "next": "15.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -40,7 +40,7 @@
     "@types/react-dom": "^19.0.2",
     "@typescript-eslint/parser": "^6.14.0",
     "eslint": "^8.57.0",
-    "eslint-config-next": "15.1.2",
+    "eslint-config-next": "15.2.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.5.4"
   }

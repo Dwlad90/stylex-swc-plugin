@@ -78,6 +78,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       use_rem_for_font_size: options.use_rem_for_font_size,
       runtime_injection,
       class_name_prefix: options.class_name_prefix,
+      // defined_stylex_css_variables: options.defined_stylex_css_variables,
       import_sources: options.import_sources,
       dev: options.dev,
       test: options.test,

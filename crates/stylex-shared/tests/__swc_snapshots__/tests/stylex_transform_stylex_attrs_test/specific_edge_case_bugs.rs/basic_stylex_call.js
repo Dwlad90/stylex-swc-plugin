@@ -23,7 +23,7 @@ export const styles = {
         gridColumn: null,
         gridColumnStart: null,
         gridColumnEnd: null,
-        $$css: "UnknownFile:3"
+        $$css: true
     },
     content: {
         gridArea: "gridArea-x1fdo2jl",
@@ -33,13 +33,13 @@ export const styles = {
         gridColumn: null,
         gridColumnStart: null,
         gridColumnEnd: null,
-        $$css: "UnknownFile:7"
+        $$css: true
     },
     root: {
         display: "display-xrvj5dj",
         gridTemplateRows: "gridTemplateRows-x7k18q3",
         gridTemplateAreas: "gridTemplateAreas-x5gp9wm",
-        $$css: "UnknownFile:10"
+        $$css: true
     },
     withSidebar: {
         gridTemplateColumns: "gridTemplateColumns-x1rkzygb",
@@ -48,20 +48,18 @@ export const styles = {
         "@media (max-width: 640px)_gridTemplateRows": "gridTemplateRows-xmr4b4k",
         "@media (max-width: 640px)_gridTemplateAreas": "gridTemplateAreas-xesbpuc",
         "@media (max-width: 640px)_gridTemplateColumns": "gridTemplateColumns-x15nfgh4",
-        $$css: "UnknownFile:15"
+        $$css: true
     },
     noSidebar: {
         gridTemplateColumns: "gridTemplateColumns-x1mkdm3x",
-        $$css: "UnknownFile:25"
+        $$css: true
     }
 };
 ({
     0: {
-        class: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
-        "data-style-src": "UnknownFile:10; UnknownFile:15"
+        class: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4"
     },
     1: {
-        class: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x",
-        "data-style-src": "UnknownFile:10; UnknownFile:25"
+        class: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x"
     }
 })[!!(sidebar == null) << 0];

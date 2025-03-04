@@ -36,14 +36,14 @@ use super::ast::{convertors::transform_shorthand_to_key_values, factories::bindi
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
     FileName::Real(path_buf) => path_buf.file_stem().unwrap().to_str().unwrap().to_string(),
-    _ => "UnknownFile".to_string(),
+    _ => "".to_string(),
   }
 }
 
 pub(crate) fn extract_path(path: &FileName) -> &str {
   match path {
     FileName::Real(path_buf) => path_buf.to_str().unwrap(),
-    _ => "UnknownFile",
+    _ => "",
   }
 }
 

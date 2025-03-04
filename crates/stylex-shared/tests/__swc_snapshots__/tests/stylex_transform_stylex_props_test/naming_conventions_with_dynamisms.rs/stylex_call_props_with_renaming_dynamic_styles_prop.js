@@ -11,15 +11,15 @@ const styles = {
         $$css: true
     }
 };
-_inject2(".x1nbzn64{font-size:var(--xz4eux4)}", 3000);
-_inject2(".xx5h6fz{font-size:var(--xsnljwq)}", 3000);
+_inject2(".x3b68l4{font-size:var(--x1cjnt43)}", 3000);
+_inject2(".x59qt1o{font-size:var(--xw8ib4r)}", 3000);
 const variants = {
     small: {
-        fontSize: "x1nbzn64",
+        fontSize: "x3b68l4",
         $$css: true
     },
     big: {
-        fontSize: "xx5h6fz",
+        fontSize: "x59qt1o",
         $$css: true
     }
 };

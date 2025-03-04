@@ -1,7 +1,10 @@
 use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
+use swc_core::{
+  common::FileName,
+  ecma::{
+    parser::{Syntax, TsSyntax},
+    transforms::testing::test,
+  },
 };
 
 test!(
@@ -194,7 +197,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
-    PluginPass::default(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
+    },
     None
   ),
   stylex_call_props_with_renaming_dynamic_styles_prop,
@@ -238,7 +244,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
-    PluginPass::default(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
+    },
     None
   ),
   stylex_call_props_with_renaming_dynamic_styles_prop_and_conflict_import_name,

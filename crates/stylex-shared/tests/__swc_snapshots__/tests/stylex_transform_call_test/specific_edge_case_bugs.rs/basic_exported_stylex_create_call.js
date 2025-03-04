@@ -23,7 +23,7 @@ export const styles = {
         gridColumn: null,
         gridColumnStart: null,
         gridColumnEnd: null,
-        $$css: "UnknownFile:3"
+        $$css: true
     },
     content: {
         gridArea: "gridArea-x1fdo2jl",
@@ -33,13 +33,13 @@ export const styles = {
         gridColumn: null,
         gridColumnStart: null,
         gridColumnEnd: null,
-        $$css: "UnknownFile:7"
+        $$css: true
     },
     root: {
         display: "display-xrvj5dj",
         gridTemplateRows: "gridTemplateRows-x7k18q3",
         gridTemplateAreas: "gridTemplateAreas-x5gp9wm",
-        $$css: "UnknownFile:10"
+        $$css: true
     },
     withSidebar: {
         gridTemplateColumns: "gridTemplateColumns-x1rkzygb",
@@ -48,11 +48,11 @@ export const styles = {
         "@media (max-width: 640px)_gridTemplateRows": "gridTemplateRows-xmr4b4k",
         "@media (max-width: 640px)_gridTemplateAreas": "gridTemplateAreas-xesbpuc",
         "@media (max-width: 640px)_gridTemplateColumns": "gridTemplateColumns-x15nfgh4",
-        $$css: "UnknownFile:15"
+        $$css: true
     },
     noSidebar: {
         gridTemplateColumns: "gridTemplateColumns-x1mkdm3x",
-        $$css: "UnknownFile:25"
+        $$css: true
     }
 };
 ({

@@ -21,7 +21,6 @@ pub(crate) fn add_source_map_data(
 ) -> StylesObjectMap {
   let mut result: StylesObjectMap = IndexMap::new();
 
-  // Get file information
   let current_filename = state.get_filename();
 
   for (key, value) in obj {
@@ -84,54 +83,53 @@ pub(crate) fn add_source_map_data(
 }
 
 fn get_package_prefix(absolute_path: &str) -> Option<String> {
-  if let Some(node_modules_index) = absolute_path.find("node_modules") {
-    let package_name = &absolute_path[(node_modules_index + "node_modules".len() + 1)..];
-    Some(
-      package_name
-        .split(std::path::MAIN_SEPARATOR)
-        .next()?
-        .to_string(),
-    )
-  } else {
-    None
+  const NODE_MODULES: &str = "node_modules";
+
+  let node_modules_index = absolute_path.find(NODE_MODULES)?;
+  let start_pos = node_modules_index + NODE_MODULES.len() + 1;
+
+  if start_pos >= absolute_path.len() {
+    return None;
   }
+
+  absolute_path[start_pos..]
+    .split(std::path::MAIN_SEPARATOR)
+    .next()
+    .map(String::from)
 }
 
 fn get_short_path(relative_path: &str) -> String {
-  let parts: Vec<&str> = relative_path.split(std::path::MAIN_SEPARATOR).collect();
-  let parts_len = parts.len();
+  let path_parts: Vec<&str> = relative_path.split(std::path::MAIN_SEPARATOR).collect();
 
-  if parts_len >= 2 {
-    format!("{}/{}", parts[parts_len - 2], parts[parts_len - 1])
-  } else if parts_len == 1 {
-    parts[0].to_string()
+  let path_segments = if path_parts.len() >= 2 {
+    &path_parts[path_parts.len() - 2..]
   } else {
-    String::new()
-  }
+    &path_parts[..]
+  };
+
+  path_segments.join("/")
 }
 
 fn create_short_filename(absolute_path: &str, state: &StateManager) -> String {
-  let is_haste = match state.options.unstable_module_resolution {
-    CheckModuleResolution::CommonJS(_) => false,
-    CheckModuleResolution::Haste(_) => true,
-    CheckModuleResolution::CrossFileParsing(_) => false,
-  };
+  let is_haste = matches!(state.options.unstable_module_resolution, CheckModuleResolution::Haste(_));
+
+  let path = Path::new(absolute_path);
 
   let cwd = env::current_dir().unwrap_or_default();
-  let relative_path = Path::new(absolute_path)
+  let relative_path = path
     .strip_prefix(&cwd)
-    .map_or(absolute_path.to_string(), |p| {
-      p.to_string_lossy().into_owned()
-    });
+    .map_or(absolute_path.to_string(), |p| p.to_string_lossy().into_owned());
 
   if let Some(package_prefix) = get_package_prefix(absolute_path) {
     let short_path = get_short_path(&relative_path);
-    format!("{}:{}", package_prefix, short_path)
-  } else if is_haste {
-    Path::new(absolute_path)
-      .file_name()
-      .map_or_else(String::new, |f| f.to_string_lossy().into_owned())
-  } else {
-    get_short_path(&relative_path)
+    return format!("{}:{}", package_prefix, short_path);
   }
+
+  if is_haste {
+    return path
+      .file_name()
+      .map_or_else(String::new, |f| f.to_string_lossy().into_owned());
+  }
+
+  get_short_path(&relative_path)
 }

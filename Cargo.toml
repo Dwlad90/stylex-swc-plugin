@@ -5,8 +5,8 @@ members = ["crates/stylex-*"]
 
 [workspace.package]
 version = "0.6.6"
-edition = "2021"
-rust-version = "1.84.1"
+edition = "2024"
+rust-version = "1.85.0"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 

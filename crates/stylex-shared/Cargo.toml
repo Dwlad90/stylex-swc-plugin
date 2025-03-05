@@ -1,11 +1,11 @@
 [package]
 name = "stylex_shared"
-version = "0.6.6"
-edition = "2021"
-rust-version = "1.84.1"
-description = "Shared SWC tranformer for StyleX"
-license = "MIT"
-repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared SWC transformer for StyleX"
 
 [lib]
 ## With this config build fails with error: `linking with `cc` failed: exit status: 1`

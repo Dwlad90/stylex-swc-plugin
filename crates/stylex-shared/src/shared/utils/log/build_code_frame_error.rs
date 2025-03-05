@@ -1,7 +1,7 @@
 use std::{fs, path::Path, sync::Arc};
 use swc_compiler_base::{parse_js, print, IsModule, PrintArgs, SourceMapsConfig, TransformOutput};
 use swc_core::{
-  common::{errors::*, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, DUMMY_SP},
+  common::{errors::*, sync::Lrc, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, DUMMY_SP},
   ecma::{ast::*, visit::*},
 };
 use swc_ecma_parser::{Syntax, TsSyntax};
@@ -9,13 +9,13 @@ use swc_ecma_parser::{Syntax, TsSyntax};
 use crate::shared::{regex::URL_REGEX, structures::state_manager::StateManager};
 
 pub(crate) struct CodeFrame {
-  source_map: Arc<SourceMap>,
+  source_map: Lrc<SourceMap>,
   handler: Handler,
 }
 
 impl CodeFrame {
   fn new() -> Self {
-    let source_map: Arc<SourceMap> = Default::default();
+    let source_map: Lrc<SourceMap> = Default::default();
     let handler =
       Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(source_map.clone()));
 
@@ -135,6 +135,7 @@ pub(crate) fn get_span_from_source_code(
       code: "".to_string(),
       map: None,
       output: None,
+      diagnostics: Vec::default(),
     });
 
     printed_source_code.code

@@ -1,9 +1,11 @@
 [package]
 name = "stylex_compiler_rs"
-version = "0.6.6"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "StyleX rust compiler with SWC"
 
 
 [lib]

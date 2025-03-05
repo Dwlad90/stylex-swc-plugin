@@ -1,11 +1,11 @@
 [package]
 name = "stylex_test_parser"
-version = "0.6.6"
-edition = "2021"
-rust-version = "1.84.1"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Test parser for StyleX"
-license = "MIT"
-repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,7 +27,7 @@ color-backtrace.workspace = true
 ctor.workspace = true
 env_logger.workspace = true
 
-clap = { version = "4.5.27", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 walkdir = { version = "2.5.0" }
 
 swc_compiler_base = { version = "*", features = ["node"] }

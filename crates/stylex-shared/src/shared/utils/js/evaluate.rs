@@ -6,14 +6,14 @@ use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{EqIgnoreSpan, SyntaxContext, DUMMY_SP},
+  common::{DUMMY_SP, EqIgnoreSpan, SyntaxContext},
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
       ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Pat,
       Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
     },
-    utils::{drop_span, ident::IdentLike, quote_ident, ExprExt},
+    utils::{ExprExt, drop_span, ident::IdentLike, quote_ident},
   },
 };
 
@@ -21,8 +21,8 @@ use crate::shared::{
   constants::{
     common::{INVALID_METHODS, VALID_CALLEES},
     evaluation_errors::{
-      unsupported_expression, unsupported_operator, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT,
-      OBJECT_METHOD, PATH_WITHOUT_NODE, UNEXPECTED_MEMBER_LOOKUP,
+      IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE,
+      UNEXPECTED_MEMBER_LOOKUP, unsupported_expression, unsupported_operator,
     },
     messages::{BUILT_IN_FUNCTION, ILLEGAL_PROP_ARRAY_VALUE, THEME_IMPORT_KEY_AS_OBJECT_KEY},
   },
@@ -41,7 +41,7 @@ use crate::shared::{
     named_import_source::ImportSources,
     seen_value::SeenValue,
     state::EvaluationState,
-    state_manager::{add_import_expression, SeenValueWithVarDeclCount, StateManager},
+    state_manager::{SeenValueWithVarDeclCount, StateManager, add_import_expression},
     theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
@@ -49,7 +49,9 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{
-        big_int_to_expression, binary_expr_to_num, binary_expr_to_string, bool_to_expression, expr_to_bool, expr_to_num, expr_to_str, key_value_to_str, lit_to_string, number_to_expression, string_to_expression, transform_shorthand_to_key_values
+        big_int_to_expression, binary_expr_to_num, binary_expr_to_string, bool_to_expression,
+        expr_to_bool, expr_to_num, expr_to_str, key_value_to_str, lit_to_string,
+        number_to_expression, string_to_expression, transform_shorthand_to_key_values,
       },
       factories::{array_expression_factory, lit_str_factory, object_expression_factory},
     },
@@ -63,7 +65,7 @@ use crate::shared::{
   },
 };
 
-use super::check_declaration::{check_ident_declaration, DeclarationType};
+use super::check_declaration::{DeclarationType, check_ident_declaration};
 
 pub(crate) fn evaluate_obj_key(
   prop_kv: &KeyValueProp,
@@ -266,13 +268,14 @@ fn _evaluate(
 
       if let Some(func) = state.functions.identifiers.get(atom_ident_id) {
         match func.as_ref() {
-          FunctionConfigType::Regular(func) => {
-            if let FunctionType::Mapper(func) = &func.fn_ptr {
+          FunctionConfigType::Regular(func) => match &func.fn_ptr {
+            FunctionType::Mapper(func) => {
               return Some(EvaluateResultValue::Expr(func()));
-            } else {
+            }
+            _ => {
               return deopt(path, state, "Function not found");
             }
-          }
+          },
           FunctionConfigType::Map(func_map) => {
             return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
           }
@@ -350,12 +353,9 @@ fn _evaluate(
       let parent_is_call_expr = traversal_state
         .all_call_expressions
         .iter()
-        .any(|call_expr| {
-          if let Some(callee) = call_expr.callee.as_expr() {
-            callee.eq_ignore_span(&Box::new(Expr::Member(member.clone())))
-          } else {
-            false
-          }
+        .any(|call_expr| match call_expr.callee.as_expr() {
+          Some(callee) => callee.eq_ignore_span(&Box::new(Expr::Member(member.clone()))),
+          _ => false,
         });
 
       let evaluated_value = if parent_is_call_expr {
@@ -364,186 +364,189 @@ fn _evaluate(
         evaluate_cached(&member.obj, state, traversal_state, fns)
       };
 
-      if let Some(object) = evaluated_value {
-        if !state.confident {
-          return None;
-        }
-
-        let prop_path = &member.prop;
-
-        let property = match prop_path {
-          MemberProp::Ident(ident) => Some(EvaluateResultValue::Expr(Expr::from(ident.clone()))),
-          MemberProp::Computed(ComputedPropName { expr, .. }) => {
-            let result = evaluate_cached(expr, state, traversal_state, fns);
-
-            if !state.confident {
-              return None;
-            }
-
-            result
+      match evaluated_value {
+        Some(object) => {
+          if !state.confident {
+            return None;
           }
-          MemberProp::PrivateName(_) => {
-            return deopt(path, state, UNEXPECTED_MEMBER_LOOKUP);
-          }
-        };
 
-        match object {
-          EvaluateResultValue::Expr(expr) => match &expr {
-            Expr::Array(ArrayLit { elems, .. }) => {
-              let eval_res = property.expect("Property not found");
+          let prop_path = &member.prop;
 
-              let expr = match eval_res {
-                EvaluateResultValue::Expr(expr) => expr,
-                _ => panic!(
-                  "Property not found: {:?}",
-                  expr.get_type(get_default_expr_ctx())
-                ),
-              };
+          let property = match prop_path {
+            MemberProp::Ident(ident) => Some(EvaluateResultValue::Expr(Expr::from(ident.clone()))),
+            MemberProp::Computed(ComputedPropName { expr, .. }) => {
+              let result = evaluate_cached(expr, state, traversal_state, fns);
 
-              let value = match expr {
-                Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
-                _ => panic!(
-                  "Member not found: {:?}",
-                  expr.get_type(get_default_expr_ctx())
-                ),
-              };
-
-              let property = elems.get(value)?;
-
-              let expr = property.as_ref().expect("Member not found").expr.clone();
-
-              Some(EvaluateResultValue::Expr(*expr))
-            }
-            Expr::Object(ObjectLit { props, .. }) => {
-              let eval_res = property.expect("Property not found");
-
-              let ident = match eval_res {
-                EvaluateResultValue::Expr(ident) => ident,
-                EvaluateResultValue::ThemeRef(theme) => {
-                  // NOTE: it's a very edge case, but it's possible to have a theme ref as a key
-                  // in an object, when theme import key is same as other variable name.
-                  // One of reasons is code minification or obfuscation,
-                  // when theme import key is renamed to a shorter name.
-                  // Also it may be a result of a bug in the code.
-
-                  warn!("A theme import key is being used as an object key. This might be caused by code minification or an internal error.\r\nFor additional details, please recompile using debug mode.");
-
-                  debug!("Evaluating member access on object:");
-                  debug!("Object expression: {:?}", expr);
-                  debug!("Theme reference: {:?}", theme);
-                  debug!("Original property: {:?}", prop_path);
-
-                  return deopt(path, state, THEME_IMPORT_KEY_AS_OBJECT_KEY);
-                }
-                _ => {
-                  debug!("Property not found for expression: {:?}", expr);
-                  debug!("Evaluation result: {:?}", eval_res);
-                  debug!("Original property: {:?}", prop_path);
-
-                  panic!(
-                    "Property not found: {:?}. For additional details, please recompile using debug mode.",
-                    expr.get_type(get_default_expr_ctx())
-                  )
-                }
-              };
-
-              let ident = &mut ident.to_owned();
-              let normalized_ident = normalize_expr(ident);
-
-              let ident_string_name = match normalized_ident {
-                Expr::Ident(ident) => ident.sym.to_string(),
-                Expr::Lit(lit) => lit_to_string(lit).unwrap_or_else(|| {
-                  panic!(
-                    "Property must be convertable to string: {:?}",
-                    normalized_ident.get_type(get_default_expr_ctx())
-                  )
-                }),
-                _ => unimplemented!(
-                  "Member property: {:?}",
-                  normalized_ident.get_type(get_default_expr_ctx())
-                ),
-              };
-
-              let property = props.iter().find(|prop| match prop {
-                PropOrSpread::Spread(_) => unimplemented!("Spread"),
-                PropOrSpread::Prop(prop) => {
-                  let mut prop = prop.clone();
-
-                  transform_shorthand_to_key_values(&mut prop);
-
-                  match prop.as_ref() {
-                    Prop::KeyValue(key_value) => {
-                      let key = key_value_to_str(key_value);
-
-                      ident_string_name == key
-                    }
-                    _ => unimplemented!("Prop"),
-                  }
-                }
-              })?;
-
-              if let PropOrSpread::Prop(prop) = property {
-                return Some(EvaluateResultValue::Expr(
-                  *prop
-                    .as_key_value()
-                    .expect("Expression is not a key value")
-                    .value
-                    .clone(),
-                ));
-              } else {
-                panic!(
-                  "Member not found: {:?}",
-                  expr.get_type(get_default_expr_ctx())
-                );
+              if !state.confident {
+                return None;
               }
+
+              result
             }
-            _ => unimplemented!("Expression: {:?}", expr.get_type(get_default_expr_ctx())),
-          },
-          EvaluateResultValue::FunctionConfigMap(fc_map) => {
-            let key = match property {
-              Some(property) => match property {
-                EvaluateResultValue::Expr(expr) => match expr {
-                  Expr::Ident(ident) => Box::new(ident.clone()),
+            MemberProp::PrivateName(_) => {
+              return deopt(path, state, UNEXPECTED_MEMBER_LOOKUP);
+            }
+          };
+
+          match object {
+            EvaluateResultValue::Expr(expr) => match &expr {
+              Expr::Array(ArrayLit { elems, .. }) => {
+                let eval_res = property.expect("Property not found");
+
+                let expr = match eval_res {
+                  EvaluateResultValue::Expr(expr) => expr,
+                  _ => panic!(
+                    "Property not found: {:?}",
+                    expr.get_type(get_default_expr_ctx())
+                  ),
+                };
+
+                let value = match expr {
+                  Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
                   _ => panic!(
                     "Member not found: {:?}",
                     expr.get_type(get_default_expr_ctx())
                   ),
-                },
-                _ => unimplemented!(),
-              },
-              None => panic!("Member not found"),
-            };
+                };
 
-            let fc = fc_map.get(&key.sym).unwrap();
+                let property = elems.get(value)?;
 
-            return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
-          }
-          EvaluateResultValue::ThemeRef(mut theme_ref) => {
-            let key = match property {
-              Some(property) => match property {
-                EvaluateResultValue::Expr(expr) => match expr {
-                  Expr::Ident(Ident { sym, .. }) => sym.to_string(),
-                  Expr::Lit(lit) => lit_to_string(&lit).expect("Property must be a string"),
-                  _ => panic!(
+                let expr = property.as_ref().expect("Member not found").expr.clone();
+
+                Some(EvaluateResultValue::Expr(*expr))
+              }
+              Expr::Object(ObjectLit { props, .. }) => {
+                let eval_res = property.expect("Property not found");
+
+                let ident = match eval_res {
+                  EvaluateResultValue::Expr(ident) => ident,
+                  EvaluateResultValue::ThemeRef(theme) => {
+                    // NOTE: it's a very edge case, but it's possible to have a theme ref as a key
+                    // in an object, when theme import key is same as other variable name.
+                    // One of reasons is code minification or obfuscation,
+                    // when theme import key is renamed to a shorter name.
+                    // Also it may be a result of a bug in the code.
+
+                    warn!(
+                      "A theme import key is being used as an object key. This might be caused by code minification or an internal error.\r\nFor additional details, please recompile using debug mode."
+                    );
+
+                    debug!("Evaluating member access on object:");
+                    debug!("Object expression: {:?}", expr);
+                    debug!("Theme reference: {:?}", theme);
+                    debug!("Original property: {:?}", prop_path);
+
+                    return deopt(path, state, THEME_IMPORT_KEY_AS_OBJECT_KEY);
+                  }
+                  _ => {
+                    debug!("Property not found for expression: {:?}", expr);
+                    debug!("Evaluation result: {:?}", eval_res);
+                    debug!("Original property: {:?}", prop_path);
+
+                    panic!(
+                      "Property not found: {:?}. For additional details, please recompile using debug mode.",
+                      expr.get_type(get_default_expr_ctx())
+                    )
+                  }
+                };
+
+                let ident = &mut ident.to_owned();
+                let normalized_ident = normalize_expr(ident);
+
+                let ident_string_name = match normalized_ident {
+                  Expr::Ident(ident) => ident.sym.to_string(),
+                  Expr::Lit(lit) => lit_to_string(lit).unwrap_or_else(|| {
+                    panic!(
+                      "Property must be convertable to string: {:?}",
+                      normalized_ident.get_type(get_default_expr_ctx())
+                    )
+                  }),
+                  _ => unimplemented!(
+                    "Member property: {:?}",
+                    normalized_ident.get_type(get_default_expr_ctx())
+                  ),
+                };
+
+                let property = props.iter().find(|prop| match prop {
+                  PropOrSpread::Spread(_) => unimplemented!("Spread"),
+                  PropOrSpread::Prop(prop) => {
+                    let mut prop = prop.clone();
+
+                    transform_shorthand_to_key_values(&mut prop);
+
+                    match prop.as_ref() {
+                      Prop::KeyValue(key_value) => {
+                        let key = key_value_to_str(key_value);
+
+                        ident_string_name == key
+                      }
+                      _ => unimplemented!("Prop"),
+                    }
+                  }
+                })?;
+
+                if let PropOrSpread::Prop(prop) = property {
+                  return Some(EvaluateResultValue::Expr(
+                    *prop
+                      .as_key_value()
+                      .expect("Expression is not a key value")
+                      .value
+                      .clone(),
+                  ));
+                } else {
+                  panic!(
                     "Member not found: {:?}",
                     expr.get_type(get_default_expr_ctx())
-                  ),
+                  );
+                }
+              }
+              _ => unimplemented!("Expression: {:?}", expr.get_type(get_default_expr_ctx())),
+            },
+            EvaluateResultValue::FunctionConfigMap(fc_map) => {
+              let key = match property {
+                Some(property) => match property {
+                  EvaluateResultValue::Expr(expr) => match expr {
+                    Expr::Ident(ident) => Box::new(ident.clone()),
+                    _ => panic!(
+                      "Member not found: {:?}",
+                      expr.get_type(get_default_expr_ctx())
+                    ),
+                  },
+                  _ => unimplemented!(),
                 },
-                _ => unimplemented!(),
-              },
-              None => panic!("Member not found"),
-            };
+                None => panic!("Member not found"),
+              };
 
-            let value = theme_ref.get(&key, traversal_state);
+              let fc = fc_map.get(&key.sym).unwrap();
 
-            return Some(EvaluateResultValue::Expr(string_to_expression(
-              value.as_str(),
-            )));
+              return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
+            }
+            EvaluateResultValue::ThemeRef(mut theme_ref) => {
+              let key = match property {
+                Some(property) => match property {
+                  EvaluateResultValue::Expr(expr) => match expr {
+                    Expr::Ident(Ident { sym, .. }) => sym.to_string(),
+                    Expr::Lit(lit) => lit_to_string(&lit).expect("Property must be a string"),
+                    _ => panic!(
+                      "Member not found: {:?}",
+                      expr.get_type(get_default_expr_ctx())
+                    ),
+                  },
+                  _ => unimplemented!(),
+                },
+                None => panic!("Member not found"),
+              };
+
+              let value = theme_ref.get(&key, traversal_state);
+
+              return Some(EvaluateResultValue::Expr(string_to_expression(
+                value.as_str(),
+              )));
+            }
+            _ => unimplemented!("EvaluateResultValue"),
           }
-          _ => unimplemented!("EvaluateResultValue"),
         }
-      } else {
-        None
+        _ => None,
       }
     }
     Expr::Unary(unary) => {
@@ -1332,12 +1335,9 @@ fn _evaluate(
 
                       let key_value = key_values
                         .into_iter()
-                        .find(|key_value| {
-                          if let Some(key_ident) = key_value.key.as_ident() {
-                            key_ident.sym == prop_name
-                          } else {
-                            false
-                          }
+                        .find(|key_value| match key_value.key.as_ident() {
+                          Some(key_ident) => key_ident.sym == prop_name,
+                          _ => false,
                         })
                         .expect("Property not found");
 
@@ -1474,10 +1474,7 @@ fn _evaluate(
 
                     let value = key_value.value.as_lit().expect("Value not a literal");
 
-                    fn_args.insert(
-                      key,
-                      ValueWithDefault::String(lit_to_string(value).unwrap()),
-                    );
+                    fn_args.insert(key, ValueWithDefault::String(lit_to_string(value).unwrap()));
                   }
                 }
                 Expr::Lit(lit) => {
@@ -1734,7 +1731,10 @@ fn _evaluate(
       );
     }
     _ => {
-      warn!("Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details", normalized_path.get_type(get_default_expr_ctx()));
+      warn!(
+        "Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details",
+        normalized_path.get_type(get_default_expr_ctx())
+      );
 
       debug!("Unsupported type of expression: {:?}", normalized_path);
 
@@ -1896,8 +1896,10 @@ fn args_to_numbers(
     .flat_map(|arg| match arg {
       Some(arg) => match arg {
         EvaluateResultValue::Expr(expr) => {
-          vec![expr_to_num(expr, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error))]
+          vec![
+            expr_to_num(expr, state, traversal_state, fns)
+              .unwrap_or_else(|error| panic!("{}", error)),
+          ]
         }
         EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, traversal_state, fns),
         _ => unreachable!("Math.min/max requires a number"),

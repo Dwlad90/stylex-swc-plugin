@@ -7,10 +7,11 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
+use crate::StyleXTransform;
 use crate::shared::{
   constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
   utils::{
-    core::js_to_expr::{convert_object_to_ast, NestedStringObject},
+    core::js_to_expr::{NestedStringObject, convert_object_to_ast},
     js::evaluate::evaluate,
   },
 };
@@ -35,7 +36,6 @@ use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
   utils::core::dev_class_name::convert_theme_to_test_styles,
 };
-use crate::StyleXTransform;
 
 impl<C> StyleXTransform<C>
 where

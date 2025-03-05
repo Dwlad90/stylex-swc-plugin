@@ -73,29 +73,32 @@ pub(crate) fn stylex_create_set(
     let mut namespace_obj: FlatCompiledStyles = IndexMap::new();
 
     for (key, value) in compiled_namespace_tuples {
-      if let Some(class_name_tuples) = value.as_computed_styles() {
-        for ComputedStyle(_class_name, _, classes_to_original_path) in class_name_tuples.iter() {
-          class_paths_in_namespace.extend(classes_to_original_path.clone());
+      match value {
+        CompiledResult::ComputedStyles(class_name_tuples) => {
+          for ComputedStyle(_class_name, _, classes_to_original_path) in class_name_tuples.iter() {
+            class_paths_in_namespace.extend(classes_to_original_path.clone());
+          }
+
+          let class_name = class_name_tuples
+            .iter()
+            .map(|ComputedStyle(name, _, _)| name.as_str())
+            .collect::<Vec<&str>>()
+            .join(" ");
+
+          namespace_obj.insert(
+            key.clone(),
+            Rc::new(FlatCompiledStylesValue::String(class_name.clone())),
+          );
+
+          for ComputedStyle(class_name, injectable_styles, _) in class_name_tuples.iter() {
+            injected_styles_map
+              .entry(class_name.clone())
+              .or_insert_with(|| Rc::new(injectable_styles.clone()));
+          }
         }
-
-        let class_name = class_name_tuples
-          .iter()
-          .map(|ComputedStyle(name, _, _)| name.as_str())
-          .collect::<Vec<&str>>()
-          .join(" ");
-
-        namespace_obj.insert(
-          key.clone(),
-          Rc::new(FlatCompiledStylesValue::String(class_name.clone())),
-        );
-
-        for ComputedStyle(class_name, injectable_styles, _) in class_name_tuples.iter() {
-          injected_styles_map
-            .entry(class_name.clone())
-            .or_insert_with(|| Rc::new(injectable_styles.clone()));
+        _ => {
+          namespace_obj.insert(key.clone(), Rc::new(FlatCompiledStylesValue::Null));
         }
-      } else {
-        namespace_obj.insert(key.clone(), Rc::new(FlatCompiledStylesValue::Null));
       }
     }
 

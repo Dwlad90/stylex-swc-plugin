@@ -247,10 +247,9 @@ pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
 pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
   let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
 
-  if let Some(call) = init {
-    is_target_call(("keyframes", &state.stylex_keyframes_import), &call, state)
-  } else {
-    false
+  match init {
+    Some(call) => is_target_call(("keyframes", &state.stylex_keyframes_import), &call, state),
+    _ => false,
   }
 }
 

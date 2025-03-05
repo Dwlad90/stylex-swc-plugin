@@ -9,9 +9,7 @@ use crate::shared::{
     style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
   },
   structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{
-    ast::convertors::lit_to_string, common::increase_ident_count, js::evaluate::evaluate,
-  },
+  utils::{ast::convertors::lit_to_string, common::increase_ident_count, js::evaluate::evaluate},
 };
 
 pub(crate) fn member_expression(

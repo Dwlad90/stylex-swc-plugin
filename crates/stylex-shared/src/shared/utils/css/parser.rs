@@ -1,5 +1,5 @@
 use cssparser::{
-  serialize_identifier, serialize_string, ParseError, Parser, ParserInput, SourcePosition, Token,
+  ParseError, Parser, ParserInput, SourcePosition, Token, serialize_identifier, serialize_string,
 };
 
 pub fn format_ident(ident: &str) -> String {

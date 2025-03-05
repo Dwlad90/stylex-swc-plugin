@@ -30,7 +30,7 @@ pub(crate) static ILLEGAL_PROP_ARRAY_VALUE: &str =
   "A style array value can only contain strings or numbers.";
 pub(crate) static ILLEGAL_NAMESPACE_VALUE: &str = "A stylex namespace must be an object.";
 #[allow(dead_code)]
-pub(crate) static INVALID_SPREAD:&str =  "Imported styles spread with a stylex.create call must be type cast as `XStyle` to verify their type.";
+pub(crate) static INVALID_SPREAD: &str = "Imported styles spread with a stylex.create call must be type cast as `XStyle` to verify their type.";
 #[allow(dead_code)]
 pub(crate) static LOCAL_ONLY: &str = "The return value of stylex.create() should not be exported.";
 #[allow(dead_code)]
@@ -50,7 +50,7 @@ pub(crate) static NON_EXPORT_NAMED_DECLARATION: &str =
   "The return value of stylex.defineVars() must be bound to a named export.";
 #[allow(dead_code)]
 pub(crate) static ANONYMOUS_THEME: &str = "stylex.createTheme() must be bound to a named constant.";
-pub(crate) static ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS:&str =  "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.";
+pub(crate) static ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS: &str = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.";
 pub(crate) static BUILT_IN_FUNCTION: &str = "Evaluation built-in functions not supported";
 
 pub(crate) static NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL: &str =

@@ -8,7 +8,7 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{ArrayLit, Decl, Expr, ExprOrSpread, ExprStmt, Pass, Pat, Stmt, VarDeclarator},
-    visit::{fold_pass, Fold, FoldWith},
+    visit::{Fold, FoldWith, fold_pass},
   },
 };
 pub(crate) struct EvaluationStyleXTransform {

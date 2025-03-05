@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::evaluation_errors::{unsupported_expression, UNDEFINED_CONST},
+  constants::evaluation_errors::{UNDEFINED_CONST, unsupported_expression},
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::state::EvaluationState,
 };

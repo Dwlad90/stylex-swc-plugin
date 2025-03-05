@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod normalizers {
   use swc_core::{
-    common::{BytePos, Span, DUMMY_SP},
+    common::{BytePos, DUMMY_SP, Span},
     css::parser::error::{Error, ErrorKind},
   };
 

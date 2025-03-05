@@ -16,7 +16,7 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{Decl, Expr, ExprOrSpread, ExprStmt, Pass, Pat, Prop, PropOrSpread, Stmt, VarDeclarator},
-    visit::{fold_pass, Fold, FoldWith},
+    visit::{Fold, FoldWith, fold_pass},
   },
 };
 pub(crate) struct ArgsStyleXTransform {

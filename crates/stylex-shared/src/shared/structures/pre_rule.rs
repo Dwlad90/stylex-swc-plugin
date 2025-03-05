@@ -37,7 +37,7 @@ pub(crate) enum CompiledResult {
 }
 
 impl CompiledResult {
-  pub(crate) fn as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
+  pub(crate) fn _as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
     match self {
       CompiledResult::ComputedStyles(computed_styles) => Some(computed_styles),
       _ => None,

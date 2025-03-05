@@ -9,7 +9,7 @@ use stylex_shared::shared::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{SyntaxContext, DUMMY_SP},
+  common::{DUMMY_SP, SyntaxContext},
   ecma::{
     ast::{
       ArrayLit, Expr, ExprOrSpread, KeyValueProp, NewExpr, ObjectLit, Prop, PropName, PropOrSpread,

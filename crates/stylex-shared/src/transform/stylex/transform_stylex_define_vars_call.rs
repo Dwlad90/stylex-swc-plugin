@@ -11,7 +11,7 @@ use crate::shared::{
 };
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
-  utils::core::js_to_expr::{convert_object_to_ast, NestedStringObject},
+  utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast},
 };
 use crate::shared::{
   enums::data_structures::top_level_expression::TopLevelExpressionKind,

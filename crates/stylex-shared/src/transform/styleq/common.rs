@@ -67,7 +67,8 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
             panic!("Style object does not contain a compiled key")
           };
 
-          if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) = a.as_ref() {
+          if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) = a.as_ref()
+          {
             let btree_map: BTreeMap<_, _> = style.iter().collect();
 
             let style_hash = get_hash(btree_map);
@@ -102,7 +103,8 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                         FlatCompiledStylesValue::String(strng) => strng.clone(),
                         other => {
                           let other_debug_info = format!("{:?}", other);
-                          let variant_name = other_debug_info.split("::").last().unwrap_or("unknown");
+                          let variant_name =
+                            other_debug_info.split("::").last().unwrap_or("unknown");
 
                           unimplemented!(
                             "String conversion not implemented for FlatCompiledStylesValue::{}",

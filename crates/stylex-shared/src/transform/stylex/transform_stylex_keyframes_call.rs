@@ -5,6 +5,7 @@ use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
+use crate::StyleXTransform;
 use crate::shared::structures::{
   functions::{FunctionConfig, FunctionMap, FunctionType},
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
@@ -24,7 +25,6 @@ use crate::shared::{
 use crate::shared::{
   transformers::stylex_keyframes::stylex_keyframes, utils::js::evaluate::evaluate,
 };
-use crate::StyleXTransform;
 
 impl<C> StyleXTransform<C>
 where

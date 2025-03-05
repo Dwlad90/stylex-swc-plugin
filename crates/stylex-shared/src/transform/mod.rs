@@ -8,6 +8,7 @@ use swc_core::{
 };
 
 use crate::{
+  StyleXOptionsParams,
   shared::{
     enums::core::TransformationCycle,
     structures::{
@@ -18,7 +19,6 @@ use crate::{
     },
     utils::common::increase_ident_count,
   },
-  StyleXOptionsParams,
 };
 
 mod fold;
@@ -96,7 +96,7 @@ where
     comments: C,
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
-  ) -> impl Pass {
+  ) -> impl Pass + use<C> {
     fold_pass(Self::new_test_force_runtime_injection(
       comments,
       plugin_pass,
@@ -139,7 +139,7 @@ where
     comments: C,
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
-  ) -> impl Pass {
+  ) -> impl Pass + use<C> {
     fold_pass(Self::new_test(comments, plugin_pass, config))
   }
 
@@ -218,16 +218,15 @@ where
       .state
       .declarations
       .iter()
-      .find(|decl| {
-        if let Some(init) = &decl.init {
+      .find(|decl| match &decl.init {
+        Some(init) => {
           if let Expr::Call(init_call) = init.as_ref() {
             init_call == call
           } else {
             false
           }
-        } else {
-          false
         }
+        _ => false,
       })
       .cloned();
 
@@ -248,7 +247,7 @@ fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> FxHashSet<I
   stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));
 
   if let Some(stylex_imports_extends) = match config {
-    Some(ref config) => config.import_sources.clone(),
+    Some(config) => config.import_sources.clone(),
     None => None,
   } {
     stylex_imports.extend(stylex_imports_extends)

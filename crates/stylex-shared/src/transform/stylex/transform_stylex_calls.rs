@@ -4,8 +4,8 @@ use swc_core::{
   ecma::ast::{CallExpr, Callee, Expr, MemberProp},
 };
 
-use crate::shared::enums::core::TransformationCycle;
 use crate::StyleXTransform;
+use crate::shared::enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

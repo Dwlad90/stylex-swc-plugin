@@ -21,7 +21,7 @@ use crate::shared::{
     common::{create_hash, dashify},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::common::{generate_ltr, generate_rtl, transform_value_cached},
-    object::{obj_entries, obj_from_entries, obj_map, obj_map_keys, Pipe},
+    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys},
   },
 };
 

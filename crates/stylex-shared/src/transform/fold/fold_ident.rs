@@ -1,11 +1,11 @@
 use swc_core::{common::comments::Comments, ecma::ast::Ident};
 
 use crate::{
+  StyleXTransform,
   shared::{
     enums::core::TransformationCycle,
     utils::common::{increase_ident_count, reduce_ident_count},
   },
-  StyleXTransform,
 };
 
 impl<C> StyleXTransform<C>

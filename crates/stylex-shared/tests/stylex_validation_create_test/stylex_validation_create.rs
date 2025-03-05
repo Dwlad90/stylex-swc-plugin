@@ -1,4 +1,4 @@
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
+use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
@@ -435,8 +435,8 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
 #[should_panic(
   expected = "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts file extension and follows the\nrules for defining variariables:\n\nhttps://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables"
 )]
-fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_named_import_fn(
-) {
+fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_named_import_fn()
+ {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,
@@ -467,8 +467,8 @@ fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_
 #[should_panic(
   expected = "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts file extension and follows the\nrules for defining variariables:\n\nhttps://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-variables"
 )]
-fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_named_default_fn(
-) {
+fn values_must_be_static_arrays_of_number_or_string_in_stylex_create_non_static_value_named_default_fn()
+ {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,

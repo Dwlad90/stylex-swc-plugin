@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use swc_core::{
-  common::{SyntaxContext, DUMMY_SP},
+  common::{DUMMY_SP, SyntaxContext},
   ecma::{
     ast::{
       ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, CondExpr,
@@ -84,51 +84,56 @@ pub fn evaluate_stylex_create_arg(
                       .filter_map(|param| param.as_ident().cloned())
                       .collect::<Vec<BindingIdent>>();
 
-                    if let BlockStmtOrExpr::Expr(expr) = fn_path.body.as_mut() {
-                      if let Expr::Object(fn_body_object) = normalize_expr(expr) {
-                        let eval_result = evaluate_partial_object_recursively(
-                          fn_body_object,
-                          traversal_state,
-                          functions,
-                          None,
-                        );
+                    match fn_path.body.as_mut() {
+                      BlockStmtOrExpr::Expr(expr) => {
+                        if let Expr::Object(fn_body_object) = normalize_expr(expr) {
+                          let eval_result = evaluate_partial_object_recursively(
+                            fn_body_object,
+                            traversal_state,
+                            functions,
+                            None,
+                          );
 
-                        if !eval_result.confident {
-                          return Box::new(EvaluateResult {
-                            confident: eval_result.confident,
-                            deopt: eval_result.deopt,
-                            reason: eval_result.reason,
-                            value: eval_result.value,
-                            inline_styles: None,
-                            fns: None,
-                          });
+                          if !eval_result.confident {
+                            return Box::new(EvaluateResult {
+                              confident: eval_result.confident,
+                              deopt: eval_result.deopt,
+                              reason: eval_result.reason,
+                              value: eval_result.value,
+                              inline_styles: None,
+                              fns: None,
+                            });
+                          }
+
+                          let value = eval_result
+                            .value
+                            .as_ref()
+                            .and_then(|value| value.as_expr())
+                            .and_then(|expr| expr.as_object())
+                            .expect("Value not an object");
+
+                          let key = expr_to_str(key_expr, traversal_state, functions);
+
+                          fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
+
+                          result_value.insert(
+                            key_expr.clone(),
+                            value
+                              .props
+                              .iter()
+                              .filter_map(|prop| {
+                                prop.as_prop().and_then(|prop| prop.as_key_value())
+                              })
+                              .cloned()
+                              .collect(),
+                          );
+                        } else {
+                          return evaluate(path, traversal_state, functions);
                         }
-
-                        let value = eval_result
-                          .value
-                          .as_ref()
-                          .and_then(|value| value.as_expr())
-                          .and_then(|expr| expr.as_object())
-                          .expect("Value not an object");
-
-                        let key = expr_to_str(key_expr, traversal_state, functions);
-
-                        fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
-
-                        result_value.insert(
-                          key_expr.clone(),
-                          value
-                            .props
-                            .iter()
-                            .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
-                            .cloned()
-                            .collect(),
-                        );
-                      } else {
-                        return evaluate(path, traversal_state, functions);
                       }
-                    } else {
-                      unimplemented!("Block statement")
+                      _ => {
+                        unimplemented!("Block statement")
+                      }
                     }
                   }
                   _ => {

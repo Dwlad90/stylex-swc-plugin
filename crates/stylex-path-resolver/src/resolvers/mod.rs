@@ -19,9 +19,9 @@ use std::fs;
 use crate::{
   file_system::{get_directories, get_directory_path_recursive},
   package_json::{
-    find_closest_node_modules, find_closest_package_json_folder, get_package_json,
-    get_package_json_with_deps, recursive_find_node_modules, resolve_package_from_package_json,
-    PackageJsonExtended,
+    PackageJsonExtended, find_closest_node_modules, find_closest_package_json_folder,
+    get_package_json, get_package_json_with_deps, recursive_find_node_modules,
+    resolve_package_from_package_json,
   },
   utils::{contains_subpath, relative_path},
 };
@@ -324,7 +324,9 @@ fn resolve_package_json_exports(
   }
 
   if result.components().count() == 0 {
-    warn!("Unfortunatly, the exports field is not yet fully supported, so path resolving may work not as expected");
+    warn!(
+      "Unfortunatly, the exports field is not yet fully supported, so path resolving may work not as expected"
+    );
     // TODO: implement exports field resolution
   }
 

@@ -4,8 +4,8 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::core::TransformationCycle, utils::common::fill_top_level_expressions},
   StyleXTransform,
+  shared::{enums::core::TransformationCycle, utils::common::fill_top_level_expressions},
 };
 
 impl<C> StyleXTransform<C>

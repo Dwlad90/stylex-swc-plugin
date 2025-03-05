@@ -3,7 +3,7 @@ use swc_core::{
   ecma::{ast::Stmt, visit::FoldWith},
 };
 
-use crate::{shared::enums::core::TransformationCycle, StyleXTransform};
+use crate::{StyleXTransform, shared::enums::core::TransformationCycle};
 
 impl<C> StyleXTransform<C>
 where

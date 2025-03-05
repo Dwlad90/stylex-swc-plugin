@@ -23,7 +23,7 @@ use swc_core::{
       ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr,
       MemberProp, Module, ModuleItem, PropName, Stmt, VarDeclarator,
     },
-    visit::{noop_fold_type, Fold},
+    visit::{Fold, noop_fold_type},
   },
 };
 

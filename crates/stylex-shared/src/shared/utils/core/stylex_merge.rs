@@ -12,7 +12,7 @@ use crate::shared::{
     common::{reduce_ident_count, reduce_member_expression_count},
     core::{
       make_string_expression::make_string_expression,
-      parse_nullable_style::{parse_nullable_style, ResolvedArg, StyleObject},
+      parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
     },
   },
 };

@@ -186,20 +186,21 @@ pub(crate) fn flatten_raw_style_object(
         flattened.insert(css_property_key, pre_rule);
       }
       Expr::Ident(ident) => {
-        if let Some(var_decl) =
-          get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce)
-        {
-          let var_decl_expr = get_expr_from_var_decl(&var_decl);
+        match get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce) {
+          Some(var_decl) => {
+            let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
-          let mut property_cloned = property.clone();
-          property_cloned.value = Box::new(var_decl_expr.clone());
+            let mut property_cloned = property.clone();
+            property_cloned.value = Box::new(var_decl_expr.clone());
 
-          let inner_flattened =
-            flatten_raw_style_object(&[property_cloned], key_path, state, traversal_state, fns);
+            let inner_flattened =
+              flatten_raw_style_object(&[property_cloned], key_path, state, traversal_state, fns);
 
-          flattened.extend(inner_flattened);
-        } else {
-          panic!("{}", NON_STATIC_VALUE)
+            flattened.extend(inner_flattened);
+          }
+          _ => {
+            panic!("{}", NON_STATIC_VALUE)
+          }
         }
       }
       Expr::Bin(bin) => {
@@ -222,7 +223,7 @@ pub(crate) fn flatten_raw_style_object(
           let mut equivalent_pairs: IndexMap<String, IndexMap<String, PreRules>> = IndexMap::new();
 
           for prop in obj.clone().props.iter_mut() {
-            if let PropOrSpread::Prop(ref mut prop) = prop {
+            if let PropOrSpread::Prop(prop) = prop {
               transform_shorthand_to_key_values(prop);
 
               if let Prop::KeyValue(key_value) = prop.as_ref() {

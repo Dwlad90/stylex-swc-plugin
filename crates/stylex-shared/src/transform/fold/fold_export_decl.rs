@@ -7,8 +7,8 @@ use swc_core::{
 };
 
 use crate::{
-  shared::{enums::core::TransformationCycle, utils::common::increase_ident_count_by_count},
   StyleXTransform,
+  shared::{enums::core::TransformationCycle, utils::common::increase_ident_count_by_count},
 };
 
 impl<C> StyleXTransform<C>

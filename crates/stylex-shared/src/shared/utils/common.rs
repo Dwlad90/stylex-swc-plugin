@@ -9,7 +9,7 @@ use std::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{FileName, DUMMY_SP},
+  common::{DUMMY_SP, FileName},
   ecma::ast::{
     BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
     ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt,
@@ -187,13 +187,12 @@ pub(crate) fn get_import_from<'a>(
     import.specifiers.iter().any(|specifier| match specifier {
       ImportSpecifier::Named(named_import) => {
         named_import.local.sym == ident.sym || {
-          if let Some(imported) = &named_import.imported {
-            match imported {
+          match &named_import.imported {
+            Some(imported) => match imported {
               ModuleExportName::Ident(export_ident) => export_ident.sym == ident.sym,
               ModuleExportName::Str(strng) => strng.value == ident.sym,
-            }
-          } else {
-            false
+            },
+            _ => false,
           }
         }
       }
@@ -301,7 +300,7 @@ pub(crate) fn deep_merge_props(
         Prop::KeyValue(mut kv) => {
           if new_props.iter().any(|p| match p {
             PropOrSpread::Prop(p) => match p.as_ref() {
-              Prop::KeyValue(ref existing_kv) => prop_name_eq(&kv.key, &existing_kv.key),
+              Prop::KeyValue(existing_kv) => prop_name_eq(&kv.key, &existing_kv.key),
               _ => false,
             },
             _ => false,
@@ -498,18 +497,21 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
       }
     }
     ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_decl)) => {
-      if let Some(paren) = export_decl.expr.as_paren() {
-        state.top_level_expressions.push(TopLevelExpression(
-          TopLevelExpressionKind::DefaultExport,
-          *paren.expr.clone(),
-          None,
-        ));
-      } else {
-        state.top_level_expressions.push(TopLevelExpression(
-          TopLevelExpressionKind::DefaultExport,
-          *export_decl.expr.clone(),
-          None,
-        ));
+      match export_decl.expr.as_paren() {
+        Some(paren) => {
+          state.top_level_expressions.push(TopLevelExpression(
+            TopLevelExpressionKind::DefaultExport,
+            *paren.expr.clone(),
+            None,
+          ));
+        }
+        _ => {
+          state.top_level_expressions.push(TopLevelExpression(
+            TopLevelExpressionKind::DefaultExport,
+            *export_decl.expr.clone(),
+            None,
+          ));
+        }
       }
     }
     ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) => {

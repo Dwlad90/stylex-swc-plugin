@@ -1,11 +1,11 @@
 use std::env;
 
 use stylex_shared::{
+  StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
     stylex_options::{StyleResolution, StyleXOptions, StyleXOptionsParams},
   },
-  StyleXTransform,
 };
 use swc_core::{
   common::FileName,

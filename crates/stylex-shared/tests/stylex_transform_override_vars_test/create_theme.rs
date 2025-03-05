@@ -1,10 +1,10 @@
 use insta::assert_snapshot;
 use stylex_shared::{
+  StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
-  StyleXTransform,
 };
 use swc_core::{
   common::FileName,

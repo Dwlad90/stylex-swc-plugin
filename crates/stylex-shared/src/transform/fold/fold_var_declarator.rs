@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
-  common::{comments::Comments, EqIgnoreSpan},
+  common::{EqIgnoreSpan, comments::Comments},
   ecma::{
     ast::{Expr, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread, VarDeclarator},
     visit::FoldWith,
@@ -11,6 +11,7 @@ use swc_core::{
 };
 
 use crate::{
+  StyleXTransform,
   shared::{
     enums::{
       core::TransformationCycle,
@@ -21,7 +22,6 @@ use crate::{
     },
     utils::ast::convertors::transform_shorthand_to_key_values,
   },
-  StyleXTransform,
 };
 
 impl<C> StyleXTransform<C>
@@ -77,10 +77,13 @@ where
                 let entry_value = entry.get_mut();
 
                 if let NonNullProps::Vec(vec) = entry_value {
-                  if let NonNullProp::Atom(id) = namespace_name {
-                    vec.push(id);
-                  } else {
-                    *entry_value = NonNullProps::True;
+                  match namespace_name {
+                    NonNullProp::Atom(id) => {
+                      vec.push(id);
+                    }
+                    _ => {
+                      *entry_value = NonNullProps::True;
+                    }
                   }
                 }
               }

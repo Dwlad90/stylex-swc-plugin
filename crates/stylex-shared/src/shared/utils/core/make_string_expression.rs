@@ -41,10 +41,13 @@ pub(crate) fn make_string_expression(
     .collect::<Vec<_>>();
 
   if conditions.is_empty() {
-    if let Some(value) = transform(values) {
-      return fn_result_to_expression(value);
-    } else {
-      return Some(string_to_expression(""));
+    match transform(values) {
+      Some(value) => {
+        return fn_result_to_expression(value);
+      }
+      _ => {
+        return Some(string_to_expression(""));
+      }
     }
   }
 

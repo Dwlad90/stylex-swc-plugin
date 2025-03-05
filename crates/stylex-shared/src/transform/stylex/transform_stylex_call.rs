@@ -4,11 +4,11 @@ use swc_core::{
 };
 
 use crate::{
+  StyleXTransform,
   shared::{
     structures::named_import_source::ImportSources,
     utils::core::{stylex::stylex, stylex_merge::stylex_merge},
   },
-  StyleXTransform,
 };
 
 impl<C> StyleXTransform<C>

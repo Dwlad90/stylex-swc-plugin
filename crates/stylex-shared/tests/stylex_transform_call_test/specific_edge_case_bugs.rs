@@ -1,6 +1,6 @@
 use stylex_shared::{
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
   StyleXTransform,
+  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
 };
 use swc_core::{
   common::FileName,

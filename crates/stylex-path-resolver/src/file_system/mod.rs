@@ -16,11 +16,7 @@ pub(crate) fn get_directories(path: &Path) -> Result<Vec<PathBuf>, std::io::Erro
       .filter_map(|entry| {
         entry.ok().and_then(|e| {
           let path = e.path();
-          if path.is_dir() {
-            Some(path)
-          } else {
-            None
-          }
+          if path.is_dir() { Some(path) } else { None }
         })
       })
       .collect::<Vec<_>>(),

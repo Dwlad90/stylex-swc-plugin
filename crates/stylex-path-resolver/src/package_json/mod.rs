@@ -5,7 +5,7 @@ use std::{collections::HashMap, env};
 use std::{default::Default, fs::read_to_string};
 use swc_core::{
   common::FileName,
-  ecma::loader::{resolvers::node::NodeModulesResolver, TargetEnv},
+  ecma::loader::{TargetEnv, resolvers::node::NodeModulesResolver},
 };
 
 use package_json::{PackageDependencies, PackageJsonManager};

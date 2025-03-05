@@ -5,11 +5,11 @@
     "moduleResolution": "Node",
     "module": "CommonJS",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx",
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules"

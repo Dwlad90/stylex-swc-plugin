@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::{
   ast::BigInt,
-  utils::{quote_ident, quote_str, ExprExt},
+  utils::{ExprExt, quote_ident, quote_str},
 };
 
 use swc_ecma_parser::Context;
@@ -80,10 +80,11 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
 }
 
 fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> Expr {
-  if let Some(var_decl) = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
-    get_expr_from_var_decl(&var_decl).clone()
-  } else {
-    panic!("{}", ILLEGAL_PROP_VALUE)
+  match get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
+    Some(var_decl) => get_expr_from_var_decl(&var_decl).clone(),
+    _ => {
+      panic!("{}", ILLEGAL_PROP_VALUE)
+    }
   }
 }
 
@@ -262,11 +263,7 @@ pub fn binary_expr_to_num(
         return value;
       }
 
-      if left_num != 0.0 {
-        left_num
-      } else {
-        right_num
-      }
+      if left_num != 0.0 { left_num } else { right_num }
     }
     BinaryOp::LogicalAnd => {
       if let Some(value) =
@@ -275,11 +272,7 @@ pub fn binary_expr_to_num(
         return value;
       }
 
-      if left_num != 0.0 {
-        right_num
-      } else {
-        left_num
-      }
+      if left_num != 0.0 { right_num } else { left_num }
     }
     BinaryOp::NullishCoalescing => {
       if let Some(value) =
@@ -288,11 +281,7 @@ pub fn binary_expr_to_num(
         return value;
       }
 
-      if left_num == 0.0 {
-        right_num
-      } else {
-        left_num
-      }
+      if left_num == 0.0 { right_num } else { left_num }
     }
     // #endregion Logical
     BinaryOp::ZeroFillRShift => ((left_num as i32) >> right_num as i32) as f64,
@@ -377,26 +366,22 @@ fn evaluate_left_and_right_expression(
 
   if left_result.is_err() || right_result.is_err() {
     let left_str = match left_expr {
-      Expr::Lit(Lit::Str(_)) => {
-        lit_to_string(left_expr.as_lit().unwrap()).unwrap_or_else(|| {
-          panic!(
-            "Left is not a string: {:?}",
-            left_expr.get_type(get_default_expr_ctx())
-          )
-        })
-      }
+      Expr::Lit(Lit::Str(_)) => lit_to_string(left_expr.as_lit().unwrap()).unwrap_or_else(|| {
+        panic!(
+          "Left is not a string: {:?}",
+          left_expr.get_type(get_default_expr_ctx())
+        )
+      }),
       _ => String::default(),
     };
 
     let right_str = match right_expr {
-      Expr::Lit(Lit::Str(_)) => {
-        lit_to_string(right_expr.as_lit().unwrap()).unwrap_or_else(|| {
-          panic!(
-            "Right is not a string: {:?}",
-            left_expr.get_type(get_default_expr_ctx())
-          )
-        })
-      }
+      Expr::Lit(Lit::Str(_)) => lit_to_string(right_expr.as_lit().unwrap()).unwrap_or_else(|| {
+        panic!(
+          "Right is not a string: {:?}",
+          left_expr.get_type(get_default_expr_ctx())
+        )
+      }),
       _ => String::default(),
     };
 

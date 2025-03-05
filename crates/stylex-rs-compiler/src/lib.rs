@@ -7,14 +7,14 @@ use std::{env, sync::Arc};
 use structs::{
   SourceMaps, StyleXMetadata, StyleXModuleResolution, StyleXOptions, StyleXTransformResult,
 };
-use swc_compiler_base::{print, PrintArgs, SourceMapsConfig};
+use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_shared::{
+  StyleXTransform,
   shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
   shared::utils::log::logger,
-  StyleXTransform,
 };
-use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax, TsSyntax};
+use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
 
 use swc_core::{
   common::{FileName, SourceMap},

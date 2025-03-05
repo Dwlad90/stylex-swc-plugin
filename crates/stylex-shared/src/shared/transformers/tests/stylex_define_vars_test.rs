@@ -210,27 +210,26 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[(
-        "x568ih9",
+      exprected_css_result_factory(&[
         (
-          ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-          0.0
-        )
-      ),
-      (
-        "x568ih9-1lveb7",
+          "x568ih9",
+          (
+            ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
+            0.0
+          )
+        ),
         (
-          "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-bdddrq",
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
         (
-          "@media print{:root, .x568ih9{--xgck17p:white;}}",
-          0.1
+          "x568ih9-bdddrq",
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
         )
-      )])
+      ])
     )
   }
 
@@ -296,27 +295,26 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[(
-        "x568ih9",
+      exprected_css_result_factory(&[
         (
-          ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
-          0.0
-        )
-      ),
-      (
-        "x568ih9-1lveb7",
+          "x568ih9",
+          (
+            ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
+            0.0
+          )
+        ),
         (
-          "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-bdddrq",
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
         (
-          "@media print{:root, .x568ih9{--bgColor:white;}}",
-          0.1
+          "x568ih9-bdddrq",
+          ("@media print{:root, .x568ih9{--bgColor:white;}}", 0.1)
         )
-      )])
+      ])
     )
   }
 
@@ -428,48 +426,46 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[(
-        "x568ih9",
+      exprected_css_result_factory(&[
         (
-          ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-          0.0
-        )
-      ),
-      (
-        "x568ih9-1e6ryz3",
+          "x568ih9",
+          (
+            ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
+            0.0
+          )
+        ),
         (
-          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-          0.2
-        )
-      ),
-      (
-        "x568ih9-1lveb7",
+          "x568ih9-1e6ryz3",
+          (
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
+            0.2
+          )
+        ),
         (
-          "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-bdddrq",
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
         (
-          "@media print{:root, .x568ih9{--xgck17p:white;}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-kpd015",
+          "x568ih9-bdddrq",
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+        ),
         (
-          "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
-          0.1
+          "x568ih9-kpd015",
+          (
+            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
+            0.1
+          )
         )
-      )
       ])
     )
   }
 
   #[test]
-  fn converts_set_of_vars_with_nested_at_rules_to_css_and_includes_key_in_variable_name_as_prefix_in_debug_mode(
-  ) {
+  fn converts_set_of_vars_with_nested_at_rules_to_css_and_includes_key_in_variable_name_as_prefix_in_debug_mode()
+   {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
@@ -580,41 +576,42 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[(
-        "x568ih9",
+      exprected_css_result_factory(&[
         (
-          ":root, .x568ih9{--bgColor-xgck17p:blue;--bgColorDisabled-xpegid5:grey;--cornerRadius-xrqfjmn:10px;--fgColor-x4y59db:pink;}",
-          0.0
-        )
-      ),
-      (
-        "x568ih9-1e6ryz3",
+          "x568ih9",
+          (
+            ":root, .x568ih9{--bgColor-xgck17p:blue;--bgColorDisabled-xpegid5:grey;--cornerRadius-xrqfjmn:10px;--fgColor-x4y59db:pink;}",
+            0.0
+          )
+        ),
         (
-          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:oklab(0.7 -0.3 -0.4);--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-          0.2
-        )
-      ),
-      (
-        "x568ih9-1lveb7",
+          "x568ih9-1e6ryz3",
+          (
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:oklab(0.7 -0.3 -0.4);--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}}",
+            0.2
+          )
+        ),
         (
-          "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:lightblue;--bgColorDisabled-xpegid5:rgba(0, 0, 0, 0.8);}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-bdddrq",
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:lightblue;--bgColorDisabled-xpegid5:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
         (
-          "@media print{:root, .x568ih9{--bgColor-xgck17p:white;}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-kpd015",
+          "x568ih9-bdddrq",
+          (
+            "@media print{:root, .x568ih9{--bgColor-xgck17p:white;}}",
+            0.1
+          )
+        ),
         (
-          "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}",
-          0.1
+          "x568ih9-kpd015",
+          (
+            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}",
+            0.1
+          )
         )
-      )
       ])
     )
   }
@@ -758,70 +755,67 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[(
-        "x4y59db",
+      exprected_css_result_factory(&[
         (
-          r#"@property --x4y59db { syntax: "<color>"; inherits: true; initial-value: pink }"#,
-          0.0
-        )
-      ),
-      (
-        "x568ih9",
+          "x4y59db",
+          (
+            r#"@property --x4y59db { syntax: "<color>"; inherits: true; initial-value: pink }"#,
+            0.0
+          )
+        ),
         (
-          ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-          0.0
-        )
-      ),
-      (
-        "x568ih9-1e6ryz3",
+          "x568ih9",
+          (
+            ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
+            0.0
+          )
+        ),
         (
-          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-          0.2
-        )
-      ),
-      (
-        "x568ih9-1lveb7",
+          "x568ih9-1e6ryz3",
+          (
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
+            0.2
+          )
+        ),
         (
-          "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-bdddrq",
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
         (
-          "@media print{:root, .x568ih9{--xgck17p:white;}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-kpd015",
+          "x568ih9-bdddrq",
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+        ),
         (
-          "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
-          0.1
-        )
-      ),
-      (
-        "xgck17p",
+          "x568ih9-kpd015",
+          (
+            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
+            0.1
+          )
+        ),
         (
-          r#"@property --xgck17p { syntax: "<color>"; inherits: true; initial-value: blue }"#,
-          0.0
-        )
-      ),
-      (
-        "xpegid5",
+          "xgck17p",
+          (
+            r#"@property --xgck17p { syntax: "<color>"; inherits: true; initial-value: blue }"#,
+            0.0
+          )
+        ),
         (
-          r#"@property --xpegid5 { syntax: "<color>"; inherits: true; initial-value: grey }"#,
-          0.0
-        )
-      ),
-
-      (
-        "xrqfjmn",
+          "xpegid5",
+          (
+            r#"@property --xpegid5 { syntax: "<color>"; inherits: true; initial-value: grey }"#,
+            0.0
+          )
+        ),
         (
-          r#"@property --xrqfjmn { syntax: "<length>"; inherits: true; initial-value: 10px }"#,
-          0.0
-        )
-      ),
+          "xrqfjmn",
+          (
+            r#"@property --xrqfjmn { syntax: "<length>"; inherits: true; initial-value: 10px }"#,
+            0.0
+          )
+        ),
       ])
     )
   }
@@ -965,69 +959,67 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[(
-        "bgColor",
+      exprected_css_result_factory(&[
         (
-          r#"@property --bgColor { syntax: "<color>"; inherits: true; initial-value: blue }"#,
-          0.0
-        )
-      ),
-      (
-        "bgColorDisabled",
+          "bgColor",
+          (
+            r#"@property --bgColor { syntax: "<color>"; inherits: true; initial-value: blue }"#,
+            0.0
+          )
+        ),
         (
-          r#"@property --bgColorDisabled { syntax: "<color>"; inherits: true; initial-value: grey }"#,
-          0.0
-        )
-      ),
-      (
-        "cornerRadius",
+          "bgColorDisabled",
+          (
+            r#"@property --bgColorDisabled { syntax: "<color>"; inherits: true; initial-value: grey }"#,
+            0.0
+          )
+        ),
         (
-          r#"@property --cornerRadius { syntax: "<length>"; inherits: true; initial-value: 10px }"#,
-          0.0
-        )
-      ),
-      (
-        "fgColor",
+          "cornerRadius",
+          (
+            r#"@property --cornerRadius { syntax: "<length>"; inherits: true; initial-value: 10px }"#,
+            0.0
+          )
+        ),
         (
-          r#"@property --fgColor { syntax: "<color>"; inherits: true; initial-value: pink }"#,
-          0.0
-        )
-      ),
-      (
-        "x568ih9",
+          "fgColor",
+          (
+            r#"@property --fgColor { syntax: "<color>"; inherits: true; initial-value: pink }"#,
+            0.0
+          )
+        ),
         (
-          ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
-          0.0
-        )
-      ),
-      (
-        "x568ih9-1e6ryz3",
+          "x568ih9",
+          (
+            ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
+            0.0
+          )
+        ),
         (
-          "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:oklab(0.7 -0.3 -0.4);--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}}",
-          0.2
-        )
-      ),
-      (
-        "x568ih9-1lveb7",
+          "x568ih9-1e6ryz3",
+          (
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:oklab(0.7 -0.3 -0.4);--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}}",
+            0.2
+          )
+        ),
         (
-          "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-bdddrq",
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
         (
-          "@media print{:root, .x568ih9{--bgColor:white;}}",
-          0.1
-        )
-      ),
-      (
-        "x568ih9-kpd015",
+          "x568ih9-bdddrq",
+          ("@media print{:root, .x568ih9{--bgColor:white;}}", 0.1)
+        ),
         (
-          "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}",
-          0.1
-        )
-      ),
+          "x568ih9-kpd015",
+          (
+            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}",
+            0.1
+          )
+        ),
       ])
     )
   }

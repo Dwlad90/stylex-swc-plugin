@@ -1,6 +1,6 @@
 use swc_core::ecma::ast::ExportDecl;
 use swc_core::{
-  common::{comments::Comments, DUMMY_SP},
+  common::{DUMMY_SP, comments::Comments},
   ecma::{
     ast::{Decl, Expr, Ident, Lit, ModuleDecl, ModuleItem, Pat, Stmt, VarDeclarator},
     visit::FoldWith,
@@ -8,11 +8,11 @@ use swc_core::{
 };
 
 use crate::{
+  StyleXTransform,
   shared::{
     enums::core::TransformationCycle,
     utils::{ast::factories::binding_ident_factory, common::stable_hash},
   },
-  StyleXTransform,
 };
 
 impl<C> StyleXTransform<C>

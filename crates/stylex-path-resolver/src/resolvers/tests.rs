@@ -8,7 +8,7 @@ use path_clean::PathClean;
 #[allow(dead_code)]
 fn get_root_dir(test_path: &Path) -> PathBuf {
   if env::var("original_root_dir").is_err() {
-    env::set_var("original_root_dir", env::current_dir().unwrap());
+    unsafe { env::set_var("original_root_dir", env::current_dir().unwrap()) };
   }
 
   let new_cwd = PathBuf::from(env::var("original_root_dir").unwrap())
@@ -1061,7 +1061,11 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result = format!("{}/{}", root_path, "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js");
+    let expected_result = format!(
+      "{}/{}",
+      root_path,
+      "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js"
+    );
 
     assert_eq!(
       resolve_file_path(
@@ -1090,7 +1094,11 @@ mod resolve_path_application_pnpm_tests {
     let root_path = get_root_dir(&test_path).display().to_string();
     let aliases = FxHashMap::default();
 
-    let expected_result = format!("{}/{}", root_path, "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js");
+    let expected_result = format!(
+      "{}/{}",
+      root_path,
+      "node_modules/.pnpm/@stylex+lib-exports-pnpm@0.1.0/node_modules/@stylex/lib-exports-pnpm/dist/colors.stylex.js"
+    );
 
     assert_eq!(
       resolve_file_path(

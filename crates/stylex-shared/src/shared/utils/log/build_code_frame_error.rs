@@ -1,7 +1,7 @@
 use std::{fs, path::Path, sync::Arc};
-use swc_compiler_base::{parse_js, print, IsModule, PrintArgs, SourceMapsConfig, TransformOutput};
+use swc_compiler_base::{IsModule, PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_core::{
-  common::{errors::*, sync::Lrc, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, DUMMY_SP},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, errors::*, sync::Lrc},
   ecma::{ast::*, visit::*},
 };
 use swc_ecma_parser::{Syntax, TsSyntax};

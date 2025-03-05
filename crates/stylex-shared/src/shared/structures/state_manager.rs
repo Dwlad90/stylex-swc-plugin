@@ -7,13 +7,13 @@ use std::{option::Option, rc::Rc};
 use indexmap::{IndexMap, IndexSet};
 use log::debug;
 use stylex_path_resolver::{
-  package_json::{find_closest_package_json_folder, get_package_json, PackageJsonExtended},
-  resolvers::{resolve_file_path, EXTENSIONS},
+  package_json::{PackageJsonExtended, find_closest_package_json_folder, get_package_json},
+  resolvers::{EXTENSIONS, resolve_file_path},
   utils::relative_path,
 };
 use swc_core::{
   atoms::Atom,
-  common::{EqIgnoreSpan, FileName, DUMMY_SP},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::ast::Module,
 };
 use swc_core::{

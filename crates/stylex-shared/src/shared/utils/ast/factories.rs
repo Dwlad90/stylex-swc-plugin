@@ -2,7 +2,7 @@ use swc_core::ecma::ast::{
   BigInt, BindingIdent, Ident, IdentName, KeyValueProp, Lit, Null, Prop, PropName,
 };
 use swc_core::{
-  common::{Span, DUMMY_SP},
+  common::{DUMMY_SP, Span},
   ecma::ast::{ArrayLit, Expr, ExprOrSpread, ObjectLit, PropOrSpread},
 };
 

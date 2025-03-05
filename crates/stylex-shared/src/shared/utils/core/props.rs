@@ -9,7 +9,7 @@ use crate::{
     },
     utils::core::js_to_expr::NestedStringObject,
   },
-  transform::styleq::common::{styleq, StyleQResult},
+  transform::styleq::common::{StyleQResult, styleq},
 };
 
 use super::parse_nullable_style::ResolvedArg;

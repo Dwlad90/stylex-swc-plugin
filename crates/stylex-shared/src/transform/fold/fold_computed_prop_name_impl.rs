@@ -7,11 +7,11 @@ use swc_core::{
 };
 
 use crate::{
+  StyleXTransform,
   shared::{
     enums::core::TransformationCycle,
     utils::{ast::convertors::expr_to_str, common::increase_ident_count},
   },
-  StyleXTransform,
 };
 
 impl<C> StyleXTransform<C>

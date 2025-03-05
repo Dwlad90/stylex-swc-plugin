@@ -31,12 +31,12 @@ use crate::shared::{
 
 use rustc_hash::FxHashMap;
 use swc_core::{
-  common::{input::StringInput, source_map::SmallPos, BytePos},
+  common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{
     ast::{Ident, Stylesheet},
     codegen::{
-      writer::basic::{BasicCssWriter, BasicCssWriterConfig},
       CodeGenerator, CodegenConfig, Emit,
+      writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     },
     parser::{error::Error, parse_string_input, parser::ParserConfig},
   },
@@ -139,11 +139,7 @@ fn flip_shadow(value: &str) -> Option<String> {
   }
 
   let rtl = built_defs.join(", ");
-  if rtl != value {
-    Some(rtl)
-  } else {
-    None
-  }
+  if rtl != value { Some(rtl) } else { None }
 }
 
 fn shadows_flip(key: &str, val: &str) -> Option<Pair> {

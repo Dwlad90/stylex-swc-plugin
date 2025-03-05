@@ -2,16 +2,17 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use swc_core::{
-  common::comments::Comments,
-  ecma::ast::{CallExpr, Expr, PropOrSpread},
-};
+use swc_core::{common::DUMMY_SP, ecma::ast::BinExpr};
 use swc_core::{
   common::SyntaxContext,
   ecma::ast::{ArrowExpr, BinaryOp, BlockStmtOrExpr, CondExpr, ExprOrSpread, Pat, Prop, PropName},
 };
-use swc_core::{common::DUMMY_SP, ecma::ast::BinExpr};
+use swc_core::{
+  common::comments::Comments,
+  ecma::ast::{CallExpr, Expr, PropOrSpread},
+};
 
+use crate::StyleXTransform;
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
   structures::injectable_style::InjectableStyle,
@@ -43,7 +44,7 @@ use crate::shared::{
   structures::{dynamic_style::DynamicStyle, stylex_options::StyleResolution},
   utils::{
     ast::{convertors::null_to_expression, factories::array_expression_factory},
-    core::js_to_expr::{convert_object_to_ast, remove_objects_with_spreads, NestedStringObject},
+    core::js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
   },
 };
 use crate::shared::{
@@ -60,7 +61,6 @@ use crate::shared::{
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
   },
 };
-use crate::StyleXTransform;
 
 impl<C> StyleXTransform<C>
 where
@@ -365,8 +365,8 @@ where
                                           " "
                                         };
 
-                                        if let Some(expr) = expr {
-                                          Expr::Cond(CondExpr {
+                                        match expr {
+                                          Some(expr) => Expr::Cond(CondExpr {
                                             span: DUMMY_SP,
                                             test: Box::new(Expr::Bin(BinExpr {
                                               span: DUMMY_SP,
@@ -380,11 +380,10 @@ where
                                             alt: Box::new(string_to_expression(
                                               format!("{}{}", cls, suffix).as_str(),
                                             )),
-                                          })
-                                        } else {
-                                          string_to_expression(
+                                          }),
+                                          _ => string_to_expression(
                                             format!("{}{}", cls, suffix).as_str(),
-                                          )
+                                          ),
                                         }
                                       })
                                       .collect();

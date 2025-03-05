@@ -1,8 +1,8 @@
 use std::panic;
 
 use stylex_shared::{
-  shared::{constants::messages, structures::plugin_pass::PluginPass},
   StyleXTransform,
+  shared::{constants::messages, structures::plugin_pass::PluginPass},
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},

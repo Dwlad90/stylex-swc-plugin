@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::Arc};
 
-use stylex_shared::{shared::structures::plugin_pass::PluginPass, StyleXTransform};
+use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
 
 use swc_core::{
   common::SyntaxContext,
@@ -10,29 +10,29 @@ use swc_core::{
   },
 };
 use swc_core::{
-  common::{comments::SingleThreadedComments, DUMMY_SP},
+  common::{DUMMY_SP, comments::SingleThreadedComments},
   ecma::visit::visit_mut_pass,
 };
 
 use swc_core::ecma::transforms::base::{fixer, hygiene};
 use swc_core::ecma::transforms::testing::{HygieneVisualizer, Tester};
-use swc_core::ecma::utils::{quote_ident, quote_str, DropSpan, ExprFactory};
-use swc_core::ecma::visit::{noop_visit_mut_type, VisitMut};
+use swc_core::ecma::utils::{DropSpan, ExprFactory, quote_ident, quote_str};
+use swc_core::ecma::visit::{VisitMut, noop_visit_mut_type};
 use swc_core::{
   common::{
-    errors::{ColorConfig, Handler},
     FileName, SourceMap,
+    errors::{ColorConfig, Handler},
   },
   ecma::{
     ast::{EsVersion, Module},
-    parser::{lexer::Lexer, Parser, StringInput, Syntax},
+    parser::{Parser, StringInput, Syntax, lexer::Lexer},
     visit::FoldWith,
   },
 };
 
 pub(crate) fn _parse_js(source_code: &str) -> Module {
   if std::env::var("INSTA_UPDATE").is_err() {
-    std::env::set_var("INSTA_UPDATE", "no");
+    unsafe { std::env::set_var("INSTA_UPDATE", "no") };
   }
 
   let cm: Arc<SourceMap> = Default::default();

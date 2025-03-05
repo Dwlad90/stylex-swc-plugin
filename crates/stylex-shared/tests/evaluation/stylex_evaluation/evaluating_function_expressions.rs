@@ -1,5 +1,3 @@
-use std::env;
-
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test_transform,
@@ -367,8 +365,6 @@ fn math_max() {
 
 #[test]
 fn math_complicated() {
-  env::set_var("RUST_MIN_STACK", "8388608"); // 8MB
-
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,

@@ -1,6 +1,6 @@
 use clap::Parser;
 use regex::Regex;
-use swc_compiler_base::{parse_js, print, IsModule, PrintArgs, SourceMapsConfig};
+use swc_compiler_base::{IsModule, PrintArgs, SourceMapsConfig, parse_js, print};
 
 use std::{
   fmt::Display,
@@ -13,8 +13,8 @@ use swc_ecma_parser::Syntax;
 
 use swc_core::{
   common::{
+    DUMMY_SP, FileName, SourceMap, SyntaxContext,
     errors::{ColorConfig, Handler},
-    FileName, SourceMap, SyntaxContext, DUMMY_SP,
   },
   ecma::{
     ast::{
@@ -61,14 +61,22 @@ struct TestsTransformer {
 impl Fold for TestsTransformer {
   fn fold_module_items(&mut self, module_items: Vec<ModuleItem>) -> Vec<ModuleItem> {
     for item in module_items {
-      if let ModuleItem::Stmt(Stmt::Expr(ExprStmt { expr, .. })) = item {
-        if matches!(expr.as_ref(), Expr::Call(_) | Expr::Ident(_) | Expr::Fn(_)) {
-          expr.fold_with(self);
+      match item {
+        ModuleItem::Stmt(Stmt::Expr(ExprStmt { expr, .. })) => {
+          if matches!(expr.as_ref(), Expr::Call(_) | Expr::Ident(_) | Expr::Fn(_)) {
+            expr.fold_with(self);
+          }
         }
-      } else if let ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func_decl))) = item {
-        func_decl.fold_with(self);
-      } else if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) = item {
-        var.fold_with(self);
+        _ => match item {
+          ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func_decl))) => {
+            func_decl.fold_with(self);
+          }
+          _ => {
+            if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) = item {
+              var.fold_with(self);
+            }
+          }
+        },
       }
     }
 

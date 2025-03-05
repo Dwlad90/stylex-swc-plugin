@@ -18,11 +18,15 @@ impl Shorthands {
     panic!("border is not supported. Use border-width, border-style and border-color instead");
   }
   fn border_inline(_raw_value: Option<String>) -> Vec<OrderPair> {
-    panic!("borderInline is not supported. Use borderInlineWidth, borderInlineStyle and borderInlineColor instead");
+    panic!(
+      "borderInline is not supported. Use borderInlineWidth, borderInlineStyle and borderInlineColor instead"
+    );
   }
   // @Deprecated
   fn border_block(_raw_value: Option<String>) -> Vec<OrderPair> {
-    panic!("borderBlock is not supported. Use borderBlockWidth, borderBlockStyle and borderBlockColor instead");
+    panic!(
+      "borderBlock is not supported. Use borderBlockWidth, borderBlockStyle and borderBlockColor instead"
+    );
   }
 
   // @Deprecated
@@ -33,26 +37,35 @@ impl Shorthands {
   }
   // @Deprecated
   fn border_inline_end(_raw_value: Option<String>) -> Vec<OrderPair> {
-    panic!("borderInlineEnd is not supported. Use borderInlineEndWidth, borderInlineEndStyle and borderInlineEndColor instead");
+    panic!(
+      "borderInlineEnd is not supported. Use borderInlineEndWidth, borderInlineEndStyle and borderInlineEndColor instead"
+    );
   }
   // @Deprecated
   fn border_right(_raw_value: Option<String>) -> Vec<OrderPair> {
-    panic!("borderRight is not supported. Use borderRightWidth, borderRightStyle and borderRightColor instead");
+    panic!(
+      "borderRight is not supported. Use borderRightWidth, borderRightStyle and borderRightColor instead"
+    );
   }
   // @Deprecated
   fn border_bottom(_raw_value: Option<String>) -> Vec<OrderPair> {
-    panic!("borderBottom is not supported. Use borderBottomWidth, borderBottomStyle and borderBottomColor instead");
+    panic!(
+      "borderBottom is not supported. Use borderBottomWidth, borderBottomStyle and borderBottomColor instead"
+    );
   }
   // @Deprecated
   fn border_inline_start(_raw_value: Option<String>) -> Vec<OrderPair> {
-    panic!("borderInlineStart is not supported. Use borderInlineStartWidth, borderInlineStartStyle and borderInlineStartColor instead");
+    panic!(
+      "borderInlineStart is not supported. Use borderInlineStartWidth, borderInlineStartStyle and borderInlineStartColor instead"
+    );
   }
   // @Deprecated
   fn border_left(_raw_value: Option<String>) -> Vec<OrderPair> {
-    panic!("{}{}{}",
-        "`borderLeft` is not supported.",
-        "You could use `borderLeftWidth`, `borderLeftStyle` and `borderLeftColor`,",
-        "but it is preferable to use `borderInlineStartWidth`, `borderInlineStartStyle` and `borderInlineStartColor`."
+    panic!(
+      "{}{}{}",
+      "`borderLeft` is not supported.",
+      "You could use `borderLeftWidth`, `borderLeftStyle` and `borderLeftColor`,",
+      "but it is preferable to use `borderInlineStartWidth`, `borderInlineStartStyle` and `borderInlineStartColor`."
     );
   }
 

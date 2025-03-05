@@ -1,0 +1,9 @@
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: deps
+      prefix-development: deps
+      include: scope

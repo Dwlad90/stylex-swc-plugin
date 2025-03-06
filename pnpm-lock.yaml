@@ -20,17 +20,17 @@ overrides:
   '@babel/core@<7.26.9': ^7.26.9
 
 patchedDependencies:
-  scripty@2.1.1:
+  scripty@3.0.0:
     hash: atqsngqqlys2ip3ev7bmrtxbhu
-    path: patches/scripty@2.1.1.patch
+    path: patches/scripty@3.0.0.patch
 
 importers:
 
   .:
     dependencies:
       scripty:
-        specifier: ^2.1.1
-        version: 2.1.1(patch_hash=atqsngqqlys2ip3ev7bmrtxbhu)
+        specifier: 3.0.0
+        version: 3.0.0(patch_hash=atqsngqqlys2ip3ev7bmrtxbhu)
     devDependencies:
       '@changesets/cli':
         specifier: ^2.27.7
@@ -7538,8 +7538,8 @@ packages:
     resolution: {integrity: sha512-L0jRsrPpjdckP3oPug3/VxNKt2trR8TcabrM6FOAAlvC/9Phcmm+cuAgTlxBqdBR1WJx7Naj9WHw+aOmheSVbw==}
     engines: {node: '>= 12.13.0'}
 
-  scripty@2.1.1:
-    resolution: {integrity: sha512-yAutoO7+MfJcc7UAjAOp1CNbAI6GhxXYB63yFLEJe80BY1VkKQWrJ2xrdd57rh/UBnUIKmO31hzKUHWGxIupbA==}
+  scripty@3.0.0:
+    resolution: {integrity: sha512-rB8QX6PqBQf+sJly8rHJzDksTyvmhfOsQJzlpgu7uakq0gUi/tt9ppoWHFTN2BhbJq8Ti5Y1A166tTb+QBvp0w==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     hasBin: true
 
@@ -16490,7 +16490,7 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.17.1)
       ajv-keywords: 5.1.0(ajv@8.17.1)
 
-  scripty@2.1.1(patch_hash=atqsngqqlys2ip3ev7bmrtxbhu):
+  scripty@3.0.0(patch_hash=atqsngqqlys2ip3ev7bmrtxbhu):
     dependencies:
       async: 2.6.4
       glob: 7.2.3

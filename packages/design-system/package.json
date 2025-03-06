@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/design-system",
   "description": "A design system for stylex workspace examples",
-  "version": "0.6.6",
+  "version": "0.7.0-rc.1",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@stylexjs/stylex": "^0.11.1",
-    "@stylexswc/rs-compiler": "0.6.6",
+    "@stylexswc/rs-compiler": "0.7.0-rc.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

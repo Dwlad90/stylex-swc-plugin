@@ -23,6 +23,6 @@
     "vite-plugin-solid": "^2.10.2",
     "vite": "^5.4.12",
     "@types/react": "19.0.0",
-    "@types/react-dom": "19.0.0"
+    "@types/react-dom": "19.0.4"
   }
 }

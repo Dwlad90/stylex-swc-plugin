@@ -21,6 +21,6 @@
     "@rsbuild/core": "^1.1.0",
     "@rsbuild/plugin-react": "^1.0.7",
     "@types/react": "19.0.0",
-    "@types/react-dom": "19.0.0"
+    "@types/react-dom": "19.0.4"
   }
 }

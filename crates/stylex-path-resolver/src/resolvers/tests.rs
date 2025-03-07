@@ -859,6 +859,7 @@ mod resolve_path_exports_tests {
 }
 #[cfg(test)]
 mod resolve_path_application_pnpm_tests {
+  use path_clean::PathClean;
   use rustc_hash::FxHashMap;
 
   use crate::resolvers::{resolve_file_path, tests::get_root_dir};
@@ -937,6 +938,51 @@ mod resolve_path_application_pnpm_tests {
     aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
 
     let expected_result = format!("{}/{}", root_path, "src/components/button.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_local_import_from_workspace_alias() {
+    let test_path = PathBuf::from("workspace-pnpm");
+
+    let import_path_str = "@/components/button";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert(
+      "@/*".to_string(),
+      vec![format!(
+        "{}",
+        PathBuf::from(&root_path)
+          .join("../application-pnpm/src/*")
+          .clean()
+          .to_string_lossy()
+      )],
+    );
+
+    let expected_result = format!(
+      "{}",
+      PathBuf::from(&root_path)
+        .join("../application-pnpm/src/components/button.js")
+        .clean()
+        .to_string_lossy(),
+    );
 
     assert_eq!(
       resolve_file_path(
@@ -1118,6 +1164,7 @@ mod resolve_path_application_pnpm_tests {
 
 #[cfg(test)]
 mod resolve_path_application_npm_tests {
+  use path_clean::PathClean;
   use rustc_hash::FxHashMap;
 
   use crate::resolvers::{resolve_file_path, tests::get_root_dir};
@@ -1196,6 +1243,51 @@ mod resolve_path_application_npm_tests {
     aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
 
     let expected_result = format!("{}/{}", root_path, "src/components/button.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_local_import_from_workspace_alias() {
+    let test_path = PathBuf::from("workspace-npm/apps/web");
+
+    let import_path_str = "@/components/button";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert(
+      "@/*".to_string(),
+      vec![format!(
+        "{}",
+        PathBuf::from(&root_path)
+          .join("../../../application-npm/apps/web/src/*")
+          .clean()
+          .to_string_lossy()
+      )],
+    );
+
+    let expected_result = format!(
+      "{}",
+      PathBuf::from(&root_path)
+        .join("../../../application-npm/apps/web/src/components/button.js")
+        .clean()
+        .to_string_lossy(),
+    );
 
     assert_eq!(
       resolve_file_path(
@@ -1323,6 +1415,20 @@ mod resolve_path_aliases_tests {
       vec![
         PathBuf::from("@/components/button"),
         PathBuf::from("/src/components/button"),
+      ]
+    );
+
+    assert_eq!(
+      possible_aliased_paths(
+        "@/components/button",
+        &[("@/*".to_string(), vec!["../../buttons/*".to_string()])]
+          .iter()
+          .cloned()
+          .collect::<FxHashMap<String, Vec<String>>>()
+      ),
+      vec![
+        PathBuf::from("@/components/button"),
+        PathBuf::from("../../buttons/components/button"),
       ]
     );
   }

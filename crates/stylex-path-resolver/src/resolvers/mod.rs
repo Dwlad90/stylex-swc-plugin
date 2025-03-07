@@ -371,7 +371,6 @@ pub fn resolve_file_path(
   } else {
     let mut possible_file_paths = possible_aliased_paths(import_path_str, aliases)
       .iter()
-      .filter_map(|path| path.strip_prefix(root_path).ok())
       .map(PathBuf::from)
       .collect::<IndexSet<PathBuf>>();
 
@@ -431,7 +430,7 @@ pub fn resolve_file_path(
           resolved_file_path.set_extension(format!("{}{}", subpath, ext));
         }
       } else {
-        resolved_file_path.set_extension(ext);
+        resolved_file_path.set_extension(ext.trim_start_matches("."));
       }
 
       let cleaned_path = resolved_file_path.to_string_lossy().to_string();

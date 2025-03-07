@@ -56,7 +56,7 @@ updates:
       timezone: Etc/Greenwich
     labels:
       - "dependencies"
-      - "github-actions"
+      - "github actions"
     commit-message:
       prefix: "ci"
       include: "scope"

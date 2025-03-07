@@ -30,9 +30,9 @@
     "@stylexswc/typescript-config": "workspace:*",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
-    "eslint-plugin-jsonc": "^2.10.0",
     "del-cli": "^6.0.0",
     "eslint": "^9.21.0",
+    "eslint-plugin-jsonc": "^2.10.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.3",
     "prettier": "^3.5.3",
@@ -40,10 +40,6 @@
     "syncpack": "^13.0.2",
     "turbo": "^2.4.4",
     "typescript": "^5.8.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/dwlad90/stylex-swc-plugin"
   },
   "engines": {
     "node": ">=22.13.0"
@@ -68,5 +64,6 @@
     "patchedDependencies": {
       "scripty@3.0.0": "patches/scripty@3.0.0.patch"
     }
-  }
+  },
+  "repository": "dwlad90/stylex-swc-plugin"
 }

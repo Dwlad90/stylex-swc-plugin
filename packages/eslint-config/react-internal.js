@@ -1,4 +1,8 @@
-const { resolve } = require("node:path");
+import { resolve } from "node:path";
+import js from "@eslint/js";
+import globals from "globals";
+import prettierConfig from "eslint-config-prettier";
+import turboConfig from "eslint-config-turbo";
 
 const project = resolve(process.cwd(), "tsconfig.json");
 
@@ -8,32 +12,35 @@ const project = resolve(process.cwd(), "tsconfig.json");
  * that utilize React.
  */
 
-/** @type {import("eslint").Linter.Config} */
-module.exports = {
-  extends: ["eslint:recommended", "prettier", "eslint-config-turbo"],
-  plugins: [],
-  globals: {
-    React: true,
-    JSX: true,
-  },
-  env: {
-    browser: true,
-  },
-  settings: {
-    "import/resolver": {
-      typescript: {
-        project,
+/** @type {import("eslint").FlatConfig[]} */
+export default [
+  {
+    name: "react-internal:base",
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        React: true,
+        JSX: true,
       },
     },
+    settings: {
+      "import/resolver": {
+        typescript: {
+          project,
+        },
+      },
+    },
+    ignores: [
+      ".*.js",
+      "node_modules/",
+      "dist/",
+    ],
   },
-  ignorePatterns: [
-    // Ignore dotfiles
-    ".*.js",
-    "node_modules/",
-    "dist/",
-  ],
-  overrides: [
-    // Force ESLint to detect .tsx files
-    { files: ["*.js?(x)", "*.ts?(x)"] },
-  ],
-};
+  js.configs.recommended,
+  prettierConfig,
+  turboConfig,
+  {
+    name: "react-internal:js-ts",
+    files: ["*.js?(x)", "*.ts?(x)"],
+  }
+];

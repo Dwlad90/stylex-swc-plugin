@@ -8,7 +8,7 @@ import fs from 'fs';
 
 const rootDir = process.cwd();
 
-const b = new Bench();
+const b = new Bench({ warmup: true, name: 'StyleX compiler benchmark' });
 
 const stylexOptions: StyleXOptions = {
   dev: false,
@@ -69,7 +69,6 @@ if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir);
 }
 
-await b.warmup();
 await b.run();
 
 console.table(b.table());

@@ -21,7 +21,9 @@
       ],
       "outputs": [
         "dist/**/*",
-        "npm/**/*"
+        "npm/**/*",
+        ".next/**",
+        "!.next/cache/**"
       ]
     },
     "clean": {

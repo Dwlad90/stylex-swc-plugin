@@ -85,7 +85,8 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 #### `transformCss`
 
-- Type: `(css: string, filePath: string | undefined) => string | Buffer | Promise<string | Buffer>`
+- Type:
+  `(css: string, filePath: string | undefined) => string | Buffer | Promise<string | Buffer>`
 - Optional
 - Description: Custom CSS transformation function. Since the plugin injects CSS
   after all loaders, use this to apply PostCSS or other CSS transformations.

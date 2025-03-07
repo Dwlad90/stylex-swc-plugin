@@ -80,5 +80,5 @@ console.log('Benchmark results saved to output.txt');
 
 function formatBenchmarkSummary(task: Task): string {
   const { name, result } = task;
-  return `${name} x ${result?.hz || 0} ops/sec ±${result?.rme || 0}% (${result?.samples?.length ?? 0} runs sampled)`;
+  return `${name} x ${result?.throughput.mean || 0} ops/sec ±${result?.latency.rme || 0}% (${result?.latency?.samples?.length ?? 0} runs sampled)`;
 }

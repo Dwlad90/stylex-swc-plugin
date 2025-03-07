@@ -3,8 +3,60 @@ updates:
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: daily
+      interval: monthly
+      time: "09:00"
+      timezone: Etc/Greenwich
     commit-message:
-      prefix: deps
-      prefix-development: deps
-      include: scope
+      prefix: "deps"
+      prefix-development: "dev-deps"
+      include: "scope"
+    open-pull-requests-limit: 20
+    groups:
+      javascript-dependencies:
+        patterns:
+          - "*"
+    versioning-strategy: auto
+    labels:
+      - "dependencies"
+      - "typescript"
+    # ignore:
+    #   - dependency-name: "*"
+    #     update-types: ["version-update:semver-major"]
+    rebase-strategy: auto
+    target-branch: "develop"
+
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: monthly
+      time: "09:00"
+      timezone: Etc/Greenwich
+    commit-message:
+      prefix: "cargo"
+      include: "scope"
+    open-pull-requests-limit: 20
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "rust"
+    # ignore:
+    #   - dependency-name: "*"
+    #     update-types: ["version-update:semver-major"]
+    rebase-strategy: auto
+    target-branch: "develop"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: monthly
+      time: "09:00"
+      timezone: Etc/Greenwich
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

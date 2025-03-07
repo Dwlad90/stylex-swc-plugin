@@ -16,6 +16,7 @@ updates:
         patterns:
           - "@stylexjs/*"
           - "postcss"
+          - "next"
       typescript-types:
         patterns:
           - "typescript"

@@ -79,4 +79,6 @@ This project is organized into several packages:
 
 **Other packages:**
 
-- [`design-system`](./packages/design-system) - Design system for the StyleX project, intended solely for internal use with in-workspace examples to support consistent UI experimentation and prototyping.
+- [`design-system`](./packages/design-system) - Design system for the StyleX
+  project, intended solely for internal use with in-workspace examples to
+  support consistent UI experimentation and prototyping.

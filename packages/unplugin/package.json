@@ -114,7 +114,7 @@
     "typecheck": "scripty"
   },
   "peerDependencies": {
-    "@farmfe/core": ">=1",
+    "@farmfe/core": ">=1.6.6",
     "@nuxt/kit": "^3",
     "@nuxt/schema": "^3",
     "esbuild": "*",

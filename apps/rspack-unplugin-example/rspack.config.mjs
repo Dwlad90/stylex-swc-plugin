@@ -1,5 +1,3 @@
-import { defineConfig } from '@rsbuild/core'
-import { pluginReact } from '@rsbuild/plugin-react'
 import styleXRSPlugin from '@stylexswc/unplugin/rspack'
 import path from 'node:path'
 import rspack from '@rspack/core'

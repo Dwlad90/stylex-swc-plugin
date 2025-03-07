@@ -12,9 +12,65 @@ updates:
       include: "scope"
     open-pull-requests-limit: 20
     groups:
-      javascript-dependencies:
+      core-dependencies:
         patterns:
-          - "*"
+          - "@stylexjs/*"
+          - "postcss"
+      typescript-types:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      build-tools:
+        patterns:
+          - "turbo"
+          - "tsup"
+          - "esbuild"
+          - "webpack"
+          - "rollup"
+          - "vite"
+          - "rspack"
+          - "rsbuild"
+      bundlers:
+        patterns:
+          - "webpack"
+          - "rollup"
+          - "esbuild"
+          - "vite"
+          - "rspack"
+      code-quality:
+        patterns:
+          - "eslint*"
+          - "prettier"
+          - "lint-staged"
+          - "shellcheck"
+      git-tools:
+        patterns:
+          - "husky"
+          - "@commitlint/*"
+          - "commitizen"
+          - "cz-conventional-changelog"
+      version-management:
+        patterns:
+          - "@changesets/*"
+          - "syncpack"
+      dev-utilities:
+        patterns:
+          - "scripty"
+          - "del-cli"
+      test-dependencies:
+        patterns:
+          - "vitest"
+          - "jest"
+          - "@testing-library/*"
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      babel-dependencies:
+        patterns:
+          - "@babel/*"
     versioning-strategy: auto
     labels:
       - "dependencies"
@@ -24,6 +80,10 @@ updates:
     #     update-types: ["version-update:semver-major"]
     rebase-strategy: auto
     target-branch: "develop"
+    reviewers:
+      - "Dwlad90"
+    assignees:
+      - "Dwlad90"
 
   - package-ecosystem: cargo
     directory: "/"
@@ -36,9 +96,44 @@ updates:
       include: "scope"
     open-pull-requests-limit: 20
     groups:
-      rust-dependencies:
+      swc-dependencies:
         patterns:
-          - "*"
+          - "swc_*"
+      serialization:
+        patterns:
+          - "serde"
+          - "serde_json"
+      utilities:
+        patterns:
+          - "regex"
+          - "indexmap"
+          - "once_cell"
+          - "colored"
+          - "path-clean"
+          - "lazy_static"
+          - "murmur2"
+          - "radix_fmt"
+          - "phf"
+          - "rustc-hash"
+          - "node-resolve"
+      parsers:
+        patterns:
+          - "cssparser"
+      errors:
+        patterns:
+          - "anyhow"
+          - "derive_more"
+          - "color-backtrace"
+      logging:
+        patterns:
+          - "log"
+          - "pretty_env_logger"
+          - "env_logger"
+      testing:
+        patterns:
+          - "testing"
+          - "insta"
+          - "ctor"
     labels:
       - "dependencies"
       - "rust"
@@ -47,6 +142,10 @@ updates:
     #     update-types: ["version-update:semver-major"]
     rebase-strategy: auto
     target-branch: "develop"
+    reviewers:
+      - "Dwlad90"
+    assignees:
+      - "Dwlad90"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -54,9 +153,34 @@ updates:
       interval: monthly
       time: "09:00"
       timezone: Etc/Greenwich
-    labels:
-      - "dependencies"
-      - "github actions"
     commit-message:
       prefix: "ci"
       include: "scope"
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 10
+    target-branch: "develop"
+
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: "monday"
+      time: "09:00"
+      timezone: Etc/Greenwich
+
+    commit-message:
+      prefix: "security"
+      include: "scope"
+    open-pull-requests-limit: 15
+    labels:
+      - "dependencies"
+      - "security"
+    target-branch: "develop"
+    allow:
+      - dependency-type: "direct"

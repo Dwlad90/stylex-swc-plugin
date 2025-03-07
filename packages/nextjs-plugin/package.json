@@ -21,7 +21,7 @@
     "postcss": "^8.4.49",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "webpack": "^5.94.0"
+    "webpack": "^5.98.0"
   },
   "files": [
     "dist"

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   '*.{j,t}s?(x)': ['eslint --color --fix'],
   '*.mdx': ['eslint --color --fix'],
   '*.json': 'eslint --color --fix',

@@ -62,6 +62,7 @@ use crate::shared::{
       sort_numbers_factory, stable_hash, sum_hash_map_values,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
+    log::build_code_frame_error::build_code_frame_error,
   },
 };
 
@@ -500,7 +501,11 @@ fn _evaluate(
                   );
                 }
               }
-              _ => unimplemented!("Expression: {:?}", expr.get_type(get_default_expr_ctx())),
+              _ => {
+                debug!("Object expression: {:?}", expr);
+                build_code_frame_error(path, &expr, "Unimplemented case", traversal_state);
+                unimplemented!("Expression: {:?}", expr.get_type(get_default_expr_ctx()))
+              }
             },
             EvaluateResultValue::FunctionConfigMap(fc_map) => {
               let key = match property {

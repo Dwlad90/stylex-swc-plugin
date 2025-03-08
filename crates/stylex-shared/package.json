@@ -1,14 +1,14 @@
 {
   "name": "@stylexswc/shared",
   "description": "Shared code for stylex-swc-plugin and stylex-rs-compiler",
-  "version": "0.7.0-rc.2",
+  "version": "0.7.0-dev.1",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
     }
   },
   "devDependencies": {
-    "@stylexswc/path-resolver": "0.7.0-rc.2",
+    "@stylexswc/path-resolver": "0.7.0-dev.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^7.0.2",
     "prettier": "^3.5.3"

@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/rs-compiler-linux-x64-gnu",
-  "version": "0.7.0-rc.2",
+  "version": "0.7.0-dev.1",
   "private": false,
   "os": [
     "linux"

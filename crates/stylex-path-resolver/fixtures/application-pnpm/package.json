@@ -1,6 +1,6 @@
 {
   "name": "application-pnpm",
-  "version": "0.7.0-rc.2",
+  "version": "0.7.0-dev.1",
   "dependencies": {
     "stylex-lib-pnpm": "*",
     "@stylex/lib-exports-dist-pnpm": "*",

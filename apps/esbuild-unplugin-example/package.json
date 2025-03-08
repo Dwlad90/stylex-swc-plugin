@@ -1,25 +1,25 @@
 {
   "name": "@stylexswc/esbuild-unplugin-example",
-  "version": "0.7.0-dev.1",
   "description": "A simple esbuild unplugin example to test @stylexswc/unplugin/esbuild",
+  "version": "0.7.0-dev.1",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev.mjs"
   },
-  "license": "MIT",
   "dependencies": {
-    "@stylexswc/design-system": "0.7.0-dev.1",
-    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.11.1",
+    "@stylexswc/design-system": "0.7.0-dev.1",
+    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexswc/unplugin": "0.7.0-dev.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
-    "@types/react": "19.0.10",
-    "@types/react-dom": "19.0.4"
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "esbuild": "^0.25.0"
   }
 }

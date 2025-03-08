@@ -70,13 +70,13 @@ export default async function stylexLoader(
       metadata.stylex == null ||
       !metadata.stylex.length
     ) {
-      extractCSS && logger?.debug(`No stylex styles generated from ${this.resourcePath}`);
+      if (extractCSS) logger?.debug(`No stylex styles generated from ${this.resourcePath}`);
       return callback(null, code ?? undefined, map ?? undefined);
     }
 
     logger?.debug(`Read stylex styles from ${this.resourcePath}:`, metadata.stylex);
 
-    this.StyleXWebpackContextKey.registerStyleXRules(this.resourcePath, metadata.stylex as any);
+    this.StyleXWebpackContextKey.registerStyleXRules(this.resourcePath, metadata.stylex);
 
     const serializedStyleXRules = JSON.stringify(metadata.stylex);
 

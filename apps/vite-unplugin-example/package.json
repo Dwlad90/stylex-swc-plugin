@@ -1,26 +1,26 @@
 {
   "name": "@stylexswc/vite-unplugin-example",
-  "version": "0.7.0-dev.1",
   "description": "A simple vite unplugin example to test @stylexswc/unplugin/vite",
+  "version": "0.7.0-dev.1",
   "private": true,
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build"
-  },
   "license": "MIT",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  },
   "dependencies": {
-    "@stylexswc/design-system": "0.7.0-dev.1",
-    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.11.1",
+    "@stylexswc/design-system": "0.7.0-dev.1",
+    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexswc/unplugin": "0.7.0-dev.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^6.2.1",
-    "@types/react": "19.0.10",
-    "@types/react-dom": "19.0.4"
+    "vite": "^6.2.1"
   }
 }

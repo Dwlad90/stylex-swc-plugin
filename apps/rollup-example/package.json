@@ -1,13 +1,13 @@
 {
   "name": "@stylexswc/rollup-example",
-  "version": "0.7.0-dev.1",
   "description": "A simple rollup example to test @stylexswc/rollup-plugin",
+  "version": "0.7.0-dev.1",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "pnpx rollup --config ./rollup.config.mjs",
     "start": "pnpx rollup --config ./rollup.config.mjs --watch"
   },
-  "license": "MIT",
   "dependencies": {
     "@stylexjs/stylex": "^0.11.1",
     "@stylexswc/rollup-plugin": "0.7.0-dev.1"

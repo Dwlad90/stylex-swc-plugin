@@ -2,6 +2,29 @@
   "name": "@stylexswc/nextjs-plugin",
   "description": "StyleX NextJS plugin with NAPI-RS compiler",
   "version": "0.7.0-dev.1",
+  "private": false,
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "typecheck": "scripty"
+  },
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -23,9 +46,9 @@
     "react-dom": "^19.0.0",
     "webpack": "^5.98.0"
   },
-  "files": [
-    "dist"
-  ],
+  "peerDependencies": {
+    "next": "15.2.1"
+  },
   "keywords": [
     "next",
     "nextjs",
@@ -33,29 +56,6 @@
     "stylex",
     "swc"
   ],
-  "license": "MIT",
   "main": "dist/index.js",
-  "peerDependencies": {
-    "next": ">=14.0.0"
-  },
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "scripts": {
-    "build": "scripty --ts",
-    "check:artifacts": "scripty",
-    "clean": "del-cli dist",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "postbuild": "pnpm run check:artifacts",
-    "precommit": "lint-staged",
-    "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
-    "test": "echo \"Error: no test specified\" && exit 0",
-    "typecheck": "scripty"
-  },
-  "sideEffects": false
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
 }

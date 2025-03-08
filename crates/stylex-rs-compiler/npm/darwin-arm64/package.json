@@ -1,34 +1,34 @@
 {
   "name": "@stylexswc/rs-compiler-darwin-arm64",
+  "description": "NAPI-RS compiler for transform StyleX code",
   "version": "0.7.0-dev.1",
   "private": false,
-  "os": [
-    "darwin"
-  ],
-  "cpu": [
-    "arm64"
-  ],
-  "main": "rs-compiler.darwin-arm64.node",
+  "license": "MIT",
   "files": [
     "LICENSE",
     "rs-compiler.darwin-arm64.node"
   ],
-  "description": "NAPI-RS compiler for transform StyleX code",
-  "keywords": [
-    "napi-rs",
-    "NAPI",
-    "N-API",
-    "Rust",
-    "node-addon",
-    "node-addon-api"
-  ],
-  "license": "MIT",
-  "engines": {
-    "node": ">= 10"
-  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
+  "cpu": [
+    "arm64"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "keywords": [
+    "N-API",
+    "NAPI",
+    "napi-rs",
+    "node-addon",
+    "node-addon-api",
+    "Rust"
+  ],
+  "main": "rs-compiler.darwin-arm64.node",
+  "os": [
+    "darwin"
+  ],
   "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
 }

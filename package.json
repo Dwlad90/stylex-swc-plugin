@@ -10,7 +10,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "format:check": "turbo run format:check --continue",
     "lint": "turbo lint --continue",
-    "lint:check": "turbo run lint:check",
+    "lint:check": "turbo run lint:check --continue",
     "prepare": "husky",
     "test": "turbo run test --continue",
     "typecheck": "turbo run typecheck --continue"
@@ -26,8 +26,8 @@
   "devDependencies": {
     "@changesets/cli": "^2.28.1",
     "@commitlint/cli": "^19.7.1",
-    "@stylexswc/eslint-config": "workspace:*",
-    "@stylexswc/typescript-config": "workspace:*",
+    "@stylexswc/eslint-config": "0.7.0-dev.1",
+    "@stylexswc/typescript-config": "0.7.0-dev.1",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
     "del-cli": "^6.0.0",

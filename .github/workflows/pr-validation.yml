@@ -87,6 +87,9 @@ jobs:
         if: github.event.pull_request.number != null
         run: pnpm exec commitlint --from=$(git merge-base origin/develop HEAD)
 
+      - name: Version mismatch check
+        run: ./scripts/git/version-mismatch-check.sh
+
       - name: Format code
         run: pnpm run format:check
 

@@ -2,33 +2,15 @@
   "name": "@stylexswc/shared",
   "description": "Shared code for stylex-swc-plugin and stylex-rs-compiler",
   "version": "0.7.0-dev.1",
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "devDependencies": {
-    "@stylexswc/path-resolver": "0.7.0-dev.1",
-    "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^7.0.2",
-    "prettier": "^3.5.3"
-  },
+  "private": true,
+  "license": "MIT",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
-  "keywords": [
-    "napi",
-    "napi-rs",
-    "stylex",
-    "swc",
-    "swc-plugin"
-  ],
-  "license": "MIT",
-  "private": true,
   "publishConfig": {
     "access": "public"
   },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "clean": "del-cli dist",
     "docs": "scripty --rust",
@@ -49,5 +31,23 @@
     "test": "NODE_ENV=test cargo test --lib --bins --tests",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
-  "sideEffects": false
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@stylexswc/path-resolver": "0.7.0-dev.1",
+    "@taplo/cli": "^0.7.0",
+    "npm-run-all2": "^7.0.2",
+    "prettier": "^3.5.3"
+  },
+  "keywords": [
+    "napi",
+    "napi-rs",
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ],
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
 }

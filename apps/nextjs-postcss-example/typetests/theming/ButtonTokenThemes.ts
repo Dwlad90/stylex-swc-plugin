@@ -1,10 +1,10 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Theme } from '@stylexjs/stylex';
 
 import { ButtonTokens } from './ButtonTokens.stylex';
 
 import * as stylex from '@stylexjs/stylex';
-
-/* eslint-disable no-unused-vars */
 
 const fdsRed: Theme<typeof ButtonTokens> = stylex.createTheme(ButtonTokens, {
   bgColor: 'red',
@@ -27,3 +27,5 @@ const styles = stylex.create({
     backgroundColor: `color-mix(in oklch, ${ButtonTokens.bgColor}, 'white')`,
   },
 });
+/* eslint-enable no-unused-vars */
+/* eslint-enable @typescript-eslint/no-unused-vars */

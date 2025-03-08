@@ -2,6 +2,31 @@
   "name": "@stylexswc/design-system",
   "description": "A design system for stylex workspace examples",
   "version": "0.7.0-dev.1",
+  "private": true,
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js",
+    "./Text": "./dist/Text.js",
+    "./tokens.stylex": "./dist/tokens.stylex.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "typecheck": "scripty"
+  },
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -16,30 +41,5 @@
   "devDependencies": {
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4"
-  },
-  "exports": {
-    ".": "./dist/index.js",
-    "./Text": "./dist/Text.js",
-    "./tokens.stylex": "./dist/tokens.stylex.js",
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist/*"
-  ],
-  "license": "MIT",
-  "private": true,
-  "scripts": {
-    "build": "scripty --ts",
-    "check:artifacts": "scripty",
-    "clean": "del-cli dist",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "postbuild": "pnpm run check:artifacts",
-    "precommit": "lint-staged",
-    "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
-    "test": "echo \"Error: no test specified\" && exit 0",
-    "typecheck": "scripty"
-  },
-  "sideEffects": false
+  }
 }

@@ -4,7 +4,7 @@ import webpack from './webpack';
 import type { UnpluginStylexRSOptions } from './types';
 import '@nuxt/schema';
 
-export interface ModuleOptions extends UnpluginStylexRSOptions {}
+export type ModuleOptions = UnpluginStylexRSOptions;
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {

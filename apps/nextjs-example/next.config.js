@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 const path = require('path');
 const stylexPlugin = require('@stylexswc/nextjs-plugin');
+/* eslint-enable @typescript-eslint/no-var-requires */
+
 const rootDir = __dirname;
 
 module.exports = stylexPlugin({

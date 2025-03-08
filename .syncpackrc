@@ -1,5 +1,12 @@
 {
-  "dependencyTypes": ["dev", "prod", "peer", "resolutions", "overrides", "pnpmOverrides"],
+  "dependencyTypes": [
+    "dev",
+    "prod",
+    "peer",
+    "resolutions",
+    "overrides",
+    "pnpmOverrides"
+  ],
   "filter": ".",
   "indent": "  ",
   "semverGroups": [],
@@ -35,6 +42,9 @@
     "devDependencies",
     "peerDependencies"
   ],
-  "source": ["package.json", "pkgs/*/package.json"],
+  "source": [
+    "package.json",
+    "pkgs/*/package.json"
+  ],
   "versionGroups": []
 }

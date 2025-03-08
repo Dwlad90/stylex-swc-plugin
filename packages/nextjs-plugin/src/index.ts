@@ -41,6 +41,7 @@ const getNextMiniCssExtractPlugin = (isDev: boolean) => {
       warn(
         'Next.js built-in mini-css-extract-plugin is broken, will fallback to "mini-css-extract-plugin"'
       );
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       return require('mini-css-extract-plugin');
     }
   }
@@ -53,7 +54,7 @@ const getNextMiniCssExtractPlugin = (isDev: boolean) => {
 function getStyleXVirtualCssLoader(
   ctx: WebpackConfigContext,
   MiniCssExtractPlugin: typeof NextMiniCssExtractPlugin,
-  postcss: () => Promise<any>
+  postcss: () => Promise<unknown>
 ) {
   const loaders: webpack.RuleSetUseItem[] = [];
 
@@ -63,6 +64,7 @@ function getStyleXVirtualCssLoader(
     // https://github.com/vercel/next.js/blob/56d35ede8ed2ab25fa8e29583d4e81e3e76a0e29/packages/next/src/build/webpack/config/blocks/css/loaders/global.ts#L18
     // https://github.com/vercel/next.js/blob/56d35ede8ed2ab25fa8e29583d4e81e3e76a0e29/packages/next/src/build/webpack/config/blocks/css/loaders/client.ts#L3
     loaders.push({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       loader: (MiniCssExtractPlugin as any).loader,
       options: {
         publicPath: `${ctx.config.assetPrefix}/_next/`,

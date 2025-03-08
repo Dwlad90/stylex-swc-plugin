@@ -2,19 +2,37 @@
   "name": "@stylexswc/rs-compiler",
   "description": "NAPI-RS compiler for transform StyleX code",
   "version": "0.7.0-dev.1",
-  "ava": {
-    "extensions": {
-      "ts": "module"
-    },
-    "timeout": "2m",
-    "workerThreads": false,
-    "environmentVariables": {
-      "TS_NODE_PROJECT": "./tsconfig.json"
-    },
-    "nodeArguments": [
-      "--import",
-      "@swc-node/register/esm-register"
-    ]
+  "private": false,
+  "license": "MIT",
+  "files": [
+    "dist/index.d.ts",
+    "dist/index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "bench": "node --import @swc-node/register/esm-register benchmark/bench.ts",
+    "build": "napi build --platform --release dist",
+    "build:debug": "napi build --platform",
+    "check:artifacts": "scripty ./dist/rs-compiler.*.node",
+    "format": "run-p format:prettier format:rs format:toml",
+    "format:check": "run-p format:rs:check format:toml:check",
+    "format:prettier": "prettier . -w",
+    "format:rs": "cargo fmt --all",
+    "format:rs:check": "cargo fmt -- --check",
+    "format:toml": "taplo format",
+    "format:toml:check": "taplo format --check",
+    "lint": "oxlint .",
+    "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
+    "postbuild": "pnpm run check:artifacts",
+    "prepublishOnly": "napi prepublish --skip-gh-release",
+    "test": "ava",
+    "version": "napi version"
   },
   "config": {
     "scripty": {
@@ -41,15 +59,23 @@
     "tinybench": "^3.1.1",
     "typescript": "^5.8.2"
   },
+  "ava": {
+    "extensions": {
+      "ts": "module"
+    },
+    "timeout": "2m",
+    "workerThreads": false,
+    "environmentVariables": {
+      "TS_NODE_PROJECT": "./tsconfig.json"
+    },
+    "nodeArguments": [
+      "--import",
+      "@swc-node/register/esm-register"
+    ]
+  },
   "engines": {
     "node": ">= 18"
   },
-  "files": [
-    "dist/index.d.ts",
-    "dist/index.js",
-    "README.md",
-    "LICENSE"
-  ],
   "keywords": [
     "N-API",
     "NAPI",
@@ -60,7 +86,6 @@
     "StyleX",
     "SWC"
   ],
-  "license": "MIT",
   "main": "dist/index.js",
   "napi": {
     "name": "rs-compiler",
@@ -74,30 +99,5 @@
     }
   },
   "packageManager": "pnpm@9.15.4",
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "scripts": {
-    "artifacts": "napi artifacts",
-    "bench": "node --import @swc-node/register/esm-register benchmark/bench.ts",
-    "build": "napi build --platform --release dist",
-    "build:debug": "napi build --platform",
-    "check:artifacts": "scripty ./dist/rs-compiler.*.node",
-    "format": "run-p format:prettier format:rs format:toml",
-    "format:check": "run-p format:rs:check format:toml:check",
-    "format:prettier": "prettier . -w",
-    "format:rs": "cargo fmt --all",
-    "format:rs:check": "cargo fmt -- --check",
-    "format:toml": "taplo format",
-    "format:toml:check": "taplo format --check",
-    "lint": "oxlint .",
-    "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
-    "postbuild": "pnpm run check:artifacts",
-    "prepublishOnly": "napi prepublish --skip-gh-release",
-    "test": "ava",
-    "version": "napi version"
-  }
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
 }

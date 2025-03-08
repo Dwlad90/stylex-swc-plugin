@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import * as stylex from '@stylexjs/stylex';
 import type {
   StaticStyles,
@@ -6,8 +7,6 @@ import type {
   StyleXStylesWithout,
 } from '@stylexjs/stylex';
 import type { StyleXClassNameFor, InlineStyles, StyleXVar } from '@stylexjs/stylex/lib/StyleXTypes';
-
-/* eslint-disable no-unused-vars */
 
 /**
  * EMPTY STYLES
@@ -298,3 +297,4 @@ styles8.foo satisfies StyleXStylesWithout<{ height: unknown }>;
 styles8.foo satisfies StyleXStylesWithout<{ color: unknown }>;
 
 stylex.props(styles8.foo);
+/* eslint-enable no-unused-vars */

@@ -2,25 +2,12 @@
   "name": "@stylexswc/test-parser",
   "description": "Parse origin jest stylex test files",
   "version": "0.7.0-dev.1",
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "devDependencies": {
-    "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^7.0.2",
-    "prettier": "^3.5.3"
-  },
+  "private": true,
+  "license": "MIT",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
-  "keywords": [
-    "swc-plugin"
-  ],
-  "license": "MIT",
-  "main": "./dist/test-parser",
-  "private": true,
   "publishConfig": {
     "access": "public"
   },
@@ -43,5 +30,18 @@
     "start": "./dist/test-parser",
     "test": "NODE_ENV=test cargo test --bins --tests"
   },
-  "sideEffects": false
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@taplo/cli": "^0.7.0",
+    "npm-run-all2": "^7.0.2",
+    "prettier": "^3.5.3"
+  },
+  "keywords": [
+    "swc-plugin"
+  ],
+  "main": "./dist/test-parser"
 }

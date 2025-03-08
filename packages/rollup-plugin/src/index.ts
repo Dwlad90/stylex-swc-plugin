@@ -1,7 +1,7 @@
 import stylexRsCompiler, { normalizeRsOptions } from '@stylexswc/rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
-import type { TransformOptions } from 'lightningcss';
+import type { CustomAtRules, TransformOptions } from 'lightningcss';
 import type { Plugin, TransformResult, TransformPluginContext } from 'rollup';
 import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
@@ -22,7 +22,7 @@ export type PluginOptions = {
   rsOptions?: StyleXOptions;
   fileName?: string;
   useCSSLayers?: boolean;
-  lightningcssOptions?: Omit<TransformOptions<{}>, 'code' | 'filename' | 'visitor'>;
+  lightningcssOptions?: Omit<TransformOptions<CustomAtRules>, 'code' | 'filename' | 'visitor'>;
   extractCSS?: boolean;
 };
 
@@ -85,7 +85,7 @@ export default function stylexPlugin({
         return null;
       }
 
-      let result = stylexRsCompiler.transform(id, inputCode, normalizedRsOptions);
+      const result = stylexRsCompiler.transform(id, inputCode, normalizedRsOptions);
 
       if (result == null) {
         console.warn('stylex: transformAsync returned null');

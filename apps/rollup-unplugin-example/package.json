@@ -1,28 +1,28 @@
 {
   "name": "@stylexswc/rollup-unplugin-example",
-  "version": "0.7.0-dev.1",
   "description": "A simple rollup unplugin example to test @stylexswc/unplugin/rollup",
+  "version": "0.7.0-dev.1",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "NODE_ENV=production rollup --config ./rollup.config.mjs",
     "start": "pnpx rollup --config ./rollup.config.mjs --watch"
   },
-  "license": "MIT",
   "dependencies": {
-    "@stylexswc/design-system": "0.7.0-dev.1",
-    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.11.1",
+    "@stylexswc/design-system": "0.7.0-dev.1",
+    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexswc/unplugin": "0.7.0-dev.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@rollup/plugin-swc": "^0.4.0",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-replace": "^6.0.2",
+    "@rollup/plugin-swc": "^0.4.0",
     "rollup": "^4.34.9",
     "rollup-plugin-serve": "^3.0.0"
   }

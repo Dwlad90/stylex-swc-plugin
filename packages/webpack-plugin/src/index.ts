@@ -174,6 +174,7 @@ export default class StyleXPlugin {
               this.stylexRules.clear();
 
               for (const cssModule of cssModulesInStylexChunk as Iterable<CssModule>) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const stringifiedStylexRule = ((cssModule as any)._identifier as string)
                   .split('!')
                   .pop()

@@ -2,6 +2,29 @@
   "name": "@stylexswc/jest",
   "description": "Jest transformer for Stylex SWC",
   "version": "0.7.0-dev.1",
+  "private": false,
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "typecheck": "scripty"
+  },
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -17,34 +40,11 @@
     "@stylexswc/eslint-config": "0.7.0-dev.1",
     "@stylexswc/typescript-config": "0.7.0-dev.1"
   },
-  "files": [
-    "dist"
-  ],
   "keywords": [
     "jest",
     "stylex",
     "swc"
   ],
-  "license": "MIT",
   "main": "dist/index.js",
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "scripts": {
-    "build": "scripty --ts",
-    "check:artifacts": "scripty",
-    "clean": "del-cli dist",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "postbuild": "pnpm run check:artifacts",
-    "precommit": "lint-staged",
-    "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
-    "test": "echo \"Error: no test specified\" && exit 0",
-    "typecheck": "scripty"
-  },
-  "sideEffects": false
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
 }

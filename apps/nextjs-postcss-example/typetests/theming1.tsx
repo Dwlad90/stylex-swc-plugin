@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as stylex from '@stylexjs/stylex';
 import type {
@@ -233,3 +234,5 @@ const wronglyTypedTheme2 = stylex.createTheme(typedTokens, {
     '@media (prefer-reduced-motion: reduce)': 0,
   }),
 });
+/* eslint-enable no-unused-vars */
+/* eslint-enable @typescript-eslint/no-unused-vars */

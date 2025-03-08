@@ -1,7 +1,4 @@
-import { resolve } from "node:path";
-import js from "@eslint/js";
 import turboConfig from "eslint-config-turbo/flat";
-import globals from "globals";
 import prettierConfig from "eslint-config-prettier/flat";
 import stylexPlugin from '@stylexjs/eslint-plugin';
 import { FlatCompat } from '@eslint/eslintrc';
@@ -18,42 +15,33 @@ const eslintConfig = [
   }),
 ]
 
-const project = resolve(process.cwd(), "tsconfig.json");
+const filteredBaseConfig = baseConfig.map(config => {
+  if (config.plugins?.['@typescript-eslint']) {
+    // Remove the typescript-eslint plugin from the base config
+    const { plugins, ...rest } = config;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { '@typescript-eslint': _, ...newPlugins } = { ...plugins };  // Use _ instead of _a
+
+    return {
+      ...rest,
+      plugins: Object.keys(newPlugins).length > 0 ? newPlugins : {}
+    };
+  }
+
+  if (config?.name?.startsWith('typescript-eslint')) {
+    // Remove the typescript-eslint plugin from the base config
+    return {}
+  }
+
+  return config;
+});
 
 /** @type {import("eslint").FlatConfig[]} */
 const nextBaseEslintConfig = [
-  {
-    name: "next:base",
-    linterOptions: {
-      reportUnusedDisableDirectives: true,
-    },
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-        React: true,
-        JSX: true,
-      }
-    },
-    settings: {
-      "import/resolver": {
-        typescript: {
-          project,
-        },
-      },
-    },
-    ignores: [
-      ".*.js",
-      "node_modules/",
-      "__tests__/**",
-      "output/**"
-    ],
-  },
-  js.configs.recommended,
   prettierConfig,
   ...eslintConfig,
   ...turboConfig,
-  ...baseConfig,
+  ...filteredBaseConfig,
   {
     name: "next:js-ts",
     files: ["*.js?(x)", "*.ts?(x)"],
@@ -64,16 +52,6 @@ const nextBaseEslintConfig = [
       '@stylexjs': stylexPlugin,
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          vars: 'all',
-          args: 'after-used',
-          ignoreRestSiblings: true,
-          argsIgnorePattern: '^_',
-          caughtErrors: 'none',
-        },
-      ],
       '@stylexjs/valid-styles': 'error',
       'ft-flow/space-after-type-colon': 0,
       'ft-flow/no-types-missing-file-annotation': 0,

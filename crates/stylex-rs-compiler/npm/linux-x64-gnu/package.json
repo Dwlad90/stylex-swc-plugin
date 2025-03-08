@@ -1,37 +1,37 @@
 {
   "name": "@stylexswc/rs-compiler-linux-x64-gnu",
+  "description": "NAPI-RS compiler for transform StyleX code",
   "version": "0.7.0-dev.1",
   "private": false,
-  "os": [
-    "linux"
-  ],
-  "cpu": [
-    "x64"
-  ],
-  "main": "rs-compiler.linux-x64-gnu.node",
+  "license": "MIT",
   "files": [
     "LICENSE",
     "rs-compiler.linux-x64-gnu.node"
   ],
-  "description": "NAPI-RS compiler for transform StyleX code",
-  "keywords": [
-    "napi-rs",
-    "NAPI",
-    "N-API",
-    "Rust",
-    "node-addon",
-    "node-addon-api"
-  ],
-  "license": "MIT",
-  "engines": {
-    "node": ">= 10"
-  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
+  "cpu": [
+    "x64"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "keywords": [
+    "N-API",
+    "NAPI",
+    "napi-rs",
+    "node-addon",
+    "node-addon-api",
+    "Rust"
+  ],
   "libc": [
     "glibc"
-  ]
+  ],
+  "main": "rs-compiler.linux-x64-gnu.node",
+  "os": [
+    "linux"
+  ],
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
 }

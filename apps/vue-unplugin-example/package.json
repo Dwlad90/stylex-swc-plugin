@@ -1,18 +1,18 @@
 {
   "name": "@stylexswc/vue-unplugin-example",
-  "version": "0.7.0-dev.1",
   "description": "A simple vue unplugin example to test @stylexswc/unplugin/vue",
+  "version": "0.7.0-dev.1",
   "private": true,
-  "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc && vite build"
-  },
   "license": "MIT",
+  "scripts": {
+    "build": "vue-tsc && vite build",
+    "dev": "vite"
+  },
   "dependencies": {
-    "@stylexswc/design-system": "0.7.0-dev.1",
-    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.11.1",
+    "@stylexswc/design-system": "0.7.0-dev.1",
+    "@stylexswc/rs-compiler": "0.7.0-dev.1",
     "@stylexswc/unplugin": "0.7.0-dev.1",
     "vue": "^3.5.13"
   },

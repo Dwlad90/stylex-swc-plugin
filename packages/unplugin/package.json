@@ -1,34 +1,12 @@
 {
   "name": "@stylexswc/unplugin",
-  "type": "module",
-  "version": "0.7.0-dev.1",
-  "packageManager": "pnpm@9.15.4",
   "description": "Unplugin for StyleX RS compiler",
-  "license": "MIT",
+  "version": "0.7.0-dev.1",
   "private": false,
-  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin#readme",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "bugs": {
-    "url": "https://github.com/Dwlad90/stylex-swc-plugin/issues"
-  },
+  "license": "MIT",
   "sideEffects": false,
-  "keywords": [
-    "unplugin",
-    "vite",
-    "webpack",
-    "rollup",
-    "transform",
-    "stylex",
-    "farm",
-    "esbuild",
-    "rspack",
-    "rsbuild",
-    "swc"
-  ],
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -82,25 +60,18 @@
     },
     "./*": "./*"
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "typesVersions": {
-    "*": {
-      "*": [
-        "./dist/*",
-        "./*"
-      ]
-    }
-  },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch src",
     "build:fix": "esno scripts/postbuild.ts",
     "check:artifacts": "scripty",
+    "dev": "tsup --watch src",
     "lint": "eslint . --color",
     "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "play": "pnpm -C playground run dev",
@@ -108,41 +79,14 @@
     "prepublishOnly": "pnpm run build",
     "start": "esno src/index.ts",
     "test": "vitest  --run",
-    "test:watch": "vitest",
-    "test:update": "vitest -u",
     "test:cov": "vitest --coverage",
+    "test:update": "vitest -u",
+    "test:watch": "vitest",
     "typecheck": "scripty"
   },
-  "peerDependencies": {
-    "@farmfe/core": ">=1.6.6",
-    "@nuxt/kit": "^3",
-    "@nuxt/schema": "^3",
-    "esbuild": "*",
-    "rollup": "^3",
-    "vite": ">=3",
-    "webpack": "^4 || ^5"
-  },
-  "peerDependenciesMeta": {
-    "@farmfe/core": {
-      "optional": true
-    },
-    "@nuxt/kit": {
-      "optional": true
-    },
-    "@nuxt/schema": {
-      "optional": true
-    },
-    "esbuild": {
-      "optional": true
-    },
-    "rollup": {
-      "optional": true
-    },
-    "vite": {
-      "optional": true
-    },
-    "webpack": {
-      "optional": true
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
     }
   },
   "dependencies": {
@@ -168,9 +112,63 @@
     "vitest": "^3.0.8",
     "webpack": "^5.98.0"
   },
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
+  "peerDependencies": {
+    "@farmfe/core": "^1.6.6",
+    "@nuxt/kit": "^3.16.0",
+    "@nuxt/schema": "^3.16.0",
+    "esbuild": "^0.25.0",
+    "rollup": "^4.34.9",
+    "vite": "^6.2.1",
+    "webpack": "^5.98.0"
+  },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin#readme",
+  "keywords": [
+    "esbuild",
+    "farm",
+    "rollup",
+    "rsbuild",
+    "rspack",
+    "stylex",
+    "swc",
+    "transform",
+    "unplugin",
+    "vite",
+    "webpack"
+  ],
+  "main": "./dist/index.js",
+  "packageManager": "pnpm@9.15.4",
+  "peerDependenciesMeta": {
+    "@farmfe/core": {
+      "optional": true
+    },
+    "@nuxt/kit": {
+      "optional": true
+    },
+    "@nuxt/schema": {
+      "optional": true
+    },
+    "esbuild": {
+      "optional": true
+    },
+    "rollup": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./*"
+      ]
     }
   }
 }

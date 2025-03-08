@@ -4,5 +4,8 @@ set -e
 
 exec < /dev/tty
 
+# Check for version mismatches in package.json files.
+./scripts/git/version-mismatch-check.sh
+
 # lint staged files in root of monorepo.
 pnpm exec lint-staged

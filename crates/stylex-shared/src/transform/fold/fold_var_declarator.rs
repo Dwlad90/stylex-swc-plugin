@@ -34,7 +34,7 @@ where
   ) -> VarDeclarator {
     match self.state.cycle {
       TransformationCycle::StateFilling => {
-        if !self.state.declarations.contains(&Box::new(&var_declarator)) {
+        if !self.state.declarations.contains(&Box::new(&var_declarator)){
           self.state.declarations.push(var_declarator.clone());
         }
 

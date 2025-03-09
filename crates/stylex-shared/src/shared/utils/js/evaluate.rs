@@ -10,8 +10,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
-      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Pat,
-      Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
+      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit,
+      ParenExpr, Pat, Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
     },
     utils::{ExprExt, drop_span, ident::IdentLike, quote_ident},
   },
@@ -502,8 +502,17 @@ fn _evaluate(
                 }
               }
               _ => {
-                debug!("Object expression: {:?}", expr);
-                build_code_frame_error(path, &expr, "Unimplemented case", traversal_state);
+                warn!("Object expression: {:?}", path);
+                build_code_frame_error(
+                  &Expr::Paren(ParenExpr {
+                    span: DUMMY_SP,
+                    expr: Box::new(path.clone()),
+                  }),
+                  path,
+                  "Unimplemented case",
+                  traversal_state,
+                );
+                // return None;
                 unimplemented!("Expression: {:?}", expr.get_type(get_default_expr_ctx()))
               }
             },

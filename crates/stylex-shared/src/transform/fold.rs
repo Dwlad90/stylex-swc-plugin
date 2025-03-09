@@ -3,6 +3,7 @@ mod fold_decl;
 mod fold_export_decl;
 mod fold_export_default_expr;
 mod fold_expr;
+// mod fold_fn_declarator;
 mod fold_ident;
 mod fold_import_decl;
 mod fold_member_expression;
@@ -52,6 +53,10 @@ where
   fn fold_var_declarator(&mut self, var_declarator: VarDeclarator) -> VarDeclarator {
     self.fold_var_declarator_impl(var_declarator)
   }
+
+  // fn fold_fn_decl(&mut self, fn_decl: FnDecl) -> FnDecl {
+  //   self.fold_fn_declarator_impl(fn_decl)
+  // }
 
   fn fold_export_decl(&mut self, export_decl: ExportDecl) -> ExportDecl {
     self.fold_export_decl_impl(export_decl)

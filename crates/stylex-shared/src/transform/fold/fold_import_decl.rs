@@ -29,36 +29,75 @@ where
 
       self.state.top_imports.push(import_decl.clone());
 
-      if import_sources.contains(&declaration.to_string()) {
-        let source_path = import_decl.src.value.to_string();
+      let source_path = import_decl.src.value.to_string();
 
-        for specifier in &import_decl.specifiers {
-          match &specifier {
-            ImportSpecifier::Default(import_specifier) => {
-              if self.state.import_as(&import_decl.src.value).is_none() {
-                let local_name = import_specifier.local.sym.to_string();
+      for specifier in &import_decl.specifiers {
+        match &specifier {
+          ImportSpecifier::Default(import_specifier) => {
+            let import_specifier_ident = import_specifier.local.clone();
 
-                self.state.import_paths.insert(source_path.clone());
-
-                self
-                  .state
-                  .stylex_import
-                  .insert(ImportSources::Regular(local_name));
-              };
+            let import_specifier_string = import_specifier_ident.sym.to_string();
+            if !self
+              .state
+              .import_specifiers
+              .contains(&import_specifier_string)
+            {
+              self.state.import_specifiers.push(import_specifier_string);
             }
-            ImportSpecifier::Namespace(import_specifier) => {
-              if self.state.import_as(&import_decl.src.value).is_none() {
-                let local_name = import_specifier.local.sym.to_string();
 
-                self.state.import_paths.insert(source_path.clone());
+            if import_sources.contains(&declaration.to_string())
+              && self.state.import_as(&import_decl.src.value).is_none()
+            {
+              let local_name = import_specifier.local.sym.to_string();
 
-                self
-                  .state
-                  .stylex_import
-                  .insert(ImportSources::Regular(local_name));
-              }
+              self.state.import_paths.insert(source_path.clone());
+
+              self
+                .state
+                .stylex_import
+                .insert(ImportSources::Regular(local_name));
             }
-            ImportSpecifier::Named(import_specifier) => {
+          }
+          ImportSpecifier::Namespace(import_specifier) => {
+            let import_specifier_ident = import_specifier.local.clone();
+
+            let import_specifier_string = import_specifier_ident.sym.to_string();
+
+            if !self
+              .state
+              .import_specifiers
+              .contains(&import_specifier_string)
+            {
+              self.state.import_specifiers.push(import_specifier_string);
+            }
+
+            if import_sources.contains(&declaration.to_string())
+              && self.state.import_as(&import_decl.src.value).is_none()
+            {
+              let local_name = import_specifier.local.sym.to_string();
+
+              self.state.import_paths.insert(source_path.clone());
+
+              self
+                .state
+                .stylex_import
+                .insert(ImportSources::Regular(local_name));
+            }
+          }
+          ImportSpecifier::Named(import_specifier) => {
+            let import_specifier_ident = import_specifier.local.clone();
+
+            let import_specifier_string = import_specifier_ident.sym.to_string();
+
+            if !self
+              .state
+              .import_specifiers
+              .contains(&import_specifier_string)
+            {
+              self.state.import_specifiers.push(import_specifier_string);
+            }
+
+            if import_sources.contains(&declaration.to_string()) {
               let local_name = import_specifier.local.sym.to_string();
 
               match &import_specifier.imported {
@@ -87,8 +126,8 @@ where
                 }
               }
             }
-          };
-        }
+          }
+        };
       }
 
       import_decl

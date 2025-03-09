@@ -1,7 +1,9 @@
 use std::{fs, path::Path, sync::Arc};
 use swc_compiler_base::{IsModule, PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_core::{
-  common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, errors::*, sync::Lrc},
+  common::{
+    DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, SyntaxContext, errors::*, sync::Lrc,
+  },
   ecma::{ast::*, visit::*},
 };
 use swc_ecma_parser::{Syntax, TsSyntax};
@@ -111,34 +113,10 @@ pub(crate) fn get_span_from_source_code(
     let module = if cfg!(debug_assertions) && state.get_debug_assertions_module().is_some() {
       state.get_debug_assertions_module().unwrap().clone()
     } else {
-      Module {
-        span: DUMMY_SP,
-        body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-          span: DUMMY_SP,
-          expr: Box::new(wrapped_expression.clone()),
-        }))],
-        shebang: None,
-      }
+      create_module(wrapped_expression)
     };
 
-    let program = Program::Module(module);
-
-    let printed_source_code = print(
-      code_frame.source_map.clone(),
-      &program,
-      PrintArgs {
-        source_map: SourceMapsConfig::Bool(false),
-        ..Default::default()
-      },
-    )
-    .unwrap_or_else(|_| TransformOutput {
-      code: "".to_string(),
-      map: None,
-      output: None,
-      diagnostics: Vec::default(),
-    });
-
-    printed_source_code.code
+    print_module(&code_frame, module)
   });
 
   let file = code_frame
@@ -170,16 +148,62 @@ pub(crate) fn get_span_from_source_code(
   (code_frame, fault_expression.span())
 }
 
+fn print_module(code_frame: &CodeFrame, module: Module) -> String {
+  let program = Program::Module(module);
+
+  let printed_source_code = print(
+    code_frame.source_map.clone(),
+    &program,
+    PrintArgs {
+      source_map: SourceMapsConfig::Bool(false),
+      ..Default::default()
+    },
+  )
+  .unwrap_or_else(|_| TransformOutput {
+    code: "".to_string(),
+    map: None,
+    output: None,
+    diagnostics: Vec::default(),
+  });
+
+  printed_source_code.code
+}
+
+fn create_module(wrapped_expression: &Expr) -> Module {
+  Module {
+    span: DUMMY_SP,
+    body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+      span: DUMMY_SP,
+      expr: Box::new(wrapped_expression.clone()),
+    }))],
+    shebang: None,
+  }
+}
+
 #[derive(Debug)]
-struct ExpressionFinder<'a> {
-  target: &'a Expr,
+struct ExpressionFinder {
+  target: Expr,
   found_expr: Option<Expr>,
 }
 
-impl<'a> ExpressionFinder<'a> {
-  fn new(target: &'a Expr) -> Self {
+#[derive(Debug)]
+struct Cleaner {}
+impl Fold for Cleaner {
+  noop_fold_type!();
+
+  fn fold_ident(&mut self, ident: Ident) -> Ident {
+    let mut new_ident = ident.clone();
+
+    new_ident.ctxt = SyntaxContext::empty();
+
+    new_ident
+  }
+}
+
+impl ExpressionFinder {
+  fn new(target: &Expr) -> Self {
     Self {
-      target,
+      target: target.clone().fold_children_with(&mut Cleaner {}),
       found_expr: None,
     }
   }
@@ -191,8 +215,16 @@ impl<'a> ExpressionFinder<'a> {
   }
 }
 
-impl Fold for ExpressionFinder<'_> {
+impl Fold for ExpressionFinder {
+  noop_fold_type!();
+
   fn fold_expr(&mut self, expr: Expr) -> Expr {
+    if self.found_expr.is_some() {
+      return expr;
+    }
+
+    let expr = expr.clone().fold_children_with(self);
+
     if self.target.eq_ignore_span(&expr) {
       self.found_expr = Some(expr.clone());
       expr
@@ -202,14 +234,28 @@ impl Fold for ExpressionFinder<'_> {
   }
 }
 
+#[track_caller]
 pub(crate) fn build_code_frame_error_and_panic(
   wrapped_expression: &Expr,
   fault_expression: &Expr,
   error_message: &str,
   state: &StateManager,
 ) -> ! {
-  panic!(
-    "{}",
-    build_code_frame_error(wrapped_expression, fault_expression, error_message, state)
+  let caller_location = std::panic::Location::caller();
+
+  let enhanced_message = format!(
+    "{} (called from {}:{})",
+    error_message,
+    caller_location.file(),
+    caller_location.line()
   );
+
+  build_code_frame_error(
+    wrapped_expression,
+    fault_expression,
+    &enhanced_message,
+    state,
+  );
+
+  panic!("{}", enhanced_message);
 }

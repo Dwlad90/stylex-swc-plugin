@@ -76,6 +76,7 @@ pub struct StateManager {
   // Imports
   pub(crate) import_paths: FxHashSet<String>,
   pub(crate) stylex_import: FxHashSet<ImportSources>,
+  pub(crate) import_specifiers: Vec<String>,
   pub(crate) stylex_props_import: AtomHashSet,
   pub(crate) stylex_attrs_import: AtomHashSet,
   pub(crate) stylex_create_import: AtomHashSet,
@@ -134,6 +135,7 @@ impl StateManager {
       _state: PluginPass::default(),
       import_paths: FxHashSet::default(),
       stylex_import: FxHashSet::default(),
+      import_specifiers: vec![],
       stylex_props_import: FxHashSet::default(),
       stylex_attrs_import: FxHashSet::default(),
       stylex_create_import: FxHashSet::default(),

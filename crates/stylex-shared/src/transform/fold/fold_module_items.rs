@@ -11,7 +11,10 @@ use crate::{
   StyleXTransform,
   shared::{
     enums::core::TransformationCycle,
-    utils::{ast::factories::binding_ident_factory, common::stable_hash},
+    utils::{
+      ast::factories::binding_ident_factory,
+      common::{fill_state_declarations, stable_hash},
+    },
   },
 };
 
@@ -38,9 +41,7 @@ where
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
             var_decl.decls.iter().for_each(|decl| {
               if let Pat::Ident(_) = &decl.name {
-                if !self.state.declarations.contains(&Box::new(&decl)) {
-                  self.state.declarations.push(decl.clone());
-                }
+                fill_state_declarations(&mut self.state, decl);
               }
             });
           }

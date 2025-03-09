@@ -20,7 +20,7 @@ use crate::{
         top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
       },
     },
-    utils::ast::convertors::transform_shorthand_to_key_values,
+    utils::{ast::convertors::transform_shorthand_to_key_values, common::fill_state_declarations},
   },
 };
 
@@ -34,9 +34,7 @@ where
   ) -> VarDeclarator {
     match self.state.cycle {
       TransformationCycle::StateFilling => {
-        if !self.state.declarations.contains(&Box::new(&var_declarator)) {
-          self.state.declarations.push(var_declarator.clone());
-        }
+        fill_state_declarations(&mut self.state, &var_declarator);
 
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut() {
           if let Some((declaration, member)) = self.process_declaration(call) {

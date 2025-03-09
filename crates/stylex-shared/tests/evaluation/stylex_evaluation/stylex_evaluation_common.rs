@@ -190,7 +190,6 @@ fn evaluates_customs_functions() {
           identifiers,
           member_expressions,
         },
-        declarations: vec![],
         state: StateManager::default(),
       })
     },
@@ -244,7 +243,6 @@ fn evaluates_custom_functions_that_return_non_static_values() {
           identifiers,
           member_expressions: FxHashMap::default(),
         },
-        declarations: vec![],
         state: StateManager::default(),
       })
     },
@@ -293,7 +291,6 @@ fn evaluates_custom_functions_used_as_spread_values() {
           identifiers,
           member_expressions: FxHashMap::default(),
         },
-        declarations: vec![],
         state: StateManager::default(),
       })
     },
@@ -348,7 +345,6 @@ fn evaluates_custom_functions_that_take_paths() {
           identifiers,
           member_expressions: FxHashMap::default(),
         },
-        declarations: vec![],
         state: StateManager::default(),
       })
     },

@@ -156,7 +156,7 @@ const styles = {
     },
     color_primary: {
         color: "color-xw3ogp8",
-        $$css: "input.stylex.js:90"
+        $$css: "input.stylex.js:87"
     },
     colorSecondary: {
         color: "color-x10gd8tk",

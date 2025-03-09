@@ -12,8 +12,8 @@ use swc_core::{
   common::{DUMMY_SP, FileName},
   ecma::ast::{
     BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
-    ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, Pat, Prop, PropName, PropOrSpread, Stmt,
-    VarDeclarator,
+    ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, ParenExpr, Pat, Prop,
+    PropName, PropOrSpread, Stmt, VarDeclarator,
   },
 };
 
@@ -29,9 +29,16 @@ use crate::shared::{
     functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::StateManager,
   },
+  utils::log::build_code_frame_error::build_code_frame_error_and_panic,
 };
 
-use super::ast::{convertors::transform_shorthand_to_key_values, factories::binding_ident_factory};
+use super::{
+  ast::{
+    convertors::transform_shorthand_to_key_values,
+    factories::{binding_ident_factory, ident_factory},
+  },
+  vector::get_intersection,
+};
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
@@ -489,9 +496,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
               *decl_init.clone(),
               Some(decl.name.as_ident().unwrap().sym.clone()),
             ));
-            if !state.declarations.contains(&Box::new(&decl)) {
-              state.declarations.push(decl.clone());
-            }
+            fill_state_declarations(state, decl);
           }
         }
       }
@@ -524,15 +529,119 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
               Some(decl.name.as_ident().unwrap().sym.clone()),
             ));
 
-            if !state.declarations.contains(&Box::new(&decl)) {
-              state.declarations.push(decl.clone());
-            }
+            fill_state_declarations(state, decl);
           }
         }
       }
     }
     _ => {}
   });
+}
+
+pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
+  let is_strict_mode = state.is_dev() || state.is_debug();
+
+  if is_strict_mode {
+    if let Some(name) = decl.name.as_ident() {
+      let name_string = name.id.sym.to_string();
+
+      if state.import_specifiers.contains(&name_string) {
+        let identifier_expression = Box::new(Expr::Ident(ident_factory(&name_string)));
+
+        build_code_frame_error_and_panic(
+          &Expr::Paren(ParenExpr {
+            span: DUMMY_SP,
+            expr: identifier_expression.clone(),
+          }),
+          &identifier_expression,
+          format!(
+            "Variable '{}' conflicts with import name. Must be renamed.",
+            name.id.sym
+          )
+          .as_str(),
+          state,
+        );
+      }
+    }
+  }
+
+  if !state.declarations.contains(decl) {
+    if is_strict_mode {
+      let decl_variable_names = get_variable_names(&decl.name);
+      let declaration_names = state
+        .declarations
+        .iter()
+        .flat_map(|d| get_variable_names(&d.name))
+        .collect::<Vec<String>>();
+
+      let intersections = get_intersection(&decl_variable_names, &declaration_names);
+
+      if let Some(intersection) = intersections.first() {
+        let identifier_expression = Box::new(Expr::Ident(ident_factory(intersection)));
+
+        build_code_frame_error_and_panic(
+          &Expr::Paren(ParenExpr {
+            span: DUMMY_SP,
+            expr: identifier_expression.clone(),
+          }),
+          &identifier_expression,
+          format!(
+            "Variable '{}' already exists and must be renamed.",
+            intersection
+          )
+          .as_str(),
+          state,
+        );
+      };
+    }
+    state.declarations.push(decl.clone());
+  }
+}
+
+fn get_variable_names(name: &Pat) -> Vec<String> {
+  match name {
+    Pat::Ident(ident) => vec![ident.id.sym.to_string()],
+    Pat::Object(pat_object) => {
+      let mut names = vec![];
+
+      for prop in pat_object.props.iter() {
+        match prop {
+          ObjectPatProp::KeyValue(key_value_pat_prop) => {
+            names.append(&mut get_variable_names(&key_value_pat_prop.value));
+          }
+          ObjectPatProp::Assign(assign_pat_prop) => {
+            names.append(&mut get_variable_names(&Pat::Ident(
+              assign_pat_prop.key.clone(),
+            )));
+          }
+          ObjectPatProp::Rest(rest_pat) => {
+            names.append(&mut get_variable_names(&rest_pat.arg));
+          }
+        }
+      }
+
+      names
+    }
+    Pat::Array(pat_array) => {
+      let mut names = vec![];
+
+      for elem in pat_array.elems.iter().flatten() {
+        names.append(&mut get_variable_names(elem));
+      }
+
+      names
+    }
+    Pat::Rest(rest_pat) => get_variable_names(&rest_pat.arg),
+    Pat::Invalid(_) => vec![],
+    Pat::Expr(_) => vec![],
+    Pat::Assign(assign) => {
+      let mut names = vec![];
+
+      names.append(&mut get_variable_names(&assign.left));
+
+      names
+    }
+  }
 }
 
 pub(crate) fn gen_file_based_identifier(

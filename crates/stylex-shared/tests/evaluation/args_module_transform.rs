@@ -15,13 +15,12 @@ use stylex_shared::shared::{
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{Decl, Expr, ExprOrSpread, ExprStmt, Pass, Pat, Prop, PropOrSpread, Stmt, VarDeclarator},
+    ast::{Decl, Expr, ExprOrSpread, ExprStmt, Pass, Prop, PropOrSpread, Stmt},
     visit::{Fold, FoldWith, fold_pass},
   },
 };
 pub(crate) struct ArgsStyleXTransform {
   pub(crate) functions: FunctionMap,
-  pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) state: StateManager,
 }
 
@@ -38,25 +37,12 @@ impl Default for ArgsStyleXTransform {
         identifiers: FxHashMap::default(),
         member_expressions: FxHashMap::default(),
       },
-      declarations: vec![],
       state: StateManager::default(),
     }
   }
 }
 
 impl Fold for ArgsStyleXTransform {
-  fn fold_var_declarators(&mut self, var_declarators: Vec<VarDeclarator>) -> Vec<VarDeclarator> {
-    var_declarators.iter().for_each(|decl| {
-      if let Pat::Ident(_) = &decl.name {
-        if !self.declarations.contains(decl) {
-          self.declarations.push(decl.clone());
-        }
-      }
-    });
-
-    var_declarators.fold_children_with(self)
-  }
-
   fn fold_stmt(&mut self, stmt: Stmt) -> Stmt {
     let stmt = match &stmt {
       Stmt::Decl(Decl::Var(decl_var)) => {

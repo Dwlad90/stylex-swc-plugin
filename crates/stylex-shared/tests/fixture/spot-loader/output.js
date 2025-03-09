@@ -88,12 +88,12 @@ const styles = {
     sizeSmall: {
         height: "height-xettwda",
         width: "width-xs5h3dt",
-        $$css: "input.stylex.js:56"
+        $$css: "input.stylex.js:52"
     },
     size_small: {
         height: "height-xettwda",
         width: "width-xs5h3dt",
-        $$css: "input.stylex.js:56"
+        $$css: "input.stylex.js:52"
     },
     size_normal: {
         height: "height-x1sh0tsm",
@@ -111,7 +111,7 @@ const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal })=>{
         <div {...stylex.props(styles[size])}>{size}</div>
         <div {...{
         className: "display-xrvj5dj gridAutoFlow-x1mt1orb gridTemplateColumns-xernuvs alignItems-x6s0dn4 justifyContent-xl56j7k gap-xmjcfx9 height-xettwda width-xs5h3dt",
-        "data-style-src": "input.stylex.js:15; input.stylex.js:56"
+        "data-style-src": "input.stylex.js:15; input.stylex.js:52"
     }}>styles.sizeSmall</div>
         <div {...stylex.props(styles.root, styles.sizeSmall, style)}>styles.sizeSmall with styles</div>
       </>;

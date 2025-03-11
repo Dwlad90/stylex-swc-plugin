@@ -5,14 +5,11 @@ import "./ButtonTokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { buttonTokens } from "./ButtonTokens.stylex";
 import ThemeableButton from "./ThemeableButton";
-export default function ButtonsDemo(_props) {
+export default function ButtonsDemo(props) {
     const onClick = ()=>{
         console.log("click");
     };
-    return <div {...{
-        className: "display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-xl56j7k gap-xou54vl paddingBottom-xzk7aed",
-        "data-style-src": "input.stylex.js:49"
-    }}>
+    return <div {...stylex.props(styles.container, intents[props.intent])}>
       <ThemeableButton onClick={onClick}>Vanilla Button</ThemeableButton>
 
       <ThemeableButton onClick={onClick} style={styles.bordered}>
@@ -54,6 +51,17 @@ _inject2(".borderStyle-x1y0btm7{border-style:solid}", 2000);
 _inject2(".borderColor-x71xlcl{border-color:red}", 2000);
 _inject2(".borderColor-x1bg2uv5{border-color:green}", 2000);
 const styles = {
+    container: {
+        display: "display-x78zum5",
+        flexDirection: "flexDirection-xdt5ytf",
+        alignItems: "alignItems-x6s0dn4",
+        justifyContent: "justifyContent-xl56j7k",
+        gap: "gap-xou54vl",
+        rowGap: null,
+        columnGap: null,
+        paddingBottom: "paddingBottom-xzk7aed",
+        $$css: "input.stylex.js:49"
+    },
     bordered: {
         borderWidth: "borderWidth-xdh2fpr",
         borderInlineWidth: null,
@@ -96,4 +104,20 @@ const styles = {
         borderBottomColor: null,
         $$css: "input.stylex.js:62"
     }
+};
+_inject2(".xm1pwqw, .xm1pwqw:root{--background-x166rmrk:#000;--text-x1rr8s3j:#fff;}", 0.5);
+const priorityIntent = {
+    input__priorityIntent: "input__priorityIntent",
+    $$css: true,
+    "__themeName__-xhq9i64": "xm1pwqw "
+};
+_inject2(".x1h9f7e8, .x1h9f7e8:root{--background-x166rmrk:#000000;--text-x1rr8s3j:#555555;}", 0.5);
+const defaultIntent = {
+    input__defaultIntent: "input__defaultIntent",
+    $$css: true,
+    "__themeName__-xhq9i64": "x1h9f7e8 "
+};
+const intents = {
+    priority: priorityIntent,
+    default: defaultIntent
 };

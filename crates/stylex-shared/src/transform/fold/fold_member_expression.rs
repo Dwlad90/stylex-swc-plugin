@@ -28,13 +28,13 @@ where
         if let Some(obj_ident) = member_expression.obj.as_ident() {
           match self.state.cycle {
             TransformationCycle::StateFilling => {
-              increase_member_ident_count(&mut self.state, &obj_ident.sym)
+              increase_member_ident_count(&mut self.state, &obj_ident.sym);
             }
             TransformationCycle::Recounting => {
-              reduce_member_ident_count(&mut self.state, &obj_ident.sym)
+              reduce_member_ident_count(&mut self.state, &obj_ident.sym);
             }
             _ => {}
-          }
+          };
         }
         member_expression.fold_children_with(self)
       }

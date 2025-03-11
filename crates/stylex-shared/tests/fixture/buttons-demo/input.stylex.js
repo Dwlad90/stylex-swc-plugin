@@ -4,12 +4,12 @@ import * as stylex from "@stylexjs/stylex";
 import { buttonTokens } from "./ButtonTokens.stylex";
 import ThemeableButton from "./ThemeableButton";
 
-export default function ButtonsDemo(_props) {
+export default function ButtonsDemo(props) {
   const onClick = () => {
     console.log("click");
   };
   return (
-    <div {...stylex.props(styles.container)}>
+    <div {...stylex.props(styles.container, intents[props.intent])}>
       <ThemeableButton onClick={onClick}>Vanilla Button</ThemeableButton>
 
       <ThemeableButton onClick={onClick} style={styles.bordered}>
@@ -63,3 +63,20 @@ const styles = stylex.create({
     borderColor: "green",
   },
 });
+
+
+const priorityIntent = stylex.createTheme(buttonTokens, {
+  background: { default: '#000' },
+  text: { default: '#fff' },
+});
+
+const defaultIntent = stylex.createTheme(buttonTokens, {
+  // backgroundColor: `color-mix(red, white 20%)`, // red but 20% more white
+  background: { default: '#000000' },
+  text: { default: '#555555' },
+});
+
+const intents = {
+  priority: priorityIntent,
+  default: defaultIntent,
+};

@@ -2,13 +2,11 @@
 import * as stylex from "@stylexjs/stylex";
 import { buttonTokens } from "./ButtonTokens.stylex";
 import ThemeableButton from "./ThemeableButton";
-export default function ButtonsDemo(_props) {
+export default function ButtonsDemo(props) {
     const onClick = ()=>{
         console.log("click");
     };
-    return <div {...{
-        className: "x78zum5 xdt5ytf x6s0dn4 xl56j7k xou54vl xzk7aed"
-    }}>
+    return <div {...stylex.props(styles.container, intents[props.intent])}>
       <ThemeableButton onClick={onClick}>Vanilla Button</ThemeableButton>
 
       <ThemeableButton onClick={onClick} style={styles.bordered}>
@@ -38,6 +36,17 @@ const redTheme = {
     xhq9i64: "x1idg7kz "
 };
 const styles = {
+    container: {
+        display: "x78zum5",
+        flexDirection: "xdt5ytf",
+        alignItems: "x6s0dn4",
+        justifyContent: "xl56j7k",
+        gap: "xou54vl",
+        rowGap: null,
+        columnGap: null,
+        paddingBottom: "xzk7aed",
+        $$css: true
+    },
     bordered: {
         borderWidth: "xdh2fpr",
         borderInlineWidth: null,
@@ -80,4 +89,16 @@ const styles = {
         borderBottomColor: null,
         $$css: true
     }
+};
+const priorityIntent = {
+    $$css: true,
+    xhq9i64: "x13g83z8 "
+};
+const defaultIntent = {
+    $$css: true,
+    xhq9i64: "x13xmhq7 "
+};
+const intents = {
+    priority: priorityIntent,
+    default: defaultIntent
 };

@@ -27,6 +27,7 @@ use crate::shared::{
     messages::{BUILT_IN_FUNCTION, ILLEGAL_PROP_ARRAY_VALUE, THEME_IMPORT_KEY_AS_OBJECT_KEY},
   },
   enums::{
+    core::TransformationCycle,
     data_structures::{
       evaluate_result_value::EvaluateResultValue,
       import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
@@ -2218,13 +2219,28 @@ fn _evaluate(
   };
 
   if result.is_none() && normalized_path.is_ident() {
-    let ident = normalized_path.as_ident().expect("Identifier not found");
+    let Some(ident) = normalized_path.as_ident() else {
+      build_code_frame_error_and_panic(
+        &Expr::Paren(ParenExpr {
+          span: DUMMY_SP,
+          expr: Box::new(path.clone()),
+        }),
+        path,
+        "Identifier not foun",
+        traversal_state,
+      )
+    };
 
     if let Some(binding) = get_var_decl_by_ident(
       ident,
       traversal_state,
       &state.functions,
-      VarDeclAction::Reduce,
+      if traversal_state.cycle == TransformationCycle::TransformExit {
+        // NOTE: We don't want to reduce the binding count of stylex.props arguments
+        VarDeclAction::None
+      } else {
+        VarDeclAction::Reduce
+      },
     ) {
       if (*normalized_path).eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
         build_code_frame_error_and_panic(

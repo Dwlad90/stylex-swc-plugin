@@ -196,7 +196,7 @@ pub(crate) fn stylex_merge(
       bail_out_index = member_transform.bail_out_index;
       non_null_props = member_transform.non_null_props;
 
-      *state = member_transform.state.clone();
+      *state = member_transform.state;
     }
 
     for arg in args.iter() {

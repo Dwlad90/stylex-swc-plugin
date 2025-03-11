@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/esbuild-unplugin-example",
   "description": "A simple esbuild unplugin example to test @stylexswc/unplugin/esbuild",
-  "version": "0.7.0-dev.1",
+  "version": "0.7.0-rc.3",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -11,9 +11,9 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.11.1",
-    "@stylexswc/design-system": "0.7.0-dev.1",
-    "@stylexswc/rs-compiler": "0.7.0-dev.1",
-    "@stylexswc/unplugin": "0.7.0-dev.1",
+    "@stylexswc/design-system": "0.7.0-rc.3",
+    "@stylexswc/rs-compiler": "0.7.0-rc.3",
+    "@stylexswc/unplugin": "0.7.0-rc.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

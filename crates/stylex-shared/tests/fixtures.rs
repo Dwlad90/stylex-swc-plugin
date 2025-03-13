@@ -7,12 +7,9 @@ use stylex_shared::{
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
 };
-use swc_core::{
-  common::Mark,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::{base::resolver, testing::test_fixture},
-  },
+use swc_core::ecma::{
+  parser::{Syntax, TsSyntax},
+  transforms::testing::test_fixture,
 };
 
 #[testing::fixture("tests/fixture/**/input.stylex.js")]
@@ -26,9 +23,6 @@ fn fixture(input: PathBuf) {
       ..Default::default()
     }),
     &|tr| {
-      let unresolved_mark = Mark::new();
-      let top_level_mark = Mark::new();
-
       let mut config = StyleXOptionsParams {
         dev: Some(true),
         treeshake_compensation: Some(true),
@@ -37,16 +31,13 @@ fn fixture(input: PathBuf) {
         ..StyleXOptionsParams::default()
       };
 
-      (
-        resolver(unresolved_mark, top_level_mark, true),
-        StyleXTransform::new_test_force_runtime_injection_with_pass(
-          tr.comments.clone(),
-          PluginPass {
-            cwd: None,
-            filename: input.clone().into(),
-          },
-          Some(&mut config),
-        ),
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass {
+          cwd: None,
+          filename: input.clone().into(),
+        },
+        Some(&mut config),
       )
     },
     &input,
@@ -60,9 +51,6 @@ fn fixture(input: PathBuf) {
       ..Default::default()
     }),
     &|tr| {
-      let unresolved_mark = Mark::new();
-      let top_level_mark = Mark::new();
-
       let mut config = StyleXOptionsParams {
         dev: Some(false),
         treeshake_compensation: Some(true),
@@ -72,16 +60,13 @@ fn fixture(input: PathBuf) {
         ..StyleXOptionsParams::default()
       };
 
-      (
-        resolver(unresolved_mark, top_level_mark, false),
-        StyleXTransform::new_test_with_pass(
-          tr.comments.clone(),
-          PluginPass {
-            cwd: None,
-            filename: input.clone().into(),
-          },
-          Some(&mut config),
-        ),
+      StyleXTransform::new_test_with_pass(
+        tr.comments.clone(),
+        PluginPass {
+          cwd: None,
+          filename: input.clone().into(),
+        },
+        Some(&mut config),
       )
     },
     &input,

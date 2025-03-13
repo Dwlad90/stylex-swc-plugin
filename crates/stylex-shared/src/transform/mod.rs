@@ -1,8 +1,10 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
-  common::comments::Comments,
+  common::{Mark, comments::Comments},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
+    transforms::base::resolver,
+    utils::drop_span,
     visit::fold_pass,
   },
 };
@@ -97,11 +99,14 @@ where
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> impl Pass + use<C> {
-    fold_pass(Self::new_test_force_runtime_injection(
-      comments,
-      plugin_pass,
-      config,
-    ))
+    (
+      resolve_factory(),
+      fold_pass(Self::new_test_force_runtime_injection(
+        comments,
+        plugin_pass,
+        config,
+      )),
+    )
   }
 
   pub fn new_test(
@@ -140,7 +145,10 @@ where
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> impl Pass + use<C> {
-    fold_pass(Self::new_test(comments, plugin_pass, config))
+    (
+      resolve_factory(),
+      fold_pass(Self::new_test(comments, plugin_pass, config)),
+    )
   }
 
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
@@ -221,7 +229,7 @@ where
       .find(|decl| match &decl.init {
         Some(init) => {
           if let Expr::Call(init_call) = init.as_ref() {
-            init_call == call
+            init_call == &drop_span(call.clone())
           } else {
             false
           }
@@ -254,4 +262,12 @@ fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> FxHashSet<I
   }
 
   stylex_imports
+}
+
+#[warn(clippy::extra_unused_type_parameters)]
+fn resolve_factory() -> impl Pass {
+  let unresolved_mark = Mark::new();
+  let top_level_mark = Mark::new();
+
+  resolver(unresolved_mark, top_level_mark, true)
 }

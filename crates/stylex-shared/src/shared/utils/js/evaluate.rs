@@ -2231,7 +2231,7 @@ fn _evaluate(
       )
     };
 
-    if let Some(binding) = get_var_decl_by_ident(
+    let binding = get_var_decl_by_ident(
       ident,
       traversal_state,
       &state.functions,
@@ -2241,22 +2241,10 @@ fn _evaluate(
       } else {
         VarDeclAction::Reduce
       },
-    ) {
-      if (*normalized_path).eq(&Expr::Ident(binding.name.as_ident().unwrap().id.clone())) {
-        build_code_frame_error_and_panic(
-          &Expr::Paren(ParenExpr {
-            span: DUMMY_SP,
-            expr: Box::new(path.clone()),
-          }),
-          path,
-          "Binding not implemented",
-          traversal_state,
-        )
-      }
+    );
 
-      if let Some(init) = binding.init.as_ref() {
-        return evaluate_cached(&init.clone(), state, traversal_state, fns);
-      }
+    if let Some(init) = binding.and_then(|var_decl| var_decl.init.clone()) {
+      return evaluate_cached(&init, state, traversal_state, fns);
     }
 
     let name = ident.sym.to_string();

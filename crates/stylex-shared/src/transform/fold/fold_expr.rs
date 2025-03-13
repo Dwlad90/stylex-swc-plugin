@@ -3,7 +3,10 @@ use swc_core::{
   ecma::{ast::Expr, visit::FoldWith},
 };
 
-use crate::{StyleXTransform, shared::enums::core::TransformationCycle};
+use crate::{
+  StyleXTransform,
+  shared::{enums::core::TransformationCycle, utils::common::normalize_expr},
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -14,8 +17,10 @@ where
       return expr;
     }
 
+    let normalized_expr = normalize_expr(&mut expr);
+
     if self.state.cycle == TransformationCycle::StateFilling {
-      if let Some(call_expr) = expr.as_call() {
+      if let Some(call_expr) = normalized_expr.as_call() {
         self.state.all_call_expressions.push(call_expr.clone());
       }
     }
@@ -23,7 +28,7 @@ where
     if self.state.cycle == TransformationCycle::TransformEnter
       || self.state.cycle == TransformationCycle::TransformExit
     {
-      if let Some(value) = self.transform_call_expression(&mut expr) {
+      if let Some(value) = self.transform_call_expression(normalized_expr) {
         return value;
       }
     }

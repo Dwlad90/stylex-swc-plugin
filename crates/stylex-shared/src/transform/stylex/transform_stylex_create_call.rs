@@ -2,7 +2,13 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use swc_core::{common::DUMMY_SP, ecma::ast::BinExpr};
+use swc_core::{
+  common::DUMMY_SP,
+  ecma::{
+    ast::{BinExpr, ParenExpr},
+    utils::drop_span,
+  },
+};
 use swc_core::{
   common::SyntaxContext,
   ecma::ast::{ArrowExpr, BinaryOp, BlockStmtOrExpr, CondExpr, ExprOrSpread, Pat, Prop, PropName},
@@ -12,7 +18,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::StyleXTransform;
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
   structures::injectable_style::InjectableStyle,
@@ -60,6 +65,9 @@ use crate::shared::{
     common::get_key_values_from_object,
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
   },
+};
+use crate::{
+  StyleXTransform, shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic,
 };
 
 impl<C> StyleXTransform<C>
@@ -217,10 +225,24 @@ where
           .style_map
           .insert(var_name.clone(), Rc::new(styles_to_remember));
 
-        self
-          .state
-          .style_vars
-          .insert(var_name.clone(), parent_var_decl.clone().unwrap());
+        if let Some(parent_var_decl) = parent_var_decl {
+          self
+            .state
+            .style_vars
+            .insert(var_name.clone(), drop_span(parent_var_decl.clone()));
+        } else {
+          let call_expr = Expr::Call(call.clone());
+
+          build_code_frame_error_and_panic(
+            &Expr::Paren(ParenExpr {
+              span: DUMMY_SP,
+              expr: Box::new(call_expr.clone()),
+            }),
+            &call_expr,
+            "Function type",
+            &self.state,
+          )
+        }
       }
 
       let mut result_ast =

@@ -16,7 +16,7 @@ export default function Button(param) {
     }["Button.useMemo[colourStyle]"], [
         variant
     ]);
-    return /*#__PURE__*/ _jsxDEV("button", {
+    return _jsxDEV("button", {
         ...stylex.props([
             styles.root,
             colourStyle

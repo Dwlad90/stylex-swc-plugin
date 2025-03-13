@@ -14,6 +14,7 @@ const styles = {
             }
         ]
 };
+const sizeValue = 10;
 const { className, style = {} } = {
-    ...stylex.props(styles.fontSizeTernary(size))
+    ...stylex.props(styles.fontSizeTernary(sizeValue))
 };

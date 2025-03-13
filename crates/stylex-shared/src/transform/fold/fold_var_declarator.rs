@@ -97,14 +97,18 @@ where
           }
 
           for (_, var_name) in self.state.style_vars.clone().into_iter() {
-            if var_declarator.name != var_name.name {
+            if !var_declarator.eq_ignore_span(&var_name) {
               continue;
             };
 
             if let Some(TopLevelExpression(kind, _, _)) =
               self.state.top_level_expressions.clone().into_iter().find(
                 |TopLevelExpression(_, expr, _)| {
-                  var_name.init.clone().unwrap().eq(&Box::new(expr.clone()))
+                  var_name
+                    .init
+                    .clone()
+                    .unwrap()
+                    .eq_ignore_span(&Box::new(expr.clone()))
                 },
               )
             {
@@ -150,7 +154,10 @@ where
     for object_prop in object.props.iter_mut() {
       assert!(object_prop.is_prop(), "Spread properties are not supported");
 
-      let prop = object_prop.as_mut_prop().unwrap().as_mut();
+      let prop = object_prop
+        .as_mut_prop()
+        .expect("Property not found")
+        .as_mut();
 
       if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
         let key_as_ident = match key {
@@ -170,7 +177,7 @@ where
               .filter_map(|top_level_expression| {
                 let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
 
-                if var_id.eq(var) && namespace_name.eq(&key_id.clone()) {
+                if var_id.eq_ignore_span(var) && namespace_name.eq(&key_id.clone()) {
                   Some(prop.clone())
                 } else {
                   None

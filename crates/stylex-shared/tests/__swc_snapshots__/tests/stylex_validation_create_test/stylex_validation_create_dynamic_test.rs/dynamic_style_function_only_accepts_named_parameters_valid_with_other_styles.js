@@ -24,6 +24,7 @@ const styles = {
         $$css: true
     }
 };
+const sizeValue = 10;
 const { className, style = {} } = {
-    ...stylex.props(styles.count, styles.size(size), styles.largeNumber)
+    ...stylex.props(styles.count, styles.size(sizeValue), styles.largeNumber)
 };

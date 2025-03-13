@@ -170,9 +170,11 @@ test!(
       },
     });
 
+    const sizeValue = 10;
+
     const { className, style = {} } = { ...stylex.props(
       styles.count,
-      styles.size(size),
+      styles.size(sizeValue),
       styles.largeNumber
     )}
   "#
@@ -198,8 +200,10 @@ test!(
       fontSizeFallback: (size: number) => ({ fontSize: size ?? '1em' }),
     });
 
+    const sizeValue = 10;
+
     const { className, style = {} } = { ...stylex.props(
-      styles.fontSizeFallback(size),
+      styles.fontSizeFallback(sizeValue),
     )}
   "#
 );
@@ -224,8 +228,10 @@ test!(
       fontSizeTernary: (size: number) => ({ fontSize: size < 10 ? '1em' : '2em' }),
     });
 
+    const sizeValue = 10;
+
     const { className, style = {} } = { ...stylex.props(
-      styles.fontSizeTernary(size),
+      styles.fontSizeTernary(sizeValue),
     )}
   "#
 );

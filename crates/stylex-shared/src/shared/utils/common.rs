@@ -10,10 +10,13 @@ use std::{
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, FileName},
-  ecma::ast::{
-    BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
-    ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, ParenExpr, Pat, Prop,
-    PropName, PropOrSpread, Stmt, VarDeclarator,
+  ecma::{
+    ast::{
+      BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
+      ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
+      PropOrSpread, Stmt, VarDeclarator,
+    },
+    utils::drop_span,
   },
 };
 
@@ -29,16 +32,9 @@ use crate::shared::{
     functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::StateManager,
   },
-  utils::log::build_code_frame_error::build_code_frame_error_and_panic,
 };
 
-use super::{
-  ast::{
-    convertors::transform_shorthand_to_key_values,
-    factories::{binding_ident_factory, ident_factory},
-  },
-  vector::get_intersection,
-};
+use super::ast::{convertors::transform_shorthand_to_key_values, factories::binding_ident_factory};
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
@@ -177,13 +173,18 @@ pub(crate) fn get_var_decl_from<'a>(
   state: &'a StateManager,
   ident: &'a Ident,
 ) -> Option<&'a VarDeclarator> {
-  state.declarations.iter().find(|var_declarator| {
-    if let Pat::Ident(binding_ident) = &var_declarator.name {
-      return binding_ident.sym == ident.sym;
-    }
+  state
+    .declarations
+    .iter()
+    .find(|var_declarator| matches_ident_with_var_decl_name(ident, var_declarator))
+}
 
-    false
-  })
+fn matches_ident_with_var_decl_name(ident: &Ident, var_declarator: &&VarDeclarator) -> bool {
+  var_declarator
+    .name
+    .clone()
+    .ident()
+    .is_some_and(|var_decl_ident| &var_decl_ident.id == ident)
 }
 
 pub(crate) fn get_import_from<'a>(
@@ -217,20 +218,15 @@ pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
     .declarations
     .iter()
     .find(|var_declarator| {
-      if let Pat::Ident(binding_indent) = &var_declarator.name {
-        if binding_indent.sym == ident.sym {
-          return true;
-        }
-      }
-
-      var_declarator
-        .init
-        .as_ref()
-        .and_then(|init| init.as_call())
-        .and_then(|call| call.callee.as_expr())
-        .and_then(|callee| callee.as_member())
-        .and_then(|member| member.prop.as_ident())
-        .is_some_and(|member_ident| member_ident.sym == ident.sym)
+      matches_ident_with_var_decl_name(ident, var_declarator)
+        || matches!(
+          var_declarator.init.as_ref()
+            .and_then(|init| init.as_call())
+            .and_then(|call| call.callee.as_expr())
+            .and_then(|callee| callee.as_member())
+            .and_then(|member| member.prop.as_ident()),
+          Some(member_ident) if member_ident.sym == ident.sym
+        )
     })
     .cloned()
 }
@@ -493,7 +489,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
           if let Some(decl_init) = decl.init.as_ref() {
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
-              *decl_init.clone(),
+              *drop_span(decl_init.clone()),
               Some(decl.name.as_ident().unwrap().sym.clone()),
             ));
             fill_state_declarations(state, decl);
@@ -506,14 +502,14 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
         Some(paren) => {
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
-            *paren.expr.clone(),
+            *drop_span(paren.expr.clone()),
             None,
           ));
         }
         _ => {
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
-            *export_decl.expr.clone(),
+            *drop_span(export_decl.expr.clone()),
             None,
           ));
         }
@@ -525,7 +521,7 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
           if decl.name.as_ident().is_some() {
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::Stmt,
-              *decl_init.clone(),
+              *drop_span(decl_init.clone()),
               Some(decl.name.as_ident().unwrap().sym.clone()),
             ));
 
@@ -539,66 +535,14 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
 }
 
 pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
-  let is_strict_mode = state.is_dev() || state.is_debug();
+  let normalized_decl = drop_span(decl.clone());
 
-  if is_strict_mode {
-    if let Some(name) = decl.name.as_ident() {
-      let name_string = name.id.sym.to_string();
-
-      if state.import_specifiers.contains(&name_string) {
-        let identifier_expression = Box::new(Expr::Ident(ident_factory(&name_string)));
-
-        build_code_frame_error_and_panic(
-          &Expr::Paren(ParenExpr {
-            span: DUMMY_SP,
-            expr: identifier_expression.clone(),
-          }),
-          &identifier_expression,
-          format!(
-            "Variable '{}' conflicts with import name. Must be renamed.",
-            name.id.sym
-          )
-          .as_str(),
-          state,
-        );
-      }
-    }
-  }
-
-  if !state.declarations.contains(decl) {
-    if is_strict_mode {
-      let decl_variable_names = get_variable_names(&decl.name);
-      let declaration_names = state
-        .declarations
-        .iter()
-        .flat_map(|d| get_variable_names(&d.name))
-        .collect::<Vec<String>>();
-
-      let intersections = get_intersection(&decl_variable_names, &declaration_names);
-
-      if let Some(intersection) = intersections.first() {
-        let identifier_expression = Box::new(Expr::Ident(ident_factory(intersection)));
-
-        build_code_frame_error_and_panic(
-          &Expr::Paren(ParenExpr {
-            span: DUMMY_SP,
-            expr: identifier_expression.clone(),
-          }),
-          &identifier_expression,
-          format!(
-            "Variable '{}' already exists and must be renamed.",
-            intersection
-          )
-          .as_str(),
-          state,
-        );
-      };
-    }
-    state.declarations.push(decl.clone());
+  if !state.declarations.contains(&normalized_decl) {
+    state.declarations.push(normalized_decl.clone());
   }
 }
 
-fn get_variable_names(name: &Pat) -> Vec<String> {
+fn _get_variable_names(name: &Pat) -> Vec<String> {
   match name {
     Pat::Ident(ident) => vec![ident.id.sym.to_string()],
     Pat::Object(pat_object) => {
@@ -607,15 +551,15 @@ fn get_variable_names(name: &Pat) -> Vec<String> {
       for prop in pat_object.props.iter() {
         match prop {
           ObjectPatProp::KeyValue(key_value_pat_prop) => {
-            names.append(&mut get_variable_names(&key_value_pat_prop.value));
+            names.append(&mut _get_variable_names(&key_value_pat_prop.value));
           }
           ObjectPatProp::Assign(assign_pat_prop) => {
-            names.append(&mut get_variable_names(&Pat::Ident(
+            names.append(&mut _get_variable_names(&Pat::Ident(
               assign_pat_prop.key.clone(),
             )));
           }
           ObjectPatProp::Rest(rest_pat) => {
-            names.append(&mut get_variable_names(&rest_pat.arg));
+            names.append(&mut _get_variable_names(&rest_pat.arg));
           }
         }
       }
@@ -626,18 +570,18 @@ fn get_variable_names(name: &Pat) -> Vec<String> {
       let mut names = vec![];
 
       for elem in pat_array.elems.iter().flatten() {
-        names.append(&mut get_variable_names(elem));
+        names.append(&mut _get_variable_names(elem));
       }
 
       names
     }
-    Pat::Rest(rest_pat) => get_variable_names(&rest_pat.arg),
+    Pat::Rest(rest_pat) => _get_variable_names(&rest_pat.arg),
     Pat::Invalid(_) => vec![],
     Pat::Expr(_) => vec![],
     Pat::Assign(assign) => {
       let mut names = vec![];
 
-      names.append(&mut get_variable_names(&assign.left));
+      names.append(&mut _get_variable_names(&assign.left));
 
       names
     }
@@ -685,7 +629,10 @@ pub(crate) fn _resolve_node_package_path(package_name: &str) -> Result<PathBuf, 
 pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   match expr {
     Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
-    _ => expr,
+    _ => {
+      *expr = drop_span(expr.clone());
+      expr
+    }
   }
 }
 

@@ -14,6 +14,7 @@ const styles = {
             }
         ]
 };
+const sizeValue = 10;
 const { className, style = {} } = {
-    ...stylex.props(styles.fontSizeFallback(size))
+    ...stylex.props(styles.fontSizeFallback(sizeValue))
 };

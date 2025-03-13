@@ -71,7 +71,6 @@ const priorityIntent = stylex.createTheme(buttonTokens, {
 });
 
 const defaultIntent = stylex.createTheme(buttonTokens, {
-  // backgroundColor: `color-mix(red, white 20%)`, // red but 20% more white
   background: { default: '#000000' },
   text: { default: '#555555' },
 });

@@ -9,7 +9,7 @@ use std::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, FileName},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
     ast::{
       BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
@@ -197,15 +197,15 @@ pub(crate) fn get_import_from<'a>(
         named_import.local.sym == ident.sym || {
           match &named_import.imported {
             Some(imported) => match imported {
-              ModuleExportName::Ident(export_ident) => export_ident.sym == ident.sym,
+              ModuleExportName::Ident(export_ident) => export_ident.eq_ignore_span(ident),
               ModuleExportName::Str(strng) => strng.value == ident.sym,
             },
             _ => false,
           }
         }
       }
-      ImportSpecifier::Default(default_import) => default_import.local.sym == ident.sym,
-      ImportSpecifier::Namespace(namespace_import) => namespace_import.local.sym == ident.sym,
+      ImportSpecifier::Default(default_import) => default_import.local.eq_ignore_span(ident),
+      ImportSpecifier::Namespace(namespace_import) => namespace_import.local.eq_ignore_span(ident),
     })
   })
 }

@@ -14,7 +14,7 @@ use stylex_path_resolver::{
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
-  ecma::ast::Module,
+  ecma::{ast::Module, utils::drop_span},
 };
 use swc_core::{
   common::SyntaxContext,
@@ -188,7 +188,7 @@ impl StateManager {
   }
   pub(crate) fn set_debug_assertions_module(&mut self, module: &Module) {
     if cfg!(debug_assertions) {
-      self.debug_assertions_module = Some(module.clone());
+      self.debug_assertions_module = Some(drop_span(module.clone()));
     } else {
       panic!("Cannot set debug assertions module in release mode");
     }
@@ -537,7 +537,7 @@ impl StateManager {
       .find(|(_, expr)| expr.eq_ignore_span(&call))
     {
       match ast.as_call() {
-        Some(call_expr) => self.all_call_expressions[index] = call_expr.clone(),
+        Some(call_expr) => self.all_call_expressions[index] = drop_span(call_expr.clone()),
         None => {
           self.all_call_expressions.remove(index);
         }
@@ -589,7 +589,7 @@ impl StateManager {
       .styles_to_inject
       .entry(ast_hash)
       .or_default()
-      .push(module);
+      .push(drop_span(module));
   }
 
   // pub(crate) fn _get_css_vars(&self) -> FxHashMap<String, String> {

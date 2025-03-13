@@ -1,6 +1,8 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
-  atoms::Atom, common::EqIgnoreSpan, ecma::ast::{ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, VarDeclarator}
+  atoms::Atom,
+  common::EqIgnoreSpan,
+  ecma::ast::{ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
 use crate::shared::{
@@ -87,9 +89,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
   if !state
     .top_level_expressions
     .iter()
-    .any(|TopLevelExpression(_, call_item, _)| {
-      call_item.eq_ignore_span(&init_expr)
-    })
+    .any(|TopLevelExpression(_, call_item, _)| call_item.eq_ignore_span(&init_expr))
   {
     build_code_frame_error_and_panic(&init_expr, &init_expr, UNBOUND_STYLEX_CALL_VALUE, state);
   }

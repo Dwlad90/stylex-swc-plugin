@@ -101,34 +101,37 @@ where
               continue;
             };
 
-            if let Some(TopLevelExpression(kind, _, _)) =
-              self.state.top_level_expressions.clone().into_iter().find(
-                |TopLevelExpression(_, expr, _)| {
-                  var_name
-                    .init
-                    .clone()
-                    .unwrap()
-                    .eq_ignore_span(&Box::new(expr.clone()))
-                },
-              )
-            {
-              if TopLevelExpressionKind::Stmt == kind {
-                if let Some(object) = var_declarator.init.as_mut() {
-                  if let Some(mut object) = object.as_object().cloned() {
-                    let namespaces_to_keep =
-                      match vars_to_keep.get(&var_name.name.as_ident().unwrap().sym) {
-                        Some(NonNullProps::Vec(vec)) => vec.clone(),
-                        _ => vec![],
-                      };
+            let top_level_expression = self.state.top_level_expressions.clone().into_iter().find(
+              |TopLevelExpression(_, expr, _)| {
+                var_name
+                  .init
+                  .clone()
+                  .unwrap()
+                  .eq_ignore_span(&Box::new(expr.clone()))
+              },
+            );
 
-                    if !namespaces_to_keep.is_empty() {
-                      let props =
-                        self.retain_object_props(&mut object, namespaces_to_keep, &var_name);
+            if let Some(TopLevelExpression(kind, _, _)) = top_level_expression {
+              if kind == TopLevelExpressionKind::Stmt {
+                if let Some(object) = var_declarator
+                  .init
+                  .as_mut()
+                  .and_then(|var_decl| var_decl.as_object())
+                {
+                  let namespaces_to_keep =
+                    match vars_to_keep.get(&var_name.name.as_ident().unwrap().sym) {
+                      Some(NonNullProps::Vec(vec)) => vec.clone(),
+                      _ => Vec::new(),
+                    };
 
-                      object.props = props;
+                  if !namespaces_to_keep.is_empty() {
+                    let mut new_object = object.clone();
 
-                      var_declarator.init = Some(Box::new(Expr::from(object)));
-                    }
+                    let props =
+                      self.retain_object_props(&mut new_object, namespaces_to_keep, &var_name);
+                    new_object.props = props;
+
+                    *var_declarator.init.as_mut().unwrap() = Box::new(Expr::Object(new_object));
                   }
                 }
               }

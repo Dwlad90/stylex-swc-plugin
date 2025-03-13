@@ -377,9 +377,11 @@ fn _evaluate(
       let parent_is_call_expr = traversal_state
         .all_call_expressions
         .iter()
-        .any(|call_expr| match call_expr.callee.as_expr() {
-          Some(callee) => callee.eq_ignore_span(&Box::new(Expr::Member(member.clone()))),
-          _ => false,
+        .any(|call_expr| {
+          call_expr
+            .callee
+            .as_expr()
+            .is_some_and(|callee| callee.eq_ignore_span(&Box::new(Expr::Member(member.clone()))))
         });
 
       let evaluated_value = if parent_is_call_expr {

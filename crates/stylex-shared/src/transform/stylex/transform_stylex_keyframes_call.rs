@@ -37,7 +37,7 @@ where
     let is_keyframes_call = is_keyframes_call(var_decl, &self.state);
 
     let result = if is_keyframes_call {
-      validate_stylex_keyframes_indent(var_decl, &self.state);
+      validate_stylex_keyframes_indent(var_decl, &mut self.state);
 
       let call = var_decl
         .init
@@ -88,7 +88,7 @@ where
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
           NON_STATIC_VALUE,
-          &self.state,
+          &mut self.state,
         )
       );
 
@@ -104,7 +104,7 @@ where
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
               NON_OBJECT_FOR_STYLEX_CALL,
-              &self.state,
+              &mut self.state,
             )
           );
           value
@@ -115,12 +115,12 @@ where
             &Expr::Call(call.clone()),
             &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
             NON_STATIC_VALUE,
-            &self.state,
+            &mut self.state,
           )
         ),
       };
 
-      assert_valid_keyframes(&value, &self.state);
+      assert_valid_keyframes(&value, &mut self.state);
 
       let (animation_name, injectable_style) = stylex_keyframes(&value, &mut self.state);
 

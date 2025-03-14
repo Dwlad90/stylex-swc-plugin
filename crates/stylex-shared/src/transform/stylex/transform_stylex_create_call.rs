@@ -79,7 +79,7 @@ where
     let is_create_call = is_create_call(call, &self.state);
 
     let result = if is_create_call {
-      validate_stylex_create(call, &self.state);
+      validate_stylex_create(call, &mut self.state);
 
       let mut first_arg = call.args.first()?.expr.clone();
 
@@ -139,7 +139,7 @@ where
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
           evaluated_arg.reason.as_deref().unwrap_or(NON_STATIC_VALUE),
-          &self.state,
+          &mut self.state,
         )
       );
 
@@ -152,7 +152,7 @@ where
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
           evaluated_arg.reason.as_deref().unwrap_or(NON_STATIC_VALUE),
-          &self.state,
+          &mut self.state,
         )
       );
 
@@ -206,7 +206,7 @@ where
       let (var_name, parent_var_decl) = self.get_call_var_name(call);
 
       if self.state.is_debug() && self.state.options.enable_debug_data_prop {
-        compiled_styles = add_source_map_data(&compiled_styles, call, &self.state);
+        compiled_styles = add_source_map_data(&compiled_styles, call, &mut self.state);
       }
 
       if self.state.is_dev() && self.state.options.enable_dev_class_names {
@@ -240,7 +240,7 @@ where
             }),
             &call_expr,
             "Function type",
-            &self.state,
+            &mut self.state,
           )
         }
       }

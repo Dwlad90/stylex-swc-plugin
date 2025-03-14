@@ -98,6 +98,7 @@ pub struct StateManager {
   pub(crate) var_decl_count_map: AtomHashMap,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
   pub(crate) css_property_seen: FxHashMap<String, String>,
+  pub(crate) seen_source_code_by_path: FxHashMap<FileName, String>,
 
   // `stylex.create` calls
   pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
@@ -155,6 +156,7 @@ impl StateManager {
 
       seen: FxHashMap::default(),
       css_property_seen: FxHashMap::default(),
+      seen_source_code_by_path: FxHashMap::default(),
 
       top_imports: vec![],
 

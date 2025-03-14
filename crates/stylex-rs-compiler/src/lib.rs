@@ -51,7 +51,7 @@ pub fn transform(
 
     let plugin_pass = PluginPass {
       cwd: Some(cwd),
-      filename,
+      filename: filename.clone(),
     };
 
     let source_map = match options.source_map.as_ref() {
@@ -76,7 +76,13 @@ pub fn transform(
       None,
     ));
 
-    let program = parser.parse_program().unwrap();
+    let program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(err) => {
+        let error_message = format!("Failed to parse file `{}`: {:?}", filename, err);
+        return Err(napi::Error::from_reason(error_message));
+      }
+    };
 
     let program = program
       .apply(&mut fold_pass(&mut stylex))

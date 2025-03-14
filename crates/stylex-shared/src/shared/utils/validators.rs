@@ -32,7 +32,7 @@ use super::{
   common::get_key_values_from_object,
 };
 
-pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
+pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
   if !is_create_call(call, state) {
     return;
   }
@@ -72,7 +72,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &StateManager) {
   }
 }
 
-pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &StateManager) {
+pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &mut StateManager) {
   if !is_keyframes_call(var_decl, state) {
     return;
   }
@@ -112,7 +112,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 pub(crate) fn validate_stylex_create_theme_indent(
   var_decl: &Option<VarDeclarator>,
   call: &CallExpr,
-  state: &StateManager,
+  state: &mut StateManager,
 ) {
   if !is_create_theme_call(call, state) {
     return;
@@ -180,7 +180,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   }
 }
 
-pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &StateManager) {
+pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateManager) {
   if !is_define_vars_call(call, state) {
     return;
   }
@@ -305,7 +305,7 @@ pub(crate) fn is_target_call(
 pub(crate) fn validate_namespace(
   namespaces: &[KeyValueProp],
   conditions: &[String],
-  state: &StateManager,
+  state: &mut StateManager,
 ) {
   for namespace in namespaces {
     match namespace.value.as_ref() {
@@ -375,7 +375,7 @@ pub(crate) fn validate_namespace(
 pub(crate) fn validate_dynamic_style_params(
   path: &ArrowExpr,
   params: &[Pat],
-  state: &StateManager,
+  state: &mut StateManager,
 ) {
   if params.iter().any(|param| !param.is_ident()) {
     let path_expr = Expr::Arrow(path.clone());
@@ -392,7 +392,7 @@ pub(crate) fn validate_dynamic_style_params(
 pub(crate) fn validate_conditional_styles(
   inner_key_value: &KeyValueProp,
   conditions: &[String],
-  state: &StateManager,
+  state: &mut StateManager,
 ) {
   let inner_key = key_value_to_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
@@ -437,7 +437,7 @@ pub(crate) fn validate_conditional_styles(
   }
 }
 
-pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &StateManager) {
+pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut StateManager) {
   match obj {
     EvaluateResultValue::Expr(expr) => match expr {
       Expr::Object(object) => {

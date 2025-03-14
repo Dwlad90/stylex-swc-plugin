@@ -1,6 +1,10 @@
 use indexmap::IndexMap;
+use log::{debug, warn};
 use std::{env, path::Path, rc::Rc};
-use swc_core::ecma::ast::{CallExpr, Expr, KeyValueProp};
+use swc_core::{
+  common::DUMMY_SP,
+  ecma::ast::{CallExpr, Expr, KeyValueProp},
+};
 
 use crate::shared::{
   constants::{common::COMPILED_KEY, messages::ILLEGAL_ARGUMENT_LENGTH},
@@ -17,11 +21,9 @@ use crate::shared::{
 pub(crate) fn add_source_map_data(
   obj: &StylesObjectMap,
   call_expr: &CallExpr,
-  state: &StateManager,
+  state: &mut StateManager,
 ) -> StylesObjectMap {
   let mut result: StylesObjectMap = IndexMap::new();
-
-  let current_filename = state.get_filename();
 
   for (key, value) in obj {
     let mut style_node_path: Option<KeyValueProp> = None;
@@ -46,35 +48,79 @@ pub(crate) fn add_source_map_data(
         };
         let mut inner_map = IndexMap::new();
 
+        inner_map.extend((**value).clone());
+
+        let compiled_key = COMPILED_KEY.to_string();
+
         match style_node_path {
           Some(style_node_path) => {
-            let (code_frame, span) = get_span_from_source_code(
+            let source_code_frame_and_span = get_span_from_source_code(
               &Expr::Call(call_expr.clone()),
               &style_node_path.value,
               state,
             );
 
-            let original_line_number = code_frame.get_span_line_number(span);
+            match source_code_frame_and_span {
+              Ok((code_frame, span)) => {
+                if span.eq(&DUMMY_SP) {
+                  if log::log_enabled!(log::Level::Debug) {
+                    debug!(
+                      "Could not find span for style node path. File: {}, Style node path: {:?}",
+                      state.get_filename(),
+                      style_node_path
+                    );
+                  } else {
+                    warn!(
+                      "Could not find span for style node path. File: {}. For more information enable debug logging.",
+                      state.get_filename()
+                    );
+                  };
+                } else {
+                  let original_line_number = code_frame.get_span_line_number(span);
+                  let filename = state.get_filename().to_string();
+                  let short_filename = create_short_filename(filename.as_ref(), state);
 
-            let short_filename = create_short_filename(current_filename, state);
+                  if !short_filename.is_empty() && original_line_number > 0 {
+                    let source_map = format!("{}:{}", short_filename, original_line_number);
+                    inner_map.insert(
+                      compiled_key.clone(),
+                      Rc::new(FlatCompiledStylesValue::String(source_map)),
+                    );
+                  } else {
+                    inner_map.insert(
+                      compiled_key.clone(),
+                      Rc::new(FlatCompiledStylesValue::Bool(true)),
+                    );
+                  }
+                }
+              }
+              Err(e) => {
+                warn!("Could not retrieve source code frame: {}", e);
+                if log::log_enabled!(log::Level::Debug) {
+                  debug!(
+                    "Could not retrieve source code frame: {}. File: {}. Style node path: {:?}",
+                    e,
+                    state.get_filename(),
+                    style_node_path
+                  );
+                } else {
+                  warn!(
+                    "Could not retrieve source code frame: {}. File: {}. For more information enable debug logging.",
+                    e,
+                    state.get_filename()
+                  );
+                };
+              }
+            }
 
-            let css_value = if !short_filename.is_empty() && original_line_number > 0 {
-              FlatCompiledStylesValue::String(format!(
-                "{}:{}",
-                short_filename, original_line_number
-              ))
-            } else {
-              FlatCompiledStylesValue::Bool(true)
-            };
-
-            inner_map.extend((**value).clone());
-
-            inner_map.insert(COMPILED_KEY.to_string(), Rc::new(css_value));
+            if !inner_map.contains_key(&compiled_key) {
+              inner_map.insert(compiled_key, Rc::new(FlatCompiledStylesValue::Bool(true)));
+            }
 
             result.insert(key.clone(), Rc::new(inner_map));
           }
           _ => {
-            // fallback in case no sourcemap data is found
+            // Fallback in case no sourcemap data is found
 
             inner_map.extend((**value).clone());
 

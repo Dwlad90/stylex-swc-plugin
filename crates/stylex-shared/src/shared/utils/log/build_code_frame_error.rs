@@ -1,3 +1,5 @@
+use anyhow::Error;
+use log::{debug, warn};
 use std::{fs, path::Path, sync::Arc};
 use swc_compiler_base::{IsModule, PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_core::{
@@ -89,43 +91,52 @@ pub(crate) fn build_code_frame_error<'a>(
   wrapped_expression: &'a Expr,
   fault_expression: &'a Expr,
   error_message: &'a str,
-  state: &StateManager,
+  state: &mut StateManager,
 ) -> &'a str {
-  let (code_frame, span) = get_span_from_source_code(wrapped_expression, fault_expression, state);
-
-  code_frame.create_error(span, error_message).emit();
+  match get_span_from_source_code(wrapped_expression, fault_expression, state) {
+    Ok((code_frame, span)) => {
+      code_frame.create_error(span, error_message).emit();
+    }
+    Err(error) => {
+      if log::log_enabled!(log::Level::Debug) {
+        debug!(
+          "Failed to generate code frame error: {:?}. File: {}. Expression: {:?}",
+          error,
+          state.get_filename(),
+          fault_expression
+        );
+      } else {
+        warn!(
+          "Failed to generate code frame error: {:?}. File: {}. For more information enable debug logging.",
+          error,
+          state.get_filename()
+        )
+      };
+    }
+  }
 
   error_message
 }
 
 pub(crate) fn get_span_from_source_code(
   wrapped_expression: &Expr,
-  fault_expression: &Expr,
-  state: &StateManager,
-) -> (CodeFrame, Span) {
-  // let file_name = FileName::Custom("/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/stylexjs/crates/stylex-shared/tests/fixture/page/input.js".to_owned());
+  target_expression: &Expr,
+  state: &mut StateManager,
+) -> Result<(CodeFrame, Span), Error> {
   let file_name = FileName::Custom(state.get_filename().to_owned());
+
   let code_frame = CodeFrame::new();
 
-  let source_code = read_source_file(&file_name);
-
-  let frame_source_code = source_code.unwrap_or_else(|_| {
-    let module = if cfg!(debug_assertions) && state.get_debug_assertions_module().is_some() {
-      state.get_debug_assertions_module().unwrap().clone()
-    } else {
-      create_module(wrapped_expression)
-    };
-
-    print_module(&code_frame, module)
-  });
+  let frame_source_code =
+    get_memoized_frame_source_code(wrapped_expression, state, &file_name, &code_frame);
 
   let file = code_frame
     .source_map
     .new_source_file(Arc::new(file_name), frame_source_code);
 
-  let mut finder = ExpressionFinder::new(fault_expression);
+  let mut finder = ExpressionFinder::new(target_expression);
 
-  if let Ok(program) = parse_js(
+  match parse_js(
     code_frame.source_map.clone(),
     file.clone(),
     &code_frame.handler,
@@ -137,15 +148,71 @@ pub(crate) fn get_span_from_source_code(
     IsModule::Bool(true),
     None,
   ) {
-    program.fold_with(&mut finder);
+    Ok(program) => {
+      program.fold_with(&mut finder);
 
-    return (
-      code_frame,
-      finder.get_span().unwrap_or(fault_expression.span()),
-    );
+      return Ok((
+        code_frame,
+        finder
+          .get_span()
+          .unwrap_or_else(|| target_expression.span()),
+      ));
+    }
+    Err(error) => {
+      if log::log_enabled!(log::Level::Debug) {
+        debug!(
+          "Failed to parse program: {:?}. File: {}. Expression: {:?}",
+          error,
+          state.get_filename(),
+          target_expression
+        );
+      } else {
+        warn!(
+          "Failed to parse program: {:?}. File: {}. For more information enable debug logging.",
+          error,
+          state.get_filename()
+        )
+      };
+    }
   }
 
-  (code_frame, fault_expression.span())
+  anyhow::bail!(
+    "Failed to parse program for code frame error generation. Please check the logs for more information."
+  );
+}
+
+fn get_memoized_frame_source_code(
+  wrapped_expression: &Expr,
+  state: &mut StateManager,
+  file_name: &FileName,
+  code_frame: &CodeFrame,
+) -> String {
+  if let Some(seen_source_code) = state.seen_source_code_by_path.get(file_name) {
+    return seen_source_code.clone();
+  }
+
+  let mut can_be_memoized = true;
+
+  let source_code = read_source_file(file_name);
+
+  let frame_source_code = source_code.unwrap_or_else(|_| {
+    let module = if cfg!(debug_assertions) && state.get_debug_assertions_module().is_some() {
+      state.get_debug_assertions_module().unwrap().clone()
+    } else {
+      can_be_memoized = false;
+      create_module(wrapped_expression)
+    };
+
+    print_module(code_frame, module)
+  });
+
+  if can_be_memoized {
+    state
+      .seen_source_code_by_path
+      .insert(file_name.clone(), frame_source_code.clone());
+  }
+
+  frame_source_code
 }
 
 fn print_module(code_frame: &CodeFrame, module: Module) -> String {
@@ -239,7 +306,7 @@ pub(crate) fn build_code_frame_error_and_panic(
   wrapped_expression: &Expr,
   fault_expression: &Expr,
   error_message: &str,
-  state: &StateManager,
+  state: &mut StateManager,
 ) -> ! {
   let caller_location = std::panic::Location::caller();
 

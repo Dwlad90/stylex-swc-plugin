@@ -47,7 +47,7 @@ where
     let result = if is_create_theme_call {
       let (_, parent_var_decl) = &self.get_call_var_name(call);
 
-      validate_stylex_create_theme_indent(parent_var_decl, call, &self.state);
+      validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!("Spread"),
@@ -115,7 +115,7 @@ where
             .deopt
             .unwrap_or_else(|| *first_arg.to_owned()),
           NON_STATIC_VALUE,
-          &self.state,
+          &mut self.state,
         )
       );
 
@@ -130,7 +130,7 @@ where
             .deopt
             .unwrap_or_else(|| *second_arg.to_owned()),
           NON_STATIC_VALUE,
-          &self.state,
+          &mut self.state,
         )
       );
 
@@ -147,7 +147,7 @@ where
               .deopt
               .unwrap_or_else(|| *first_arg.to_owned()),
             "Can only override variables theme created with stylex.defineVars().",
-            &self.state,
+            &mut self.state,
           )
         ),
       };
@@ -166,7 +166,7 @@ where
                 .deopt
                 .unwrap_or_else(|| *second_arg.to_owned()),
               NON_OBJECT_FOR_STYLEX_CALL,
-              &self.state,
+              &mut self.state,
             )
           );
           value.clone()
@@ -179,7 +179,7 @@ where
               .deopt
               .unwrap_or_else(|| *second_arg.to_owned()),
             NON_OBJECT_FOR_STYLEX_CALL,
-            &self.state,
+            &mut self.state,
           )
         ),
       };

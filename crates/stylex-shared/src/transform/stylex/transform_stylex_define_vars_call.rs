@@ -39,7 +39,7 @@ where
     let is_define_vars = is_define_vars_call(call, &self.state);
 
     if is_define_vars {
-      validate_stylex_define_vars(call, &self.state);
+      validate_stylex_define_vars(call, &mut self.state);
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!("Spread"),
@@ -97,7 +97,7 @@ where
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
           NON_STATIC_VALUE,
-          &self.state,
+          &mut self.state,
         )
       );
 
@@ -113,7 +113,7 @@ where
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
               NON_OBJECT_FOR_STYLEX_CALL,
-              &self.state,
+              &mut self.state,
             )
           );
           value

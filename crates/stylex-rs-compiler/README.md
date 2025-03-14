@@ -137,6 +137,41 @@ const styleProps = {
 > [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with an
 > attached link to reproduce the problem.
 
+## Debug
+
+You can enable debug logging for the StyleX compiler using the `STYLEX_DEBUG` environment variable. This is useful for troubleshooting and understanding the internal processing of StyleX code.
+
+### Log Levels
+
+The following log levels are available:
+- `error`: Only shows error messages
+- `warn`: Shows warnings and errors (default)
+- `info`: Shows informational messages, warnings, and errors
+- `debug`: Shows debug information and all above levels
+- `trace`: Shows very detailed execution information
+
+### Usage
+
+Set the environment variable before running your build command:
+
+```bash
+# Set to debug level
+STYLEX_DEBUG=debug npm run build
+
+# Set to trace for most verbose output
+STYLEX_DEBUG=trace npm run dev
+```
+
+For Windows Command Prompt:
+```cmd
+set STYLEX_DEBUG=debug && npm run build
+```
+
+For PowerShell:
+```powershell
+$env:STYLEX_DEBUG="debug"; npm run build
+```
+
 ## License
 
 StyleX is MIT licensed. StyleX NAPI-RS compiler is also MIT licensed.

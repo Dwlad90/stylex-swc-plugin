@@ -57,6 +57,7 @@ const customJestConfig = {
       }
     ],
   },
+  modulePathIgnorePatterns: ["<rootDir>/visual-tests/"]
 };
 
 module.exports = customJestConfig

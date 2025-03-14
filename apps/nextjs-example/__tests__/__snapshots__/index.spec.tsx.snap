@@ -3,13 +3,13 @@
 exports[`Home render styles successfully 1`] = `
 <div>
   <main
-    class="x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 xhb9i9n xv7yizt x1nww67f"
+    class="x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 xhb9i9n xv7yizt x1nww67f xmz0i5r xs6rbim xysyzu8 x7f1qth  "
   >
     <div
       class="x1jfb8zj xarpa2k x1h91t0o x11iygpg xg7bv4n xh8yej3 xhtitgo xgnkaqo"
     >
       <p
-        class="xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x1hmfenf x1oemq8d xp5n8cg x1e66gtf x1nww67f xh4n78y xzclsrz xmkeg23 x1m60m6i         x1y0btm7 xoey0em x1ngu7wn x137yrnm xd22jv         x1los6se"
+        class="xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x1hmfenf x1oemq8d xp5n8cg x1e66gtf x1nww67f xh4n78y xzclsrz xmkeg23 x1ehvz7d         x1y0btm7 xoey0em x1ngu7wn x137yrnm xd22jv         x1los6se"
       >
         Get started by editing 
         <code
@@ -20,10 +20,10 @@ exports[`Home render styles successfully 1`] = `
       </p>
     </div>
     <div
-      class="x1iyjqo2 x78zum5 xdt5ytf x6s0dn4 xl56j7k xwlmut9"
+      class="x1iyjqo2 x78zum5 xdt5ytf x6s0dn4 xl56j7k xwlmut9 x1a02dak"
     >
       <h1
-        class="xtfxu01 xo5v014 x1jn5nl8 xo1l8bm x2b8uid x78zum5 xfre8n0 xuxw1ft x1q0g3np xwlf911"
+        class="xtfxu01 xo5v014 x1jn5nl8 xo1l8bm x2b8uid x78zum5 xfre8n0 xuxw1ft xdt5ytf xwlf911"
       >
         Next.js App Dir
         <span
@@ -54,7 +54,7 @@ exports[`Home render styles successfully 1`] = `
       </div>
     </div>
     <div
-      class="x11wroxz x18mbai7 xl56j7k x78zum5 x6s0dn4 x1jwldgz xvnzane"
+      class="xq5fvzb x18mbai7 xl56j7k x78zum5 x6s0dn4 x1jwldgz xvnzane"
     >
       <div
         class="x19na6o3"

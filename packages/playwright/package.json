@@ -1,0 +1,45 @@
+{
+  "name": "@stylexswc/playwright",
+  "description": "Playwright for Stylex SWC",
+  "version": "0.7.0-rc.4",
+  "private": true,
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "typecheck": "scripty"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@stylexswc/eslint-config": "0.7.0-rc.4",
+    "@stylexswc/typescript-config": "0.7.0-rc.4",
+    "@types/node": "^22.13.9",
+    "playwright": "^1.51.0"
+  },
+  "keywords": [
+    "playwright"
+  ],
+  "main": "dist/index.js",
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+}

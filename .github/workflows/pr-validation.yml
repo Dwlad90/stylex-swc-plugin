@@ -33,6 +33,7 @@ on:
 
 env:
   APP_NAME: 'rs-compiler'
+  CI: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.ref }}
@@ -101,11 +102,16 @@ jobs:
 
       - name: Run tests
         run: pnpm run test
-        env:
-          RUST_MIN_STACK: 16777216
 
       - name: Build all public packages
-        run: pnpm exec turbo run --filter "{./packages/*}..." --filter "{./crates/*}..." build
+        run: pnpm run build --filter "{./packages/*}..." --filter "{./crates/*}..." --continue
+
+      - name: Install Playwright browsers
+        run: pnpm playwright install --with-deps chromium webkit --only-shell
+
+      - name: Run visual comparison tests
+        id: visual-tests
+        run: pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-example" --filter="!@stylexswc/webpack-example" --continue
 
       - name: Check artifacts
         run: pnpm run --filter "{./packages/*}" --filter "{./crates/*}" check:artifacts

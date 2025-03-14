@@ -53,3 +53,7 @@ yarn-error.log*
 
 #Dev containers
 .pnpm-store
+
+#Playwright
+playwright-report/
+test-results/

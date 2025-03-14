@@ -11,7 +11,8 @@
   ],
   "globalEnv": [
     "NODE_ENV",
-    "STYLEX_DEBUG"
+    "STYLEX_DEBUG",
+    "PORT"
   ],
   "tasks": {
     "build": {
@@ -96,6 +97,16 @@
         "clean"
       ],
       "cache": false
+    },
+    "test:visual": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ],
+      "outputs": [
+        "**/.playwright-snapshots"
+      ]
     }
   }
 }

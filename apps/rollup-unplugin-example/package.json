@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "build": "NODE_ENV=production rollup --config ./rollup.config.mjs",
-    "start": "pnpx rollup --config ./rollup.config.mjs --watch"
+    "start": "pnpx rollup --config ./rollup.config.mjs --watch",
+    "serve": "serve --listen 3004 ./dist",
+    "test:visual": "playwright test"
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
@@ -18,6 +20,9 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "serve": "^14.2.4",
+    "@playwright/test": "^1.51.0",
+    "@stylexswc/playwright": "0.7.0-rc.4",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-node-resolve": "^16.0.0",

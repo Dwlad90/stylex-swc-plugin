@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "build": "webpack build",
-    "dev": "NODE_ENV=development webpack serve"
+    "dev": "NODE_ENV=development webpack serve",
+    "serve": "serve --listen 3010 ./dist",
+    "test:visual": "playwright test"
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
@@ -18,6 +20,9 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "serve": "^14.2.4",
+    "@stylexswc/playwright": "0.7.0-rc.4",
     "@swc/core": "^1.11.7",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

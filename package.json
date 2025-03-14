@@ -13,6 +13,7 @@
     "lint:check": "turbo run lint:check --continue",
     "prepare": "husky",
     "test": "turbo run test --continue",
+    "test:visual": "turbo run test:visual",
     "typecheck": "turbo run typecheck --continue"
   },
   "config": {
@@ -24,6 +25,7 @@
     "scripty": "3.0.0"
   },
   "devDependencies": {
+    "playwright": "^1.51.0",
     "@commitlint/cli": "^19.7.1",
     "@stylexswc/eslint-config": "0.7.0-rc.4",
     "@stylexswc/typescript-config": "0.7.0-rc.4",

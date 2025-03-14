@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "dev": "node scripts/dev.mjs"
+    "dev": "node scripts/dev.mjs",
+    "serve": "serve --listen 3002 .",
+    "test:visual": "playwright test"
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
@@ -18,6 +20,9 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@stylexswc/playwright": "0.7.0-rc.4",
+    "serve": "^14.2.4",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "esbuild": "^0.25.0"

@@ -82,3 +82,6 @@ This project is organized into several packages:
 - [`design-system`](./packages/design-system) - Design system for the StyleX
   project, intended solely for internal use with in-workspace examples to
   support consistent UI experimentation and prototyping.
+
+- [`playwright`](./packages/playwright) - Playwright integration for StyleX
+  visual regression testing.

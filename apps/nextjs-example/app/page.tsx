@@ -81,6 +81,14 @@ const style = stylex.create({
       default: spacing.xxl,
       [MEDIA_MOBILE]: spacing.md,
     },
+    maxHeight: {
+      default: '100%',
+      [MEDIA_MOBILE]: '100vh',
+    },
+    overflow: {
+      default: 'auto',
+      [MEDIA_MOBILE]: 'hidden',
+    }
   },
   hero: {
     flexGrow: 1,
@@ -89,6 +97,7 @@ const style = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xl,
+    flexWrap: 'wrap',
   },
   h1: {
     fontSize: text.h1,
@@ -100,7 +109,7 @@ const style = stylex.create({
     gap: spacing.md,
     whiteSpace: 'nowrap',
     flexDirection: {
-      default: 'row',
+      default: 'column',
       [MEDIA_MOBILE]: 'column',
     },
   },
@@ -159,7 +168,7 @@ const style = stylex.create({
     },
     borderWidth: {
       default: '1px',
-      [MEDIA_MOBILE]: '0',
+      [MEDIA_MOBILE]: '1px',
     },
     borderStyle: 'solid',
     borderColor: `rgba(${$.calloutBorderR}, ${$.calloutBorderG}, ${$.calloutBorderB}, 0.3)`,
@@ -192,7 +201,7 @@ const style = stylex.create({
     textAlign: { [MEDIA_MOBILE]: 'center' },
   },
   card: {
-    padding: sizes.spacing5,
+    padding: sizes.spacing3,
     borderRadius: sizes.spacing2,
     justifyContent: 'center',
     display: 'flex',

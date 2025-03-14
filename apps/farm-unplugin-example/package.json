@@ -22,8 +22,7 @@
     "@farmfe/core": "^1.6.6",
     "@farmfe/plugin-react": "^1.2.6",
     "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
-    "react-refresh": "^0.16.0"
+    "@types/react-dom": "^19.0.4"
   },
   "type": "module"
 }

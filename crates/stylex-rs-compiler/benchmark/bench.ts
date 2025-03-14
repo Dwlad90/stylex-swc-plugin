@@ -8,7 +8,19 @@ import fs from 'fs';
 
 const rootDir = process.cwd();
 
-const b = new Bench({ warmup: true, name: 'StyleX compiler benchmark' });
+const benchRegular = new Bench({
+  name: 'StyleX compiler - regular benchmark',
+  warmup: true,
+});
+
+const benchLotsOfStyles = new Bench({
+  name: 'StyleX compiler - lots of styles benchmark',
+  warmup: true,
+  time: 500,
+  iterations: 10,
+  warmupIterations: 1,
+  warmupTime: 100,
+});
 
 const stylexOptions: StyleXOptions = {
   dev: false,
@@ -46,7 +58,7 @@ fixtureFilePaths.forEach(file => {
   const content = fs.readFileSync(file, 'utf-8');
   const separator = file.includes('/') ? '/' : '\\';
 
-  b.add(file.split(separator).at(-2) ?? 'Default case', () => {
+  benchRegular.add(file.split(separator).at(-2) ?? 'Default case', () => {
     transform(file, content, stylexOptions);
   });
 });
@@ -56,7 +68,7 @@ const rollupPluginApp = path.join(rootDir, '../../apps/rollup-example');
 const rollupPluginAppFiles = ['lotsOfStyles.js', 'lotsOfStylesDynamic.js'];
 
 rollupPluginAppFiles.forEach(file => {
-  b.add(`Rollup plugin - ${file}`, () => {
+  benchLotsOfStyles.add(`Rollup plugin - ${file}`, () => {
     const filePath = path.join(rollupPluginApp, file);
 
     transform(filePath, fs.readFileSync(filePath, 'utf-8'), stylexOptions);
@@ -69,11 +81,16 @@ if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir);
 }
 
-await b.run();
+await benchRegular.run();
+await benchLotsOfStyles.run();
 
-console.table(b.table());
+console.table(benchRegular.table());
+console.table(benchLotsOfStyles.table());
 
-const output = b.tasks.map(formatBenchmarkSummary).join('\n');
+const output = [
+  ...benchRegular.tasks.map(formatBenchmarkSummary),
+  ...benchLotsOfStyles.tasks.map(formatBenchmarkSummary),
+].join('\n');
 
 fs.writeFileSync(path.join(resultsDir, 'output.txt'), output, 'utf8');
 console.log('Benchmark results saved to output.txt');

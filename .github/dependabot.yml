@@ -182,6 +182,6 @@ updates:
     labels:
       - "dependencies"
       - "security"
-    target-branch: "develop"
+    target-branch: "master"
     allow:
       - dependency-type: "direct"

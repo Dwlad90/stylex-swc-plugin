@@ -11,7 +11,7 @@
     "eslint": "^9.21.0"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.26.0",
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
     "@typescript-eslint/parser": "^8.26.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
     "typescript-eslint": "^8.26.0",

@@ -166,22 +166,3 @@ updates:
       - "github-actions"
     open-pull-requests-limit: 10
     target-branch: "develop"
-
-  - package-ecosystem: npm
-    directory: "/"
-    schedule:
-      interval: weekly
-      day: "monday"
-      time: "09:00"
-      timezone: Etc/Greenwich
-
-    commit-message:
-      prefix: "security"
-      include: "scope"
-    open-pull-requests-limit: 15
-    labels:
-      - "dependencies"
-      - "security"
-    target-branch: "master"
-    allow:
-      - dependency-type: "direct"

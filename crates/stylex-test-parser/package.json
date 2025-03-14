@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/test-parser",
   "description": "Parse origin jest stylex test files",
-  "version": "0.7.0-rc.3",
+  "version": "0.7.0-rc.4",
   "private": true,
   "license": "MIT",
   "sideEffects": false,

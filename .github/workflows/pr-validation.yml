@@ -180,7 +180,10 @@ jobs:
             steps.metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
           echo "Auto-merging PR..."
-          gh pr merge --auto --rebase "$PR_URL"
+          git checkout develop
+          git pull origin develop
+          git merge "$PR_URL" --ff-only
+          git push origin develop
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

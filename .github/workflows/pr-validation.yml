@@ -155,7 +155,7 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
     needs: [pr-validation]
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.number != null && github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

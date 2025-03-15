@@ -194,10 +194,10 @@ jobs:
           echo "Auto-merging PR..."
           git checkout develop
           git pull origin develop
-          git merge "$PR_URL" --ff-only
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          git merge origin/${{ github.event.pull_request.head.ref }} --ff-only
           git push origin develop
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment on PR if auto-merge is skipped

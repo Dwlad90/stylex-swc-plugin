@@ -39,7 +39,7 @@
     "@stylexswc/eslint-config": "0.7.0-rc.4",
     "@stylexswc/typescript-config": "0.7.0-rc.4",
     "@types/babel__core": "^7.20.5",
-    "@types/node": "^22.13.9",
+    "@types/node": "^22.13.10",
     "next": "15.2.2",
     "postcss": "^8.5.3",
     "react": "^19.0.0",

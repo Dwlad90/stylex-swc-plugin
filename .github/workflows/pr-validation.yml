@@ -179,22 +179,12 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Approve Pull Request
-        run: |
-          gh pr review ${{ github.event.issue.number }} --approve -R ${{ github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Auto-merge for safe updates
+      - name: Approve and merge PR
         if: |
           (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
             steps.metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
-          echo "Auto-merging PR..."
-          git checkout develop
-          git pull origin develop
-          git merge "$PR_URL" --ff-only
-          git push origin develop
+          gh pr comment "$PR_URL" -b "/approve"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

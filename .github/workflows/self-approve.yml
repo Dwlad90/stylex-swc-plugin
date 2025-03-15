@@ -10,7 +10,7 @@ jobs:
     if: |
       github.event.issue.pull_request != '' &&
       contains(github.event.comment.body, '/approve') &&
-      contains(fromJson('["dwlad90"]'), github.event.comment.user.login)
+      contains(fromJson('["dwlad90", "dependabot[bot]", "github-actions[bot]"]'), github.event.comment.user.login)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code into workspace directory
@@ -21,5 +21,17 @@ jobs:
       - name: Approve Pull Request
         run: |
           gh pr review ${{ github.event.issue.number }} --approve -R ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependabot-merge:
+    name: Merge Dependabot PR
+    if: github.event.pull_request.number != null && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    needs: [self-approve]
+    steps:
+      - name: Merge Dependabot PR
+        run: |
+          gh pr comment ${{ github.event.issue.number }} -b "/merge"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

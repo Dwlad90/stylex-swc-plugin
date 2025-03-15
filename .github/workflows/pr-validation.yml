@@ -157,6 +157,11 @@ jobs:
     needs: [pr-validation]
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Dependabot metadata
         id: metadata
         uses: dependabot/fetch-metadata@v1

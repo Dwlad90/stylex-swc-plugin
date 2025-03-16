@@ -2,9 +2,17 @@ name: Sync Dependencies
 
 on:
   pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - converted_to_draft
+      - edited
     paths:
       - '**/package.json'
-      -
+      - '**/pnpm-lock.yaml'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.ref }}
   cancel-in-progress: true
@@ -12,7 +20,7 @@ concurrency:
 jobs:
   sync-dependencies:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     permissions:
       contents: write
       pull-requests: write
@@ -34,18 +42,22 @@ jobs:
         run: |
           pnpm syncpack fix-mismatches --source "**/package.json"
 
+      - name: Commit changes if needed
+        run: |
           if git diff --quiet -- '**/package.json'; then
             echo "No dependency changes detected"
+            echo "changes_pushed=false" >> $GITHUB_OUTPUT
           else
             pnpm install --no-frozen-lockfile
 
             git add .
             git commit -m "fix(deps): sync dependencies" --no-verify
             git push
+            echo "changes_pushed=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Comment on PR
-        if: success()
+        if: steps.commit-changes.outputs.changes_pushed == 'true'  # Only run if changes were pushed
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "I've synchronized dependencies across the workspace to ensure consistency."
         env:

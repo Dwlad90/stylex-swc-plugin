@@ -32,23 +32,15 @@ jobs:
 
       - name: Sync dependencies
         run: |
-          # List mismatches before fixing
-          pnpm exec syncpack list-mismatches
+          pnpm syncpack fix-mismatches --source "**/package.json"
 
-          # Fix mismatches
-          pnpm exec syncpack fix-mismatches
-
-          # Check if changes were made
-          if git diff --quiet; then
-            echo "No changes detected"
+          if git diff --quiet -- '**/package.json'; then
+            echo "No dependency changes detected"
           else
-            # Configure git
-            git config user.name "GitHub Actions"
-            git config user.email "github-actions@github.com"
+            pnpm install --no-frozen-lockfile
 
-            # Commit and push changes
             git add .
-            git commit -m "fix(deps): sync dependencies"
+            git commit -m "fix(deps): sync dependencies" --no-verify
             git push
           fi
 

@@ -1046,7 +1046,7 @@ importers:
         specifier: 0.7.0-rc.4
         version: link:../../crates/stylex-rs-compiler
       esbuild:
-        specifier: ^0.25.0
+        specifier: ^0.25.1
         version: 0.25.1
       unplugin:
         specifier: ^2.2.0

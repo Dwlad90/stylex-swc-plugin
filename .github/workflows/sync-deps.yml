@@ -1,0 +1,50 @@
+name: Sync Dependencies
+
+on:
+  pull_request:
+    paths:
+      - '**/package.json'
+
+jobs:
+  sync-dependencies:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Sync dependencies
+        run: |
+          # List mismatches before fixing
+          syncpack list-mismatches
+
+          # Fix mismatches
+          syncpack fix-mismatches
+
+          # Check if changes were made
+          if git diff --quiet; then
+            echo "No changes detected"
+          else
+            # Configure git
+            git config user.name "GitHub Actions"
+            git config user.email "github-actions@github.com"
+
+            # Commit and push changes
+            git add .
+            git commit -m "fix(deps): sync dependencies"
+            git push
+          fi
+
+      - name: Comment on PR
+        if: success()
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "I've synchronized dependencies across the workspace to ensure consistency."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

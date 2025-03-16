@@ -20,13 +20,16 @@ jobs:
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
 
+      - name: Git configure
+        uses: ./.github/actions/gitconfig
+
       - name: Sync dependencies
         run: |
           # List mismatches before fixing
-          syncpack list-mismatches
+          pnpm exec syncpack list-mismatches
 
           # Fix mismatches
-          syncpack fix-mismatches
+          pnpm exec syncpack fix-mismatches
 
           # Check if changes were made
           if git diff --quiet; then

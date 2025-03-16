@@ -4,11 +4,18 @@ on:
   pull_request:
     paths:
       - '**/package.json'
+      -
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.ref }}
+  cancel-in-progress: true
 
 jobs:
   sync-dependencies:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,3 +58,4 @@ jobs:
           gh pr comment ${{ github.event.pull_request.number }} --body "I've synchronized dependencies across the workspace to ensure consistency."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

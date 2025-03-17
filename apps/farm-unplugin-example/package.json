@@ -24,7 +24,7 @@
     "@playwright/test": "^1.51.1",
     "@stylexswc/playwright": "0.7.0-rc.4",
     "@farmfe/cli": "^1.0.4",
-    "@farmfe/core": "^1.7.0",
+    "@farmfe/core": "^1.7.1",
     "@farmfe/plugin-react": "^1.2.6",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4"

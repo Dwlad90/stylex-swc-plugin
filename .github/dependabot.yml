@@ -16,7 +16,11 @@ updates:
         patterns:
           - "@stylexjs/*"
           - "postcss"
+      nextjs:
+        patterns:
           - "next"
+          - "@next/*"
+          - "eslint-config-next"
       typescript-types:
         patterns:
           - "typescript"

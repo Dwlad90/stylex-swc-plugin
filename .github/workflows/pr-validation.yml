@@ -40,6 +40,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.ref }}
   cancel-in-progress: true
 
+# Add restricted permissions to GITHUB_TOKEN
+permissions:
+  contents: read
+  pull-requests: write
+  repository-projects: read
+
 jobs:
   pr-validation:
     name: PR Validation
@@ -52,11 +58,6 @@ jobs:
         settings:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-
-    permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
 
     steps:
       - uses: actions/github-script@v7
@@ -112,7 +113,9 @@ jobs:
 
       - name: Run visual comparison tests
         id: visual-tests
-        run: pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-example" --filter="!@stylexswc/webpack-example" --continue
+        run:
+          pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-example"
+          --filter="!@stylexswc/webpack-example" --continue
 
       - name: Check artifacts
         run: pnpm run --filter "{./packages/*}" --filter "{./crates/*}" check:artifacts
@@ -156,7 +159,9 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
     needs: [pr-validation]
-    if: github.event.pull_request.number != null && github.event.pull_request.user.login == 'dependabot[bot]'
+    if:
+      github.event.pull_request.number != null && github.event.pull_request.user.login ==
+      'dependabot[bot]'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -167,25 +172,37 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@v2
         with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+
+      - name: Set PR information as environment variables
+        env:
+          PR_NUMBER_VALUE: ${{ github.event.pull_request.number }}
+          PR_URL_VALUE: ${{ github.event.pull_request.html_url }}
+          PR_HEAD_REF_VALUE: ${{ github.event.pull_request.head.ref }}
+          UPDATE_TYPE_VALUE: ${{ steps.metadata.outputs.update-type }}
+          DEPENDENCY_TYPE_VALUE: ${{ steps.metadata.outputs.dependency-type }}
+        run: |
+          echo "PR_NUMBER=${PR_NUMBER_VALUE}" >> $GITHUB_ENV
+          echo "PR_URL=${PR_URL_VALUE}" >> $GITHUB_ENV
+          echo "PR_HEAD_REF=${PR_HEAD_REF_VALUE}" >> $GITHUB_ENV
+          echo "UPDATE_TYPE=${UPDATE_TYPE_VALUE}" >> $GITHUB_ENV
+          echo "DEPENDENCY_TYPE=${DEPENDENCY_TYPE_VALUE}" >> $GITHUB_ENV
 
       - name: Add labels based on dependency type
         run: |
-          if [[ "${{ steps.metadata.outputs.dependency-type }}" == "direct:production" ]]; then
-            gh pr edit "$PR_URL" --add-label "production"
+          if [[ "$DEPENDENCY_TYPE" == "direct:production" ]]; then
+            gh pr edit "$PR_NUMBER" --add-label "production"
           else
-            gh pr edit "$PR_URL" --add-label "development"
+            gh pr edit "$PR_NUMBER" --add-label "development"
           fi
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Approve Pull Request
         run: |
-          gh pr review "$PR_URL" --approve -R ${{ github.repository }}
+          gh pr review "$PR_NUMBER" --approve -R ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
 
       - name: Auto-merge for safe updates
         if: |
@@ -195,8 +212,8 @@ jobs:
           echo "Auto-merging PR..."
           git checkout develop
           git pull origin develop
-          git fetch origin ${{ github.event.pull_request.head.ref }}
-          git merge origin/${{ github.event.pull_request.head.ref }} --ff-only
+          git fetch origin "$PR_HEAD_REF"
+          git merge origin/"$PR_HEAD_REF" --ff-only
           git push origin develop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -206,9 +223,7 @@ jobs:
           (steps.metadata.outputs.update-type != 'version-update:semver-patch' &&
             steps.metadata.outputs.update-type != 'version-update:semver-minor')
         run: |
-          REASON="The update type (${{ steps.metadata.outputs.update-type }}) requires manual review"
-          gh pr comment "$PR_URL" -b "⚠️ This PR wasn't automatically merged: $REASON"
+          REASON="The update type ($UPDATE_TYPE) requires manual review"
+          gh pr comment "$PR_NUMBER" -b "⚠️ This PR wasn't automatically merged: $REASON"
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

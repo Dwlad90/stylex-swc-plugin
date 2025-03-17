@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "serve": "^14.2.4",
-    "@playwright/test": "^1.51.0",
+    "@playwright/test": "^1.51.1",
     "@stylexswc/playwright": "0.7.0-rc.4",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vitejs/plugin-vue-jsx": "^4.1.1",

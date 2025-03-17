@@ -1,7 +1,7 @@
 import type { VarGroup } from '@stylexjs/stylex';
 import * as stylex from '@stylexjs/stylex';
 
-declare const ButtonTokensTag: unique symbol;
+declare const _ButtonTokensTag: unique symbol;
 export const ButtonTokens: VarGroup<
   Readonly<{
     bgColor: string;
@@ -9,7 +9,7 @@ export const ButtonTokens: VarGroup<
     height: string;
     opacity: string;
   }>,
-  typeof ButtonTokensTag
+  typeof _ButtonTokensTag
 > = stylex.defineVars({
   bgColor: 'var(--secondary-button-background)',
   color: 'currentcolor',

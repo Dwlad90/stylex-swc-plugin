@@ -1,6 +1,8 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const path = require('path');
 const stylexPlugin = require('@stylexswc/nextjs-plugin');
+/* eslint-enable @typescript-eslint/no-require-imports */
+
 const rootDir = __dirname;
 
 module.exports = stylexPlugin({
@@ -23,4 +25,4 @@ module.exports = stylexPlugin({
   transpilePackages: ['@stylexjs/open-props'],
   // Optionally, add any other Next.js config below
 });
-/* eslint-enable @typescript-eslint/no-var-requires */
+

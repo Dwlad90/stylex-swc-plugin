@@ -10,6 +10,7 @@ import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
 
 const HOMEPAGE = 'https://stylexjs.com';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface Props {}
 export default function Home(_props: Props) {
   return (

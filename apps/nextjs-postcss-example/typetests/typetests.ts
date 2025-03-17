@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars, @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unused-expressions */
 import * as stylex from '@stylexjs/stylex';
 import type {
   StaticStyles,
@@ -11,18 +11,15 @@ import type { StyleXClassNameFor, InlineStyles, StyleXVar } from '@stylexjs/styl
 /**
  * EMPTY STYLES
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
 const styles1: Readonly<{ foo: Readonly<{}> }> = stylex.create({
   foo: {},
 });
 styles1.foo as StaticStyles;
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles1.foo as StaticStyles<{}>;
 styles1.foo as StaticStyles<{ width?: number | string }>;
 styles1.foo as StaticStyles<{ width?: unknown }>;
 styles1.foo as StaticStylesWithout<{ width: unknown }>;
 styles1.foo as StyleXStyles;
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles1.foo as StyleXStyles<{}>;
 styles1.foo as StyleXStyles<{ width?: number | string }>;
 styles1.foo as StyleXStyles<{ width?: unknown }>;
@@ -44,7 +41,6 @@ const styles2: Readonly<{
 });
 styles2.foo satisfies StaticStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles2.foo satisfies StaticStyles<{}>;
 styles2.foo satisfies StaticStyles<{ width: '100%' }>;
 styles2.foo satisfies StaticStyles<{ width: unknown }>;
@@ -57,7 +53,6 @@ styles2.foo satisfies StaticStyles<{ width: number | string }>;
 styles2.foo satisfies StaticStyles<{ width?: unknown; height?: string }>;
 styles2.foo satisfies StyleXStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles2.foo satisfies StyleXStyles<{}>;
 styles2.foo satisfies StyleXStyles<{ width: '100%' }>;
 styles2.foo satisfies StyleXStyles<{ width: number | string }>;
@@ -82,7 +77,6 @@ const styles3: Readonly<{
 });
 styles3.foo satisfies StaticStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles3.foo satisfies StaticStyles<{}>;
 styles3.foo satisfies StaticStyles<{ width: '100%' | '200%' }>;
 styles3.foo satisfies StaticStyles<{ width: number | string }>;
@@ -91,7 +85,6 @@ styles3.foo satisfies StaticStylesWithout<{ height: unknown }>;
 styles3.foo satisfies StaticStylesWithout<{ width: unknown }>;
 styles3.foo satisfies StyleXStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles3.foo satisfies StyleXStyles<{}>;
 styles3.foo satisfies StyleXStyles<{ width: '100%' | '200%' }>;
 styles3.foo satisfies StyleXStyles<{ width: number | string }>;
@@ -119,13 +112,11 @@ const styles4: Readonly<{
 });
 styles4.foo satisfies StaticStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles4.foo satisfies StaticStyles<{}>;
 styles4.foo satisfies StaticStyles<{ width: '100%' | '100dvw' }>;
 styles4.foo satisfies StaticStyles<{ width: number | string }>;
 styles4.foo satisfies StyleXStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles4.foo satisfies StyleXStyles<{}>;
 styles4.foo satisfies StyleXStyles<{ width: '100%' | '100dvw' }>;
 styles4.foo satisfies StyleXStyles<{ width: number | string }>;
@@ -153,13 +144,11 @@ const styles5: Readonly<{
 });
 styles5.foo satisfies StaticStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles5.foo satisfies StaticStyles<{}>;
 styles5.foo satisfies StaticStyles<{ width: '100%' | '100dvw' | '200%' }>;
 styles5.foo satisfies StaticStyles<{ width: number | string }>;
 styles5.foo satisfies StyleXStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles5.foo satisfies StyleXStyles<{}>;
 styles5.foo satisfies StyleXStyles<{ width: '100%' | '100dvw' | '200%' }>;
 styles5.foo satisfies StyleXStyles<{ width: number | string }>;
@@ -194,7 +183,6 @@ const styles6: Readonly<{
 // @ts-expect-error - Functions don't return static styles.
 styles6.foo(100) satisfies StaticStyles;
 // @ts-expect-error - Functions don't return static styles.
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles6.foo(100) satisfies StaticStyles<{}>;
 // @ts-expect-error - Functions don't return static styles.
 styles6.foo(100) satisfies StaticStyles<{ width: '100%' | '100dvw' | number }>;
@@ -203,7 +191,6 @@ styles6.foo(100) satisfies StaticStyles<{ width: number | string }>;
 // Functions return StyleXStyles!
 styles6.foo(100) satisfies StyleXStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles6.foo(100) satisfies StyleXStyles<{}>;
 styles6.foo(100) satisfies StyleXStyles<{ width: '100%' | '100dvw' | number }>;
 styles6.foo(100) satisfies StyleXStyles<{ width: number | string }>;
@@ -230,7 +217,6 @@ const styles7: Readonly<{
 });
 styles7.foo satisfies StaticStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles7.foo satisfies StaticStyles<{}>;
 styles7.foo satisfies StaticStyles<{ '::before': { width: '100%' } }>;
 styles7.foo satisfies StaticStyles<{
@@ -238,7 +224,6 @@ styles7.foo satisfies StaticStyles<{
 }>;
 styles7.foo satisfies StyleXStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles7.foo satisfies StyleXStyles<{}>;
 styles7.foo satisfies StyleXStyles<{ '::before': { width: '100%' } }>;
 styles7.foo satisfies StyleXStyles<{
@@ -272,7 +257,6 @@ vars.accent satisfies StyleXVar<'blue'>;
 
 styles8.foo satisfies StaticStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles8.foo satisfies StaticStyles<{}>;
 styles8.foo satisfies StaticStyles<{ color: 'red' }>;
 styles8.foo satisfies StaticStyles<{ color: unknown }>;
@@ -287,7 +271,6 @@ styles8.foo satisfies StaticStyles<{ color: number | string }>;
 styles8.foo satisfies StaticStyles<{ color?: unknown; height?: string }>;
 styles8.foo satisfies StyleXStyles;
 // @ts-expect-error - We want to disallow extra keys
-// eslint-disable-next-line @typescript-eslint/ban-types
 styles8.foo satisfies StyleXStyles<{}>;
 styles8.foo satisfies StyleXStyles<{ color: 'red' }>;
 styles8.foo satisfies StyleXStyles<{ color: number | string }>;
@@ -297,4 +280,4 @@ styles8.foo satisfies StyleXStylesWithout<{ height: unknown }>;
 styles8.foo satisfies StyleXStylesWithout<{ color: unknown }>;
 
 stylex.props(styles8.foo);
-/* eslint-enable no-unused-vars */
+/* eslint-enable no-unused-vars, @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unused-expressions */

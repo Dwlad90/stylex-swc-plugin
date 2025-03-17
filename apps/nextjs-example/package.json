@@ -6,7 +6,7 @@
     "build": "next build",
     "clean": "rimraf .next",
     "dev": "next dev",
-    "lint": "pnpm next:lint",
+    "lint": "eslint . --color",
     "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "next:lint": "next lint",
     "prebuild": "pnpm run clean",
@@ -29,10 +29,9 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "serve": "^14.2.4",
-    "@stylexswc/jest": "0.7.0-rc.4",
     "@playwright/test": "^1.51.0",
     "@stylexjs/eslint-plugin": "^0.11.1",
+    "@stylexswc/jest": "0.7.0-rc.4",
     "@stylexswc/playwright": "0.7.0-rc.4",
     "@stylexswc/rs-compiler": "0.7.0-rc.4",
     "@swc/jest": "^0.2.37",
@@ -49,6 +48,7 @@
     "jest-environment-jsdom": "29.7.0",
     "playwright": "^1.51.0",
     "rimraf": "^6.0.1",
+    "serve": "^14.2.4",
     "typescript": "^5.8.2"
   }
 }

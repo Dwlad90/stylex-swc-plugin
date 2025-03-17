@@ -67,6 +67,10 @@ updates:
           - "vitest"
           - "jest"
           - "@testing-library/*"
+      e2e:
+        patterns:
+          - "playwright"
+          - "@playwright/*"
       react-ecosystem:
         patterns:
           - "react"

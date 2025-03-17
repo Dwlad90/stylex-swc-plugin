@@ -42,9 +42,9 @@ concurrency:
 
 # Add restricted permissions to GITHUB_TOKEN
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
-  repository-projects: read
+  repository-projects: write
 
 jobs:
   pr-validation:

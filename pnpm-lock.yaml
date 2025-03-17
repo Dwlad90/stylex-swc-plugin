@@ -63,8 +63,8 @@ importers:
         specifier: ^15.5.0
         version: 15.5.0
       playwright:
-        specifier: ^1.51.0
-        version: 1.51.0
+        specifier: ^1.51.1
+        version: 1.51.1
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -249,8 +249,8 @@ importers:
         specifier: 29.7.0
         version: 29.7.0
       playwright:
-        specifier: ^1.51.0
-        version: 1.51.0
+        specifier: ^1.51.1
+        version: 1.51.1
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -961,8 +961,8 @@ importers:
         specifier: ^22.13.10
         version: 22.13.10
       playwright:
-        specifier: ^1.51.0
-        version: 1.51.0
+        specifier: ^1.51.1
+        version: 1.51.1
 
   packages/postcss-plugin:
     dependencies:
@@ -7063,8 +7063,18 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  playwright-core@1.51.1:
+    resolution: {integrity: sha512-/crRMj8+j/Nq5s8QcvegseuyeZPxpQCZb6HNk3Sos3BlZyAknRjoyJPFWkpNn8v0+P3WiwqFF8P+zQo4eqiNuw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   playwright@1.51.0:
     resolution: {integrity: sha512-442pTfGM0xxfCYxuBa/Pu6B2OqxqqaYq39JS8QDMGThUvIOCd6s0ANDog3uwA0cHavVlnTQzGCN7Id2YekDSXA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.51.1:
+    resolution: {integrity: sha512-kkx+MB2KQRkyxjYPc3a0wLZZoDczmppyGJIvQ43l+aZihkaVvmu/21kiyaHeHjiFxjxNNFnUncKmcGIyOojsaw==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -15518,9 +15528,17 @@ snapshots:
 
   playwright-core@1.51.0: {}
 
+  playwright-core@1.51.1: {}
+
   playwright@1.51.0:
     dependencies:
       playwright-core: 1.51.0
+    optionalDependencies:
+      fsevents: 2.3.2
+
+  playwright@1.51.1:
+    dependencies:
+      playwright-core: 1.51.1
     optionalDependencies:
       fsevents: 2.3.2
 

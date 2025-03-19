@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/playwright",
   "description": "Playwright for Stylex SWC",
-  "version": "0.7.0-rc.5",
+  "version": "0.7.0",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
@@ -32,8 +32,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.51.1",
-    "@stylexswc/eslint-config": "0.7.0-rc.5",
-    "@stylexswc/typescript-config": "0.7.0-rc.5",
+    "@stylexswc/eslint-config": "0.7.0",
+    "@stylexswc/typescript-config": "0.7.0",
     "@types/node": "^22.13.10",
     "playwright": "^1.51.1"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-plugin",
   "description": "StyleX NextJS plugin with NAPI-RS compiler",
-  "version": "0.7.0-rc.5",
+  "version": "0.7.0",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -31,13 +31,13 @@
     }
   },
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.7.0-rc.5",
-    "@stylexswc/webpack-plugin": "0.7.0-rc.5"
+    "@stylexswc/rs-compiler": "0.7.0",
+    "@stylexswc/webpack-plugin": "0.7.0"
   },
   "devDependencies": {
     "@babel/types": "^7.26.10",
-    "@stylexswc/eslint-config": "0.7.0-rc.5",
-    "@stylexswc/typescript-config": "0.7.0-rc.5",
+    "@stylexswc/eslint-config": "0.7.0",
+    "@stylexswc/typescript-config": "0.7.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^22.13.10",
     "next": "15.2.2",

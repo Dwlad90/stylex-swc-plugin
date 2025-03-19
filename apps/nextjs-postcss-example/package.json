@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-postcss-example",
-  "version": "0.7.0-rc.5",
+  "version": "0.7.0",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -22,9 +22,9 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.11.1",
-    "@stylexswc/design-system": "0.7.0-rc.5",
-    "@stylexswc/nextjs-plugin": "0.7.0-rc.5",
-    "@stylexswc/postcss-plugin": "0.7.0-rc.5",
+    "@stylexswc/design-system": "0.7.0",
+    "@stylexswc/nextjs-plugin": "0.7.0",
+    "@stylexswc/postcss-plugin": "0.7.0",
     "next": "15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -32,9 +32,9 @@
   "devDependencies": {
     "@playwright/test": "^1.51.1",
     "@stylexjs/eslint-plugin": "^0.11.1",
-    "@stylexswc/jest": "0.7.0-rc.5",
-    "@stylexswc/playwright": "0.7.0-rc.5",
-    "@stylexswc/rs-compiler": "0.7.0-rc.5",
+    "@stylexswc/jest": "0.7.0",
+    "@stylexswc/playwright": "0.7.0",
+    "@stylexswc/rs-compiler": "0.7.0",
     "@swc/jest": "^0.2.37",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",

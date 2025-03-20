@@ -1,1 +1,10 @@
+mod digit_test;
+mod float_test;
+mod integer_test;
+mod natural_test;
+mod one_of_test;
+mod one_or_more_test;
+mod sequence_of_test;
 mod string_test;
+mod whole_test;
+mod zero_or_more_test;

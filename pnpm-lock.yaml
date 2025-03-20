@@ -791,6 +791,18 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(webpack-cli@6.0.1)(webpack@5.101.0)
 
+  crates/stylex-css-parser:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^7.0.2
+        version: 7.0.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.5.3
+
   crates/stylex-path-resolver:
     devDependencies:
       '@taplo/cli':

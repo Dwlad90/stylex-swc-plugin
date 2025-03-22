@@ -1,4 +1,5 @@
 use cssparser::{ParseError, Parser, ParserInput, Token};
+use serde::de;
 use std::fmt;
 use std::rc::Rc;
 
@@ -42,14 +43,15 @@ impl<T: 'static> TokenParser<T> {
   }
 
   /// Parses the given CSS string.
-  pub fn parse<'a>(&self, parser: &'a mut Parser<'a, 'a>) -> Result<T, TokenParseError> {
-    let mut tokens = TokenList::new(parser);
+  pub fn parse<'a>(&self, input: &'a str) -> Result<T, TokenParseError> {
+    let mut tokens = TokenList::new(input);
     (self.parse_fn)(&mut tokens)
   }
 
   /// Parses the given CSS string and ensures all input is consumed.
-  pub fn parse_to_end<'a>(&self, parser: &'a mut Parser<'a, 'a>) -> Result<T, TokenParseError> {
-    let mut tokens = TokenList::new(parser);
+  pub fn parse_to_end<'a>(&self, input: &'a str) -> Result<T, TokenParseError> {
+    // Create a new parser instance using the one we just created
+    let mut tokens = TokenList::new(&input);
     let initial_index = tokens.current_index;
 
     let result = (self.parse_fn)(&mut tokens);
@@ -180,6 +182,42 @@ impl<T: 'static> TokenParser<T> {
     TokenParser::new(|_| Err(TokenParseError::new("Never")), "Never")
   }
 
+  pub fn where_fn<F>(&self, predicate: F, description: &str) -> TokenParser<T>
+  where
+    F: Fn(&T) -> bool + 'static,
+    T: Clone,
+  {
+    let parse_fn = self.parse_fn.clone();
+    let parser_label = self.label.clone();
+    let description = description.to_string(); // Clone to own the string
+    let description_for_closure = description.clone();
+
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+
+        match (parse_fn)(tokens) {
+          Ok(value) => {
+            if predicate(&value) {
+              Ok(value)
+            } else {
+              tokens.set_current_index(current_index);
+              Err(TokenParseError::new(format!(
+                "Predicate '{}' failed for value",
+                description_for_closure
+              )))
+            }
+          }
+          Err(e) => {
+            tokens.set_current_index(current_index);
+            Err(e)
+          }
+        }
+      },
+      &format!("{}.where({})", parser_label, description),
+    )
+  }
+
   /// Create a token parser that parses a specific token type.
   pub fn token(expected_type: &str) -> TokenParser<Token<'static>> {
     // Clone expected_type to own it
@@ -209,5 +247,47 @@ impl<T: 'static> TokenParser<T> {
       },
       &expected_type_owned,
     )
+  }
+
+  pub fn string(str: &str) -> TokenParser<String> {
+    // First, create a parser that extracts the value from Ident tokens
+    let ident_parser = TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+
+        match tokens.consume_next_token() {
+          Ok(Some(Token::Ident(value))) => {
+            // For debugging, similar to the console.log in JS
+            println!("Found Ident token with value: {}", value);
+            Ok(value.to_string())
+          }
+          Ok(other_token) => {
+            tokens.set_current_index(current_index);
+            Err(TokenParseError::new(format!(
+              "Expected Ident token, got {:?}",
+              other_token
+            )))
+          }
+          Err(error) => {
+            tokens.set_current_index(current_index);
+            Err(TokenParseError::new(
+              "Expected Ident token, got end of input",
+            ))
+          }
+        }
+      },
+      "Ident",
+    );
+
+    // Then, check if the value matches the expected string
+    let expected_str = str.to_string(); // Clone to own the string
+    let expected_for_where = expected_str.clone();
+
+    ident_parser
+      .map(move |value| value, Some(".value"))
+      .where_fn(
+        move |value| *value == expected_for_where,
+        &format!("=== {}", expected_str),
+      )
   }
 }

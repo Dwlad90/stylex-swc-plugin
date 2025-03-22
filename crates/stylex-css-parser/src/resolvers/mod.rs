@@ -3,41 +3,45 @@ extern crate cssparser;
 use cssparser::{ParseError, Parser, ParserInput, Token};
 
 /// Recursively parses tokens from the given parser.
-fn parse_tokens_from_parser<'i>(
+pub fn parse_tokens_from_parser<'i>(
   parser: &mut Parser<'i, '_>,
-) -> Result<Vec<String>, ParseError<'i, ()>> {
+) -> Result<Vec<Token<'i>>, ParseError<'i, ()>> {
   let mut tokens = Vec::new();
 
   while !parser.is_exhausted() {
-      match parser.next() {
-          Ok(token) => {
-              match token {
-                  Token::Ident(ident) => tokens.push(format!("Identifier: {}", ident)),
-                  Token::Colon => tokens.push("Colon".to_string()),
-                  Token::Semicolon => tokens.push("Semicolon".to_string()),
-                  // When a curly bracket block is encountered, recursively parse its inner tokens
-                  Token::CurlyBracketBlock => {
-                      tokens.push("CurlyBracketBlock Start".to_string());
-                      let nested = parser
-                          .parse_nested_block(|inner_parser| parse_tokens_from_parser(inner_parser))?;
-                      tokens.extend(nested);
-                      tokens.push("CurlyBracketBlock End".to_string());
-                  }
-                  other => tokens.push(format!("Token: {:?}", other)),
-              }
-          }
-          Err(e) => return Err(e.into()),
+    match parser.next() {
+      Ok(token) => {
+        tokens.push(token.clone())
+        // match token {
+        //     Token::Ident(ident) => tokens.push(format!("Identifier: {}", ident)),
+        //     Token::Colon => tokens.push("Colon".to_string()),
+        //     Token::Semicolon => tokens.push("Semicolon".to_string()),
+        //     // When a curly bracket block is encountered, recursively parse its inner tokens
+        //     Token::CurlyBracketBlock => {
+        //         tokens.push("CurlyBracketBlock Start".to_string());
+        //         let nested = parser
+        //             .parse_nested_block(|inner_parser| parse_tokens_from_parser(inner_parser))?;
+        //         tokens.extend(nested);
+        //         tokens.push("CurlyBracketBlock End".to_string());
+        //     }
+        //     other => tokens.push(format!("Token: {:?}", other)),
+        // }
       }
+      Err(e) => return Err(e.into()),
+    }
   }
 
   Ok(tokens)
 }
 
 /// Parses the provided CSS string and returns a vector of token descriptions.
-pub fn parse_css(input: &str) -> Result<Vec<String>, ParseError<'_, ()>> {
+// pub fn parse_css(input: &str) -> Result<Vec<String>, ParseError<'_, ()>> {
+pub fn parse_css(input: &str) -> Result<Vec<String>, anyhow::Error> {
   let mut input_buffer = ParserInput::new(input);
   let mut parser = Parser::new(&mut input_buffer);
-  parse_tokens_from_parser(&mut parser)
+  // parse_tokens_from_parser(&mut parser)
+
+  Ok(vec![String::from("foo")])
 }
 #[cfg(test)]
 mod tests {

@@ -43,37 +43,63 @@ impl<T: 'static> TokenParser<T> {
   }
 
   /// Parses the given CSS string.
-  pub fn parse<'a>(&self, input: &'a str) -> Result<T, TokenParseError> {
-    let mut tokens = TokenList::new(input);
+  pub fn parse(&self, css: &str) -> Result<T, TokenParseError> {
+    let mut tokens = TokenList::new(css);
     (self.parse_fn)(&mut tokens)
   }
 
   /// Parses the given CSS string and ensures all input is consumed.
-  pub fn parse_to_end<'a>(&self, input: &'a str) -> Result<T, TokenParseError> {
-    // Create a new parser instance using the one we just created
-    let mut tokens = TokenList::new(&input);
+  /// Parses the given CSS string and ensures all input is consumed.
+  /// Parses the given CSS string and ensures all input is consumed.
+  pub fn parse_to_end(&self, css: &str) -> Result<T, TokenParseError> {
+    let mut tokens = TokenList::new(css);
     let initial_index = tokens.current_index;
 
-    let result = (self.parse_fn)(&mut tokens);
+    // Run the parser (equivalent to this.run(tokens) in JS)
+    let output = (self.parse_fn)(&mut tokens);
 
-    if let Err(e) = &result {
+    // Check for parser errors
+    if let Err(e) = &output {
       let consumed_tokens = tokens.slice(initial_index, None);
       tokens.set_current_index(initial_index);
+
+      // Format error message similar to JS version
       return Err(TokenParseError::new(format!(
         "Expected {} but got {}\nConsumed tokens: {:?}",
         self.label, e, consumed_tokens
       )));
     }
 
-    if let Ok(token) = tokens.peek() {
-      let consumed_tokens = tokens.slice(initial_index, None);
-      return Err(TokenParseError::new(format!(
-        "Expected end of input, got {:?} instead\nConsumed tokens: {:?}",
-        token, consumed_tokens
-      )));
-    }
+    // Check if there are more tokens left (we should have consumed everything)
+    match tokens.peek() {
+      Ok(Some(token)) => {
+        let consumed_tokens = tokens.slice(initial_index, None);
 
-    result
+        // Format error message similar to JS version
+        Err(TokenParseError::new(format!(
+          "Expected end of input, got {:?} instead\nConsumed tokens: {:?}",
+          token, consumed_tokens
+        )))
+      }
+      Ok(None) => output,
+      Err(err) => {
+        let consumed_tokens = tokens.slice(initial_index, None);
+        tokens.set_current_index(initial_index);
+
+        // Extract token types for display, similar to token[0] in JS
+        let token_types = consumed_tokens
+          .iter()
+          .map(|token_opt| token_opt.as_ref().map_or("None", token_type_name))
+          .collect::<Vec<_>>()
+          .join(", ");
+
+        // Format error message to match JS version more closely
+        Err(TokenParseError::new(format!(
+          "Expected {} but got {}\nConsumed tokens: {}",
+          self.label, err, token_types
+        )))
+      }
+    }
   }
 
   /// Maps the output of this parser with the given function.
@@ -289,5 +315,42 @@ impl<T: 'static> TokenParser<T> {
         move |value| *value == expected_for_where,
         &format!("=== {}", expected_str),
       )
+  }
+}
+
+// Helper function to get the token type name (equivalent to token[0] in JS)
+fn token_type_name(token: &Token) -> &'static str {
+  match token {
+    Token::Ident(_) => "Ident",
+    Token::Function(_) => "Function",
+    Token::AtKeyword(_) => "AtKeyword",
+    Token::Hash(_) => "Hash",
+    Token::IDHash(_) => "IDHash",
+    Token::QuotedString(_) => "QuotedString",
+    Token::UnquotedUrl(_) => "UnquotedUrl",
+    Token::Delim(_) => "Delim",
+    Token::Number { .. } => "Number",
+    Token::Percentage { .. } => "Percentage",
+    Token::Dimension { .. } => "Dimension",
+    Token::WhiteSpace(_) => "WhiteSpace",
+    Token::Comment(_) => "Comment",
+    Token::Colon => "Colon",
+    Token::Semicolon => "Semicolon",
+    Token::Comma => "Comma",
+    Token::IncludeMatch => "IncludeMatch",
+    Token::DashMatch => "DashMatch",
+    Token::PrefixMatch => "PrefixMatch",
+    Token::SuffixMatch => "SuffixMatch",
+    Token::SubstringMatch => "SubstringMatch",
+    Token::CDO => "CDO",
+    Token::CDC => "CDC",
+    Token::ParenthesisBlock => "ParenthesisBlock",
+    Token::SquareBracketBlock => "SquareBracketBlock",
+    Token::CurlyBracketBlock => "CurlyBracketBlock",
+    Token::BadUrl(cow_rc_str) => "BadUrl",
+    Token::BadString(cow_rc_str) => "BadString",
+    Token::CloseParenthesis => "CloseParenthesis",
+    Token::CloseSquareBracket => "CloseSquareBracket",
+    Token::CloseCurlyBracket => "CloseCurlyBracket",
   }
 }

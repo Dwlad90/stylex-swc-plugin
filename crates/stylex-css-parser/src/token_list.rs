@@ -85,6 +85,7 @@ use crate::resolvers::{parse_css, parse_tokens_from_parser};
 //   }
 // }
 
+#[derive(Debug)]
 pub struct TokenList<'a> {
   pub(crate) tokens: Vec<Token<'a>>,
   pub(crate) consumed_tokens: Vec<Token<'a>>,

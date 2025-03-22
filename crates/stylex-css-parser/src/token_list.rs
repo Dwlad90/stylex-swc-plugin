@@ -1,3 +1,4 @@
+use anyhow::{bail, Error};
 use cssparser::{ParseError, Parser, ParserInput, Token};
 
 use crate::resolvers::parse_css;
@@ -83,18 +84,18 @@ impl<'i> CssTokenIterator<'i> {
 //   }
 // }
 
-pub struct TokenList {
-  token_iterator: Box<dyn TokenIterator>,
-  consumed_tokens: Vec<Token<'static>>,
-  current_index: usize,
+pub struct TokenList<'a> {
+  token_iterator: &'a mut Parser<'a, 'a>,
+  consumed_tokens: Vec<Token<'a>>,
+  pub(crate) current_index: usize,
   is_at_end: bool,
 }
 
-impl TokenList {
+impl<'a> TokenList<'a> {
   /// Create a new TokenList from a CSS string or an existing TokenIterator
-  pub fn new<T: TokenIterator + 'static>(input: T) -> Self {
+  pub fn new(parser: &'a mut Parser<'a, 'a>) -> Self {
     Self {
-      token_iterator: Box::new(input),
+      token_iterator: parser,
       consumed_tokens: Vec::new(),
       current_index: 0,
       is_at_end: false,
@@ -107,59 +108,70 @@ impl TokenList {
   // }
 
   /// Consume the next token in the stream
-  pub fn consume_next_token(&mut self) -> Option<Token<'static>> {
+  pub fn consume_next_token(&mut self) -> Result<Option<Token<'a>>, Error> {
     if self.current_index < self.consumed_tokens.len() {
       // Return already consumed token
       let token = self.consumed_tokens[self.current_index].clone();
       self.current_index += 1;
-      return Some(token);
+      return Ok(Some(token));
     }
 
     if self.is_at_end {
-      return None;
+      return Ok(None);
     }
 
-    if self.token_iterator.end_of_file() {
+    if self.token_iterator.is_exhausted() {
       self.is_at_end = true;
-      return None;
+      return Ok(None);
     }
 
-    let token = self.token_iterator.next_token();
-    if let Some(ref token) = token {
-      self.consumed_tokens.push(token.clone());
-      self.current_index += 1;
+    match self.token_iterator.next() {
+      Ok(token) => {
+        let token_cloned = token.clone();
+        self.consumed_tokens.push(token_cloned.clone());
+        self.current_index += 1;
 
-      if self.token_iterator.end_of_file() {
-        self.is_at_end = true;
+        if self.token_iterator.is_exhausted() {
+          self.is_at_end = true;
+        }
+
+        Ok(Some(token_cloned))
       }
-    } else {
-      self.is_at_end = true;
+      Err(error) => {
+        self.is_at_end = true;
+        bail!(
+          "Parser error. Kind: {}, location column: {}, location line: {}",
+          error.kind,
+          error.location.column,
+          error.location.line
+        )
+      }
     }
-
-    token
   }
 
   /// Look at the next token without consuming it
-  pub fn peek(&mut self) -> Option<Token<'static>> {
+  pub fn peek(&mut self) -> Result<Option<Token<'a>>, Error> {
     if self.current_index < self.consumed_tokens.len() {
-      return Some(self.consumed_tokens[self.current_index].clone());
+      return Ok(Some(self.consumed_tokens[self.current_index].clone()));
     }
 
-    if self.is_at_end || self.token_iterator.end_of_file() {
-      return None;
+    if self.is_at_end || self.token_iterator.is_exhausted() {
+      return Ok(None);
     }
 
-    let token = self.token_iterator.next_token();
-    if let Some(ref token) = token {
-      self.consumed_tokens.push(token.clone());
-      return Some(token.clone());
+    let token = self.token_iterator.next();
+    if let Ok(ref token) = token {
+      let token_cloned = token.clone();
+      self.consumed_tokens.push(token_cloned.clone());
+
+      return Ok(Some(token_cloned.clone()));
     }
 
-    None
+    Ok(None)
   }
 
   /// Get the first token (same as peek)
-  pub fn first(&mut self) -> Option<Token<'static>> {
+  pub fn first(&mut self) -> Result<Option<Token<'a>>, Error> {
     self.peek()
   }
 
@@ -173,14 +185,14 @@ impl TokenList {
 
     // Try to consume tokens until we reach the target index
     while !self.is_at_end
-      && !self.token_iterator.end_of_file()
+      && !self.token_iterator.is_exhausted()
       && self.consumed_tokens.len() <= new_index
     {
-      if let Some(token) = self.token_iterator.next_token() {
-        self.consumed_tokens.push(token);
+      if let Ok(token) = self.token_iterator.next() {
+        self.consumed_tokens.push(token.clone());
       }
 
-      if self.token_iterator.end_of_file() {
+      if self.token_iterator.is_exhausted() {
         self.is_at_end = true;
       }
     }
@@ -195,13 +207,13 @@ impl TokenList {
   }
 
   /// Check if the token list is empty
-  pub fn is_empty(&self) -> bool {
+  pub fn is_empty(&mut self) -> bool {
     self.is_at_end
-      || (self.current_index >= self.consumed_tokens.len() && self.token_iterator.end_of_file())
+      || (self.current_index >= self.consumed_tokens.len() && self.token_iterator.is_exhausted())
   }
 
   /// Get all tokens, consuming the entire stream
-  pub fn get_all_tokens(&mut self) -> &[Token<'static>] {
+  pub fn get_all_tokens(&mut self) -> &[Token<'a>] {
     // Consume all remaining tokens
     while !self.is_empty() {
       self.consume_next_token();
@@ -210,7 +222,7 @@ impl TokenList {
   }
 
   /// Get a slice of tokens within the specified range
-  pub fn slice(&mut self, start: usize, end: Option<usize>) -> Vec<Token<'static>> {
+  pub fn slice(&mut self, start: usize, end: Option<usize>) -> Vec<Option<Token<'a>>> {
     let end = end.unwrap_or(self.current_index);
     let initial_index = self.current_index;
 
@@ -223,7 +235,7 @@ impl TokenList {
 
     // Consume tokens until we have enough to satisfy the slice request
     while self.current_index < end {
-      if let Some(token) = self.consume_next_token() {
+      if let Ok(token) = self.consume_next_token() {
         result.push(token);
       } else {
         break;

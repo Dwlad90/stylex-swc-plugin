@@ -2,142 +2,142 @@ use cssparser::{ParseError, Parser, ParserInput, Token};
 use std::fmt;
 use std::rc::Rc;
 
-/// Represents a list of CSS tokens with functionality to consume, peek, and manipulate tokens.
-pub struct TokenList<'i> {
-  parser: Parser<'i, 'i>,
-  consumed_tokens: Vec<Token<'i>>,
-  current_index: usize,
-}
+// /// Represents a list of CSS tokens with functionality to consume, peek, and manipulate tokens.
+// pub struct TokenList<'i> {
+//   parser: Parser<'i, 'i>,
+//   consumed_tokens: Vec<Token<'i>>,
+//   current_index: usize,
+// }
 
-impl<'i> TokenList<'i> {
-  /// Creates a new TokenList from a CSS string.
-  pub fn new(parser: Parser<'i, 'i>) -> Self {
-    // let mut input_buffer = ParserInput::new(input);
-    // let parser = Parser::new(&mut input_buffer);
+// impl<'i> TokenList<'i> {
+//   /// Creates a new TokenList from a CSS string.
+//   pub fn new(parser: Parser<'i, 'i>) -> Self {
+//     // let mut input_buffer = ParserInput::new(input);
+//     // let parser = Parser::new(&mut input_buffer);
 
-    TokenList {
-      parser,
-      consumed_tokens: Vec::new(),
-      current_index: 0,
-    }
-  }
+//     TokenList {
+//       parser,
+//       consumed_tokens: Vec::new(),
+//       current_index: 0,
+//     }
+//   }
 
-  /// Consumes and returns the next token in the list.
-  pub fn consume_next_token(&mut self) -> Option<Token<'i>> {
-    if self.current_index < self.consumed_tokens.len() {
-      // Return already consumed token
-      let token = self.consumed_tokens[self.current_index].clone();
-      self.current_index += 1;
-      return Some(token);
-    }
+//   /// Consumes and returns the next token in the list.
+//   pub fn consume_next_token(&mut self) -> Option<Token<'i>> {
+//     if self.current_index < self.consumed_tokens.len() {
+//       // Return already consumed token
+//       let token = self.consumed_tokens[self.current_index].clone();
+//       self.current_index += 1;
+//       return Some(token);
+//     }
 
-    if self.parser.is_exhausted() {
-      return None;
-    }
+//     if self.parser.is_exhausted() {
+//       return None;
+//     }
 
-    match self.parser.next() {
-      Ok(token) => {
-        self.consumed_tokens.push(token.clone());
-        self.current_index += 1;
-        Some(token.clone())
-      }
-      Err(_) => None,
-    }
-  }
+//     match self.parser.next() {
+//       Ok(token) => {
+//         self.consumed_tokens.push(token.clone());
+//         self.current_index += 1;
+//         Some(token.clone())
+//       }
+//       Err(_) => None,
+//     }
+//   }
 
-  /// Returns the next token without consuming it.
-  pub fn peek(&mut self) -> Option<Token<'i>> {
-    if self.current_index < self.consumed_tokens.len() {
-      return Some(self.consumed_tokens[self.current_index].clone());
-    }
+//   /// Returns the next token without consuming it.
+//   pub fn peek(&mut self) -> Option<Token<'i>> {
+//     if self.current_index < self.consumed_tokens.len() {
+//       return Some(self.consumed_tokens[self.current_index].clone());
+//     }
 
-    if self.parser.is_exhausted() {
-      return None;
-    }
+//     if self.parser.is_exhausted() {
+//       return None;
+//     }
 
-    match self.parser.next() {
-      Ok(token) => {
-        self.consumed_tokens.push(token.clone());
-        Some(self.consumed_tokens.last().unwrap().clone())
-      }
-      Err(_) => None,
-    }
-  }
+//     match self.parser.next() {
+//       Ok(token) => {
+//         self.consumed_tokens.push(token.clone());
+//         Some(self.consumed_tokens.last().unwrap().clone())
+//       }
+//       Err(_) => None,
+//     }
+//   }
 
-  /// Returns the first token in the list.
-  pub fn first(&mut self) -> Option<Token<'i>> {
-    self.peek()
-  }
+//   /// Returns the first token in the list.
+//   pub fn first(&mut self) -> Option<Token<'i>> {
+//     self.peek()
+//   }
 
-  /// Sets the current index to the specified position.
-  pub fn set_current_index(&mut self, new_index: usize) {
-    if new_index < self.consumed_tokens.len() {
-      // If we already have these tokens consumed, just update the index
-      self.current_index = new_index;
-      return;
-    }
+//   /// Sets the current index to the specified position.
+//   pub fn set_current_index(&mut self, new_index: usize) {
+//     if new_index < self.consumed_tokens.len() {
+//       // If we already have these tokens consumed, just update the index
+//       self.current_index = new_index;
+//       return;
+//     }
 
-    // Try to consume tokens until we reach the target index
-    while !self.parser.is_exhausted() && self.consumed_tokens.len() <= new_index {
-      match self.parser.next() {
-        Ok(token) => {
-          self.consumed_tokens.push(token.clone());
-        }
-        Err(_) => break,
-      }
-    }
+//     // Try to consume tokens until we reach the target index
+//     while !self.parser.is_exhausted() && self.consumed_tokens.len() <= new_index {
+//       match self.parser.next() {
+//         Ok(token) => {
+//           self.consumed_tokens.push(token.clone());
+//         }
+//         Err(_) => break,
+//       }
+//     }
 
-    // Clamp to the end if we couldn't reach the target
-    self.current_index = std::cmp::min(new_index, self.consumed_tokens.len());
-  }
+//     // Clamp to the end if we couldn't reach the target
+//     self.current_index = std::cmp::min(new_index, self.consumed_tokens.len());
+//   }
 
-  /// Rewinds the current index by the specified number of positions.
-  pub fn rewind(&mut self, positions: usize) {
-    self.current_index = self.current_index.saturating_sub(positions);
-  }
+//   /// Rewinds the current index by the specified number of positions.
+//   pub fn rewind(&mut self, positions: usize) {
+//     self.current_index = self.current_index.saturating_sub(positions);
+//   }
 
-  /// Returns true if there are no more tokens to consume.
-  pub fn is_empty(&mut self) -> bool {
-    self.parser.is_exhausted() && self.current_index >= self.consumed_tokens.len()
-  }
+//   /// Returns true if there are no more tokens to consume.
+//   pub fn is_empty(&mut self) -> bool {
+//     self.parser.is_exhausted() && self.current_index >= self.consumed_tokens.len()
+//   }
 
-  /// Returns all tokens in the list.
-  pub fn get_all_tokens(&mut self) -> Vec<Token<'i>> {
-    // Consume all remaining tokens
-    while !self.is_empty() {
-      if let Some(_) = self.consume_next_token() {
-        // Continue consuming tokens
-      } else {
-        break;
-      }
-    }
-    self.consumed_tokens.clone()
-  }
+//   /// Returns all tokens in the list.
+//   pub fn get_all_tokens(&mut self) -> Vec<Token<'i>> {
+//     // Consume all remaining tokens
+//     while !self.is_empty() {
+//       if let Some(_) = self.consume_next_token() {
+//         // Continue consuming tokens
+//       } else {
+//         break;
+//       }
+//     }
+//     self.consumed_tokens.clone()
+//   }
 
-  /// Returns a slice of tokens from start to end.
-  pub fn slice(&mut self, start: usize, end: Option<usize>) -> Vec<Token<'i>> {
-    let end = end.unwrap_or(self.current_index);
-    let initial_index = self.current_index;
+//   /// Returns a slice of tokens from start to end.
+//   pub fn slice(&mut self, start: usize, end: Option<usize>) -> Vec<Token<'i>> {
+//     let end = end.unwrap_or(self.current_index);
+//     let initial_index = self.current_index;
 
-    if start >= end {
-      return Vec::new();
-    }
+//     if start >= end {
+//       return Vec::new();
+//     }
 
-    self.set_current_index(start);
-    let mut result = Vec::new();
+//     self.set_current_index(start);
+//     let mut result = Vec::new();
 
-    while self.current_index < end {
-      if let Some(token) = self.consume_next_token() {
-        result.push(token);
-      } else {
-        break;
-      }
-    }
+//     while self.current_index < end {
+//       if let Some(token) = self.consume_next_token() {
+//         result.push(token);
+//       } else {
+//         break;
+//       }
+//     }
 
-    self.current_index = initial_index;
-    result
-  }
-}
+//     self.current_index = initial_index;
+//     result
+//   }
+// }
 
 /// Custom error type for token parsing.
 #[derive(Debug)]

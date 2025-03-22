@@ -1,0 +1,388 @@
+use cssparser::{ParseError, Parser, ParserInput, Token};
+use std::fmt;
+use std::rc::Rc;
+
+/// Represents a list of CSS tokens with functionality to consume, peek, and manipulate tokens.
+pub struct TokenList<'i> {
+  parser: Parser<'i, 'i>,
+  consumed_tokens: Vec<Token<'i>>,
+  current_index: usize,
+}
+
+impl<'i> TokenList<'i> {
+  /// Creates a new TokenList from a CSS string.
+  pub fn new(parser: Parser<'i, 'i>) -> Self {
+    // let mut input_buffer = ParserInput::new(input);
+    // let parser = Parser::new(&mut input_buffer);
+
+    TokenList {
+      parser,
+      consumed_tokens: Vec::new(),
+      current_index: 0,
+    }
+  }
+
+  /// Consumes and returns the next token in the list.
+  pub fn consume_next_token(&mut self) -> Option<Token<'i>> {
+    if self.current_index < self.consumed_tokens.len() {
+      // Return already consumed token
+      let token = self.consumed_tokens[self.current_index].clone();
+      self.current_index += 1;
+      return Some(token);
+    }
+
+    if self.parser.is_exhausted() {
+      return None;
+    }
+
+    match self.parser.next() {
+      Ok(token) => {
+        self.consumed_tokens.push(token.clone());
+        self.current_index += 1;
+        Some(token.clone())
+      }
+      Err(_) => None,
+    }
+  }
+
+  /// Returns the next token without consuming it.
+  pub fn peek(&mut self) -> Option<Token<'i>> {
+    if self.current_index < self.consumed_tokens.len() {
+      return Some(self.consumed_tokens[self.current_index].clone());
+    }
+
+    if self.parser.is_exhausted() {
+      return None;
+    }
+
+    match self.parser.next() {
+      Ok(token) => {
+        self.consumed_tokens.push(token.clone());
+        Some(self.consumed_tokens.last().unwrap().clone())
+      }
+      Err(_) => None,
+    }
+  }
+
+  /// Returns the first token in the list.
+  pub fn first(&mut self) -> Option<Token<'i>> {
+    self.peek()
+  }
+
+  /// Sets the current index to the specified position.
+  pub fn set_current_index(&mut self, new_index: usize) {
+    if new_index < self.consumed_tokens.len() {
+      // If we already have these tokens consumed, just update the index
+      self.current_index = new_index;
+      return;
+    }
+
+    // Try to consume tokens until we reach the target index
+    while !self.parser.is_exhausted() && self.consumed_tokens.len() <= new_index {
+      match self.parser.next() {
+        Ok(token) => {
+          self.consumed_tokens.push(token.clone());
+        }
+        Err(_) => break,
+      }
+    }
+
+    // Clamp to the end if we couldn't reach the target
+    self.current_index = std::cmp::min(new_index, self.consumed_tokens.len());
+  }
+
+  /// Rewinds the current index by the specified number of positions.
+  pub fn rewind(&mut self, positions: usize) {
+    self.current_index = self.current_index.saturating_sub(positions);
+  }
+
+  /// Returns true if there are no more tokens to consume.
+  pub fn is_empty(&mut self) -> bool {
+    self.parser.is_exhausted() && self.current_index >= self.consumed_tokens.len()
+  }
+
+  /// Returns all tokens in the list.
+  pub fn get_all_tokens(&mut self) -> Vec<Token<'i>> {
+    // Consume all remaining tokens
+    while !self.is_empty() {
+      if let Some(_) = self.consume_next_token() {
+        // Continue consuming tokens
+      } else {
+        break;
+      }
+    }
+    self.consumed_tokens.clone()
+  }
+
+  /// Returns a slice of tokens from start to end.
+  pub fn slice(&mut self, start: usize, end: Option<usize>) -> Vec<Token<'i>> {
+    let end = end.unwrap_or(self.current_index);
+    let initial_index = self.current_index;
+
+    if start >= end {
+      return Vec::new();
+    }
+
+    self.set_current_index(start);
+    let mut result = Vec::new();
+
+    while self.current_index < end {
+      if let Some(token) = self.consume_next_token() {
+        result.push(token);
+      } else {
+        break;
+      }
+    }
+
+    self.current_index = initial_index;
+    result
+  }
+}
+
+/// Custom error type for token parsing.
+#[derive(Debug)]
+pub struct TokenParseError {
+  message: String,
+}
+
+impl TokenParseError {
+  pub fn new<S: Into<String>>(message: S) -> Self {
+    TokenParseError {
+      message: message.into(),
+    }
+  }
+}
+
+impl fmt::Display for TokenParseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.message)
+  }
+}
+
+impl std::error::Error for TokenParseError {}
+/// A parser for CSS tokens that can be combined with other parsers.
+pub struct TokenParser<T: 'static> {
+  parse_fn: Rc<dyn Fn(&mut TokenList) -> Result<T, TokenParseError>>,
+  label: String,
+}
+
+impl<T: 'static> TokenParser<T> {
+  pub fn new<F>(parse_fn: F, label: &str) -> Self
+  where
+    F: Fn(&mut TokenList) -> Result<T, TokenParseError> + 'static,
+  {
+    TokenParser {
+      parse_fn: Rc::new(parse_fn),
+      label: label.to_string(),
+    }
+  }
+
+  /// Parses the given CSS string.
+  pub fn parse<'a>(&self, parser: Parser<'a, 'a>) -> Result<T, TokenParseError> {
+    let mut tokens = TokenList::new(parser);
+    (self.parse_fn)(&mut tokens)
+  }
+
+  /// Parses the given CSS string and ensures all input is consumed.
+  pub fn parse_to_end<'a>(&self, parser: Parser<'a, 'a>) -> Result<T, TokenParseError> {
+    let mut tokens = TokenList::new(parser);
+    let initial_index = tokens.current_index;
+
+    let result = (self.parse_fn)(&mut tokens);
+
+    if let Err(e) = &result {
+      let consumed_tokens = tokens.slice(initial_index, None);
+      tokens.set_current_index(initial_index);
+      return Err(TokenParseError::new(format!(
+        "Expected {} but got {}\nConsumed tokens: {:?}",
+        self.label, e, consumed_tokens
+      )));
+    }
+
+    if let Some(token) = tokens.peek() {
+      let consumed_tokens = tokens.slice(initial_index, None);
+      return Err(TokenParseError::new(format!(
+        "Expected end of input, got {:?} instead\nConsumed tokens: {:?}",
+        token, consumed_tokens
+      )));
+    }
+
+    result
+  }
+
+  /// Maps the output of this parser with the given function.
+  pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<U>
+  where
+    F: Fn(T) -> U + 'static,
+    U: 'static,
+  {
+    let parse_fn = self.parse_fn.clone();
+    let parser_label = self.label.clone();
+
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+        match (parse_fn)(tokens) {
+          Ok(value) => Ok(f(value)),
+          Err(e) => {
+            tokens.set_current_index(current_index);
+            Err(e)
+          }
+        }
+      },
+      &format!("{}.map({})", parser_label, label.unwrap_or("")),
+    )
+  }
+
+  /// Returns a parser that tries this parser and then parser2 if this fails.
+  pub fn or<U>(&self, parser2: &TokenParser<U>) -> TokenParser<Result<T, U>>
+  where
+    U: 'static,
+    T: 'static,
+  {
+    let parse_fn1 = self.parse_fn.clone();
+    let parse_fn2 = parser2.parse_fn.clone();
+    let label1 = self.label.clone();
+    let label2 = parser2.label.clone();
+
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+
+        match (parse_fn1)(tokens) {
+          Ok(value) => Ok(Ok(value)),
+          Err(_) => {
+            tokens.set_current_index(current_index);
+
+            match (parse_fn2)(tokens) {
+              Ok(value) => Ok(Err(value)),
+              Err(e) => {
+                tokens.set_current_index(current_index);
+                Err(e)
+              }
+            }
+          }
+        }
+      },
+      &if label2 == "optional" {
+        format!("Optional<{}>", label1)
+      } else {
+        format!("OneOf<{}, {}>", label1, label2)
+      },
+    )
+  }
+
+  /// Returns a parser that tries this parser and then applies the given function to create a new parser.
+  pub fn flat_map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<U>
+  where
+    F: Fn(T) -> TokenParser<U> + 'static,
+    U: 'static,
+  {
+    let parse_fn = self.parse_fn.clone();
+    let parser_label = self.label.clone();
+
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+        match (parse_fn)(tokens) {
+          Ok(value) => {
+            let next_parser = f(value);
+            let result = (next_parser.parse_fn)(tokens);
+            if result.is_err() {
+              tokens.set_current_index(current_index);
+            }
+            result
+          }
+          Err(e) => {
+            tokens.set_current_index(current_index);
+            Err(e)
+          }
+        }
+      },
+      &format!("{}.flatMap({})", parser_label, label.unwrap_or("")),
+    )
+  }
+
+  /// Create a token parser that always succeeds with the given value.
+  pub fn always(value: T) -> TokenParser<T>
+  where
+    T: Clone + 'static,
+  {
+    TokenParser::new(move |_| Ok(value.clone()), "Always")
+  }
+
+  /// Create a token parser that always fails.
+  pub fn never() -> TokenParser<T> {
+    TokenParser::new(|_| Err(TokenParseError::new("Never")), "Never")
+  }
+
+  /// Create a token parser that parses a specific token type.
+  pub fn token(expected_type: &str) -> TokenParser<Token<'static>> {
+    // Clone expected_type to own it
+    let expected_type_owned = expected_type.to_string();
+
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+        match tokens.consume_next_token() {
+          Some(token) => {
+            // To address the lifetime issue, we'd need to convert token to a 'static lifetime
+            // Since we can't easily do that with cssparser::Token, we should consider a different approach
+            // For now, this will still fail at runtime with an error message:
+            Err(TokenParseError::new(
+              "Token lifetime cannot be converted to 'static",
+            ))
+          }
+          None => {
+            tokens.set_current_index(current_index);
+            Err(TokenParseError::new(format!(
+              "Expected token type {}",
+              expected_type_owned.clone()
+            )))
+          }
+        }
+      },
+      &expected_type_owned.clone(),
+    )
+  }
+}
+
+/// Parse CSS using the TokenList and TokenParser abstractions.
+// pub fn parse_css<T>(input: &str, parser: &TokenParser<T>) -> Result<T, TokenParseError> {
+//   parser.parse_to_end(parser.clone())
+// }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+    fn test_token_list() {
+      let input_str = "div { color: red; }";
+      let mut input_buffer = ParserInput::new(input_str);
+      let parser = Parser::new(&mut input_buffer);
+
+      // Create a copy of parser to avoid lifetime issues
+      let mut list = {
+        let mut buffer_copy = ParserInput::new(input_str);
+        let parser_copy = Parser::new(&mut buffer_copy);
+        TokenList::new(parser_copy)
+      };
+      assert!(list.consume_next_token().is_some());
+      assert!(list.peek().is_some());
+    }
+
+  #[test]
+  fn test_basic_parser() {
+    let parser = TokenParser::new(
+      |tokens| match tokens.consume_next_token() {
+        Some(_) => Ok("Found a token"),
+        None => Err(TokenParseError::new("No token found")),
+      },
+      "BasicParser",
+    );
+
+    assert!(parser.parse("div").is_ok());
+    assert!(parser.parse("").is_err());
+  }
+}

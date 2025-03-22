@@ -1,5 +1,7 @@
-pub mod resolvers;
 pub mod parser;
+pub mod resolvers;
+pub mod token_list;
+pub mod token_parser;
 
 #[cfg(test)]
 mod tests {

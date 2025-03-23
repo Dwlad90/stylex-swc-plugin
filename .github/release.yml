@@ -69,6 +69,11 @@ changelog:
         - 'deps-updates'
         - 'deps-update'
         - 'deps-updates'
+    - title: Development Dependency Updates 🛠
+      labels:
+        - 'dev-deps'
+        - 'dev-dependencies'
+        - 'dev-dependency'
     - title: Chores 🧹
       labels:
         - 'chore'

@@ -6,7 +6,7 @@ mod one_of {
 
   #[test]
   fn parse_the_first_parser() {
-    // let parser = TokenParser::one_of(vec![Parser::string("foo"), Parser::string("bar")]);
+    let parser = TokenParser::one_of(vec![Parser::string("foo"), Parser::string("bar")]);
 
     // assert_eq!(parser.parse("foo").unwrap(), String::from("foo"));
     // assert_eq!(parser.parse("bar").unwrap(), String::from("bar"));

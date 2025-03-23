@@ -26,6 +26,7 @@ impl fmt::Display for TokenParseError {
 
 impl std::error::Error for TokenParseError {}
 /// A parser for CSS tokens that can be combined with other parsers.
+#[derive(Clone)]
 pub struct TokenParser<T: 'static> {
   parse_fn: Rc<dyn Fn(&mut TokenList) -> Result<T, TokenParseError>>,
   label: String,
@@ -100,6 +101,36 @@ impl<T: 'static> TokenParser<T> {
         )))
       }
     }
+  }
+
+  /// Creates a parser that tries multiple parsers in sequence and returns the first success
+  pub fn one_of(parsers: Vec<TokenParser<T>>) -> TokenParser<T> {
+    TokenParser::new(
+      move |tokens| {
+        let mut errors = Vec::new();
+        let index = tokens.current_index;
+
+        for parser in &parsers {
+          match (parser.parse_fn)(tokens) {
+            Ok(output) => return Ok(output),
+            Err(e) => {
+              tokens.set_current_index(index);
+              errors.push(e);
+            }
+          }
+        }
+
+        Err(TokenParseError::new(format!(
+          "No parser matched\n{}",
+          errors
+            .iter()
+            .map(|err| format!("- {}", err))
+            .collect::<Vec<_>>()
+            .join("\n")
+        )))
+      },
+      "oneOf",
+    )
   }
 
   /// Maps the output of this parser with the given function.

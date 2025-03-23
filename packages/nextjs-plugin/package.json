@@ -40,14 +40,14 @@
     "@stylexswc/typescript-config": "0.7.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^22.13.10",
-    "next": "15.2.3",
+    "next": "^15.2.3",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "webpack": "^5.98.0"
   },
   "peerDependencies": {
-    "next": "15.2.3"
+    "next": ">=15.0.0"
   },
   "keywords": [
     "next",

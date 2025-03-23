@@ -188,7 +188,7 @@ importers:
         specifier: 0.7.0
         version: link:../../packages/nextjs-plugin
       next:
-        specifier: 15.2.3
+        specifier: ^15.2.3
         version: 15.2.3(@babel/core@7.26.10)(@playwright/test@1.51.1)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react:
         specifier: ^19.0.0
@@ -279,7 +279,7 @@ importers:
         specifier: 0.7.0
         version: link:../../packages/postcss-plugin
       next:
-        specifier: 15.2.3
+        specifier: ^15.2.3
         version: 15.2.3(@babel/core@7.26.10)(@playwright/test@1.51.1)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react:
         specifier: ^19.0.0
@@ -931,7 +931,7 @@ importers:
         specifier: ^22.13.10
         version: 22.13.10
       next:
-        specifier: 15.2.3
+        specifier: ^15.2.3
         version: 15.2.3(@babel/core@7.26.10)(@playwright/test@1.51.1)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       postcss:
         specifier: ^8.5.3
@@ -1037,7 +1037,7 @@ importers:
   packages/unplugin:
     dependencies:
       '@farmfe/core':
-        specifier: ^1.7.1
+        specifier: '>=1.0.0'
         version: 1.7.1
       '@stylexjs/babel-plugin':
         specifier: ^0.11.1
@@ -1046,7 +1046,7 @@ importers:
         specifier: 0.7.0
         version: link:../../crates/stylex-rs-compiler
       esbuild:
-        specifier: ^0.25.1
+        specifier: ^0.25.0
         version: 0.25.1
       unplugin:
         specifier: ^2.2.0

@@ -2,7 +2,6 @@
   "dependencyTypes": [
     "dev",
     "prod",
-    "peer",
     "resolutions",
     "overrides",
     "pnpmOverrides"

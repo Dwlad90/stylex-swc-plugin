@@ -8,7 +8,7 @@ updates:
       timezone: Etc/Greenwich
     commit-message:
       prefix: "deps"
-      prefix-development: "dev-deps"
+      prefix-development: "deps"
       include: "scope"
     open-pull-requests-limit: 20
     groups:

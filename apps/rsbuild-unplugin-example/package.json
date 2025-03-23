@@ -25,7 +25,7 @@
     "@stylexswc/playwright": "0.7.1-rc.1",
     "@rsbuild/core": "^1.2.19",
     "@rsbuild/plugin-react": "^1.1.1",
-    "@types/react": "^19.0.10",
+    "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4"
   }
 }

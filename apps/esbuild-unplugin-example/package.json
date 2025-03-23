@@ -23,7 +23,7 @@
     "@playwright/test": "^1.51.1",
     "@stylexswc/playwright": "0.7.1-rc.1",
     "serve": "^14.2.4",
-    "@types/react": "^19.0.10",
+    "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
     "esbuild": "^0.25.1"
   }

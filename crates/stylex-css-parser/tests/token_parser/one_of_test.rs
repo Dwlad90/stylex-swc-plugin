@@ -1,21 +1,44 @@
 #[cfg(test)]
 mod one_of {
 
-  use cssparser::{Parser, ParserInput};
-  use stylex_css_parser::{parser, token_parser::TokenParser};
+  use cssparser::Token;
+  use stylex_css_parser::{
+    parser::Parser,
+    token_parser::TokenParser,
+    tokens::{self, TokenType},
+  };
 
   #[test]
   fn parse_the_first_parser() {
-    let parser = TokenParser::one_of(vec![Parser::string("foo"), Parser::string("bar")]);
+    let parser = TokenParser::one_of(vec![
+      TokenParser::<Token<'static>>::get_token_parser(TokenType::String),
+      TokenParser::<Token<'static>>::get_token_parser(TokenType::Number),
+    ]);
 
     // assert_eq!(parser.parse("foo").unwrap(), String::from("foo"));
     // assert_eq!(parser.parse("bar").unwrap(), String::from("bar"));
 
-    let parser = TokenParser::<String>::string("foo");
+    // let parser = TokenParser::<String>::string("foo");
 
-    let result = parser.parse_to_end("foo").unwrap();
+    let aaa = parser.parse_to_end("foo").unwrap();
+    dbg!(&aaa);
 
-    assert_eq!(result, String::from("foo"));
+    // Compare with a Token::Ident instead of a String
+    // assert_eq!(aaa, "foo".to_string());
+
+    assert_eq!(
+      parser.parse_to_end("foo").unwrap(),
+      Token::Ident("foo".into())
+    );
+
+    assert_eq!(
+      parser.parse_to_end("123").unwrap(),
+      Token::Number {
+        value: 123.0,
+        has_sign: false,
+        int_value: Some(123)
+      }
+    );
   }
 
   // #[test]

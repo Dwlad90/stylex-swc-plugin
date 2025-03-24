@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::token_list::TokenList;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TokenParseError {
   message: String,
 }
@@ -149,7 +149,7 @@ impl<'a, T: 'a> TokenParser<'a, T> {
           Ok(value) => Ok(f(value)),
           Err(e) => {
             tokens.set_current_index(current_index);
-            Err(e)
+            Err(e.clone())
           }
         }
       },
@@ -241,7 +241,7 @@ impl<'a, T: 'a> TokenParser<'a, T> {
     TokenParser::new(|_| Err(TokenParseError::new("Never")), "Never")
   }
 
-  pub fn where_fn<F>(&'a self, predicate: F, description: &str) -> TokenParser<T>
+  pub fn where_fn<F>(&self, predicate: F, description: &str) -> TokenParser<'a, T>
   where
     F: Fn(&T) -> bool + 'a,
     T: Clone,
@@ -254,8 +254,9 @@ impl<'a, T: 'a> TokenParser<'a, T> {
     TokenParser::new(
       move |tokens| {
         let current_index = tokens.current_index;
+        let result = (parse_fn)(tokens);
 
-        match (parse_fn)(tokens) {
+        match result {
           Ok(value) => {
             if predicate(&value) {
               Ok(value)

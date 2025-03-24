@@ -74,7 +74,7 @@ thread_local! {
 }
 
 // Add tokens accessor to TokenParser
-impl<'a, T: 'static> TokenParser<'a, T> {
+impl<T: 'static> TokenParser<'_, T> {
   // Add this to your existing TokenParser implementation
   pub fn get_token_parser(token_type: TokenType) -> TokenParser<'static, Token<'static>> {
     TOKEN_PARSERS.with(|parsers| {

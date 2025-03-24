@@ -10,9 +10,24 @@ mod one_of {
 
   #[test]
   fn parse_the_first_parser() {
+    let a = TokenParser::<Token<'static>>::get_token_parser(TokenType::String);
+
+    // a.
+    let string_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::String);
+    let number_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Number);
+
     let parser = TokenParser::one_of(vec![
-      TokenParser::<Token<'static>>::get_token_parser(TokenType::String),
-      TokenParser::<Token<'static>>::get_token_parser(TokenType::Number),
+      string_parser.where_fn(|t| *t == Token::Ident("foo".into()), "Description"),
+      number_parser.where_fn(
+        |t| {
+          *t == Token::Number {
+            value: 123.0,
+            has_sign: false,
+            int_value: Some(123),
+          }
+        },
+        "Description",
+      ),
     ]);
 
     // assert_eq!(parser.parse("foo").unwrap(), String::from("foo"));

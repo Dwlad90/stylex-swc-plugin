@@ -1,9 +1,8 @@
 use cssparser::{ParseError, Parser, ParserInput, Token};
-use serde::de;
 use std::fmt;
 use std::rc::Rc;
 
-use crate::token_list::TokenList;
+use crate::{token_list::TokenList, tokens::TokenType};
 
 #[derive(Debug, Clone)]
 pub struct TokenParseError {
@@ -32,7 +31,7 @@ pub struct TokenParser<'a, T: 'a> {
   label: String,
 }
 
-impl<'a, T: 'a> TokenParser<'a, T> {
+impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
   pub fn new<F>(parse_fn: F, label: &str) -> Self
   where
     F: Fn(&mut TokenList<'a>) -> Result<T, TokenParseError> + 'a,
@@ -54,13 +53,17 @@ impl<'a, T: 'a> TokenParser<'a, T> {
   /// Parses the given CSS string and ensures all input is consumed.
   pub fn parse_to_end(&self, css: &'a str) -> Result<T, TokenParseError> {
     let mut tokens = TokenList::new(css);
+    dbg!(&tokens);
     let initial_index = tokens.current_index;
 
     // Run the parser (equivalent to this.run(tokens) in JS)
     let output = (self.parse_fn)(&mut tokens);
 
+    dbg!(&output);
+
     // Check for parser errors
     if let Err(e) = &output {
+      dbg!(&e);
       let consumed_tokens = tokens.slice(initial_index, None);
       tokens.set_current_index(initial_index);
 
@@ -90,7 +93,11 @@ impl<'a, T: 'a> TokenParser<'a, T> {
         // Extract token types for display, similar to token[0] in JS
         let token_types = consumed_tokens
           .iter()
-          .map(|token_opt| token_opt.as_ref().map_or("None", token_type_name))
+          .map(|token_opt| {
+            token_opt
+              .as_ref()
+              .map_or("None".to_string(), |token| token_type_name(token))
+          })
           .collect::<Vec<_>>()
           .join(", ");
 
@@ -134,10 +141,10 @@ impl<'a, T: 'a> TokenParser<'a, T> {
   }
 
   /// Maps the output of this parser with the given function.
-  pub fn map<U, F>(&'a self, f: F, label: Option<&str>) -> TokenParser<U>
+  pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
   where
     F: Fn(T) -> U + 'a,
-    U: 'a,
+    U: 'a + std::fmt::Debug,
   {
     let parse_fn = self.parse_fn.clone();
     let parser_label = self.label.clone();
@@ -160,7 +167,7 @@ impl<'a, T: 'a> TokenParser<'a, T> {
   /// Returns a parser that tries this parser and then parser2 if this fails.
   pub fn or<'b, U>(&self, parser2: &'b TokenParser<'a, U>) -> TokenParser<'a, Result<T, U>>
   where
-    U: 'a,
+    U: 'a + std::fmt::Debug,
     T: 'a,
   {
     let parse_fn1 = self.parse_fn.clone();
@@ -201,7 +208,7 @@ impl<'a, T: 'a> TokenParser<'a, T> {
   pub fn flat_map<U, F>(&'a self, f: F, label: Option<&str>) -> TokenParser<U>
   where
     F: Fn(T) -> TokenParser<'a, U> + 'a,
-    U: 'a,
+    U: 'a + std::fmt::Debug,
   {
     let parse_fn = self.parse_fn.clone();
     let parser_label = self.label.clone();
@@ -279,38 +286,49 @@ impl<'a, T: 'a> TokenParser<'a, T> {
   }
 
   /// Create a token parser that parses a specific token type.
-  pub fn token(expected_type: &'a str) -> TokenParser<'a, Token<'a>> {
-    // Clone expected_type to own it
-    let expected_type_owned = expected_type.to_string();
-    let expected_type_for_closure = expected_type_owned.clone();
+  /// Create a token parser that parses a specific token type.
+  pub fn token(token_type: &'a TokenType, label: Option<&'a str>) -> TokenParser<'a, Token<'a>> {
+    // Use the provided label or the token_type as default
+    let binding = token_type.to_string();
+    let label_str = label.unwrap_or(&binding);
+
+    // Clone token_type to own it
+    let token_type_owned = token_type.to_string();
 
     TokenParser::new(
       move |tokens| {
         let current_index = tokens.current_index;
-        match tokens.consume_next_token() {
-          Ok(token) => {
-            dbg!(&token);
-            // Convert the token to an owned version
-            match token {
-              Some(t) => {
-                // Convert the token to a string representation that's fully owned
-                // let owned_token = format!("{:?}", t);
+        let token_result = tokens.consume_next_token();
 
-                Ok(t)
-              }
-              None => Err(TokenParseError::new("No token available")),
+        match token_result {
+          Ok(Some(token)) => {
+            // Check if the token matches the expected type
+            dbg!(&token_type_name(&token), token_type.to_string());
+            if token_type_name(&token) == token_type.to_string() {
+              Ok(token)
+            } else {
+              // Reset position and return error
+              tokens.set_current_index(current_index);
+              Err(TokenParseError::new(format!(
+                "Expected token type {}, got {}",
+                token_type,
+                token_type_name(&token)
+              )))
             }
           }
-          Err(_) => {
+          Ok(None) => {
+            // No token available (end of input)
             tokens.set_current_index(current_index);
-            Err(TokenParseError::new(format!(
-              "Expected token type {}",
-              expected_type_for_closure.clone()
-            )))
+            Err(TokenParseError::new("Expected token, got end of input"))
+          }
+          Err(e) => {
+            // Error consuming token
+            tokens.set_current_index(current_index);
+            Err(TokenParseError::new(format!("Error: {}", e)))
           }
         }
       },
-      &expected_type_owned,
+      label_str,
     )
   }
 
@@ -360,38 +378,34 @@ impl<'a, T: 'a> TokenParser<'a, T> {
 }
 
 // Helper function to get the token type name (equivalent to token[0] in JS)
-fn token_type_name(token: &Token) -> &'static str {
+fn token_type_name(token: &Token) -> String {
   match token {
-    Token::Ident(_) => "Ident",
-    Token::Function(_) => "Function",
-    Token::AtKeyword(_) => "AtKeyword",
-    Token::Hash(_) => "Hash",
-    Token::IDHash(_) => "IDHash",
-    Token::QuotedString(_) => "QuotedString",
-    Token::UnquotedUrl(_) => "UnquotedUrl",
-    Token::Delim(_) => "Delim",
-    Token::Number { .. } => "Number",
-    Token::Percentage { .. } => "Percentage",
-    Token::Dimension { .. } => "Dimension",
-    Token::WhiteSpace(_) => "WhiteSpace",
-    Token::Comment(_) => "Comment",
-    Token::Colon => "Colon",
-    Token::Semicolon => "Semicolon",
-    Token::Comma => "Comma",
-    Token::IncludeMatch => "IncludeMatch",
-    Token::DashMatch => "DashMatch",
-    Token::PrefixMatch => "PrefixMatch",
-    Token::SuffixMatch => "SuffixMatch",
-    Token::SubstringMatch => "SubstringMatch",
-    Token::CDO => "CDO",
-    Token::CDC => "CDC",
-    Token::ParenthesisBlock => "ParenthesisBlock",
-    Token::SquareBracketBlock => "SquareBracketBlock",
-    Token::CurlyBracketBlock => "CurlyBracketBlock",
-    Token::BadUrl(cow_rc_str) => "BadUrl",
-    Token::BadString(cow_rc_str) => "BadString",
-    Token::CloseParenthesis => "CloseParenthesis",
-    Token::CloseSquareBracket => "CloseSquareBracket",
-    Token::CloseCurlyBracket => "CloseCurlyBracket",
+    Token::Ident(_) => TokenType::Ident.to_string(),
+    Token::Function(_) => TokenType::Function.to_string(),
+    Token::AtKeyword(_) => TokenType::AtKeyword.to_string(),
+    Token::Hash(_) => TokenType::Hash.to_string(),
+    Token::QuotedString(_) => TokenType::String.to_string(),
+    Token::UnquotedUrl(_) => TokenType::URL.to_string(),
+    Token::Delim(_) => TokenType::Delim.to_string(),
+    Token::Number { .. } => TokenType::Number.to_string(),
+    Token::Percentage { .. } => TokenType::Percentage.to_string(),
+    Token::Dimension { .. } => TokenType::Dimension.to_string(),
+    Token::WhiteSpace(_) => TokenType::Whitespace.to_string(),
+    Token::Comment(_) => TokenType::Comment.to_string(),
+    Token::Colon => TokenType::Colon.to_string(),
+    Token::Semicolon => TokenType::Semicolon.to_string(),
+    Token::Comma => TokenType::Comma.to_string(),
+    Token::CDO => TokenType::CDO.to_string(),
+    Token::CDC => TokenType::CDC.to_string(),
+    Token::ParenthesisBlock => TokenType::OpenParen.to_string(),
+    Token::SquareBracketBlock => TokenType::OpenSquare.to_string(),
+    Token::CurlyBracketBlock => TokenType::OpenCurly.to_string(),
+    Token::BadUrl(_) => TokenType::BadURL.to_string(),
+    Token::BadString(_) => TokenType::BadString.to_string(),
+    Token::CloseParenthesis => TokenType::CloseParen.to_string(),
+    Token::CloseSquareBracket => TokenType::CloseSquare.to_string(),
+    Token::CloseCurlyBracket => TokenType::CloseCurly.to_string(),
+    // Handle other tokens that don't have direct TokenType mappings
+    _ => "Unknown".to_string(),
   }
 }

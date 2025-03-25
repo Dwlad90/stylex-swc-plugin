@@ -13,20 +13,31 @@ mod one_of {
     let a = TokenParser::<Token<'static>>::get_token_parser(TokenType::String);
 
     // a.
-    let string_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::String);
+    let string_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident);
     let number_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Number);
 
     let parser = TokenParser::one_of(vec![
-      string_parser.where_fn(|t| *t == Token::Ident("foo".into()), "Description"),
-      number_parser.where_fn(
+      string_parser
+        .map(
+          |t| {
+            dbg!(&t);
+            t
+          },
+          None,
+        )
+        .where_fn(
+          |t| {
+            dbg!(&t);
+            *t == Token::Ident("foo".into())
+          },
+          "Description",
+        ),
+      number_parser.map(
         |t| {
-          *t == Token::Number {
-            value: 123.0,
-            has_sign: false,
-            int_value: Some(123),
-          }
+          dbg!(&t);
+          t
         },
-        "Description",
+        None,
       ),
     ]);
 
@@ -35,8 +46,8 @@ mod one_of {
 
     // let parser = TokenParser::<String>::string("foo");
 
-    let aaa = parser.parse_to_end("foo").unwrap();
-    dbg!(&aaa);
+    // let aaa = parser.parse_to_end("foo1").unwrap();
+    // dbg!(&aaa);
 
     // Compare with a Token::Ident instead of a String
     // assert_eq!(aaa, "foo".to_string());

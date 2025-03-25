@@ -1,6 +1,6 @@
 {
   "name": "exports-app",
-  "version": "0.7.1-rc.1",
+  "version": "0.7.1-rc.2",
   "dependencies": {
     "stylex-lib-dist-exports": "*",
     "stylex-lib-dist-exports-local": "workspace:*",

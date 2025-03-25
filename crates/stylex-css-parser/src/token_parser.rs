@@ -205,33 +205,41 @@ impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
   }
 
   /// Returns a parser that tries this parser and then applies the given function to create a new parser.
-  pub fn flat_map<U, F>(&'a self, f: F, label: Option<&str>) -> TokenParser<U>
+  pub fn flat_map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
   where
     F: Fn(T) -> TokenParser<'a, U> + 'a,
     U: 'a + std::fmt::Debug,
   {
     let parse_fn = self.parse_fn.clone();
     let parser_label = self.label.clone();
+    let label_suffix = label.unwrap_or("").to_string();
 
     TokenParser::new(
       move |tokens| {
         let current_index = tokens.current_index;
-        match (parse_fn)(tokens) {
-          Ok(value) => {
-            let next_parser = f(value);
-            let result = (next_parser.parse_fn)(tokens);
-            if result.is_err() {
-              tokens.set_current_index(current_index);
-            }
-            result
-          }
+
+        // Run the first parser
+        let output1 = match (parse_fn)(tokens) {
+          Ok(value) => value,
           Err(e) => {
             tokens.set_current_index(current_index);
-            Err(e)
+            return Err(e);
           }
-        }
+        };
+
+        // Create and run the second parser
+        let second_parser = f(output1);
+        let output2 = match (second_parser.parse_fn)(tokens) {
+          Ok(value) => value,
+          Err(e) => {
+            tokens.set_current_index(current_index);
+            return Err(e);
+          }
+        };
+
+        Ok(output2)
       },
-      &format!("{}.flatMap({})", parser_label, label.unwrap_or("")),
+      &format!("{}.flatMap({})", parser_label, label_suffix),
     )
   }
 
@@ -248,40 +256,22 @@ impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
     TokenParser::new(|_| Err(TokenParseError::new("Never")), "Never")
   }
 
-  pub fn where_fn<F>(&self, predicate: F, description: &str) -> TokenParser<'a, T>
+  pub fn where_fn<F>(&self, predicate: F, description: Option<&str>) -> TokenParser<'a, T>
   where
     F: Fn(&T) -> bool + 'a,
     T: Clone,
   {
-    let parse_fn = self.parse_fn.clone();
-    let parser_label = self.label.clone();
-    let description = description.to_string(); // Clone to own the string
-    let description_for_closure = description.clone();
+    let description_str = description.unwrap_or("").to_string();
 
-    TokenParser::new(
-      move |tokens| {
-        let current_index = tokens.current_index;
-        let result = (parse_fn)(tokens);
-
-        match result {
-          Ok(value) => {
-            if predicate(&value) {
-              Ok(value)
-            } else {
-              tokens.set_current_index(current_index);
-              Err(TokenParseError::new(format!(
-                "Predicate '{}' failed for value",
-                description_for_closure
-              )))
-            }
-          }
-          Err(e) => {
-            tokens.set_current_index(current_index);
-            Err(e)
-          }
+    self.flat_map(
+      move |output| {
+        if predicate(&output) {
+          TokenParser::always(output)
+        } else {
+          TokenParser::never()
         }
       },
-      &format!("{}.where({})", parser_label, description),
+      Some(&description_str),
     )
   }
 

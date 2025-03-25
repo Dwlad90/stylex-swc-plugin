@@ -30,7 +30,7 @@ mod one_of {
             dbg!(&t);
             *t == Token::Ident("foo".into())
           },
-          "Description",
+          None,
         ),
       number_parser.map(
         |t| {

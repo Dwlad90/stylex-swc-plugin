@@ -111,7 +111,7 @@ thread_local! {
 }
 
 // Add tokens accessor to TokenParser
-impl<T: 'static> TokenParser<'_, T> {
+impl<T: 'static + std::clone::Clone> TokenParser<'_, T> {
   // Add this to your existing TokenParser implementation
   pub fn get_token_parser(token_type: TokenType) -> TokenParser<'static, Token<'static>> {
     TOKEN_PARSERS.with(|parsers| {

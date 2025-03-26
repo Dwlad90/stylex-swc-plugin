@@ -1,33 +1,38 @@
 #[cfg(test)]
-mod one_of {
+mod sequence {
 
   use cssparser::Token;
   use stylex_css_parser::{token_parser::TokenParser, tokens::TokenType};
 
   #[test]
-  fn parse_the_first_parser() {
+  fn parse_a_sequence() {
     let string_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident);
-    let number_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Number);
+    let whitespace_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Whitespace);
+    // let number_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Number);
 
-    let parser = TokenParser::one_of(vec![
+    let parser = TokenParser::sequence(vec![
       string_parser
         .map(|t| t, None)
         .where_fn(|t| *t == Token::Ident("foo".into()), None),
-      number_parser.map(|t| t, None),
-    ]);
+      whitespace_parser.map(|t| t, None),
+      string_parser
+        .map(|t| t, None)
+        .where_fn(|t| *t == Token::Ident("baz".into()), None),
+    ])
+    .map(
+      |tokens| {
+        dbg!(&tokens);
+        let foo = tokens[0].clone().unwrap();
+        let baz = tokens[2].clone().unwrap();
 
-    assert_eq!(
-      parser.parse_to_end("foo").unwrap(),
-      Token::Ident("foo".into())
+        vec![foo, baz]
+      },
+      None,
     );
 
     assert_eq!(
-      parser.parse_to_end("123").unwrap(),
-      Token::Number {
-        value: 123.0,
-        has_sign: false,
-        int_value: Some(123)
-      }
+      parser.parse_to_end("foo baz").unwrap(),
+      vec![Token::Ident("foo".into()), Token::Ident("baz".into())]
     );
   }
 

@@ -1,10 +1,10 @@
 use cssparser::{ParseError, Parser, ParserInput, Token};
-use std::fmt;
+use std::fmt::{self, Display};
 use std::rc::Rc;
 
 use crate::{token_list::TokenList, tokens::TokenType};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TokenParseError {
   message: String,
 }
@@ -17,7 +17,7 @@ impl TokenParseError {
   }
 }
 
-impl fmt::Display for TokenParseError {
+impl Display for TokenParseError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.message)
   }
@@ -26,12 +26,12 @@ impl fmt::Display for TokenParseError {
 impl std::error::Error for TokenParseError {}
 /// A parser for CSS tokens that can be combined with other parsers.
 #[derive(Clone)]
-pub struct TokenParser<'a, T: 'a> {
+pub struct TokenParser<'a, T: 'a + Clone> {
   parse_fn: Rc<dyn Fn(&mut TokenList<'a>) -> Result<T, TokenParseError> + 'a>,
   label: String,
 }
 
-impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
+impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
   pub fn new<F>(parse_fn: F, label: &str) -> Self
   where
     F: Fn(&mut TokenList<'a>) -> Result<T, TokenParseError> + 'a,
@@ -140,11 +140,23 @@ impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
     )
   }
 
+  /// Creates a sequence of parsers that will be run in order
+  // pub fn sequence<'b, P>(parsers: Vec<TokenParser<'b, P>>) -> TokenParserSequence<'b, P>
+  // where
+  //   P: 'b + std::fmt::Debug + std::clone::Clone,
+  // {
+  //   TokenParserSequence::new(parsers)
+  // }
+
+  pub fn sequence(parsers: Vec<TokenParser<'a, T>>) -> TokenParserSequence<'a, T> {
+    TokenParserSequence::new(parsers)
+  }
+
   /// Maps the output of this parser with the given function.
   pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
   where
     F: Fn(T) -> U + 'a,
-    U: 'a + std::fmt::Debug,
+    U: 'a + std::fmt::Debug + Clone,
   {
     let parse_fn = self.parse_fn.clone();
     let parser_label = self.label.clone();
@@ -167,7 +179,7 @@ impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
   /// Returns a parser that tries this parser and then parser2 if this fails.
   pub fn or<'b, U>(&self, parser2: &'b TokenParser<'a, U>) -> TokenParser<'a, Result<T, U>>
   where
-    U: 'a + std::fmt::Debug,
+    U: 'a + std::fmt::Debug + std::clone::Clone,
     T: 'a,
   {
     let parse_fn1 = self.parse_fn.clone();
@@ -208,7 +220,7 @@ impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
   pub fn flat_map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
   where
     F: Fn(T) -> TokenParser<'a, U> + 'a,
-    U: 'a + std::fmt::Debug,
+    U: 'a + std::fmt::Debug + std::clone::Clone,
   {
     let parse_fn = self.parse_fn.clone();
     let parser_label = self.label.clone();
@@ -268,10 +280,68 @@ impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
         if predicate(&output) {
           TokenParser::always(output)
         } else {
+          dbg!(&output);
           TokenParser::never()
         }
       },
       Some(&description_str),
+    )
+  }
+
+  /// Creates a parser that is surrounded by prefix and optional suffix parsers
+  pub fn surrounded_by<P, S>(
+    &self,
+    prefix: TokenParser<'a, P>,
+    suffix: Option<TokenParser<'a, S>>,
+  ) -> TokenParser<'a, T>
+  where
+    P: 'a + std::fmt::Debug + std::clone::Clone,
+    S: 'a + std::fmt::Debug + std::clone::Clone,
+  {
+    // Use prefix as suffix if no suffix is provided
+    let suffix_parser = match suffix {
+      Some(s) => s.map(|_| (), None),
+      None => prefix.map(|_| (), None),
+    };
+
+    let this_parser = self.clone();
+    let prefix_void = prefix.map(|_| (), None);
+
+    // Create a new parser directly to avoid complex type recursion
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+
+        // Parse prefix
+        match (prefix_void.parse_fn)(tokens) {
+          Ok(_) => {}
+          Err(e) => {
+            tokens.set_current_index(current_index);
+            return Err(e);
+          }
+        }
+
+        // Parse the main content
+        let value = match (this_parser.parse_fn)(tokens) {
+          Ok(v) => v,
+          Err(e) => {
+            tokens.set_current_index(current_index);
+            return Err(e);
+          }
+        };
+
+        // Parse suffix
+        match (suffix_parser.parse_fn)(tokens) {
+          Ok(_) => {}
+          Err(e) => {
+            tokens.set_current_index(current_index);
+            return Err(e);
+          }
+        }
+
+        Ok(value)
+      },
+      &format!("{} surrounded by prefix and suffix", self.label),
     )
   }
 
@@ -367,6 +437,133 @@ impl<'a, T: 'a + std::fmt::Debug> TokenParser<'a, T> {
   }
 }
 
+// Add this struct at the module level
+#[derive(Clone)]
+pub struct TokenParserSequence<'a, T: 'a + Clone> {
+  parsers: Vec<TokenParser<'a, T>>,
+  separator: Option<TokenParser<'a, ()>>,
+}
+
+impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T> {
+  /// Create a new sequence of parsers
+  pub fn new(parsers: Vec<TokenParser<'a, T>>) -> Self {
+    Self {
+      parsers,
+      separator: None,
+    }
+  }
+
+  /// Convert the sequence to a regular parser
+  pub fn to_parser(&self) -> TokenParser<'a, Vec<Option<T>>> {
+    let parsers = self.parsers.clone();
+    let separator = self.separator.clone();
+
+    let parsers_for_label = self.parsers.clone();
+
+    TokenParser::new(
+      move |input| {
+        let current_index = input.current_index;
+        let mut results = Vec::new();
+        let mut failed: Option<TokenParseError> = None;
+
+        // Run each parser in sequence
+        dbg!(&parsers.len());
+        for (i, parser) in parsers.iter().enumerate() {
+          if failed.is_some() {
+            break;
+          }
+
+          // Add separator before parsers (except the first)
+          if i > 0 && separator.is_some() && input.current_index > current_index {
+            let sep = separator.as_ref().unwrap();
+            match (sep.parse_fn)(input) {
+              Ok(_) => {} // Separator parsed successfully
+              Err(e) => {
+                dbg!(&e);
+                // failed = Some(e);
+                // break;
+
+              }
+            }
+          }
+
+          // Apply the parser
+          let mut parser_to_use = parser.clone();
+
+          dbg!(&input, parser_to_use.label.clone());
+          match (parser_to_use.parse_fn)(input) {
+            Ok(result) => {
+              dbg!(&result);
+              results.push(Some(result));
+            }
+            Err(e) => {
+              dbg!(&e);
+              results.push(None);
+              // failed = Some(e);
+              // break;
+            }
+          }
+        }
+
+        if let Some(error) = failed {
+          input.set_current_index(current_index);
+          return Err(error);
+        }
+
+        dbg!(&results);
+        Ok(results)
+      },
+      &format!(
+        "Sequence<{}>",
+        parsers_for_label
+          .iter()
+          .map(|p| p.label.clone())
+          .collect::<Vec<_>>()
+          .join(", ")
+      ),
+    )
+  }
+
+  /// Add a separator between parsers in this sequence
+  pub fn separated_by<S>(&self, separator: TokenParser<'a, S>) -> Self
+  where
+    S: 'a + std::fmt::Debug + Clone,
+  {
+    // Convert separator to one that discards the result, similar to .map(() => undefined)
+    let separator_void = separator.map(|_| (), None);
+
+    // Create new separator by handling the cases like the JS version
+    let new_separator = if let Some(existing_sep) = &self.separator {
+      // Surround the existing separator with the new one
+      existing_sep.surrounded_by(separator_void.clone(), Some(separator_void.clone()))
+    } else {
+      // No existing separator, just use the new one
+      separator_void
+    };
+
+    Self {
+      parsers: self.parsers.clone(),
+      separator: Some(new_separator),
+    }
+  }
+
+  pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
+  where
+    F: Fn(Vec<Option<T>>) -> U + 'a,
+    U: 'a + std::fmt::Debug + Clone,
+  {
+    // Convert the sequence to a regular parser and then map the result
+    self.to_parser().map(f, label)
+  }
+}
+
+// Add sequence method to TokenParser
+// impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParser<'a, T> {
+//   /// Creates a sequence of parsers that will be run in order
+//   pub fn sequence(parsers: Vec<TokenParser<'a, T>>) -> TokenParserSequence<'a, T> {
+//     TokenParserSequence::new(parsers)
+//   }
+// }
 // Helper function to get the token type name (equivalent to token[0] in JS)
 fn token_type_name(token: &Token) -> String {
   match token {

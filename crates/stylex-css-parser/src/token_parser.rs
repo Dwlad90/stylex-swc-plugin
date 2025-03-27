@@ -140,6 +140,10 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
     )
   }
 
+  /// Creates a set of parsers that will be run in any order
+  pub fn set_of(parsers: Vec<TokenParser<'a, T>>) -> TokenParserSet<'a, T> {
+    TokenParserSet::new(parsers)
+  }
   /// Creates a sequence of parsers that will be run in order
   // pub fn sequence<'b, P>(parsers: Vec<TokenParser<'b, P>>) -> TokenParserSequence<'b, P>
   // where
@@ -554,7 +558,7 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
     let separator_void = separator.map(|_| (), None);
 
     // Create new separator by handling the cases like the JS version
-    let new_separator = if let Some(existing_sep) = &self.separator {
+    let new_separator = if let Some(ref existing_sep) = &self.separator {
       // Surround the existing separator with the new one
       existing_sep.surrounded_by(separator_void.clone(), Some(separator_void.clone()))
     } else {
@@ -578,13 +582,167 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
   }
 }
 
-// Add sequence method to TokenParser
-// impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParser<'a, T> {
-//   /// Creates a sequence of parsers that will be run in order
-//   pub fn sequence(parsers: Vec<TokenParser<'a, T>>) -> TokenParserSequence<'a, T> {
-//     TokenParserSequence::new(parsers)
-//   }
-// }
+// Add this struct at the module level
+// Add this struct at the module level
+#[derive(Clone)]
+pub struct TokenParserSet<'a, T: 'a + Clone> {
+  parsers: Vec<TokenParser<'a, T>>,
+  separator: Option<TokenParser<'a, T>>,
+}
+
+impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParserSet<'a, T> {
+  /// Create a new set of parsers
+  pub fn new(_parsers: Vec<TokenParser<'a, T>>) -> Self {
+    Self {
+      parsers: _parsers,
+      separator: None,
+    }
+  }
+
+  /// Convert the set to a regular parser
+  pub fn to_parser(&self) -> TokenParser<'a, Vec<Option<T>>> {
+    let _parsers = self.parsers.clone();
+    let separator = self.separator.clone();
+    let parsers_for_label = self.parsers.clone();
+
+    TokenParser::new(
+      move |input| {
+        // Sort parsers so optional ones come last
+        let mut parsers: Vec<(TokenParser<'a, T>, usize)> = _parsers
+          .iter()
+          .enumerate()
+          .map(|(i, p)| (p.clone(), i))
+          .collect();
+
+        parsers.sort_by(|(a, _), (b, _)| {
+          if a.label.starts_with("Optional<") && !b.label.starts_with("Optional<") {
+            std::cmp::Ordering::Greater
+          } else if !a.label.starts_with("Optional<") && b.label.starts_with("Optional<") {
+            std::cmp::Ordering::Less
+          } else {
+            std::cmp::Ordering::Equal
+          }
+        });
+
+        let current_index = input.current_index;
+        let mut failed: Option<TokenParseError> = None;
+
+        let mut output = vec![None; _parsers.len()];
+        let mut indices = std::collections::HashSet::new();
+
+        for i in 0..parsers.len() {
+          let mut found = false;
+          let mut errors = Vec::new();
+
+          for (j, (parser, index)) in parsers.iter().enumerate() {
+            if indices.contains(&j) {
+              continue;
+            }
+            let mut parser_to_use = parser.clone();
+
+            // Add separator if needed (except for first parser)
+            if i > 0 && separator.is_some() {
+              let sep = separator.as_ref().unwrap().clone();
+
+              if parser.label.starts_with("Optional<") {
+                // For optional parsers, make the separator optional
+                parser_to_use = TokenParser::sequence(vec![sep.clone(), parser.clone()])
+                  .map(|values| values[1].clone().unwrap(), None);
+                // .optional();
+              } else {
+                // For regular parsers, require the separator
+                parser_to_use = TokenParser::sequence(vec![sep.clone(), parser.clone()])
+                  .map(|values| values[1].clone().unwrap(), None);
+              }
+            }
+
+            // Try to parse
+            let current_pos = input.current_index;
+            match (parser_to_use.parse_fn)(input) {
+              Ok(value) => {
+                found = true;
+                output[*index] = Some(value);
+                indices.insert(j);
+                break;
+              }
+              Err(e) => {
+                input.set_current_index(current_pos);
+                errors.push(e);
+              }
+            }
+          }
+
+          if found {
+            continue;
+          } else {
+            failed = Some(TokenParseError::new(format!(
+              "Expected one of {} but got {}",
+              parsers
+                .iter()
+                .map(|(p, _)| p.label.clone())
+                .collect::<Vec<_>>()
+                .join(", "),
+              errors
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+            )));
+            break;
+          }
+        }
+
+        if let Some(error) = failed {
+          input.set_current_index(current_index);
+          return Err(error);
+        }
+
+        Ok(output)
+      },
+      &format!(
+        "Set<{}>",
+        parsers_for_label
+          .iter()
+          .map(|p| p.label.clone())
+          .collect::<Vec<_>>()
+          .join(", ")
+      ),
+    )
+  }
+
+  /// Add a separator between parsers in this set
+  pub fn separated_by(&self, separator: TokenParser<'a, Option<T>>) -> Self {
+    // Convert separator to one that discards the result
+    let voided_separator = separator.map(|p| p, None);
+
+    // Create new separator by handling the cases like the JS version
+    let sep = if let Some(existing_sep) = &self.separator {
+      // Surround the existing separator with the new one
+      existing_sep
+        .surrounded_by(voided_separator.clone(), Some(voided_separator.clone()))
+        .map(|p| Some(p), None)
+    } else {
+      // No existing separator, just use the new one
+      voided_separator
+    };
+
+    Self {
+      parsers: self.parsers.clone(),
+      separator: Some(sep.map(|p| p.unwrap(), None)),
+    }
+  }
+
+  /// Map the set results with the given function
+  pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
+  where
+    F: Fn(Vec<Option<T>>) -> U + 'a,
+    U: 'a + std::fmt::Debug + Clone,
+  {
+    // Convert the set to a regular parser and then map the result
+    self.to_parser().map(f, label)
+  }
+}
+
 // Helper function to get the token type name (equivalent to token[0] in JS)
 fn token_type_name(token: &Token) -> String {
   match token {

@@ -345,6 +345,28 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
     )
   }
 
+  pub fn optional(self) -> TokenParser<'a, Option<T>> {
+    let parser_label = self.label.clone();
+
+    // Create a new parser that either returns the value or None
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+
+        // Try the original parser
+        match (self.parse_fn)(tokens) {
+          Ok(value) => Ok(Some(value)),
+          Err(_) => {
+            // Reset position and return None on failure
+            tokens.set_current_index(current_index);
+            Ok(None)
+          }
+        }
+      },
+      &format!("Optional<{}>", parser_label),
+    )
+  }
+
   /// Create a token parser that parses a specific token type.
   /// Create a token parser that parses a specific token type.
   pub fn token(token_type: &'a TokenType, label: Option<&'a str>) -> TokenParser<'a, Token<'a>> {
@@ -482,7 +504,6 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
                 dbg!(&e);
                 // failed = Some(e);
                 // break;
-
               }
             }
           }

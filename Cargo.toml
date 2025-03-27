@@ -51,7 +51,6 @@ colored = { version = "3.0.0" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
 cssparser = { version = "0.34.0" }
-stylex_path_resolver = { path = "../path-resolver" }
 testing = "8.0.0"
 insta = { version = "1.42.2" }
 anyhow = "1.0.97"

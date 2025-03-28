@@ -11,6 +11,11 @@ pub fn parse_tokens_from_parser<'i>(
   while !parser.is_exhausted() {
     match parser.next() {
       Ok(token) => {
+        dbg!(&token);
+        match token {
+          Token::WhiteSpace(_) => todo!(),
+          _ => {}
+        };
         tokens.push(token.clone())
         // match token {
         //     Token::Ident(ident) => tokens.push(format!("Identifier: {}", ident)),

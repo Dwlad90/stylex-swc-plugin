@@ -96,6 +96,8 @@ pub struct TokenList<'a> {
 impl<'a> TokenList<'a> {
   /// Create a new TokenList from a CSS string or an existing TokenIterator
   pub fn new(input: &'a str) -> Self {
+    dbg!(&input);
+
     let mut input_buffer = ParserInput::<'a>::new(input);
     let mut css_parser = Parser::new(&mut input_buffer);
 
@@ -169,6 +171,9 @@ impl<'a> TokenList<'a> {
     // First check if we're re-reading already consumed tokens
     if self.current_index < self.consumed_tokens.len() {
       let token = self.consumed_tokens[self.current_index].clone();
+      dbg!(&token, &self.current_index, self.consumed_tokens.len());
+
+      // panic!("Token consumed");
       self.current_index += 1;
       return Ok(Some(token));
     }
@@ -176,12 +181,22 @@ impl<'a> TokenList<'a> {
     // Check if we've reached the end
     if self.is_at_end || self.current_index >= self.tokens.len() {
       self.is_at_end = true;
+      dbg!("None token");
       return Ok(None);
     }
 
     // Get the next unconsumed token from tokens
     let token = self.tokens[self.current_index].clone();
+    dbg!(
+      "!!!!!! ~ TokenList ~ consumeNextToken ~ this.isAtEnd:",
+      &self.current_index,
+      self.consumed_tokens.len(),
+      &token
+    );
 
+    // if (self.current_index == 2) {
+    //   panic!("Token not consumed");
+    // }
     // Add to consumed tokens
     self.consumed_tokens.push(token.clone());
     self.current_index += 1;
@@ -190,6 +205,13 @@ impl<'a> TokenList<'a> {
     if self.current_index >= self.tokens.len() {
       self.is_at_end = true;
     }
+
+    dbg!(
+      &self.current_index,
+      self.consumed_tokens.len(),
+      &self,
+      &token
+    );
 
     Ok(Some(token))
   }
@@ -267,6 +289,9 @@ impl<'a> TokenList<'a> {
   // }
 
   pub fn set_current_index(&mut self, new_index: usize) {
+    // if (new_index == 2 && self.current_index == 3) {
+    //   panic!("set_current_index");
+    // }
     // If the index is within already consumed tokens, just update the index
     if new_index < self.consumed_tokens.len() {
       self.current_index = new_index;

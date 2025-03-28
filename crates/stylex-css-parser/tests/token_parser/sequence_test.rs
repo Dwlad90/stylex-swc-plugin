@@ -72,19 +72,10 @@ mod sequence {
   fn makes_separators_optional_for_optional_parsers() {
     let whitespace_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Whitespace);
 
-    // Helper function to create an optional ident token parser
-    let optional_ident = |name: &str| {
-      let name_owned = name.to_owned();
-      TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident)
-        .map(|t| t, None)
-        .where_fn(move |t| *t == Token::Ident(name_owned.clone().into()), None)
-        .optional()
-    };
-
     let parser = TokenParser::sequence(vec![
-      optional_ident("foo"),
-      optional_ident("bar"),
-      optional_ident("baz"),
+      TokenParser::<Token<'static>>::string("foo").map(Some, None),
+      TokenParser::<Token<'static>>::string("bar").optional(),
+      TokenParser::<Token<'static>>::string("baz").map(Some, None),
     ])
     .separated_by(whitespace_parser)
     .to_parser()

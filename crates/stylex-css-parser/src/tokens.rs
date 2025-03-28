@@ -111,7 +111,7 @@ thread_local! {
 }
 
 // Add tokens accessor to TokenParser
-impl<T: 'static + std::clone::Clone> TokenParser<'_, T> {
+impl<T: 'static + std::clone::Clone + std::cmp::PartialEq> TokenParser<'_, T> {
   // Add this to your existing TokenParser implementation
   pub fn get_token_parser(token_type: TokenType) -> TokenParser<'static, Token<'static>> {
     TOKEN_PARSERS.with(|parsers| {
@@ -122,28 +122,42 @@ impl<T: 'static + std::clone::Clone> TokenParser<'_, T> {
       .clone()
     })
   }
-}
 
-// Add a tokens namespace
+  // Add a tokens namespace
 
-// Create getter functions for each token type
-pub fn comment() -> TokenParser<'static, Token<'static>> {
-  TokenParser::<Token<'static>>::get_token_parser(TokenType::Comment)
-}
+  // Create getter functions for each token type
+  pub fn comment() -> TokenParser<'static, Token<'static>> {
+    TokenParser::<Token<'static>>::get_token_parser(TokenType::Comment)
+  }
 
-pub fn at_keyword() -> TokenParser<'static, Token<'static>> {
-  TokenParser::<Token<'static>>::get_token_parser(TokenType::AtKeyword)
-}
+  pub fn at_keyword() -> TokenParser<'static, Token<'static>> {
+    TokenParser::<Token<'static>>::get_token_parser(TokenType::AtKeyword)
+  }
 
-pub fn ident() -> TokenParser<'static, Token<'static>> {
-  TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident)
-}
+  pub fn ident() -> TokenParser<'static, Token<'static>> {
+    TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident)
+  }
 
-// Add getters for other token types...
-pub fn delim() -> TokenParser<'static, Token<'static>> {
-  TokenParser::<Token<'static>>::get_token_parser(TokenType::Delim)
-}
+  // Add getters for other token types...
+  pub fn delim() -> TokenParser<'static, Token<'static>> {
+    TokenParser::<Token<'static>>::get_token_parser(TokenType::Delim)
+  }
 
-pub fn number() -> TokenParser<'static, Token<'static>> {
-  TokenParser::<Token<'static>>::get_token_parser(TokenType::Number)
+  pub fn number() -> TokenParser<'static, Token<'static>> {
+    TokenParser::<Token<'static>>::get_token_parser(TokenType::Number)
+  }
+
+  pub fn string(name: &'static str) -> TokenParser<'static, Token<'static>> {
+    TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident)
+      .map(|t| Some(t), None)
+      .where_fn(
+        |t| {
+          dbg!(&t);
+          dbg!(&Token::Ident(name.into()));
+
+          *t == Token::Ident(name.into())
+        },
+        Some(format!("=== {}", name).as_str()),
+      )
+  }
 }

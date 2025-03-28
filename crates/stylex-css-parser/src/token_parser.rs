@@ -26,12 +26,12 @@ impl Display for TokenParseError {
 impl std::error::Error for TokenParseError {}
 /// A parser for CSS tokens that can be combined with other parsers.
 #[derive(Clone)]
-pub struct TokenParser<'a, T: 'a + Clone> {
+pub struct TokenParser<'a, T: 'a + Clone + PartialEq> {
   parse_fn: Rc<dyn Fn(&mut TokenList<'a>) -> Result<T, TokenParseError> + 'a>,
   label: String,
 }
 
-impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
+impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone + std::cmp::PartialEq> TokenParser<'a, T> {
   pub fn new<F>(parse_fn: F, label: &str) -> Self
   where
     F: Fn(&mut TokenList<'a>) -> Result<T, TokenParseError> + 'a,
@@ -157,10 +157,10 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
   }
 
   /// Maps the output of this parser with the given function.
-  pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
+  pub fn map<U, F>(&self, f: F, label: Option<&'a str>) -> TokenParser<'a, U>
   where
     F: Fn(T) -> U + 'a,
-    U: 'a + std::fmt::Debug + Clone,
+    U: 'a + std::fmt::Debug + Clone + std::cmp::PartialEq,
   {
     let parse_fn = self.parse_fn.clone();
     let parser_label = self.label.clone();
@@ -168,9 +168,11 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
     TokenParser::new(
       move |tokens| {
         let current_index = tokens.current_index;
+        dbg!(&tokens);
         match (parse_fn)(tokens) {
           Ok(value) => Ok(f(value)),
           Err(e) => {
+            dbg!(&e);
             tokens.set_current_index(current_index);
             Err(e.clone())
           }
@@ -183,7 +185,7 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
   /// Returns a parser that tries this parser and then parser2 if this fails.
   pub fn or<'b, U>(&self, parser2: &'b TokenParser<'a, U>) -> TokenParser<'a, Result<T, U>>
   where
-    U: 'a + std::fmt::Debug + std::clone::Clone,
+    U: 'a + std::fmt::Debug + std::clone::Clone + std::cmp::PartialEq,
     T: 'a,
   {
     let parse_fn1 = self.parse_fn.clone();
@@ -224,35 +226,38 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
   pub fn flat_map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
   where
     F: Fn(T) -> TokenParser<'a, U> + 'a,
-    U: 'a + std::fmt::Debug + std::clone::Clone,
+    U: 'a + std::fmt::Debug + std::clone::Clone + std::cmp::PartialEq,
   {
     let parse_fn = self.parse_fn.clone();
     let parser_label = self.label.clone();
     let label_suffix = label.unwrap_or("").to_string();
 
     TokenParser::new(
-      move |tokens| {
-        let current_index = tokens.current_index;
+      move |input| {
+        let current_index = input.current_index;
 
         // Run the first parser
-        let output1 = match (parse_fn)(tokens) {
+        let output1 = match (parse_fn)(input) {
           Ok(value) => value,
           Err(e) => {
-            tokens.set_current_index(current_index);
+            input.set_current_index(current_index);
             return Err(e);
           }
         };
+        dbg!(&output1);
 
         // Create and run the second parser
         let second_parser = f(output1);
-        let output2 = match (second_parser.parse_fn)(tokens) {
+        let output2 = match (second_parser.parse_fn)(input) {
           Ok(value) => value,
           Err(e) => {
-            tokens.set_current_index(current_index);
+            dbg!(&e);
+            input.set_current_index(current_index);
             return Err(e);
           }
         };
 
+        dbg!(&output2);
         Ok(output2)
       },
       &format!("{}.flatMap({})", parser_label, label_suffix),
@@ -278,13 +283,16 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
     T: Clone,
   {
     let description_str = description.unwrap_or("").to_string();
+    let description_str2 = description.unwrap_or("").to_string();
 
     self.flat_map(
       move |output| {
-        if predicate(&output) {
+        let is_suited = predicate(&output);
+        dbg!(&output, &is_suited, &description_str2.to_owned());
+
+        if is_suited {
           TokenParser::always(output)
         } else {
-          dbg!(&output);
           TokenParser::never()
         }
       },
@@ -299,17 +307,17 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
     suffix: Option<TokenParser<'a, S>>,
   ) -> TokenParser<'a, T>
   where
-    P: 'a + std::fmt::Debug + std::clone::Clone,
-    S: 'a + std::fmt::Debug + std::clone::Clone,
+    P: 'a + std::fmt::Debug + std::clone::Clone + std::cmp::PartialEq,
+    S: 'a + std::fmt::Debug + std::clone::Clone + std::cmp::PartialEq,
   {
     // Use prefix as suffix if no suffix is provided
     let suffix_parser = match suffix {
-      Some(s) => s.map(|_| (), None),
-      None => prefix.map(|_| (), None),
+      Some(s) => s.map(|_| Some(()), None),
+      None => prefix.map(|_| Some(()), None),
     };
 
     let this_parser = self.clone();
-    let prefix_void = prefix.map(|_| (), None);
+    let prefix_void = prefix.map(|_| Some(()), None);
 
     // Create a new parser directly to avoid complex type recursion
     TokenParser::new(
@@ -360,7 +368,8 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
         // Try the original parser
         match (self.parse_fn)(tokens) {
           Ok(value) => Ok(Some(value)),
-          Err(_) => {
+          Err(err) => {
+            dbg!(&err);
             // Reset position and return None on failure
             tokens.set_current_index(current_index);
             Ok(None)
@@ -382,34 +391,41 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
     let token_type_owned = token_type.to_string();
 
     TokenParser::new(
-      move |tokens| {
-        let current_index = tokens.current_index;
-        let token_result = tokens.consume_next_token();
+      move |input| {
+        let current_index = input.current_index;
+        let consumed_token = input.consume_next_token();
+        dbg!(&input, &current_index, &consumed_token, &token_type);
 
-        match token_result {
+        match consumed_token {
           Ok(Some(token)) => {
+            let expected_token_type = token_type.to_string();
+            let actual_token_type = token_type_name(&token);
+
             // Check if the token matches the expected type
-            dbg!(&token_type_name(&token), token_type.to_string());
-            if token_type_name(&token) == token_type.to_string() {
+            dbg!(&actual_token_type, &expected_token_type, &token);
+            if actual_token_type == expected_token_type {
               Ok(token)
             } else {
               // Reset position and return error
-              tokens.set_current_index(current_index);
+              input.set_current_index(current_index);
+              panic!(
+                "Expected token type {}, got {}",
+                expected_token_type, actual_token_type
+              );
               Err(TokenParseError::new(format!(
                 "Expected token type {}, got {}",
-                token_type,
-                token_type_name(&token)
+                expected_token_type, actual_token_type
               )))
             }
           }
           Ok(None) => {
             // No token available (end of input)
-            tokens.set_current_index(current_index);
+            input.set_current_index(current_index);
             Err(TokenParseError::new("Expected token, got end of input"))
           }
           Err(e) => {
             // Error consuming token
-            tokens.set_current_index(current_index);
+            input.set_current_index(current_index);
             Err(TokenParseError::new(format!("Error: {}", e)))
           }
         }
@@ -418,59 +434,61 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParser<'a, T> {
     )
   }
 
-  pub fn string(str: &str) -> TokenParser<String> {
-    // Create the expected string once and move it into the closure
-    let expected_str = str.to_string();
+  // pub fn string(str: &str) -> TokenParser<String> {
+  //   // Create the expected string once and move it into the closure
+  //   let expected_str = str.to_string();
 
-    TokenParser::new(
-      move |tokens| {
-        let current_index = tokens.current_index;
+  //   TokenParser::new(
+  //     move |tokens| {
+  //       let current_index = tokens.current_index;
 
-        match tokens.consume_next_token() {
-          Ok(Some(Token::Ident(value))) => {
-            // For debugging, similar to the console.log in JS
-            println!("Found Ident token with value: {}", value);
+  //       match tokens.consume_next_token() {
+  //         Ok(Some(Token::Ident(value))) => {
+  //           // For debugging, similar to the console.log in JS
+  //           println!("Found Ident token with value: {}", value);
 
-            // Check if the value matches the expected string
-            let value_str = value.to_string();
-            if value_str == expected_str {
-              Ok(value_str)
-            } else {
-              tokens.set_current_index(current_index);
-              Err(TokenParseError::new(format!(
-                "Expected Ident token with value '{}', got '{}'",
-                expected_str, value
-              )))
-            }
-          }
-          Ok(other_token) => {
-            tokens.set_current_index(current_index);
-            Err(TokenParseError::new(format!(
-              "Expected Ident token, got {:?}",
-              other_token
-            )))
-          }
-          Err(_) => {
-            tokens.set_current_index(current_index);
-            Err(TokenParseError::new(
-              "Expected Ident token, got end of input",
-            ))
-          }
-        }
-      },
-      &format!("String('{}')", str),
-    )
-  }
+  //           // Check if the value matches the expected string
+  //           let value_str = value.to_string();
+  //           if value_str == expected_str {
+  //             Ok(value_str)
+  //           } else {
+  //             tokens.set_current_index(current_index);
+  //             Err(TokenParseError::new(format!(
+  //               "Expected Ident token with value '{}', got '{}'",
+  //               expected_str, value
+  //             )))
+  //           }
+  //         }
+  //         Ok(other_token) => {
+  //           tokens.set_current_index(current_index);
+  //           Err(TokenParseError::new(format!(
+  //             "Expected Ident token, got {:?}",
+  //             other_token
+  //           )))
+  //         }
+  //         Err(_) => {
+  //           tokens.set_current_index(current_index);
+  //           Err(TokenParseError::new(
+  //             "Expected Ident token, got end of input",
+  //           ))
+  //         }
+  //       }
+  //     },
+  //     &format!("String('{}')", str),
+  //   )
+  // }
 }
 
 // Add this struct at the module level
 #[derive(Clone)]
-pub struct TokenParserSequence<'a, T: 'a + Clone> {
+pub struct TokenParserSequence<'a, T: 'a + Clone + std::cmp::PartialEq> {
   parsers: Vec<TokenParser<'a, T>>,
   separator: Option<TokenParser<'a, ()>>,
 }
 
-impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T> {
+impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone + std::cmp::PartialEq>
+  TokenParserSequence<'a, T>
+{
   /// Create a new sequence of parsers
   pub fn new(parsers: Vec<TokenParser<'a, T>>) -> Self {
     Self {
@@ -480,7 +498,7 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
   }
 
   /// Convert the sequence to a regular parser
-  pub fn to_parser(&self) -> TokenParser<'a, Vec<Option<T>>> {
+  pub fn to_parser(&self) -> TokenParser<'a, Vec<T>> {
     let parsers = self.parsers.clone();
     let separator = self.separator.clone();
 
@@ -489,7 +507,7 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
     TokenParser::new(
       move |input| {
         let current_index = input.current_index;
-        let mut results = Vec::new();
+        let mut results: Vec<Option<T>> = Vec::new();
         let mut failed: Option<TokenParseError> = None;
 
         // Run each parser in sequence
@@ -524,6 +542,7 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
             Err(e) => {
               dbg!(&e);
               results.push(None);
+              // panic!("SAAAAwrfmer;kv");
               // failed = Some(e);
               // break;
             }
@@ -536,7 +555,7 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
         }
 
         dbg!(&results);
-        Ok(results)
+        Ok(Some(results))
       },
       &format!(
         "Sequence<{}>",
@@ -552,15 +571,19 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
   /// Add a separator between parsers in this sequence
   pub fn separated_by<S>(&self, separator: TokenParser<'a, S>) -> Self
   where
-    S: 'a + std::fmt::Debug + Clone,
+    S: 'a + std::fmt::Debug + Clone + std::cmp::PartialEq,
   {
+    // Check if the separator is a whitespace token parser by comparing its label
+    if separator.label == TokenType::Whitespace.to_string() {
+      return self.clone();
+    }
     // Convert separator to one that discards the result, similar to .map(() => undefined)
     let separator_void = separator.map(|_| (), None);
 
     // Create new separator by handling the cases like the JS version
     let new_separator = if let Some(ref existing_sep) = &self.separator {
       // Surround the existing separator with the new one
-      existing_sep.surrounded_by(separator_void.clone(), Some(separator_void.clone()))
+      existing_sep.surrounded_by(separator_void.clone(), Some(separator_void))
     } else {
       // No existing separator, just use the new one
       separator_void
@@ -572,10 +595,10 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
     }
   }
 
-  pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
+  pub fn map<U, F>(&self, f: F, label: Option<&'a str>) -> TokenParser<'a, U>
   where
-    F: Fn(Vec<Option<T>>) -> U + 'a,
-    U: 'a + std::fmt::Debug + Clone,
+    F: Fn(Vec<T>) -> U + 'a,
+    U: 'a + std::fmt::Debug + Clone + std::cmp::PartialEq,
   {
     // Convert the sequence to a regular parser and then map the result
     self.to_parser().map(f, label)
@@ -585,14 +608,20 @@ impl<'a, T: 'a + std::fmt::Debug + std::clone::Clone> TokenParserSequence<'a, T>
 // Add this struct at the module level
 // Add this struct at the module level
 #[derive(Clone)]
-pub struct TokenParserSet<'a, T: 'a + Clone> {
+pub struct TokenParserSet<'a, T: 'a + Clone + std::cmp::PartialEq> {
   parsers: Vec<TokenParser<'a, T>>,
   separator: Option<TokenParser<'a, T>>,
 }
 
-impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParserSet<'a, T> {
+impl<'a, T> TokenParserSet<'a, T>
+where
+  T: 'a + std::fmt::Debug + Clone + std::cmp::PartialEq,
+{
   /// Create a new set of parsers
-  pub fn new(_parsers: Vec<TokenParser<'a, T>>) -> Self {
+  pub fn new(_parsers: Vec<TokenParser<'a, T>>) -> Self
+  where
+    T: 'a + std::fmt::Debug + Clone,
+  {
     Self {
       parsers: _parsers,
       separator: None,
@@ -608,21 +637,21 @@ impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParserSet<'a, T> {
     TokenParser::new(
       move |input| {
         // Sort parsers so optional ones come last
-        let mut parsers: Vec<(TokenParser<'a, T>, usize)> = _parsers
+        let mut parsers: Vec<(TokenParser<'a, Option<T>>, usize)> = _parsers
           .iter()
           .enumerate()
           .map(|(i, p)| (p.clone(), i))
           .collect();
 
-        parsers.sort_by(|(a, _), (b, _)| {
-          if a.label.starts_with("Optional<") && !b.label.starts_with("Optional<") {
-            std::cmp::Ordering::Greater
-          } else if !a.label.starts_with("Optional<") && b.label.starts_with("Optional<") {
-            std::cmp::Ordering::Less
-          } else {
-            std::cmp::Ordering::Equal
-          }
-        });
+        // parsers.sort_by(|(a, _), (b, _)| {
+        //   if a.label.starts_with("Optional<") && !b.label.starts_with("Optional<") {
+        //     std::cmp::Ordering::Greater
+        //   } else if !a.label.starts_with("Optional<") && b.label.starts_with("Optional<") {
+        //     std::cmp::Ordering::Less
+        //   } else {
+        //     std::cmp::Ordering::Equal
+        //   }
+        // });
 
         let current_index = input.current_index;
         let mut failed: Option<TokenParseError> = None;
@@ -644,28 +673,53 @@ impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParserSet<'a, T> {
             if i > 0 && separator.is_some() {
               let sep = separator.as_ref().unwrap().clone();
 
+              dbg!(&parser.label.starts_with("Optional<"));
               if parser.label.starts_with("Optional<") {
                 // For optional parsers, make the separator optional
-                parser_to_use = TokenParser::sequence(vec![sep.clone(), parser.clone()])
-                  .map(|values| values[1].clone().unwrap(), None);
+                let parser_to_use =
+                  TokenParser::sequence(vec![sep.clone(), parser.clone()]).map(
+                    |values| -> Option<T> {
+                      dbg!(&values);
+
+                      values[1].clone()
+                    },
+                    None,
+                  );
                 // .optional();
               } else {
                 // For regular parsers, require the separator
-                parser_to_use = TokenParser::sequence(vec![sep.clone(), parser.clone()])
-                  .map(|values| values[1].clone().unwrap(), None);
+                parser_to_use = TokenParser::sequence(vec![sep.clone(), parser.clone()]).map(
+                  |values| {
+                    dbg!(&values);
+
+                    values[1].clone()
+                  },
+                  None,
+                );
               }
             }
 
             // Try to parse
             let current_pos = input.current_index;
+            dbg!(&input);
             match (parser_to_use.parse_fn)(input) {
               Ok(value) => {
-                found = true;
-                output[*index] = Some(value);
+                dbg!(&input, &value);
+                // If the value is None, skip this item
+                // Check if value itself is an Option and is None
+
+                // Otherwise process the value
+                // Unwrap the nested options to get the correct type
+                output[*index] = match value {
+                  Some(inner_value) => inner_value,
+                  _ => None,
+                };
                 indices.insert(j);
+                found = true;
                 break;
               }
               Err(e) => {
+                dbg!(&e);
                 input.set_current_index(current_pos);
                 errors.push(e);
               }
@@ -697,6 +751,7 @@ impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParserSet<'a, T> {
           return Err(error);
         }
 
+        dbg!(&output);
         Ok(output)
       },
       &format!(
@@ -711,36 +766,92 @@ impl<'a, T: 'a + std::fmt::Debug + Clone> TokenParserSet<'a, T> {
   }
 
   /// Add a separator between parsers in this set
-  pub fn separated_by(&self, separator: TokenParser<'a, Option<T>>) -> Self {
+  pub fn separated_by(&self, separator: TokenParser<'a, T>) -> Self
+  where
+    T: 'a + std::fmt::Debug + Clone + PartialEq,
+  {
+    // Check if the separator is a whitespace token parser by comparing its label
+    if separator.label == TokenType::Whitespace.to_string() {
+      return self.clone();
+    }
     // Convert separator to one that discards the result
-    let voided_separator = separator.map(|p| p, None);
+    let voided_separator = separator.map(
+      |p| {
+        dbg!(&p);
+
+        Some(p)
+      },
+      None,
+    );
 
     // Create new separator by handling the cases like the JS version
     let sep = if let Some(existing_sep) = &self.separator {
       // Surround the existing separator with the new one
       existing_sep
         .surrounded_by(voided_separator.clone(), Some(voided_separator.clone()))
-        .map(|p| Some(p), None)
+        .map(
+          |p| {
+            dbg!(&p);
+            p
+          },
+          None,
+        )
     } else {
       // No existing separator, just use the new one
-      voided_separator
-    };
+      // Wrap in another Some to match the type from the if branch
+      voided_separator.map(
+        |p| {
+          dbg!(&p);
 
+          p
+        },
+        None,
+      )
+    };
+    // &sep.map(
+    //   |s| {
+    //     dbg!(&s);
+
+    //     s
+    //   },
+    //   None,
+    // );
+
+    // panic!("separated_by not implemented");
     Self {
       parsers: self.parsers.clone(),
-      separator: Some(sep.map(|p| p.unwrap(), None)),
+      separator: Some(sep),
     }
   }
 
-  /// Map the set results with the given function
-  pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
+  // Map the set results with the given function
+  pub fn map<U, F>(&self, f: F, label: Option<&'a str>) -> TokenParser<'a, Option<U>>
   where
-    F: Fn(Vec<Option<T>>) -> U + 'a,
-    U: 'a + std::fmt::Debug + Clone,
+    F: Fn(Vec<Option<T>>) -> Option<U> + 'a,
+    U: 'a + std::fmt::Debug + Clone + std::cmp::PartialEq,
   {
     // Convert the set to a regular parser and then map the result
-    self.to_parser().map(f, label)
+    // Need to use a wrapper function to adapt the type signatures
+    self.to_parser().map(move |values| f(values), label)
   }
+  // pub fn map<U, F>(&self, f: F, label: Option<&str>) -> TokenParser<'a, U>
+  // where
+  //   F: Fn(Vec<Option<T>>) -> U + 'a,
+  //   U: 'a + std::fmt::Debug + Clone,
+  // {
+  //   // Convert the set to a regular parser and then map the result
+  //   self.to_parser().map(
+  //     move |nested_options| {
+  //       // Flatten the nested options before passing to the provided function
+  //       let flattened = nested_options
+  //         .into_iter()
+  //         .map(|opt| opt.unwrap_or(None))
+  //         .collect();
+  //       f(flattened)
+  //     },
+  //     label,
+  //   )
+  // }
 }
 
 // Helper function to get the token type name (equivalent to token[0] in JS)

@@ -109,7 +109,7 @@
     "tsup": "^8.4.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.4",
-    "vitest": "^3.0.9",
+    "vitest": "^3.1.1",
     "webpack": "^5.98.0"
   },
   "peerDependencies": {

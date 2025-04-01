@@ -52,7 +52,7 @@
     "benchmark": "^2.1.2",
     "lint-staged": "^15.5.0",
     "npm-run-all2": "^7.0.2",
-    "oxlint": "^0.16.2",
+    "oxlint": "^0.16.4",
     "prettier": "^3.5.3",
     "tinybench": "^4.0.1",
     "typescript": "^5.8.2"

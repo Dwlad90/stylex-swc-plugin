@@ -477,9 +477,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7747ac3a66a06f4ee6718686c8ea976d2d05fb30ada93ebd76b3f9aef97257c"
+checksum = "07e9666f4a9a948d4f1dff0c08a4512b0f7c86414b23960104c243c10d79f4c3"
 dependencies = [
  "ctor-proc-macro",
  "dtor",
@@ -723,9 +723,9 @@ dependencies = [
 
 [[package]]
 name = "dtor"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bf39a0bfd1f94d62ffdb2802a7e6244c0f34f6ebacf5d4c26547d08cd1d67a5"
+checksum = "222ef136a1c687d4aa0395c175f2c4586e379924c352fd02f7870cf7de783c23"
 dependencies = [
  "dtor-proc-macro",
 ]
@@ -2163,7 +2163,7 @@ version = "0.7.1"
 dependencies = [
  "anyhow",
  "color-backtrace",
- "ctor 0.4.0",
+ "ctor 0.4.1",
  "env_logger 0.11.6",
  "indexmap",
  "log",
@@ -2187,7 +2187,7 @@ dependencies = [
  "color-backtrace",
  "colored",
  "cssparser",
- "ctor 0.4.0",
+ "ctor 0.4.1",
  "derive_more",
  "env_logger 0.11.6",
  "indexmap",
@@ -2219,7 +2219,7 @@ dependencies = [
  "anyhow",
  "clap",
  "color-backtrace",
- "ctor 0.4.0",
+ "ctor 0.4.1",
  "env_logger 0.11.6",
  "log",
  "pretty_env_logger",

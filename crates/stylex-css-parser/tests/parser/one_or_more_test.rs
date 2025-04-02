@@ -5,7 +5,7 @@ mod one_or_more {
 
   #[test]
   fn parse_one_ore_more() {
-    let parser = Parser::one_or_more(Parser::string("foo"));
+    let parser = Parser::one_or_more(Parser::<'static, String>::string("foo"));
 
     assert_eq!(parser.parse("foo").unwrap(), vec![String::from("foo"),]);
     assert_eq!(
@@ -41,7 +41,7 @@ mod one_or_more {
   #[test]
   #[should_panic(expected = "Expected foo, got bar")]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::one_or_more(Parser::string("foo"));
+    let parser = Parser::one_or_more(Parser::<'static, String>::string("foo"));
 
     parser.parse("bar").unwrap();
   }

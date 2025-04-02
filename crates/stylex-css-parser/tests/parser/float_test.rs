@@ -5,17 +5,17 @@ mod float {
 
   #[test]
   fn parse_a_float() {
-    let parser = Parser::float();
+    let parser = Parser::<'static, f32>::float();
 
     let floats = [
       // "0",
-      // "0.5",
+      "0.5",
       // ".5",
       // "1.5",
       // "1",
       // "1.0",
       // "12356.7890",
-      "-1",
+      // "-1",
       // "-1.0",
       // "-123456.7890",
     ];
@@ -30,7 +30,7 @@ mod float {
 
   #[test]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::whole();
+    let parser = Parser::<'static, f32>::whole();
 
     let strings = [
       "0",

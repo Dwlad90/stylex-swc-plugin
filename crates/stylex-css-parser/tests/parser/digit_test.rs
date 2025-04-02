@@ -5,7 +5,7 @@ mod digit {
 
   #[test]
   fn parse_a_digit() {
-    let parser = Parser::digit();
+    let parser = Parser::<'static, i32>::digit();
 
     let digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -16,7 +16,7 @@ mod digit {
 
   #[test]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::digit();
+    let parser = Parser::<'static, i32>::digit();
 
     let strings = ["foo", "a", "A", "!", " "];
 

@@ -1,7 +1,6 @@
 use std::fmt::{Debug, Display};
 use std::rc::Rc;
 
-// Equivalent to SubString in the original code
 #[derive(Debug)]
 pub struct SubString<'a> {
   string: &'a str,
@@ -39,7 +38,6 @@ impl<'a> SubString<'a> {
   }
 }
 
-// Custom error type
 #[derive(Debug, PartialEq)]
 pub struct ParseError {
   pub message: String,
@@ -52,16 +50,16 @@ impl Display for ParseError {
 }
 
 impl std::error::Error for ParseError {}
-// The Parser struct
 #[derive(Clone)]
-pub struct Parser<T> {
-  run_fn: Rc<dyn Fn(&mut SubString) -> Result<T, ParseError>>,
+pub struct Parser<'a, T: 'a + Clone> {
+  // run_fn: Rc<dyn Fn(&mut SubString) -> Result<T, ParseError> + 'a>,
+  run_fn: Rc<dyn Fn(&mut SubString) -> Result<Option<T>, ParseError> + 'a>,
 }
 
-impl<T> Parser<T> {
+impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
   pub fn new<F>(parser: F) -> Self
   where
-    F: Fn(&mut SubString) -> Result<T, ParseError> + 'static,
+    F: Fn(&mut SubString) -> Result<Option<T>, ParseError> + 'a,
   {
     Self {
       run_fn: Rc::new(parser),
@@ -69,7 +67,13 @@ impl<T> Parser<T> {
   }
 
   pub fn run(&self, input: &mut SubString) -> Result<T, ParseError> {
-    (self.run_fn)(input)
+    match (self.run_fn)(input) {
+      Ok(Some(value)) => Ok(value),
+      Ok(None) => Err(ParseError {
+        message: "Parser returned None".to_string(),
+      }),
+      Err(e) => Err(e),
+    }
   }
 
   pub fn parse(&self, input: &str) -> Result<T, ParseError> {
@@ -77,148 +81,54 @@ impl<T> Parser<T> {
     self.run(&mut substr)
   }
 
-  // pub fn parse_to_end(&self, input: &str) -> Result<T, ParseError> {
-  //   let mut substr = SubString::new(input);
-  //   let output = self.run(&mut substr)?;
-
-  //   if !substr.is_empty() {
-  //     return Err(ParseError {
-  //       message: format!(
-  //         "Expected end of input, got {} instead",
-  //         &input[substr.start_index..]
-  //       ),
-  //     });
-  //   }
-
-  //   Ok(output)
-  // }
-
-  pub fn map<U, F>(&self, f: F) -> Parser<U>
+  pub fn map<U, F>(&self, f: F) -> Parser<'a, U>
   where
-    F: Fn(T) -> U + 'static,
-    T: Clone + 'static,
+    F: Fn(Option<T>) -> U + 'a,
+    U: 'a + Debug + Clone,
   {
     let run_fn = self.run_fn.clone();
     Parser::new(move |input| {
       let old_output = (run_fn)(input)?;
-      Ok(f(old_output))
+      Ok(Some(f(old_output)))
     })
   }
 
-  // pub fn flat_map<U, F>(&self, f: F) -> Parser<U>
-  // where
-  //   F: Fn(T) -> Parser<U> + 'static,
-  //   T: Clone + 'static,
-  // {
-  //   let run_fn = self.run_fn.clone();
-  //   Parser::new(move |input| {
-  //     let start_index = input.start_index;
-  //     let end_index = input.end_index;
-
-  //     let output1 = (run_fn)(input)?;
-  //     let second_parser = f(output1);
-
-  //     match second_parser.run(input) {
-  //       Ok(output2) => Ok(output2),
-  //       Err(e) => {
-  //         input.start_index = start_index;
-  //         input.end_index = end_index;
-  //         Err(e)
-  //       }
-  //     }
-  //   })
-  // }
-
-  // pub fn or<U>(&self, parser2: &Parser<U>) -> Parser<Result<T, U>>
-  // where
-  //   T: Clone + 'static,
-  //   U: Clone + 'static,
-  // {
-  //   let run_fn1 = self.run_fn.clone();
-  //   let run_fn2 = parser2.run_fn.clone();
-
-  //   Parser::new(move |input| match (run_fn1)(input) {
-  //     Ok(output1) => Ok(Ok(output1)),
-  //     Err(_) => match (run_fn2)(input) {
-  //       Ok(output2) => Ok(Err(output2)),
-  //       Err(e) => Err(e),
-  //     },
-  //   })
-  // }
-
-  // pub fn surrounded_by<U>(&self, prefix: &Parser<U>, suffix: Option<&Parser<U>>) -> Parser<T>
-  // where
-  //   T: Clone + 'static,
-  //   U: Clone + 'static,
-  // {
-  //   let suffix = suffix.unwrap_or(prefix);
-  //   self.prefix(prefix).skip(suffix)
-  // }
-
-  // pub fn skip<U>(&self, skip_parser: &Parser<U>) -> Parser<T>
-  // where
-  //   T: Clone + 'static,
-  //   U: Clone + 'static,
-  // {
-  //   let run_fn = self.run_fn.clone();
-  //   let skip_run_fn = skip_parser.run_fn.clone();
-
-  //   Parser::new(move |input| {
-  //     let output = (run_fn)(input)?;
-  //     (skip_run_fn)(input)?;
-  //     Ok(output)
-  //   })
-  // }
-
-  pub fn optional(self) -> Parser<Option<T>>
-  where
-    T: Clone + 'static,
-  {
+  pub fn optional(self) -> Parser<'a, T> {
     let run_fn = self.run_fn;
 
-    Parser::new(move |input| match (run_fn)(input) {
-      Ok(output) => Ok(Some(output)),
-      Err(_) => Ok(None),
+    Parser::new(move |input| {
+      let result = (run_fn)(input);
+
+      match result {
+        Ok(output) => Ok(output),
+        Err(_) => Ok(None),
+      }
     })
   }
 
-  // pub fn prefix<U>(&self, prefix_parser: &Parser<U>) -> Parser<T>
-  // where
-  //   T: Clone + 'static,
-  //   U: Clone + 'static,
-  // {
-  //   let run_fn = self.run_fn.clone();
-  //   let prefix_run_fn = prefix_parser.run_fn.clone();
-
-  //   Parser::new(move |input| {
-  //     (prefix_run_fn)(input)?;
-  //     (run_fn)(input)
-  //   })
-  // }
-
-  pub fn where_fn<F>(&self, predicate: F) -> Parser<T>
+  pub fn where_fn<F>(&self, predicate: F) -> Parser<'a, T>
   where
-    F: Fn(&T) -> bool + 'static,
-    T: Clone + 'static,
+    F: Fn(&T) -> bool + 'a,
+    T: Clone,
   {
     let run_fn = self.run_fn.clone();
 
     Parser::new(move |input| {
       let output = (run_fn)(input)?;
 
-      if predicate(&output) {
-        Ok(output)
-      } else {
-        Err(ParseError {
+      match &output {
+        Some(value) if predicate(value) => Ok(output),
+        Some(_) => Err(ParseError {
           message: "Predicate failed".to_string(),
-        })
+        }),
+        None => Ok(None),
       }
     })
   }
 
   pub fn zero_or_more(parser: Parser<T>) -> Parser<Vec<T>>
   where
-    T: Clone + 'static,
+    T: Clone + 'a,
   {
     Parser::new(move |input| {
       let mut results = Vec::new();
@@ -234,33 +144,26 @@ impl<T> Parser<T> {
         }
       }
 
-      Ok(results)
+      Ok(Some(results))
     })
   }
 }
 
-// A trait to define parser results that can be combined in a sequence
-pub trait SequenceResult: Clone + 'static {}
+pub trait SequenceResult<'a>: Clone + 'a {}
 
-impl<T: Clone + 'static> SequenceResult for T {}
+impl<'a, T: Clone + 'a> SequenceResult<'a> for T {}
 
-// A struct to hold multiple parsers as a sequence
 #[derive(Clone)]
-pub struct ParserSequence<T> {
-  // Store parsers in a Vec for simplicity (unlike JS tuple)
-  parsers: Vec<Parser<T>>,
+pub struct ParserSequence<'a, T: std::clone::Clone> {
+  parsers: Vec<Parser<'a, T>>,
 }
 
-impl<T: SequenceResult> ParserSequence<T> {
-  pub fn new(parsers: Vec<Parser<T>>) -> Self {
+impl<'a, T: SequenceResult<'a> + std::fmt::Debug> ParserSequence<'a, T> {
+  pub fn new(parsers: Vec<Parser<'a, T>>) -> Self {
     Self { parsers }
   }
 
-  // Convert to a regular parser that runs all parsers in sequence
-  pub fn to_parser<R>(&self, combiner: fn(Vec<T>) -> R) -> Parser<R>
-  where
-    R: SequenceResult,
-  {
+  pub fn to_parser(&self, combiner: fn(Vec<T>) -> Vec<T>) -> Parser<'a, Vec<T>> {
     let parsers = self.parsers.clone();
 
     Parser::new(move |input| {
@@ -268,14 +171,12 @@ impl<T: SequenceResult> ParserSequence<T> {
       let end_index = input.end_index;
       let mut results = Vec::new();
 
-      // Run each parser in sequence
       for parser in &parsers {
         match parser.run(input) {
           Ok(result) => {
             results.push(result);
           }
           Err(e) => {
-            // On failure, reset input position and return error
             input.start_index = start_index;
             input.end_index = end_index;
             return Err(e);
@@ -283,27 +184,19 @@ impl<T: SequenceResult> ParserSequence<T> {
         }
       }
 
-      // Combine all results using the provided function
-      Ok(combiner(results))
+      Ok(Some(combiner(results)))
     })
   }
 
-  // Create a new sequence where all parsers after the first are prefixed with a separator
-  pub fn separated_by<S>(self, separator: Parser<S>) -> Self
-  where
-    S: SequenceResult,
-  {
-    let separator = separator.map(|_| ());
+  pub fn separated_by(self, separator: Parser<'a, T>) -> Self {
+    let separator = separator; //.map(|_| ());
 
-    // Create new parsers with separators
     let mut new_parsers = Vec::new();
 
     for (i, parser) in self.parsers.into_iter().enumerate() {
       if i == 0 {
-        // First parser doesn't need a separator
         new_parsers.push(parser);
       } else {
-        // Add prefix to all other parsers
         new_parsers.push(parser.prefix(separator.clone()));
       }
     }
@@ -314,22 +207,17 @@ impl<T: SequenceResult> ParserSequence<T> {
   }
 }
 
-// Add the prefix method to Parser
-impl<T: 'static> Parser<T>
+impl<'a, T: 'a + std::fmt::Debug> Parser<'a, T>
 where
   T: Clone,
 {
-  pub fn prefix<S>(self, prefix_parser: Parser<S>) -> Parser<T>
-  where
-    S: Clone + 'static,
-  {
+  pub fn prefix(self, prefix_parser: Parser<'a, T>) -> Parser<'a, T> {
     let run_fn = self.run_fn;
     let prefix_run_fn = prefix_parser.run_fn;
 
     Parser::new(move |input| {
       let start_index = input.start_index;
 
-      // Run the prefix parser first
       match (prefix_run_fn)(input) {
         Ok(_) => (),
         Err(e) => {
@@ -338,7 +226,6 @@ where
         }
       }
 
-      // Then run the main parser
       match (run_fn)(input) {
         Ok(result) => Ok(result),
         Err(e) => {
@@ -350,134 +237,18 @@ where
   }
 }
 
-// Add sequence static method to create a ParserSequence
-impl<T: SequenceResult> Parser<T> {
-  pub fn sequence(parsers: Vec<Parser<T>>) -> ParserSequence<T> {
+impl<'a, T: SequenceResult<'a> + std::fmt::Debug> Parser<'a, T> {
+  pub fn sequence(parsers: Vec<Parser<'a, T>>) -> ParserSequence<'a, T> {
     ParserSequence::new(parsers)
   }
 }
 
-// Helper function to create a sequence from a list of parsers
-// pub fn sequence<T: SequenceResult>(parsers: Vec<Parser<T>>) -> ParserSequence<T> {
-//   ParserSequence::new(parsers)
-// }
-
-// // Add sequence implementation
-// impl<T: 'static, U: 'static> Parser<(T, U)> {
-//   pub fn sequence(first: Parser<T>, second: Parser<U>) -> Self
-//   where
-//     T: Clone + 'static,
-//     U: Clone + 'static,
-//   {
-//     Parser::new(move |input| {
-//       let start_index = input.start_index;
-
-//       // Parse the first part
-//       let first_result = first.run(input)?;
-
-//       // Parse the second part
-//       let second_result = match second.run(input) {
-//         Ok(second_value) => second_value,
-//         Err(e) => {
-//           input.start_index = start_index;
-//           return Err(e);
-//         }
-//       };
-
-//       Ok((first_result, second_result))
-//     })
-//   }
-// }
-
-// Add after your sequence implementation for Parser<(T, U)>
-
-// impl<T: 'static, U: 'static> Parser<(T, U)> {
-//   pub fn separated_by<S>(self, separator: Parser<S>) -> Parser<(T, U)>
-//   where
-//     T: Clone + 'static,
-//     U: Clone + 'static,
-//     S: Clone + 'static,
-//   {
-//     // First, uncomment the map function from your implementation
-//     let prefix_parser = separator.map(|_| ());
-
-//     // We need to implement the prefix method first
-//     let run_fn = self.run_fn.clone();
-
-//     Parser::new(move |input| {
-//       let start_index = input.start_index;
-
-//       // Parse the first part (no separator needed before first element)
-//       let first_parser = Parser::new({
-//         let run_fn = run_fn.clone();
-//         move |input| match (run_fn)(input) {
-//           Ok((first, _)) => Ok(first),
-//           Err(e) => Err(e),
-//         }
-//       });
-
-//       let first_result = match first_parser.run(input) {
-//         Ok(val) => val,
-//         Err(e) => {
-//           input.start_index = start_index;
-//           return Err(e);
-//         }
-//       };
-
-//       // Parse separator followed by second part
-//       // This is equivalent to second.prefix(separator.map(() => undefined)) in JS
-//       let second_parser = Parser::new({
-//         let run_fn = run_fn.clone();
-//         let prefix_parser = prefix_parser.clone();
-//         move |input| {
-//           // First parse the separator
-//           let sep_start = input.start_index;
-//           match prefix_parser.run(input) {
-//             Ok(_) => {
-//               // Now parse the second part
-//               match (run_fn)(input) {
-//                 Ok((_, second)) => Ok(second),
-//                 Err(e) => {
-//                   input.start_index = sep_start;
-//                   Err(e)
-//                 }
-//               }
-//             }
-//             Err(_) => {
-//               // No separator found, so no second part either
-//               Err(ParseError {
-//                 message: "Expected separator".to_string(),
-//               })
-//             }
-//           }
-//         }
-//       });
-
-//       // Parse the second part
-//       let second_result = match second_parser.run(input) {
-//         Ok(val) => val,
-//         Err(e) => {
-//           input.start_index = start_index;
-//           return Err(e);
-//         }
-//       };
-
-//       Ok((first_result, second_result))
-//     })
-//   }
-// }
-
-// Static methods implementation
-impl<T: 'static> Parser<T> {
-  pub fn one_or_more(parser: Parser<T>) -> Parser<Vec<T>>
-  where
-    T: Clone + 'static,
-  {
+impl<'a, T: Clone + 'a + std::fmt::Debug> Parser<'a, T> {
+  pub fn one_or_more(parser: Parser<'a, T>) -> Parser<'a, Vec<T>> {
     Parser::new(move |input| {
       let mut results = Vec::new();
       let start_index = input.start_index;
 
-      // Must have at least one result
       match parser.run(input) {
         Ok(value) => results.push(value),
         Err(e) => {
@@ -486,7 +257,6 @@ impl<T: 'static> Parser<T> {
         }
       }
 
-      // Then collect any additional matches
       loop {
         let current_index = input.start_index;
         match parser.run(input) {
@@ -498,31 +268,23 @@ impl<T: 'static> Parser<T> {
         }
       }
 
-      Ok(results)
+      Ok(Some(results))
     })
   }
-  pub fn never() -> Parser<T> {
+  pub fn never() -> Parser<'a, T> {
     Parser::new(|_| {
       Err(ParseError {
         message: "Never".to_string(),
       })
     })
   }
-  // pub fn optional(self) -> Parser<Option<T>> {
-  //   let run_fn = self.run_fn;
 
-  //   Parser::new(move |input| match (run_fn)(input) {
-  //     Ok(output) => Ok(Some(output)),
-  //     Err(_) => Ok(None),
-  //   })
-  // }
-
-  pub fn always(output: T) -> Parser<T>
+  pub fn always(output: T) -> Parser<'a, T>
   where
     T: Clone,
   {
     let output = output.clone();
-    Parser::new(move |_| Ok(output.clone()))
+    Parser::new(move |_| Ok(Some(output.clone())))
   }
 
   pub fn one_of(parsers: Vec<Parser<T>>) -> Parser<T>
@@ -537,7 +299,7 @@ impl<T: 'static> Parser<T> {
         let end_index = input.end_index;
 
         match parser.run(input) {
-          Ok(output) => return Ok(output),
+          Ok(output) => return Ok(Some(output)),
           Err(e) => {
             input.start_index = start_index;
             input.end_index = end_index;
@@ -558,11 +320,54 @@ impl<T: 'static> Parser<T> {
       })
     })
   }
+
+  pub fn flat_map<U, F>(&self, f: F) -> Parser<U>
+  where
+    F: Fn(T) -> Parser<'a, U> + 'a,
+    U: 'a + std::clone::Clone + std::fmt::Debug + std::fmt::Debug,
+  {
+    let run_fn = self.run_fn.clone();
+
+    Parser::new(move |input| {
+      let start_index = input.start_index;
+      let end_index = input.end_index;
+
+      let output1 = (run_fn)(input)?;
+
+      // Return early if output1 is None
+      if output1.is_none() {
+        return Ok(None);
+      }
+
+      let second_parser = f(output1.expect("Output should not be None"));
+
+      match second_parser.run(input) {
+        Ok(output2) => Ok(Some(output2)),
+        Err(e) => {
+          input.start_index = start_index;
+          input.end_index = end_index;
+          Err(e)
+        }
+      }
+    })
+  }
+
+  pub fn skip(&'a self, skip_parser: Parser<'a, T>) -> Parser<'a, T> {
+    // Implementation follows the JavaScript version:
+    // return this.flatMap((output) => skipParser.map(() => output));
+
+    self.flat_map(move |output| {
+      // Create a copy of output that can be moved into the closure
+      let output_clone = output.clone();
+
+      // Map the skip_parser to always return the original output
+      skip_parser.map(move |_| output_clone.clone())
+    })
+  }
 }
 
-// Basic parser implementations
-impl Parser<String> {
-  pub fn string(s: &'static str) -> Parser<String> {
+impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
+  pub fn string(s: &'a str) -> Parser<'a, String> {
     Parser::new(move |input| {
       if input.start_index + s.len() > input.end_index {
         return Err(ParseError {
@@ -570,10 +375,9 @@ impl Parser<String> {
         });
       }
 
-      dbg!(&input, s);
       if input.starts_with(s) {
         input.start_index += s.len();
-        Ok(s.to_string())
+        Ok(Some(s.to_string()))
       } else {
         Err(ParseError {
           message: format!("Expected {}, got {}", s, &input.string[input.start_index..]),
@@ -582,12 +386,12 @@ impl Parser<String> {
     })
   }
 
-  pub fn digit() -> Parser<String> {
+  pub fn digit() -> Parser<'a, String> {
     Parser::new(|input| {
       if let Some(c) = input.first() {
         if c.is_ascii_digit() {
           input.start_index += c.len_utf8();
-          Ok(c.to_string())
+          Ok(Some(c.to_string()))
         } else {
           Err(ParseError {
             message: format!("Expected digit, got {}", c),
@@ -601,136 +405,133 @@ impl Parser<String> {
     })
   }
 
-  pub fn natural() -> Parser<u32> {
-    // Parse one or more digits, then check the result
-    Parser::one_or_more(Parser::digit())
+  pub fn natural() -> Parser<'a, u32> {
+    Parser::one_or_more(Parser::<'a, String>::digit())
       .where_fn(|digits| !digits.is_empty() && digits[0] != "0")
       .map(|digits| {
-        let num_str = digits.join("");
-        num_str.parse::<u32>().unwrap()
+        let num_str = digits.expect("Digits should not be empty").join("");
+        num_str.parse::<u32>().unwrap_or_else(|_| {
+          panic!("Failed to parse natural number: {}", num_str);
+        })
       })
   }
 
-  pub fn whole() -> Parser<u32> {
-    // Use one_or_more with digit parser, then map to u32
-    Parser::one_or_more(Parser::digit()).map(|digits| {
-      let num_str = digits.join("");
-      num_str.parse::<u32>().unwrap()
+  pub fn whole() -> Parser<'a, i32> {
+    Parser::one_or_more(Parser::<'a, String>::digit()).map(|digits| {
+      let num_str = digits.expect("Digits should not be empty").join("");
+      num_str.parse::<i32>().unwrap_or_else(|_| {
+        panic!("Failed to parse whole number: {}", num_str);
+      })
     })
   }
 
-  pub fn integer() -> Parser<i32> {
-    // Parse optional minus sign, followed by whole number
-    let sign_parser = Parser::string("-")
+  pub fn integer() -> Parser<'a, i32> {
+    let sign_parser = Parser::<'a, String>::string("-")
       .optional()
       .map(|minus_sign| if minus_sign.is_some() { -1 } else { 1 });
 
-    let whole_parser = Parser::whole().map(|n| n as i32);
+    let whole_parser = Parser::<'a, String>::whole();
 
-    Parser::sequence(vec![sign_parser, whole_parser]).to_parser(|values| values[0] * values[1])
+    Parser::sequence(vec![sign_parser, whole_parser])
+      .to_parser(|values| values)
+      .map(|values| {
+        let values = values.expect("Values should not be empty");
+
+        values[0] * values[1]
+      })
   }
+  pub fn float() -> Parser<'a, f32> {
+    let sign_parser = Parser::<'a, String>::string("-")
+      .optional()
+      .map(|minus_sign| if minus_sign.is_some() { -1.0 } else { 1.0 });
 
-  pub fn float() -> Parser<f32> {
-    // Alternative implementation with flatter structure
     Parser::one_of(vec![
-      // Case 1: Full float format like "-123.456"
+      // Case 1: Handle both "123.456" and ".456" formats in one parser
       {
-        let sign_parser =
-          Parser::string("-")
-            .optional()
-            .map(|minus_sign| if minus_sign.is_some() { -1.0 } else { 1.0 });
+        // Optional whole part (may be empty for ".456" style) - map to f32
+        let whole_parser = Parser::zero_or_more(Parser::<'a, String>::digit()).map(|digits| {
+          let s = digits.expect("Digits should not be empty").join("");
+          if s.is_empty() {
+            0.0
+          } else {
+            s.parse::<f32>()
+              .unwrap_or_else(|_| panic!("Failed to parse whole part: {}", s))
+          }
+        });
 
-        let whole_parser = Parser::whole().map(|n| n as f32);
-        let dot_parser = Parser::string(".").map(|_| 0.0); // Map to f32 with a placeholder value
-        let digits_parser = Parser::one_or_more(Parser::digit()).map(|_| 0.0); // Map to f32 with a placeholder value
+        let dot_parser = Parser::<'a, String>::string(".").map(|_| 0.0);
+        let frac_parser = Parser::one_or_more(Parser::<'a, String>::digit()).map(|digits| {
+          let s = digits.expect("Digits should not be empty").join("");
+          let denominator = 10.0_f32.powi(s.len() as i32);
+          s.parse::<f32>()
+            .unwrap_or_else(|_| panic!("Failed to parse whole part: {}", s))
+            / denominator
+        });
 
-        Parser::sequence(vec![sign_parser, whole_parser, dot_parser, digits_parser]).to_parser(
-          |values| {
-            let sign = values[0];
-            let whole = values[1];
-            // Skip value[2] which is just the "." string
-            let digits = &values[3];
-            // let fraction = digits.join("");
+        Parser::sequence(vec![
+          sign_parser.clone(),
+          whole_parser,
+          dot_parser,
+          frac_parser,
+        ])
+        .to_parser(|values| values)
+        .map(|values| {
+          let values = values.expect("Values should not be empty");
 
-            sign * format!("{}.{}", whole, digits).parse::<f32>().unwrap()
-          },
-        )
-      },
-      // Case 2: Decimal fraction like "-.456"
-      {
-        let sign_parser =
-          Parser::string("-")
-            .optional()
-            .map(|minus_sign| if minus_sign.is_some() { -1.0 } else { 1.0 });
-
-        let dot_parser = Parser::string(".").map(|_| 0.0); // Map to f32 with a placeholder value
-        let digits_parser = Parser::one_or_more(Parser::digit()).map(|digits| 0.0); // Map to f32 with a placeholder value
-
-        Parser::sequence(vec![sign_parser, dot_parser, digits_parser]).to_parser(|values| {
           let sign = values[0];
-          // Skip value[1] which is just the "." string
-          let digits = &values[2];
-          // let fraction = digits.join("");
+          let whole = values[1];
+          let frac = values[3];
 
-          sign * format!("0.{}", digits).parse::<f32>().unwrap()
+          sign * (whole + frac)
         })
       },
-      // Case 3: Integer as float
-      Parser::integer().map(|n| n as f32),
+      // Case 2: Integer as float (simpler implementation)
+      Parser::sequence(vec![
+        sign_parser,
+        Parser::<'a, String>::whole().map(|n| n.expect("Expected a whole number") as f32),
+      ])
+      .to_parser(|values| values)
+      .map(|values| {
+        let values = values.expect("Expected values to be present");
+
+        values[0] * values[1]
+      }),
     ])
   }
 
-  // pub fn letter() -> Parser<String> {
+  pub fn whitespace() -> Parser<'a, ()> {
+    // This implementation returns a parser that matches one or more whitespace characters
+    Parser::one_or_more(Parser::one_of(vec![
+      // Spaces
+      Parser::<'a, String>::string(" ").map(|_| ()),
+      // Newlines
+      Parser::<'a, String>::string("\n").map(|_| ()),
+      // Carriage returns
+      Parser::<'a, String>::string("\r\n").map(|_| ()),
+    ]))
+    .map(|_| ())
+  }
+
+  // pub fn whitespace() -> Parser<'a, ()> {
   //   Parser::new(|input| {
-  //     if let Some(c) = input.first() {
-  //       if c.is_alphabetic() {
+  //     let mut found = false;
+
+  //     while let Some(c) = input.first() {
+  //       if c.is_whitespace() {
   //         input.start_index += c.len_utf8();
-  //         Ok(c.to_string())
+  //         found = true;
   //       } else {
-  //         Err(ParseError {
-  //           message: format!("Expected letter, got {}", c),
-  //         })
+  //         break;
   //       }
+  //     }
+
+  //     if found {
+  //       Ok(())
   //     } else {
   //       Err(ParseError {
-  //         message: "End of input".to_string(),
+  //         message: "Expected whitespace".to_string(),
   //       })
   //     }
   //   })
   // }
-
-  pub fn whitespace() -> Parser<()> {
-    Parser::new(|input| {
-      let mut found = false;
-
-      while let Some(c) = input.first() {
-        if c.is_whitespace() {
-          input.start_index += c.len_utf8();
-          found = true;
-        } else {
-          break;
-        }
-      }
-
-      if found {
-        Ok(())
-      } else {
-        Err(ParseError {
-          message: "Expected whitespace".to_string(),
-        })
-      }
-    })
-  }
 }
-
-// Add space method to sequences
-// impl<T: 'static, U: 'static> Parser<(T, U)> {
-//   // Convenience method to separate by whitespace
-//   pub fn space(self) -> Parser<(T, U)>
-//   where
-//     T: Clone + 'static,
-//     U: Clone + 'static,
-//   {
-//     self.separated_b(Parser::whitespace())
-//   }
-// }

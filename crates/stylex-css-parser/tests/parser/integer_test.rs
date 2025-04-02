@@ -5,7 +5,7 @@ mod integer {
 
   #[test]
   fn parse_an_integer() {
-    let parser = Parser::integer();
+    let parser = Parser::<'static, i32>::integer();
 
     let integers = ["0", "1", "1234567890", "-1", "-1234567890"];
 
@@ -19,7 +19,7 @@ mod integer {
 
   #[test]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::digit();
+    let parser = Parser::<'static, i32>::digit();
 
     let strings = ["foo", ".0", ".", "a", "A", "!", " "];
 

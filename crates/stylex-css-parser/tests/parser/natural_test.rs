@@ -5,7 +5,7 @@ mod natural {
 
   #[test]
   fn parse_a_natural_number() {
-    let parser = Parser::natural();
+    let parser = Parser::<'static, f32>::natural();
 
     let natural_numbers = ["1", "1234567890"];
 
@@ -19,7 +19,7 @@ mod natural {
 
   #[test]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::natural();
+    let parser = Parser::<'static, f32>::natural();
 
     let strings = ["foo", ".0", ".", "-1", "-1234567890"];
 

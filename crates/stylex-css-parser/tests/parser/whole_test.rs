@@ -5,21 +5,21 @@ mod whole {
 
   #[test]
   fn parse_a_natural_number() {
-    let parser = Parser::whole();
+    let parser = Parser::<'static, String>::whole();
 
     let wholes = ["0", "1", "1234567890"];
 
     for whole in wholes.iter() {
       assert_eq!(
         parser.parse(whole.as_ref()).unwrap(),
-        whole.parse::<u32>().unwrap()
+        whole.parse::<i32>().unwrap()
       );
     }
   }
 
   #[test]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::whole();
+    let parser = Parser::<'static, String>::whole();
 
     let strings = ["foo", ".0", ".", "-1", "-1234567890"];
 

@@ -41,12 +41,12 @@ swc_core = { version = "16.4.0" }
 lazy_static = "1.5.0"
 serde_json = "1.0.140"
 regex = "1.11.1"
-indexmap = "2.7.1"
+indexmap = "2.8.0"
 derive_more = { version = "2.0.1", features = ["display"] }
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }
 phf = { version = "0.11.3" }
-once_cell = { version = "1.20.3" }
+once_cell = { version = "1.21.3" }
 colored = { version = "3.0.0" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }

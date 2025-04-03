@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod digit {
+mod alpha_value {
 
   use stylex_css_parser::parser::Parser;
 

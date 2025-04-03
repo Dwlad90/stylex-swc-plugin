@@ -4,7 +4,7 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct SubString<'a> {
   string: &'a str,
-  start_index: usize,
+  pub(crate) start_index: usize,
   end_index: usize,
 }
 
@@ -53,7 +53,7 @@ impl std::error::Error for ParseError {}
 #[derive(Clone)]
 pub struct Parser<'a, T: 'a + Clone> {
   // run_fn: Rc<dyn Fn(&mut SubString) -> Result<T, ParseError> + 'a>,
-  run_fn: Rc<dyn Fn(&mut SubString) -> Result<Option<T>, ParseError> + 'a>,
+  pub(crate) run_fn: Rc<dyn Fn(&mut SubString) -> Result<Option<T>, ParseError> + 'a>,
 }
 
 impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {

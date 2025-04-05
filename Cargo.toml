@@ -61,6 +61,7 @@ color-backtrace = { version = "0.7.0" }
 ctor = "0.4.0"
 env_logger = "0.11.6"
 rustc-hash="2.1.1"
+rust_decimal = { version = "1.37.1", features = ["serde"] }
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

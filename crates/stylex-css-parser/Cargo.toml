@@ -29,6 +29,7 @@ once_cell.workspace = true
 indexmap.workspace = true
 cssparser = { version = "0.34.0" }
 lazy_static.workspace = true
+rust_decimal.workspace = true
 
 package-json = "0.4.0"
 pathdiff = { version = "0.2.3" }

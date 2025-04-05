@@ -1,42 +1,9 @@
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use std::fmt::{Debug, Display};
 use std::rc::Rc;
 
-#[derive(Debug)]
-pub struct SubString<'a> {
-  string: &'a str,
-  pub(crate) start_index: usize,
-  end_index: usize,
-}
-
-impl<'a> SubString<'a> {
-  pub fn new(s: &'a str) -> Self {
-    Self {
-      string: s,
-      start_index: 0,
-      end_index: s.len(),
-    }
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.start_index >= self.end_index
-  }
-
-  pub fn first(&self) -> Option<char> {
-    if self.is_empty() {
-      None
-    } else {
-      self.string[self.start_index..].chars().next()
-    }
-  }
-
-  pub fn starts_with(&self, prefix: &str) -> bool {
-    if self.is_empty() {
-      return false;
-    }
-
-    self.string[self.start_index..].starts_with(prefix)
-  }
-}
+use crate::base_types::SubString;
 
 #[derive(Debug, PartialEq)]
 pub struct ParseError {
@@ -321,7 +288,7 @@ impl<'a, T: Clone + 'a + std::fmt::Debug> Parser<'a, T> {
     })
   }
 
-  pub fn flat_map<U, F>(&self, f: F) -> Parser<U>
+  pub fn flat_map<U, F>(&self, f: F) -> Parser<'a, U>
   where
     F: Fn(T) -> Parser<'a, U> + 'a,
     U: 'a + std::clone::Clone + std::fmt::Debug + std::fmt::Debug,
@@ -352,7 +319,10 @@ impl<'a, T: Clone + 'a + std::fmt::Debug> Parser<'a, T> {
     })
   }
 
-  pub fn skip(&'a self, skip_parser: Parser<'a, T>) -> Parser<'a, T> {
+  pub fn skip<S>(&self, skip_parser: Parser<'a, S>) -> Parser<'a, T>
+  where
+    S: 'a + std::clone::Clone + std::fmt::Debug,
+  {
     // Implementation follows the JavaScript version:
     // return this.flatMap((output) => skipParser.map(() => output));
 
@@ -478,11 +448,18 @@ impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
         .map(|values| {
           let values = values.expect("Values should not be empty");
 
-          let sign = values[0];
-          let whole = values[1];
-          let frac = values[3];
+          let sign = Decimal::from_f32_retain(values[0]).unwrap();
+          let whole = Decimal::from_f32_retain(values[1]).unwrap();
+          let frac = Decimal::from_f32_retain(values[3]).unwrap();
 
-          sign * (whole + frac)
+          // dbg!(&sign, &whole, &frac, sign * (whole + frac));
+          // let result = sign * (whole + frac);
+          // (result * 100000.0).round() / 100000.0
+
+          let result = sign * (whole + frac);
+          // dbg!(&result );
+
+          result.round_dp(5).to_f32().unwrap()
         })
       },
       // Case 2: Integer as float (simpler implementation)
@@ -493,6 +470,7 @@ impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
       .to_parser(|values| values)
       .map(|values| {
         let values = values.expect("Expected values to be present");
+        dbg!(&values);
 
         values[0] * values[1]
       }),

@@ -29,7 +29,6 @@ impl<'a> TokenList<'a> {
     }
   }
   pub fn consume_next_token(&mut self) -> Result<Option<Token<'a>>, Error> {
-    dbg!(&self.current_index);
     if self.current_index < self.consumed_tokens.len() {
       let token = self.consumed_tokens[self.current_index].clone();
 
@@ -44,7 +43,6 @@ impl<'a> TokenList<'a> {
     }
 
     let token = self.tokens.remove(0);
-    dbg!(&token);
 
     self.consumed_tokens.push(token.clone());
     self.current_index += 1;

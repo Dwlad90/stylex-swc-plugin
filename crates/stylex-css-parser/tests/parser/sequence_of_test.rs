@@ -5,38 +5,42 @@ mod sequence {
 
   #[test]
   fn parse_a_sequence() {
-    let parser = Parser::sequence(vec![
-      Parser::<'static, String>::string("foo"),
-      Parser::<'static, String>::string("bar"),
-      Parser::<'static, String>::string("baz"),
-    ])
-    .to_parser(|p| p);
-    // .map(|(first, (second, third))| {
-    //   // Convert the nested tuple to a flat vector
-    //   vec![first, second, third]
-    // });
-    let a = parser.parse("foobarbaz").unwrap();
+    let parser = Parser::<'static, String>::sequence::<String, String, String, String>(
+      Some(Parser::<'static, String>::string("foo")),
+      Some(Parser::<'static, String>::string("bar")),
+      Some(Parser::<'static, String>::string("baz")),
+      None,
+    )
+    .to_parser();
+
     assert_eq!(
-      a,
-      vec!["foo".to_string(), "bar".to_string(), "baz".to_string(),]
+      parser.parse("foobarbaz").unwrap(),
+      (
+        Some("foo".to_string()),
+        Some("bar".to_string()),
+        Some("baz".to_string()),
+        None
+      )
     );
   }
 
   #[test]
   fn parse_a_sequence_separated_by_whitespace() {
-    let parser = Parser::sequence(vec![
-      Parser::<'static, String>::string("foo"),
-      Parser::<'static, String>::string("bar"),
-      Parser::<'static, String>::string("baz"),
-    ])
+    let parser = Parser::<'static, String>::sequence::<String, String, String, String>(
+      Some(Parser::<'static, String>::string("foo")),
+      Some(Parser::<'static, String>::string("bar")),
+      Some(Parser::<'static, String>::string("baz")),
+      None,
+    )
     .separated_by(Parser::<'static, String>::whitespace().map(|_| String::new()))
-    .to_parser(|p| p);
+    .to_parser();
 
-    let output = vec![
-      String::from("foo"),
-      String::from("bar"),
-      String::from("baz"),
-    ];
+    let output = (
+      Some(String::from("foo")),
+      Some(String::from("bar")),
+      Some(String::from("baz")),
+      None,
+    );
 
     assert_eq!(parser.parse("foo bar baz").unwrap(), output);
     assert_eq!(parser.parse("foo   bar      baz").unwrap(), output);
@@ -45,23 +49,25 @@ mod sequence {
 
   #[test]
   fn parse_a_sequence_separated_by_optional_whitespace() {
-    let parser = Parser::sequence(vec![
-      Parser::<'static, String>::string("foo"),
-      Parser::<'static, String>::string("bar"),
-      Parser::<'static, String>::string("baz"),
-    ])
+    let parser = Parser::<'static, String>::sequence::<String, String, String, String>(
+      Some(Parser::<'static, String>::string("foo")),
+      Some(Parser::<'static, String>::string("bar")),
+      Some(Parser::<'static, String>::string("baz")),
+      None,
+    )
     .separated_by(
       Parser::<'static, String>::whitespace()
         .map(|_| String::new())
         .optional(),
     )
-    .to_parser(|p| p);
+    .to_parser();
 
-    let output = vec![
-      String::from("foo"),
-      String::from("bar"),
-      String::from("baz"),
-    ];
+    let output = (
+      Some(String::from("foo")),
+      Some(String::from("bar")),
+      Some(String::from("baz")),
+      None,
+    );
 
     assert_eq!(parser.parse("foobarbaz").unwrap(), output);
     assert_eq!(parser.parse("foo bar baz").unwrap(), output);
@@ -72,12 +78,13 @@ mod sequence {
   #[test]
   #[should_panic(expected = "Expected baz, got qux")]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::sequence(vec![
-      Parser::<'static, String>::string("foo"),
-      Parser::<'static, String>::string("bar"),
-      Parser::<'static, String>::string("baz"),
-    ])
-    .to_parser(|p| p);
+    let parser = Parser::<'static, String>::sequence::<String, String, String, String>(
+      Some(Parser::<'static, String>::string("foo")),
+      Some(Parser::<'static, String>::string("bar")),
+      Some(Parser::<'static, String>::string("baz")),
+      None,
+    )
+    .to_parser();
 
     parser.parse("foobarqux").unwrap();
   }

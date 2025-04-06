@@ -57,7 +57,6 @@ impl<'a, T: 'a + Debug + std::clone::Clone> TokenParser<'a, T> {
     let initial_index = tokens.current_index;
 
     let output = (self.parse_fn)(&mut tokens);
-    dbg!(&output);
 
     if let Err(e) = &output {
       let consumed_tokens = tokens.slice(initial_index, None);
@@ -369,7 +368,6 @@ impl<'a, T: 'a + Debug + std::clone::Clone> TokenParser<'a, T> {
         let current_index = tokens.current_index;
 
         let token_result = tokens.consume_next_token();
-        dbg!(&token_result);
 
         match token_result {
           Ok(Some(token)) => {
@@ -548,7 +546,6 @@ impl<'a, T: 'a + Debug + Clone> TokenParserSet<'a, T> {
           let mut errors = Vec::new();
 
           for (j, (parser, index)) in parsers.iter().enumerate() {
-            dbg!(&parser.label, &i, &j);
             if indices.contains(&j) {
               continue;
             }
@@ -571,7 +568,6 @@ impl<'a, T: 'a + Debug + Clone> TokenParserSet<'a, T> {
             let current_pos = input.current_index;
 
             let result = (parser_to_use.parse_fn)(input);
-            dbg!(&parser.label, &result);
             match result {
               Ok(value) => {
                 found = true;

@@ -1,4 +1,6 @@
 mod alpha_value_test;
 mod angle_percentage_test;
 mod angle_test;
+mod blend_mode_test;
+mod calc_constant_test;
 mod color_test;

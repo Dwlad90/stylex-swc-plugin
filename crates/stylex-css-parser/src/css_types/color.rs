@@ -1,6 +1,6 @@
-use super::alpha_value::AlphaValue;
 use super::angle::Angle;
 use super::common_types::Percentage;
+use super::{alpha_value::AlphaValue, angle::AngleUnit};
 use crate::parser::Parser;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -565,7 +565,7 @@ impl Hsl {
       Angle::parse(),
       Parser::<f32>::float().map(|v| Angle {
         value: v.expect("Failed to parse angle"),
-        unit: "deg".to_string(),
+        unit: AngleUnit::Deg,
       }),
     ]);
 
@@ -628,7 +628,7 @@ impl Hsla {
       Angle::parse(),
       Parser::<f32>::float().map(|v| Angle {
         value: v.expect("Failed to parse angle"),
-        unit: "deg".to_string(),
+        unit: AngleUnit::Deg,
       }),
     ]);
 

@@ -1,17 +1,84 @@
+use anyhow::bail;
+
+use std::convert::TryFrom;
+use std::{
+  fmt::{Display, Formatter, Result as FmtResult},
+  str::FromStr,
+};
+
 use crate::parser::Parser;
-use std::fmt::{Display, Formatter, Result as FmtResult};
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum AngleUnit {
+  Deg,
+  Grad,
+  Rad,
+  Turn,
+  #[default]
+  Default,
+}
+
+impl AngleUnit {
+  fn as_str(&self) -> &'static str {
+    match self {
+      AngleUnit::Deg => "deg",
+      AngleUnit::Grad => "grad",
+      AngleUnit::Rad => "rad",
+      AngleUnit::Turn => "turn",
+      AngleUnit::Default => "",
+    }
+  }
+}
+
+impl Display for AngleUnit {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    f.write_str(self.as_str())
+  }
+}
+
+impl FromStr for AngleUnit {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s {
+      "deg" => Ok(AngleUnit::Deg),
+      "grad" => Ok(AngleUnit::Grad),
+      "rad" => Ok(AngleUnit::Rad),
+      "turn" => Ok(AngleUnit::Turn),
+      "" => Ok(AngleUnit::Default),
+      _ => bail!("Invalid angle unit: {}", s),
+    }
+  }
+}
+
+impl From<AngleUnit> for String {
+  fn from(unit: AngleUnit) -> Self {
+    unit.as_str().to_string()
+  }
+}
+
+impl TryFrom<String> for AngleUnit {
+  type Error = anyhow::Error;
+
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    value.parse()
+  }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Angle {
   pub value: f32,
-  pub unit: String,
+  pub unit: AngleUnit,
 }
 
 impl Angle {
   pub fn new(value: f32, unit: Option<String>) -> Self {
     Angle {
       value,
-      unit: unit.unwrap_or_default(),
+      unit: match unit {
+        Some(u) => AngleUnit::try_from(u).unwrap_or_default(),
+        None => AngleUnit::default(),
+      },
     }
   }
 
@@ -41,7 +108,7 @@ impl From<Angle> for String {
 
 impl From<String> for Angle {
   fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(s.as_str());
+    let mut input = crate::base_types::SubString::new(&s);
     Angle::parse()
       .run(&mut input)
       .expect("Failed to parse angle")
@@ -51,14 +118,14 @@ impl From<String> for Angle {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Deg {
   pub value: f32,
-  pub unit: String,
+  pub unit: AngleUnit,
 }
 
 impl Deg {
   pub fn new(value: f32) -> Self {
     Deg {
       value,
-      unit: "deg".to_string(),
+      unit: AngleUnit::Deg,
     }
   }
 
@@ -108,7 +175,7 @@ impl From<Angle> for Deg {
 
 impl From<String> for Deg {
   fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(s.as_str());
+    let mut input = crate::base_types::SubString::new(&s);
     Angle::parse()
       .run(&mut input)
       .expect("Failed to parse angle")
@@ -119,14 +186,14 @@ impl From<String> for Deg {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Grad {
   pub value: f32,
-  pub unit: String,
+  pub unit: AngleUnit,
 }
 
 impl Grad {
   pub fn new(value: f32) -> Self {
     Grad {
       value,
-      unit: "grad".to_string(),
+      unit: AngleUnit::Grad,
     }
   }
 
@@ -166,7 +233,7 @@ impl From<Angle> for Grad {
 
 impl From<String> for Grad {
   fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(s.as_str());
+    let mut input = crate::base_types::SubString::new(&s);
     Angle::parse()
       .run(&mut input)
       .expect("Failed to parse angle")
@@ -185,14 +252,14 @@ impl From<Grad> for Angle {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rad {
   pub value: f32,
-  pub unit: String,
+  pub unit: AngleUnit,
 }
 
 impl Rad {
   pub fn new(value: f32) -> Self {
     Rad {
       value,
-      unit: "rad".to_string(),
+      unit: AngleUnit::Rad,
     }
   }
 
@@ -232,7 +299,7 @@ impl From<Angle> for Rad {
 }
 impl From<String> for Rad {
   fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(s.as_str());
+    let mut input = crate::base_types::SubString::new(&s);
     Angle::parse()
       .run(&mut input)
       .expect("Failed to parse angle")
@@ -251,14 +318,14 @@ impl From<Rad> for Angle {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Turn {
   pub value: f32,
-  pub unit: String,
+  pub unit: AngleUnit,
 }
 
 impl Turn {
   pub fn new(value: f32) -> Self {
     Turn {
       value,
-      unit: "turn".to_string(),
+      unit: AngleUnit::Turn,
     }
   }
 
@@ -297,7 +364,7 @@ impl From<Angle> for Turn {
 }
 impl From<String> for Turn {
   fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(s.as_str());
+    let mut input = crate::base_types::SubString::new(&s);
     Angle::parse()
       .run(&mut input)
       .expect("Failed to parse angle")

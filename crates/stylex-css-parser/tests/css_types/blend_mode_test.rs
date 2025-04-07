@@ -1,26 +1,67 @@
 #[cfg(test)]
 mod test_css_type_blend_mode {
-
-  use stylex_css_parser::css_types::blend_mode::blend_mode;
+  use stylex_css_parser::css_types::blend_mode::BlendMode;
 
   #[test]
   fn parses_valid_blend_mode_values() {
-    assert_eq!(blend_mode().parse("normal").unwrap(), "normal");
-    assert_eq!(blend_mode().parse("multiply").unwrap(), "multiply");
-    assert_eq!(blend_mode().parse("screen").unwrap(), "screen");
-    assert_eq!(blend_mode().parse("overlay").unwrap(), "overlay");
-    assert_eq!(blend_mode().parse("darken").unwrap(), "darken");
-    assert_eq!(blend_mode().parse("lighten").unwrap(), "lighten");
-    assert_eq!(blend_mode().parse("color-dodge").unwrap(), "color-dodge");
-    assert_eq!(blend_mode().parse("color-burn").unwrap(), "color-burn");
-    assert_eq!(blend_mode().parse("hard-light").unwrap(), "hard-light");
-    assert_eq!(blend_mode().parse("soft-light").unwrap(), "soft-light");
-    assert_eq!(blend_mode().parse("difference").unwrap(), "difference");
-    assert_eq!(blend_mode().parse("exclusion").unwrap(), "exclusion");
-    assert_eq!(blend_mode().parse("hue").unwrap(), "hue");
-    assert_eq!(blend_mode().parse("saturation").unwrap(), "saturation");
-    assert_eq!(blend_mode().parse("color").unwrap(), "color");
-    assert_eq!(blend_mode().parse("luminosity").unwrap(), "luminosity");
+    assert_eq!(
+      BlendMode::parse().parse("normal").unwrap(),
+      BlendMode::Normal
+    );
+    assert_eq!(
+      BlendMode::parse().parse("multiply").unwrap(),
+      BlendMode::Multiply
+    );
+    assert_eq!(
+      BlendMode::parse().parse("screen").unwrap(),
+      BlendMode::Screen
+    );
+    assert_eq!(
+      BlendMode::parse().parse("overlay").unwrap(),
+      BlendMode::Overlay
+    );
+    assert_eq!(
+      BlendMode::parse().parse("darken").unwrap(),
+      BlendMode::Darken
+    );
+    assert_eq!(
+      BlendMode::parse().parse("lighten").unwrap(),
+      BlendMode::Lighten
+    );
+    assert_eq!(
+      BlendMode::parse().parse("color-dodge").unwrap(),
+      BlendMode::ColorDodge
+    );
+    assert_eq!(
+      BlendMode::parse().parse("color-burn").unwrap(),
+      BlendMode::ColorBurn
+    );
+    assert_eq!(
+      BlendMode::parse().parse("hard-light").unwrap(),
+      BlendMode::HardLight
+    );
+    assert_eq!(
+      BlendMode::parse().parse("soft-light").unwrap(),
+      BlendMode::SoftLight
+    );
+    assert_eq!(
+      BlendMode::parse().parse("difference").unwrap(),
+      BlendMode::Difference
+    );
+    assert_eq!(
+      BlendMode::parse().parse("exclusion").unwrap(),
+      BlendMode::Exclusion
+    );
+    assert_eq!(BlendMode::parse().parse("hue").unwrap(), BlendMode::Hue);
+    assert_eq!(
+      BlendMode::parse().parse("saturation").unwrap(),
+      BlendMode::Saturation
+    );
+    assert_eq!(BlendMode::parse().parse("color").unwrap(), BlendMode::Color);
+    assert_eq!(
+      BlendMode::parse().parse("luminosity").unwrap(),
+      BlendMode::Luminosity
+    );
   }
 
   // #[test]

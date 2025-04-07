@@ -4,6 +4,7 @@ mod angle_test;
 mod blend_mode_test;
 mod calc_constant_test;
 mod color_test;
+mod dimension;
 mod frequency_test;
 mod length_percentage_test;
 mod length_test;

@@ -5,6 +5,7 @@ pub mod blend_mode;
 pub mod calc_constant;
 pub mod color;
 pub mod common_types;
+pub mod dimension;
 pub mod frequency;
 pub mod length;
 pub mod length_percentage;

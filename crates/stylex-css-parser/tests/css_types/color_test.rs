@@ -1,7 +1,4 @@
-use stylex_css_parser::css_types::angle::{Angle, Deg};
-use stylex_css_parser::css_types::color::{Color, HashColor, Hsl, Hsla, NamedColor, Rgb, Rgba};
-use stylex_css_parser::css_types::common_types::Percentage;
-use stylex_css_parser::parser::Parser;
+use stylex_css_parser::css_types::color::{Color, HashColor, NamedColor, Rgb, Rgba};
 
 #[cfg(test)]
 mod tests {

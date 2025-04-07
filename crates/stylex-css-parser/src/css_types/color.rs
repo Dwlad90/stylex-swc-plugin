@@ -1,10 +1,9 @@
 use super::alpha_value::AlphaValue;
-use super::angle::{Angle, Deg};
+use super::angle::Angle;
 use super::common_types::Percentage;
 use crate::parser::Parser;
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde::de::value;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug, Clone, PartialEq)]

@@ -7,4 +7,5 @@ pub mod color;
 pub mod common_types;
 pub mod frequency;
 pub mod length;
+pub mod length_percentage;
 pub mod number;

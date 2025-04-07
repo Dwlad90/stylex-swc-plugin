@@ -1,5 +1,7 @@
 use crate::parser::Parser;
+use anyhow::bail;
 use std::fmt;
+use std::{convert::TryFrom, fmt::Display};
 
 use super::number::number;
 
@@ -43,9 +45,9 @@ pub enum LengthUnit {
   Pt,
 }
 
-impl fmt::Display for LengthUnit {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let s = match self {
+impl LengthUnit {
+  fn as_str(&self) -> &'static str {
+    match self {
       Self::Cap => "cap",
       Self::Ch => "ch",
       Self::Em => "em",
@@ -81,13 +83,18 @@ impl fmt::Display for LengthUnit {
       Self::Mm => "mm",
       Self::In => "in",
       Self::Pt => "pt",
-    };
-    write!(f, "{}", s)
+    }
+  }
+}
+
+impl fmt::Display for LengthUnit {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.as_str())
   }
 }
 
 impl std::str::FromStr for LengthUnit {
-  type Err = ();
+  type Err = anyhow::Error;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s {
@@ -126,51 +133,22 @@ impl std::str::FromStr for LengthUnit {
       "mm" => Ok(Self::Mm),
       "in" => Ok(Self::In),
       "pt" => Ok(Self::Pt),
-      _ => Err(()),
+      _ => bail!("Invalid length unit: {}", s),
     }
   }
 }
 
-impl From<String> for LengthUnit {
-  fn from(unit_str: String) -> Self {
-    match unit_str.as_str() {
-      "cap" => Self::Cap,
-      "ch" => Self::Ch,
-      "em" => Self::Em,
-      "ex" => Self::Ex,
-      "ic" => Self::Ic,
-      "lh" => Self::Lh,
-      "rem" => Self::Rem,
-      "rlh" => Self::Rlh,
-      "vh" => Self::Vh,
-      "svh" => Self::Svh,
-      "lvh" => Self::Lvh,
-      "dvh" => Self::Dvh,
-      "vw" => Self::Vw,
-      "svw" => Self::Svw,
-      "lvw" => Self::Lvw,
-      "dvw" => Self::Dvw,
-      "vmin" => Self::Vmin,
-      "svmin" => Self::Svmin,
-      "lvmin" => Self::Lvmin,
-      "dvmin" => Self::Dvmin,
-      "vmax" => Self::Vmax,
-      "svmax" => Self::Svmax,
-      "lvmax" => Self::Lvmax,
-      "dvmax" => Self::Dvmax,
-      "cqw" => Self::Cqw,
-      "cqi" => Self::Cqi,
-      "cqh" => Self::Cqh,
-      "cqb" => Self::Cqb,
-      "cqmin" => Self::Cqmin,
-      "cqmax" => Self::Cqmax,
-      "px" => Self::Px,
-      "cm" => Self::Cm,
-      "mm" => Self::Mm,
-      "in" => Self::In,
-      "pt" => Self::Pt,
-      _ => panic!("Invalid length unit"),
-    }
+impl From<LengthUnit> for String {
+  fn from(unit: LengthUnit) -> Self {
+    unit.as_str().to_string()
+  }
+}
+
+impl TryFrom<String> for LengthUnit {
+  type Error = anyhow::Error;
+
+  fn try_from(value: String) -> Result<Self, Self::Error> {
+    value.parse()
   }
 }
 
@@ -242,6 +220,27 @@ impl LengthBasedOnFont {
   }
 }
 
+impl fmt::Display for LengthBasedOnFont {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Length> for String {
+  fn from(length: Length) -> Self {
+    length.to_string()
+  }
+}
+
+impl From<String> for Length {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Length::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+  }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct LengthBasedOnViewport {
   pub value: f32,
@@ -281,6 +280,12 @@ impl LengthBasedOnViewport {
       Lvmax::parse(),
       Dvmax::parse(),
     ])
+  }
+}
+
+impl fmt::Display for LengthBasedOnViewport {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
   }
 }
 
@@ -384,6 +389,37 @@ impl Cap {
   }
 }
 
+impl Display for Cap {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Cap> for String {
+  fn from(val: Cap) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Cap {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Cap {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Cap::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
 impl From<Cap> for Length {
   fn from(cap: Cap) -> Self {
     Self {
@@ -409,6 +445,37 @@ impl Ch {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("ch")
+  }
+}
+
+impl Display for Ch {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Ch> for String {
+  fn from(val: Ch) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Ch {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Ch {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Ch::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
   }
 }
 
@@ -440,6 +507,37 @@ impl Em {
   }
 }
 
+impl Display for Em {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Em> for String {
+  fn from(val: Em) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Em {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Em {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Em::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
 impl From<Em> for Length {
   fn from(em: Em) -> Self {
     Self {
@@ -465,6 +563,37 @@ impl Ex {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("ex")
+  }
+}
+
+impl Display for Ex {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Ex> for String {
+  fn from(val: Ex) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Ex {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Ex::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Ex {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
   }
 }
 
@@ -496,6 +625,37 @@ impl Ic {
   }
 }
 
+impl Display for Ic {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Ic> for String {
+  fn from(val: Ic) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Ic {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Ic {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Ic::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
 impl From<Ic> for Length {
   fn from(ic: Ic) -> Self {
     Self {
@@ -521,6 +681,37 @@ impl Lh {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("lh")
+  }
+}
+
+impl Display for Lh {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Lh> for String {
+  fn from(val: Lh) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Lh {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Lh {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Lh::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
   }
 }
 
@@ -552,6 +743,37 @@ impl Rem {
   }
 }
 
+impl Display for Rem {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Rem> for String {
+  fn from(val: Rem) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Rem {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Rem {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Rem::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
 impl From<Rem> for Length {
   fn from(rem: Rem) -> Self {
     Self {
@@ -580,11 +802,33 @@ impl Rlh {
   }
 }
 
-impl From<Rlh> for Length {
-  fn from(rlh: Rlh) -> Self {
+impl Display for Rlh {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Rlh> for String {
+  fn from(val: Rlh) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Rlh {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Rlh::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Rlh {
+  fn from(length: Length) -> Self {
     Self {
-      value: rlh.value,
-      unit: rlh.unit,
+      value: length.value,
+      unit: length.unit,
     }
   }
 }
@@ -606,6 +850,37 @@ impl Vh {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("vh")
+  }
+}
+
+impl Display for Vh {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Vh> for String {
+  fn from(val: Vh) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Vh {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Vh {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Vh::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
   }
 }
 
@@ -637,11 +912,33 @@ impl Svh {
   }
 }
 
-impl From<Svh> for Length {
-  fn from(svh: Svh) -> Self {
+impl Display for Svh {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Svh> for String {
+  fn from(val: Svh) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Svh {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Svh::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Svh {
+  fn from(length: Length) -> Self {
     Self {
-      value: svh.value,
-      unit: svh.unit,
+      value: length.value,
+      unit: length.unit,
     }
   }
 }
@@ -665,11 +962,33 @@ impl Lvh {
   }
 }
 
-impl From<Lvh> for Length {
-  fn from(lvh: Lvh) -> Self {
+impl Display for Lvh {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Lvh> for String {
+  fn from(val: Lvh) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Lvh {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Lvh::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Lvh {
+  fn from(length: Length) -> Self {
     Self {
-      value: lvh.value,
-      unit: lvh.unit,
+      value: length.value,
+      unit: length.unit,
     }
   }
 }
@@ -690,6 +1009,37 @@ impl Dvh {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("dvh")
+  }
+}
+
+impl Display for Dvh {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Dvh> for String {
+  fn from(val: Dvh) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Dvh {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Dvh::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Dvh {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
   }
 }
 
@@ -721,6 +1071,37 @@ impl Vw {
   }
 }
 
+impl Display for Vw {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Vw> for String {
+  fn from(val: Vw) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Length> for Vw {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
+impl From<String> for Vw {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Vw::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
 impl From<Vw> for Length {
   fn from(vw: Vw) -> Self {
     Self {
@@ -749,6 +1130,37 @@ impl Svw {
   }
 }
 
+impl Display for Svw {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Svw> for String {
+  fn from(val: Svw) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Svw {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Svw::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Svw {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
+  }
+}
+
 impl From<Svw> for Length {
   fn from(svw: Svw) -> Self {
     Self {
@@ -774,6 +1186,37 @@ impl Lvw {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("lvw")
+  }
+}
+
+impl Display for Lvw {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Lvw> for String {
+  fn from(val: Lvw) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Lvw {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Lvw::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Lvw {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
   }
 }
 
@@ -833,8 +1276,30 @@ impl Vmin {
   }
 }
 
-impl From<Vmin> for Length {
-  fn from(vmin: Vmin) -> Self {
+impl Display for Vmin {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Vmin> for String {
+  fn from(val: Vmin) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Vmin {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Vmin::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Vmin {
+  fn from(vmin: Length) -> Self {
     Self {
       value: vmin.value,
       unit: vmin.unit,
@@ -942,6 +1407,37 @@ impl Vmax {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("vmax")
+  }
+}
+
+impl Display for Vmax {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Vmax> for String {
+  fn from(val: Vmax) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Vmax {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Vmax::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Vmax {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
   }
 }
 
@@ -1224,6 +1720,37 @@ impl Px {
 
   pub fn parse<'a>() -> Parser<'a, Length> {
     unit("px")
+  }
+}
+
+impl Display for Px {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Px> for String {
+  fn from(val: Px) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Px {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(&s);
+    Px::parse()
+      .run(&mut input)
+      .expect("Failed to parse length")
+      .into()
+  }
+}
+
+impl From<Length> for Px {
+  fn from(length: Length) -> Self {
+    Self {
+      value: length.value,
+      unit: length.unit,
+    }
   }
 }
 

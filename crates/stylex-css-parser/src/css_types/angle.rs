@@ -8,10 +8,10 @@ pub struct Angle {
 }
 
 impl Angle {
-  pub fn new(value: f32) -> Self {
+  pub fn new(value: f32, unit: Option<String>) -> Self {
     Angle {
       value,
-      unit: String::new(),
+      unit: unit.unwrap_or_default(),
     }
   }
 
@@ -22,7 +22,7 @@ impl Angle {
       Grad::parse(),
       Rad::parse(),
       Turn::parse(),
-      Parser::<String>::string("0").map(|_| Angle::new(0.0)),
+      Parser::<String>::string("0").map(|_| Angle::new(0.0, None)),
     ])
   }
 }
@@ -30,6 +30,21 @@ impl Angle {
 impl Display for Angle {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Angle> for String {
+  fn from(val: Angle) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Angle {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(s.as_str());
+    Angle::parse()
+      .run(&mut input)
+      .expect("Failed to parse angle")
   }
 }
 
@@ -67,6 +82,40 @@ impl Display for Deg {
   }
 }
 
+impl From<Deg> for String {
+  fn from(val: Deg) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Deg> for Angle {
+  fn from(deg: Deg) -> Self {
+    Angle {
+      value: deg.value,
+      unit: deg.unit,
+    }
+  }
+}
+
+impl From<Angle> for Deg {
+  fn from(angle: Angle) -> Self {
+    Deg {
+      value: angle.value,
+      unit: angle.unit,
+    }
+  }
+}
+
+impl From<String> for Deg {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(s.as_str());
+    Angle::parse()
+      .run(&mut input)
+      .expect("Failed to parse angle")
+      .into()
+  }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Grad {
   pub value: f32,
@@ -97,6 +146,39 @@ impl Grad {
 impl Display for Grad {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Grad> for String {
+  fn from(val: Grad) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Angle> for Grad {
+  fn from(angle: Angle) -> Self {
+    Grad {
+      value: angle.value,
+      unit: angle.unit,
+    }
+  }
+}
+
+impl From<String> for Grad {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(s.as_str());
+    Angle::parse()
+      .run(&mut input)
+      .expect("Failed to parse angle")
+      .into()
+  }
+}
+impl From<Grad> for Angle {
+  fn from(grad: Grad) -> Self {
+    Angle {
+      value: grad.value,
+      unit: grad.unit,
+    }
   }
 }
 
@@ -134,6 +216,38 @@ impl Display for Rad {
   }
 }
 
+impl From<Rad> for String {
+  fn from(val: Rad) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Angle> for Rad {
+  fn from(angle: Angle) -> Self {
+    Rad {
+      value: angle.value,
+      unit: angle.unit,
+    }
+  }
+}
+impl From<String> for Rad {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(s.as_str());
+    Angle::parse()
+      .run(&mut input)
+      .expect("Failed to parse angle")
+      .into()
+  }
+}
+impl From<Rad> for Angle {
+  fn from(rad: Rad) -> Self {
+    Angle {
+      value: rad.value,
+      unit: rad.unit,
+    }
+  }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Turn {
   pub value: f32,
@@ -164,5 +278,37 @@ impl Turn {
 impl Display for Turn {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     write!(f, "{}{}", self.value, self.unit)
+  }
+}
+
+impl From<Turn> for String {
+  fn from(val: Turn) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<Angle> for Turn {
+  fn from(angle: Angle) -> Self {
+    Turn {
+      value: angle.value,
+      unit: angle.unit,
+    }
+  }
+}
+impl From<String> for Turn {
+  fn from(s: String) -> Self {
+    let mut input = crate::base_types::SubString::new(s.as_str());
+    Angle::parse()
+      .run(&mut input)
+      .expect("Failed to parse angle")
+      .into()
+  }
+}
+impl From<Turn> for Angle {
+  fn from(turn: Turn) -> Self {
+    Angle {
+      value: turn.value,
+      unit: turn.unit,
+    }
   }
 }

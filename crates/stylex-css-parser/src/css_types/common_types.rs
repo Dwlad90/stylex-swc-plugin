@@ -1,4 +1,4 @@
-use crate::parser::Parser;
+use crate::{base_types::SubString, parser::Parser};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,5 +56,22 @@ impl Percentage {
 impl Display for Percentage {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     write!(f, "{}%", self.value)
+  }
+}
+
+impl From<Percentage> for String {
+  fn from(val: Percentage) -> Self {
+    val.to_string()
+  }
+}
+
+impl From<String> for Percentage {
+  fn from(s: String) -> Self {
+    Percentage {
+      value: Percentage::parse()
+        .run(&mut SubString::new(&s))
+        .unwrap_or(Percentage::new(0.0))
+        .value,
+    }
   }
 }

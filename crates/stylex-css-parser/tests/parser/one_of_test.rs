@@ -5,7 +5,7 @@ mod one_of {
 
   #[test]
   fn parse_the_first_parser() {
-    let parser = Parser::one_of(vec![
+    let parser = Parser::<'static, String>::one_of(vec![
       Parser::<'static, String>::string("foo"),
       Parser::<'static, String>::string("bar"),
     ]);
@@ -17,7 +17,7 @@ mod one_of {
   #[test]
   #[should_panic(expected = "Expected foo, got baz")]
   fn fails_to_parse_a_different_string() {
-    let parser = Parser::one_of(vec![
+    let parser = Parser::<'static, String>::one_of(vec![
       Parser::<'static, String>::string("foo"),
       Parser::<'static, String>::string("bar"),
     ]);

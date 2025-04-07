@@ -48,6 +48,22 @@ impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
     self.run(&mut substr)
   }
 
+  pub fn parse_to_end(&self, input: &str) -> Result<T, ParseError> {
+    let mut substr = SubString::new(input);
+    let output = self.run(&mut substr)?;
+
+    if !substr.is_empty() {
+      return Err(ParseError {
+        message: format!(
+          "Expected end of input, got {} instead",
+          &substr.string[substr.start_index..]
+        ),
+      });
+    }
+
+    Ok(output)
+  }
+
   pub fn map<U, F>(&self, f: F) -> Parser<'a, U>
   where
     F: Fn(Option<T>) -> U + 'a,
@@ -395,9 +411,10 @@ impl<'a, T: Clone + 'a + std::fmt::Debug> Parser<'a, T> {
     Parser::new(move |_| Ok(Some(output.clone())))
   }
 
-  pub fn one_of(parsers: Vec<Parser<T>>) -> Parser<T>
+  pub fn one_of<S>(parsers: Vec<Parser<'a, S>>) -> Parser<'a, T>
   where
-    T: Clone,
+    S: 'a + Into<T> + Clone + std::fmt::Debug,
+    T: 'a + Clone + std::fmt::Debug,
   {
     Parser::new(move |input| {
       let mut errors = Vec::new();
@@ -407,7 +424,7 @@ impl<'a, T: Clone + 'a + std::fmt::Debug> Parser<'a, T> {
         let end_index = input.end_index;
 
         match parser.run(input) {
-          Ok(output) => return Ok(Some(output)),
+          Ok(output) => return Ok(Some(output.into())),
           Err(e) => {
             input.start_index = start_index;
             input.end_index = end_index;
@@ -610,7 +627,7 @@ impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
   }
 
   pub fn whitespace() -> Parser<'a, ()> {
-    Parser::one_or_more(Parser::one_of(vec![
+    Parser::one_or_more(Parser::<'a, ()>::one_of(vec![
       Parser::<'a, String>::string(" ").map(|_| ()),
       Parser::<'a, String>::string("\n").map(|_| ()),
       Parser::<'a, String>::string("\r\n").map(|_| ()),

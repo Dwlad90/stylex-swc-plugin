@@ -8,3 +8,4 @@ mod frequency_test;
 mod length_percentage_test;
 mod length_test;
 mod number_test;
+mod resolution_test;

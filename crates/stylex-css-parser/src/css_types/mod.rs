@@ -9,3 +9,4 @@ pub mod frequency;
 pub mod length;
 pub mod length_percentage;
 pub mod number;
+pub mod resolution;

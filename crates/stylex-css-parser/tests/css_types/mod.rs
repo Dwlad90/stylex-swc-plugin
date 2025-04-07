@@ -5,4 +5,5 @@ mod blend_mode_test;
 mod calc_constant_test;
 mod color_test;
 mod frequency_test;
+mod length_test;
 mod number_test;

@@ -5,6 +5,7 @@ mod blend_mode_test;
 mod calc_constant_test;
 mod color_test;
 mod custom_ident_test;
+mod dashed_ident_test;
 mod dimension;
 mod frequency_test;
 mod length_percentage_test;

@@ -6,6 +6,7 @@ pub mod calc_constant;
 pub mod color;
 pub mod common_types;
 pub mod custom_ident;
+pub mod dashed_ident;
 pub mod dimension;
 pub mod frequency;
 pub mod length;

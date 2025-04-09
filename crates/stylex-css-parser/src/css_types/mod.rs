@@ -10,6 +10,7 @@ pub mod dashed_ident;
 pub mod dimension;
 pub mod easing_function;
 pub mod filter_function;
+pub mod flex;
 pub mod frequency;
 pub mod length;
 pub mod length_percentage;

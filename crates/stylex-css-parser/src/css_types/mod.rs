@@ -9,6 +9,7 @@ pub mod custom_ident;
 pub mod dashed_ident;
 pub mod dimension;
 pub mod easing_function;
+pub mod filter_function;
 pub mod frequency;
 pub mod length;
 pub mod length_percentage;

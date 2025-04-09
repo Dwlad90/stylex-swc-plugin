@@ -8,6 +8,7 @@ mod custom_ident_test;
 mod dashed_ident_test;
 mod dimension;
 mod easing_function_test;
+mod filter_function_test;
 mod frequency_test;
 mod length_percentage_test;
 mod length_test;

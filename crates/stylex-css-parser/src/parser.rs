@@ -485,6 +485,60 @@ impl<'a, T: Clone + 'a + std::fmt::Debug> Parser<'a, T> {
       skip_parser.map(move |_| output_clone.clone())
     })
   }
+
+  pub fn separated_by<Sep>(&self, separator: Parser<'a, Sep>) -> Parser<'a, Vec<T>>
+  where
+    Sep: 'a + Clone + Debug,
+  {
+    let parser = self.clone();
+
+    Parser::new(move |input| {
+      let mut results = Vec::new();
+      let start_index = input.start_index;
+
+      // Parse the first element
+      match parser.run(input) {
+        Ok(first) => {
+          results.push(first);
+        }
+        Err(e) => {
+          input.start_index = start_index;
+          return Err(e);
+        }
+      }
+
+      // Keep parsing: separator followed by element
+      loop {
+        let sep_index = input.start_index;
+
+        // Try to parse separator
+        match separator.run(input) {
+          Ok(_) => {
+            // Separator found, now parse an element
+            match parser.run(input) {
+              Ok(value) => {
+                // Successfully parsed element after separator
+                results.push(value);
+              }
+              Err(e) => {
+                // Found separator but not element after it
+                input.start_index = sep_index;
+                return Err(ParseError {
+                  message: format!("Expected element after separator: {}", e.message),
+                });
+              }
+            }
+          }
+          Err(_) => {
+            // No more separators, we're done
+            break;
+          }
+        }
+      }
+
+      Ok(Some(results))
+    })
+  }
 }
 
 impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
@@ -527,14 +581,28 @@ impl<'a, T: 'a + Debug + std::clone::Clone> Parser<'a, T> {
   }
 
   pub fn natural() -> Parser<'a, u32> {
-    Parser::one_or_more(Parser::<'a, String>::digit())
-      .where_fn(|digits| !digits.is_empty() && digits[0] != "0")
-      .map(|digits| {
-        let num_str = digits.expect("Digits should not be empty").join("");
-        num_str.parse::<u32>().unwrap_or_else(|_| {
-          panic!("Failed to parse natural number: {}", num_str);
-        })
+    // First digit cannot be 0
+    let first_digit = Parser::<'a, String>::digit().where_fn(|digit| digit != "0");
+    // Rest can be any digits
+    let rest_digits = Parser::zero_or_more(Parser::<'a, String>::digit());
+
+    Parser::<'a, String>::sequence::<String, Vec<String>, (), ()>(
+      Some(first_digit),
+      Some(rest_digits),
+      None,
+      None,
+    )
+    .to_parser()
+    .map(|values| {
+      let (first, rest, _, _) = values.expect("Expected values to be present");
+      let first_digit = first.unwrap();
+      let rest_digits = rest.unwrap();
+
+      let num_str = format!("{}{}", first_digit, rest_digits.join(""));
+      num_str.parse::<u32>().unwrap_or_else(|_| {
+        panic!("Failed to parse natural number: {}", num_str);
       })
+    })
   }
 
   pub fn whole() -> Parser<'a, i32> {

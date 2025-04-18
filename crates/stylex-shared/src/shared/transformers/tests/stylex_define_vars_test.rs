@@ -617,6 +617,157 @@ mod stylex_define_vars {
   }
 
   #[test]
+  fn converts_set_of_vars_with_nested_at_rules_to_css_and_does_not_include_key_prefix_in_debug_mode_with_debug_classnames_off()
+   {
+    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let class_name_prefix = 'x';
+
+    let default_vars = default_vars_factory(&[
+      (
+        "bgColor",
+        DefaultVarsFactoryValue::Nested(&[("default", "blue"), ("@media print", "white")]),
+        &[(
+          "@media (prefers-color-scheme: dark)",
+          &[
+            ("default", "lightblue"),
+            ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
+          ],
+        )],
+        &[],
+      ),
+      (
+        "bgColorDisabled",
+        DefaultVarsFactoryValue::Nested(&[]),
+        &[
+          (
+            "default",
+            &[
+              ("default", "grey"),
+              ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
+            ],
+          ),
+          (
+            "@media (prefers-color-scheme: dark)",
+            &[
+              ("default", "rgba(0, 0, 0, 0.8)"),
+              ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
+            ],
+          ),
+        ],
+        &[],
+      ),
+      (
+        "cornerRadius",
+        DefaultVarsFactoryValue::Simple("10px"),
+        &[],
+        &[],
+      ),
+      (
+        "fgColor",
+        DefaultVarsFactoryValue::Nested(&[("default", "pink")]),
+        &[],
+        &[],
+      ),
+    ]);
+
+    let mut state = Box::new(StateManager {
+      theme_name: Some(theme_name.to_string()),
+      options: StyleXStateOptions {
+        debug: false,
+        enable_debug_class_names: false,
+        ..StateManager::default().options
+      },
+      ..StateManager::default()
+    });
+
+    let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
+
+    assert_eq!(
+      js_output,
+      exprected_js_result_factory(&[
+        (
+          "__themeName__",
+          format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
+        ),
+        (
+          "bgColor",
+          format!(
+            "var(--{}{})",
+            class_name_prefix,
+            create_hash(format!("{}.bgColor", theme_name).as_str())
+          )
+          .as_str()
+        ),
+        (
+          "bgColorDisabled",
+          format!(
+            "var(--{}{})",
+            class_name_prefix,
+            create_hash(format!("{}.bgColorDisabled", theme_name).as_str())
+          )
+          .as_str()
+        ),
+        (
+          "cornerRadius",
+          format!(
+            "var(--{}{})",
+            class_name_prefix,
+            create_hash(format!("{}.cornerRadius", theme_name).as_str())
+          )
+          .as_str()
+        ),
+        (
+          "fgColor",
+          format!(
+            "var(--{}{})",
+            class_name_prefix,
+            create_hash(format!("{}.fgColor", theme_name).as_str())
+          )
+          .as_str()
+        ),
+      ])
+    );
+
+    assert_eq!(
+      css_output,
+      exprected_css_result_factory(&[
+        (
+          "x568ih9",
+          (
+            ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
+            0.0
+          )
+        ),
+        (
+          "x568ih9-1e6ryz3",
+          (
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
+            0.2
+          )
+        ),
+        (
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
+        (
+          "x568ih9-bdddrq",
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+        ),
+        (
+          "x568ih9-kpd015",
+          (
+            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
+            0.1
+          )
+        )
+      ])
+    )
+  }
+
+  #[test]
   fn converts_set_of_typed_vars_with_nested_at_rules_to_css() {
     let theme_name = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';

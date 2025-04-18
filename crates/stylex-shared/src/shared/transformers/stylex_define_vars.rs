@@ -46,10 +46,13 @@ pub(crate) fn stylex_define_vars(
         FlatCompiledStylesValue::Tuple(key, value, _) => {
           let str_to_hash = format!("{}.{}", state.theme_name.as_ref().unwrap(), key);
 
+          let debug = state.options.debug;
+          let enable_debug_class_names = state.options.enable_debug_class_names;
+
           // Created hashed variable names with fileName//themeName//key
           let name_hash = if key.starts_with("--") {
             key.get(2..).unwrap_or_default()
-          } else if state.options.debug {
+          } else if debug && enable_debug_class_names {
             &format!(
               "{}-{}{}",
               key,

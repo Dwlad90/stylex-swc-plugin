@@ -39,8 +39,9 @@ impl ThemeRef {
       );
 
       let debug = state.options.debug;
+      let enable_debug_class_names = state.options.enable_debug_class_names;
 
-      let var_name = if debug {
+      let var_name = if debug && enable_debug_class_names {
         format!(
           "{}-{}{}",
           key,

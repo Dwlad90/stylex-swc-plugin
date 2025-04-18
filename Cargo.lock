@@ -166,6 +166,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "base62"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10e52a7bcb1d6beebee21fb5053af9e3cbb7a7ed1a4909e534040e676437ab1f"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2123,6 +2132,7 @@ name = "stylex_shared"
 version = "0.7.1"
 dependencies = [
  "anyhow",
+ "base62",
  "color-backtrace",
  "colored",
  "cssparser",

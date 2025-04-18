@@ -21,7 +21,7 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::{common::BASE62_CHARS, messages::ILLEGAL_PROP_VALUE},
+  constants::messages::ILLEGAL_PROP_VALUE,
   enums::{
     data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
     misc::VarDeclAction,
@@ -660,22 +660,7 @@ where
     .map(|index| vec.swap_remove(index))
 }
 
-fn to_base62(mut num: u32) -> String {
-  if num == 0 {
-    return "0".to_string();
-  }
-
-  let mut result = String::new();
-  while num > 0 {
-    let remainder = (num % 62) as usize;
-    result.insert(0, BASE62_CHARS.chars().nth(remainder).unwrap());
-    num /= 62;
-  }
-
-  result
-}
-
 pub fn create_short_hash(value: &str) -> String {
   let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
-  to_base62(hash)
+  base62::encode(hash)
 }

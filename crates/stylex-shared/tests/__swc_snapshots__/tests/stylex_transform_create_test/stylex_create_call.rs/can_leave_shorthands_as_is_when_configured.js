@@ -1,44 +1,44 @@
 import stylex from 'stylex';
 export const styles = {
     default: {
-        marginTop: "xxsse2n",
-        marginRight: "x1wh8b8d",
-        marginBottom: "xat24cr",
+        keoZOQ: "xxsse2n",
+        km5ZXQ: "x1wh8b8d",
+        k1K539: "xat24cr",
         $$css: true
     },
     error: {
-        borderBlockColor: "xzu6wam",
-        borderInlineColor: "xgomli1",
-        borderStyle: "xbsl7fq",
-        borderBottomWidth: "xlxy82",
+        k5QoK5: "xzu6wam",
+        kzOINU: "xgomli1",
+        ksu8eU: "xbsl7fq",
+        kt9PQ7: "xlxy82",
         $$css: true
     },
     root: {
-        borderWidth: "xmkeg23",
-        borderStyle: "x1y0btm7",
-        borderColor: "x1lh7sze",
-        borderRadius: "x12oqio5",
-        borderBottomWidth: "xa309fb",
-        borderBottomStyle: "x1q0q8m5",
-        borderBottomColor: "xud65wk",
+        kMzoRj: "xmkeg23",
+        ksu8eU: "x1y0btm7",
+        kVAM5u: "x1lh7sze",
+        kaIpWk: "x12oqio5",
+        kt9PQ7: "xa309fb",
+        kfdmCh: "x1q0q8m5",
+        kL6WhQ: "xud65wk",
         $$css: true
     },
     short: {
-        paddingBlock: "x190pm2f",
-        paddingInline: "x1n86tx6",
-        paddingTop: "xexx8yu",
+        k8WAf4: "x190pm2f",
+        kg3NbH: "x1n86tx6",
+        kLKAdn: "xexx8yu",
         $$css: true
     },
     shortReversed: {
-        paddingTop: "xexx8yu",
-        paddingBlock: "x190pm2f",
-        paddingInline: "x1n86tx6",
+        kLKAdn: "xexx8yu",
+        k8WAf4: "x190pm2f",
+        kg3NbH: "x1n86tx6",
         $$css: true
     },
     valid: {
-        borderColor: "x1bg2uv5",
-        borderStyle: "x1y0btm7",
-        borderWidth: "xmkeg23",
+        kVAM5u: "x1bg2uv5",
+        ksu8eU: "x1y0btm7",
+        kMzoRj: "xmkeg23",
         $$css: true
     }
 };

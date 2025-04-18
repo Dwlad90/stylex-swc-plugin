@@ -5,7 +5,7 @@ _inject2(".x16oeupf::before{color:red}", 8000);
 _inject2(".xeb2lg0::before:hover{color:blue}", 8130);
 export const styles = {
     foo: {
-        "::before_color": "x16oeupf xeb2lg0",
+        kxBb7d: "x16oeupf xeb2lg0",
         $$css: true
     }
 };

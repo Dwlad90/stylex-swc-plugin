@@ -5,11 +5,11 @@ _inject2(".xrkmrrc{background-color:red}", 3000);
 _inject2(".xju2f9n{color:blue}", 3000);
 const styles = {
     default: {
-        backgroundColor: "xrkmrrc",
+        kWkggS: "xrkmrrc",
         $$css: true
     },
     active: {
-        color: "xju2f9n",
+        kMwMTN: "xju2f9n",
         $$css: true
     }
 };

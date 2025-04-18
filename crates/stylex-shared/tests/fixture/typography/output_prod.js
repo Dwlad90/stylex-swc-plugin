@@ -4,130 +4,130 @@ import { colors } from '../../../styles/color/colors.stylex';
 import { fontSizes, fonts, typographyBase } from '../../../styles/typography/typography.stylex';
 const styles = {
     text: {
-        margin: "x1ghz6dp",
-        marginInline: null,
-        marginInlineStart: null,
-        marginLeft: null,
-        marginInlineEnd: null,
-        marginRight: null,
-        marginBlock: null,
-        marginTop: null,
-        marginBottom: null,
-        overflowWrap: "xj0a0fe",
-        fontFamily: "xxtxygr",
+        kogj98: "x1ghz6dp",
+        kUOVxO: null,
+        keTefX: null,
+        koQZXg: null,
+        k71WvV: null,
+        km5ZXQ: null,
+        kqGvvJ: null,
+        keoZOQ: null,
+        k1K539: null,
+        kHjlTd: "xj0a0fe",
+        kMv6JI: "xxtxygr",
         $$css: true
     },
     textXxxl: {
-        lineHeight: "x1xmc3ak",
-        fontSize: "x1q754lq",
+        kLWn49: "x1xmc3ak",
+        kGuDYH: "x1q754lq",
         $$css: true
     },
     textXxl: {
-        lineHeight: "x1xmc3ak",
-        fontSize: "x1ikoez",
+        kLWn49: "x1xmc3ak",
+        kGuDYH: "x1ikoez",
         $$css: true
     },
     textXl: {
-        lineHeight: "x1xmc3ak",
-        fontSize: "x1hr3gxt",
+        kLWn49: "x1xmc3ak",
+        kGuDYH: "x1hr3gxt",
         $$css: true
     },
     textLg: {
-        lineHeight: "x1xmc3ak",
-        fontSize: "x1p5zybj",
+        kLWn49: "x1xmc3ak",
+        kGuDYH: "x1p5zybj",
         $$css: true
     },
     textMd: {
-        lineHeight: "x1xmc3ak",
-        fontSize: "x1uv8d7c",
+        kLWn49: "x1xmc3ak",
+        kGuDYH: "x1uv8d7c",
         $$css: true
     },
     textSm: {
-        lineHeight: "x1xmc3ak",
-        fontSize: "x1dds9ib",
+        kLWn49: "x1xmc3ak",
+        kGuDYH: "x1dds9ib",
         $$css: true
     },
     body: {
-        fontSize: "xcyum62",
-        lineHeight: "x10zqc4",
+        kGuDYH: "xcyum62",
+        kLWn49: "x10zqc4",
         $$css: true
     },
     bodySm: {
-        fontSize: "x1dds9ib",
-        lineHeight: "x10zqc4",
+        kGuDYH: "x1dds9ib",
+        kLWn49: "x10zqc4",
         $$css: true
     },
     bodyMd: {
-        fontSize: "x1uv8d7c",
-        lineHeight: "x10zqc4",
+        kGuDYH: "x1uv8d7c",
+        kLWn49: "x10zqc4",
         $$css: true
     },
     truncate: {
-        whiteSpace: "xuxw1ft",
-        textOverflow: "xlyipyv",
-        overflow: "xb3r6kr",
-        overflowX: null,
-        overflowY: null,
+        khDVqt: "xuxw1ft",
+        kg5iWk: "xlyipyv",
+        kVQacm: "xb3r6kr",
+        kXHlph: null,
+        kORKVm: null,
         $$css: true
     },
     bold: {
-        fontWeight: "x117nqv4",
+        k63SB2: "x117nqv4",
         $$css: true
     },
     italic: {
-        fontStyle: "x1k4tb9n",
+        kKX8nH: "x1k4tb9n",
         $$css: true
     },
     textTransform_unset: {
-        textTransform: "x1gdvv3m",
+        kP9fke: "x1gdvv3m",
         $$css: true
     },
     textTransform_uppercase: {
-        textTransform: "xtvhhri",
+        kP9fke: "xtvhhri",
         $$css: true
     },
     textTransform_lowercase: {
-        textTransform: "x1kyqaxf",
+        kP9fke: "x1kyqaxf",
         $$css: true
     },
     textTransform_capitalize: {
-        textTransform: "xn80e1m",
+        kP9fke: "xn80e1m",
         $$css: true
     },
     underline: {
-        textDecoration: "x1bvjpef",
-        textDecorationColor: null,
-        textDecorationLine: null,
-        textDecorationStyle: null,
-        textDecorationThickness: null,
+        kybGjl: "x1bvjpef",
+        k1TLXF: null,
+        kMnn75: null,
+        kmVMDM: null,
+        kNySMw: null,
         $$css: true
     },
     colorSuccess: {
-        color: "x1le1rw7",
+        kMwMTN: "x1le1rw7",
         $$css: true
     },
     colorError: {
-        color: "x1dtcyqj",
+        kMwMTN: "x1dtcyqj",
         $$css: true
     },
     colorInfo: {
-        color: "x1ymlcqv",
+        kMwMTN: "x1ymlcqv",
         $$css: true
     },
     colorWarning: {
-        color: "xasdade",
+        kMwMTN: "xasdade",
         $$css: true
     },
     colorPrimary: {
-        color: "x2d0hfl",
+        kMwMTN: "x2d0hfl",
         $$css: true
     },
     color_primary: {
-        color: "x2d0hfl",
+        kMwMTN: "x2d0hfl",
         $$css: true
     },
     colorSecondary: {
-        color: "xxq4n0w",
+        kMwMTN: "xxq4n0w",
         $$css: true
     }
 };

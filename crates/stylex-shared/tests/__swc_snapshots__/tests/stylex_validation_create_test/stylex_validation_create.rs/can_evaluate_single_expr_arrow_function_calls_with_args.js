@@ -4,7 +4,7 @@ import stylex from 'stylex';
 _inject2(".xrkmrrc{background-color:red}", 3000);
 export const styles = {
     root: {
-        backgroundColor: "xrkmrrc",
+        kWkggS: "xrkmrrc",
         $$css: true
     }
 };

@@ -4,7 +4,7 @@ import stylex from 'stylex';
 _inject2(".x6clsst{color:var(--foobar)}", 3000);
 export const styles = {
     foo: {
-        color: "x6clsst",
+        kMwMTN: "x6clsst",
         $$css: true
     }
 };

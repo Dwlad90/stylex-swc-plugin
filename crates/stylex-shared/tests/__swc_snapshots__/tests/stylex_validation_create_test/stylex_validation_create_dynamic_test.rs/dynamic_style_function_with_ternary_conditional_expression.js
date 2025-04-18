@@ -6,7 +6,7 @@ _inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     fontSizeTernary: (size: number)=>[
             {
-                fontSize: (size < 10 ? '1em' : '2em') == null ? null : "x6zurak",
+                kGuDYH: "x6zurak",
                 $$css: true
             },
             {

@@ -4,11 +4,11 @@ import stylex from 'stylex';
 _inject2(".x1e2nbdu{color:red}", 3000);
 const styles = {
     red: {
-        color: "x1e2nbdu",
+        kMwMTN: "x1e2nbdu",
         $$css: true
     },
     blue: {
-        color: null,
+        kMwMTN: null,
         $$css: true
     }
 };

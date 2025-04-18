@@ -7,7 +7,7 @@ import { type ReactNode } from 'react';
 _inject2(".x13rv2e4{color:hotpink}", 3000);
 const styles = {
     text: {
-        color: "x13rv2e4",
+        kMwMTN: "x13rv2e4",
         $$css: true
     }
 };
@@ -15,11 +15,11 @@ _inject2(".x3b68l4{font-size:var(--x1cjnt43)}", 3000);
 _inject2(".x59qt1o{font-size:var(--xw8ib4r)}", 3000);
 const variants = {
     small: {
-        fontSize: "x3b68l4",
+        kGuDYH: "x3b68l4",
         $$css: true
     },
     big: {
-        fontSize: "x59qt1o",
+        kGuDYH: "x59qt1o",
         $$css: true
     }
 };

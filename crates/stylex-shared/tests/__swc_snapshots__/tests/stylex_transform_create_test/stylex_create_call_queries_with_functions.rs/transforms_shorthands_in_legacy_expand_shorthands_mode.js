@@ -15,11 +15,11 @@ _inject2('@property --marginTop { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     default: (margin)=>[
             {
-                backgroundColor: "xrkmrrc",
-                marginEnd: (margin == null ? "" : "x1ie72y1 ") + (margin + 4 == null ? "" : "x128459"),
-                marginBottom: (margin == null ? "" : "x1hvr6ea ") + (margin + 4 == null ? "" : "x3skgmg"),
-                marginStart: (margin == null ? "" : "x1k44ad6 ") + (margin + 4 == null ? "" : "x10ktymb"),
-                marginTop: margin - 4 == null ? null : "x17zef60",
+                kWkggS: "xrkmrrc",
+                kETOaJ: "x1ie72y1 x128459",
+                k1K539: "x1hvr6ea x3skgmg",
+                kXtLW5: "x1k44ad6 x10ktymb",
+                keoZOQ: "x17zef60",
                 $$css: true
             },
             {

@@ -72,3 +72,6 @@ pub(crate) static CSS_CONTENT_KEYWORDS: Lazy<[&str; 11]> = Lazy::new(|| {
     "unset",
   ]
 });
+
+pub(crate) static BASE62_CHARS: &str =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

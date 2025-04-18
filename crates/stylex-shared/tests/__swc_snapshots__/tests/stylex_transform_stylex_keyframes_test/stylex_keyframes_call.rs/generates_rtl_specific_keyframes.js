@@ -6,7 +6,7 @@ export const name = "x1jkcf39-B";
 _inject2(".x1vfi257{animation-name:x1jkcf39-B}", 3000);
 export const styles = {
     root: {
-        animationName: "x1vfi257",
+        kKVMdj: "x1vfi257",
         $$css: true
     }
 };

@@ -6,15 +6,15 @@ _inject2(".x1t391ir{background-color:blue}", 3000);
 _inject2(".x1prwzq3{color:green}", 3000);
 const styles = {
     red: {
-        color: "x1e2nbdu",
+        kMwMTN: "x1e2nbdu",
         $$css: true
     },
     blue: {
-        backgroundColor: "x1t391ir",
+        kWkggS: "x1t391ir",
         $$css: true
     },
     green: {
-        color: "x1prwzq3",
+        kMwMTN: "x1prwzq3",
         $$css: true
     }
 };

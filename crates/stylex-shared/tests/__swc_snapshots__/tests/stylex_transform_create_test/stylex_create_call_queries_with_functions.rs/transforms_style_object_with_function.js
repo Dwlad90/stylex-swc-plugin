@@ -7,8 +7,8 @@ _inject2('@property --color { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     default: (color)=>[
             {
-                backgroundColor: "xrkmrrc",
-                color: color == null ? null : "xfx01vb",
+                kWkggS: "xrkmrrc",
+                kMwMTN: "xfx01vb",
                 $$css: true
             },
             {

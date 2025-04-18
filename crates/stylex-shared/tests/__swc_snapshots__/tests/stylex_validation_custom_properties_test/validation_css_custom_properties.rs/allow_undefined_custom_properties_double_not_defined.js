@@ -5,8 +5,8 @@ _inject2(".x1x22v7e{background-color:var(--foofoo)}", 3000);
 _inject2(".x6clsst{color:var(--foobar)}", 3000);
 export const styles = {
     foo: {
-        backgroundColor: "x1x22v7e",
-        color: "x6clsst",
+        kWkggS: "x1x22v7e",
+        kMwMTN: "x6clsst",
         $$css: true
     }
 };

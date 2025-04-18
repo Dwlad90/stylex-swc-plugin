@@ -8,7 +8,7 @@ stylex.props([
 _inject2(".x1e2nbdu{color:red}", 3000);
 const styles = {
     default: {
-        color: "x1e2nbdu",
+        kMwMTN: "x1e2nbdu",
         $$css: true
     }
 };

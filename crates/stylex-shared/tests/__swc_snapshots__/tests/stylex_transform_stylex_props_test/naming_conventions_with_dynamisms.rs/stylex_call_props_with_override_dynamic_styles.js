@@ -5,11 +5,11 @@ _inject2(".x1e2nbdu{color:red}", 3000);
 _inject2(".xju2f9n{color:blue}", 3000);
 const styles = {
     "primary-variant": {
-        color: "x1e2nbdu",
+        kMwMTN: "x1e2nbdu",
         $$css: true
     },
     secondaryVariant: {
-        color: "xju2f9n",
+        kMwMTN: "xju2f9n",
         $$css: true
     }
 };

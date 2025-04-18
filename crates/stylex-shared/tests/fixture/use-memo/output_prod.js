@@ -30,19 +30,19 @@ _s(Button, "XPeb32THZfEWB+gFvzI8fl0TbTY=");
 _c = Button;
 const styles = {
     primary: {
-        backgroundColor: "xrkmrrc",
-        color: "x1awj2ng",
+        kWkggS: "xrkmrrc",
+        kMwMTN: "x1awj2ng",
         $$css: true
     },
     root: {
-        display: "x1lliihq",
-        fontSize: "x1j61zf2",
-        paddingBottom: "xsag5q8",
-        paddingLeft: "x5tiur9",
-        paddingRight: "x1s7jvk7",
-        paddingInlineStart: null,
-        paddingInlineEnd: null,
-        paddingTop: "xz9dl7a",
+        k1xSpc: "x1lliihq",
+        kGuDYH: "x1j61zf2",
+        kGO01o: "xsag5q8",
+        kE3dHu: "x5tiur9",
+        kpe85a: "x1s7jvk7",
+        kZCmMZ: null,
+        kwRFfy: null,
+        kLKAdn: "xz9dl7a",
         $$css: true
     }
 };

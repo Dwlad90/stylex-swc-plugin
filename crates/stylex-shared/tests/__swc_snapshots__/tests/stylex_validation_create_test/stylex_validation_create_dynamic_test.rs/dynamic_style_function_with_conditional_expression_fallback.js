@@ -6,7 +6,7 @@ _inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     fontSizeFallback: (size: number)=>[
             {
-                fontSize: (size ?? '1em') == null ? null : "x6zurak",
+                kGuDYH: "x6zurak",
                 $$css: true
             },
             {

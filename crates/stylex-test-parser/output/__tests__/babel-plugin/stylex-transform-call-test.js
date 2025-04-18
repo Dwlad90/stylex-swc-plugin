@@ -106,11 +106,11 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1t391ir{background-color:blue}", 3000);
         const styles = {
           "0": {
-            color: "x1e2nbdu",
+            kMwMTN: "x1e2nbdu",
             $$css: true
           },
           "1": {
-            backgroundColor: "x1t391ir",
+            kWkggS: "x1t391ir",
             $$css: true
           }
         };
@@ -197,11 +197,11 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1t391ir{background-color:blue}", 3000);
         const styles = {
           foo: {
-            color: "x1e2nbdu",
+            kMwMTN: "x1e2nbdu",
             $$css: true
           },
           bar: {
-            backgroundColor: "x1t391ir",
+            kWkggS: "x1t391ir",
             $$css: true
           }
         };
@@ -267,15 +267,15 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x14odnwx{padding:5px}", 1000);
         export const styles = {
           foo: {
-            padding: "x14odnwx",
-            paddingInline: null,
-            paddingStart: null,
-            paddingLeft: null,
-            paddingEnd: null,
-            paddingRight: null,
-            paddingBlock: null,
-            paddingTop: null,
-            paddingBottom: null,
+            kmVPX3: "x14odnwx",
+            kg3NbH: null,
+            kuDDbn: null,
+            kE3dHu: null,
+            kP0aTx: null,
+            kpe85a: null,
+            k8WAf4: null,
+            kLKAdn: null,
+            kGO01o: null,
             $$css: true
           }
         };
@@ -310,7 +310,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".xm7lytj{padding-top:7px}", 4000);
         const styles = {
           foo: {
-            padding: "x14odnwx",
+            kmVPX3: "x14odnwx",
             $$css: true
           }
         };
@@ -349,15 +349,15 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".xm7lytj{padding-top:7px}", 4000);
         const styles = {
           foo: {
-            padding: "x14odnwx",
-            paddingInline: null,
-            paddingStart: null,
-            paddingLeft: null,
-            paddingEnd: null,
-            paddingRight: null,
-            paddingBlock: null,
-            paddingTop: null,
-            paddingBottom: null,
+            kmVPX3: "x14odnwx",
+            kg3NbH: null,
+            kuDDbn: null,
+            kE3dHu: null,
+            kP0aTx: null,
+            kpe85a: null,
+            k8WAf4: null,
+            kLKAdn: null,
+            kGO01o: null,
             $$css: true
           }
         };
@@ -396,12 +396,12 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".xm7lytj{padding-top:7px}", 4000);
         const styles = {
           foo: {
-            padding: "x14odnwx",
-            paddingTop: null,
+            kmVPX3: "x14odnwx",
+            kLKAdn: null,
             $$css: true
           },
           baz: {
-            paddingTop: "xm7lytj",
+            kLKAdn: "xm7lytj",
             $$css: true
           }
         };
@@ -438,12 +438,12 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".xm7lytj{padding-top:7px}", 4000);
         const styles = {
           foo: {
-            padding: "x14odnwx",
-            paddingBlock: null,
+            kmVPX3: "x14odnwx",
+            k8WAf4: null,
             $$css: true
           },
           bar: {
-            paddingBlock: "xp59q4u",
+            k8WAf4: "xp59q4u",
             $$css: true
           }
         };
@@ -639,11 +639,11 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".xju2f9n{color:blue}", 3000);
           const styles = {
             default: {
-              backgroundColor: "xrkmrrc",
+              kWkggS: "xrkmrrc",
               $$css: true
             },
             active: {
-              color: "xju2f9n",
+              kMwMTN: "xju2f9n",
               $$css: true
             }
           };
@@ -792,11 +792,11 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".xju2f9n{color:blue}", 3000);
           const styles = {
             red: {
-              color: "x1e2nbdu",
+              kMwMTN: "x1e2nbdu",
               $$css: true
             },
             blue: {
-              color: "xju2f9n",
+              kMwMTN: "xju2f9n",
               $$css: true
             }
           };
@@ -847,11 +847,11 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".x1e2nbdu{color:red}", 3000);
           const styles = {
             red: {
-              color: "x1e2nbdu",
+              kMwMTN: "x1e2nbdu",
               $$css: true
             },
             blue: {
-              color: null,
+              kMwMTN: null,
               $$css: true
             }
           };
@@ -900,14 +900,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".color-x1e2nbdu{color:red}", 3000);
           const styles = {
             default: {
-              color: "color-x1e2nbdu",
+              "color-kMwMTN": "color-x1e2nbdu",
               $$css: "js/FooBar.react.js:4"
             }
           };
           _inject2(".backgroundColor-x1t391ir{background-color:blue}", 3000);
           const otherStyles = {
             default: {
-              backgroundColor: "backgroundColor-x1t391ir",
+              "backgroundColor-kWkggS": "backgroundColor-x1t391ir",
               $$css: "js/FooBar.react.js:9"
             }
           };
@@ -932,11 +932,11 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".color-xju2f9n{color:blue}", 3000);
           const styles = {
             default: {
-              color: "color-x1e2nbdu",
+              "color-kMwMTN": "color-x1e2nbdu",
               $$css: "js/FooBar.react.js:4"
             },
             active: {
-              color: "color-xju2f9n",
+              "color-kMwMTN": "color-xju2f9n",
               $$css: "js/FooBar.react.js:7"
             }
           };
@@ -1019,11 +1019,11 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1t391ir{background-color:blue}", 3000);
         const styles = {
           "0": {
-            color: "x1e2nbdu",
+            kMwMTN: "x1e2nbdu",
             $$css: true
           },
           "1": {
-            backgroundColor: "x1t391ir",
+            kWkggS: "x1t391ir",
             $$css: true
           }
         };
@@ -1046,7 +1046,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1d6cl6p{margin:max(0px,(48px - var(--x16dnrjz)) / 2)}", 1000);
         const styles = {
           default: {
-            margin: "x1d6cl6p",
+            kogj98: "x1d6cl6p",
             $$css: true
           }
         };
@@ -1069,7 +1069,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".x1e2nbdu{color:red}", 3000);
         const styles = {
           default: {
-            color: "x1e2nbdu",
+            kMwMTN: "x1e2nbdu",
             $$css: true
           }
         };
@@ -1098,8 +1098,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2("@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}", 3200);
         export const styles = {
           default: {
-            ":hover_color": "x17z2mba",
-            "@media (min-width: 1000px)_backgroundColor": "xc445zv",
+            kDPRdz: "x17z2mba",
+            ksQ81T: "xc445zv",
             $$css: true
           }
         };
@@ -1128,8 +1128,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2("@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}", 3200);
         export const styles = {
           default: {
-            color: "x17z2mba",
-            backgroundColor: "xc445zv",
+            kMwMTN: "x17z2mba",
+            kWkggS: "xc445zv",
             $$css: true
           }
         };
@@ -1158,11 +1158,11 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".x1t391ir{background-color:blue}", 3000);
           const styles = {
             "0": {
-              color: "x1e2nbdu",
+              kMwMTN: "x1e2nbdu",
               $$css: true
             },
             "1": {
-              backgroundColor: "x1t391ir",
+              kWkggS: "x1t391ir",
               $$css: true
             }
           };"
@@ -1207,7 +1207,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".x1t391ir{background-color:blue}", 3000);
           const styles = {
             foo: {
-              color: "x1e2nbdu",
+              kMwMTN: "x1e2nbdu",
               $$css: true
             }
           };"
@@ -1230,7 +1230,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".x1e2nbdu{color:red}", 3000);
           const styles = {
             default: {
-              color: "x1e2nbdu",
+              kMwMTN: "x1e2nbdu",
               $$css: true
             }
           };"
@@ -1258,10 +1258,10 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2(".x1o3008b{border-bottom:5px solid blue}", 2000);
           const styles = {
             default: {
-              borderTop: "x16gpukw",
-              borderLeft: "x13nwy86",
-              borderRight: "x2ekbea",
-              borderBottom: "x1o3008b",
+              kX8ASl: "x16gpukw",
+              kLDBTA: "x13nwy86",
+              km2aEK: "x2ekbea",
+              k4EQJz: "x1o3008b",
               $$css: true
             }
           };
@@ -1291,8 +1291,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           _inject2("@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}", 3200);
           export const styles = {
             default: {
-              ":hover_color": "x17z2mba",
-              "@media (min-width: 1000px)_backgroundColor": "xc445zv",
+              kDPRdz: "x17z2mba",
+              ksQ81T: "xc445zv",
               $$css: true
             }
           };"
@@ -1492,43 +1492,43 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".gridTemplateColumns-x1mkdm3x{grid-template-columns:minmax(0,1fr)}", 3000);
         export const styles = {
           sidebar: {
-            boxSizing: "boxSizing-x9f619",
-            gridArea: "gridArea-x1yc5d2u",
-            gridRow: null,
-            gridRowStart: null,
-            gridRowEnd: null,
-            gridColumn: null,
-            gridColumnStart: null,
-            gridColumnEnd: null,
+            "boxSizing-kB7OPa": "boxSizing-x9f619",
+            "gridArea-kJuA4N": "gridArea-x1yc5d2u",
+            "gridRow-kbNqZ1": null,
+            "gridRowStart-k1lYIM": null,
+            "gridRowEnd-kpJH7q": null,
+            "gridColumn-kBCFzs": null,
+            "gridColumnStart-kEXP64": null,
+            "gridColumnEnd-kWZpDQ": null,
             $$css: true
           },
           content: {
-            gridArea: "gridArea-x1fdo2jl",
-            gridRow: null,
-            gridRowStart: null,
-            gridRowEnd: null,
-            gridColumn: null,
-            gridColumnStart: null,
-            gridColumnEnd: null,
+            "gridArea-kJuA4N": "gridArea-x1fdo2jl",
+            "gridRow-kbNqZ1": null,
+            "gridRowStart-k1lYIM": null,
+            "gridRowEnd-kpJH7q": null,
+            "gridColumn-kBCFzs": null,
+            "gridColumnStart-kEXP64": null,
+            "gridColumnEnd-kWZpDQ": null,
             $$css: true
           },
           root: {
-            display: "display-xrvj5dj",
-            gridTemplateRows: "gridTemplateRows-x7k18q3",
-            gridTemplateAreas: "gridTemplateAreas-x5gp9wm",
+            "display-k1xSpc": "display-xrvj5dj",
+            "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
+            "gridTemplateAreas-kC13JO": "gridTemplateAreas-x5gp9wm",
             $$css: true
           },
           withSidebar: {
-            gridTemplateColumns: "gridTemplateColumns-x1rkzygb",
-            gridTemplateRows: "gridTemplateRows-x7k18q3",
-            gridTemplateAreas: "gridTemplateAreas-x17lh93j",
-            "@media (max-width: 640px)_gridTemplateRows": "gridTemplateRows-xmr4b4k",
-            "@media (max-width: 640px)_gridTemplateAreas": "gridTemplateAreas-xesbpuc",
-            "@media (max-width: 640px)_gridTemplateColumns": "gridTemplateColumns-x15nfgh4",
+            "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1rkzygb",
+            "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
+            "gridTemplateAreas-kC13JO": "gridTemplateAreas-x17lh93j",
+            "@media (max-width: 640px)_gridTemplateRows-k9pwkU": "gridTemplateRows-xmr4b4k",
+            "@media (max-width: 640px)_gridTemplateAreas-kOnEH4": "gridTemplateAreas-xesbpuc",
+            "@media (max-width: 640px)_gridTemplateColumns-k1JLwA": "gridTemplateColumns-x15nfgh4",
             $$css: true
           },
           noSidebar: {
-            gridTemplateColumns: "gridTemplateColumns-x1mkdm3x",
+            "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1mkdm3x",
             $$css: true
           }
         };
@@ -1592,43 +1592,43 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2(".gridTemplateColumns-x1mkdm3x{grid-template-columns:minmax(0,1fr)}", 3000);
         export const styles = {
           sidebar: {
-            boxSizing: "boxSizing-x9f619",
-            gridArea: "gridArea-x1yc5d2u",
-            gridRow: null,
-            gridRowStart: null,
-            gridRowEnd: null,
-            gridColumn: null,
-            gridColumnStart: null,
-            gridColumnEnd: null,
+            "boxSizing-kB7OPa": "boxSizing-x9f619",
+            "gridArea-kJuA4N": "gridArea-x1yc5d2u",
+            "gridRow-kbNqZ1": null,
+            "gridRowStart-k1lYIM": null,
+            "gridRowEnd-kpJH7q": null,
+            "gridColumn-kBCFzs": null,
+            "gridColumnStart-kEXP64": null,
+            "gridColumnEnd-kWZpDQ": null,
             $$css: true
           },
           content: {
-            gridArea: "gridArea-x1fdo2jl",
-            gridRow: null,
-            gridRowStart: null,
-            gridRowEnd: null,
-            gridColumn: null,
-            gridColumnStart: null,
-            gridColumnEnd: null,
+            "gridArea-kJuA4N": "gridArea-x1fdo2jl",
+            "gridRow-kbNqZ1": null,
+            "gridRowStart-k1lYIM": null,
+            "gridRowEnd-kpJH7q": null,
+            "gridColumn-kBCFzs": null,
+            "gridColumnStart-kEXP64": null,
+            "gridColumnEnd-kWZpDQ": null,
             $$css: true
           },
           root: {
-            display: "display-xrvj5dj",
-            gridTemplateRows: "gridTemplateRows-x7k18q3",
-            gridTemplateAreas: "gridTemplateAreas-x5gp9wm",
+            "display-k1xSpc": "display-xrvj5dj",
+            "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
+            "gridTemplateAreas-kC13JO": "gridTemplateAreas-x5gp9wm",
             $$css: true
           },
           withSidebar: {
-            gridTemplateColumns: "gridTemplateColumns-x1rkzygb",
-            gridTemplateRows: "gridTemplateRows-x7k18q3",
-            gridTemplateAreas: "gridTemplateAreas-x17lh93j",
-            "@media (max-width: 640px)_gridTemplateRows": "gridTemplateRows-xmr4b4k",
-            "@media (max-width: 640px)_gridTemplateAreas": "gridTemplateAreas-xesbpuc",
-            "@media (max-width: 640px)_gridTemplateColumns": "gridTemplateColumns-x15nfgh4",
+            "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1rkzygb",
+            "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
+            "gridTemplateAreas-kC13JO": "gridTemplateAreas-x17lh93j",
+            "@media (max-width: 640px)_gridTemplateRows-k9pwkU": "gridTemplateRows-xmr4b4k",
+            "@media (max-width: 640px)_gridTemplateAreas-kOnEH4": "gridTemplateAreas-xesbpuc",
+            "@media (max-width: 640px)_gridTemplateColumns-k1JLwA": "gridTemplateColumns-x15nfgh4",
             $$css: true
           },
           noSidebar: {
-            gridTemplateColumns: "gridTemplateColumns-x1mkdm3x",
+            "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1mkdm3x",
             $$css: true
           }
         };

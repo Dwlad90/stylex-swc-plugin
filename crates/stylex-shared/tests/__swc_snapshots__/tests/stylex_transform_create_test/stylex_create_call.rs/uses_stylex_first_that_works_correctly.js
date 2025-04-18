@@ -4,7 +4,7 @@ import stylex from 'stylex';
 _inject2(".x15oojuh{position:fixed;position:sticky}", 3000);
 export const styles = {
     foo: {
-        position: "x15oojuh",
+        kVAEAm: "x15oojuh",
         $$css: true
     }
 };

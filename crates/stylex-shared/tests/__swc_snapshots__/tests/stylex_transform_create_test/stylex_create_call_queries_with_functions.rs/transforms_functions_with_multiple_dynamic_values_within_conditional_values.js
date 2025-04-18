@@ -10,8 +10,8 @@ _inject2('@property --w5m4kq { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     default: (color)=>[
             {
-                backgroundColor: "xrkmrrc",
-                color: (color == null ? "" : "x1n25116 ") + "xtljkjt " + ('color-mix(' + color + ', blue)' == null ? "" : "x1d4gdy3"),
+                kWkggS: "xrkmrrc",
+                kMwMTN: "x1n25116 xtljkjt x1d4gdy3",
                 $$css: true
             },
             {

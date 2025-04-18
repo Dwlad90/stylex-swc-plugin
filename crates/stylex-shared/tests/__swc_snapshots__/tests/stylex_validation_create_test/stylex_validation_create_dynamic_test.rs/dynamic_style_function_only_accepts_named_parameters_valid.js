@@ -6,7 +6,7 @@ _inject2('@property --backgroundColor { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     dynamic: (backgroundColor)=>[
             {
-                backgroundColor: backgroundColor == null ? null : "xr5ldyu",
+                kWkggS: "xr5ldyu",
                 $$css: true
             },
             {

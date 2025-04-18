@@ -2,8 +2,6 @@ import test from 'ava';
 
 import { transform } from '../dist/index';
 
-const rootDir = process.cwd();
-
 test('sync function from native code', t => {
   const fixture = `
     import stylex from "@stylexjs/stylex";
@@ -22,12 +20,11 @@ test('sync function from native code', t => {
     treeshakeCompensation: true,
     unstable_moduleResolution: {
       type: 'commonJS',
-      rootDir,
     },
   });
 
   const expected = {
-    code: 'import stylex from "@stylexjs/stylex";\nexport const styles = {\n    default: {\n        backgroundColor: "xrkmrrc",\n        color: "xju2f9n",\n        $$css: true\n    }\n};\n',
+    code: 'import stylex from "@stylexjs/stylex";\nexport const styles = {\n    default: {\n        kWkggS: "xrkmrrc",\n        kMwMTN: "xju2f9n",\n        $$css: true\n    }\n};\n',
     metadata: {
       stylex: [
         [

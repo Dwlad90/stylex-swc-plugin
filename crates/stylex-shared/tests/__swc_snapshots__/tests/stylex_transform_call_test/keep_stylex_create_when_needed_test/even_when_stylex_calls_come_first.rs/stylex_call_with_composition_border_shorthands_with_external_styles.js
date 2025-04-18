@@ -7,10 +7,10 @@ _inject2(".x2ekbea{border-right:5px solid blue}", 2000);
 _inject2(".x1o3008b{border-bottom:5px solid blue}", 2000);
 const styles = {
     default: {
-        borderTop: "x16gpukw",
-        borderLeft: "x13nwy86",
-        borderRight: "x2ekbea",
-        borderBottom: "x1o3008b",
+        kX8ASl: "x16gpukw",
+        kLDBTA: "x13nwy86",
+        km2aEK: "x2ekbea",
+        k4EQJz: "x1o3008b",
         $$css: true
     }
 };

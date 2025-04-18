@@ -36,7 +36,17 @@ export const ComponentWithCallings = ()=>{
 _inject2(".background-x1s5p4n8{background:#F7F5F6}", 1000);
 const s = {
     div: {
-        background: "background-x1s5p4n8",
+        "background-kC7eKd": "background-x1s5p4n8",
+        "backgroundAttachment-ku1ltF": null,
+        "backgroundClip-kHypHr": null,
+        "backgroundColor-kWkggS": null,
+        "backgroundImage-kKwaWg": null,
+        "backgroundOrigin-kl9DO0": null,
+        "backgroundRepeat-kz484i": null,
+        "backgroundSize-kgSjnq": null,
+        "backgroundPosition-k1YJky": null,
+        "backgroundPositionX-kDwdnV": null,
+        "backgroundPositionY-kAiEkY": null,
         $$css: true
     }
 };

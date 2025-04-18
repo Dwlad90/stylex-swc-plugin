@@ -6,17 +6,17 @@ _inject2(".xju2f9n{color:blue}", 3000);
 _inject2(".x14odnwx{padding:5px}", 1000);
 const styles = {
     default: {
-        backgroundColor: "xrkmrrc",
-        color: "xju2f9n",
-        padding: "x14odnwx",
-        paddingInline: null,
-        paddingStart: null,
-        paddingLeft: null,
-        paddingEnd: null,
-        paddingRight: null,
-        paddingBlock: null,
-        paddingTop: null,
-        paddingBottom: null,
+        kWkggS: "xrkmrrc",
+        kMwMTN: "xju2f9n",
+        kmVPX3: "x14odnwx",
+        kg3NbH: null,
+        kuDDbn: null,
+        kE3dHu: null,
+        kP0aTx: null,
+        kpe85a: null,
+        k8WAf4: null,
+        kLKAdn: null,
+        kGO01o: null,
         $$css: true
     }
 };

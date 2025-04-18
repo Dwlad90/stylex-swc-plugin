@@ -26,7 +26,7 @@ export default function Counter() {
 const styles = {
     size: (size)=>[
             {
-                fontSize: 8 * size + 'px' == null ? null : "x6zurak",
+                kGuDYH: "x6zurak",
                 $$css: true
             },
             {
@@ -34,16 +34,16 @@ const styles = {
             }
         ],
     count: {
-        fontSize: "xtqx43c",
-        fontWeight: "x3stwaq",
-        color: "xxzazoc",
-        minWidth: "x1843ork",
-        textAlign: "x2b8uid",
-        fontFamily: "xum72dy",
+        kGuDYH: "xtqx43c",
+        k63SB2: "x3stwaq",
+        kMwMTN: "xxzazoc",
+        k7Eaqz: "x1843ork",
+        k9WMMc: "x2b8uid",
+        kMv6JI: "xum72dy",
         $$css: true
     },
     largeNumber: {
-        fontSize: "xs6c6ls",
+        kGuDYH: "xs6c6ls",
         $$css: true
     }
 };

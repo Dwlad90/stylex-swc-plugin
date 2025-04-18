@@ -8,7 +8,7 @@ _inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     size: (size: number)=>[
             {
-                fontSize: 8 * size + 'px' == null ? null : "x6zurak",
+                kGuDYH: "x6zurak",
                 $$css: true
             },
             {
@@ -16,11 +16,11 @@ const styles = {
             }
         ],
     count: {
-        fontWeight: "x3stwaq",
+        k63SB2: "x3stwaq",
         $$css: true
     },
     largeNumber: {
-        fontSize: "xngnso2",
+        kGuDYH: "xngnso2",
         $$css: true
     }
 };

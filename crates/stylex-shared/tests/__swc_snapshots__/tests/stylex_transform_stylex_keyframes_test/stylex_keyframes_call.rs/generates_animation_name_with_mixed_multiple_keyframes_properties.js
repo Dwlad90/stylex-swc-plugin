@@ -6,7 +6,7 @@ export const name = "xnbjssm-B";
 _inject2(".xg021r9{animation-name:xnbjssm-B}", 3000);
 export const styles = {
     root: {
-        animationName: "xg021r9",
+        kKVMdj: "xg021r9",
         $$css: true
     }
 };

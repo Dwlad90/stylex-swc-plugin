@@ -4,15 +4,15 @@ import stylex from 'stylex';
 _inject2(".x14odnwx{padding:5px}", 1000);
 export const styles = {
     foo: {
-        padding: "x14odnwx",
-        paddingInline: null,
-        paddingStart: null,
-        paddingLeft: null,
-        paddingEnd: null,
-        paddingRight: null,
-        paddingBlock: null,
-        paddingTop: null,
-        paddingBottom: null,
+        kmVPX3: "x14odnwx",
+        kg3NbH: null,
+        kuDDbn: null,
+        kE3dHu: null,
+        kP0aTx: null,
+        kpe85a: null,
+        k8WAf4: null,
+        kLKAdn: null,
+        kGO01o: null,
         $$css: true
     }
 };

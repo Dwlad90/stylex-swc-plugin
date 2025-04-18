@@ -40,6 +40,7 @@ pub struct StyleXOptions {
   pub enable_debug_class_names: Option<bool>,
   pub enable_debug_data_prop: Option<bool>,
   pub enable_dev_class_names: Option<bool>,
+  pub enable_minified_keys: Option<bool>,
   #[napi(ts_type = "Record<string, string[]>")]
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[napi(js_name = "unstable_moduleResolution")]
@@ -95,6 +96,7 @@ impl From<StyleXOptions> for StyleXOptionsParams {
       enable_debug_class_names: val.enable_debug_class_names,
       enable_debug_data_prop: val.enable_debug_data_prop,
       enable_dev_class_names: val.enable_dev_class_names,
+      enable_minified_keys: val.enable_minified_keys,
       aliases: val.aliases,
       unstable_module_resolution,
     }

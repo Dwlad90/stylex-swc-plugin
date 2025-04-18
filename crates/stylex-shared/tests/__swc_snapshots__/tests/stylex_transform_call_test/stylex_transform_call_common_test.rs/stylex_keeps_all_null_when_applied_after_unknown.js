@@ -6,15 +6,15 @@ _inject2(".xp59q4u{padding-block:10px}", 2000);
 _inject2(".xm7lytj{padding-top:7px}", 4000);
 const styles = {
     foo: {
-        padding: "x14odnwx",
-        paddingInline: null,
-        paddingStart: null,
-        paddingLeft: null,
-        paddingEnd: null,
-        paddingRight: null,
-        paddingBlock: null,
-        paddingTop: null,
-        paddingBottom: null,
+        kmVPX3: "x14odnwx",
+        kg3NbH: null,
+        kuDDbn: null,
+        kE3dHu: null,
+        kP0aTx: null,
+        kpe85a: null,
+        k8WAf4: null,
+        kLKAdn: null,
+        kGO01o: null,
         $$css: true
     }
 };

@@ -5,7 +5,7 @@ import { foo, bar } from 'other';
 _inject2(".x1e2nbdu{color:red}", 3000);
 export default {
     foo: {
-        color: "x1e2nbdu",
+        kMwMTN: "x1e2nbdu",
         $$css: true
     }
 };

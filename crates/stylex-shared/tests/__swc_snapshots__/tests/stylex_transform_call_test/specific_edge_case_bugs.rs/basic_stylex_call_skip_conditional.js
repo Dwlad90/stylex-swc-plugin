@@ -15,43 +15,43 @@ _inject2("@media (max-width: 640px){.gridTemplateColumns-x15nfgh4.gridTemplateCo
 _inject2(".gridTemplateColumns-x1mkdm3x{grid-template-columns:minmax(0,1fr)}", 3000);
 export const styles = {
     sidebar: {
-        boxSizing: "boxSizing-x9f619",
-        gridArea: "gridArea-x1yc5d2u",
-        gridRow: null,
-        gridRowStart: null,
-        gridRowEnd: null,
-        gridColumn: null,
-        gridColumnStart: null,
-        gridColumnEnd: null,
+        "boxSizing-kB7OPa": "boxSizing-x9f619",
+        "gridArea-kJuA4N": "gridArea-x1yc5d2u",
+        "gridRow-kbNqZ1": null,
+        "gridRowStart-k1lYIM": null,
+        "gridRowEnd-kpJH7q": null,
+        "gridColumn-kBCFzs": null,
+        "gridColumnStart-kEXP64": null,
+        "gridColumnEnd-kWZpDQ": null,
         $$css: true
     },
     content: {
-        gridArea: "gridArea-x1fdo2jl",
-        gridRow: null,
-        gridRowStart: null,
-        gridRowEnd: null,
-        gridColumn: null,
-        gridColumnStart: null,
-        gridColumnEnd: null,
+        "gridArea-kJuA4N": "gridArea-x1fdo2jl",
+        "gridRow-kbNqZ1": null,
+        "gridRowStart-k1lYIM": null,
+        "gridRowEnd-kpJH7q": null,
+        "gridColumn-kBCFzs": null,
+        "gridColumnStart-kEXP64": null,
+        "gridColumnEnd-kWZpDQ": null,
         $$css: true
     },
     root: {
-        display: "display-xrvj5dj",
-        gridTemplateRows: "gridTemplateRows-x7k18q3",
-        gridTemplateAreas: "gridTemplateAreas-x5gp9wm",
+        "display-k1xSpc": "display-xrvj5dj",
+        "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
+        "gridTemplateAreas-kC13JO": "gridTemplateAreas-x5gp9wm",
         $$css: true
     },
     withSidebar: {
-        gridTemplateColumns: "gridTemplateColumns-x1rkzygb",
-        gridTemplateRows: "gridTemplateRows-x7k18q3",
-        gridTemplateAreas: "gridTemplateAreas-x17lh93j",
-        "@media (max-width: 640px)_gridTemplateRows": "gridTemplateRows-xmr4b4k",
-        "@media (max-width: 640px)_gridTemplateAreas": "gridTemplateAreas-xesbpuc",
-        "@media (max-width: 640px)_gridTemplateColumns": "gridTemplateColumns-x15nfgh4",
+        "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1rkzygb",
+        "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
+        "gridTemplateAreas-kC13JO": "gridTemplateAreas-x17lh93j",
+        "@media (max-width: 640px)_gridTemplateRows-k9pwkU": "gridTemplateRows-xmr4b4k",
+        "@media (max-width: 640px)_gridTemplateAreas-kOnEH4": "gridTemplateAreas-xesbpuc",
+        "@media (max-width: 640px)_gridTemplateColumns-k1JLwA": "gridTemplateColumns-x15nfgh4",
         $$css: true
     },
     noSidebar: {
-        gridTemplateColumns: "gridTemplateColumns-x1mkdm3x",
+        "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1mkdm3x",
         $$css: true
     }
 };

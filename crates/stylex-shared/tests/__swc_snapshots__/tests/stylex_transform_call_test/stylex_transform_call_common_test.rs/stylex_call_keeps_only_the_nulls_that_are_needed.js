@@ -6,12 +6,12 @@ _inject2(".xp59q4u{padding-block:10px}", 2000);
 _inject2(".xm7lytj{padding-top:7px}", 4000);
 const styles = {
     foo: {
-        padding: "x14odnwx",
-        paddingTop: null,
+        kmVPX3: "x14odnwx",
+        kLKAdn: null,
         $$css: true
     },
     baz: {
-        paddingTop: "xm7lytj",
+        kLKAdn: "xm7lytj",
         $$css: true
     }
 };

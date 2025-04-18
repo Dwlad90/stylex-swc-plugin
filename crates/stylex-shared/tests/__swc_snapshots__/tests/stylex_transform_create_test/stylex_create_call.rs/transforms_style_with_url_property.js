@@ -9,27 +9,27 @@ _inject2('.x1xjt71u{background-image:url("/photo-1634170380004-4b3b3b3b3b3b")}',
 _inject2('.xw8biva{background-image:url("./photo-1634170380004-4b3b3b3b3b3b")}', 3000);
 export const styles = {
     default: {
-        backgroundImage: "xmdhqrn",
+        kKwaWg: "xmdhqrn",
         $$css: true
     },
     foo: {
-        backgroundImage: "x95jct7",
+        kKwaWg: "x95jct7",
         $$css: true
     },
     bar: {
-        backgroundImage: "x1jzfrca",
+        kKwaWg: "x1jzfrca",
         $$css: true
     },
     baz: {
-        backgroundImage: "xnjgl7l",
+        kKwaWg: "xnjgl7l",
         $$css: true
     },
     boo: {
-        backgroundImage: "x1xjt71u",
+        kKwaWg: "x1xjt71u",
         $$css: true
     },
     far: {
-        backgroundImage: "xw8biva",
+        kKwaWg: "xw8biva",
         $$css: true
     }
 };

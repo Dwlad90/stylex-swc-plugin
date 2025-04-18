@@ -4,7 +4,7 @@ import stylex from 'stylex';
 _inject2(".xsi5bgv{color:var(--foo)}", 3000);
 export const styles = {
     foo: {
-        color: "xsi5bgv",
+        kMwMTN: "xsi5bgv",
         $$css: true
     }
 };

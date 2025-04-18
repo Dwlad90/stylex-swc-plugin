@@ -7,8 +7,8 @@ _inject2('@property --width { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     default: (width)=>[
             {
-                backgroundColor: "xrkmrrc",
-                width: width == null ? null : "x1bl4301",
+                kWkggS: "xrkmrrc",
+                kzqmXN: "x1bl4301",
                 $$css: true
             },
             {

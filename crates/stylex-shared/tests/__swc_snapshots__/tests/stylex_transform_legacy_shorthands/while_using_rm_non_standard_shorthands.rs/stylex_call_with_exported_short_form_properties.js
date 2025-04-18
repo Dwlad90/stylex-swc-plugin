@@ -7,10 +7,10 @@ _inject2(".xs9asl8{padding-bottom:5px}", 4000);
 _inject2(".x1t2a60a{padding-left:5px}", 3000, ".x1t2a60a{padding-right:5px}");
 export const styles = {
     foo: {
-        paddingTop: "x123j3cw",
-        paddingEnd: "x1mpkggp",
-        paddingBottom: "xs9asl8",
-        paddingStart: "x1t2a60a",
+        kLKAdn: "x123j3cw",
+        kP0aTx: "x1mpkggp",
+        kGO01o: "xs9asl8",
+        kuDDbn: "x1t2a60a",
         $$css: true
     }
 };

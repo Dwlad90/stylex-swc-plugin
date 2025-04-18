@@ -33,7 +33,7 @@ export const ComponentWithCallings = ()=>{
 };
 const s = {
     div: {
-        background: "x1s5p4n8",
+        kC7eKd: "x1s5p4n8",
         $$css: true
     }
 };

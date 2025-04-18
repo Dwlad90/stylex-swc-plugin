@@ -7,8 +7,8 @@ _inject2('@property --1ijzsae { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     default: (color)=>[
             {
-                ":hover_backgroundColor": "x1gykpug",
-                ":hover_color": color == null ? null : "xtyu0qe",
+                kGzVvX: "x1gykpug",
+                kDPRdz: "xtyu0qe",
                 $$css: true
             },
             {

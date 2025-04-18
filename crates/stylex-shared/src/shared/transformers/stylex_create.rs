@@ -16,8 +16,8 @@ use crate::shared::{
     types::{ClassPathsInNamespace, FlatCompiledStyles},
   },
   utils::{
-    ast::convertors::expr_to_str, core::flatten_raw_style_object::flatten_raw_style_object,
-    validators::validate_namespace,
+    ast::convertors::expr_to_str, common::create_short_hash,
+    core::flatten_raw_style_object::flatten_raw_style_object, validators::validate_namespace,
   },
 };
 
@@ -59,7 +59,16 @@ pub(crate) fn stylex_create_set(
     let compiled_namespace_tuples = flattened_namespace
       .iter_mut()
       .map(|(key, value)| {
-        let key = key.clone();
+        let key = if traversal_state.options.enable_minified_keys && !key.starts_with("--") {
+          let hashed_key = create_short_hash(&format!("<>{}", key));
+          if traversal_state.options.debug {
+            format!("{}-k{}", key, hashed_key)
+          } else {
+            format!("k{}", hashed_key)
+          }
+        } else {
+          key.clone()
+        };
 
         let compiled_value = match value {
           PreRules::PreRuleSet(rule_set) => rule_set.compiled(traversal_state),

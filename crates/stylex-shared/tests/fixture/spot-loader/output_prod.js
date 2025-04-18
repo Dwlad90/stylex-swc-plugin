@@ -2,77 +2,77 @@ import { COMMON_SIZES } from "@/app/components/Test";
 import * as stylex from "@stylexjs/stylex";
 const styles = {
     root: {
-        display: "xrvj5dj",
-        gridAutoFlow: "x1mt1orb",
-        gridTemplateColumns: "xernuvs",
-        alignItems: "x6s0dn4",
-        justifyContent: "xl56j7k",
-        gap: "xmjcfx9",
-        rowGap: null,
-        columnGap: null,
+        k1xSpc: "xrvj5dj",
+        kprqdN: "x1mt1orb",
+        kumcoG: "xernuvs",
+        kGNEyG: "x6s0dn4",
+        kjj79g: "xl56j7k",
+        kOIVth: "xmjcfx9",
+        khm7nJ: null,
+        k1C7PZ: null,
         $$css: true
     },
     rect: {
-        backgroundColor: "x1mdjlir",
-        borderRadius: "x12oqio5",
-        borderStartStartRadius: null,
-        borderStartEndRadius: null,
-        borderEndStartRadius: null,
-        borderEndEndRadius: null,
-        borderTopLeftRadius: null,
-        borderTopRightRadius: null,
-        borderBottomLeftRadius: null,
-        borderBottomRightRadius: null,
-        zIndex: "x11uqc5h",
-        animationName: "x13cdbti",
-        animationDuration: "x1m9vv7p",
-        animationIterationCount: "xa4qsjk",
-        animationTimingFunction: "x4hg4is",
+        kWkggS: "x1mdjlir",
+        kaIpWk: "x12oqio5",
+        krdFHd: null,
+        kfmiAY: null,
+        kVL7Gh: null,
+        kT0f0o: null,
+        kIxVMA: null,
+        ksF3WI: null,
+        kqGeR4: null,
+        kYm2EN: null,
+        kY2c9j: "x11uqc5h",
+        kKVMdj: "x13cdbti",
+        k44tkh: "x1m9vv7p",
+        ko0y90: "xa4qsjk",
+        kyAemX: "x4hg4is",
         $$css: true
     },
     rect1: {
-        height: "x10buj8t",
+        kZKoxP: "x10buj8t",
         $$css: true
     },
     rect2: {
-        animationDelay: "x1qdon1m",
-        height: "x1lnynta",
+        kKxzle: "x1qdon1m",
+        kZKoxP: "x1lnynta",
         $$css: true
     },
     rect3: {
-        animationDelay: "x123bg45",
-        height: "x5yr21d",
+        kKxzle: "x123bg45",
+        kZKoxP: "x5yr21d",
         $$css: true
     },
     rect4: {
-        animationDelay: "x1olj69",
-        backgroundColor: "xb4ade6",
-        height: "x1lnynta",
+        kKxzle: "x1olj69",
+        kWkggS: "xb4ade6",
+        kZKoxP: "x1lnynta",
         $$css: true
     },
     rect5: {
-        animationDelay: "x1ryhrx7",
-        height: "x10buj8t",
+        kKxzle: "x1ryhrx7",
+        kZKoxP: "x10buj8t",
         $$css: true
     },
     sizeSmall: {
-        height: "xettwda",
-        width: "xs5h3dt",
+        kZKoxP: "xettwda",
+        kzqmXN: "xs5h3dt",
         $$css: true
     },
     size_small: {
-        height: "xettwda",
-        width: "xs5h3dt",
+        kZKoxP: "xettwda",
+        kzqmXN: "xs5h3dt",
         $$css: true
     },
     size_normal: {
-        height: "x1sh0tsm",
-        width: "xekueh",
+        kZKoxP: "x1sh0tsm",
+        kzqmXN: "xekueh",
         $$css: true
     },
     size_large: {
-        height: "x17frcva",
-        width: "xdvn7xf",
+        kZKoxP: "x17frcva",
+        kzqmXN: "xdvn7xf",
         $$css: true
     }
 };

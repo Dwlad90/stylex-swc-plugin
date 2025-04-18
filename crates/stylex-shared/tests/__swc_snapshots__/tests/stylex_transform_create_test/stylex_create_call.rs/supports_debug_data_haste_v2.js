@@ -6,15 +6,15 @@ _inject2(".display-x1lliihq{display:block}", 3000);
 _inject2(".fontSize-xrv4cvt{font-size:1em}", 3000);
 export const styles = {
     foo: {
-        color: "color-x1e2nbdu",
+        "color-kMwMTN": "color-x1e2nbdu",
         $$css: "npm-package:components/Foo.react.js:3"
     },
     "bar-baz": {
-        display: "display-x1lliihq",
+        "display-k1xSpc": "display-x1lliihq",
         $$css: "npm-package:components/Foo.react.js:6"
     },
     "1": {
-        fontSize: "fontSize-xrv4cvt",
+        "fontSize-kGuDYH": "fontSize-xrv4cvt",
         $$css: "npm-package:components/Foo.react.js:9"
     }
 };

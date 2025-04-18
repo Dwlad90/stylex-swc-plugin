@@ -144,6 +144,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                   }
                 }
 
+                dbg!(&debug_string);
                 next_cache.insert(
                   style_hash,
                   (

@@ -288,6 +288,45 @@ test!(
     "#
 );
 
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      debug: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transforms_variables_object_with_numeric_keys_and_add_stylex_inject_in_debug_mode,
+  r#"
+        import stylex from 'stylex';
+        export const buttonTheme = stylex.defineVars({
+          '10': {
+            default: 'blue',
+            '@media (prefers-color-scheme: dark)': 'lightblue',
+            '@media print': 'white',
+          },
+          '1.5 pixels': {
+            default: 'grey',
+            '@media (prefers-color-scheme: dark)': 'rgba(0, 0, 0, 0.8)',
+          },
+          'corner#radius': 10,
+          '@@primary': {
+            default: 'pink',
+          },
+          });
+    "#
+);
+
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,

@@ -41,10 +41,20 @@ impl ThemeRef {
       let debug = state.options.debug;
       let enable_debug_class_names = state.options.enable_debug_class_names;
 
+      let var_safe_key =
+        if key.chars().next().unwrap_or('\0') >= '0' && key.chars().next().unwrap_or('\0') <= '9' {
+          format!("_{}", key)
+        } else {
+          key.to_string()
+        }
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>();
+
       let var_name = if debug && enable_debug_class_names {
         format!(
           "{}-{}{}",
-          key,
+          var_safe_key,
           self.class_name_prefix,
           create_hash(&str_to_hash)
         )

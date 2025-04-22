@@ -10,10 +10,10 @@ use crate::shared::{
     common::THEME_NAME_KEY,
     messages::{
       DUPLICATE_CONDITIONAL, ILLEGAL_ARGUMENT_LENGTH, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-      INVALID_PSEUDO_OR_AT_RULE, NON_EXPORT_NAMED_DECLARATION, NON_OBJECT_FOR_STYLEX_CALL,
-      NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, NON_OBJECT_KEYFRAME, NON_STATIC_KEYFRAME_VALUE,
-      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-      UNBOUND_STYLEX_CALL_VALUE,
+      INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_EXPORT_NAMED_DECLARATION,
+      NON_OBJECT_FOR_STYLEX_CALL, NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, NON_OBJECT_KEYFRAME,
+      NON_STATIC_KEYFRAME_VALUE, NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
+      ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS, UNBOUND_STYLEX_CALL_VALUE,
     },
   },
   enums::data_structures::{
@@ -67,6 +67,24 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
       &Expr::Call(call.clone()),
       &first_arg.expr,
       NON_OBJECT_FOR_STYLEX_CALL,
+      state,
+    );
+  }
+
+  let has_spread = if let Expr::Object(obj) = first_arg.expr.as_ref() {
+    obj
+      .props
+      .iter()
+      .any(|prop| matches!(prop, swc_core::ecma::ast::PropOrSpread::Spread(_)))
+  } else {
+    false
+  };
+
+  if has_spread {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &first_arg.expr,
+      NO_OBJECT_SPREADS,
       state,
     );
   }

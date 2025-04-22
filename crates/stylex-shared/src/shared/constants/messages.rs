@@ -24,8 +24,7 @@ pub(crate) static UNKNOWN_NAMESPACE: &str = "Unknown namespace";
 #[allow(dead_code)]
 pub(crate) static ILLEGAL_NESTED_PSEUDO: &str =
   "Pseudo objects can't be nested more than one level deep.";
-pub(crate) static ILLEGAL_PROP_VALUE: &str =
-  "A style value can only contain an array, string or number.";
+pub static ILLEGAL_PROP_VALUE: &str = "A style value can only contain an array, string or number.";
 pub(crate) static ILLEGAL_PROP_ARRAY_VALUE: &str =
   "A style array value can only contain strings or numbers.";
 pub(crate) static ILLEGAL_NAMESPACE_VALUE: &str = "A stylex namespace must be an object.";
@@ -73,3 +72,5 @@ pub(crate) static NON_CONTIGUOUS_VARS: &str =
 
 pub(crate) static THEME_IMPORT_KEY_AS_OBJECT_KEY: &str =
   "Theme import keys cannot be used as object keys. Please use a valid object key.";
+
+pub(crate) static NO_OBJECT_SPREADS: &str = "Object spreads are not allowed in stylex.create call.";

@@ -833,3 +833,33 @@ test!(
         });
     "#
 );
+
+#[test]
+#[should_panic(expected = "Object spreads are not allowed in stylex.create call.")]
+fn throws_on_object_spread_in_stylex_create() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+        import stylex from 'stylex';
+
+        const shared = { foo: { color: 'red' } };
+
+        const styles = stylex.create({
+          ...shared,
+          bar: { color: 'blue' }
+        });
+        "#,
+    r#""#,
+  )
+}

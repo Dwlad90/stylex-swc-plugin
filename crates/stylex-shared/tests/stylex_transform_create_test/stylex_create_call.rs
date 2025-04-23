@@ -160,6 +160,90 @@ test!(
   }),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/src/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stress_test_various_key_types_and_style_variants_haste,
+  r#"
+      import stylex from 'stylex';
+
+      export const styles = stylex.create({
+        foo: {
+          color: 'red',
+          ':hover': {
+            color: 'blue',
+          },
+          '@media (min-width: 768px)': {
+            color: 'green',
+          },
+        },
+        'bar-baz': {
+          display: 'block',
+          padding: '10px',
+        },
+        1: {
+          fontSize: '14px',
+        },
+      });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/src/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stress_test_various_key_types_and_style_variants_commonjs,
+  r#"
+      import stylex from 'stylex';
+
+      export const styles = stylex.create({
+        foo: {
+          color: 'red',
+          ':hover': {
+            color: 'blue',
+          },
+          '@media (min-width: 768px)': {
+            color: 'green',
+          },
+        },
+        'bar-baz': {
+          display: 'block',
+          padding: '10px',
+        },
+        1: {
+          fontSize: '14px',
+        },
+      });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
     PluginPass::default(),
     None
   ),

@@ -23,6 +23,7 @@ use crate::shared::{
   structures::state_manager::StateManager,
   utils::{
     ast::{convertors::string_to_expression, factories::key_value_factory},
+    common::get_import_from,
     log::build_code_frame_error::build_code_frame_error_and_panic,
   },
 };
@@ -187,8 +188,15 @@ pub(crate) fn validate_stylex_create_theme_indent(
     );
   }
 
-  let second_args = &init.args[1];
-  if !second_args.expr.is_object() {
+  let second_arg = &init.args[1];
+
+  let is_valid_second_arg = match second_arg.expr.as_ref() {
+    Expr::Ident(ident) => get_import_from(state, ident).is_none(),
+    Expr::Object(_) => true,
+    _ => false,
+  };
+
+  if !is_valid_second_arg {
     build_code_frame_error_and_panic(
       init_expr,
       &Expr::Call(call.clone()),

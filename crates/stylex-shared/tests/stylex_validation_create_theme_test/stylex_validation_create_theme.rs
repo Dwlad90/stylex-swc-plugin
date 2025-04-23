@@ -264,7 +264,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
 
 #[test]
 #[should_panic(expected = "stylex.createTheme() can only accept an object as the second argument")]
-fn second_arg_should_be_object_in_stylex_create_theme_fn() {
+fn second_arg_cant_be_imported_variable_in_stylex_create_theme_fn() {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,
@@ -280,10 +280,48 @@ fn second_arg_should_be_object_in_stylex_create_theme_fn() {
     },
     r#"
             import stylex from 'stylex';
-            import { buttonTokens } from "./ButtonTokens.stylex";
+            import { buttonTokens } from "./ButtonTokens";
 
             export const variables = stylex.createTheme(buttonTokens, buttonTokens);
         "#,
     r#""#,
   )
 }
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  second_arg_can_be_local_variable_in_stylex_create_theme_fn,
+  r#"
+            import stylex from 'stylex';
+
+            const buttonTokens ={
+                __themeName__: 'TestTheme.stylex.js//buttonTheme',
+                bgColor: 'var(--xgck17p)',
+            };
+
+            const simpleTheme = {
+                bgColor: {
+                    default: {
+                        default: 'green',
+                        '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.3 -0.4)',
+                    },
+                    '@media (prefers-color-scheme: dark)': {
+                        default: 'lightgreen',
+                        '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.2 -0.4)',
+                    },
+                },
+            }
+
+            export const variables = stylex.createTheme(buttonTokens, simpleTheme);
+        "#
+);

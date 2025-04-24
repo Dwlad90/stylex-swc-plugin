@@ -57,16 +57,16 @@ pub(crate) fn convert_style_to_class_name(
     PreRuleValue::Expr(_) | PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
-  let value = match &value {
+  let value = match value {
     PreRuleValue::String(value) => vec![value.to_string()],
     PreRuleValue::Vec(values) => {
       if values
         .iter()
         .any(|value| value.starts_with("var(") && value.ends_with(')'))
       {
-        variable_fallbacks(values.clone())
+        variable_fallbacks(&values)
       } else {
-        values.clone()
+        values
       }
     }
     PreRuleValue::Expr(_) | PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
@@ -97,7 +97,7 @@ pub(crate) fn convert_style_to_class_name(
   (key.to_string(), class_name_hashed, css_rules)
 }
 
-fn variable_fallbacks(values: Vec<String>) -> Vec<String> {
+fn variable_fallbacks(values: &[String]) -> Vec<String> {
   let first_var = values
     .iter()
     .position(|val| val.starts_with("var(") && val.ends_with(')'));

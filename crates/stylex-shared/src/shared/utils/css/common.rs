@@ -305,7 +305,7 @@ pub(crate) fn generate_css_rule(
 pub(crate) fn generate_rule(
   class_name: &str,
   key: &str,
-  values: &Vec<String>,
+  values: &[String],
   pseudos: &mut [String],
   at_rules: &mut [String],
 ) -> InjectableStyle {
@@ -516,9 +516,7 @@ pub(crate) fn normalize_css_property_value(
   }
 
   let ast_normalized = match parsed_css {
-    Ok(ast) => {
-      let (parsed_css_property_value, _) = swc_parse_css(css_rule.as_str());
-
+    Ok(parsed_css_property_value) => {
       // let validators: Vec<Validator> = vec![
       //   unprefixed_custom_properties_validator,
       //   // Add other validator functions here...
@@ -533,12 +531,9 @@ pub(crate) fn normalize_css_property_value(
       //   validator(ast.clone());
       // }
 
-      unprefixed_custom_properties_validator(ast);
+      unprefixed_custom_properties_validator(&parsed_css_property_value);
 
-      let parsed_ast = base_normalizer(
-        parsed_css_property_value.unwrap(),
-        options.use_rem_for_font_size,
-      );
+      let parsed_ast = base_normalizer(parsed_css_property_value, options.use_rem_for_font_size);
 
       // for normalizer in normalizers {
       //   parsed_ast = normalizer(parsed_ast, options.use_rem_for_font_size);

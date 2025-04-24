@@ -5,7 +5,10 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::{enums::core::TransformationCycle, utils::common::normalize_expr},
+  shared::{
+    enums::core::TransformationCycle,
+    utils::common::{normalize_expr, stable_hash},
+  },
 };
 
 impl<C> StyleXTransform<C>
@@ -21,7 +24,10 @@ where
 
     if self.state.cycle == TransformationCycle::StateFilling {
       if let Some(call_expr) = normalized_expr.as_call() {
-        self.state.all_call_expressions.push(call_expr.clone());
+        self
+          .state
+          .all_call_expressions
+          .insert(stable_hash(&call_expr), call_expr.clone());
       }
     }
 

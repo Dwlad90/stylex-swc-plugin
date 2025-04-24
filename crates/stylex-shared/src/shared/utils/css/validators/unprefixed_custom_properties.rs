@@ -34,7 +34,7 @@ fn process_qualified_rule(qualified_rule: &QualifiedRule) {
   }
 }
 
-pub(crate) fn unprefixed_custom_properties_validator(ast: Stylesheet) {
+pub(crate) fn unprefixed_custom_properties_validator(ast: &Stylesheet) {
   for rule in ast.rules.iter() {
     if let Rule::QualifiedRule(qualified_rule) = rule {
       process_qualified_rule(qualified_rule);
@@ -47,5 +47,5 @@ pub(crate) fn unprefixed_custom_properties_validator(ast: Stylesheet) {
 fn disallow_unprefixed_custom_properties() {
   let (result, _) = swc_parse_css("* { color: var(foo); }");
 
-  unprefixed_custom_properties_validator(result.unwrap());
+  unprefixed_custom_properties_validator(&result.unwrap());
 }

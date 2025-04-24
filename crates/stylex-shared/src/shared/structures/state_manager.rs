@@ -13,7 +13,7 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, EqIgnoreSpan, FileName},
+  common::{DUMMY_SP, FileName},
   ecma::{ast::Module, utils::drop_span},
 };
 use swc_core::{
@@ -94,7 +94,7 @@ pub struct StateManager {
   pub(crate) function_name_declarations: Vec<Ident>,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
-  pub(crate) all_call_expressions: Vec<CallExpr>,
+  pub(crate) all_call_expressions: FxHashMap<u64, CallExpr>,
   pub(crate) var_decl_count_map: AtomHashMap,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
   pub(crate) css_property_seen: FxHashMap<String, String>,
@@ -164,7 +164,7 @@ impl StateManager {
       class_name_declarations: vec![],
       function_name_declarations: vec![],
       top_level_expressions: vec![],
-      all_call_expressions: vec![],
+      all_call_expressions: FxHashMap::default(),
       var_decl_count_map: FxHashMap::default(),
 
       in_stylex_create: false,
@@ -449,101 +449,110 @@ impl StateManager {
     style: &IndexMap<String, Rc<InjectableStyle>>,
     ast: &Expr,
   ) {
+    // Early return if there are no styles to process
     if style.is_empty() {
       return;
     }
 
     let metadatas = MetaData::convert_from_injected_styles_map(style);
-
-    let mut uid_generator_inject = UidGenerator::new("inject");
-
-    let runtime_injection = self
-      .options
-      .runtime_injection
-      .as_ref()
-      .cloned()
-      .unwrap_or(RuntimeInjectionState::Regular(String::default()));
-
-    let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
-      Some(idents) => idents,
-      None => {
-        let inject_module_ident = uid_generator_inject.generate_ident();
-
-        let inject_var_ident = match &runtime_injection {
-          RuntimeInjectionState::Regular(_) => uid_generator_inject.generate_ident(),
-          RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
-            let r#as_clone = r#as.clone();
-            uid_generator_inject = UidGenerator::new(&r#as_clone);
-            uid_generator_inject.generate_ident()
-          }
-        };
-
-        self.inject_import_inserted = Some((inject_module_ident.clone(), inject_var_ident.clone()));
-
-        (inject_module_ident, inject_var_ident)
-      }
-    };
-
-    if !metadatas.is_empty() && self.prepend_include_module_items.is_empty() {
-      let first_module_items = match &runtime_injection {
-        RuntimeInjectionState::Regular(_) => vec![
-          add_inject_default_import_expression(&inject_module_ident),
-          add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
-        ],
-        RuntimeInjectionState::Named(_) => vec![
-          add_inject_named_import_expression(&inject_module_ident, &inject_var_ident),
-          add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
-        ],
-      };
-
-      self.prepend_include_module_items.extend(first_module_items);
+    if metadatas.is_empty() {
+      return;
     }
+
+    let inject_var_ident = self.setup_injection_imports();
 
     for metadata in metadatas {
       self.add_style(&metadata);
       self.add_style_to_inject(&metadata, &inject_var_ident, ast);
     }
 
-    // Update declarations
-    if let Some(item) = self.declarations.iter_mut().find(|decl| {
-      decl.init.as_ref().is_some_and(
-        |boxed_expr| matches!(**boxed_expr, Expr::Call(ref existing_call) if existing_call == call),
-      )
-    }) {
-      item.init = Some(Box::new(ast.clone())); // Only clone ast here
+    // Update all references to this call expression with the new AST
+    self.update_references(call, ast);
+  }
+
+  fn setup_injection_imports(&mut self) -> Ident {
+    if !self.prepend_include_module_items.is_empty() {
+      return self.inject_import_inserted.as_ref().unwrap().1.clone();
     }
 
-    // Update style_vars
+    let mut uid_generator = UidGenerator::new("inject");
+
+    let runtime_injection = self
+      .options
+      .runtime_injection
+      .as_ref()
+      .cloned()
+      .unwrap_or_else(|| RuntimeInjectionState::Regular(String::default()));
+
+    let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
+      Some(idents) => idents,
+      None => {
+        let module_ident = uid_generator.generate_ident();
+
+        let var_ident = match &runtime_injection {
+          RuntimeInjectionState::Regular(_) => uid_generator.generate_ident(),
+          RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
+            uid_generator = UidGenerator::new(r#as);
+            uid_generator.generate_ident()
+          }
+        };
+
+        let idents = (module_ident, var_ident);
+        self.inject_import_inserted = Some(idents.clone());
+        idents
+      }
+    };
+
+    let module_items = match &runtime_injection {
+      RuntimeInjectionState::Regular(_) => vec![
+        add_inject_default_import_expression(&inject_module_ident),
+        add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
+      ],
+      RuntimeInjectionState::Named(_) => vec![
+        add_inject_named_import_expression(&inject_module_ident, &inject_var_ident),
+        add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
+      ],
+    };
+
+    self.prepend_include_module_items.extend(module_items);
+    inject_var_ident
+  }
+
+  fn update_references(&mut self, call: &CallExpr, ast: &Expr) {
+    if let Some(item) = self.declarations.iter_mut().find(|decl| {
+      decl.init.as_ref().is_some_and(
+        |expr| matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
+      )
+    }) {
+      item.init = Some(Box::new(ast.clone()));
+    }
+
     if let Some((_, item)) = self.style_vars.iter_mut().find(|(_, decl)| {
       decl.init.as_ref().is_some_and(
         |expr| matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
       )
     }) {
-      item.init = Some(Box::new(ast.clone())); // Clone `ast` only when necessary
+      item.init = Some(Box::new(ast.clone()));
     }
 
-    // Update top_level_expressions
-    if let Some(TopLevelExpression(_, item, _)) = self
+    if let Some(top_level_expr) = self
       .top_level_expressions
       .iter_mut()
-      .find(|TopLevelExpression(_, decl, _)| matches!(decl, Expr::Call(c) if c == call))
+      .find(|TopLevelExpression(_, expr, _)| matches!(expr, Expr::Call(c) if c == call))
     {
-      *item = ast.clone();
+      top_level_expr.1 = ast.clone();
     }
 
-    // Update all_call_expressions
-    if let Some((index, _)) = self
-      .all_call_expressions
-      .iter()
-      .enumerate()
-      .find(|(_, expr)| expr.eq_ignore_span(&call))
-    {
-      match ast.as_call() {
-        Some(call_expr) => self.all_call_expressions[index] = drop_span(call_expr.clone()),
-        None => {
-          self.all_call_expressions.remove(index);
-        }
-      }
+    let call_hash = stable_hash(call);
+
+    self.all_call_expressions.remove(&call_hash);
+
+    if let Some(call_expr) = ast.as_call() {
+      let new_call_hash = stable_hash(call_expr);
+
+      self
+        .all_call_expressions
+        .insert(new_call_hash, call_expr.clone());
     }
   }
 
@@ -640,7 +649,8 @@ impl StateManager {
       self.top_level_expressions.clone(),
       other.top_level_expressions.clone(),
     );
-    self.all_call_expressions = chain_collect(
+
+    self.all_call_expressions = chain_collect_hash_map(
       self.all_call_expressions.clone(),
       other.all_call_expressions.clone(),
     );

@@ -170,6 +170,177 @@ fn object_methods() {
 }
 
 #[test]
+fn object_keys_with_illegal_non_object_args() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
+    r#"
+            const a = Object.keys(1);
+            const b = Object.keys(null);
+            const c = Object.keys(NaN);
+            const d = Object.keys(undefined);
+            const e = Object.keys(true);
+            const f = Object.keys(false);
+            const g = Object.keys("");
+        "#,
+    r#"
+            [];
+            [];
+            [];
+            [];
+            [];
+            [];
+            [];
+        "#,
+  )
+}
+
+#[test]
+fn object_keys_with_legal_non_object_args() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
+    r#"
+            const a = Object.keys([1,2,3]);
+            const b = Object.keys([[1],[2],[3]]);
+            const c = Object.keys([[1],[()=>{}],[NaN]]);
+            const d = Object.keys("123");
+            const e = Object.keys([null, undefined, NaN, "1", 1]);
+        "#,
+    r#"
+
+            ["0", "1", "2"];
+            ["0", "1", "2"];
+            ["0", "2"];
+            ["0", "1", "2"];
+            ["0", "1", "2", "3", "4"];
+        "#,
+  )
+}
+
+#[test]
+fn object_values_with_illegal_non_object_args() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
+    r#"
+            const a = Object.values(1);
+            const b = Object.values(null);
+            const c = Object.values(NaN);
+            const d = Object.values(undefined);
+            const e = Object.values(true);
+            const f = Object.values(false);
+            const g = Object.values("");
+        "#,
+    r#"
+            [];
+            [];
+            [];
+            [];
+            [];
+            [];
+            [];
+        "#,
+  )
+}
+
+#[test]
+fn object_values_with_legal_non_object_args() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
+    r#"
+            const a = Object.values([1,2,3]);
+            const b = Object.values([[1],[2],[3]]);
+            const c = Object.values([[1],[()=>{}],[NaN]]);
+            const d = Object.values("123");
+            const e = Object.values([null, undefined, NaN, "1", 1]);
+        "#,
+    r#"
+
+            [1, 2, 3];
+            [[1], [2], [3]];
+            [[1], [NaN]];
+            ["1", "2", "3"];
+            [null, undefined, NaN, "1", 1]
+        "#,
+  )
+}
+
+#[test]
+fn object_entries_with_illegal_non_object_args() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
+    r#"
+            const a = Object.entries(1);
+            const b = Object.entries(null);
+            const c = Object.entries(NaN);
+            const d = Object.entries(undefined);
+            const e = Object.entries(true);
+            const f = Object.entries(false);
+            const g = Object.entries("");
+        "#,
+    r#"
+            [];
+            [];
+            [];
+            [];
+            [];
+            [];
+            [];
+        "#,
+  )
+}
+
+#[test]
+fn object_entries_with_legal_non_object_args() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
+    r#"
+            const a = Object.entries([1,2,3]);
+            const b = Object.entries([[1],[2],[3]]);
+            const c = Object.entries([[1],[()=>{}],[NaN]]);
+            const d = Object.entries("123");
+            const e = Object.entries([null, undefined, NaN, "1", 1]);
+        "#,
+    r#"
+
+            [["0", 1], ["1", 2], ["2", 3]];
+            [["0", [1]], ["1", [2]], ["2", [3]]];
+            [["0", [1]], ["2", [NaN]]];
+            [["0", "1"], ["1", "2"], ["2", "3"]];
+            [["0", null], ["1", undefined], ["2", NaN], ["3", "1"], ["4", 1]];
+        "#,
+  )
+}
+
+#[test]
 fn object_entries() {
   test_transform(
     Syntax::Typescript(TsSyntax {

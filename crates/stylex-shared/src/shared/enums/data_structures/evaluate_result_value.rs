@@ -15,7 +15,7 @@ pub enum EvaluateResultValue {
   Expr(Expr),
   Vec(Vec<Option<EvaluateResultValue>>),
   Map(IndexMap<Expr, Vec<KeyValueProp>>),
-  Entries(IndexMap<Lit, Lit>),
+  Entries(IndexMap<Lit, Box<Expr>>),
   Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
   FunctionConfigMap(FxHashMap<Atom, FunctionConfig>),

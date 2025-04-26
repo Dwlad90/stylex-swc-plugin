@@ -45,7 +45,7 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_entries(&self) -> Option<&IndexMap<Lit, Lit>> {
+  pub fn as_entries(&self) -> Option<&IndexMap<Lit, Box<Expr>>> {
     match self {
       EvaluateResultValue::Entries(value) => Some(value),
       _ => None,

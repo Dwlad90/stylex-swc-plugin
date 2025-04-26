@@ -54,7 +54,10 @@ use crate::shared::{
         expr_to_bool, expr_to_num, expr_to_str, key_value_to_str, lit_to_string,
         number_to_expression, string_to_expression, transform_shorthand_to_key_values,
       },
-      factories::{array_expression_factory, lit_str_factory, object_expression_factory},
+      factories::{
+        array_expression_factory, lit_str_factory, object_expression_factory,
+        prop_or_spread_expression_factory,
+      },
     },
     common::{
       char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
@@ -1256,14 +1259,14 @@ fn _evaluate(
                           takes_path: false,
                         }));
 
-                        let mut entries_result = IndexMap::new();
+                        let mut from_entries_result = IndexMap::new();
 
-                        match cached_arg.expect("Object.entries requires an argument") {
+                        match cached_arg.expect("Object.fromEntries requires an argument") {
                           EvaluateResultValue::Expr(expr) => {
                             let array = expr
                               .as_array()
                               .cloned()
-                              .expect("Object.entries requires an object");
+                              .expect("Object.fromEntries requires an object");
 
                             let entries = array
                               .elems
@@ -1286,10 +1289,10 @@ fn _evaluate(
 
                               let value = elems
                                 .get(1)
-                                .and_then(|e| e.expr.as_lit())
+                                .map(|e| e.expr.clone())
                                 .expect("Value must be a literal");
 
-                              entries_result.insert(key.clone(), value.clone());
+                              from_entries_result.insert(key.clone(), value.clone());
                             }
                           }
                           EvaluateResultValue::Vec(vec) => {
@@ -1309,18 +1312,19 @@ fn _evaluate(
                                 .get(1)
                                 .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
-                                .and_then(|expr| expr.as_lit().cloned())
                                 .expect("Value must be a literal");
 
-                              entries_result.insert(key.clone(), value.clone());
+                              from_entries_result.insert(key.clone(), Box::new(value.clone()));
                             }
                           }
                           _ => {
-                            panic!("Object.entries requires an object")
+                            panic!("Object.fromEntries requires an object")
                           }
                         };
 
-                        context = Some(vec![Some(EvaluateResultValue::Entries(entries_result))]);
+                        context = Some(vec![Some(EvaluateResultValue::Entries(
+                          from_entries_result,
+                        ))]);
                       }
                       "keys" => {
                         func = Some(Box::new(FunctionConfig {
@@ -1330,26 +1334,24 @@ fn _evaluate(
                           takes_path: false,
                         }));
 
-                        let object = cached_arg
-                          .and_then(|arg| arg.as_expr().cloned())
-                          .and_then(|expr| expr.as_object().cloned())
-                          .expect("Object.entries requires an object");
+                        let object = normalize_js_object_method_args(cached_arg);
 
                         let mut keys = vec![];
 
-                        for prop in &object.props {
-                          let expr = prop.as_prop().cloned().expect("Spread");
+                        if let Some(object) = object {
+                          for prop in &object.props {
+                            let expr = prop.as_prop().cloned().expect("Spread");
 
-                          let key_values = expr
-                            .as_key_value()
-                            .expect("Object.entries requires an object");
+                            let key_values =
+                              expr.as_key_value().expect("Object.keys requires an object");
 
-                          let key = key_value_to_str(key_values);
+                            let key = key_value_to_str(key_values);
 
-                          keys.push(Some(ExprOrSpread {
-                            spread: None,
-                            expr: Box::new(string_to_expression(key.as_str())),
-                          }));
+                            keys.push(Some(ExprOrSpread {
+                              spread: None,
+                              expr: Box::new(string_to_expression(key.as_str())),
+                            }));
+                          }
                         }
 
                         context = Some(vec![Some(EvaluateResultValue::Expr(Expr::Array(
@@ -1367,29 +1369,23 @@ fn _evaluate(
                           takes_path: false,
                         }));
 
-                        let object = cached_arg
-                          .and_then(|arg| arg.as_expr().cloned())
-                          .and_then(|expr| expr.as_object().cloned())
-                          .expect("Object.entries requires an object");
+                        let object = normalize_js_object_method_args(cached_arg);
 
                         let mut values = vec![];
 
-                        for prop in &object.props {
-                          let expr = prop.as_prop().cloned().expect("Spread");
+                        if let Some(object) = object {
+                          for prop in &object.props {
+                            let prop = prop.as_prop().cloned().expect("Spread");
 
-                          let key_values = expr
-                            .as_key_value()
-                            .expect("Object.entries requires an object");
+                            let key_values = prop
+                              .as_key_value()
+                              .expect("Object.values requires an object");
 
-                          let value = key_values
-                            .value
-                            .as_lit()
-                            .expect("Object value should be a literal");
-
-                          values.push(Some(ExprOrSpread {
-                            spread: None,
-                            expr: Box::new(Expr::from(value.clone())),
-                          }));
+                            values.push(Some(ExprOrSpread {
+                              spread: None,
+                              expr: key_values.value.clone(),
+                            }));
+                          }
                         }
 
                         context = Some(vec![Some(EvaluateResultValue::Expr(Expr::Array(
@@ -1407,28 +1403,24 @@ fn _evaluate(
                           takes_path: false,
                         }));
 
-                        let object = cached_arg
-                          .and_then(|arg| arg.as_expr().cloned())
-                          .and_then(|expr| expr.as_object().cloned())
-                          .expect("Object.entries requires an object");
+                        let object = normalize_js_object_method_args(cached_arg);
 
-                        let mut entries: IndexMap<Lit, Lit> = IndexMap::new();
+                        let mut entries: IndexMap<Lit, Box<Expr>> = IndexMap::new();
 
-                        for prop in &object.props {
-                          let expr = prop.as_prop().map(|prop| *prop.clone()).expect("Spread");
+                        if let Some(object) = object {
+                          for prop in &object.props {
+                            let expr = prop.as_prop().map(|prop| *prop.clone()).expect("Spread");
 
-                          let key_values = expr
-                            .as_key_value()
-                            .expect("Object.entries requires an object");
+                            let key_values = expr
+                              .as_key_value()
+                              .expect("Object.entries requires an object");
 
-                          let value = key_values
-                            .value
-                            .as_lit()
-                            .expect("Object value should be a literal");
+                            let value = key_values.value.clone();
 
-                          let key = key_value_to_str(key_values);
+                            let key = key_value_to_str(key_values);
 
-                          entries.insert(lit_str_factory(key.as_str()), value.clone());
+                            entries.insert(lit_str_factory(key.as_str()), value);
+                          }
                         }
 
                         context = Some(vec![Some(EvaluateResultValue::Entries(entries))]);
@@ -1903,7 +1895,7 @@ fn _evaluate(
 
                     let value: ExprOrSpread = ExprOrSpread {
                       spread: None,
-                      expr: Box::new(Expr::from(value.clone())),
+                      expr: value.clone(),
                     };
 
                     entry_elems.push(Some(ExprOrSpread {
@@ -1978,7 +1970,7 @@ fn _evaluate(
 
                     let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
                       key: PropName::Ident(ident_name),
-                      value: Box::new(Expr::from(value.clone())),
+                      value: value.clone(),
                     })));
 
                     entry_elems.push(prop);
@@ -2352,6 +2344,100 @@ fn _evaluate(
   }
 
   result
+}
+
+/// Normalizes different argument types into an ObjectLit for JavaScript object methods.
+fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> Option<ObjectLit> {
+  cached_arg.and_then(|arg| match arg {
+    EvaluateResultValue::Expr(expr) => expr.as_object().cloned().or_else(|| {
+      if let Expr::Lit(Lit::Str(strng)) = expr {
+        let keys = strng
+          .value
+          .chars()
+          .enumerate()
+          .map(|(i, c)| {
+            prop_or_spread_expression_factory(&i.to_string(), string_to_expression(&c.to_string()))
+          })
+          .collect::<Vec<PropOrSpread>>();
+
+        Some(ObjectLit {
+          props: keys,
+          span: DUMMY_SP,
+        })
+      } else {
+        None
+      }
+    }),
+
+    EvaluateResultValue::Vec(arr) => {
+      let props = arr
+        .iter()
+        .enumerate()
+        .filter_map(|(index, elem)| {
+          elem.as_ref().map(|elem_value| {
+            let expr = match elem_value {
+              EvaluateResultValue::Expr(expr) => expr.clone(),
+              EvaluateResultValue::Vec(vec) => normalize_js_object_method_nested_vector_arg(vec),
+              _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+            };
+
+            prop_or_spread_expression_factory(&index.to_string(), expr)
+          })
+        })
+        .collect();
+
+      Some(ObjectLit {
+        props,
+        span: DUMMY_SP,
+      })
+    }
+
+    _ => None,
+  })
+}
+
+/// Helper function to convert a nested vector of EvaluateResultValues to an array expression
+fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValue>]) -> Expr {
+  let elems = vec
+    .iter()
+    .map(|entry| {
+      let expr = entry
+        .as_ref()
+        .and_then(|entry| {
+          entry
+            .as_vec()
+            .map(|nested_vec| {
+              let nested_elems = nested_vec
+                .iter()
+                .flatten()
+                .map(|item| {
+                  Some(ExprOrSpread {
+                    spread: None,
+                    expr: Box::new(item.as_expr().unwrap().clone()),
+                  })
+                })
+                .collect();
+
+              Expr::Array(ArrayLit {
+                span: DUMMY_SP,
+                elems: nested_elems,
+              })
+            })
+            .or_else(|| entry.as_expr().cloned())
+        })
+        .expect(ILLEGAL_PROP_ARRAY_VALUE);
+
+      Some(ExprOrSpread {
+        spread: None,
+        expr: Box::new(expr),
+      })
+    })
+    .collect();
+
+  Expr::Array(ArrayLit {
+    span: DUMMY_SP,
+    elems,
+  })
 }
 
 fn evaluate_func_call_args(

@@ -50,6 +50,7 @@
     "@types/node": "^22.13.17",
     "ava": "^6.2.0",
     "benchmark": "^2.1.2",
+    "chalk": "^5.4.1",
     "lint-staged": "^15.5.0",
     "npm-run-all2": "^7.0.2",
     "oxlint": "^0.16.4",

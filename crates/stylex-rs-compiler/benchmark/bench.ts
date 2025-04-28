@@ -125,12 +125,20 @@ const perfFixtures = [
     name: 'Colors StyleX transformation',
   },
   {
-    path: path.join(perfFixturesDir, 'theme-basic.js'),
+    path: path.join(perfFixturesDir, 'createTheme-basic.js'),
     name: 'Basic theme transformation',
   },
   {
-    path: path.join(perfFixturesDir, 'themes.js'),
+    path: path.join(perfFixturesDir, 'createTheme-complex.js'),
     name: 'Complex theme transformation',
+  },
+  {
+    path: path.join(perfFixturesDir, 'create-basic.js'),
+    name: 'Basic create transformation',
+  },
+  {
+    path: path.join(perfFixturesDir, 'create-complex.js'),
+    name: 'Complex create transformation',
   },
 ] as const;
 

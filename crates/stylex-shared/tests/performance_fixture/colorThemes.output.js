@@ -1,11 +1,4 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @flow strict
- */ import _inject from "@stylexjs/stylex/lib/stylex-inject";
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import "./colors.stylex";
 import type { Theme } from '@stylexjs/stylex';

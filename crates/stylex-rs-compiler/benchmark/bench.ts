@@ -13,6 +13,11 @@ const benchRegular = new Bench({
   warmup: true,
 });
 
+const benchPerformance = new Bench({
+  name: 'StyleX compiler - performance benchmark',
+  warmup: true,
+});
+
 const benchLotsOfStyles = new Bench({
   name: 'StyleX compiler - lots of styles benchmark',
   warmup: true,
@@ -63,6 +68,29 @@ fixtureFilePaths.forEach(file => {
   });
 });
 
+const perfFixturesDir = path.join(rootDir, 'benchmark/perf_fixtures');
+
+const perfFixtures = [
+  {
+    path: path.join(perfFixturesDir, 'colors.stylex.js'),
+    name: 'Colors StyleX transformation',
+  },
+  {
+    path: path.join(perfFixturesDir, 'theme-basic.js'),
+    name: 'Basic theme transformation',
+  },
+  {
+    path: path.join(perfFixturesDir, 'themes.js'),
+    name: 'Complex theme transformation',
+  },
+] as const;
+
+perfFixtures.forEach(fixture => {
+  benchPerformance.add(`Performance - ${fixture.name}`, () => {
+    transform(fixture.path, fs.readFileSync(fixture.path, 'utf-8'), stylexOptions);
+  });
+});
+
 const rollupPluginApp = path.join(rootDir, '../../apps/rollup-example');
 
 const rollupPluginAppFiles = ['lotsOfStyles.js', 'lotsOfStylesDynamic.js'];
@@ -81,16 +109,19 @@ if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir);
 }
 
-await benchRegular.run();
-await benchLotsOfStyles.run();
+const benches = [benchRegular, benchPerformance, benchLotsOfStyles];
 
-console.table(benchRegular.table());
-console.table(benchLotsOfStyles.table());
+const benchesOutputs = [];
 
-const output = [
-  ...benchRegular.tasks.map(formatBenchmarkSummary),
-  ...benchLotsOfStyles.tasks.map(formatBenchmarkSummary),
-].join('\n');
+for await (const bench of benches) {
+  await bench.run();
+
+  console.table(bench.table());
+
+  benchesOutputs.push(...bench.tasks.map(formatBenchmarkSummary));
+}
+
+const output = benchesOutputs.join('\n');
 
 fs.writeFileSync(path.join(resultsDir, 'output.txt'), output, 'utf8');
 console.log('Benchmark results saved to output.txt');

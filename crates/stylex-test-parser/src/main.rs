@@ -208,9 +208,15 @@ fn main() {
     .stylex_path
     .expect("Please provide a path to the stylex package");
 
-  let packages = ["babel-plugin", "shared", "stylex", "open-props"];
+  let packages = [
+    "babel-plugin",
+    "shared",
+    "stylex",
+    "open-props",
+    "benchmarks",
+  ];
 
-  let re = Regex::new(r"(test\.js|test\.js\.snap)$").unwrap();
+  let re = Regex::new(r"(tests?\.js|tests?\.js\.snap)$").unwrap();
 
   for package in packages.iter() {
     let path = format!("{}/{}", stylex_dir, package);
@@ -227,7 +233,10 @@ fn main() {
     let file_paths = file_paths
       .into_iter()
       .filter(|f| {
-        re.is_match(&f.display().to_string()) || f.display().to_string().contains("__tests__")
+        re.is_match(&f.display().to_string())
+          || f.display().to_string().contains("__tests__")
+          || f.display().to_string().contains("/test/")
+          || f.display().to_string().contains("/tests/")
       })
       .collect::<Vec<PathBuf>>();
 

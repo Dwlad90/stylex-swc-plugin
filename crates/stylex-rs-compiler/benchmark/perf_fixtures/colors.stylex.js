@@ -1,8 +1,4 @@
-import type { VarGroup } from '@stylexjs/stylex';
-
 import * as stylex from '@stylexjs/stylex';
-
-opaque type SemanticColorsTheme: 'theme' = 'theme';
 
 const SemanticColors = {
   '--accent': 'blue',
@@ -69,7 +65,4 @@ const SemanticColors = {
   '--internal-components-active-list-row': '#F2F2F7',
 };
 
-export type SemanticColorsType = typeof SemanticColors;
-
-export const colors: VarGroup<SemanticColorsType, SemanticColorsTheme> =
-  stylex.defineVars(SemanticColors);
+export const colors = stylex.defineVars(SemanticColors);

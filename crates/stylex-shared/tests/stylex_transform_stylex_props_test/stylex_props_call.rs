@@ -269,6 +269,36 @@ test!(
     PluginPass::default(),
     None
   ),
+  last_property_wins_even_if_shorthand,
+  r#"
+    import stylex from 'stylex';
+    const borderRadius = 2;
+    export const styles = stylex.create({
+      default: {
+        marginTop: 5,
+        marginEnd: 10,
+        marginBottom: 15,
+        marginStart: 20,
+      },
+      override: {
+        marginBottom: 100,
+        margin: 0,
+      }
+    });
+    export const result = stylex.props(styles.default, styles.override);
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   stylex_call_using_styles_with_pseudo_selectors,
   r#"
         import stylex from 'stylex';

@@ -1,8 +1,4 @@
-mod stylex_create_call;
-mod stylex_create_call_pseudo_classes;
-mod stylex_create_call_pseudo_classes_within_properties;
-mod stylex_create_call_pseudo_elements;
-mod stylex_create_call_queries;
-mod stylex_create_call_queries_with_functions;
-mod stylex_create_call_queries_with_properties;
-mod stylex_create_call_setting_vars;
+mod dynamic_styles;
+mod legacy_deprecated;
+mod options_debug_true;
+mod static_styles;

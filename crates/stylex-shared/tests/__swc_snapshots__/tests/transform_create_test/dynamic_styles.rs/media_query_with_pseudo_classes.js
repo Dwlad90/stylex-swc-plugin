@@ -6,7 +6,7 @@ _inject2("@media (min-width: 800px){.x956mei.x956mei{font-size:var(--1xajcet)}}"
 _inject2("@media (min-width: 800px){.xarp7f8.xarp7f8:hover{font-size:var(--ke45ok)}}", 3330);
 _inject2('@property --19zvkyr { syntax: "*"; inherits: false; }', 0);
 _inject2('@property --1xajcet { syntax: "*"; inherits: false; }', 0);
-_inject2('@property --ke45ok { syntax: "*"; inherits: false; }', 0);
+_inject2('@property --ke45ok { syntax: "*"; }', 0);
 export const styles = {
     root: (a, b, c)=>[
             {

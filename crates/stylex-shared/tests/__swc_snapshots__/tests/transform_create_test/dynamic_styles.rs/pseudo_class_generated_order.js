@@ -5,9 +5,9 @@ _inject2(".x74ai9j:hover{color:var(--1113oo7)}", 3130);
 _inject2(".x19c4yy1:active{color:var(--hxnnmm)}", 3170);
 _inject2(".x10peeyq:focus{color:var(--8tbbve)}", 3150);
 _inject2(".x126ychx:nth-child(2n){color:purple}", 3060);
-_inject2('@property --1113oo7 { syntax: "*"; inherits: false; }', 0);
-_inject2('@property --hxnnmm { syntax: "*"; inherits: false; }', 0);
-_inject2('@property --8tbbve { syntax: "*"; inherits: false; }', 0);
+_inject2('@property --1113oo7 { syntax: "*"; }', 0);
+_inject2('@property --hxnnmm { syntax: "*"; }', 0);
+_inject2('@property --8tbbve { syntax: "*"; }', 0);
 export const styles = {
     root: (hover, active, focus)=>[
             {

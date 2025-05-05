@@ -1,1 +1,1 @@
-mod stylex_keyframes_call;
+mod css_keyframes;

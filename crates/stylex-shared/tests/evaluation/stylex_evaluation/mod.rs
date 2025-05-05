@@ -1,4 +1,4 @@
 mod evaluating_function_expressions;
-mod stylex_evaluation_common;
-mod stylex_fn_obj_evaluation;
-mod stylex_import_evaluation;
+mod evaluation_common;
+mod evaluation_fn_obj;
+mod import_evaluation;

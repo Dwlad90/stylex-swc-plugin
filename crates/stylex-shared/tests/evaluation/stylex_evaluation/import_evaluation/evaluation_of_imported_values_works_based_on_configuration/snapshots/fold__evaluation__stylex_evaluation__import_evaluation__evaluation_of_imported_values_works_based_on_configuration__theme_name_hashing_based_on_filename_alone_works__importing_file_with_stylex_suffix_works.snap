@@ -1,6 +1,6 @@
 ---
-source: tests/evaluation/stylex_evaluation/stylex_import_evaluation/evaluation_of_imported_values_works_based_on_configuration/theme_name_hashing_based_on_filename_alone_works.rs
-expression: transformed_code
+source: crates/stylex-shared/tests/evaluation/stylex_evaluation/import_evaluation/evaluation_of_imported_values_works_based_on_configuration/theme_name_hashing_based_on_filename_alone_works.rs
+expression: transformation
 ---
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;

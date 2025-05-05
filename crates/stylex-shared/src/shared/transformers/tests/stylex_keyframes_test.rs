@@ -31,7 +31,7 @@ mod stylex_keyframes {
     EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
-  fn exprected_css_result_factory(
+  fn expected_css_result_factory(
     injected_styles: &[(&str, (&str, f64))],
   ) -> IndexMap<String, InjectableStyle> {
     let mut expected_injected_styles = IndexMap::new();
@@ -59,7 +59,7 @@ mod stylex_keyframes {
 
     let (key, result) = stylex_keyframes(&keyframes, &mut StateManager::default());
 
-    let expected_result = exprected_css_result_factory(&[(
+    let expected_result = expected_css_result_factory(&[(
       "xbopttm-B",
       (
         "@keyframes xbopttm-B{from{background-color:red;}to{background-color:blue;}}",
@@ -77,7 +77,7 @@ mod stylex_keyframes {
 
     let (key, result) = stylex_keyframes(&keyframes, &mut StateManager::default());
 
-    let expected_result = exprected_css_result_factory(&[(
+    let expected_result = expected_css_result_factory(&[(
       "x1jkcf39-B",
       (
         "@keyframes x1jkcf39-B{from{inset-inline-start:0;}to{inset-inline-start:500px;}}",

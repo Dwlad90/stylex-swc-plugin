@@ -67,8 +67,7 @@ function getFixtureFilePaths(dir: string): string[] {
 function addFixtureBenchmarks(bench: Bench, fixtureFilePaths: string[]) {
   fixtureFilePaths.forEach(file => {
     const content = fs.readFileSync(file, 'utf-8');
-    const separator = file.includes('/') ? '/' : '\\';
-    const benchmarkName = file.split(separator).at(-2) ?? 'Default case';
+    const benchmarkName = file.split(path.sep).at(-2) ?? 'Default case';
 
     bench.add(benchmarkName, () => {
       transform(file, content, stylexOptions);

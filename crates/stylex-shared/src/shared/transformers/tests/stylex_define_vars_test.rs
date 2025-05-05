@@ -82,7 +82,7 @@ mod stylex_define_vars {
     EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
-  fn exprected_css_result_factory(
+  fn expected_css_result_factory(
     injected_styles: &[(&str, (&str, f64))],
   ) -> IndexMap<String, Rc<InjectableStyle>> {
     let mut expected_injected_styles = IndexMap::new();
@@ -101,7 +101,7 @@ mod stylex_define_vars {
     expected_injected_styles
   }
 
-  fn exprected_js_result_factory(
+  fn expected_js_result_factory(
     js_output: &[(&str, &str)],
   ) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
     let mut expected_injected_styles = IndexMap::new();
@@ -164,7 +164,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       js_output,
-      exprected_js_result_factory(&[
+      expected_js_result_factory(&[
         (
           "__themeName__",
           format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
@@ -210,7 +210,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[
+      expected_css_result_factory(&[
         (
           "x568ih9",
           (
@@ -281,7 +281,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       js_output,
-      exprected_js_result_factory(&[
+      expected_js_result_factory(&[
         (
           "__themeName__",
           format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
@@ -295,7 +295,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[
+      expected_css_result_factory(&[
         (
           "x568ih9",
           (
@@ -380,7 +380,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       js_output,
-      exprected_js_result_factory(&[
+      expected_js_result_factory(&[
         (
           "__themeName__",
           format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
@@ -426,7 +426,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[
+      expected_css_result_factory(&[
         (
           "x568ih9",
           (
@@ -530,7 +530,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       js_output,
-      exprected_js_result_factory(&[
+      expected_js_result_factory(&[
         (
           "__themeName__",
           format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
@@ -576,7 +576,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[
+      expected_css_result_factory(&[
         (
           "x568ih9",
           (
@@ -684,7 +684,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       js_output,
-      exprected_js_result_factory(&[
+      expected_js_result_factory(&[
         (
           "__themeName__",
           format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
@@ -730,7 +730,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[
+      expected_css_result_factory(&[
         (
           "x568ih9",
           (
@@ -906,7 +906,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[
+      expected_css_result_factory(&[
         (
           "x4y59db",
           (
@@ -1110,7 +1110,7 @@ mod stylex_define_vars {
 
     assert_eq!(
       css_output,
-      exprected_css_result_factory(&[
+      expected_css_result_factory(&[
         (
           "bgColor",
           (

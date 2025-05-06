@@ -51,7 +51,7 @@
     "ava": "^6.2.0",
     "benchmark": "^2.1.2",
     "chalk": "^5.4.1",
-    "lint-staged": "^15.5.0",
+    "lint-staged": "^15.5.2",
     "npm-run-all2": "^7.0.2",
     "oxlint": "^0.16.4",
     "prettier": "^3.5.3",

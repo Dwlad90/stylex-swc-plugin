@@ -8,7 +8,7 @@
     "react-internal.js"
   ],
   "dependencies": {
-    "eslint": "^9.23.0"
+    "eslint": "^9.26.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.29.0",
@@ -16,8 +16,8 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.4.1",
     "typescript-eslint": "^8.29.0",
     "eslint-plugin-jest": "^28.11.0",
-    "eslint-config-prettier": "^10.1.1",
-    "eslint-config-turbo": "^2.4.4",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-config-turbo": "^2.5.3",
     "globals": "^16.0.0",
     "typescript": "^5.8.2"
   },

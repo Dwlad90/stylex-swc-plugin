@@ -19,7 +19,7 @@
     "eslint-config-prettier": "^10.1.1",
     "eslint-config-turbo": "^2.4.4",
     "globals": "^16.0.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   },
   "repository": "dwlad90/stylex-swc-plugin"
 }

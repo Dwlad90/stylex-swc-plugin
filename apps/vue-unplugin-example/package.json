@@ -24,7 +24,7 @@
     "@stylexswc/playwright": "0.8.0-rc.1",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vitejs/plugin-vue-jsx": "^4.1.2",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vite": "^6.2.7",
     "vue-tsc": "^2.2.10"
   }

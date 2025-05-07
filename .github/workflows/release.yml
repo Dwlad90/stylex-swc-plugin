@@ -3,6 +3,9 @@ run-name:
   ${{ inputs.type }} | ${{ github.event.inputs.prerelease == 'true' && format('{0}',
   inputs.prerelease-type) || 'stable' }} | ${{ github.ref_name }} | @${{ github.actor }}
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
@@ -359,6 +362,8 @@ jobs:
     name: Merge to master branch
     needs: [merge-develop, calculate-version]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 🛠️ Checkout code
         uses: actions/checkout@v4

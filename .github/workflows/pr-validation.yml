@@ -62,6 +62,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{fromJSON(steps.pr.outputs.result).merge_commit_sha}}
+          fetch-depth: 0
+          fetch-tags: false
 
       - name: Checkout branch code
         if: github.event.pull_request.number == null

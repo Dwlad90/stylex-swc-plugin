@@ -1,4 +1,6 @@
 name: Clean up caches
+permissions:
+  contents: write
 on:
   workflow_call:
   workflow_dispatch:

@@ -44,7 +44,7 @@
     "postcss": "^8.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "webpack": "^5.98.0"
+    "webpack": "^5.99.8"
   },
   "peerDependencies": {
     "next": ">=15.0.0"

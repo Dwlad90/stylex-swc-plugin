@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "serve": "^14.2.4",
-    "@playwright/test": "^1.51.1",
+    "@playwright/test": "^1.52.0",
     "@stylexswc/playwright": "0.8.0-rc.1",
     "@farmfe/cli": "^1.0.4",
     "@farmfe/core": "^1.7.1",

@@ -1,5 +1,5 @@
-import defaultConfig from '@stylexswc/playwright';
 import { defineConfig } from '@playwright/test';
+import defaultConfig from '@stylexswc/playwright';
 
 const PORT = +(process.env.PORT || 3007);
 

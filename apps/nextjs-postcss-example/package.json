@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.11.1",
+    "@stylexjs/stylex": "^0.12.0",
     "@stylexswc/design-system": "0.8.0-rc.1",
     "@stylexswc/nextjs-plugin": "0.8.0-rc.1",
     "@stylexswc/postcss-plugin": "0.8.0-rc.1",
@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.51.1",
-    "@stylexjs/eslint-plugin": "^0.11.1",
+    "@stylexjs/eslint-plugin": "^0.12.0",
     "@stylexswc/jest": "0.8.0-rc.1",
     "@stylexswc/playwright": "0.8.0-rc.1",
     "@stylexswc/rs-compiler": "0.8.0-rc.1",

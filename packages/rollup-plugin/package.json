@@ -31,7 +31,7 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.11.1",
+    "@stylexjs/babel-plugin": "^0.12.0",
     "@stylexswc/rs-compiler": "0.8.0-rc.1",
     "lightningcss": "^1.29.3"
   },

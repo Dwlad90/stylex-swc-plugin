@@ -7,9 +7,6 @@ on:
 jobs:
   merge:
     name: Fast Forward PR Merge
-    permissions:
-      contents: write
-      actions: write
     if: |
       github.event.issue.pull_request != '' &&
       contains(github.event.comment.body, '/merge') &&

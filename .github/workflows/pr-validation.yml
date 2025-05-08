@@ -202,7 +202,11 @@ jobs:
           git checkout develop
           git pull origin develop
           git fetch origin "$PR_HEAD_REF"
-          git merge origin/"$PR_HEAD_REF" --ff-only
+          if ! git merge origin/"$PR_HEAD_REF" --ff-only; then
+            echo "Fast-forward merge failed, requesting a rebase..."
+            gh pr comment "$PR_NUMBER" -b "@dependabot rebase"
+            exit 1
+          fi
           git push origin develop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

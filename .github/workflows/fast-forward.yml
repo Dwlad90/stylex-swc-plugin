@@ -24,8 +24,62 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check PR readiness
+        id: check-pr
+        run: |
+          PR_NUMBER=${{ github.event.issue.number }}
+          echo "PR Number: $PR_NUMBER"
+
+          PR_DATA=$(gh pr view $PR_NUMBER --json mergeStateStatus --repo ${{ github.repository }})
+
+          MERGE_STATE=$(echo "$PR_DATA" | jq -r '.mergeStateStatus')
+          echo "Merge state: $MERGE_STATE"
+
+          if [ "$MERGE_STATE" = "CLEAN" ]; then
+            PR_READY="true"
+          else
+            PR_READY="false"
+          fi
+
+          echo "PR ready to merge: $PR_READY"
+          echo "merge_ready=$PR_READY" >> $GITHUB_OUTPUT
+          echo "merge_state=$MERGE_STATE" >> $GITHUB_OUTPUT
+
+          COMMENT=""
+          if [ "$MERGE_STATE" != "CLEAN" ]; then
+            COMMENT="Cannot merge PR: The PR is not ready to merge (status: $MERGE_STATE)."
+
+            DETAILS_DATA=$(gh pr view $PR_NUMBER --json reviews,statusCheckRollup --repo ${{ github.repository }})
+
+            APPROVED=$(echo "$DETAILS_DATA" | jq -r '.reviews | map(select(.state == "APPROVED")) | length > 0')
+            if [ "$APPROVED" != "true" ]; then
+              COMMENT="$COMMENT Missing required approval."
+            fi
+
+            if [ "$(echo "$DETAILS_DATA" | jq 'has("statusCheckRollup")')" = "true" ]; then
+              FAILED_CHECKS=$(echo "$DETAILS_DATA" | jq -r '.statusCheckRollup | map(select(.state != "SUCCESS" and .state != "SKIPPED" and .state != "NEUTRAL")) | length')
+              if [ "$FAILED_CHECKS" -gt 0 ]; then
+                COMMENT="$COMMENT Not all required checks have passed."
+              fi
+            fi
+          fi
+
+          echo "comment=$COMMENT" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on PR if not ready
+        if: steps.check-pr.outputs.comment != ''
+        run: |
+          PR_NUMBER=${{ github.event.issue.number }}
+          COMMENT="${{ steps.check-pr.outputs.comment }}"
+          gh pr comment $PR_NUMBER --body "$COMMENT" --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Merge
         id: ff-only
+        if: steps.check-pr.outputs.merge_ready == 'true'
         uses: endre-spotlab/fast-forward-js-action@2.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

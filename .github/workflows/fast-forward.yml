@@ -10,6 +10,19 @@ jobs:
     permissions:
       contents: write
       actions: write
+      statuses: write
+      pull-requests: write
+      attestations: write
+      repository-projects: write
+      checks: write
+      deployments: write
+      discussions: write
+      issues: write
+      models: read
+      packages: write
+      pages: write
+      security-events: write
+
     if: |
       github.event.issue.pull_request != '' &&
       contains(github.event.comment.body, '/merge') &&

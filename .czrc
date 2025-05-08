@@ -23,6 +23,10 @@
       "description": "Update or add dependencies 📦",
       "title": "Dependencies"
     },
+    "dev-deps": {
+      "description": "Update or add development dependencies 📦",
+      "title": "Dev Dependencies"
+    },
     "design": {
       "description": "Design related changes 🎨",
       "title": "Design"

@@ -554,14 +554,14 @@ importers:
         specifier: ^14.2.4
         version: 14.2.4
       solid-js:
-        specifier: ^1.9.5
-        version: 1.9.5
+        specifier: ^1.9.6
+        version: 1.9.6
       vite:
         specifier: ^6.3.5
         version: 6.3.5(@types/node@22.15.15)(jiti@2.4.2)(lightningcss@1.29.3)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.1)
       vite-plugin-solid:
         specifier: ^2.11.6
-        version: 2.11.6(@testing-library/jest-dom@6.6.3)(solid-js@1.9.5)(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(lightningcss@1.29.3)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.1))
+        version: 2.11.6(@testing-library/jest-dom@6.6.3)(solid-js@1.9.6)(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(lightningcss@1.29.3)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.1))
 
   apps/vite-unplugin-example:
     dependencies:
@@ -7760,14 +7760,14 @@ packages:
   serialize-javascript@6.0.2:
     resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
 
-  seroval-plugins@1.2.1:
-    resolution: {integrity: sha512-H5vs53+39+x4Udwp4J5rNZfgFuA+Lt+uU+09w1gYBVWomtAl98B+E9w7yC05Xc81/HgLvJdlyqJbU0fJCKCmdw==}
+  seroval-plugins@1.3.0:
+    resolution: {integrity: sha512-FFu/UE3uA8L1vj0CXXZo2Nlh10MtYoOs0G//ptwlQMjfPFSeIVYUNy0zewfV8iM0CrOebAfHEG6J3xA9c+lsaQ==}
     engines: {node: '>=10'}
     peerDependencies:
       seroval: ^1.0
 
-  seroval@1.2.1:
-    resolution: {integrity: sha512-yBxFFs3zmkvKNmR0pFSU//rIsYjuX418TnlDmc2weaq5XFDqDIV/NOMPBoLrbxjLH42p4UzRuXHryXh9dYcKcw==}
+  seroval@1.3.0:
+    resolution: {integrity: sha512-4tYQDy3HVM0JjJ1CfDK3K8FhBKIDDri27oc2AyabuuHfQw6/yTDPp2Abt1h2cNtf1R0T+7AQYAzPhUgqXztaXw==}
     engines: {node: '>=10'}
 
   serve-handler@6.1.6:
@@ -7902,8 +7902,8 @@ packages:
   sockjs@0.3.24:
     resolution: {integrity: sha512-GJgLTZ7vYb/JtPSSZ10hsOYIvEYsjbNU+zPdIHcUaWVNUEPivzxku31865sSSud0Da0W4lEeOPlmw93zLQchuQ==}
 
-  solid-js@1.9.5:
-    resolution: {integrity: sha512-ogI3DaFcyn6UhYhrgcyRAMbu/buBJitYQASZz5WzfQVPP10RD2AbCoRZ517psnezrasyCbWzIxZ6kVqet768xw==}
+  solid-js@1.9.6:
+    resolution: {integrity: sha512-PoasAJvLk60hRtOTe9ulvALOdLjjqxuxcGZRolBQqxOnXrBXHGzqMT4ijNhGsDAYdOgEa8ZYaAE94PSldrFSkA==}
 
   solid-refresh@0.6.3:
     resolution: {integrity: sha512-F3aPsX6hVw9ttm5LYlth8Q15x6MlI/J3Dn+o3EQyRTtTxidepSTwAYdozt01/YA+7ObcciagGEyXIopGZzQtbA==}
@@ -16562,11 +16562,11 @@ snapshots:
     dependencies:
       randombytes: 2.1.0
 
-  seroval-plugins@1.2.1(seroval@1.2.1):
+  seroval-plugins@1.3.0(seroval@1.3.0):
     dependencies:
-      seroval: 1.2.1
+      seroval: 1.3.0
 
-  seroval@1.2.1: {}
+  seroval@1.3.0: {}
 
   serve-handler@6.1.6:
     dependencies:
@@ -16777,18 +16777,18 @@ snapshots:
       uuid: 8.3.2
       websocket-driver: 0.7.4
 
-  solid-js@1.9.5:
+  solid-js@1.9.6:
     dependencies:
       csstype: 3.1.3
-      seroval: 1.2.1
-      seroval-plugins: 1.2.1(seroval@1.2.1)
+      seroval: 1.3.0
+      seroval-plugins: 1.3.0(seroval@1.3.0)
 
-  solid-refresh@0.6.3(solid-js@1.9.5):
+  solid-refresh@0.6.3(solid-js@1.9.6):
     dependencies:
       '@babel/generator': 7.26.9
       '@babel/helper-module-imports': 7.25.9
       '@babel/types': 7.27.0
-      solid-js: 1.9.5
+      solid-js: 1.9.6
     transitivePeerDependencies:
       - supports-color
 
@@ -17560,14 +17560,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-solid@2.11.6(@testing-library/jest-dom@6.6.3)(solid-js@1.9.5)(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(lightningcss@1.29.3)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.1)):
+  vite-plugin-solid@2.11.6(@testing-library/jest-dom@6.6.3)(solid-js@1.9.6)(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(lightningcss@1.29.3)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.1)):
     dependencies:
       '@babel/core': 7.26.10
       '@types/babel__core': 7.20.5
       babel-preset-solid: 1.9.3(@babel/core@7.26.10)
       merge-anything: 5.1.7
-      solid-js: 1.9.5
-      solid-refresh: 0.6.3(solid-js@1.9.5)
+      solid-js: 1.9.6
+      solid-refresh: 0.6.3(solid-js@1.9.6)
       vite: 6.3.5(@types/node@22.15.15)(jiti@2.4.2)(lightningcss@1.29.3)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.1)
       vitefu: 1.0.6(vite@6.3.5(@types/node@22.15.15)(jiti@2.4.2)(lightningcss@1.29.3)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.1))
     optionalDependencies:

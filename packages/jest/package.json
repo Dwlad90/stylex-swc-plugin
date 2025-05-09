@@ -34,7 +34,7 @@
     "@stylexswc/rs-compiler": "0.8.0-rc.1"
   },
   "devDependencies": {
-    "@babel/types": "^7.27.0",
+    "@babel/types": "^7.27.1",
     "@jest/transform": "^29.7.0",
     "@jest/types": "^29.5.14",
     "@stylexswc/eslint-config": "0.8.0-rc.1",

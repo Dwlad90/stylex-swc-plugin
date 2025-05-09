@@ -8,9 +8,10 @@ jobs:
   merge:
     name: Fast Forward PR Merge
     permissions:
-      contents: read
+      contents: write
       statuses: write
       pull-requests: write
+      actions: read
 
     if: |
       github.event.issue.pull_request != '' &&

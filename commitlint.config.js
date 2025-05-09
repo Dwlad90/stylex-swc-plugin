@@ -7,7 +7,7 @@ const types = czConfig.types || {};
 module.exports = {
   parserPreset: {
     parserOpts: {
-      headerPattern: /^(\w+)(?:\(([^)]*)\))?: (.*)$/,
+      headerPattern: /^([\w-]+)(?:\(([^)]*)\))?: (.*)$/,
       headerCorrespondence: ['type', 'scope', 'subject']
     }
   },

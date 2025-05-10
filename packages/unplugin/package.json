@@ -104,7 +104,7 @@
     "eslint": "^9.26.0",
     "esno": "^4.7.0",
     "fast-glob": "^3.3.3",
-    "nodemon": "^3.1.9",
+    "nodemon": "^3.1.10",
     "rollup": "^4.40.2",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",

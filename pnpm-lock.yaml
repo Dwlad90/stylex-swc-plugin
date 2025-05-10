@@ -1065,8 +1065,8 @@ importers:
         specifier: ^3.16.1
         version: 3.16.1
       '@nuxt/schema':
-        specifier: ^3.16.1
-        version: 3.16.1
+        specifier: ^3.17.2
+        version: 3.17.2
       '@types/node':
         specifier: ^22.15.15
         version: 22.15.15
@@ -2337,8 +2337,8 @@ packages:
     resolution: {integrity: sha512-Perby8hJGUeCWad5oTVXb/Ibvp18ZCUC5PxHHu+acMDmVfnxSo48yqk7qNd09VkTF3LEzoEjNZpmW2ZWN0ry7A==}
     engines: {node: '>=18.12.0'}
 
-  '@nuxt/schema@3.16.1':
-    resolution: {integrity: sha512-Ri8bmT6MljpVR4DlXf9+acfgGaI4OTEdAzJU5aF2rJS78abtpnBxjXBG65kuhoL1LUlfKppDl8fTkUw5LM2JXQ==}
+  '@nuxt/schema@3.17.2':
+    resolution: {integrity: sha512-DzmvgqcfIoCkNKXrBU6wpGckIXSxHHU+7OTlE68qNq6y0lVYnUA0Akrn0I8j+n/vFdQTIpJXiRD4dAgcomsBAg==}
     engines: {node: ^14.18.0 || >=16.10.0}
 
   '@oxc-resolver/binding-darwin-arm64@5.0.0':
@@ -10434,12 +10434,13 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  '@nuxt/schema@3.16.1':
+  '@nuxt/schema@3.17.2':
     dependencies:
+      '@vue/shared': 3.5.13
       consola: 3.4.2
       defu: 6.1.4
       pathe: 2.0.3
-      std-env: 3.8.1
+      std-env: 3.9.0
 
   '@oxc-resolver/binding-darwin-arm64@5.0.0':
     optional: true

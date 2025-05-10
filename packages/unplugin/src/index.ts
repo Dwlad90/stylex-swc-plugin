@@ -3,7 +3,6 @@ import { promises } from 'node:fs';
 
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance, UnpluginMessage } from 'unplugin';
-import type { BuildOptions } from 'vite';
 
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions from './utils/normalizeOptions';
@@ -12,6 +11,7 @@ import stylexRsCompiler from '@stylexswc/rs-compiler';
 import generateHash from './utils/generateHash';
 
 import type { StyleXMetadata } from '@stylexswc/rs-compiler';
+import { UserConfig } from 'vite';
 
 const { writeFile, mkdir } = promises;
 
@@ -22,7 +22,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
   const stylexRules: Record<string, StyleXMetadata['stylex']> = {};
 
-  let viteConfig: { build: BuildOptions | undefined; base: string | undefined } | null = null;
+  let viteConfig: UserConfig | null = null;
 
   let hasCssToExtract = false;
 
@@ -108,7 +108,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     vite: {
       config(config) {
         viteConfig = {
-          build: config.build,
+          build: config.build as UserConfig['build'],
           base: config.base,
         };
       },

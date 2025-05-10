@@ -37,7 +37,7 @@
     "@stylexswc/rs-compiler": "0.8.0-rc.1",
     "@swc/jest": "^0.2.37",
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
+    "@testing-library/react": "^16.3.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.15",
     "@types/react": "^19.1.3",

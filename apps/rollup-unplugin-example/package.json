@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rollup-unplugin-example",
   "description": "A simple rollup unplugin example to test @stylexswc/unplugin/rollup",
-  "version": "0.8.0",
+  "version": "0.8.1-rc.1",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -13,16 +13,16 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.12.0",
-    "@stylexswc/design-system": "0.8.0",
-    "@stylexswc/rs-compiler": "0.8.0",
-    "@stylexswc/unplugin": "0.8.0",
+    "@stylexswc/design-system": "0.8.1-rc.1",
+    "@stylexswc/rs-compiler": "0.8.1-rc.1",
+    "@stylexswc/unplugin": "0.8.1-rc.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "serve": "^14.2.4",
     "@playwright/test": "^1.52.0",
-    "@stylexswc/playwright": "0.8.0",
+    "@stylexswc/playwright": "0.8.1-rc.1",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-node-resolve": "^16.0.1",

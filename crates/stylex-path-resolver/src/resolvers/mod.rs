@@ -17,13 +17,14 @@ use swc_core::{
 use std::fs;
 
 use crate::{
+  enums::ExportsType,
   file_system::{get_directories, get_directory_path_recursive},
   package_json::{
     PackageJsonExtended, find_closest_node_modules, find_closest_package_json_folder,
     get_package_json, get_package_json_with_deps, recursive_find_node_modules,
     resolve_package_from_package_json,
   },
-  utils::{contains_subpath, relative_path},
+  utils::{contains_subpath, relative_path, sort_export_paths_by_priority},
 };
 
 mod tests;
@@ -282,19 +283,29 @@ fn get_potential_node_modules_path(
 
 fn resolve_package_json_exports(
   potential_import_segment_path: &Path,
-  exports: &FxHashMap<String, String>,
+  exports: &FxHashMap<String, ExportsType>,
   resolved_node_modules_path: &Path,
 ) -> PathBuf {
   let mut result: PathBuf = PathBuf::default();
 
-  let import_segment_path_without_extension = PathBuf::from(potential_import_segment_path)
+  let mut import_segment_path_without_extension = PathBuf::from(potential_import_segment_path)
     .with_extension("")
     .display()
     .to_string();
 
-  let mut exports_values: Vec<&String> = exports.values().collect();
+  if import_segment_path_without_extension.is_empty() {
+    import_segment_path_without_extension = String::from("index.");
+  }
 
-  exports_values.sort_by_key(|k| (k.to_string(), k.len()));
+  let mut exports_values: Vec<&String> = exports
+    .iter()
+    .flat_map(|(_, values)| match values {
+      ExportsType::Simple(path) => vec![path],
+      ExportsType::Complex(map) => map.values().collect(),
+    })
+    .collect();
+
+  exports_values.sort_by(sort_export_paths_by_priority);
 
   let resolved_package_path = find_closest_package_json_folder(resolved_node_modules_path)
     .unwrap_or_else(|| {
@@ -314,11 +325,25 @@ fn resolve_package_json_exports(
 
   if result.components().count() == 0 {
     let mut keys: Vec<&String> = exports.keys().collect();
+
     keys.sort_by_key(|k| (k.to_string(), k.len()));
 
     for key in keys {
       if key.contains(&import_segment_path_without_extension) {
-        result = resolved_package_path.join(exports.get(key).unwrap());
+        let mut export_paths: Vec<&String> = exports
+          .get(key)
+          .iter()
+          .flat_map(|values| match values {
+            ExportsType::Simple(path) => vec![path],
+            ExportsType::Complex(map) => map.values().collect(),
+          })
+          .collect();
+
+        export_paths.sort_by(sort_export_paths_by_priority);
+
+        if let Some(export_path) = export_paths.first() {
+          result = resolved_package_path.join(export_path);
+        }
       }
     }
   }

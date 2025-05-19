@@ -1,3 +1,4 @@
+pub mod enums;
 mod file_system;
 pub mod package_json;
 pub mod resolvers;

@@ -11,7 +11,7 @@ use swc_core::{
 use package_json::{PackageDependencies, PackageJsonManager};
 use std::path::{Path, PathBuf};
 
-use crate::{file_system::find_closest_path, resolvers::get_node_modules_path};
+use crate::{enums::ExportsType, file_system::find_closest_path, resolvers::get_node_modules_path};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -23,7 +23,7 @@ pub struct PackageJsonExtended {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub module: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub exports: Option<FxHashMap<String, String>>,
+  pub exports: Option<FxHashMap<String, ExportsType>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub dependencies: Option<PackageDependencies>,
   #[serde(skip_serializing_if = "Option::is_none")]

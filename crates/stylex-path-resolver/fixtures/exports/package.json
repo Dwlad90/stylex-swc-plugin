@@ -3,6 +3,7 @@
   "version": "0.8.0",
   "dependencies": {
     "stylex-lib-dist-exports": "*",
+    "stylex-lib-dist-exports-commonjs-esm": "*",
     "stylex-lib-dist-exports-local": "workspace:*",
     "stylex-lib-dist-exports-with-main": "*",
     "stylex-lib-dist-main": "*",

@@ -1,5 +1,5 @@
 export const styles = stylex.create({
-    foo: {
+    root: {
         color: 'red'
     }
 });

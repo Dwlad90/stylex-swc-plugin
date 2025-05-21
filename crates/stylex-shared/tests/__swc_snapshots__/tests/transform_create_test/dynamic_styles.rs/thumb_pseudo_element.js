@@ -1,8 +1,4 @@
-import _inject from "@stylexjs/stylex/lib/stylex-inject";
-var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
-_inject2(".x3j4sww::-webkit-slider-thumb, .x3j4sww::-moz-range-thumb, .x3j4sww::-ms-thumb{width:var(--msahdu)}", 9000);
-_inject2('@property --msahdu { syntax: "*"; }', 0);
 export const styles = {
     foo: (width)=>[
             {

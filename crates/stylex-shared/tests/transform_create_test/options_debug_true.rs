@@ -15,7 +15,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+  |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
@@ -48,7 +48,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+  |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
@@ -81,7 +81,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+  |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
@@ -115,7 +115,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+  |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
       cwd: None,

@@ -17,7 +17,7 @@ use crate::{
       named_import_source::{ImportSources, RuntimeInjection},
       plugin_pass::PluginPass,
       state_manager::StateManager,
-      stylex_options::StyleXOptions,
+      stylex_options::{CheckModuleResolution, StyleXOptions},
     },
     utils::common::increase_ident_count,
   },
@@ -76,6 +76,9 @@ where
         let config = StyleXOptions {
           runtime_injection: RuntimeInjection::Boolean(true),
           treeshake_compensation: Some(true),
+          unstable_module_resolution: CheckModuleResolution::Haste(
+            StyleXOptions::get_haste_module_resolution(None),
+          ),
           ..Default::default()
         };
 
@@ -123,6 +126,9 @@ where
           runtime_injection: RuntimeInjection::Boolean(false),
           treeshake_compensation: Some(true),
           class_name_prefix: "x".to_string(),
+          unstable_module_resolution: CheckModuleResolution::Haste(
+            StyleXOptions::get_haste_module_resolution(None),
+          ),
           ..Default::default()
         };
 
@@ -131,6 +137,7 @@ where
     };
 
     state.options.import_sources = stylex_imports.into_iter().collect();
+    dbg!(&state.options);
 
     state._state = plugin_pass;
 

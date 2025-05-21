@@ -141,7 +141,7 @@ impl Default for StyleXOptions {
       treeshake_compensation: None,
       gen_conditional_classes: false,
       aliases: None,
-      unstable_module_resolution: CheckModuleResolution::Haste(
+      unstable_module_resolution: CheckModuleResolution::CommonJS(
         StyleXOptions::get_common_js_module_resolution(None),
       ),
     }

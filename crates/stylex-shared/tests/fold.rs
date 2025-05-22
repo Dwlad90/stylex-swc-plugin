@@ -7,8 +7,6 @@ mod transform_create_theme_test;
 mod transform_define_vars_test;
 mod transform_import_export_test;
 mod transform_keyframes_test;
-mod transform_logical_properties_test;
-mod transform_logical_values_test;
 mod transform_misc;
 mod transform_override_vars_test;
 mod transform_polyfills_test;

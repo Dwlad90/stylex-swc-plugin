@@ -4,6 +4,7 @@ mod metadata_test;
 mod transform_attrs_test;
 mod transform_create_test;
 mod transform_create_theme_test;
+mod transform_define_consts_test;
 mod transform_define_vars_test;
 mod transform_import_export_test;
 mod transform_keyframes_test;

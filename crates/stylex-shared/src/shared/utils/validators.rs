@@ -1,7 +1,6 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
-  common::EqIgnoreSpan,
   ecma::ast::{ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
@@ -38,19 +37,18 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
     return;
   }
 
-  if !state
-    .top_level_expressions
-    .iter()
-    .any(|TopLevelExpression(_, call_item, _)| {
-      matches!(call_item, Expr::Call(c) if c == call) || matches!(call_item, Expr::Array(_))
-    })
-  {
-    build_code_frame_error_and_panic(
+  match state.find_top_level_expr(
+    call,
+    |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
+    None,
+  ) {
+    Some(_) => {}
+    None => build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
       UNBOUND_STYLEX_CALL_VALUE,
       state,
-    );
+    ),
   }
 
   if call.args.len() != 1 {
@@ -105,12 +103,11 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
     build_code_frame_error_and_panic(&init_expr, &init_expr, NON_STATIC_KEYFRAME_VALUE, state);
   });
 
-  if !state
-    .top_level_expressions
-    .iter()
-    .any(|TopLevelExpression(_, call_item, _)| call_item.eq_ignore_span(&init_expr))
-  {
-    build_code_frame_error_and_panic(&init_expr, &init_expr, UNBOUND_STYLEX_CALL_VALUE, state);
+  match state.find_top_level_expr(init_call, |_| false, None) {
+    Some(_) => {}
+    None => {
+      build_code_frame_error_and_panic(&init_expr, &init_expr, UNBOUND_STYLEX_CALL_VALUE, state)
+    }
   }
 
   if init_call.args.len() != 1 {
@@ -164,20 +161,15 @@ pub(crate) fn validate_stylex_create_theme_indent(
     );
   });
 
-  let expr = Expr::Call(init.clone());
-
-  if !state
-    .top_level_expressions
-    .iter()
-    .any(|TopLevelExpression(_, call_item, _)| call_item.eq_ignore_span(&expr))
-  {
-    build_code_frame_error_and_panic(
+  match state.find_top_level_expr(call, |_| false, None) {
+    Some(_) => {}
+    None => build_code_frame_error_and_panic(
       init_expr,
       &Expr::Call(call.clone()),
       UNBOUND_STYLEX_CALL_VALUE,
       state,
-    );
-  }
+    ),
+  };
 
   if init.args.len() != 2 {
     build_code_frame_error_and_panic(
@@ -206,19 +198,19 @@ pub(crate) fn validate_stylex_create_theme_indent(
   }
 }
 
-pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateManager) {
+pub(crate) fn find_and_validate_stylex_define_vars(
+  call: &CallExpr,
+  state: &mut StateManager,
+) -> Option<TopLevelExpression> {
   if !is_define_vars_call(call, state) {
-    return;
+    return None;
   }
 
   let call_expr = Expr::from(call.clone());
 
-  if !state
-    .top_level_expressions
-    .iter()
-    .any(|TopLevelExpression(_, call_item, _)| call_item.eq_ignore_span(&call_expr))
-  {
-    build_code_frame_error_and_panic(
+  let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+    Some(stylex_create_theme_top_level_expr) => stylex_create_theme_top_level_expr,
+    None => build_code_frame_error_and_panic(
       &call_expr,
       &call
         .args
@@ -231,8 +223,8 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateMana
         .expr,
       UNBOUND_STYLEX_CALL_VALUE,
       state,
-    );
-  }
+    ),
+  };
 
   if call.args.len() != 1 {
     build_code_frame_error_and_panic(
@@ -251,12 +243,68 @@ pub(crate) fn validate_stylex_define_vars(call: &CallExpr, state: &mut StateMana
     );
   }
 
-  if state
-    .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call)
-    .is_none()
-  {
+  let TopLevelExpression(kind, _, _) = stylex_create_theme_top_level_expr;
+
+  if !matches!(kind, TopLevelExpressionKind::NamedExport) {
     build_code_frame_error_and_panic(&call_expr, &call_expr, NON_EXPORT_NAMED_DECLARATION, state);
   }
+
+  Some(stylex_create_theme_top_level_expr.clone())
+}
+
+pub(crate) fn find_and_validate_stylex_define_consts(
+  call: &CallExpr,
+  state: &mut StateManager,
+) -> Option<TopLevelExpression> {
+  if !is_define_consts_call(call, state) {
+    return None;
+  }
+
+  let call_expr = Expr::from(call.clone());
+
+  let define_consts_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+    Some(define_consts_top_level_expr) => define_consts_top_level_expr,
+    None => build_code_frame_error_and_panic(
+      &call_expr,
+      &call
+        .args
+        .get(2)
+        .cloned()
+        .unwrap_or_else(|| ExprOrSpread {
+          spread: None,
+          expr: Box::new(call_expr.clone()),
+        })
+        .expr,
+      UNBOUND_STYLEX_CALL_VALUE,
+      state,
+    ),
+  };
+
+  if call.args.len() != 1 {
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &call
+        .args
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| ExprOrSpread {
+          spread: None,
+          expr: Box::new(call_expr.clone()),
+        })
+        .expr,
+      ILLEGAL_ARGUMENT_LENGTH,
+      state,
+    );
+  }
+
+  if !matches!(
+    define_consts_top_level_expr.0,
+    TopLevelExpressionKind::NamedExport
+  ) {
+    build_code_frame_error_and_panic(&call_expr, &call_expr, NON_EXPORT_NAMED_DECLARATION, state);
+  }
+
+  Some(define_consts_top_level_expr.clone())
 }
 
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
@@ -291,6 +339,14 @@ pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> boo
 pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
     ("defineVars", &state.stylex_define_vars_import),
+    call,
+    state,
+  )
+}
+
+pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bool {
+  is_target_call(
+    ("defineConsts", &state.stylex_define_consts_import),
     call,
     state,
   )

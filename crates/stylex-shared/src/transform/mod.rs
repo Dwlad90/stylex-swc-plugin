@@ -137,7 +137,6 @@ where
     };
 
     state.options.import_sources = stylex_imports.into_iter().collect();
-    dbg!(&state.options);
 
     state._state = plugin_pass;
 

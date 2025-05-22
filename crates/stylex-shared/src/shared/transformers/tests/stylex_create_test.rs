@@ -8,7 +8,7 @@ mod stylex_create {
   use crate::shared::{
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
     },
     structures::{
       functions::FunctionMap,
@@ -211,7 +211,7 @@ mod stylex_create {
     class_paths_in_namespace: &[(&str, &[(&str, &[&str])])],
   ) -> (
     IndexMap<String, Rc<FlatCompiledStyles>>,
-    IndexMap<String, Rc<InjectableStyle>>,
+    IndexMap<String, Rc<InjectableStyleKind>>,
     IndexMap<String, Rc<ClassPathsInNamespace>>,
   ) {
     let mut expected_resolved_namespaces = IndexMap::new();
@@ -245,11 +245,11 @@ mod stylex_create {
         let (value, priority) = inj;
         expected_injected_styles.insert(
           key.to_string(),
-          Rc::new(InjectableStyle {
+          Rc::new(InjectableStyleKind::Regular(InjectableStyle {
             ltr: value.to_string(),
             rtl: None,
             priority: Some(*priority),
-          }),
+          })),
         );
       }
     }
@@ -278,7 +278,7 @@ mod stylex_create {
     style_object: IndexMap<Expr, Vec<KeyValueProp>>,
   ) -> (
     IndexMap<String, Rc<FlatCompiledStyles>>,
-    IndexMap<String, Rc<InjectableStyle>>,
+    IndexMap<String, Rc<InjectableStyleKind>>,
     IndexMap<String, Rc<ClassPathsInNamespace>>,
   ) {
     stylex_create_set(

@@ -47,6 +47,7 @@ ctor.workspace = true
 env_logger.workspace = true
 rustc-hash.workspace = true
 base62.workspace = true
+md5.workspace = true
 
 swc_ecma_parser = { version = "*", features = ["verify"] }
 swc_compiler_base = { version = "*", features = ["node"] }

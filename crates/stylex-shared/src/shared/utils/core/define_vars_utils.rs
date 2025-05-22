@@ -6,7 +6,8 @@ use swc_core::ecma::ast::{Expr, Lit};
 use crate::shared::{
   constants::common::SPLIT_TOKEN,
   enums::data_structures::{
-    flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    value_with_default::ValueWithDefault,
   },
   structures::injectable_style::InjectableStyle,
   utils::{
@@ -19,14 +20,14 @@ pub(crate) fn construct_css_variables_string(
   variables: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
   theme_name_hash: &String,
   typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
-) -> IndexMap<String, Rc<InjectableStyle>> {
+) -> IndexMap<String, Rc<InjectableStyleKind>> {
   let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
 
   for (key, value) in variables.iter() {
     collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &[], typed_variables);
   }
 
-  let mut result: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
+  let mut result: IndexMap<String, Rc<InjectableStyleKind>> = IndexMap::new();
 
   for (at_rule, value) in rules_by_at_rule.iter() {
     let suffix = if at_rule == "default" {
@@ -45,11 +46,11 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix),
-      Rc::new(InjectableStyle {
+      Rc::new(InjectableStyleKind::Regular(InjectableStyle {
         priority: Some(priority_for_at_rule(at_rule).mul(0.1)),
         ltr,
         rtl: None,
-      }),
+      })),
     );
   }
 

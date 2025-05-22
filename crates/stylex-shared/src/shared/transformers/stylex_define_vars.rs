@@ -6,7 +6,8 @@ use swc_core::ecma::ast::{KeyValueProp, PropName};
 use crate::shared::{
   enums::data_structures::{
     evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    obj_map_type::ObjMapType,
   },
   structures::{injectable_style::InjectableStyle, state_manager::StateManager},
   utils::{
@@ -21,7 +22,7 @@ pub(crate) fn stylex_define_vars(
   state: &mut StateManager,
 ) -> (
   IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  IndexMap<String, Rc<InjectableStyle>>,
+  IndexMap<String, Rc<InjectableStyleKind>>,
 ) {
   let theme_name_hash = format!(
     "{}{}",
@@ -132,12 +133,15 @@ pub(crate) fn stylex_define_vars(
     },
   );
 
-  let mut injectable_types: IndexMap<String, Rc<InjectableStyle>> = injectable_types
+  let mut injectable_types: IndexMap<String, Rc<InjectableStyleKind>> = injectable_types
     .iter()
     .filter_map(|(key, value)| {
-      value
-        .as_injectable_style()
-        .map(|inj_style| (key.to_owned(), Rc::new(inj_style.clone())))
+      value.as_injectable_style().map(|inj_style| {
+        (
+          key.to_owned(),
+          Rc::new(InjectableStyleKind::Regular(inj_style.clone())),
+        )
+      })
     })
     .collect();
 

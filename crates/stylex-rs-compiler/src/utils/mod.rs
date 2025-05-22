@@ -1,7 +1,7 @@
-use std::ops::Deref;
-
 use napi::{Env, Error, JsObject};
-use stylex_shared::StyleXTransform;
+use stylex_shared::{
+  StyleXTransform, shared::enums::data_structures::injectable_style::InjectableStyleBaseKind,
+};
 use swc_core::plugin::proxies::PluginCommentsProxy;
 
 pub(crate) fn extract_stylex_metadata(
@@ -19,12 +19,13 @@ pub(crate) fn extract_stylex_metadata(
       let mut style_value = env.create_object()?;
       let styles = meta.get_style();
 
-      style_value.set_named_property("ltr", styles.ltr.deref())?;
-
-      if let Some(rtl) = styles.rtl.as_deref() {
-        style_value.set_named_property("rtl", rtl)?;
-      } else {
-        style_value.set_named_property("rtl", env.get_null())?;
+      match styles {
+        InjectableStyleBaseKind::Regular(styles) => {
+          set_metadata_ltr_and_rtl(env, &mut style_value, &styles.ltr, &styles.rtl)?;
+        }
+        InjectableStyleBaseKind::Const(styles) => {
+          set_metadata_ltr_and_rtl(env, &mut style_value, &styles.ltr, &styles.rtl)?;
+        }
       }
 
       metadata_value.set_element(1, style_value)?;
@@ -35,4 +36,20 @@ pub(crate) fn extract_stylex_metadata(
   }
 
   Ok(stylex_metadata)
+}
+
+fn set_metadata_ltr_and_rtl(
+  env: Env,
+  style_value: &mut JsObject,
+  ltr: &str,
+  rtl: &Option<String>,
+) -> Result<(), Error> {
+  style_value.set_named_property("ltr", ltr)?;
+
+  if let Some(rtl) = rtl.as_deref() {
+    style_value.set_named_property("rtl", rtl)?;
+  } else {
+    style_value.set_named_property("rtl", env.get_null())?;
+  };
+  Ok(())
 }

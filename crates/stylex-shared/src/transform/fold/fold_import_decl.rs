@@ -193,6 +193,12 @@ where
             .stylex_define_vars_import
             .insert(local_name_ident_atom);
         }
+        "defineConsts" => {
+          self
+            .state
+            .stylex_define_consts_import
+            .insert(local_name_ident_atom);
+        }
         "createTheme" => {
           self
             .state

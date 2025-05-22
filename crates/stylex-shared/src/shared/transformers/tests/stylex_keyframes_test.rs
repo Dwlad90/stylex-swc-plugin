@@ -4,7 +4,9 @@ mod stylex_keyframes {
   use swc_core::ecma::ast::PropOrSpread;
 
   use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue, injectable_style::InjectableStyleKind,
+    },
     structures::{injectable_style::InjectableStyle, state_manager::StateManager},
     transformers::stylex_keyframes::stylex_keyframes,
     utils::ast::{
@@ -33,18 +35,18 @@ mod stylex_keyframes {
 
   fn expected_css_result_factory(
     injected_styles: &[(&str, (&str, f64))],
-  ) -> IndexMap<String, InjectableStyle> {
+  ) -> IndexMap<String, InjectableStyleKind> {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        InjectableStyle {
+        InjectableStyleKind::Regular(InjectableStyle {
           ltr: value.0.to_string(),
           rtl: None,
           priority: Some(value.1),
-        },
+        }),
       );
     }
     expected_injected_styles

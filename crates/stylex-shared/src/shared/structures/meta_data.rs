@@ -6,9 +6,10 @@ use std::{
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::shared::{structures::injectable_style::InjectableStyle, utils::common::hash_f64};
-
-use super::injectable_style::InjectableStyleBase;
+use crate::shared::{
+  enums::data_structures::injectable_style::{InjectableStyleBaseKind, InjectableStyleKind},
+  utils::common::hash_f64,
+};
 
 fn f64_to_int<S>(priority: &f64, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -25,7 +26,7 @@ where
 
 pub struct MetaData {
   class_name: String,
-  style: InjectableStyleBase,
+  style: InjectableStyleBaseKind,
   #[serde(serialize_with = "f64_to_int")]
   priority: f64,
 }
@@ -41,23 +42,32 @@ impl Hash for MetaData {
 impl Eq for MetaData {}
 
 impl MetaData {
-  pub(crate) fn new(class_name: String, injectable_style: InjectableStyle) -> Self {
+  pub(crate) fn new(class_name: String, injectable_style: InjectableStyleKind) -> Self {
     Self {
       class_name,
-      priority: injectable_style.priority.unwrap(),
-      style: InjectableStyleBase::from(injectable_style),
+      priority: match &injectable_style {
+        InjectableStyleKind::Regular(style) => style.priority.unwrap_or(0.0),
+        InjectableStyleKind::Const(style) => style.priority.unwrap_or(0.0),
+      },
+      style: InjectableStyleBaseKind::from(injectable_style),
     }
   }
-  pub fn get_style(&self) -> &InjectableStyleBase {
+  pub fn get_style(&self) -> &InjectableStyleBaseKind {
     &self.style
   }
 
   pub fn get_css(&self) -> &str {
-    self.style.ltr.as_str()
+    match &self.style {
+      InjectableStyleBaseKind::Regular(style) => style.ltr.as_str(),
+      InjectableStyleBaseKind::Const(style) => style.ltr.as_str(),
+    }
   }
 
   pub(crate) fn get_css_rtl(&self) -> Option<&str> {
-    self.style.rtl.as_deref()
+    match &self.style {
+      InjectableStyleBaseKind::Regular(style) => style.rtl.as_deref(),
+      InjectableStyleBaseKind::Const(style) => style.rtl.as_deref(),
+    }
   }
 
   pub fn get_class_name(&self) -> &str {
@@ -69,7 +79,7 @@ impl MetaData {
   }
 
   pub(crate) fn convert_from_injected_styles_map(
-    injected_styles_map: &IndexMap<String, Rc<InjectableStyle>>,
+    injected_styles_map: &IndexMap<String, Rc<InjectableStyleKind>>,
   ) -> Vec<MetaData> {
     injected_styles_map
       .iter()

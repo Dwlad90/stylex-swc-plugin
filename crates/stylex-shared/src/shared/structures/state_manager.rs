@@ -13,7 +13,7 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, FileName},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{ast::Module, utils::drop_span},
 };
 use swc_core::{
@@ -25,16 +25,19 @@ use swc_core::{
   },
 };
 
-use crate::shared::utils::{
-  ast::factories::binding_ident_factory,
-  common::{
-    extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
-  },
-};
 use crate::shared::{
   constants::common::DEFAULT_INJECT_PATH,
   utils::ast::factories::{
     expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
+  },
+};
+use crate::shared::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  utils::{
+    ast::factories::binding_ident_factory,
+    common::{
+      extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
+    },
   },
 };
 use crate::shared::{
@@ -50,10 +53,10 @@ use crate::shared::{
 };
 
 use super::plugin_pass::PluginPass;
+use super::stylex_options::ModuleResolution;
 use super::stylex_options::{CheckModuleResolution, StyleXOptions};
 use super::stylex_state_options::StyleXStateOptions;
 use super::uid_generator::UidGenerator;
-use super::{injectable_style::InjectableStyle, stylex_options::ModuleResolution};
 use super::{meta_data::MetaData, types::StylesObjectMap};
 use super::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
@@ -83,6 +86,7 @@ pub struct StateManager {
   pub(crate) stylex_first_that_works_import: AtomHashSet,
   pub(crate) stylex_keyframes_import: AtomHashSet,
   pub(crate) stylex_define_vars_import: AtomHashSet,
+  pub(crate) stylex_define_consts_import: AtomHashSet,
   pub(crate) stylex_create_theme_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
@@ -116,7 +120,7 @@ pub struct StateManager {
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
-  pub(crate) injected_keyframes: IndexMap<String, Rc<InjectableStyle>>,
+  pub(crate) injected_keyframes: IndexMap<String, Rc<InjectableStyleKind>>,
   pub(crate) top_imports: Vec<ImportDecl>,
 
   pub(crate) cycle: TransformationCycle,
@@ -143,6 +147,7 @@ impl StateManager {
       stylex_first_that_works_import: FxHashSet::default(),
       stylex_keyframes_import: FxHashSet::default(),
       stylex_define_vars_import: FxHashSet::default(),
+      stylex_define_consts_import: FxHashSet::default(),
       stylex_create_theme_import: FxHashSet::default(),
       stylex_types_import: FxHashSet::default(),
       inject_import_inserted: None,
@@ -431,22 +436,27 @@ impl StateManager {
     }
   }
 
-  pub(crate) fn get_top_level_expr(
+  pub(crate) fn find_top_level_expr(
     &self,
-    kind: &TopLevelExpressionKind,
     call: &CallExpr,
+    extended_predicate_fn: impl Fn(&TopLevelExpression) -> bool,
+    kind: Option<TopLevelExpressionKind>,
   ) -> Option<TopLevelExpression> {
     self
       .top_level_expressions
       .iter()
-      .find(|tpe| kind == &tpe.0 && matches!(tpe.1, Expr::Call(ref c) if c == call))
+      .find(|tpe| {
+        kind.is_none_or(|kind| tpe.0 == kind)
+          && (matches!(tpe.1, Expr::Call(ref c) if c.eq_ignore_span(call))
+            || extended_predicate_fn(tpe))
+      })
       .cloned()
   }
 
   pub(crate) fn register_styles(
     &mut self,
     call: &CallExpr,
-    style: &IndexMap<String, Rc<InjectableStyle>>,
+    style: &IndexMap<String, Rc<InjectableStyleKind>>,
     ast: &Expr,
   ) {
     // Early return if there are no styles to process
@@ -459,11 +469,22 @@ impl StateManager {
       return;
     }
 
-    let inject_var_ident = self.setup_injection_imports();
+    let needs_runtime_injection = style
+      .values()
+      .any(|value| matches!(value.as_ref(), InjectableStyleKind::Regular(_)));
+
+    let inject_var_ident = if needs_runtime_injection {
+      Some(self.setup_injection_imports())
+    } else {
+      None
+    };
 
     for metadata in metadatas {
       self.add_style(&metadata);
-      self.add_style_to_inject(&metadata, &inject_var_ident, ast);
+
+      if let Some(ref inject_var_ident) = inject_var_ident {
+        self.add_style_to_inject(&metadata, inject_var_ident, ast);
+      }
     }
 
     // Update all references to this call expression with the new AST

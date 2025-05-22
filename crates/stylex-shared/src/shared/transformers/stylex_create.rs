@@ -5,11 +5,11 @@ use indexmap::{IndexMap, IndexSet};
 use crate::shared::{
   constants::common::COMPILED_KEY,
   enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
   },
   structures::{
     functions::FunctionMap,
-    injectable_style::InjectableStyle,
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
     state::EvaluationState,
     state_manager::StateManager,
@@ -28,12 +28,12 @@ pub(crate) fn stylex_create_set(
   functions: &FunctionMap,
 ) -> (
   IndexMap<String, Rc<FlatCompiledStyles>>,
-  IndexMap<String, Rc<InjectableStyle>>,
+  IndexMap<String, Rc<InjectableStyleKind>>,
   IndexMap<String, Rc<ClassPathsInNamespace>>,
 ) {
-  let mut resolved_namespaces: IndexMap<String, Rc<FlatCompiledStyles>> = IndexMap::new();
-  let mut injected_styles_map: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
-  let mut namespace_to_class_paths: IndexMap<String, Rc<ClassPathsInNamespace>> = IndexMap::new();
+  let mut resolved_namespaces = IndexMap::new();
+  let mut injected_styles_map = IndexMap::new();
+  let mut namespace_to_class_paths = IndexMap::new();
 
   for (namespace_name, namespace) in namespaces.as_map().unwrap() {
     validate_namespace(namespace, &[], traversal_state);
@@ -102,7 +102,7 @@ pub(crate) fn stylex_create_set(
           for ComputedStyle(class_name, injectable_styles, _) in class_name_tuples.iter() {
             injected_styles_map
               .entry(class_name.clone())
-              .or_insert_with(|| Rc::new(injectable_styles.clone()));
+              .or_insert_with(|| Rc::new(InjectableStyleKind::Regular(injectable_styles.clone())));
           }
         }
         _ => {

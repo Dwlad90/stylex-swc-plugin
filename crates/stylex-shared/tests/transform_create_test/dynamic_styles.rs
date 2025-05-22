@@ -15,11 +15,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   style_function,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -37,11 +33,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   style_function_and_object,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -61,11 +53,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   style_function_with_custom_properties,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -83,11 +71,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   set_number_unit,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -133,11 +117,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   valid_pseudo_class,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -159,11 +139,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   pseudo_class_generated_order,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -185,11 +161,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   before_and_after_pseudo_elements,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -211,11 +183,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   placeholder_pseudo_element,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -234,11 +202,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   thumb_pseudo_element,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -257,11 +221,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   before_pseudo_element_with_pseudo_classes,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -283,11 +243,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   media_queries,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -308,11 +264,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   supports_queries,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -333,11 +285,7 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   media_query_with_pseudo_classes,
   r#"
     import * as stylex from '@stylexjs/stylex';

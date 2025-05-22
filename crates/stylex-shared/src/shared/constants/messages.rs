@@ -74,3 +74,4 @@ pub(crate) static THEME_IMPORT_KEY_AS_OBJECT_KEY: &str =
   "Theme import keys cannot be used as object keys. Please use a valid object key.";
 
 pub(crate) static NO_OBJECT_SPREADS: &str = "Object spreads are not allowed in stylex.create call.";
+pub(crate) static INVALID_CONST_KEY: &str = r#"Keys in defineConsts() cannot start with "--"."#;

@@ -59,8 +59,9 @@ pretty_env_logger = "0.5.0"
 color-backtrace = { version = "0.7.0" }
 ctor = "0.4.2"
 env_logger = "0.11.8"
-rustc-hash="2.1.1"
+rustc-hash = "2.1.1"
 base62 = { version = "2.2.1" }
+md5 = { version = "0.7.0" }
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

@@ -296,6 +296,14 @@ pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool
   )
 }
 
+pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bool {
+  is_target_call(
+    ("defineConsts", &state.stylex_define_consts_import),
+    call,
+    state,
+  )
+}
+
 pub(crate) fn is_target_call(
   (call_name, imports_map): (&str, &FxHashSet<Atom>),
   call: &CallExpr,

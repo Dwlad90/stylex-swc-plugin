@@ -83,6 +83,7 @@ pub struct StateManager {
   pub(crate) stylex_first_that_works_import: AtomHashSet,
   pub(crate) stylex_keyframes_import: AtomHashSet,
   pub(crate) stylex_define_vars_import: AtomHashSet,
+  pub(crate) stylex_define_consts_import: AtomHashSet,
   pub(crate) stylex_create_theme_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,

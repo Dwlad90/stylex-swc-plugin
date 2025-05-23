@@ -13,7 +13,7 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, FileName},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{ast::Module, utils::drop_span},
 };
 use swc_core::{
@@ -83,6 +83,7 @@ pub struct StateManager {
   pub(crate) stylex_first_that_works_import: AtomHashSet,
   pub(crate) stylex_keyframes_import: AtomHashSet,
   pub(crate) stylex_define_vars_import: AtomHashSet,
+  pub(crate) stylex_define_consts_import: AtomHashSet,
   pub(crate) stylex_create_theme_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
@@ -143,6 +144,7 @@ impl StateManager {
       stylex_first_that_works_import: FxHashSet::default(),
       stylex_keyframes_import: FxHashSet::default(),
       stylex_define_vars_import: FxHashSet::default(),
+      stylex_define_consts_import: FxHashSet::default(),
       stylex_create_theme_import: FxHashSet::default(),
       stylex_types_import: FxHashSet::default(),
       inject_import_inserted: None,
@@ -431,15 +433,20 @@ impl StateManager {
     }
   }
 
-  pub(crate) fn get_top_level_expr(
+  pub(crate) fn find_top_level_expr(
     &self,
-    kind: &TopLevelExpressionKind,
     call: &CallExpr,
+    extended_predicate_fn: impl Fn(&TopLevelExpression) -> bool,
+    kind: Option<TopLevelExpressionKind>,
   ) -> Option<TopLevelExpression> {
     self
       .top_level_expressions
       .iter()
-      .find(|tpe| kind == &tpe.0 && matches!(tpe.1, Expr::Call(ref c) if c == call))
+      .find(|tpe| {
+        kind.is_none_or(|kind| tpe.0 == kind)
+          && (matches!(tpe.1, Expr::Call(ref c) if c.eq_ignore_span(call))
+            || extended_predicate_fn(tpe))
+      })
       .cloned()
   }
 

@@ -1,5 +1,6 @@
 use radix_fmt::radix;
 use rustc_hash::{FxHashMap, FxHashSet};
+use serde_json::to_string;
 use std::{
   any::type_name,
   collections::hash_map::Entry,
@@ -660,7 +661,13 @@ where
     .map(|index| vec.swap_remove(index))
 }
 
-pub fn create_short_hash(value: &str) -> String {
+pub(crate) fn create_short_hash(value: &str) -> String {
   let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
   base62::encode(hash)
+}
+
+pub(crate) fn md5_hash<T: serde::Serialize>(value: T, length: usize) -> String {
+  let serialized = to_string(&value).expect("Failed to serialize value to JSON");
+  let digest = md5::compute(serialized);
+  format!("{:x}", digest)[..length].to_string()
 }

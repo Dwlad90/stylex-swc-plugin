@@ -1,4 +1,7 @@
+use md5::Digest;
+
 use rustc_hash::FxHashMap;
+use serde_json::to_string;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -6,7 +9,8 @@ use swc_core::{
 
 use crate::shared::{
   constants::messages::NON_OBJECT_FOR_STYLEX_CALL,
-  utils::validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
+  transformers::stylex_define_consts::stylex_define_consts,
+  utils::{common::md5_hash, validators::{find_and_validate_stylex_define_vars, is_define_vars_call}},
 };
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
@@ -14,13 +18,14 @@ use crate::shared::{
 };
 use crate::shared::{
   enums::data_structures::top_level_expression::TopLevelExpression,
-  utils::{common::gen_file_based_identifier, js::evaluate::evaluate},
+  utils::{
+    common::gen_file_based_identifier,
+    js::evaluate::evaluate,
+    validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
+  },
 };
 use crate::shared::{
-  structures::functions::FunctionConfigType,
-  utils::log::build_code_frame_error::build_code_frame_error,
-};
-use crate::shared::{
+  enums::data_structures::top_level_expression::TopLevelExpressionKind,
   structures::{
     functions::FunctionMap,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
@@ -30,70 +35,33 @@ use crate::shared::{
     stylex_types::get_types_fn,
   },
 };
+use crate::shared::{
+  structures::functions::FunctionConfigType,
+  utils::log::build_code_frame_error::build_code_frame_error,
+};
 
 use crate::StyleXTransform;
+
 
 impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn transform_stylex_define_vars(&mut self, call: &CallExpr) -> Option<Expr> {
-    let is_define_vars = is_define_vars_call(call, &self.state);
+  pub(crate) fn transform_stylex_define_consts(&mut self, call: &CallExpr) -> Option<Expr> {
+    let is_define_consts = is_define_consts_call(call, &self.state);
 
-    if is_define_vars {
-      let stylex_create_theme_top_level_expr =
-        find_and_validate_stylex_define_vars(call, &mut self.state).unwrap();
+    if is_define_consts {
+      let top_level_expr_defined_consts =
+        find_and_validate_stylex_define_consts(call, &mut self.state).unwrap();
 
-      let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
+      let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!("Spread"),
         None => first_arg.expr.clone(),
       })?;
 
-      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
-
-      let keyframes_fn = get_keyframes_fn();
-      let types_fn = get_types_fn();
-
-      for name in &self.state.stylex_keyframes_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
-      }
-
-      for name in &self.state.stylex_types_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(types_fn.clone())),
-        );
-      }
-
-      for name in &self.state.stylex_import {
-        let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          "keyframes".into(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
-
-        let identifier = identifiers
-          .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
-
-        if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert("types".into(), types_fn.clone());
-        }
-      }
-
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-      });
-
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+      let evaluated_arg = evaluate(&first_arg, &mut self.state, &FunctionMap::default());
 
       assert!(
         evaluated_arg.confident,
@@ -131,14 +99,15 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
         .expect("No filename found for generating theme name.");
 
-      let export_name = var_id
-        .map(|decl| decl.to_string())
-        .expect("Export variable not found");
+      let export_name = var_id.expect("Export variable not found");
 
-      self.state.theme_name = Some(gen_file_based_identifier(&file_name, &export_name, None));
+      let theme_name = Some(gen_file_based_identifier(&file_name, &export_name, None));
+      self.state.theme_name = theme_name;
+      let a = r#"{"sm":"(min-width: 768px)","md":"(min-width: 1024px)","lg":"(min-width: 1280px)"}"#.to_string();
+      dbg!(&self.state.theme_name, &a, md5_hash(&a, 8), &value, md5_hash(value, 8));
 
       let (variables_obj, injected_styles_sans_keyframes) =
-        stylex_define_vars(&value, &mut self.state);
+        stylex_define_consts(&value, &mut self.state);
 
       let mut injected_styles = self.state.injected_keyframes.clone();
       injected_styles.extend(injected_styles_sans_keyframes);

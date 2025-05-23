@@ -28,7 +28,8 @@ test!(
       None,
     )
   },
-  transforms_constants_object,
+  // TODO: rename this test to be more descriptive
+  transforms_constants_object111111111,
   r#"
         import stylex from 'stylex';
         export const breakpoints = stylex.defineConsts({

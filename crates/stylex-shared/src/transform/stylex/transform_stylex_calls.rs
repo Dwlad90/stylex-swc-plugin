@@ -44,6 +44,10 @@ where
         return Some(value);
       }
 
+      if let Some(value) = self.transform_stylex_define_consts(call_expr) {
+        return Some(value);
+      }
+
       if let Some(value) = self.transform_stylex_create_theme_call(call_expr) {
         return Some(value);
       }

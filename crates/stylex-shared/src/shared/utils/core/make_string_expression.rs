@@ -22,9 +22,7 @@ use super::{js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg
 fn fn_result_to_expression(fn_result: FnResult) -> Option<Expr> {
   match fn_result {
     FnResult::Stylex(string_object) => Some(string_object),
-    FnResult::Props(string_object) | FnResult::Attrs(string_object) => {
-      Some(convert_object_to_ast(&string_object))
-    }
+    FnResult::Props(string_object) => Some(convert_object_to_ast(&string_object)),
   }
 }
 

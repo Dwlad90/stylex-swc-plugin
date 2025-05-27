@@ -315,10 +315,6 @@ pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(("props", &state.stylex_props_import), call, state)
 }
 
-pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(("attrs", &state.stylex_attrs_import), call, state)
-}
-
 pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
   let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
 

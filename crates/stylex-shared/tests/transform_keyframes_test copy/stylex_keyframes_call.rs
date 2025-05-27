@@ -17,7 +17,7 @@ test!(
   empty_stylex_props_call,
   r#"
         import stylex from 'stylex';
-        stylex.attrs();
+        stylex.props();
     "#
 );
 

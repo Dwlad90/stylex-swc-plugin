@@ -1,7 +1,6 @@
 mod evaluation;
 mod legacy;
 mod metadata_test;
-mod transform_attrs_test;
 mod transform_create_test;
 mod transform_create_theme_test;
 mod transform_define_consts_test;

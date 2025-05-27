@@ -157,49 +157,41 @@ where
     )
   }
 
-  pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
+  fn is_stylex_import(&self, ident_sym: &str) -> bool {
     let state = &self.state;
-
     let stylex_imports = state.stylex_import_stringified();
+
+    stylex_imports.contains(&ident_sym.to_string())
+      || (state.cycle == TransformationCycle::TransformEnter
+        && (state.stylex_create_import.contains(&ident_sym.into()))
+        || state.stylex_define_vars_import.contains(&ident_sym.into())
+        || state
+          .stylex_define_consts_import
+          .contains(&ident_sym.into())
+        || state.stylex_create_theme_import.contains(&ident_sym.into())
+        || state.stylex_keyframes_import.contains(&ident_sym.into())
+        || state.stylex_props_import.contains(&ident_sym.into())
+        || state
+          .stylex_first_that_works_import
+          .contains(&ident_sym.into())
+        || state.stylex_types_import.contains(&ident_sym.into()))
+  }
+
+  pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
     if let Callee::Expr(callee) = &mut call_expr.callee {
       match callee.as_ref() {
         Expr::Ident(ident) => {
-          let ident_id = ident.to_id();
-
-          if stylex_imports.contains(&ident.sym.to_string())
-            || (state.cycle == TransformationCycle::TransformEnter
-              && (state.stylex_create_import.contains(&ident.sym))
-              || state.stylex_props_import.contains(&ident.sym)
-              || state.stylex_keyframes_import.contains(&ident.sym)
-              || state.stylex_first_that_works_import.contains(&ident.sym)
-              || state.stylex_types_import.contains(&ident.sym)
-              || state.stylex_create_theme_import.contains(&ident.sym)
-              || state.stylex_define_vars_import.contains(&ident.sym)
-              || state.stylex_attrs_import.contains(&ident.sym))
-          {
+          if self.is_stylex_import(ident.sym.as_ref()) {
             increase_ident_count(&mut self.state, ident);
-
-            return Some((ident_id.clone(), format!("{}", ident.sym)));
+            return Some((ident.to_id(), ident.sym.to_string()));
           }
         }
         Expr::Member(member) => {
-          if let Expr::Ident(ident) = member.obj.as_ref() {
-            let ident_id = ident.to_id();
-
-            if stylex_imports.contains(&ident.sym.to_string())
-              || (state.cycle == TransformationCycle::TransformEnter
-                && (state.stylex_create_import.contains(&ident.sym))
-                || state.stylex_props_import.contains(&ident.sym)
-                || state.stylex_keyframes_import.contains(&ident.sym)
-                || state.stylex_first_that_works_import.contains(&ident.sym)
-                || state.stylex_create_theme_import.contains(&ident.sym)
-                || state.stylex_types_import.contains(&ident.sym)
-                || state.stylex_define_vars_import.contains(&ident.sym)
-                || state.stylex_attrs_import.contains(&ident.sym))
-            {
-              if let MemberProp::Ident(ident) = &member.prop {
-                return Some((ident_id.clone(), format!("{}", ident.sym)));
-              }
+          if let (Expr::Ident(obj_ident), MemberProp::Ident(prop_ident)) =
+            (member.obj.as_ref(), &member.prop)
+          {
+            if self.is_stylex_import(obj_ident.sym.as_ref()) {
+              return Some((obj_ident.to_id(), prop_ident.sym.to_string()));
             }
           }
         }

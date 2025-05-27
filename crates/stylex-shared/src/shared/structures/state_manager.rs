@@ -81,7 +81,6 @@ pub struct StateManager {
   pub(crate) stylex_import: FxHashSet<ImportSources>,
   pub(crate) import_specifiers: Vec<String>,
   pub(crate) stylex_props_import: AtomHashSet,
-  pub(crate) stylex_attrs_import: AtomHashSet,
   pub(crate) stylex_create_import: AtomHashSet,
   pub(crate) stylex_first_that_works_import: AtomHashSet,
   pub(crate) stylex_keyframes_import: AtomHashSet,
@@ -142,7 +141,6 @@ impl StateManager {
       stylex_import: FxHashSet::default(),
       import_specifiers: vec![],
       stylex_props_import: FxHashSet::default(),
-      stylex_attrs_import: FxHashSet::default(),
       stylex_create_import: FxHashSet::default(),
       stylex_first_that_works_import: FxHashSet::default(),
       stylex_keyframes_import: FxHashSet::default(),
@@ -638,8 +636,6 @@ impl StateManager {
     self.stylex_import = union_hash_set(&self.stylex_import, &other.stylex_import);
     self.stylex_props_import =
       union_hash_set(&self.stylex_props_import, &other.stylex_props_import);
-    self.stylex_attrs_import =
-      union_hash_set(&self.stylex_attrs_import, &other.stylex_attrs_import);
     self.stylex_create_import =
       union_hash_set(&self.stylex_create_import, &other.stylex_create_import);
     self.stylex_first_that_works_import = union_hash_set(

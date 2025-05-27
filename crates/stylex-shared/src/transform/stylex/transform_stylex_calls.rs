@@ -64,17 +64,7 @@ where
         }
       }
 
-      if self.state.stylex_attrs_import.contains(ident_name) {
-        if let Some(value) = self.transform_stylex_attrs_call(call_expr) {
-          return Some(value);
-        }
-      }
-
       if let Some(value) = self.transform_stylex_call(call_expr) {
-        return Some(value);
-      }
-
-      if let Some(value) = self.transform_stylex_attrs_call(call_expr) {
         return Some(value);
       }
 

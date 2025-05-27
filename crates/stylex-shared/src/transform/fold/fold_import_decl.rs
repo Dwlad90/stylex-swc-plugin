@@ -172,9 +172,6 @@ where
         "props" => {
           self.state.stylex_props_import.insert(local_name_ident_atom);
         }
-        "attrs" => {
-          self.state.stylex_attrs_import.insert(local_name_ident_atom);
-        }
         "keyframes" => {
           self
             .state

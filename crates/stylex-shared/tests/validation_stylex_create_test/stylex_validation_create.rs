@@ -4,11 +4,9 @@ use swc_core::ecma::{
   transforms::testing::{test, test_transform},
 };
 
-// [validation] stylex.create() tests
-
 #[test]
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
-fn invalid_use_not_bound() {
+fn must_be_bound_to_a_variable() {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,
@@ -23,8 +21,9 @@ fn invalid_use_not_bound() {
       )
     },
     r#"
-          import * as stylex from '@stylexjs/stylex';
-          stylex.create({});
+            import stylex from "@stylexjs/stylex";
+
+            stylex.create({});
         "#,
     r#""#,
   )

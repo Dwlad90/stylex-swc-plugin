@@ -16,3 +16,13 @@ impl Default for PluginPass {
     }
   }
 }
+
+impl PluginPass {
+  pub fn new(cwd: Option<PathBuf>, filename: Option<FileName>) -> Self {
+    PluginPass {
+      cwd: cwd.or_else(|| Some(PathBuf::from("/stylex/packages/"))),
+      filename: filename
+        .unwrap_or_else(|| FileName::Real("/stylex/packages/TestTheme.stylex.js".into())),
+    }
+  }
+}

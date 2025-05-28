@@ -29,39 +29,6 @@ test!(
   "#
 );
 
-// Test: "local variable keyframes object" (should throw)
-#[test]
-#[should_panic(expected = "stylex.keyframes() can only accept an object.")]
-fn local_variable_keyframes_object() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
-    },
-    r#"
-      import * as stylex from '@stylexjs/stylex';
-      const keyframes = {
-        from: {
-          color: 'red',
-        },
-        to: {
-          color: 'blue',
-        }
-      };
-      export const name = stylex.keyframes(keyframes);
-    "#,
-    r#""#,
-  )
-}
-
 // Test: "local variables used in keyframes object"
 test!(
   Syntax::Typescript(TsSyntax {

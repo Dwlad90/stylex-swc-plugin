@@ -5,13 +5,10 @@ use stylex_shared::{
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
 };
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use swc_core::{common::FileName, ecma::{
+  parser::{Syntax, TsSyntax},
+  transforms::testing::test,
+}};
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -20,14 +17,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -55,14 +49,9 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
       unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -90,14 +79,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/src/css/NestedTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, Some(FileName::Real("/stylex/packages/src/css/NestedTheme.stylex.js".into()))),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -117,14 +103,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -148,14 +131,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -184,14 +164,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -212,14 +189,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -240,14 +214,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -268,14 +239,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -299,14 +267,11 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
+    PluginPass::new(None, None),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      debug: Some(false),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),

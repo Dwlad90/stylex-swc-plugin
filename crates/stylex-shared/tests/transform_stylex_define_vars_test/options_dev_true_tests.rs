@@ -25,10 +25,8 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
       unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       dev: Some(true),
-      debug: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),

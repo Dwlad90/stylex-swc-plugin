@@ -51,21 +51,6 @@ describe('@stylexjs/babel-plugin', ()=>{
         }
       `);
         });
-        test('local variable keyframes object', ()=>{
-            const callTransform = ()=>transform(`
-        import * as stylex from '@stylexjs/stylex';
-        const keyframes = {
-          from: {
-            color: 'red',
-          },
-          to: {
-            color: 'blue',
-          }
-        };
-        export const name = stylex.keyframes(keyframes);
-      `);
-            expect(callTransform).toThrow();
-        });
         test('local variables used in keyframes object', ()=>{
             const { code, metadata } = transform(`
         import * as stylex from '@stylexjs/stylex';

@@ -7,13 +7,30 @@ function transform(source: string, opts: any = {}) {
         plugins: [
             [
                 stylexPlugin,
-                opts
+                {
+                    ...opts
+                }
             ]
         ]
     });
 }
 describe('@stylexjs/babel-plugin', ()=>{
     describe('[validation] stylex.keyframes()', ()=>{
+        test('local variable keyframes object', ()=>{
+            const callTransform = ()=>transform(`
+        import * as stylex from '@stylexjs/stylex';
+        const keyframes = {
+          from: {
+            color: 'red',
+          },
+          to: {
+            color: 'blue',
+          }
+        };
+        export const name = stylex.keyframes(keyframes);
+      `);
+            expect(callTransform).toThrow();
+        });
         test('only argument must be an object of objects', ()=>{
             expect(()=>{
                 transform(`
@@ -33,8 +50,12 @@ describe('@stylexjs/babel-plugin', ()=>{
                 transform(`
           import stylex from 'stylex';
           const name = stylex.keyframes({
-            from: {},
-            to: {},
+            '0%': {
+              opacity: 0
+            },
+            '50%': {
+              opacity: 0.5
+            },
           });
         `);
             }).not.toThrow();
@@ -42,12 +63,8 @@ describe('@stylexjs/babel-plugin', ()=>{
                 transform(`
           import stylex from 'stylex';
           const name = stylex.keyframes({
-            '0%': {
-              opacity: 0
-            },
-            '50%': {
-              opacity: 0.5
-            },
+            from: {},
+            to: {},
           });
         `);
             }).not.toThrow();

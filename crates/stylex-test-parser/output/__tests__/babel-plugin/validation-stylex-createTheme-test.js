@@ -8,9 +8,8 @@ function transform(source: string, opts: any = {}) {
             [
                 stylexPlugin,
                 {
-                    stylexSheetName: '<>',
                     unstable_moduleResolution: {
-                        type: 'haste'
+                        type: 'commonJS'
                     },
                     ...opts
                 }

@@ -6,13 +6,9 @@ function transform(source, opts = {}) {
         },
         babelrc: false,
         plugins: [
-            flowPlugin,
             [
                 stylexPlugin,
                 {
-                    unstable_moduleResolution: {
-                        type: 'commonJS'
-                    },
                     ...opts
                 }
             ]
@@ -1118,6 +1114,46 @@ describe('@stylexjs/babel-plugin', ()=>{
                     "rtl": null,
                   },
                   3060,
+                ],
+              ],
+            }
+          `);
+                });
+                test('pseudo-class generated order (nested)', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: {
+                  ':hover': {
+                    ':active':'red',
+                  },
+                  ':active': {
+                    ':hover':'red',
+                  },
+                },
+              },
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kMwMTN: "xa2ikkt xa2ikkt",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "xa2ikkt",
+                  {
+                    "ltr": ".xa2ikkt:active:hover{color:red}",
+                    "rtl": null,
+                  },
+                  3300,
                 ],
               ],
             }

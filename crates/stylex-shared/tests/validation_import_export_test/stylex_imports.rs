@@ -16,7 +16,7 @@ test!(
       None,
     )
   },
-  ignore_non_stylex_imports,
+  valid_import_non_stylex,
   r#"
     import classnames from 'classnames';
     "#
@@ -34,9 +34,9 @@ test!(
       None,
     )
   },
-  support_named_export_of_stylex_create,
+  valid_import_named_export_of_stylex_create,
   r#"
-    import stylex from 'stylex';
+    import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({});
     "#
 );
@@ -53,9 +53,9 @@ test!(
       None,
     )
   },
-  support_default_export_of_stylex_create,
+  valid_import_default_export_of_stylex_create,
   r#"
-    import stylex from 'stylex';
+    import * as stylex from '@stylexjs/stylex';
     export default stylex.create({});
     "#
 );

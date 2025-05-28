@@ -7,32 +7,34 @@ function transform(source: string, opts: any = {}) {
         plugins: [
             [
                 stylexPlugin,
-                opts
+                {
+                    ...opts
+                }
             ]
         ]
     });
 }
 describe('@stylexjs/babel-plugin', ()=>{
     describe('[validation] stylex imports', ()=>{
-        test('ignore non-stylex imports', ()=>{
+        test('valid import: non-stylex', ()=>{
             expect(()=>{
                 transform(`
           import classnames from 'classnames';
         `);
             }).not.toThrow();
         });
-        test('support named export of stylex.create()', ()=>{
+        test('valid import: named export of stylex.create()', ()=>{
             expect(()=>{
                 transform(`
-          import stylex from 'stylex';
+          import * as stylex from '@stylexjs/stylex';
           export const styles = stylex.create({});
         `);
             }).not.toThrow();
         });
-        test('support default export of stylex.create()', ()=>{
+        test('valid import: default export of stylex.create()', ()=>{
             expect(()=>{
                 transform(`
-          import stylex from 'stylex';
+          import * as stylex from '@stylexjs/stylex';
           export default stylex.create({});
         `);
             }).not.toThrow();

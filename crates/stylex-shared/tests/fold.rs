@@ -10,7 +10,7 @@ mod transform_keyframes_test;
 mod transform_misc;
 mod transform_override_vars_test;
 mod transform_polyfills_test;
-mod transform_props_test;
+mod transform_stylex_props_test;
 mod transform_value_normalization_test;
 pub(crate) mod utils;
 mod validation_custom_properties_test;

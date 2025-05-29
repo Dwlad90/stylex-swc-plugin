@@ -172,9 +172,6 @@ where
         "props" => {
           self.state.stylex_props_import.insert(local_name_ident_atom);
         }
-        "attrs" => {
-          self.state.stylex_attrs_import.insert(local_name_ident_atom);
-        }
         "keyframes" => {
           self
             .state
@@ -191,6 +188,12 @@ where
           self
             .state
             .stylex_define_vars_import
+            .insert(local_name_ident_atom);
+        }
+        "defineConsts" => {
+          self
+            .state
+            .stylex_define_consts_import
             .insert(local_name_ident_atom);
         }
         "createTheme" => {

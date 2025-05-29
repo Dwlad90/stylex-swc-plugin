@@ -54,3 +54,6 @@ pub(crate) static URL_REGEX: Lazy<Regex> = Lazy::new(|| {
         r"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)"
     ).unwrap()
 });
+
+pub(crate) static JSON_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"(\{|,)\s*([a-zA-Z0-9_$*-]+)\s*:"#).unwrap());

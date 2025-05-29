@@ -6,7 +6,8 @@ use swc_core::ecma::ast::Expr;
 use crate::shared::{
   enums::data_structures::{
     evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    obj_map_type::ObjMapType,
   },
   structures::{
     functions::{FunctionConfig, FunctionMap, FunctionType},
@@ -28,7 +29,7 @@ use crate::shared::{
 pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
   state: &mut StateManager,
-) -> (String, InjectableStyle) {
+) -> (String, InjectableStyleKind) {
   let mut class_name_prefix = state.options.class_name_prefix.clone();
 
   if class_name_prefix.is_empty() {
@@ -121,11 +122,11 @@ pub(crate) fn stylex_keyframes(
 
   (
     animation_name,
-    InjectableStyle {
+    InjectableStyleKind::Regular(InjectableStyle {
       ltr,
       rtl,
       priority: Some(1.0),
-    },
+    }),
   )
 }
 

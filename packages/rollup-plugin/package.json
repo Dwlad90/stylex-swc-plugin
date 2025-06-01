@@ -36,7 +36,7 @@
     "lightningcss": "^1.29.3"
   },
   "devDependencies": {
-    "@types/node": "^22.15.15",
+    "@types/node": "^22.15.29",
     "browserslist": "^4.24.4",
     "rollup": "^4.40.2"
   },

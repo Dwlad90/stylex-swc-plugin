@@ -7,6 +7,10 @@
       "description": "Changes that affect the build system or external dependencies 🏗️",
       "title": "Builds"
     },
+    "cargo": {
+      "description": "Update or add Cargo dependencies 📦",
+      "title": "Cargo dependencies"
+    },
     "chore": {
       "description": "Other changes that don't modify src or test files 🧹",
       "title": "Chores"
@@ -46,6 +50,10 @@
     "fix": {
       "description": "A bug fix 🐛",
       "title": "Bug Fixes"
+    },
+    "npm": {
+      "description": "Update or add NPM dependencies 📦",
+      "title": "NPM dependencies"
     },
     "perf": {
       "description": "A code change that improves performance 🚀",

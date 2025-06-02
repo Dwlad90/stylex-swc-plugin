@@ -69,6 +69,8 @@ changelog:
         - 'deps-updates'
         - 'deps-update'
         - 'deps-updates'
+        - 'npm'
+        - 'cargo'
     - title: Development Dependency Updates 🛠
       labels:
         - 'dev-deps'

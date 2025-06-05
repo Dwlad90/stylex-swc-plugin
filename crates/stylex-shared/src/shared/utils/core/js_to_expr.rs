@@ -40,7 +40,7 @@ impl NestedStringObject {
     }
   }
 
-  pub(crate) fn as_values(&self) -> Option<&IndexMap<String, Rc<FlatCompiledStylesValue>>> {
+  pub(crate) fn _as_values(&self) -> Option<&IndexMap<String, Rc<FlatCompiledStylesValue>>> {
     match self {
       NestedStringObject::FlatCompiledStylesValues(obj) => Some(obj),
       _ => None,

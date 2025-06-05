@@ -20,6 +20,7 @@ use swc_core::{
 
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
+  enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
   utils::{
     ast::convertors::{key_value_to_str, lit_to_string},
@@ -156,7 +157,8 @@ where
         )
       );
 
-      let mut injected_inherit_styles: IndexMap<String, Rc<InjectableStyle>> = IndexMap::default();
+      let mut injected_inherit_styles: IndexMap<String, Rc<InjectableStyleKind>> =
+        IndexMap::default();
 
       if let Some(fns) = &evaluated_arg.fns {
         let dynamic_fns_names = fns
@@ -176,7 +178,7 @@ where
 
           injected_inherit_styles.insert(
             variable_name.clone(),
-            Rc::new(InjectableStyle {
+            Rc::new(InjectableStyleKind::Regular(InjectableStyle {
               priority: Some(0f64),
               ltr: format!(
                 "@property {} {{ syntax: \"*\"; {}}}",
@@ -188,7 +190,7 @@ where
                 },
               ),
               rtl: None,
-            }),
+            })),
           );
         }
       }

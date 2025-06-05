@@ -26,7 +26,7 @@ use crate::shared::{
     data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
     misc::VarDeclAction,
   },
-  regex::DASHIFY_REGEX,
+  regex::{DASHIFY_REGEX, JSON_REGEX},
   structures::{
     base_css_type::BaseCSSType,
     functions::{FunctionConfigType, FunctionMap, FunctionType},
@@ -660,7 +660,52 @@ where
     .map(|index| vec.swap_remove(index))
 }
 
-pub fn create_short_hash(value: &str) -> String {
+pub(crate) fn create_short_hash(value: &str) -> String {
   let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
   base62::encode(hash)
+}
+
+pub(crate) fn md5_hash<T: serde::Serialize>(value: T, length: usize) -> String {
+  let serialized_value = serialize_value_to_json_string(value);
+
+  let digest = md5::compute(serialized_value.as_bytes());
+  let hex = format!("{:x}", digest);
+
+  if length >= hex.len() {
+    hex
+  } else {
+    hex[..length].to_string()
+  }
+}
+
+pub(crate) fn remove_quotes(s: &str) -> String {
+  s.trim_matches('"').to_string()
+}
+
+pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> String {
+  match serde_json::to_string(&value) {
+    Ok(json_str) => {
+      if json_str.starts_with('"') && json_str.ends_with('"') && json_str.len() > 2 {
+        match serde_json::from_str::<String>(&json_str) {
+          Ok(inner_string) => {
+            if inner_string.trim_start().starts_with('{') && !inner_string.contains("\":") {
+              return js_object_to_json(&inner_string);
+            }
+
+            remove_quotes(&inner_string)
+          }
+          _ => remove_quotes(&json_str),
+        }
+      } else {
+        json_str
+      }
+    }
+    Err(err) => {
+      panic!("Failed to serialize value. Error: {}", err)
+    }
+  }
+}
+
+fn js_object_to_json(js_str: &str) -> String {
+  JSON_REGEX.replace_all(js_str, r#"$1"$2":"#).to_string()
 }

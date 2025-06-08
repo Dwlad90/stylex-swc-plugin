@@ -6,7 +6,9 @@ mod stylex_create_theme {
   use swc_core::ecma::ast::PropOrSpread;
 
   use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue, injectable_style::InjectableStyleKind,
+    },
     structures::{injectable_style::InjectableStyle, state_manager::StateManager},
     transformers::stylex_create_theme::stylex_create_theme,
     utils::ast::{
@@ -29,18 +31,18 @@ mod stylex_create_theme {
 
   fn exprected_result_factory(
     injected_styles: &[(&str, (&str, f64))],
-  ) -> IndexMap<String, Rc<InjectableStyle>> {
+  ) -> IndexMap<String, Rc<InjectableStyleKind>> {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        Rc::new(InjectableStyle {
+        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
           ltr: value.0.to_string(),
           rtl: None,
           priority: Some(value.1),
-        }),
+        })),
       );
     }
     expected_injected_styles

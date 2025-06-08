@@ -10,11 +10,28 @@ pub struct InjectableStyleBase {
   pub ltr: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Hash, Eq)]
+pub struct InjectableStyleConstBase {
+  pub rtl: Option<String>,
+  pub ltr: String,
+  pub const_key: String,
+  pub const_value: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub(crate) struct InjectableStyle {
   pub(crate) ltr: String,
   pub(crate) rtl: Option<String>,
   pub(crate) priority: Option<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub(crate) struct InjectableConstStyle {
+  pub(crate) ltr: String,
+  pub(crate) rtl: Option<String>,
+  pub(crate) priority: Option<f64>,
+  pub(crate) const_key: String,
+  pub(crate) const_value: String,
 }
 
 impl Hash for InjectableStyle {
@@ -41,6 +58,28 @@ impl Default for InjectableStyle {
       ltr: "".to_string(),
       rtl: None,
       priority: Some(0.0),
+    }
+  }
+}
+
+impl From<InjectableConstStyle> for InjectableStyleConstBase {
+  fn from(style: InjectableConstStyle) -> Self {
+    InjectableStyleConstBase {
+      ltr: style.ltr,
+      rtl: style.rtl,
+      const_key: style.const_key,
+      const_value: style.const_value,
+    }
+  }
+}
+impl Default for InjectableConstStyle {
+  fn default() -> Self {
+    InjectableConstStyle {
+      ltr: "".to_string(),
+      rtl: None,
+      priority: Some(0.0),
+      const_key: "".to_string(),
+      const_value: "".to_string(),
     }
   }
 }

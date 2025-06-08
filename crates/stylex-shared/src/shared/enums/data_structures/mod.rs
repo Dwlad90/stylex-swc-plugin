@@ -3,6 +3,7 @@ pub mod evaluate_result_value;
 pub(crate) mod flat_compiled_styles_value;
 pub(crate) mod fn_result;
 pub(crate) mod import_path_resolution;
+pub mod injectable_style;
 pub(crate) mod obj_map_type;
 pub(crate) mod style_vars_to_keep;
 pub(crate) mod top_level_expression;

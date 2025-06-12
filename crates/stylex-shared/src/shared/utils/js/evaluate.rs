@@ -819,10 +819,20 @@ fn _evaluate(
               return deopt(path, state, OBJECT_METHOD);
             }
 
-            let new_props = spread_expression
+            let Some(new_props) = spread_expression
               .and_then(|spread| spread.as_expr().cloned())
               .and_then(|expr| expr.as_object().cloned())
-              .expect("Spread must be an object");
+            else {
+              build_code_frame_error_and_panic(
+                &Expr::Paren(ParenExpr {
+                  span: DUMMY_SP,
+                  expr: Box::new(path.clone()),
+                }),
+                path,
+                "Spread must be an object",
+                traversal_state,
+              );
+            };
 
             let merged_object = deep_merge_props(props, new_props.props);
 
@@ -874,15 +884,23 @@ fn _evaluate(
                       return None;
                     }
 
-                    Some(expr_to_str(
-                      evaluated_result
-                        .value
-                        .as_ref()
-                        .and_then(|value| value.as_expr())
-                        .expect("Property must be an expression"),
-                      traversal_state,
-                      &state.functions,
-                    ))
+                    if let Some(expr) = evaluated_result
+                      .value
+                      .as_ref()
+                      .and_then(|value| value.as_expr())
+                    {
+                      Some(expr_to_str(expr, traversal_state, &state.functions))
+                    } else {
+                      build_code_frame_error_and_panic(
+                        &Expr::Paren(ParenExpr {
+                          span: DUMMY_SP,
+                          expr: Box::new(path.clone()),
+                        }),
+                        path,
+                        "Property must be an expression",
+                        traversal_state,
+                      );
+                    }
                   }
                   PropName::BigInt(big_int) => Some(big_int.value.to_string()),
                 };

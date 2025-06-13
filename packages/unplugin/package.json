@@ -105,12 +105,12 @@
     "esno": "^4.7.0",
     "fast-glob": "^3.3.3",
     "nodemon": "^3.1.10",
-    "rollup": "^4.40.2",
-    "tsup": "^8.4.0",
+    "rollup": "^4.43.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^3.1.4",
-    "webpack": "^5.99.8"
+    "webpack": "^5.99.9"
   },
   "peerDependencies": {
     "@farmfe/core": ">=1.0.0",

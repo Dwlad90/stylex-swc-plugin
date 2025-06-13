@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^7.0.2",
+    "npm-run-all2": "^8.0.4",
     "prettier": "^3.5.3"
   },
   "keywords": [

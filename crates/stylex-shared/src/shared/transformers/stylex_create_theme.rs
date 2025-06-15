@@ -6,7 +6,8 @@ use swc_core::ecma::ast::KeyValueProp;
 use crate::shared::{
   constants::common::{COMPILED_KEY, THEME_NAME_KEY},
   enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
   },
   structures::{
     functions::FunctionMap, injectable_style::InjectableStyle, state_manager::StateManager,
@@ -26,7 +27,7 @@ pub(crate) fn stylex_create_theme(
   typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
 ) -> (
   IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  IndexMap<String, Rc<InjectableStyle>>,
+  IndexMap<String, Rc<InjectableStyleKind>>,
 ) {
   let theme_name_key_value = validate_theme_variables(theme_vars, state);
 
@@ -115,8 +116,8 @@ pub(crate) fn stylex_create_theme(
     create_hash(at_rules_string_for_hash.as_str())
   );
 
-  let mut resolved_theme_vars: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
-  let mut styles_to_inject: IndexMap<String, Rc<InjectableStyle>> = IndexMap::new();
+  let mut resolved_theme_vars = IndexMap::new();
+  let mut styles_to_inject = IndexMap::new();
 
   for at_rule in sorted_at_rules.into_iter() {
     let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
@@ -125,11 +126,11 @@ pub(crate) fn stylex_create_theme(
     if at_rule == "default" {
       styles_to_inject.insert(
         override_class_name.clone(),
-        Rc::new(InjectableStyle {
+        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
           ltr: rule,
           rtl: None,
           priority: Some(0.5),
-        }),
+        })),
       );
     } else {
       let key = format!("{}-{}", override_class_name, create_hash(at_rule));
@@ -138,11 +139,11 @@ pub(crate) fn stylex_create_theme(
 
       styles_to_inject.insert(
         key,
-        Rc::new(InjectableStyle {
+        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
           ltr,
           rtl: None,
           priority: Some(priority),
-        }),
+        })),
       );
     }
   }

@@ -1,5 +1,4 @@
 pub(crate) mod add_source_map_data;
-pub(crate) mod attrs;
 pub(crate) mod convert_style_to_class_name;
 pub(crate) mod define_vars_utils;
 pub(crate) mod dev_class_name;

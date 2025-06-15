@@ -4,17 +4,23 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::utils::{common::gen_file_based_identifier, js::evaluate::evaluate};
 use crate::shared::{
   constants::messages::NON_OBJECT_FOR_STYLEX_CALL,
-  utils::validators::{is_define_vars_call, validate_stylex_define_vars},
+  utils::validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
 };
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
   utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast},
 };
 use crate::shared::{
-  enums::data_structures::top_level_expression::TopLevelExpressionKind,
+  enums::data_structures::top_level_expression::TopLevelExpression,
+  utils::{common::gen_file_based_identifier, js::evaluate::evaluate},
+};
+use crate::shared::{
+  structures::functions::FunctionConfigType,
+  utils::log::build_code_frame_error::build_code_frame_error,
+};
+use crate::shared::{
   structures::{
     functions::FunctionMap,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
@@ -23,10 +29,6 @@ use crate::shared::{
     stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
     stylex_types::get_types_fn,
   },
-};
-use crate::shared::{
-  structures::functions::FunctionConfigType,
-  utils::log::build_code_frame_error::build_code_frame_error,
 };
 
 use crate::StyleXTransform;
@@ -39,7 +41,10 @@ where
     let is_define_vars = is_define_vars_call(call, &self.state);
 
     if is_define_vars {
-      validate_stylex_define_vars(call, &mut self.state);
+      let stylex_create_theme_top_level_expr =
+        find_and_validate_stylex_define_vars(call, &mut self.state).unwrap();
+
+      let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
         Some(_) => unimplemented!("Spread"),
@@ -126,12 +131,7 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
         .expect("No filename found for generating theme name.");
 
-      let export_expr = self
-        .state
-        .get_top_level_expr(&TopLevelExpressionKind::NamedExport, call);
-
-      let export_name = export_expr
-        .and_then(|expr| expr.2)
+      let export_name = var_id
         .map(|decl| decl.to_string())
         .expect("Export variable not found");
 

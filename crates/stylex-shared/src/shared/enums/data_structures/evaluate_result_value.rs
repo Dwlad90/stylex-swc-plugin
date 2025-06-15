@@ -2,13 +2,18 @@ use std::{fmt, rc::Rc};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use serde::{Serialize, ser::Serializer};
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, KeyValueProp, Lit},
+  ecma::{
+    ast::{Expr, KeyValueProp, Lit},
+    codegen::Config,
+  },
 };
 
-use crate::shared::structures::{
-  functions::FunctionConfig, theme_ref::ThemeRef, types::EvaluationCallback,
+use crate::shared::{
+  structures::{functions::FunctionConfig, theme_ref::ThemeRef, types::EvaluationCallback},
+  utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
 };
 
 pub enum EvaluateResultValue {
@@ -20,6 +25,49 @@ pub enum EvaluateResultValue {
   FunctionConfig(FunctionConfig),
   FunctionConfigMap(FxHashMap<Atom, FunctionConfig>),
   ThemeRef(ThemeRef),
+}
+
+impl Serialize for EvaluateResultValue {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    match self {
+      Self::Expr(expr) => {
+        let module = create_module(expr);
+        let code_frame = CodeFrame::new();
+
+        let printed_module = print_module(
+          &code_frame,
+          module,
+          Some(
+            Config::default()
+              .with_minify(true)
+              .with_omit_last_semi(true)
+              .with_reduce_escaped_newline(true),
+          ),
+        );
+
+        serializer.serialize_str(&printed_module)
+      }
+      Self::Map(_) => unimplemented!("map serialization is not implemented yet"),
+      Self::Entries(_) => unimplemented!("entries serialization is not implemented yet"),
+      Self::Callback(_) => unimplemented!("callback serialization is not implemented yet"),
+      Self::FunctionConfig(_) => {
+        unimplemented!("function_config serialization is not implemented yet")
+      }
+      Self::FunctionConfigMap(_) => {
+        unimplemented!("function_config_map serialization is not implemented yet")
+      }
+      Self::ThemeRef(_) => unimplemented!("theme_ref serialization is not implemented yet"),
+      Self::Vec(_) => {
+        unimplemented!("Vec serialization is not implemented yet");
+        // let mut map = serializer.serialize_map(Some(1))?;
+        // map.serialize_entry("type", "vec")?;
+        // map.end()
+      }
+    }
+  }
 }
 
 impl Clone for EvaluateResultValue {

@@ -6,7 +6,7 @@ use swc_core::{
   common::{
     DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, SyntaxContext, errors::*, sync::Lrc,
   },
-  ecma::{ast::*, visit::*},
+  ecma::{ast::*, codegen::Config, visit::*},
 };
 use swc_ecma_parser::{Syntax, TsSyntax};
 
@@ -18,7 +18,7 @@ pub(crate) struct CodeFrame {
 }
 
 impl CodeFrame {
-  fn new() -> Self {
+  pub(crate) fn new() -> Self {
     let source_map: Lrc<SourceMap> = Default::default();
     let handler =
       Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(source_map.clone()));
@@ -203,7 +203,7 @@ fn get_memoized_frame_source_code(
       create_module(wrapped_expression)
     };
 
-    print_module(code_frame, module)
+    print_module(code_frame, module, None)
   });
 
   if can_be_memoized {
@@ -215,7 +215,11 @@ fn get_memoized_frame_source_code(
   frame_source_code
 }
 
-fn print_module(code_frame: &CodeFrame, module: Module) -> String {
+pub(crate) fn print_module(
+  code_frame: &CodeFrame,
+  module: Module,
+  codegen_config: Option<Config>,
+) -> String {
   let program = Program::Module(module);
 
   let printed_source_code = print(
@@ -223,6 +227,7 @@ fn print_module(code_frame: &CodeFrame, module: Module) -> String {
     &program,
     PrintArgs {
       source_map: SourceMapsConfig::Bool(false),
+      codegen_config: codegen_config.unwrap_or_default(),
       ..Default::default()
     },
   )
@@ -236,7 +241,7 @@ fn print_module(code_frame: &CodeFrame, module: Module) -> String {
   printed_source_code.code
 }
 
-fn create_module(wrapped_expression: &Expr) -> Module {
+pub(crate) fn create_module(wrapped_expression: &Expr) -> Module {
   Module {
     span: DUMMY_SP,
     body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {

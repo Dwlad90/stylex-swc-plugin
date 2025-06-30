@@ -533,10 +533,13 @@ pub(crate) fn normalize_css_property_value(
 
       unprefixed_custom_properties_validator(&parsed_css_property_value);
 
-      let parsed_ast = base_normalizer(parsed_css_property_value, options.use_rem_for_font_size);
+      let parsed_ast = base_normalizer(
+        parsed_css_property_value,
+        options.enable_font_size_px_to_rem,
+      );
 
       // for normalizer in normalizers {
-      //   parsed_ast = normalizer(parsed_ast, options.use_rem_for_font_size);
+      //   parsed_ast = normalizer(parsed_ast, options.enable_font_size_px_to_rem);
       // }
 
       let result = whitespace_normalizer(stringify(&parsed_ast));

@@ -17,7 +17,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -51,7 +50,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),

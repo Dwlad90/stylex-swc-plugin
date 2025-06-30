@@ -1,2 +1,2 @@
-mod use_rem_for_font_size_false;
-mod use_rem_for_font_size_true;
+mod enable_font_size_px_to_rem_false;
+mod enable_font_size_px_to_rem_true;

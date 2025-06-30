@@ -13,7 +13,7 @@ pub struct StyleXStateOptions {
   pub dev: bool,
   pub test: bool,
   pub debug: bool,
-  pub use_rem_for_font_size: bool,
+  pub enable_font_size_px_to_rem: bool,
   pub class_name_prefix: String,
   pub enable_debug_class_names: bool,
   pub enable_debug_data_prop: bool,
@@ -39,7 +39,7 @@ impl Default for StyleXStateOptions {
       enable_debug_class_names: true,
       enable_debug_data_prop: true,
       enable_dev_class_names: false,
-      use_rem_for_font_size: false,
+      enable_font_size_px_to_rem: false,
       enable_minified_keys: true,
       class_name_prefix: "x".to_string(),
       import_sources: vec![],
@@ -77,7 +77,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
 
     StyleXStateOptions {
       style_resolution: options.style_resolution,
-      use_rem_for_font_size: options.use_rem_for_font_size,
+      enable_font_size_px_to_rem: options.enable_font_size_px_to_rem,
       runtime_injection,
       class_name_prefix: options.class_name_prefix,
       // defined_stylex_css_variables: options.defined_stylex_css_variables,

@@ -37,7 +37,6 @@ mod convert_style_to_class_name {
         options: StyleXStateOptions {
           class_name_prefix: 'x'.to_string(),
           style_resolution: StyleResolution::ApplicationOrder,
-          use_rem_for_font_size: false,
           dev: false,
           test: false,
           debug: true,
@@ -59,7 +58,6 @@ mod convert_style_to_class_name {
         options: StyleXStateOptions {
           class_name_prefix: 'x'.to_string(),
           style_resolution: StyleResolution::ApplicationOrder,
-          use_rem_for_font_size: false,
           dev: false,
           test: false,
           debug: true,
@@ -83,7 +81,6 @@ mod convert_style_to_class_name {
         options: StyleXStateOptions {
           class_name_prefix: 'x'.to_string(),
           style_resolution: StyleResolution::ApplicationOrder,
-          use_rem_for_font_size: false,
           dev: false,
           test: false,
           debug: false,

@@ -16,7 +16,7 @@ mod converting_pre_rule_to_css {
     state_manager.options.class_name_prefix = "x".to_string();
     state_manager.options.style_resolution = StyleResolution::LegacyExpandShorthands;
     state_manager.options.runtime_injection = None;
-    state_manager.options.use_rem_for_font_size = true;
+    state_manager.options.enable_font_size_px_to_rem = true;
     state_manager.options.dev = false;
     state_manager.options.test = false;
     state_manager.options.debug = false;

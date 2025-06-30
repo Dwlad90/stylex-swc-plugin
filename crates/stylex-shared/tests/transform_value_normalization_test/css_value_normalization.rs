@@ -17,7 +17,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -42,7 +42,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -63,7 +63,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -87,7 +87,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -108,7 +108,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -133,7 +133,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -154,7 +154,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -178,7 +178,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -199,7 +199,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -224,7 +224,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -256,7 +256,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -277,7 +277,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -308,7 +308,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       runtime_injection: Some(true),
-      use_rem_for_font_size: Some(true),
+      enable_font_size_px_to_rem: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

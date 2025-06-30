@@ -9,7 +9,7 @@ use super::named_import_source::{ImportSources, RuntimeInjection};
 #[serde(rename_all = "camelCase")]
 pub struct StyleXOptionsParams {
   pub style_resolution: Option<StyleResolution>,
-  pub use_rem_for_font_size: Option<bool>,
+  pub enable_font_size_px_to_rem: Option<bool>,
   pub runtime_injection: Option<bool>,
   pub class_name_prefix: Option<String>,
   pub defined_stylex_css_variables: Option<FxHashMap<String, String>>,
@@ -32,7 +32,7 @@ impl Default for StyleXOptionsParams {
   fn default() -> Self {
     StyleXOptionsParams {
       style_resolution: Some(StyleResolution::ApplicationOrder),
-      use_rem_for_font_size: Some(false),
+      enable_font_size_px_to_rem: Some(false),
       runtime_injection: Some(false),
       class_name_prefix: Some("x".to_string()),
       defined_stylex_css_variables: Some(FxHashMap::default()),
@@ -92,7 +92,7 @@ pub struct StyleXOptions {
   pub enable_debug_data_prop: bool,
   pub enable_dev_class_names: bool,
   pub enable_minified_keys: bool,
-  pub use_rem_for_font_size: bool,
+  pub enable_font_size_px_to_rem: bool,
   pub class_name_prefix: String,
   // pub defined_stylex_css_variables: FxHashMap<String, String>,
   pub style_resolution: StyleResolution,
@@ -126,7 +126,7 @@ impl Default for StyleXOptions {
   fn default() -> Self {
     StyleXOptions {
       style_resolution: StyleResolution::ApplicationOrder,
-      use_rem_for_font_size: false,
+      enable_font_size_px_to_rem: false,
       runtime_injection: RuntimeInjection::Boolean(false),
       class_name_prefix: "x".to_string(),
       // defined_stylex_css_variables: FxHashMap::default(),
@@ -172,7 +172,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       style_resolution: options
         .style_resolution
         .unwrap_or(StyleResolution::ApplicationOrder),
-      use_rem_for_font_size: options.use_rem_for_font_size.unwrap_or(false),
+      enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.unwrap_or(false),
       runtime_injection,
       class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),
       // defined_stylex_css_variables: options.defined_stylex_css_variables.unwrap_or_default(),

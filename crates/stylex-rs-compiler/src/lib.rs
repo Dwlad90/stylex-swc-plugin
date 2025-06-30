@@ -134,7 +134,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     dev: options
       .dev
       .or_else(|| env::var("NODE_ENV").ok().map(|env| env == "development")),
-    use_rem_for_font_size: options.use_rem_for_font_size.or(Some(true)),
+    enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.or(Some(true)),
     runtime_injection: options.runtime_injection.or(Some(false)),
     treeshake_compensation: options.treeshake_compensation.or(Some(true)),
     import_sources: options.import_sources.or(Some(vec![

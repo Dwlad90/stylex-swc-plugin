@@ -12,7 +12,7 @@ use swc_core::{
 use crate::shared::{constants::common::ROOT_FONT_SIZE, utils::common::dashify};
 
 struct CssFolder {
-  use_rem_for_font_size: bool,
+  enable_font_size_px_to_rem: bool,
   parent_key: Option<String>,
 }
 
@@ -44,7 +44,7 @@ impl Fold for CssFolder {
   fn fold_declaration(&mut self, mut declaration: Declaration) -> Declaration {
     let declaration = kebab_case_normalizer(&mut declaration);
 
-    if self.use_rem_for_font_size {
+    if self.enable_font_size_px_to_rem {
       self.convert_font_size_to_rem_normalizer(declaration);
     }
 
@@ -139,9 +139,9 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
   declaration
 }
 
-pub(crate) fn base_normalizer(ast: Stylesheet, use_rem_for_font_size: bool) -> Stylesheet {
+pub(crate) fn base_normalizer(ast: Stylesheet, enable_font_size_px_to_rem: bool) -> Stylesheet {
   let mut folder = CssFolder {
-    use_rem_for_font_size,
+    enable_font_size_px_to_rem,
     parent_key: None,
   };
   ast.fold_with(&mut folder)

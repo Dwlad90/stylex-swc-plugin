@@ -25,7 +25,7 @@ pub enum SourceMaps {
 #[napi(object)]
 pub struct StyleXOptions {
   pub style_resolution: Option<String>,
-  pub use_rem_for_font_size: Option<bool>,
+  pub enable_font_size_px_to_rem: Option<bool>,
   pub runtime_injection: Option<bool>,
   pub class_name_prefix: Option<String>,
   #[napi(ts_type = "Record<string, string>")]
@@ -83,7 +83,7 @@ impl From<StyleXOptions> for StyleXOptionsParams {
 
     StyleXOptionsParams {
       style_resolution,
-      use_rem_for_font_size: val.use_rem_for_font_size,
+      enable_font_size_px_to_rem: val.enable_font_size_px_to_rem,
       runtime_injection: val.runtime_injection,
       class_name_prefix: val.class_name_prefix,
       defined_stylex_css_variables: val.defined_stylex_css_variables,

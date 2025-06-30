@@ -13,8 +13,7 @@ describe('convert-to-className test', ()=>{
             dev: false,
             debug: true,
             styleResolution: 'application-order',
-            test: false,
-            useRemForFontSize: false
+            test: false
         };
         const result = convertStyleToClassName([
             'margin',
@@ -30,8 +29,7 @@ describe('convert-to-className test', ()=>{
             debug: true,
             enableDebugClassNames: false,
             styleResolution: 'application-order',
-            test: false,
-            useRemForFontSize: false
+            test: false
         };
         const result = convertStyleToClassName([
             'margin',
@@ -47,8 +45,7 @@ describe('convert-to-className test', ()=>{
             dev: false,
             debug: false,
             styleResolution: 'application-order',
-            test: false,
-            useRemForFontSize: false
+            test: false
         };
         const result = convertStyleToClassName([
             'margin',

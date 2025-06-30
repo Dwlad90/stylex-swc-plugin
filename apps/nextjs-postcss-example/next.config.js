@@ -17,7 +17,7 @@ module.exports = stylexPlugin({
       type: 'commonJS',
     },
     isDev: process.env.NODE_ENV === 'development',
-    genConditionalClasses: true,
+    runtimeInjection: false,
     treeshakeCompensation: true,
   },
   extractCSS: false,

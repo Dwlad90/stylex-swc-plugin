@@ -25,7 +25,6 @@ export const config = {
       fileName: 'dist/stylex.css',
       rsOptions: {
         useCSSLayers: true,
-        genConditionalClasses: true,
         treeshakeCompensation: true,
         stylexImports: ['@stylexjs/stylex'],
       },

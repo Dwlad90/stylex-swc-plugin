@@ -1,3 +1,5 @@
+use crate::utils::transform::stringify_js;
+use std::path::PathBuf;
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
@@ -5,13 +7,11 @@ use stylex_shared::{
     stylex_options::{ModuleResolution, StyleXOptionsParams},
   },
 };
+use swc_core::common::FileName;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
-use swc_core::common::FileName;
-use std::path::PathBuf;
-use crate::utils::transform::stringify_js;
 
 fn transform(input: &str) -> String {
   stringify_js(

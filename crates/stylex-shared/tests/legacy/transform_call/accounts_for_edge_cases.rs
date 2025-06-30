@@ -17,7 +17,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -42,7 +41,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -67,7 +65,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -93,7 +90,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

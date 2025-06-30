@@ -16,7 +16,6 @@ test('sync function from native code', t => {
 
   const result = transform('page.tsx', fixture, {
     dev: false,
-    genConditionalClasses: true,
     treeshakeCompensation: true,
     unstable_moduleResolution: {
       type: 'commonJS',

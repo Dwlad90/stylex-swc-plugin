@@ -33,7 +33,7 @@ pub struct StyleXOptions {
   #[napi(ts_type = "(string | { as: string, from: string })[]")]
   pub import_sources: Option<Vec<String>>,
   pub treeshake_compensation: Option<bool>,
-  pub gen_conditional_classes: Option<bool>,
+  pub enable_inlined_conditional_merge: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,
@@ -89,7 +89,7 @@ impl From<StyleXOptions> for StyleXOptionsParams {
       defined_stylex_css_variables: val.defined_stylex_css_variables,
       import_sources,
       treeshake_compensation: val.treeshake_compensation,
-      gen_conditional_classes: val.gen_conditional_classes,
+      enable_inlined_conditional_merge: val.enable_inlined_conditional_merge,
       dev: val.dev,
       test: val.test,
       debug: val.debug.or(val.dev),

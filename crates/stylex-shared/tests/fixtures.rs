@@ -27,7 +27,6 @@ fn fixture(input: PathBuf) {
         dev: Some(true),
         treeshake_compensation: Some(true),
         unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-        gen_conditional_classes: Some(true),
         enable_minified_keys: Some(false),
         ..StyleXOptionsParams::default()
       };
@@ -57,7 +56,6 @@ fn fixture(input: PathBuf) {
         treeshake_compensation: Some(true),
         unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
         runtime_injection: Some(false),
-        gen_conditional_classes: Some(true),
         ..StyleXOptionsParams::default()
       };
 

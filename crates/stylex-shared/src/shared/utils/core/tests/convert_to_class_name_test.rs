@@ -192,4 +192,48 @@ mod convert_style_to_class_name {
       "height:var(--y,var(--x,500px));height:var(--y,var(--x,100vh));height:100dvh"
     )
   }
+
+  #[test]
+  fn handles_array_with_variable_default_and_multiple_constant_fallbacks() {
+    let result = convert((
+      "height",
+      &PreRuleValue::Vec(vec![
+        "var(--x)".to_string(),
+        "500".to_string(),
+        "100dvh".to_string(),
+      ]),
+    ));
+
+    assert_eq!(result, "height:var(--x);height:500px;height:100dvh")
+  }
+
+  #[test]
+  fn handles_array_with_variable_default_and_multiple_variable_and_constant_fallbacks() {
+    let result = convert((
+      "height",
+      &PreRuleValue::Vec(vec![
+        "var(--x)".to_string(),
+        "var(--y)".to_string(),
+        "var(--z)".to_string(),
+        "100dvh".to_string(),
+      ]),
+    ));
+
+    assert_eq!(result, "height:var(--z,var(--y,var(--x)));height:100dvh")
+  }
+
+  #[test]
+  fn handles_array_of_all_variables() {
+    let result = convert((
+      "height",
+      &PreRuleValue::Vec(vec![
+        "var(--w)".to_string(),
+        "var(--x)".to_string(),
+        "var(--y)".to_string(),
+        "var(--z)".to_string(),
+      ]),
+    ));
+
+    assert_eq!(result, "height:var(--z,var(--y,var(--x,var(--w))))")
+  }
 }

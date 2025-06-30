@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
@@ -12,7 +13,6 @@ use swc_core::{
     transforms::testing::test,
   },
 };
-use std::path::PathBuf;
 
 test!(
   Syntax::Typescript(TsSyntax {

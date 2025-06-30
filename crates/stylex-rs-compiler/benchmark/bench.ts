@@ -37,7 +37,6 @@ const benchLotsOfStyles = new Bench({
 
 const stylexOptions: StyleXOptions = {
   dev: false,
-  genConditionalClasses: true,
   treeshakeCompensation: true,
   unstable_moduleResolution: {
     type: 'haste',

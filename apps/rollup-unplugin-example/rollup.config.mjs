@@ -44,7 +44,6 @@ export default {
       dev: true,
       rsOptions: {
         useCSSLayers: true,
-        genConditionalClasses: true,
         treeshakeCompensation: true,
       },
     }),

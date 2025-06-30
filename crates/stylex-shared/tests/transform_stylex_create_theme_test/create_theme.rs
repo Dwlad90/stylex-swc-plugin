@@ -5,10 +5,13 @@ use stylex_shared::{
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
 };
-use swc_core::{common::FileName, ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-}};
+use swc_core::{
+  common::FileName,
+  ecma::{
+    parser::{Syntax, TsSyntax},
+    transforms::testing::test,
+  },
+};
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -97,7 +100,9 @@ test!(
     tr.comments.clone(),
     PluginPass::new(
       None,
-      Some(FileName::Real("/stylex/packages/src/css/vars.stylex.js".into()))
+      Some(FileName::Real(
+        "/stylex/packages/src/css/vars.stylex.js".into()
+      ))
     ),
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
@@ -395,7 +400,9 @@ test!(
     tr.comments.clone(),
     PluginPass::new(
       None,
-      Some(FileName::Real("/stylex/packages/otherVars.stylex.js".into()))
+      Some(FileName::Real(
+        "/stylex/packages/otherVars.stylex.js".into()
+      ))
     ),
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(

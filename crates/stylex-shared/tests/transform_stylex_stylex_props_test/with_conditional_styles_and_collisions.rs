@@ -15,10 +15,7 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      gen_conditional_classes: Some(true),
-      ..StyleXOptionsParams::default()
-    })
+    None
   ),
   stylex_call_with_conditions,
   r#"
@@ -43,7 +40,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(false),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_conditions_skip_conditional,
   r#"
@@ -176,10 +176,7 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      gen_conditional_classes: Some(true),
-      ..StyleXOptionsParams::default()
-    })
+    None
   ),
   stylex_call_with_conditions_and_collisions,
   r#"
@@ -204,7 +201,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(false),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_conditions_and_collisions_skip_conditional,
   r#"
@@ -230,7 +230,7 @@ test!(
     tr.comments.clone(),
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
-      gen_conditional_classes: Some(true),
+      enable_inlined_conditional_merge: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -257,7 +257,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(false),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_conditions_and_null_collisions_skip_conditional,
   r#"
@@ -282,7 +285,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(false),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_conditions_and_null_collisions_tranform_successfully,
   r#"
@@ -310,7 +316,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(false),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_conditions_and_undefined_collisions_tranform_successfully,
   r#"

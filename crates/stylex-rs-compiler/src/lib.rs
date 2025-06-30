@@ -148,6 +148,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
         theme_file_extension: None,
       })
     }),
+    enable_inlined_conditional_merge: options.enable_inlined_conditional_merge.or(Some(true)),
     ..options
   })
 }

@@ -12,7 +12,6 @@ export default defineConfig({
       rsOptions: {
         dev: true,
         useCSSLayers: true,
-        genConditionalClasses: true,
         treeshakeCompensation: true,
       },
     }),

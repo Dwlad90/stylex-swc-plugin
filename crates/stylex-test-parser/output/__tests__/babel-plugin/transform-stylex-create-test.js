@@ -1166,7 +1166,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             }
           `);
                 });
-                test.skip('args: value, var', ()=>{
+                test('args: value, var', ()=>{
                     const { code, metadata } = transform(`
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -1175,8 +1175,29 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
           `);
-                    expect(code).toMatchInlineSnapshot();
-                    expect(metadata).toMatchInlineSnapshot();
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kMwMTN: "x1nv2f59",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x1nv2f59",
+                  {
+                    "ltr": ".x1nv2f59{color:var(--color);color:red}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
                 });
                 test('args: var, value', ()=>{
                     const { code, metadata } = transform(`
@@ -1244,7 +1265,40 @@ describe('@stylexjs/babel-plugin', ()=>{
             }
           `);
                 });
-                test.skip('args: func, var, value', ()=>{
+                test('args: var, var, var', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: stylex.firstThatWorks('var(--color)', 'var(--secondColor)', 'var(--thirdColor)'),
+              }
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kMwMTN: "xsrkhny",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "xsrkhny",
+                  {
+                    "ltr": ".xsrkhny{color:var(--color,var(--secondColor,var(--thirdColor)))}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                });
+                test('args: func, var, value', ()=>{
                     const { code, metadata } = transform(`
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -1253,10 +1307,31 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
           `);
-                    expect(code).toMatchInlineSnapshot();
-                    expect(metadata).toMatchInlineSnapshot();
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kMwMTN: "x8vgp76",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x8vgp76",
+                  {
+                    "ltr": ".x8vgp76{color:var(--color,red);color:color-mix(in srgb,currentColor 20%,transparent)}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
                 });
-                test.skip('args: func, var, value, value', ()=>{
+                test('args: func, var, value, value', ()=>{
                     const { code, metadata } = transform(`
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -1265,8 +1340,29 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
           `);
-                    expect(code).toMatchInlineSnapshot();
-                    expect(metadata).toMatchInlineSnapshot();
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kMwMTN: "x8vgp76",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x8vgp76",
+                  {
+                    "ltr": ".x8vgp76{color:var(--color,red);color:color-mix(in srgb,currentColor 20%,transparent)}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
                 });
             });
             describe.skip('function value: stylex.types.*()', ()=>{});

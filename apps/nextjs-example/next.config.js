@@ -16,6 +16,8 @@ module.exports = stylexPlugin({
     unstable_moduleResolution: {
       type: 'commonJS',
     },
+    runtimeInjection: false,
+    treeshakeCompensation: true,
   }
 })({
   transpilePackages: ['@stylexjs/open-props'],

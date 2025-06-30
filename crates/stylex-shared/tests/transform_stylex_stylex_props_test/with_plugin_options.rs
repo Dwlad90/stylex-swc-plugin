@@ -23,10 +23,11 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
+      enable_inlined_conditional_merge: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),
-  stylex_call_produces_dev_class_names, // dev:true
+  stylex_call_produces_dev_class_names_and_enable_inlined_conditional_merge_false, // dev:true
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -51,11 +52,10 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
-  stylex_call_produces_dev_class_name_with_conditions, // dev:true and genConditionalClasses:true
+  stylex_call_produces_dev_class_name_with_conditions, // dev:true and enable_inlined_conditional_merge:true
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -85,6 +85,7 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
+      enable_inlined_conditional_merge: Some(false),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -118,7 +119,6 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

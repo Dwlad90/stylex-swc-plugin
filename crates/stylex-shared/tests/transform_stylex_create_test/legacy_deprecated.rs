@@ -2,8 +2,8 @@ use stylex_shared::{
   StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
-    stylex_options::{StyleXOptionsParams, StyleResolution}
-  }
+    stylex_options::{StyleResolution, StyleXOptionsParams},
+  },
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -23,7 +23,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_nested_pseudo_class_to_css,
@@ -53,7 +53,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_invalid_pseudo_class,
@@ -83,7 +83,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_valid_pseudo_classes_in_order,
@@ -121,7 +121,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_pseudo_class_with_array_value_as_fallbacks,
@@ -150,7 +150,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_legacy_pseudo_class_within_a_pseudo_element,
@@ -182,7 +182,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_pseudo_elements_within_legacy_pseudo_class,
@@ -216,7 +216,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_pseudo_elements_sandwiched_within_pseudo_classes,
@@ -254,7 +254,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_media_queries,
@@ -287,7 +287,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_supports_queries,
@@ -321,7 +321,7 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   transforms_dynamic_shorthands_in_legacy_expand_shorthands_mode,

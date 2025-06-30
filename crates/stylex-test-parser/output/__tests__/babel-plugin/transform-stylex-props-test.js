@@ -491,9 +491,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
             stylex.props([styles.default, isActive && styles.active]);
-          `, {
-                    genConditionalClasses: true
-                })).toMatchInlineSnapshot(`
+          `)).toMatchInlineSnapshot(`
           "import _inject from "@stylexjs/stylex/lib/stylex-inject";
           var _inject2 = _inject;
           import stylex from 'stylex';
@@ -521,7 +519,9 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
             stylex.props([styles.default, isActive && styles.active]);
-            `)).toMatchInlineSnapshot(`
+            `, {
+                    enableInlinedConditionalMerge: false
+                })).toMatchInlineSnapshot(`
           "import _inject from "@stylexjs/stylex/lib/stylex-inject";
           var _inject2 = _inject;
           import stylex from 'stylex';
@@ -658,9 +658,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
             stylex.props([styles.red, isActive && styles.blue]);
-          `, {
-                    genConditionalClasses: true
-                })).toMatchInlineSnapshot(`
+          `)).toMatchInlineSnapshot(`
           "import _inject from "@stylexjs/stylex/lib/stylex-inject";
           var _inject2 = _inject;
           import stylex from 'stylex';
@@ -688,7 +686,9 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
             stylex.props([styles.red, isActive && styles.blue]);
-            `)).toMatchInlineSnapshot(`
+            `, {
+                    enableInlinedConditionalMerge: false
+                })).toMatchInlineSnapshot(`
           "import _inject from "@stylexjs/stylex/lib/stylex-inject";
           var _inject2 = _inject;
           import stylex from 'stylex';
@@ -719,9 +719,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
             stylex.props([styles.red, isActive && styles.blue]);
-          `, {
-                    genConditionalClasses: true
-                })).toMatchInlineSnapshot(`
+          `)).toMatchInlineSnapshot(`
           "import _inject from "@stylexjs/stylex/lib/stylex-inject";
           var _inject2 = _inject;
           import stylex from 'stylex';
@@ -746,7 +744,9 @@ describe('@stylexjs/babel-plugin', ()=>{
               }
             });
             stylex.props([styles.red, isActive && styles.blue]);
-            `)).toMatchInlineSnapshot(`
+            `, {
+                    enableInlinedConditionalMerge: false
+                })).toMatchInlineSnapshot(`
           "import _inject from "@stylexjs/stylex/lib/stylex-inject";
           var _inject2 = _inject;
           import stylex from 'stylex';
@@ -766,10 +766,11 @@ describe('@stylexjs/babel-plugin', ()=>{
             });
         });
         describe('with plugin options', ()=>{
-            test('dev:true', ()=>{
+            test('dev:true and enableInlinedConditionalMerge:false', ()=>{
                 const options = {
                     filename: '/html/js/FooBar.react.js',
-                    dev: true
+                    dev: true,
+                    enableInlinedConditionalMerge: false
                 };
                 expect(transform(`
               import stylex from 'stylex';
@@ -823,11 +824,10 @@ describe('@stylexjs/babel-plugin', ()=>{
           stylex.props([styles.default, isActive && otherStyles.default]);"
         `);
             });
-            test('dev:true and genConditionalClasses:true', ()=>{
+            test('dev:true', ()=>{
                 const options = {
                     filename: '/html/js/FooBar.react.js',
-                    dev: true,
-                    genConditionalClasses: true
+                    dev: true
                 };
                 expect(transform(`
               import stylex from 'stylex';
@@ -1178,8 +1178,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             sidebar == null ? styles.noSidebar : styles.withSidebar,
           ]);
         `, {
-                dev: true,
-                genConditionalClasses: true
+                dev: true
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1286,8 +1285,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           ]);
         `, {
                 filename: '/html/js/FooBar.react.js',
-                dev: true,
-                genConditionalClasses: true
+                dev: true
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1380,8 +1378,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 filename: '/html/js/FooBar.react.js',
                 dev: true,
                 debug: true,
-                enableDebugClassNames: true,
-                genConditionalClasses: true
+                enableDebugClassNames: true
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1474,8 +1471,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 filename: '/html/js/FooBar.react.js',
                 dev: true,
                 debug: true,
-                enableDebugClassNames: false,
-                genConditionalClasses: true
+                enableDebugClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;

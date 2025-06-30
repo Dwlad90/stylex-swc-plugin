@@ -24,7 +24,7 @@ pub struct StyleXStateOptions {
   pub import_sources: Vec<ImportSources>,
   pub runtime_injection: Option<RuntimeInjectionState>,
   pub treeshake_compensation: Option<bool>,
-  pub gen_conditional_classes: bool,
+  pub enable_inlined_conditional_merge: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
 }
@@ -45,7 +45,7 @@ impl Default for StyleXStateOptions {
       import_sources: vec![],
       treeshake_compensation: None,
       runtime_injection: None,
-      gen_conditional_classes: false,
+      enable_inlined_conditional_merge: true,
       aliases: None,
       unstable_module_resolution: CheckModuleResolution::CommonJS(
         StyleXOptions::get_common_js_module_resolution(None),
@@ -90,7 +90,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       enable_dev_class_names: options.enable_dev_class_names,
       enable_minified_keys: options.enable_minified_keys,
       treeshake_compensation: options.treeshake_compensation,
-      gen_conditional_classes: options.gen_conditional_classes,
+      enable_inlined_conditional_merge: options.enable_inlined_conditional_merge,
       aliases: options.aliases,
       unstable_module_resolution: options.unstable_module_resolution,
     }

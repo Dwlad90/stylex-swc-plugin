@@ -472,27 +472,22 @@ test!(
           "#
 );
 
-#[test]
-#[ignore]
-fn args_value_var() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-    r#"
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  args_value_var,
+  r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
               root: {
                 color: stylex.firstThatWorks('red', 'var(--color)'),
               }
             });
-          "#,
-    r#""#,
-  )
-}
+          "#
+);
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -506,6 +501,23 @@ test!(
             export const styles = stylex.create({
               root: {
                 color: stylex.firstThatWorks('var(--color)', 'red'),
+              }
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  args_var_var_var,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: stylex.firstThatWorks('var(--color)', 'var(--secondColor)', 'var(--thirdColor)'),
               }
             });
           "#

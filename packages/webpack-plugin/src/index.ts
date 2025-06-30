@@ -60,7 +60,6 @@ export default class StyleXPlugin {
         dev: IS_DEV_ENV,
         useRemForFontSize: true,
         runtimeInjection: false,
-        genConditionalClasses: true,
         treeshakeCompensation: true,
         importSources: stylexImports,
         ...rsOptions,

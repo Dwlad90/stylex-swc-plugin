@@ -169,7 +169,7 @@ pub(crate) fn stylex_merge(
     }
   }
 
-  if !state.gen_conditional_classes() && conditional > 0 {
+  if !state.enable_inlined_conditional_merge() && conditional > 0 {
     bail_out = true;
   }
 

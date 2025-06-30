@@ -254,8 +254,8 @@ impl StateManager {
     self.options.debug
   }
 
-  pub(crate) fn gen_conditional_classes(&self) -> bool {
-    self.options.gen_conditional_classes
+  pub(crate) fn enable_inlined_conditional_merge(&self) -> bool {
+    self.options.enable_inlined_conditional_merge
   }
 
   pub(crate) fn get_short_filename(&self) -> String {

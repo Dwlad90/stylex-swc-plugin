@@ -56,7 +56,6 @@ module.exports = {
           type: 'commonJS',
         },
         dev: process.env.NODE_ENV === 'development',
-        genConditionalClasses: true,
         treeshakeCompensation: true,
       },
     },

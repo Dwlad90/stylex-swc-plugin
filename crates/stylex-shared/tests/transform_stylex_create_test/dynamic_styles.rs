@@ -2,8 +2,8 @@ use stylex_shared::{
   StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
-    stylex_options::{StyleXOptionsParams, ModuleResolution}
-  }
+    stylex_options::{ModuleResolution, StyleXOptionsParams},
+  },
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -119,7 +119,7 @@ test!(
         filename: swc_core::common::FileName::Real("MyComponent.js".into()),
         ..PluginPass::default()
       },
-      Some(&mut config)
+      Some(&mut config),
     )
   },
   set_custom_property,

@@ -102,7 +102,6 @@ module.exports = stylexPlugin({
   // Add any StyleX options here
   rsOptions: {
     dev: process.env.NODE_ENV !== 'production',
-    useRemForFontSize: true,
     aliases: {
       '@/*': [path.join(rootDir, '*')],
     },

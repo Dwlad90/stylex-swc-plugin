@@ -1,5 +1,5 @@
-apps/rollup-example/lotsOfStyles.js linguist-vendored
-apps/rollup-example/lotsOfStylesDynamic.js linguist-vendored
+apps/rollup-large-example/lotsOfStyles.js linguist-vendored
+apps/rollup-large-example/lotsOfStylesDynamic.js linguist-vendored
 crates/stylex-test-parser/output/__tests__/** linguist-vendored
 *.min.js linguist-vendored
 **/__swc_snapshots__/** linguist-vendored

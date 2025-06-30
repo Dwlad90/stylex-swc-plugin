@@ -147,7 +147,7 @@ perfFixtures.forEach(fixture => {
   });
 });
 
-const rollupPluginApp = path.join(rootDir, '../../apps/rollup-example');
+const rollupPluginApp = path.join(rootDir, '../../apps/rollup-large-example');
 const rollupPluginAppFiles = ['lotsOfStyles.js', 'lotsOfStylesDynamic.js'];
 
 rollupPluginAppFiles.forEach(file => {

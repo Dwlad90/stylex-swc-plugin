@@ -58,7 +58,7 @@ export default class StyleXPlugin {
       stylexImports,
       rsOptions: {
         dev: IS_DEV_ENV,
-        useRemForFontSize: true,
+        enableFontSizePxToRem: true,
         runtimeInjection: false,
         treeshakeCompensation: true,
         importSources: stylexImports,

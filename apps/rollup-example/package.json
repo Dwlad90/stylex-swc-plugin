@@ -1,15 +1,32 @@
 {
   "name": "@stylexswc/rollup-example",
-  "description": "A simple rollup example to test @stylexswc/rollup-plugin",
+  "description": "A simple rollup example to test stylexswc/rollup-plugin",
   "version": "0.8.2-dev.1",
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "pnpx rollup --config ./rollup.config.mjs",
-    "start": "pnpx rollup --config ./rollup.config.mjs --watch"
+    "build": "rollup --config ./rollup.config.mjs",
+    "serve": "serve --listen 3004 ./dist",
+    "start": "rollup --config ./rollup.config.mjs --watch",
+    "test:visual": "playwright test"
   },
   "dependencies": {
     "@stylexjs/stylex": "^0.12.0",
-    "@stylexswc/rollup-plugin": "0.8.2-dev.1"
-  }
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-html": "^2.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-replace": "^6.0.2",
+    "@rollup/plugin-swc": "^0.4.0",
+    "@stylexswc/playwright": "0.8.2-dev.1",
+    "@stylexswc/rollup-plugin": "0.8.2-dev.1",
+    "rollup": "^4.40.2",
+    "rollup-plugin-serve": "^3.0.0",
+    "serve": "^14.2.4"
+  },
+  "main": "index.js"
 }

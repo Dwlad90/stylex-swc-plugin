@@ -116,7 +116,6 @@ module.exports = {
     new StylexPlugin({
       rsOptions: {
         dev: process.env.NODE_ENV !== 'production',
-        useRemForFontSize: true,
       },
       stylexImports: ['@stylexjs/stylex', { from: './theme', as: 'tokens' }],
       useCSSLayers: true,

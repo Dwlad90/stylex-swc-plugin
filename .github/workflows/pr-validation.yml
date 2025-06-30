@@ -103,7 +103,7 @@ jobs:
       - name: Run visual comparison tests
         id: visual-tests
         run:
-          pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-example"
+          pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-large-example"
           --filter="!@stylexswc/webpack-example" --continue
 
       - name: Check artifacts

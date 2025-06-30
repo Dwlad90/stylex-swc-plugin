@@ -665,7 +665,7 @@ pub(crate) fn create_short_hash(value: &str) -> String {
   base62::encode(hash)
 }
 
-pub(crate) fn md5_hash<T: serde::Serialize>(value: T, length: usize) -> String {
+pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String {
   let serialized_value = serialize_value_to_json_string(value);
 
   let digest = md5::compute(serialized_value.as_bytes());

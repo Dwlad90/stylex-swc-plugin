@@ -1,0 +1,15 @@
+{
+  "name": "@stylexswc/rollup-large-example",
+  "description": "A simple rollup example to test @stylexswc/rollup-plugin",
+  "version": "0.8.2-dev.1",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpx rollup --config ./rollup.config.mjs",
+    "start": "pnpx rollup --config ./rollup.config.mjs --watch"
+  },
+  "dependencies": {
+    "@stylexjs/stylex": "^0.12.0",
+    "@stylexswc/rollup-plugin": "0.8.2-dev.1"
+  }
+}

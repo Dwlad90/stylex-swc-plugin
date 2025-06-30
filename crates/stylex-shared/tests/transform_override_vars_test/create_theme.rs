@@ -457,7 +457,7 @@ test!(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
-      filename: FileName::Real("/stylex/packages/utils/NestedTheme.stylex.js".into()),
+      filename: FileName::Real("/stylex/packages/utils/vars.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),

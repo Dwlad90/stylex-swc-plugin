@@ -12,7 +12,7 @@ _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfj
 _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);
 _inject2("@media print{.xtrlmmh, .xtrlmmh:root{--xgck17p:transparent;}}", 0.6);
 export const buttonThemePositive = {
-    NestedTheme__buttonThemePositive: "NestedTheme__buttonThemePositive",
+    vars__buttonThemePositive: "vars__buttonThemePositive",
     $$css: true,
     x568ih9: "xtrlmmh x568ih9"
 };

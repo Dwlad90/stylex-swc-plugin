@@ -9,7 +9,7 @@ var options = {
 };
 describe('Converting PreRule to CSS', ()=>{
     test('should convert a PreRule to CSS', ()=>{
-        expect(new _PreRule.PreRule('color', 'red', [
+        expect(new PreRule('color', 'red', [
             'color'
         ]).compiled(options)).toMatchInlineSnapshot(`
       [

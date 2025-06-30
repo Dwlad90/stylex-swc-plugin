@@ -11,33 +11,62 @@ use swc_core::ecma::{
 };
 use swc_core::common::FileName;
 use std::path::PathBuf;
+use crate::utils::transform::stringify_js;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      }),
+fn transform(input: &str) -> String {
+  stringify_js(
+    input,
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
       ..Default::default()
-    })
-  ),
-  constants_are_unique,
-  r#"
+    }),
+    |tr| {
+      StyleXTransform::new_test_with_pass(
+        tr.comments.clone(),
+        PluginPass {
+          cwd: Some(PathBuf::from("/stylex/packages/")),
+          filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+        },
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(ModuleResolution {
+            r#type: "commonJS".to_string(),
+            root_dir: Some("/stylex/packages/".to_string()),
+            theme_file_extension: None,
+          }),
+          ..Default::default()
+        }),
+      )
+    },
+  )
+}
+
+#[test]
+fn constants_are_unique() {
+  let input1 = r#"
         import stylex from 'stylex';
         export const breakpoints = stylex.defineConsts({ padding: '10px' });
-      "#
-);
+      "#;
+
+  let input2 = r#"
+        import stylex from 'stylex';
+        export const breakpoints = stylex.defineConsts({ padding: '10px' });
+      "#;
+
+  let input3 = r#"
+        import stylex from 'stylex';
+        export const breakpoints = stylex.defineConsts({ margin: '10px' });
+      "#;
+
+  let output1 = transform(input1);
+  let output2 = transform(input2);
+  let output3 = transform(input3);
+
+  // Assert the generated constants are consistent for the same inputs
+  assert_eq!(output1, output2);
+
+  // Assert the generated constants are different for different inputs
+  assert_ne!(output1, output3);
+}
 
 test!(
   Syntax::Typescript(TsSyntax {

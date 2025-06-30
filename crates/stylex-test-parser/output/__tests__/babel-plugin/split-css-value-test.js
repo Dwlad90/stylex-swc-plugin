@@ -1,11 +1,6 @@
-function _interopRequireDefault(e) {
-    return e && e.__esModule ? e : {
-        default: e
-    };
-}
 describe('Ensure CSS values are split correctly', ()=>{
     test('simple space-separated numbers', ()=>{
-        expect((0, _splitCssValue.default)('0 1 2 3')).toEqual([
+        expect(splitValue('0 1 2 3')).toEqual([
             '0',
             '1',
             '2',
@@ -13,7 +8,7 @@ describe('Ensure CSS values are split correctly', ()=>{
         ]);
     });
     test('simple space-separated lengths', ()=>{
-        expect((0, _splitCssValue.default)('0px 1rem 2% 3em')).toEqual([
+        expect(splitValue('0px 1rem 2% 3em')).toEqual([
             '0px',
             '1rem',
             '2%',
@@ -21,7 +16,7 @@ describe('Ensure CSS values are split correctly', ()=>{
         ]);
     });
     test('simple comma-separated numbers', ()=>{
-        expect((0, _splitCssValue.default)('0, 1, 2, 3')).toEqual([
+        expect(splitValue('0, 1, 2, 3')).toEqual([
             '0',
             '1',
             '2',
@@ -29,7 +24,7 @@ describe('Ensure CSS values are split correctly', ()=>{
         ]);
     });
     test('simple comma-separated lengths', ()=>{
-        expect((0, _splitCssValue.default)('0px, 1rem, 2%, 3em')).toEqual([
+        expect(splitValue('0px, 1rem, 2%, 3em')).toEqual([
             '0px',
             '1rem',
             '2%',
@@ -37,18 +32,18 @@ describe('Ensure CSS values are split correctly', ()=>{
         ]);
     });
     test('Does not lists within functions', ()=>{
-        expect((0, _splitCssValue.default)('rgb(255 200 0)')).toEqual([
+        expect(splitValue('rgb(255 200 0)')).toEqual([
             'rgb(255 200 0)'
         ]);
-        expect((0, _splitCssValue.default)('rgb(255 200 / 0.5)')).toEqual([
+        expect(splitValue('rgb(255 200 / 0.5)')).toEqual([
             'rgb(255 200/0.5)'
         ]);
     });
     test('Does not lists within calc', ()=>{
-        expect((0, _splitCssValue.default)('calc((100% - 50px) * 0.5)')).toEqual([
+        expect(splitValue('calc((100% - 50px) * 0.5)')).toEqual([
             'calc((100% - 50px) * 0.5)'
         ]);
-        expect((0, _splitCssValue.default)('calc((100% - 50px) * 0.5) var(--rightpadding, 20px)')).toEqual([
+        expect(splitValue('calc((100% - 50px) * 0.5) var(--rightpadding, 20px)')).toEqual([
             'calc((100% - 50px) * 0.5)',
             'var(--rightpadding,20px)'
         ]);

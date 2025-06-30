@@ -251,6 +251,60 @@ test!(
     ..Default::default()
   }),
   |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_transition_property_kebab_cased,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                transitionProperty: 'margin-top',
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_transition_property_custom_property,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                transitionProperty: '--foo',
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_transition_property_multi_property,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              one: {
+                transitionProperty: 'opacity, insetInlineStart',
+              },
+              two: {
+                transitionProperty: 'opacity, inset-inline-start',
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   set_will_change,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -258,6 +312,77 @@ test!(
               root: {
                 willChange: 'insetInlineStart',
               },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_will_change_kebab_cased,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                willChange: 'inset-inline-start',
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_will_change_custom_property,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                willChange: '--foo',
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_will_change_multi_property,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              one: {
+                willChange: 'opacity, insetInlineStart',
+              },
+              two: {
+                willChange: 'opacity, inset-inline-start',
+              }
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_will_change_keyword,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                willChange: 'scroll-position'
+              }
             });
           "#
 );
@@ -447,17 +572,14 @@ fn args_func_var_value_value() {
   )
 }
 
-#[ignore]
-#[test]
-fn invalid_pseudo_class() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-    r#"
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  invalid_pseudo_class,
+  r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
               root: {
@@ -466,10 +588,8 @@ fn invalid_pseudo_class() {
                 },
               },
             });
-          "#,
-    r#""#,
-  )
-}
+          "#
+);
 
 test!(
   Syntax::Typescript(TsSyntax {

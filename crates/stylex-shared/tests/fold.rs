@@ -5,6 +5,7 @@ mod transform_import_export_test;
 mod transform_misc_test;
 mod transform_override_vars_test;
 mod transform_polyfills_test;
+mod transform_process_test;
 mod transform_stylex_create_test;
 mod transform_stylex_create_theme_test;
 mod transform_stylex_define_consts_test;

@@ -1,0 +1,1 @@
+mod stylex_plugin_process_stylex_rules;

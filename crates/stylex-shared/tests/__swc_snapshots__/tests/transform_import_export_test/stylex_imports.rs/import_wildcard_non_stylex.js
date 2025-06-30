@@ -1,8 +1,6 @@
 import * as foo from "@stylexjs/stylex";
 export const constants = {
-    mediaQuery: "@media (min-width: 768px)",
-    __constName__: "vars.stylex.js//constants",
-    __constHash__: "05fd080c"
+    mediaQuery: "@media (min-width: 768px)"
 };
 export const vars = {
     bar: "var(--x1hi1hmf)",

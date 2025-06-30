@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::comments::Comments,
@@ -10,8 +8,7 @@ use crate::shared::structures::functions::FunctionMap;
 use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
 use crate::shared::{
   constants::messages::NON_OBJECT_FOR_STYLEX_CALL,
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  transformers::stylex_define_consts::stylex_define_consts, utils::common::md5_hash,
+  transformers::stylex_define_consts::stylex_define_consts,
 };
 use crate::shared::{
   constants::messages::NON_STATIC_VALUE,
@@ -90,19 +87,7 @@ where
 
       self.state.theme_name = theme_name.clone();
 
-      let const_hash = md5_hash(&value, 8);
-
-      let (mut transformed_js_output, js_output) = stylex_define_consts(&value, &mut self.state);
-
-      transformed_js_output.insert(
-        "__constName__".to_owned(),
-        Rc::new(FlatCompiledStylesValue::String(theme_name.clone().unwrap())),
-      );
-
-      transformed_js_output.insert(
-        "__constHash__".to_owned(),
-        Rc::new(FlatCompiledStylesValue::String(const_hash)),
-      );
+      let (transformed_js_output, js_output) = stylex_define_consts(&value, &mut self.state);
 
       let result_ast = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
         transformed_js_output,

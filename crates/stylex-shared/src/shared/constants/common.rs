@@ -46,7 +46,7 @@ pub(crate) static COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 
 pub(crate) static COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 7]> =
   Lazy::new(|| [" a ", " b ", " c ", " l ", " h ", " s ", " w "]);
 
-pub(crate) static CSS_CONTENT_FUNCTIONS: Lazy<[&str; 6]> = Lazy::new(|| {
+pub(crate) static CSS_CONTENT_FUNCTIONS: Lazy<[&str; 7]> = Lazy::new(|| {
   [
     "attr(",
     "counter(",
@@ -54,6 +54,7 @@ pub(crate) static CSS_CONTENT_FUNCTIONS: Lazy<[&str; 6]> = Lazy::new(|| {
     "url(",
     "linear-gradient(",
     "image-set(",
+    "var(--",
   ]
 });
 

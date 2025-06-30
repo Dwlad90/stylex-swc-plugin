@@ -17,6 +17,8 @@ mod transform_value_content_property_tests {
       "image-set(\"image1x.png\" 1x, \"image2x.png\" 2x)",
       "\"prefix\"attr(href)",
       "url(foo.jpg)attr(alt)",
+      "var(--test)",
+      "var(--test, \"default\")",
     ];
 
     let state_manager = StateManager::new(StyleXOptions::default());

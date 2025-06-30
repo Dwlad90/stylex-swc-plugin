@@ -9,7 +9,9 @@ describe('transformValue content property tests', ()=>{
             'linear-gradient(#e66465, #9198e5)',
             'image-set("image1x.png" 1x, "image2x.png" 2x)',
             '"prefix"attr(href)',
-            'url(foo.jpg)attr(alt)'
+            'url(foo.jpg)attr(alt)',
+            'var(--test)',
+            'var(--test, "default")'
         ];
         functions.forEach((input)=>{
             expect(transformValue('content', input, {})).toBe(input);

@@ -455,6 +455,7 @@ pub(crate) fn validate_dynamic_style_params(
   params: &[Pat],
   state: &mut StateManager,
 ) {
+  dbg!(&params);
   if params.iter().any(|param| !param.is_ident()) {
     let path_expr = Expr::Arrow(path.clone());
 

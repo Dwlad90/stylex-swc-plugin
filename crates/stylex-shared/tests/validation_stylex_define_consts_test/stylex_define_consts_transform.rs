@@ -23,16 +23,16 @@ fn invalid_export_not_bound() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const constants = stylex.defineConsts({});
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          const constants = stylex.defineConsts({});
+        "#,
     r#""#,
   )
 }
 
 #[test]
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
-fn invalid_export_not_bound_unbound_call() {
+fn invalid_export_not_bound_unbound() {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,
@@ -47,9 +47,9 @@ fn invalid_export_not_bound_unbound_call() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      stylex.defineConsts({});
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          stylex.defineConsts({});
+        "#,
     r#""#,
   )
 }
@@ -71,9 +71,9 @@ fn invalid_argument_none() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts();
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts();
+        "#,
     r#""#,
   )
 }
@@ -95,9 +95,9 @@ fn invalid_argument_too_many() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts({}, {});
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({}, {});
+        "#,
     r#""#,
   )
 }
@@ -119,9 +119,9 @@ fn invalid_argument_number() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts(1);
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts(1);
+        "#,
     r#""#,
   )
 }
@@ -143,9 +143,9 @@ fn invalid_argument_string() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts('1');
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts('1');
+        "#,
     r#""#,
   )
 }
@@ -167,9 +167,9 @@ fn invalid_argument_non_static() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts(genStyles());
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts(genStyles());
+        "#,
     r#""#,
   )
 }
@@ -188,13 +188,15 @@ test!(
   },
   valid_argument_object,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const constants = stylex.defineConsts({});
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({});
+        "#
 );
 
+/* Properties */
+
 #[test]
-#[should_panic(expected = "Keys in defineConsts() cannot start with \"--\".")]
+#[should_panic(expected = r#"Keys in defineConsts() cannot start with "--"."#)]
 fn invalid_key_starts_with_double_dash() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -210,11 +212,11 @@ fn invalid_key_starts_with_double_dash() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts({
-        '--small': '8px'
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            '--small': '8px'
+          });
+        "#,
     r#""#,
   )
 }
@@ -236,18 +238,20 @@ fn invalid_key_non_static() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts({
-        [labelColor]: 'red',
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            [labelColor]: 'red',
+          });
+        "#,
     r#""#,
   )
 }
 
+/* Values */
+
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
-fn invalid_value_non_static() {
+fn invalid_value_non_static_variable() {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,
@@ -262,11 +266,11 @@ fn invalid_value_non_static() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts({
-        labelColor: labelColor,
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            labelColor: labelColor,
+          });
+        "#,
     r#""#,
   )
 }
@@ -288,11 +292,11 @@ fn invalid_value_non_static_function_call() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts({
-        labelColor: labelColor(),
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            labelColor: labelColor(),
+          });
+        "#,
     r#""#,
   )
 }
@@ -311,11 +315,11 @@ test!(
   },
   valid_value_number,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const constants = stylex.defineConsts({
-      small: 5,
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            small: 5,
+          });
+        "#
 );
 
 test!(
@@ -332,11 +336,11 @@ test!(
   },
   valid_value_string,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const constants = stylex.defineConsts({
-      small: '5px',
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            small: '5px',
+          });
+        "#
 );
 
 #[test]
@@ -356,14 +360,22 @@ fn valid_value_keyframes() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const constants = stylex.defineConsts({
-        fadeIn: stylex.keyframes({
-          '0%': { opacity: 0 },
-          '100%': { opacity: 1}
-        }),
-      });
-    "#,
-    r#"ignore"#,
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            fadeIn: stylex.keyframes({
+              '0%': { opacity: 0 },
+              '100%': { opacity: 1}
+            }),
+          });
+        "#,
+    r#"
+          import * as stylex from '@stylexjs/stylex';
+          export const constants = stylex.defineConsts({
+            fadeIn: stylex.keyframes({
+              '0%': { opacity: 0 },
+              '100%': { opacity: 1}
+            }),
+          });
+        "#,
   )
 }

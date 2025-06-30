@@ -1,1 +1,1 @@
-mod stylex_create_theme_call;
+mod create_theme;

@@ -1,1 +1,1 @@
-pub mod stylex_define_consts_transform;
+mod stylex_define_consts_transform;

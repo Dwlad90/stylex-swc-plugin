@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod stylex_imports_tests {
   use std::path::PathBuf;
-
   use stylex_shared::{
     StyleXTransform,
     shared::structures::{
@@ -69,6 +68,9 @@ mod stylex_imports_tests {
     import_wildcard_default,
     r#"
         import * as stylex from "@stylexjs/stylex";
+        export const constants = stylex.defineConsts({
+          mediaQuery: '@media (min-width: 768px)',
+        });
         export const vars = stylex.defineVars({ bar: 'left' });
         const styles = stylex.create({
           root: {
@@ -76,7 +78,10 @@ mod stylex_imports_tests {
               from: { backgroundColor: 'yellow' },
               to: { backgroundColor: 'orange' },
             }),
-            color: 'red',
+            color: {
+              default: 'red',
+              [constants.mediaQuery]: 'blue'
+            },
             position: stylex.firstThatWorks('sticky', 'fixed')
           }
         });
@@ -101,6 +106,9 @@ mod stylex_imports_tests {
     import_wildcard_non_stylex,
     r#"
         import * as foo from "@stylexjs/stylex";
+        export const constants = foo.defineConsts({
+          mediaQuery: '@media (min-width: 768px)',
+        });
         export const vars = foo.defineVars({ bar: 'left' });
         const styles = foo.create({
           root: {
@@ -108,7 +116,10 @@ mod stylex_imports_tests {
               from: { backgroundColor: 'yellow' },
               to: { backgroundColor: 'orange' },
             }),
-            color: 'red',
+            color: {
+              default: 'red',
+              [constants.mediaQuery]: 'blue'
+            },
             position: foo.firstThatWorks('sticky', 'fixed')
           }
         });
@@ -132,7 +143,10 @@ mod stylex_imports_tests {
     ),
     import_named,
     r#"
-        import { create, createTheme, defineVars, firstThatWorks, keyframes, props } from "@stylexjs/stylex";
+        import { create, createTheme, defineConsts, defineVars, firstThatWorks, keyframes, props } from "@stylexjs/stylex";
+        export const constants = defineConsts({
+          mediaQuery: '@media (min-width: 768px)',
+        });
         export const vars = defineVars({ bar: 'left' });
         const styles = create({
           root: {
@@ -140,7 +154,10 @@ mod stylex_imports_tests {
               from: { backgroundColor: 'yellow' },
               to: { backgroundColor: 'orange' },
             }),
-            color: 'red',
+            color: {
+              default: 'red',
+              [constants.mediaQuery]: 'blue'
+            },
             position: firstThatWorks('sticky', 'fixed')
           }
         });
@@ -164,7 +181,10 @@ mod stylex_imports_tests {
     ),
     import_named_alias,
     r#"
-        import { create as _create, createTheme as _createTheme, defineVars as _defineVars, firstThatWorks as _firstThatWorks, keyframes as _keyframes, props as _props } from "@stylexjs/stylex";
+        import { create as _create, createTheme as _createTheme, defineConsts as _defineConsts, defineVars as _defineVars, firstThatWorks as _firstThatWorks, keyframes as _keyframes, props as _props } from "@stylexjs/stylex";
+        export const constants = _defineConsts({
+          mediaQuery: '@media (min-width: 768px)',
+        });
         export const vars = _defineVars({ bar: 'left' });
         const styles = _create({
           root: {
@@ -172,7 +192,10 @@ mod stylex_imports_tests {
               from: { backgroundColor: 'yellow' },
               to: { backgroundColor: 'orange' },
             }),
-            color: 'red',
+            color: {
+              default: 'red',
+              [constants.mediaQuery]: 'blue'
+            },
             position: _firstThatWorks('sticky', 'fixed')
           }
         });
@@ -192,7 +215,6 @@ mod stylex_imports_tests {
         cwd: Some(PathBuf::from("/stylex/packages/")),
         filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
       },
-      // None
       Some(&mut StyleXOptionsParams {
         import_sources: Some(vec![ImportSources::Regular("foo-bar".to_string())]),
         unstable_module_resolution: Some(ModuleResolution {
@@ -206,6 +228,9 @@ mod stylex_imports_tests {
     import_sources_string,
     r#"
         import * as stylex from "foo-bar";
+        export const constants = stylex.defineConsts({
+          mediaQuery: '@media (min-width: 768px)',
+        });
         export const vars = stylex.defineVars({ bar: 'left' });
         const styles = stylex.create({
           root: {
@@ -213,7 +238,10 @@ mod stylex_imports_tests {
               from: { backgroundColor: 'yellow' },
               to: { backgroundColor: 'orange' },
             }),
-            color: 'red',
+            color: {
+              default: 'red',
+              [constants.mediaQuery]: 'blue'
+            },
             position: stylex.firstThatWorks('sticky', 'fixed')
           }
         });
@@ -249,6 +277,9 @@ mod stylex_imports_tests {
     import_sources_object,
     r#"
         import { css, html } from "react-strict-dom";
+        export const constants = css.defineConsts({
+          mediaQuery: '@media (min-width: 768px)',
+        });
         export const vars = css.defineVars({ bar: 'left' });
         const styles = css.create({
           root: {
@@ -256,7 +287,10 @@ mod stylex_imports_tests {
               from: { backgroundColor: 'yellow' },
               to: { backgroundColor: 'orange' },
             }),
-            color: 'red',
+            color: {
+              default: 'red',
+              [constants.mediaQuery]: 'blue'
+            },
             position: css.firstThatWorks('sticky', 'fixed')
           }
         });
@@ -281,6 +315,9 @@ mod stylex_imports_tests {
     meta_only_import_default,
     r#"
         import stylex from "stylex";
+        export const constants = stylex.defineConsts({
+          mediaQuery: '@media (min-width: 768px)',
+        });
         export const vars = stylex.defineVars({ bar: 'left' });
         const styles = stylex.create({
           root: {
@@ -288,7 +325,10 @@ mod stylex_imports_tests {
               from: { backgroundColor: 'yellow' },
               to: { backgroundColor: 'orange' },
             }),
-            color: 'red',
+            color: {
+              default: 'red',
+              [constants.mediaQuery]: 'blue'
+            },
             position: stylex.firstThatWorks('sticky', 'fixed')
           }
         });

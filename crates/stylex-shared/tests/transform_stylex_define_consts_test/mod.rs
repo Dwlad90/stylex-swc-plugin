@@ -1,1 +1,1 @@
-mod stylex_define_consts;
+pub mod define_consts;

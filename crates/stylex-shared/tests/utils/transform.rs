@@ -119,12 +119,10 @@ impl VisitMut for RegeneratorHandler {
 
 pub(crate) fn stringify_js<F, P>(input: &str, syntax: Syntax, tr: F) -> String
 where
-  F: FnOnce(&mut Tester) -> P,
+  F: for<'a> FnOnce(&mut Tester<'a>) -> P,
   P: Pass,
 {
   Tester::run(|tester| {
-    // let tr = make_tr(tr, tester);
-
     let tr = (tr(tester), visit_mut_pass(RegeneratorHandler));
     let actual = tester.apply_transform(tr, "input.js", syntax, Option::None, input)?;
 

@@ -8,8 +8,6 @@ use swc_core::ecma::{
   transforms::testing::{test, test_transform},
 };
 
-// Style declarations tests corresponding to JavaScript describe('style declarations')
-
 #[test]
 #[should_panic(expected = "Referenced constant is not defined.")]
 fn invalid_property_non_static_value() {
@@ -27,18 +25,16 @@ fn invalid_property_non_static_value() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          [backgroundColor]: 'red',
-        }
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              [backgroundColor]: 'red',
+            }
+          });
+        "#,
     r#""#,
   )
 }
-
-// Values tests
 
 #[test]
 #[should_panic(expected = "A style value can only contain an array, string or number.")]
@@ -57,13 +53,13 @@ fn invalid_value_boolean() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        default: {
-          color: true,
-        },
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            default: {
+              color: true,
+            },
+          });
+        "#,
     r#""#,
   )
 }
@@ -85,13 +81,13 @@ fn invalid_value_non_static_variable() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          backgroundColor: backgroundColor,
-        }
-      });
-    "#,
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                backgroundColor: backgroundColor,
+              }
+            });
+          "#,
     r#""#,
   )
 }
@@ -113,13 +109,102 @@ fn invalid_value_non_static_function_call() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          backgroundColor: generateBg(),
-        }
-      });
-    "#,
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                backgroundColor: generateBg(),
+              }
+            });
+          "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(expected = "Could not resolve the path to the imported file.")]
+fn invalid_value_non_static_import_named() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+            import * as stylex from '@stylexjs/stylex';
+            import {generateBg} from './other-file';
+            const styles = stylex.create({
+              root: {
+                backgroundColor: generateBg(),
+              }
+            });
+          "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(
+  expected = "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts extension and follows the\nrules for defining variables"
+)]
+fn invalid_value_non_static_import_default() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+            import * as stylex from '@stylexjs/stylex';
+            import generateBg from './other-file';
+            const styles = stylex.create({
+              root: {
+                backgroundColor: generateBg(),
+              }
+            });
+          "#,
+    r#""#,
+  )
+}
+
+#[ignore]
+#[test]
+#[should_panic(expected = "A style value can only contain an array, string or number.")]
+fn invalid_value_empty_object() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              color: {},
+            },
+          });
+        "#,
     r#""#,
   )
 }
@@ -141,18 +226,16 @@ fn invalid_value_array_of_objects() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          transitionDuration: [[], {}],
-        },
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              transitionDuration: [[], {}],
+            },
+          });
+        "#,
     r#""#,
   )
 }
-
-// Valid values tests
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -168,13 +251,13 @@ test!(
   },
   valid_value_number,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          padding: 5,
-        }
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              padding: 5,
+            }
+          });
+        "#
 );
 
 test!(
@@ -191,13 +274,13 @@ test!(
   },
   valid_value_string,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          backgroundColor: 'red',
-        }
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              backgroundColor: 'red',
+            }
+          });
+        "#
 );
 
 test!(
@@ -214,13 +297,13 @@ test!(
   },
   valid_value_array_of_numbers,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          transitionDuration: [500],
-        },
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              transitionDuration: [500],
+            },
+          });
+        "#
 );
 
 test!(
@@ -237,13 +320,13 @@ test!(
   },
   valid_value_array_of_strings,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          transitionDuration: ['0.5s'],
-        },
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              transitionDuration: ['0.5s'],
+            },
+          });
+        "#
 );
 
 test!(
@@ -260,14 +343,14 @@ test!(
   },
   valid_value_single_expr_function_call,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const generateBg = () => 'red';
-      export const styles = stylex.create({
-        root: {
-          backgroundColor: generateBg(),
-        }
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const generateBg = () => 'red';
+          export const styles = stylex.create({
+            root: {
+              backgroundColor: generateBg(),
+            }
+          });
+        "#
 );
 
 test!(
@@ -284,16 +367,16 @@ test!(
   },
   valid_value_single_expr_function_call_in_object,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const fns = {
-        generateBg: () => 'red',
-      };
-      export const styles = stylex.create({
-        root: {
-          backgroundColor: fns.generateBg(),
-        }
-      });
-    "#
+            import * as stylex from '@stylexjs/stylex';
+            const fns = {
+              generateBg: () => 'red',
+            };
+            export const styles = stylex.create({
+              root: {
+                backgroundColor: fns.generateBg(),
+              }
+            });
+          "#
 );
 
 test!(
@@ -310,14 +393,14 @@ test!(
   },
   valid_value_local_variable,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const bg = '#eee';
-      const styles = stylex.create({
-        root: {
-          backgroundColor: bg,
-        }
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const bg = '#eee';
+          const styles = stylex.create({
+            root: {
+              backgroundColor: bg,
+            }
+          });
+        "#
 );
 
 test!(
@@ -334,14 +417,14 @@ test!(
   },
   valid_value_pure_complex_expression,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const borderRadius = 2;
-      const styles = stylex.create({
-        root: {
-          borderRadius: borderRadius * 2,
-        }
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const borderRadius = 2;
+          const styles = stylex.create({
+            root: {
+              borderRadius: borderRadius * 2,
+            }
+          });
+        "#
 );
 
 test!(
@@ -358,17 +441,46 @@ test!(
   },
   valid_value_template_literal_expressions,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const borderSize = 2;
-      const styles = stylex.create({
-        root: {
-          borderRadius: `${borderSize * 2}px`,
-        }
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const borderSize = 2;
+          const styles = stylex.create({
+            root: {
+              borderRadius: `${borderSize * 2}px`,
+            }
+          });
+        "#
 );
 
-// Object values tests
+#[ignore]
+#[test]
+#[should_panic(expected = "The pseudo selector or at-rule '::before' is not supported")]
+fn invalid_object_value_contains_disallowed_key() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                'color': {
+                  '::before': 'blue'
+                },
+              },
+            });
+          "#,
+    r#""#,
+  )
+}
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -384,15 +496,15 @@ test!(
   },
   valid_object_value_key_is_default,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          color: {
-            default: 'red'
-          }
-        },
-      });
-    "#
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                color: {
+                  default: 'red'
+                }
+              },
+            });
+          "#
 );
 
 test!(
@@ -409,15 +521,15 @@ test!(
   },
   valid_object_value_key_starts_with_colon,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          color: {
-            ':hover': 'green'
-          }
-        },
-      });
-    "#
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                color: {
+                  ':hover': 'green'
+                }
+              },
+            });
+          "#
 );
 
 test!(
@@ -434,16 +546,16 @@ test!(
   },
   valid_object_value_multiple_valid_keys,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          color: {
-            default: 'red',
-            ':hover': 'green'
-          }
-        },
-      });
-    "#
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                color: {
+                  default: 'red',
+                  ':hover': 'green'
+                }
+              },
+            });
+          "#
 );
 
 test!(
@@ -460,18 +572,16 @@ test!(
   },
   valid_object_value_nested_pseudo_classes,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          ':hover': {
-            ':active': 'red'
-          },
-        },
-      });
-    "#
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                ':hover': {
+                  ':active': 'red'
+                },
+              },
+            });
+          "#
 );
-
-// CSS variable tests
 
 #[test]
 #[should_panic(expected = "Rule contains an unclosed function, css rule: * { color: var(--foo }")]
@@ -483,28 +593,56 @@ fn invalid_css_variable_unclosed_function() {
     }),
     Option::None,
     |tr| {
-      let mut config = StyleXOptionsParams::default();
-
-      let mut defined_stylex_css_variables = FxHashMap::default();
-
-      defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
-
-      config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-
+      let mut options = StyleXOptionsParams::default();
+      let mut defined_vars = FxHashMap::default();
+      defined_vars.insert("foo".to_string(), "1".to_string());
+      options.defined_stylex_css_variables = Some(defined_vars);
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        Some(&mut config),
+        Some(&mut options),
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          color: 'var(--foo'
-        }
-      });
-    "#,
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                color: 'var(--foo'
+              }
+            });
+          "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic]
+fn invalid_css_variable_unprefixed_custom_property() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      let mut options = StyleXOptionsParams::default();
+      let mut defined_vars = FxHashMap::default();
+      defined_vars.insert("foo".to_string(), "1".to_string());
+      options.defined_stylex_css_variables = Some(defined_vars);
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Some(&mut options),
+      )
+    },
+    r#"
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                color: 'var(foo'
+              }
+            });
+          "#,
     r#""#,
   )
 }
@@ -515,30 +653,27 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    let mut defined_stylex_css_variables = FxHashMap::default();
-
-    defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
-
-    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-
+    let mut options = StyleXOptionsParams::default();
+    let mut defined_vars = FxHashMap::default();
+    defined_vars.insert("foo".to_string(), "1".to_string());
+    defined_vars.insert("bar".to_string(), "1".to_string());
+    options.defined_stylex_css_variables = Some(defined_vars);
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      Some(&mut config),
+      Some(&mut options),
     )
   },
   valid_css_variable_defined_custom_properties,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          backgroundColor: 'var(--foo)',
-          color: 'var(--bar)'
-        }
-      });
-    "#
+            import * as stylex from '@stylexjs/stylex';
+            const styles = stylex.create({
+              root: {
+                backgroundColor: 'var(--foo)',
+                color: 'var(--bar)'
+              }
+            });
+          "#
 );
 
 test!(
@@ -553,75 +688,15 @@ test!(
       None,
     )
   },
-  valid_css_variable_undefined_custom_properties_v1,
+  valid_css_variable_undefined_custom_properties,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          color: 'var(--bar)'
-        }
-      });
-    "#
-);
-
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    let defined_stylex_css_variables = FxHashMap::default();
-
-    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
-  valid_css_variable_undefined_custom_properties_v2,
-  r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          color: 'var(--bar)'
-        }
-      });
-    "#
-);
-
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams::default();
-
-    let mut defined_stylex_css_variables = FxHashMap::default();
-
-    defined_stylex_css_variables.insert("foo".to_string(), "1".to_string());
-
-    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
-  valid_css_variable_undefined_custom_properties_v3,
-  r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          color: 'var(--bar)'
-        }
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              color: 'var(--bar)'
+            }
+          });
+        "#
 );
 
 test!(
@@ -638,11 +713,11 @@ test!(
   },
   legacy_pseudo_classes_must_start_with_colon_character,
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          ':hover': {},
-        },
-      });
-    "#
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.create({
+            root: {
+              ':hover': {},
+            },
+          });
+        "#
 );

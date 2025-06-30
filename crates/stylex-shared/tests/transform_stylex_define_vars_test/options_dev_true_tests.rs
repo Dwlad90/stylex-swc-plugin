@@ -22,10 +22,12 @@ test!(
     tr.comments.clone(),
     PluginPass {
       cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
       dev: Some(true),
       ..StyleXOptionsParams::default()
     })

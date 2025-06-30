@@ -1,4 +1,10 @@
-use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use stylex_shared::{
+  StyleXTransform,
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
+  },
+};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::{test, test_transform},
@@ -17,7 +23,10 @@ fn must_be_bound_to_a_variable() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -41,7 +50,10 @@ fn it_must_have_two_arguments_no_args() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -65,7 +77,10 @@ fn it_must_have_two_arguments_one_args() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -89,7 +104,10 @@ fn it_must_have_two_arguments_fn_args() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -113,7 +131,10 @@ fn it_must_have_two_arguments_empty_object_args() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -130,7 +151,10 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      None,
+      Some(&mut StyleXOptionsParams {
+        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+        ..StyleXOptionsParams::default()
+      }),
     )
   },
   it_must_have_two_arguments_valid,
@@ -156,7 +180,10 @@ fn variable_keys_must_be_a_static_value() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -176,7 +203,10 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      None,
+      Some(&mut StyleXOptionsParams {
+        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+        ..StyleXOptionsParams::default()
+      }),
     )
   },
   values_must_be_static_number_or_string_in_stylex_create_theme_v1,
@@ -195,7 +225,10 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      None,
+      Some(&mut StyleXOptionsParams {
+        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+        ..StyleXOptionsParams::default()
+      }),
     )
   },
   values_must_be_static_number_or_string_in_stylex_create_theme_v2,
@@ -221,7 +254,10 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -248,7 +284,10 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -275,7 +314,10 @@ fn second_arg_cant_be_imported_variable_in_stylex_create_theme_fn() {
       StyleXTransform::new_test_force_runtime_injection_with_pass(
         tr.comments.clone(),
         PluginPass::default(),
-        None,
+        Some(&mut StyleXOptionsParams {
+          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+          ..StyleXOptionsParams::default()
+        }),
       )
     },
     r#"
@@ -297,7 +339,10 @@ test!(
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
       PluginPass::default(),
-      None,
+      Some(&mut StyleXOptionsParams {
+        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
+        ..StyleXOptionsParams::default()
+      }),
     )
   },
   second_arg_can_be_local_variable_in_stylex_create_theme_fn,

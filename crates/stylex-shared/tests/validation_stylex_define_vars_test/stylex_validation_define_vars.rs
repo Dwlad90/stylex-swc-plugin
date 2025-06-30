@@ -4,15 +4,11 @@ use swc_core::ecma::{
   transforms::testing::{test, test_transform},
 };
 
-// stylex.defineVars() validation tests corresponding to JavaScript describe('[validation] stylex.defineVars()')
-
-// Invalid export: not bound (combines both scenarios like in JavaScript)
-
 #[test]
 #[should_panic(
   expected = "The return value of stylex.defineVars() must be bound to a named export."
 )]
-fn invalid_export_not_bound_const() {
+fn invalid_export_not_bound() {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,
@@ -27,16 +23,16 @@ fn invalid_export_not_bound_const() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.defineVars({});
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          const styles = stylex.defineVars({});
+        "#,
     r#""#,
   )
 }
 
 #[test]
 #[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
-fn invalid_export_not_bound_unbound_call() {
+fn invalid_export_not_bound_unbound() {
   test_transform(
     Syntax::Typescript(TsSyntax {
       tsx: true,
@@ -51,14 +47,12 @@ fn invalid_export_not_bound_unbound_call() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      stylex.defineVars({});
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          stylex.defineVars({});
+        "#,
     r#""#,
   )
 }
-
-// Invalid argument cases
 
 #[test]
 #[should_panic(expected = "stylex() should have 1 argument.")]
@@ -77,9 +71,9 @@ fn invalid_argument_none() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars();
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars();
+        "#,
     r#""#,
   )
 }
@@ -101,9 +95,9 @@ fn invalid_argument_too_many() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars({}, {});
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({}, {});
+        "#,
     r#""#,
   )
 }
@@ -125,9 +119,9 @@ fn invalid_argument_number() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars(1);
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars(1);
+        "#,
     r#""#,
   )
 }
@@ -149,9 +143,9 @@ fn invalid_argument_string() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars('1');
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars('1');
+        "#,
     r#""#,
   )
 }
@@ -173,14 +167,12 @@ fn invalid_argument_non_static() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars(genStyles());
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars(genStyles());
+        "#,
     r#""#,
   )
 }
-
-// Valid argument case
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -196,12 +188,12 @@ test!(
   },
   valid_argument_object,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const vars = stylex.defineVars({});
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({});
+        "#
 );
 
-// Properties tests
+/* Properties */
 
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
@@ -220,16 +212,16 @@ fn invalid_key_non_static() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars({
-        [labelColor]: 'red',
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({
+            [labelColor]: 'red',
+          });
+        "#,
     r#""#,
   )
 }
 
-// Values tests
+/* Values */
 
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
@@ -248,11 +240,11 @@ fn invalid_value_non_static_variable() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars({
-        labelColor: labelColor,
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({
+            labelColor: labelColor,
+          });
+        "#,
     r#""#,
   )
 }
@@ -274,11 +266,11 @@ fn invalid_value_non_static_function_call() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      export const vars = stylex.defineVars({
-        labelColor: labelColor(),
-      });
-    "#,
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({
+            labelColor: labelColor(),
+          });
+        "#,
     r#""#,
   )
 }
@@ -297,11 +289,11 @@ test!(
   },
   valid_value_number,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const vars = stylex.defineVars({
-      cornerRadius: 5,
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({
+            cornerRadius: 5,
+          });
+        "#
 );
 
 test!(
@@ -318,11 +310,11 @@ test!(
   },
   valid_value_string,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const vars = stylex.defineVars({
-      labelColor: 'red',
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({
+            labelColor: 'red',
+          });
+        "#
 );
 
 test!(
@@ -339,12 +331,12 @@ test!(
   },
   valid_value_keyframes,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const vars = stylex.defineVars({
-      fadeIn: stylex.keyframes({
-        '0%': { opacity: 0 },
-        '100%': { opacity: 1}
-      }),
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const vars = stylex.defineVars({
+            fadeIn: stylex.keyframes({
+              '0%': { opacity: 0 },
+              '100%': { opacity: 1}
+            }),
+          });
+        "#
 );

@@ -2,12 +2,12 @@ use stylex_shared::{
   StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
-    stylex_options::{StyleXOptions, StyleXOptionsParams},
-  },
+    stylex_options::{StyleXOptionsParams, ModuleResolution}
+  }
 };
-use swc_core::{
-  common::FileName,
-  ecma::{parser::Syntax, parser::TsSyntax, transforms::testing::test},
+use swc_core::ecma::{
+  parser::{Syntax, TsSyntax},
+  transforms::testing::test,
 };
 
 test!(
@@ -15,17 +15,21 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   style_function,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (color) => ({
-        backgroundColor: 'red',
-        color,
-      })
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const styles = stylex.create({
+            root: (color) => ({
+              backgroundColor: 'red',
+              color,
+            })
+          });
+        "#
 );
 
 test!(
@@ -33,19 +37,23 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   style_function_and_object,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      one: (color) => ({
-        color: color,
-      }),
-      two: {
-        color: 'black',
-      },
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const styles = stylex.create({
+            one: (color) => ({
+              color: color,
+            }),
+            two: {
+              color: 'black',
+            },
+          });
+        "#
 );
 
 test!(
@@ -53,17 +61,21 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   style_function_with_custom_properties,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (bgColor, otherColor) => ({
-        '--background-color': bgColor,
-        '--otherColor': otherColor,
-      }),
-    });
-  "#
+          import * as stylex from '@stylexjs/stylex';
+          export const styles = stylex.create({
+            root: (bgColor, otherColor) => ({
+              '--background-color': bgColor,
+              '--otherColor': otherColor,
+            }),
+          });
+        "#
 );
 
 test!(
@@ -71,16 +83,20 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   set_number_unit,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (width) => ({
-        width,
-      })
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (width) => ({
+                width,
+              })
+            });
+          "#
 );
 
 test!(
@@ -88,28 +104,35 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("MyComponent.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      unstable_module_resolution: Some(ModuleResolution {
+        r#type: "haste".to_string(),
+        root_dir: None,
+        theme_file_extension: None,
+      }),
       ..StyleXOptionsParams::default()
-    })
-  ),
+    };
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass {
+        filename: swc_core::common::FileName::Real("MyComponent.js".into()),
+        ..PluginPass::default()
+      },
+      Some(&mut config)
+    )
+  },
   set_custom_property,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    import {vars} from 'vars.stylex.js';
+            import * as stylex from '@stylexjs/stylex';
+            import {vars} from 'vars.stylex.js';
 
-    export const styles = stylex.create({
-      root: (width) => ({
-        [vars.width]: width
-      })
-    });
-  "#
+            export const styles = stylex.create({
+              root: (width) => ({
+                [vars.width]: width
+              })
+            });
+          "#
 );
 
 test!(
@@ -117,21 +140,25 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   valid_pseudo_class,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (color) => ({
-        backgroundColor: {
-          ':hover': color,
-        },
-        color: {
-          ':hover': color,
-        }
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (color) => ({
+                backgroundColor: {
+                  ':hover': color,
+                },
+                color: {
+                  ':hover': color,
+                }
+              }),
+            });
+          "#
 );
 
 test!(
@@ -139,21 +166,25 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   pseudo_class_generated_order,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (hover, active, focus) => ({
-        color: {
-          ':hover': hover,
-          ':active': active,
-          ':focus': focus,
-          ':nth-child(2n)': 'purple',
-        },
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (hover, active, focus) => ({
+                color: {
+                  ':hover': hover,
+                  ':active': active,
+                  ':focus': focus,
+                  ':nth-child(2n)': 'purple',
+                },
+              }),
+            });
+          "#
 );
 
 test!(
@@ -161,21 +192,25 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-  before_and_after_pseudo_elements,
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  before_and_after,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      foo: (a, b) => ({
-        '::before': {
-          color: a
-        },
-        '::after': {
-          color: b
-        },
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              foo: (a, b) => ({
+                '::before': {
+                  color: a
+                },
+                '::after': {
+                  color: b
+                },
+              }),
+            });
+          "#
 );
 
 test!(
@@ -183,18 +218,22 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-  placeholder_pseudo_element,
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  placeholder,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      foo: (color) => ({
-        '::placeholder': {
-          color,
-        },
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              foo: (color) => ({
+                '::placeholder': {
+                  color,
+                },
+              }),
+            });
+          "#
 );
 
 test!(
@@ -202,18 +241,22 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-  thumb_pseudo_element,
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  thumb,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      foo: (width) => ({
-        '::thumb': {
-          width,
-        },
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              foo: (width) => ({
+                '::thumb': {
+                  width,
+                },
+              }),
+            });
+          "#
 );
 
 test!(
@@ -221,21 +264,25 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-  before_pseudo_element_with_pseudo_classes,
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  before_containing_pseudo_classes,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      foo: (color) => ({
-        '::before': {
-          color: {
-            default: 'red',
-            ':hover': color,
-          }
-        },
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              foo: (color) => ({
+                '::before': {
+                  color: {
+                    default: 'red',
+                    ':hover': color,
+                  }
+                },
+              }),
+            });
+          "#
 );
 
 test!(
@@ -243,20 +290,24 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   media_queries,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (a, b, c) => ({
-        width: {
-          default: 'color-mix(' + color + ', blue)',
-          '@media (min-width: 1000px)': b,
-          '@media (min-width: 2000px)': c,
-        }
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (a, b, c) => ({
+                width: {
+                  default: 'color-mix(' + color + ', blue)',
+                  '@media (min-width: 1000px)': b,
+                  '@media (min-width: 2000px)': c,
+                }
+              }),
+            });
+          "#
 );
 
 test!(
@@ -264,20 +315,24 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   supports_queries,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (a, b, c) => ({
-        color: {
-          default: a,
-          '@supports (hover: hover)': b,
-          '@supports not (hover: hover)': c,
-        }
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (a, b, c) => ({
+                color: {
+                  default: a,
+                  '@supports (hover: hover)': b,
+                  '@supports not (hover: hover)': c,
+                }
+              }),
+            });
+          "#
 );
 
 test!(
@@ -285,20 +340,24 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   media_query_with_pseudo_classes,
   r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({
-      root: (a, b, c) => ({
-        fontSize: {
-          default: a,
-          '@media (min-width: 800px)': {
-            default: b,
-            ':hover': c
-          }
-        }
-      }),
-    });
-  "#
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (a, b, c) => ({
+                fontSize: {
+                  default: a,
+                  '@media (min-width: 800px)': {
+                    default: b,
+                    ':hover': c
+                  }
+                }
+              }),
+            });
+          "#
 );

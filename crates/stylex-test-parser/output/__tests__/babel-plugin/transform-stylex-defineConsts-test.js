@@ -28,9 +28,27 @@ function transform(source, opts = {}) {
 }
 describe('@stylexjs/babel-plugin', ()=>{
     describe('[transform] stylex.defineConsts()', ()=>{
-        test('constants object', ()=>{
+        test('constants are unique', ()=>{
             const { code, metadata } = transform(`
         import stylex from 'stylex';
+        export const breakpoints = stylex.defineConsts({ padding: '10px' });
+      `);
+            const { code: codeDuplicate, metadata: metadataDuplicate } = transform(`
+        import stylex from 'stylex';
+        export const breakpoints = stylex.defineConsts({ padding: '10px' });
+      `);
+            expect(code).toEqual(codeDuplicate);
+            expect(metadata).toEqual(metadataDuplicate);
+            const { code: codeOther, metadata: metadataOther } = transform(`
+        import stylex from 'stylex';
+        export const breakpoints = stylex.defineConsts({ margin: '10px' });
+      `);
+            expect(code).not.toEqual(codeOther);
+            expect(metadata).not.toEqual(metadataOther);
+        });
+        test('constants object', ()=>{
+            const { code, metadata } = transform(`
+        import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
           sm: '(min-width: 768px)',
           md: '(min-width: 1024px)',
@@ -38,7 +56,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         });
       `);
             expect(code).toMatchInlineSnapshot(`
-        "import stylex from 'stylex';
+        "import * as stylex from '@stylexjs/stylex';
         export const breakpoints = {
           sm: "(min-width: 768px)",
           md: "(min-width: 1024px)",
@@ -89,7 +107,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 }
             };
             const { code, metadata } = transform(`
-        import stylex from 'stylex';
+        import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
           sm: '(min-width: 768px)',
           md: '(min-width: 1024px)',
@@ -97,7 +115,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         });
       `, options);
             expect(code).toMatchInlineSnapshot(`
-        "import stylex from 'stylex';
+        "import * as stylex from '@stylexjs/stylex';
         export const breakpoints = {
           sm: "(min-width: 768px)",
           md: "(min-width: 1024px)",
@@ -143,13 +161,13 @@ describe('@stylexjs/babel-plugin', ()=>{
         });
         test('constant names: special characters', ()=>{
             const { code, metadata } = transform(`
-        import stylex from 'stylex';
+        import * as stylex from '@stylexjs/stylex';
         export const sizes = stylex.defineConsts({
           'font-size*large': '18px',
         });
       `);
             expect(code).toMatchInlineSnapshot(`
-        "import stylex from 'stylex';
+        "import * as stylex from '@stylexjs/stylex';
         export const sizes = {
           "font-size*large": "18px",
           __constName__: "TestTheme.stylex.js//sizes",
@@ -173,13 +191,13 @@ describe('@stylexjs/babel-plugin', ()=>{
         });
         test('constant names: number', ()=>{
             const { code, metadata } = transform(`
-        import stylex from 'stylex';
+        import * as stylex from '@stylexjs/stylex';
         export const levels = stylex.defineConsts({
           1: 'one'
         });
       `);
             expect(code).toMatchInlineSnapshot(`
-        "import stylex from 'stylex';
+        "import * as stylex from '@stylexjs/stylex';
         export const levels = {
           "1": "one",
           __constName__: "TestTheme.stylex.js//levels",

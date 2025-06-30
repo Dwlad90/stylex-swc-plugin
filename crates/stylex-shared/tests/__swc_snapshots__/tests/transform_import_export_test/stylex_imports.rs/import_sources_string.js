@@ -1,4 +1,9 @@
 import * as stylex from "foo-bar";
+export const constants = {
+    mediaQuery: "@media (min-width: 768px)",
+    __constName__: "vars.stylex.js//constants",
+    __constHash__: "05fd080c"
+};
 export const vars = {
     bar: "var(--x1hi1hmf)",
     __themeName__: "xop34xu"
@@ -6,7 +11,7 @@ export const vars = {
 const styles = {
     root: {
         kKVMdj: "x1qar0u3",
-        kMwMTN: "x1e2nbdu",
+        kMwMTN: "x1e2nbdu x14693no",
         kVAEAm: "x15oojuh",
         $$css: true
     }

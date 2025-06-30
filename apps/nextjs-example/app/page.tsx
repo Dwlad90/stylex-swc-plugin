@@ -89,7 +89,7 @@ const style = stylex.create({
     overflow: {
       default: 'auto',
       [MEDIA_MOBILE]: 'hidden',
-    }
+    },
   },
   hero: {
     flexGrow: 1,

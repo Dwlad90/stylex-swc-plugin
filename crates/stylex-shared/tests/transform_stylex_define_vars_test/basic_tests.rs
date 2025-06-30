@@ -79,7 +79,7 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, Some(FileName::Real("/stylex/packages/src/css/NestedTheme.stylex.js".into()))),
+    PluginPass::new(None, Some(FileName::Real("/stylex/packages/src/css/vars.stylex.js".into()))),
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -92,6 +92,36 @@ test!(
     import * as stylex from '@stylexjs/stylex';
     export const vars = stylex.defineVars({
       color: 'red'
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::new(None, None),
+    Some(&mut StyleXOptionsParams {
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  tokens_object_with_nested_at_rules,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      color: {
+        default: 'blue',
+        '@media (prefers-color-scheme: dark)': {
+          default: 'lightblue',
+          '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.3 -0.4)',
+        }
+      },
     });
   "#
 );
@@ -283,6 +313,33 @@ test!(
     });
     export const otherVars = stylex.defineVars({
       otherColor: 'orange'
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::new(None, None),
+    Some(&mut StyleXOptionsParams {
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  multiple_variables_objects_dependency,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      color: 'red'
+    });
+    export const otherVars = stylex.defineVars({
+      otherColor: vars.color
     });
   "#
 );

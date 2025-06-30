@@ -1,4 +1,4 @@
-mod dynamic_styles;
-mod legacy_deprecated;
-mod options_debug_true;
 mod static_styles;
+mod dynamic_styles;
+mod debug_options;
+mod legacy_deprecated;

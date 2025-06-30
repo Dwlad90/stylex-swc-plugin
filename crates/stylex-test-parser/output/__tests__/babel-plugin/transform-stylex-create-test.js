@@ -191,6 +191,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             root: {
               '--background-color': 'red',
               '--otherColor': 'green',
+              '--foo': 10
             }
           });
         `);
@@ -200,6 +201,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             root: {
               "--background-color": "xgau0yw",
               "--otherColor": "x1p9b6ba",
+              "--foo": "x40g909",
               $$css: true
             }
           };"
@@ -219,6 +221,14 @@ describe('@stylexjs/babel-plugin', ()=>{
                 "x1p9b6ba",
                 {
                   "ltr": ".x1p9b6ba{--otherColor:green}",
+                  "rtl": null,
+                },
+                1,
+              ],
+              [
+                "x40g909",
+                {
+                  "ltr": ".x40g909{--foo:10}",
                   "rtl": null,
                 },
                 1,
@@ -807,6 +817,187 @@ describe('@stylexjs/babel-plugin', ()=>{
               ],
             }
           `);
+                    const multiProperty = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              one: {
+                transitionProperty: 'opacity, insetInlineStart',
+              },
+              two: {
+                transitionProperty: 'opacity, inset-inline-start',
+              },
+            });
+          `);
+                    expect(multiProperty.code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              one: {
+                k1ekBW: "xh6nlrc",
+                $$css: true
+              },
+              two: {
+                k1ekBW: "xh6nlrc",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(multiProperty.metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "xh6nlrc",
+                  {
+                    "ltr": ".xh6nlrc{transition-property:opacity,inset-inline-start}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                });
+                test('set "willChange"', ()=>{
+                    const camelCased = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                willChange: 'insetInlineStart',
+              },
+            });
+          `);
+                    expect(camelCased.code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                k6sLGO: "x1n5prqt",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(camelCased.metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x1n5prqt",
+                  {
+                    "ltr": ".x1n5prqt{will-change:inset-inline-start}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                    const kebabCased = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                willChange: 'inset-inline-start',
+              },
+            });
+          `);
+                    expect(kebabCased.code).toEqual(camelCased.code);
+                    expect(kebabCased.metadata).toEqual(kebabCased.metadata);
+                    const customProperty = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                willChange: '--foo',
+              },
+            });
+          `);
+                    expect(customProperty.code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                k6sLGO: "x1lxaxzv",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(customProperty.metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x1lxaxzv",
+                  {
+                    "ltr": ".x1lxaxzv{will-change:--foo}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                    const multiProperty = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              one: {
+                willChange: 'opacity, insetInlineStart',
+              },
+              two: {
+                willChange: 'opacity, inset-inline-start',
+              }
+            });
+          `);
+                    expect(multiProperty.code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              one: {
+                k6sLGO: "x30a982",
+                $$css: true
+              },
+              two: {
+                k6sLGO: "x30a982",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(multiProperty.metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x30a982",
+                  {
+                    "ltr": ".x30a982{will-change:opacity,inset-inline-start}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                    const keyword = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                willChange: 'scroll-position'
+              }
+            });
+          `);
+                    expect(keyword.code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                k6sLGO: "x1q5hf6d",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(keyword.metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x1q5hf6d",
+                  {
+                    "ltr": ".x1q5hf6d{will-change:scroll-position}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
                 });
                 test('use "attr()" function', ()=>{
                     const { code, metadata } = transform(`
@@ -866,39 +1057,6 @@ describe('@stylexjs/babel-plugin', ()=>{
                   "x1ruww2u",
                   {
                     "ltr": ".x1ruww2u{position:sticky;position:fixed}",
-                    "rtl": null,
-                  },
-                  3000,
-                ],
-              ],
-            }
-          `);
-                });
-                test('use "stylex.firstThatWorks"', ()=>{
-                    const { code, metadata } = transform(`
-            import * as stylex from '@stylexjs/stylex';
-            export const styles = stylex.create({
-              root: {
-                position: stylex.firstThatWorks('sticky', 'fixed'),
-              }
-            });
-          `);
-                    expect(code).toMatchInlineSnapshot(`
-            "import * as stylex from '@stylexjs/stylex';
-            export const styles = {
-              root: {
-                kVAEAm: "x15oojuh",
-                $$css: true
-              }
-            };"
-          `);
-                    expect(metadata).toMatchInlineSnapshot(`
-            {
-              "stylex": [
-                [
-                  "x15oojuh",
-                  {
-                    "ltr": ".x15oojuh{position:fixed;position:sticky}",
                     "rtl": null,
                   },
                   3000,
@@ -974,6 +1132,144 @@ describe('@stylexjs/babel-plugin', ()=>{
           `);
                 });
             });
+            describe('function value: stylex.firstThatWorks()', ()=>{
+                test('args: value, value', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                position: stylex.firstThatWorks('sticky', 'fixed'),
+              }
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kVAEAm: "x15oojuh",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x15oojuh",
+                  {
+                    "ltr": ".x15oojuh{position:fixed;position:sticky}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                });
+                test.skip('args: value, var', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: stylex.firstThatWorks('red', 'var(--color)'),
+              }
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot();
+                    expect(metadata).toMatchInlineSnapshot();
+                });
+                test('args: var, value', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: stylex.firstThatWorks('var(--color)', 'red'),
+              }
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kMwMTN: "x8nmrrw",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x8nmrrw",
+                  {
+                    "ltr": ".x8nmrrw{color:var(--color,red)}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                });
+                test('args: var, var', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: stylex.firstThatWorks('var(--color)', 'var(--otherColor)'),
+              }
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: {
+                kMwMTN: "x1775bb3",
+                $$css: true
+              }
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x1775bb3",
+                  {
+                    "ltr": ".x1775bb3{color:var(--color,var(--otherColor))}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+              ],
+            }
+          `);
+                });
+                test.skip('args: func, var, value', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: stylex.firstThatWorks('color-mix(in srgb, currentColor 20%, transparent)', 'var(--color)', 'red'),
+              }
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot();
+                    expect(metadata).toMatchInlineSnapshot();
+                });
+                test.skip('args: func, var, value, value', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: stylex.firstThatWorks('color-mix(in srgb, currentColor 20%, transparent)', 'var(--color)', 'red', 'green'),
+              }
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot();
+                    expect(metadata).toMatchInlineSnapshot();
+                });
+            });
+            describe.skip('function value: stylex.types.*()', ()=>{});
             describe('object values: pseudo-classes', ()=>{
                 test('invalid pseudo-class', ()=>{
                     const { code, metadata } = transform(`

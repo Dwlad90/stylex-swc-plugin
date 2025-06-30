@@ -8,10 +8,6 @@ use swc_core::ecma::{
   transforms::testing::{test, test_transform},
 };
 
-// stylex.keyframes() validation tests corresponding to JavaScript describe('[validation] stylex.keyframes()')
-
-// Local variable keyframes object test
-
 #[test]
 #[should_panic(expected = "stylex.keyframes() can only accept an object.")]
 fn local_variable_keyframes_object() {
@@ -29,22 +25,20 @@ fn local_variable_keyframes_object() {
       )
     },
     r#"
-      import * as stylex from '@stylexjs/stylex';
-      const keyframes = {
-        from: {
-          color: 'red',
-        },
-        to: {
-          color: 'blue',
-        }
-      };
-      export const name = stylex.keyframes(keyframes);
-    "#,
+        import * as stylex from '@stylexjs/stylex';
+        const keyframes = {
+          from: {
+            color: 'red',
+          },
+          to: {
+            color: 'blue',
+          }
+        };
+        export const name = stylex.keyframes(keyframes);
+      "#,
     r#""#,
   )
 }
-
-// Only argument must be an object of objects tests
 
 #[test]
 #[should_panic(expected = "stylex.keyframes() can only accept an object.")]
@@ -63,9 +57,9 @@ fn only_argument_must_be_an_object_of_objects_null() {
       )
     },
     r#"
-      import stylex from 'stylex';
-      const name = stylex.keyframes(null);
-    "#,
+          import stylex from 'stylex';
+          const name = stylex.keyframes(null);
+        "#,
     r#""#,
   )
 }
@@ -87,11 +81,11 @@ fn only_argument_must_be_an_object_of_objects_false() {
       )
     },
     r#"
-      import stylex from 'stylex';
-      const name = stylex.keyframes({
-        from: false
-      });
-    "#,
+          import stylex from 'stylex';
+          const name = stylex.keyframes({
+            from: false
+          });
+        "#,
     r#""#,
   )
 }
@@ -110,16 +104,16 @@ test!(
   },
   only_argument_must_be_an_object_of_objects_valid_percentage,
   r#"
-    import stylex from 'stylex';
-    const name = stylex.keyframes({
-      '0%': {
-        opacity: 0
-      },
-      '50%': {
-        opacity: 0.5
-      },
-    });
-  "#
+          import stylex from 'stylex';
+          const name = stylex.keyframes({
+            '0%': {
+              opacity: 0
+            },
+            '50%': {
+              opacity: 0.5
+            },
+          });
+        "#
 );
 
 test!(
@@ -136,15 +130,13 @@ test!(
   },
   only_argument_must_be_an_object_of_objects_valid_from_to,
   r#"
-    import stylex from 'stylex';
-    const name = stylex.keyframes({
-      from: {},
-      to: {},
-    });
-  "#
+          import stylex from 'stylex';
+          const name = stylex.keyframes({
+            from: {},
+            to: {},
+          });
+        "#
 );
-
-// Allow defined CSS variables in keyframes
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -166,16 +158,14 @@ test!(
   },
   allow_defined_css_variables_in_keyframes,
   r#"
-    import stylex from 'stylex';
-    const styles = stylex.keyframes({
-      from: {
-        backgroundColor: 'var(--bar)',
-      },
-    });
-  "#
+            import stylex from 'stylex';
+            const styles = stylex.keyframes({
+              from: {
+                backgroundColor: 'var(--bar)',
+              },
+            });
+          "#
 );
-
-// Allow undefined CSS variables in keyframes
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -197,11 +187,11 @@ test!(
   },
   allow_undefined_css_variables_in_keyframes,
   r#"
-    import stylex from 'stylex';
-    const styles = stylex.keyframes({
-      from: {
-        backgroundColor: 'var(--foobar)',
-      },
-    });
-  "#
+            import stylex from 'stylex';
+            const styles = stylex.keyframes({
+              from: {
+                backgroundColor: 'var(--foobar)',
+              },
+            });
+          "#
 );

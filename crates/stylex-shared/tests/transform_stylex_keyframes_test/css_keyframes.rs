@@ -1,10 +1,9 @@
 use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
+  transforms::testing::test,
 };
 
-// Test: "keyframes object"
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,
@@ -29,7 +28,6 @@ test!(
   "#
 );
 
-// Test: "local variables used in keyframes object"
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,
@@ -55,7 +53,6 @@ test!(
   "#
 );
 
-// Test: "template literals used in keyframes object"
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,
@@ -86,7 +83,6 @@ test!(
   "#
 );
 
-// Test: "keyframes object used inline"
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,
@@ -115,7 +111,6 @@ test!(
   "#
 );
 
-// Test: "[legacy] keyframes object RTL polyfills"
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,

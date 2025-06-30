@@ -13,8 +13,6 @@ mod transform_stylex_keyframes_test;
 mod transform_stylex_stylex_props_test;
 mod transform_value_normalization_test;
 pub(crate) mod utils;
-mod validation_custom_properties_test;
-mod validation_declarations_test;
 mod validation_import_export_test;
 mod validation_regular_css;
 mod validation_stylex_create_test;

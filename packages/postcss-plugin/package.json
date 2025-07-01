@@ -39,7 +39,7 @@
     "postcss": "^8.5.3"
   },
   "devDependencies": {
-    "@babel/types": "^7.27.3",
+    "@babel/types": "^7.27.7",
     "@stylexswc/eslint-config": "0.8.2-dev.1",
     "@stylexswc/typescript-config": "0.8.2-dev.1",
     "@types/babel__core": "^7.20.5",

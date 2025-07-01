@@ -6,5 +6,5 @@ mod naming_conventions_with_dynamisms_inline;
 mod setting_custom_import_paths;
 mod specific_edge_case_bugs;
 mod stylex_props_call;
-mod with_conditional_styles_and_collisions;
+mod with_contextual_styles_and_collisions;
 mod with_plugin_options;

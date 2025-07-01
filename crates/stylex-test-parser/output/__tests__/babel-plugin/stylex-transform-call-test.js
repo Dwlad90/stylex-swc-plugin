@@ -592,7 +592,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "xrkmrrc x6m3b6q x6um648";"
       `);
         });
-        describe('with conditional styles and collisions', ()=>{
+        describe('with contextual styles and collisions', ()=>{
             test('stylex call with conditions', ()=>{
                 expect(transform(`
             import stylex from 'stylex';

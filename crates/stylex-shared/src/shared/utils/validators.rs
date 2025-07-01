@@ -614,11 +614,14 @@ pub(crate) fn validate_conditional_styles(
   let inner_key = key_value_to_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
 
-  assert!(
-    (inner_key.starts_with(':') || inner_key.starts_with('@') || inner_key == "default"),
-    "{}",
-    INVALID_PSEUDO_OR_AT_RULE,
-  );
+  if !(inner_key.starts_with(':')
+      || inner_key.starts_with('@')
+      // This is a placeholder for `defineConsts` values that are later inlined
+      || inner_key.starts_with("var(--")
+      || inner_key == "default")
+  {
+    panic!("{}", INVALID_PSEUDO_OR_AT_RULE);
+  }
 
   if conditions.contains(&inner_key) {
     panic!("{}", DUPLICATE_CONDITIONAL);

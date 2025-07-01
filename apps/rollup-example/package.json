@@ -16,7 +16,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.53.2",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-node-resolve": "^16.0.1",

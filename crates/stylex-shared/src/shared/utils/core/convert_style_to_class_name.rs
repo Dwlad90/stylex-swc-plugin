@@ -14,6 +14,7 @@ pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),
   pseudos: &mut [String],
   at_rules: &mut [String],
+  const_rules: &mut [String],
   state: &mut StateManager,
 ) -> (String, String, InjectableStyle) {
   let debug = state.options.debug;
@@ -30,8 +31,12 @@ pub(crate) fn convert_style_to_class_name(
   let unsorted_pseudos = &mut pseudos.to_vec();
   let sorted_pseudos = sort_pseudos(unsorted_pseudos);
 
-  let unsorted_at_rules = &mut at_rules.to_vec();
-  let sorted_at_rules = sort_at_rules(unsorted_at_rules);
+  let mut combined_at_rules = Vec::with_capacity(at_rules.len() + const_rules.len());
+
+  combined_at_rules.extend_from_slice(at_rules);
+  combined_at_rules.extend_from_slice(const_rules);
+
+  let sorted_at_rules = sort_at_rules(at_rules);
 
   let at_rule_hash_string = sorted_at_rules.join("");
   let pseudo_hash_string = sorted_pseudos.join("");
@@ -92,6 +97,7 @@ pub(crate) fn convert_style_to_class_name(
     &value,
     pseudos,
     at_rules,
+    const_rules,
   );
 
   (key.to_string(), class_name_hashed, css_rules)

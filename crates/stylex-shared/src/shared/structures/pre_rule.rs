@@ -66,6 +66,7 @@ pub(crate) struct StylesPreRule {
   value: PreRuleValue,
   pseudos: Vec<String>,
   at_rules: Vec<String>,
+  const_rules: Vec<String>,
   key_path: Vec<String>,
 }
 
@@ -93,6 +94,18 @@ impl StylesPreRule {
 
     sort_at_rules(&unsorted_at_rules)
   }
+
+  fn get_const_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
+    let mut unsorted_const_rules = key_path.clone().unwrap_or_default();
+
+    unsorted_const_rules = unsorted_const_rules
+      .iter()
+      .filter(|key| key.starts_with("var(--"))
+      .cloned()
+      .collect();
+
+    sort_at_rules(&unsorted_const_rules)
+  }
   pub(crate) fn new(property: &str, value: PreRuleValue, key_path: Option<Vec<String>>) -> Self {
     let property_str = property.to_string();
 
@@ -101,6 +114,7 @@ impl StylesPreRule {
       value,
       pseudos: StylesPreRule::get_pseudos(&key_path),
       at_rules: StylesPreRule::get_at_rules(&key_path),
+      const_rules: StylesPreRule::get_const_rules(&key_path),
       key_path: key_path.unwrap_or_default(),
     }
   }
@@ -125,6 +139,7 @@ impl PreRule for StylesPreRule {
       (self.property.as_str(), &self.value),
       &mut self.pseudos,
       &mut self.at_rules,
+      &mut self.const_rules,
       state,
     );
 

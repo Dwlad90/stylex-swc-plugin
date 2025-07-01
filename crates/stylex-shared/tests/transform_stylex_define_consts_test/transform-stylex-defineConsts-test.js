@@ -1,78 +1,95 @@
-var defaultOpts = {
-    unstable_moduleResolution: {
-        rootDir: '/stylex/packages/',
-        type: 'commonJS'
-    }
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ *
+ */
+
+'use strict';
+
+jest.autoMockOff();
+
+import path from 'path';
+import { transformSync } from '@babel/core';
+import stylexPlugin from '../src/index';
+
+const defaultOpts = {
+  unstable_moduleResolution: { rootDir: '/stylex/packages/', type: 'commonJS' },
 };
+
 function transform(source, opts = {}) {
-    const { code, metadata } = transformSync(source, {
-        filename: opts.filename || '/stylex/packages/TestTheme.stylex.js',
-        parserOpts: {
-            flow: 'all'
+  const { code, metadata } = transformSync(source, {
+    filename: opts.filename || '/stylex/packages/TestTheme.stylex.js',
+    parserOpts: {
+      flow: 'all',
+    },
+    babelrc: false,
+    plugins: [
+      [
+        stylexPlugin,
+        {
+          ...defaultOpts,
+          ...opts,
         },
-        babelrc: false,
-        plugins: [
-            [
-                stylexPlugin,
-                {
-                    ...defaultOpts,
-                    ...opts
-                }
-            ]
-        ]
-    });
-    return {
-        code,
-        metadata
-    };
+      ],
+    ],
+  });
+  return { code, metadata };
 }
+
 function transformWithInlineConsts(source, opts = {}) {
-    const { code, metadata } = transformSync(source, {
-        filename: path.join(__dirname, '__fixtures__/main.stylex.js'),
-        parserOpts: {
-            sourceType: 'module'
+  const { code, metadata } = transformSync(source, {
+    filename: path.join(__dirname, '__fixtures__/main.stylex.js'),
+    parserOpts: { sourceType: 'module' },
+    babelrc: false,
+    plugins: [
+      [
+        stylexPlugin,
+        {
+          ...opts,
+          unstable_moduleResolution: {
+            rootDir: path.join(__dirname, '__fixtures__'),
+            type: 'commonJS',
+          },
         },
-        babelrc: false,
-        plugins: [
-            [
-                stylexPlugin,
-                {
-                    ...opts,
-                    unstable_moduleResolution: {
-                        rootDir: path.join(__dirname, '__fixtures__'),
-                        type: 'commonJS'
-                    }
-                }
-            ]
-        ]
-    });
-    return {
-        code,
-        metadata
-    };
+      ],
+    ],
+  });
+
+  return { code, metadata };
 }
-describe('@stylexjs/babel-plugin', ()=>{
-    describe('[transform] stylex.defineConsts()', ()=>{
-        test('constants are unique', ()=>{
-            const { code, metadata } = transform(`
+
+describe('@stylexjs/babel-plugin', () => {
+  describe('[transform] stylex.defineConsts()', () => {
+    test('constants are unique', () => {
+      const { code, metadata } = transform(`
         import stylex from 'stylex';
         export const breakpoints = stylex.defineConsts({ padding: '10px' });
       `);
-            const { code: codeDuplicate, metadata: metadataDuplicate } = transform(`
+
+      const { code: codeDuplicate, metadata: metadataDuplicate } = transform(`
         import stylex from 'stylex';
         export const breakpoints = stylex.defineConsts({ padding: '10px' });
       `);
-            expect(code).toEqual(codeDuplicate);
-            expect(metadata).toEqual(metadataDuplicate);
-            const { code: codeOther, metadata: metadataOther } = transform(`
+
+      // Assert the generated constants are consistent for the same inputs
+      expect(code).toEqual(codeDuplicate);
+      expect(metadata).toEqual(metadataDuplicate);
+
+      const { code: codeOther, metadata: metadataOther } = transform(`
         import stylex from 'stylex';
         export const breakpoints = stylex.defineConsts({ margin: '10px' });
       `);
-            expect(code).not.toEqual(codeOther);
-            expect(metadata).not.toEqual(metadataOther);
-        });
-        test('constants object', ()=>{
-            const { code, metadata } = transform(`
+
+      // Assert the generated constants are different for different inputs
+      expect(code).not.toEqual(codeOther);
+      expect(metadata).not.toEqual(metadataOther);
+    });
+
+    test('constants object', () => {
+      const { code, metadata } = transform(`
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
           sm: '(min-width: 768px)',
@@ -80,7 +97,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           lg: '(min-width: 1280px)',
         });
       `);
-            expect(code).toMatchInlineSnapshot(`
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         export const breakpoints = {
           sm: "(min-width: 768px)",
@@ -88,7 +106,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           lg: "(min-width: 1280px)"
         };"
       `);
-            expect(metadata.stylex).toMatchInlineSnapshot(`
+
+      expect(metadata.stylex).toMatchInlineSnapshot(`
         [
           [
             "x1izlsax",
@@ -122,22 +141,26 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         ]
       `);
-        });
-        test('constants object (haste)', ()=>{
-            const options = {
-                unstable_moduleResolution: {
-                    type: 'haste'
-                }
-            };
-            const { code, metadata } = transform(`
+    });
+
+    test('constants object (haste)', () => {
+      const options = {
+        unstable_moduleResolution: { type: 'haste' },
+      };
+
+      const { code, metadata } = transform(
+        `
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
           sm: '(min-width: 768px)',
           md: '(min-width: 1024px)',
           lg: '(min-width: 1280px)',
         });
-      `, options);
-            expect(code).toMatchInlineSnapshot(`
+      `,
+        options,
+      );
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         export const breakpoints = {
           sm: "(min-width: 768px)",
@@ -145,7 +168,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           lg: "(min-width: 1280px)"
         };"
       `);
-            expect(metadata.stylex).toMatchInlineSnapshot(`
+
+      expect(metadata.stylex).toMatchInlineSnapshot(`
         [
           [
             "x1izlsax",
@@ -179,21 +203,24 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         ]
       `);
-        });
-        test('constant names: special characters', ()=>{
-            const { code, metadata } = transform(`
+    });
+
+    test('constant names: special characters', () => {
+      const { code, metadata } = transform(`
         import * as stylex from '@stylexjs/stylex';
         export const sizes = stylex.defineConsts({
           'font-size*large': '18px',
         });
       `);
-            expect(code).toMatchInlineSnapshot(`
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         export const sizes = {
           "font-size*large": "18px"
         };"
       `);
-            expect(metadata.stylex).toMatchInlineSnapshot(`
+
+      expect(metadata.stylex).toMatchInlineSnapshot(`
         [
           [
             "x4spo47",
@@ -207,21 +234,24 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         ]
       `);
-        });
-        test('constant names: number', ()=>{
-            const { code, metadata } = transform(`
+    });
+
+    test('constant names: number', () => {
+      const { code, metadata } = transform(`
         import * as stylex from '@stylexjs/stylex';
         export const levels = stylex.defineConsts({
           1: 'one'
         });
       `);
-            expect(code).toMatchInlineSnapshot(`
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         export const levels = {
           "1": "one"
         };"
       `);
-            expect(metadata.stylex).toMatchInlineSnapshot(`
+
+      expect(metadata.stylex).toMatchInlineSnapshot(`
         [
           [
             "xr91grk",
@@ -235,11 +265,12 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         ]
       `);
-        });
     });
-    describe('[transform] stylex.defineConsts() in stylex.create() ', ()=>{
-        test('adds placeholder for constant value from constants.stylex', ()=>{
-            const { code, metadata } = transformWithInlineConsts(`
+  });
+
+  describe('[transform] stylex.defineConsts() in stylex.create() ', () => {
+    test('adds placeholder for constant value from constants.stylex', () => {
+      const { code, metadata } = transformWithInlineConsts(`
         import * as stylex from '@stylexjs/stylex';
         import { colors } from './constants.stylex';
 
@@ -249,7 +280,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           },
         });
       `);
-            expect(code).toMatchInlineSnapshot(`
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         import { colors } from './constants.stylex';
         export const styles = {
@@ -259,7 +291,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           }
         };"
       `);
-            expect(metadata).toMatchInlineSnapshot(`
+
+      expect(metadata).toMatchInlineSnapshot(`
         {
           "stylex": [
             [
@@ -273,9 +306,10 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         }
       `);
-        });
-        test('adds media query placeholder from constants.stylex', ()=>{
-            const { code, metadata } = transformWithInlineConsts(`
+    });
+
+    test('adds media query placeholder from constants.stylex', () => {
+      const { code, metadata } = transformWithInlineConsts(`
         import * as stylex from '@stylexjs/stylex';
         import { breakpoints } from './constants.stylex';
 
@@ -288,7 +322,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           },
         });
       `);
-            expect(code).toMatchInlineSnapshot(`
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         import { breakpoints } from './constants.stylex';
         export const styles = {
@@ -298,7 +333,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           }
         };"
       `);
-            expect(metadata).toMatchInlineSnapshot(`
+
+      expect(metadata).toMatchInlineSnapshot(`
         {
           "stylex": [
             [
@@ -320,9 +356,10 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         }
       `);
-        });
-        test('adds multiple media query placeholders from constants.stylex', ()=>{
-            const { code, metadata } = transformWithInlineConsts(`
+    });
+
+    test('adds multiple media query placeholders from constants.stylex', () => {
+      const { code, metadata } = transformWithInlineConsts(`
         import * as stylex from '@stylexjs/stylex';
         import { breakpoints } from './constants.stylex';
 
@@ -336,7 +373,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           },
         });
       `);
-            expect(code).toMatchInlineSnapshot(`
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         import { breakpoints } from './constants.stylex';
         export const styles = {
@@ -346,7 +384,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           }
         };"
       `);
-            expect(metadata).toMatchInlineSnapshot(`
+
+      expect(metadata).toMatchInlineSnapshot(`
         {
           "stylex": [
             [
@@ -376,9 +415,10 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         }
       `);
-        });
-        test('adds nested media query placeholders from constants.stylex', ()=>{
-            const { code, metadata } = transformWithInlineConsts(`
+    });
+
+    test('adds nested media query placeholders from constants.stylex', () => {
+      const { code, metadata } = transformWithInlineConsts(`
         import * as stylex from '@stylexjs/stylex';
         import { breakpoints, colors } from './constants.stylex';
 
@@ -394,7 +434,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           },
         });
       `);
-            expect(code).toMatchInlineSnapshot(`
+
+      expect(code).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         import { breakpoints, colors } from './constants.stylex';
         export const styles = {
@@ -404,7 +445,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           }
         };"
       `);
-            expect(metadata).toMatchInlineSnapshot(`
+
+      expect(metadata).toMatchInlineSnapshot(`
         {
           "stylex": [
             [
@@ -434,6 +476,6 @@ describe('@stylexjs/babel-plugin', ()=>{
           ],
         }
       `);
-        });
     });
+  });
 });

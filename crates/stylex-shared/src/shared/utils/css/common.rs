@@ -270,6 +270,7 @@ pub(crate) fn build_nested_css_rule(
   decls: String,
   pseudos: &mut [String],
   at_rules: &mut [String],
+  const_rules: &mut [String],
 ) -> String {
   let pseudo = pseudos
     .iter()
@@ -277,10 +278,16 @@ pub(crate) fn build_nested_css_rule(
     .collect::<Vec<&String>>();
   let pseudo_strs: Vec<&str> = pseudo.iter().map(|s| s.as_str()).collect();
   let pseudo = pseudo_strs.join("");
+
+  let mut combined_at_rules = Vec::with_capacity(at_rules.len() + const_rules.len());
+
+  combined_at_rules.extend_from_slice(at_rules);
+  combined_at_rules.extend_from_slice(const_rules);
+
   let mut selector_for_at_rules = format!(
     ".{}{}{}",
     class_name,
-    at_rules
+    combined_at_rules
       .iter()
       .map(|_| format!(".{}", class_name))
       .collect::<Vec<String>>()
@@ -308,6 +315,7 @@ pub(crate) fn generate_css_rule(
   values: &[String],
   pseudos: &mut [String],
   at_rules: &mut [String],
+  const_rules: &mut [String],
 ) -> InjectableStyle {
   let mut pairs: Vec<Pair> = vec![];
 
@@ -331,18 +339,23 @@ pub(crate) fn generate_css_rule(
     .collect::<Vec<String>>()
     .join(";");
 
-  let ltr_rule = build_nested_css_rule(class_name, ltr_decls, pseudos, at_rules);
+  let ltr_rule = build_nested_css_rule(class_name, ltr_decls, pseudos, at_rules, const_rules);
   let rtl_rule = if rtl_decls.is_empty() {
     None
   } else {
     Some(build_nested_css_rule(
-      class_name, rtl_decls, pseudos, at_rules,
+      class_name,
+      rtl_decls,
+      pseudos,
+      at_rules,
+      const_rules,
     ))
   };
 
   let priority = get_priority(key)
     + pseudos.iter().map(|p| get_priority(p)).sum::<f64>()
-    + at_rules.iter().map(|a| get_priority(a)).sum::<f64>();
+    + at_rules.iter().map(|a| get_priority(a)).sum::<f64>()
+    + const_rules.iter().map(|c| get_priority(c)).sum::<f64>();
 
   InjectableStyle {
     priority: Some(priority),

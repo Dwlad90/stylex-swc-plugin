@@ -8,8 +8,13 @@ mod convert_style_to_class_name {
     utils::core::convert_style_to_class_name::convert_style_to_class_name,
   };
   fn convert(styles: (&str, &PreRuleValue)) -> String {
-    let result =
-      convert_style_to_class_name(styles, &mut [], &mut [], &mut StateManager::default());
+    let result = convert_style_to_class_name(
+      styles,
+      &mut [],
+      &mut [],
+      &mut [],
+      &mut StateManager::default(),
+    );
 
     extract_body(result.2.ltr)
   }
@@ -33,6 +38,7 @@ mod convert_style_to_class_name {
       ("margin", &PreRuleValue::String("10".to_string())),
       &mut [],
       &mut [],
+      &mut [],
       &mut StateManager {
         options: StyleXStateOptions {
           class_name_prefix: 'x'.to_string(),
@@ -52,6 +58,7 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_prefix_only_when_options_enable_debug_class_names_is_false() {
     let (_, class_name, _) = convert_style_to_class_name(
       ("margin", &PreRuleValue::String("10".to_string())),
+      &mut [],
       &mut [],
       &mut [],
       &mut StateManager {
@@ -75,6 +82,7 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_prefix_only_when_options_debug_is_false() {
     let (_, class_name, _) = convert_style_to_class_name(
       ("margin", &PreRuleValue::String("10".to_string())),
+      &mut [],
       &mut [],
       &mut [],
       &mut StateManager {

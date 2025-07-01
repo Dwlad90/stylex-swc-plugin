@@ -265,7 +265,7 @@ const THUMB_VARIANTS: [&str; 3] = [
   "::-ms-thumb",
 ];
 
-pub(crate) fn generate_css_rule(
+pub(crate) fn build_nested_css_rule(
   class_name: &str,
   decls: String,
   pseudos: &mut [String],
@@ -302,7 +302,7 @@ pub(crate) fn generate_css_rule(
   )
 }
 
-pub(crate) fn generate_rule(
+pub(crate) fn generate_css_rule(
   class_name: &str,
   key: &str,
   values: &[String],
@@ -331,11 +331,13 @@ pub(crate) fn generate_rule(
     .collect::<Vec<String>>()
     .join(";");
 
-  let ltr_rule = generate_css_rule(class_name, ltr_decls, pseudos, at_rules);
+  let ltr_rule = build_nested_css_rule(class_name, ltr_decls, pseudos, at_rules);
   let rtl_rule = if rtl_decls.is_empty() {
     None
   } else {
-    Some(generate_css_rule(class_name, rtl_decls, pseudos, at_rules))
+    Some(build_nested_css_rule(
+      class_name, rtl_decls, pseudos, at_rules,
+    ))
   };
 
   let priority = get_priority(key)

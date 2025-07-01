@@ -5,7 +5,7 @@ use crate::shared::{
   },
   utils::{
     common::{create_hash, dashify},
-    css::common::{generate_rule, transform_value_cached},
+    css::common::{generate_css_rule, transform_value_cached},
     pre_rule::{sort_at_rules, sort_pseudos},
   },
 };
@@ -86,7 +86,7 @@ pub(crate) fn convert_style_to_class_name(
   } else {
     format!("{}{}", prefix, create_hash(string_to_hash.as_str()))
   };
-  let css_rules = generate_rule(
+  let css_rules = generate_css_rule(
     class_name_hashed.as_str(),
     dashed_key.as_str(),
     &value,

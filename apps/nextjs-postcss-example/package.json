@@ -30,7 +30,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.53.2",
     "@stylexjs/eslint-plugin": "^0.12.0",
     "@stylexswc/jest": "0.8.2-dev.1",
     "@stylexswc/playwright": "0.8.2-dev.1",

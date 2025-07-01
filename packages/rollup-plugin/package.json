@@ -38,7 +38,7 @@
   "devDependencies": {
     "@types/node": "^22.15.29",
     "browserslist": "^4.25.0",
-    "rollup": "^4.40.2"
+    "rollup": "^4.44.1"
   },
   "jest": {
     "testPathIgnorePatterns": [

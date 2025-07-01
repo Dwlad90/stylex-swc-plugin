@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "playwright": "^1.53.2",
-    "@commitlint/cli": "^19.8.0",
+    "@commitlint/cli": "^19.8.1",
     "@stylexswc/eslint-config": "0.8.2-dev.1",
     "@stylexswc/typescript-config": "0.8.2-dev.1",
     "commitizen": "^4.3.1",

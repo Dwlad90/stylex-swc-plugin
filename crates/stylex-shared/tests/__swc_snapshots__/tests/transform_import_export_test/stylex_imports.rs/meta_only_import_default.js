@@ -1,4 +1,4 @@
-import stylex from "stylex";
+import stylex from 'stylex';
 export const constants = {
     mediaQuery: "@media (min-width: 768px)"
 };
@@ -9,6 +9,7 @@ export const vars = {
 const styles = {
     root: {
         kKVMdj: "x1qar0u3",
+        k9M3vk: "x7cint9",
         kMwMTN: "x1e2nbdu x14693no",
         kVAEAm: "x15oojuh",
         $$css: true

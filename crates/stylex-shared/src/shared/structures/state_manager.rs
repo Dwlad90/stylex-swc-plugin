@@ -87,6 +87,7 @@ pub struct StateManager {
   pub(crate) stylex_define_vars_import: AtomHashSet,
   pub(crate) stylex_define_consts_import: AtomHashSet,
   pub(crate) stylex_create_theme_import: AtomHashSet,
+  pub(crate) stylex_position_try_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) theme_name: Option<String>,
@@ -119,7 +120,7 @@ pub struct StateManager {
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
-  pub(crate) injected_keyframes: IndexMap<String, Rc<InjectableStyleKind>>,
+  pub(crate) other_injected_css_rules: IndexMap<String, Rc<InjectableStyleKind>>,
   pub(crate) top_imports: Vec<ImportDecl>,
 
   pub(crate) cycle: TransformationCycle,
@@ -148,6 +149,7 @@ impl StateManager {
       stylex_define_consts_import: FxHashSet::default(),
       stylex_create_theme_import: FxHashSet::default(),
       stylex_types_import: FxHashSet::default(),
+      stylex_position_try_import: FxHashSet::default(),
       inject_import_inserted: None,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
@@ -178,7 +180,7 @@ impl StateManager {
       prepend_include_module_items: vec![],
       prepend_import_module_items: vec![],
 
-      injected_keyframes: IndexMap::new(),
+      other_injected_css_rules: IndexMap::new(),
 
       cycle: TransformationCycle::Initializing,
     }
@@ -699,9 +701,9 @@ impl StateManager {
       self.prepend_import_module_items.clone(),
       other.prepend_import_module_items.clone(),
     );
-    self.injected_keyframes = chain_collect_index_map(
-      self.injected_keyframes.clone(),
-      other.injected_keyframes.clone(),
+    self.other_injected_css_rules = chain_collect_index_map(
+      self.other_injected_css_rules.clone(),
+      other.other_injected_css_rules.clone(),
     );
     self.top_imports = chain_collect(self.top_imports.clone(), other.top_imports.clone());
   }

@@ -22,6 +22,7 @@ use crate::shared::{
   constants::messages::non_static_value,
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
+  transformers::stylex_position_try::get_position_try_fn,
   utils::{
     ast::convertors::{key_value_to_str, lit_to_string},
     core::{
@@ -94,6 +95,7 @@ where
       };
 
       let keyframes_fn = get_keyframes_fn();
+      let position_try_fn = get_position_try_fn();
 
       for name in &self.state.stylex_first_that_works_import {
         identifiers.insert(
@@ -106,6 +108,13 @@ where
         identifiers.insert(
           name.clone(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
+        );
+      }
+
+      for name in &self.state.stylex_position_try_import {
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
       }
 
@@ -122,6 +131,11 @@ where
         member_expression.insert(
           "keyframes".into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
+        );
+
+        member_expression.insert(
+          "positionTry".into(),
+          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
       }
 
@@ -218,7 +232,7 @@ where
           .extend(properties.iter().map(|(k, v)| (k.clone(), v.clone())));
       }
 
-      let mut injected_styles = self.state.injected_keyframes.clone();
+      let mut injected_styles = self.state.other_injected_css_rules.clone();
 
       injected_styles.extend(injected_styles_sans_keyframes);
 

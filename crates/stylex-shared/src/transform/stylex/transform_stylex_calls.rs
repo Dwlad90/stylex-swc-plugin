@@ -38,6 +38,10 @@ where
         if let Some(value) = self.transform_stylex_keyframes_call(parent_var_decl) {
           return Some(value);
         }
+
+        if let Some(value) = self.transform_stylex_position_try_call(parent_var_decl) {
+          return Some(value);
+        }
       }
 
       if let Some(value) = self.transform_stylex_define_vars(call_expr) {

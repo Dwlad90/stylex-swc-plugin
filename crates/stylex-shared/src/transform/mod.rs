@@ -169,6 +169,7 @@ where
           .stylex_define_consts_import
           .contains(&ident_sym.into())
         || state.stylex_create_theme_import.contains(&ident_sym.into())
+        || state.stylex_position_try_import.contains(&ident_sym.into())
         || state.stylex_keyframes_import.contains(&ident_sym.into())
         || state.stylex_props_import.contains(&ident_sym.into())
         || state

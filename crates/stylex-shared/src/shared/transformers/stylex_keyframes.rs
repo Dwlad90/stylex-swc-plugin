@@ -184,7 +184,7 @@ pub(crate) fn get_keyframes_fn() -> FunctionConfig {
         stylex_keyframes(&EvaluateResultValue::Expr(expr), local_state);
 
       local_state
-        .injected_keyframes
+        .other_injected_css_rules
         .insert(animation_name.clone(), Rc::new(injected_style));
 
       let result = string_to_expression(animation_name.as_str());

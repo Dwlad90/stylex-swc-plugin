@@ -1,8 +1,14 @@
-use crate::shared::structures::{
-  application_order::ApplicationOrder, legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
-  order::Order, order_pair::OrderPair, pre_rule::PreRuleValue,
-  property_specificity_order::PropertySpecificityOrder, stylex_options::StyleResolution,
-  stylex_state_options::StyleXStateOptions,
+use swc_core::ecma::ast::Expr;
+
+use crate::shared::{
+  structures::{
+    application_order::ApplicationOrder,
+    legacy_expand_shorthands_order::LegacyExpandShorthandsOrder, order::Order,
+    order_pair::OrderPair, pre_rule::PreRuleValue,
+    property_specificity_order::PropertySpecificityOrder, stylex_options::StyleResolution,
+    stylex_state_options::StyleXStateOptions,
+  },
+  utils::ast::convertors::lit_to_string,
 };
 
 pub(crate) fn flat_map_expanded_shorthands(
@@ -16,9 +22,12 @@ pub(crate) fn flat_map_expanded_shorthands(
     PreRuleValue::Vec(_) => {
       panic!("Cannot use fallbacks for shorthands. Use the expansion instead.")
     }
-    PreRuleValue::Expr(_) => {
-      panic!("Cannot use expressions for shorthands. Use the expansion instead.")
-    }
+    PreRuleValue::Expr(expr) => match expr {
+      Expr::Lit(lit) => Some(lit_to_string(&lit).expect("Failed to convert lit to string")),
+      _ => {
+        panic!("Cannot use expressions for shorthands. Use the expansion instead.")
+      }
+    },
     PreRuleValue::Null => None,
   };
 

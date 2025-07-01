@@ -3,13 +3,13 @@ var options = {
     styleResolution: 'legacy-expand-shorthands',
     dev: false,
     debug: false,
-    useRemForFontSize: true,
+    enableFontSizePxToRem: true,
     runtimeInjection: false,
     test: false
 };
 describe('Converting PreRule to CSS', ()=>{
     test('should convert a PreRule to CSS', ()=>{
-        expect(new _PreRule.PreRule('color', 'red', [
+        expect(new PreRule('color', 'red', [
             'color'
         ]).compiled(options)).toMatchInlineSnapshot(`
       [

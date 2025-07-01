@@ -7,7 +7,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::StyleXTransform;
 use crate::shared::{
   constants::messages::{non_static_value, non_style_object},
   utils::{
@@ -36,6 +35,7 @@ use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
   utils::core::dev_class_name::convert_theme_to_test_styles,
 };
+use crate::{StyleXTransform, shared::transformers::stylex_position_try::get_position_try_fn};
 
 impl<C> StyleXTransform<C>
 where
@@ -67,11 +67,19 @@ where
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();
+      let position_try_fn = get_position_try_fn();
 
-      for name in &self.state.stylex_keyframes_import {
+      for name in &self.state.stylex_position_try_import {
         identifiers.insert(
           name.clone(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
+        );
+      }
+
+      for name in &self.state.stylex_position_try_import {
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
       }
 

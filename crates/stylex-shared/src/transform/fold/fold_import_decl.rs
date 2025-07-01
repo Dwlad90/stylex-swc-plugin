@@ -202,6 +202,12 @@ where
             .stylex_create_theme_import
             .insert(local_name_ident_atom);
         }
+        "positionTry" => {
+          self
+            .state
+            .stylex_position_try_import
+            .insert(local_name_ident_atom);
+        }
         "types" => {
           self.state.stylex_types_import.insert(local_name_ident_atom);
         }

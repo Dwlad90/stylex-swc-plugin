@@ -59,3 +59,41 @@ test!(
     export default stylex.create({});
     "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  valid_import_named_position_try,
+  r#"
+    import { positionTry } from '@stylexjs/stylex';
+    const positionName = positionTry({});
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  valid_import_namespace_position_try,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const positionName = stylex.positionTry({});
+  "#
+);

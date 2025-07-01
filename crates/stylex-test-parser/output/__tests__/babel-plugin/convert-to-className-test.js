@@ -1,5 +1,5 @@
-var extractBody = (str)=>str.slice(str.indexOf('{') + 1, -1);
-var convert = (styles)=>extractBody((0, _convertToClassName.convertStyleToClassName)(styles, [], [])[2].ltr);
+var extractBody = (str: string)=>str.slice(str.indexOf('{') + 1, -1);
+var convert = (styles: Parameters<typeof convertStyleToClassName>[0])=>extractBody(convertStyleToClassName(styles, [], [])[2].ltr);
 describe('convert-to-className test', ()=>{
     test('converts style to className', ()=>{
         expect(convert([
@@ -13,10 +13,9 @@ describe('convert-to-className test', ()=>{
             dev: false,
             debug: true,
             styleResolution: 'application-order',
-            test: false,
-            useRemForFontSize: false
+            test: false
         };
-        const result = (0, _convertToClassName.convertStyleToClassName)([
+        const result = convertStyleToClassName([
             'margin',
             10
         ], [], [], options);
@@ -30,10 +29,9 @@ describe('convert-to-className test', ()=>{
             debug: true,
             enableDebugClassNames: false,
             styleResolution: 'application-order',
-            test: false,
-            useRemForFontSize: false
+            test: false
         };
-        const result = (0, _convertToClassName.convertStyleToClassName)([
+        const result = convertStyleToClassName([
             'margin',
             10
         ], [], [], options);
@@ -47,10 +45,9 @@ describe('convert-to-className test', ()=>{
             dev: false,
             debug: false,
             styleResolution: 'application-order',
-            test: false,
-            useRemForFontSize: false
+            test: false
         };
-        const result = (0, _convertToClassName.convertStyleToClassName)([
+        const result = convertStyleToClassName([
             'margin',
             10
         ], [], [], options);
@@ -130,5 +127,37 @@ describe('convert-to-className test', ()=>{
                 '100dvh'
             ]
         ])).toEqual('height:var(--y,var(--x,500px));height:var(--y,var(--x,100vh));height:100dvh');
+    });
+    test('handles array with variable default and multiple constant fallbacks', ()=>{
+        expect(convert([
+            'height',
+            [
+                'var(--x)',
+                500,
+                '100dvh'
+            ]
+        ])).toEqual('height:var(--x);height:500px;height:100dvh');
+    });
+    test('handles array with variable default and multiple variable and constant fallbacks', ()=>{
+        expect(convert([
+            'height',
+            [
+                'var(--x)',
+                'var(--y)',
+                'var(--z)',
+                '100dvh'
+            ]
+        ])).toEqual('height:var(--z,var(--y,var(--x)));height:100dvh');
+    });
+    test('handles array of all variables', ()=>{
+        expect(convert([
+            'height',
+            [
+                'var(--w)',
+                'var(--x)',
+                'var(--y)',
+                'var(--z)'
+            ]
+        ])).toEqual('height:var(--z,var(--y,var(--x,var(--w))))');
     });
 });

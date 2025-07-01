@@ -1,8 +1,3 @@
-function _interopRequireDefault(e) {
-    return e && e.__esModule ? e : {
-        default: e
-    };
-}
 describe('transformValue content property tests', ()=>{
     test('preserves CSS functions without quotes', ()=>{
         const functions = [
@@ -14,10 +9,12 @@ describe('transformValue content property tests', ()=>{
             'linear-gradient(#e66465, #9198e5)',
             'image-set("image1x.png" 1x, "image2x.png" 2x)',
             '"prefix"attr(href)',
-            'url(foo.jpg)attr(alt)'
+            'url(foo.jpg)attr(alt)',
+            'var(--test)',
+            'var(--test, "default")'
         ];
         functions.forEach((input)=>{
-            expect((0, _transformValue.default)('content', input, {})).toBe(input);
+            expect(transformValue('content', input, {})).toBe(input);
         });
     });
     test('preserves CSS keywords without quotes', ()=>{
@@ -35,7 +32,7 @@ describe('transformValue content property tests', ()=>{
             'unset'
         ];
         keywords.forEach((keyword)=>{
-            expect((0, _transformValue.default)('content', keyword, {})).toBe(keyword);
+            expect(transformValue('content', keyword, {})).toBe(keyword);
         });
     });
     test('handles mixed content values', ()=>{
@@ -49,7 +46,7 @@ describe('transformValue content property tests', ()=>{
             'counter(x)"text"counter(y)'
         ];
         mixedValues.forEach((input)=>{
-            expect((0, _transformValue.default)('content', input, {})).toBe(input);
+            expect(transformValue('content', input, {})).toBe(input);
         });
     });
     test('adds quotes to plain strings', ()=>{
@@ -67,9 +64,8 @@ describe('transformValue content property tests', ()=>{
                 '"123"'
             ]
         ];
-        strings.forEach((_ref)=>{
-            let [input, expected] = _ref;
-            expect((0, _transformValue.default)('content', input, {})).toBe(expected);
+        strings.forEach(([input, expected])=>{
+            expect(transformValue('content', input, {})).toBe(expected);
         });
     });
 });

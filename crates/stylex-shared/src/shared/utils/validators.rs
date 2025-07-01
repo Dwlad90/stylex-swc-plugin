@@ -11,8 +11,8 @@ use crate::shared::{
       DUPLICATE_CONDITIONAL, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
       INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
       NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-      illegal_argument_length, non_export_named_declaration, non_static_value, non_style_object,
-      unbound_call_value,
+      POSITION_TRY_INVALID_PROPERTY, illegal_argument_length, non_export_named_declaration,
+      non_static_value, non_style_object, unbound_call_value,
     },
   },
   enums::data_structures::{
@@ -31,6 +31,57 @@ use super::{
   ast::convertors::{key_value_to_str, lit_to_string},
   common::get_key_values_from_object,
 };
+
+// TODO: Once we have a reliable validator, these property checks should be replaced with
+// validators that can also validate the values.
+const VALID_POSITION_TRY_PROPERTIES: &[&str] = &[
+  // anchor Properties
+  "anchorName",
+  // position Properties
+  "positionAnchor",
+  "positionArea",
+  // inset Properties
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "inset",
+  "insetBlock",
+  "insetBlockEnd",
+  "insetBlockStart",
+  "insetInline",
+  "insetInlineEnd",
+  "insetInlineStart",
+  // margin Properties
+  "margin",
+  "marginBlock",
+  "marginBlockEnd",
+  "marginBlockStart",
+  "marginInline",
+  "marginInlineEnd",
+  "marginInlineStart",
+  "marginTop",
+  "marginBottom",
+  "marginLeft",
+  "marginRight",
+  // size properties
+  "width",
+  "height",
+  "minWidth",
+  "minHeight",
+  "maxWidth",
+  "maxHeight",
+  "blockSize",
+  "inlineSize",
+  "minBlockSize",
+  "minInlineSize",
+  "maxBlockSize",
+  "maxInlineSize",
+  // self alignment properties
+  "alignSelf",
+  "justifySelf",
+  "placeSelf",
+];
 
 pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
   if !is_create_call(call, state) {
@@ -138,6 +189,58 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
   }
 }
 
+pub(crate) fn validate_stylex_position_try_indent(
+  var_decl: &VarDeclarator,
+  state: &mut StateManager,
+) {
+  if !is_position_try_call(var_decl, state) {
+    return;
+  }
+
+  let init_expr = match &var_decl.init {
+    Some(init) => init.clone(),
+    None => panic!("{}", non_static_value("positionTry")),
+  };
+
+  let init_call = init_expr.as_call().unwrap_or_else(|| {
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      &non_static_value("positionTry"),
+      state,
+    );
+  });
+
+  match state.find_top_level_expr(init_call, |_| false, None) {
+    Some(_) => {}
+    None => build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      &unbound_call_value("positionTry"),
+      state,
+    ),
+  }
+
+  if init_call.args.len() != 1 {
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      &illegal_argument_length("positionTry", 1),
+      state,
+    );
+  }
+
+  let first_arg: &_ = &init_call.args[0];
+  if !first_arg.expr.is_object() {
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &first_arg.expr,
+      &non_style_object("positionTry"),
+      state,
+    );
+  }
+}
+
 pub(crate) fn validate_stylex_create_theme_indent(
   var_decl: &Option<VarDeclarator>,
   call: &CallExpr,
@@ -169,7 +272,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     build_code_frame_error_and_panic(
       init_expr,
       &Expr::Call(call.clone()),
-      &non_static_value("keyframes"),
+      &non_static_value("createTheme"),
       state,
     );
   });
@@ -347,6 +450,19 @@ pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) 
   }
 }
 
+pub(crate) fn is_position_try_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
+  let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
+
+  match init {
+    Some(call) => is_target_call(
+      ("positionTry", &state.stylex_position_try_import),
+      &call,
+      state,
+    ),
+    _ => false,
+  }
+}
+
 pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
     ("createTheme", &state.stylex_create_theme_import),
@@ -478,7 +594,6 @@ pub(crate) fn validate_dynamic_style_params(
   params: &[Pat],
   state: &mut StateManager,
 ) {
-  dbg!(&params);
   if params.iter().any(|param| !param.is_ident()) {
     let path_expr = Expr::Arrow(path.clone());
 
@@ -559,6 +674,31 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
       }
     },
     _ => panic!("{}", non_static_value("keyframes")),
+  }
+}
+
+pub(crate) fn assert_valid_properties(obj: &EvaluateResultValue, state: &mut StateManager) {
+  if let EvaluateResultValue::Expr(expr) = obj {
+    if let Expr::Object(object) = expr {
+      let key_values = get_key_values_from_object(object);
+
+      for key_value in key_values.iter() {
+        let key = key_value_to_str(key_value);
+        if !VALID_POSITION_TRY_PROPERTIES.contains(&key.as_str()) {
+          build_code_frame_error_and_panic(expr, expr, POSITION_TRY_INVALID_PROPERTY, state);
+        }
+      }
+    }
+  }
+}
+
+pub(crate) fn assert_valid_position_try(obj: &EvaluateResultValue, state: &mut StateManager) {
+  if let EvaluateResultValue::Expr(expr) = obj {
+    if !expr.is_object() {
+      build_code_frame_error_and_panic(expr, expr, &non_style_object("positionTry"), state);
+    }
+  } else {
+    panic!("{}", non_static_value("positionTry"));
   }
 }
 

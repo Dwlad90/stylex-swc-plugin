@@ -26,7 +26,6 @@ impl FlatCompiledStylesValue {
     }
   }
 
-  #[cfg(test)]
   pub(crate) fn as_string(&self) -> Option<&String> {
     match self {
       FlatCompiledStylesValue::String(value) => Some(value),

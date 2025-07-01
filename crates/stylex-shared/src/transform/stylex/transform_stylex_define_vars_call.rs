@@ -7,9 +7,13 @@ use swc_core::{
 use crate::shared::{
   constants::messages::{non_static_value, non_style_object},
   enums::data_structures::top_level_expression::TopLevelExpression,
-  utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast},
-  utils::validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
-  utils::{common::gen_file_based_identifier, js::evaluate::evaluate},
+  transformers::stylex_position_try::get_position_try_fn,
+  utils::{
+    common::gen_file_based_identifier,
+    core::js_to_expr::{NestedStringObject, convert_object_to_ast},
+    js::evaluate::evaluate,
+    validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
+  },
 };
 use crate::shared::{
   structures::functions::FunctionConfigType,
@@ -51,6 +55,7 @@ where
 
       let keyframes_fn = get_keyframes_fn();
       let types_fn = get_types_fn();
+      let position_try_fn = get_position_try_fn();
 
       for name in &self.state.stylex_keyframes_import {
         identifiers.insert(
@@ -66,12 +71,24 @@ where
         );
       }
 
+      for name in &self.state.stylex_position_try_import {
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
+        );
+      }
+
       for name in &self.state.stylex_import {
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
           "keyframes".into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
+        );
+
+        member_expression.insert(
+          "positionTry".into(),
+          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
 
         let identifier = identifiers
@@ -135,7 +152,7 @@ where
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);
 
-      let mut injected_styles = self.state.injected_keyframes.clone();
+      let mut injected_styles = self.state.other_injected_css_rules.clone();
       injected_styles.extend(injected_styles_sans_keyframes);
 
       let result_ast =

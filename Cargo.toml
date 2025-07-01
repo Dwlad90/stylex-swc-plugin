@@ -41,7 +41,7 @@ swc_core = { version = "23.2.0" }
 lazy_static = "1.5.0"
 serde_json = "1.0.140"
 regex = "1.11.1"
-indexmap = "2.9.0"
+indexmap = "2.10.0"
 derive_more = { version = "2.0.1", features = ["display"] }
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }

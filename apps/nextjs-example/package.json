@@ -42,7 +42,7 @@
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "@typescript-eslint/parser": "^8.35.1",
-    "eslint-config-next": "^15.3.3",
+    "eslint-config-next": "^15.3.4",
     "jest": "^29.7.0",
     "jest-chain-transform": "^0.0.8",
     "jest-environment-jsdom": "29.7.0",

@@ -9,7 +9,7 @@ use swc_core::{
 
 use crate::StyleXTransform;
 use crate::shared::{
-  constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
+  constants::messages::{non_static_value, non_style_object},
   utils::{
     core::js_to_expr::{NestedStringObject, convert_object_to_ast},
     js::evaluate::evaluate,
@@ -114,7 +114,7 @@ where
           &evaluated_arg1
             .deopt
             .unwrap_or_else(|| *first_arg.to_owned()),
-          NON_STATIC_VALUE,
+          &non_static_value("createTheme"),
           &mut self.state,
         )
       );
@@ -129,7 +129,7 @@ where
           &evaluated_arg2
             .deopt
             .unwrap_or_else(|| *second_arg.to_owned()),
-          NON_STATIC_VALUE,
+          &non_static_value("createTheme"),
           &mut self.state,
         )
       );
@@ -165,7 +165,7 @@ where
               &evaluated_arg2
                 .deopt
                 .unwrap_or_else(|| *second_arg.to_owned()),
-              NON_OBJECT_FOR_STYLEX_CALL,
+              &non_style_object("createTheme"),
               &mut self.state,
             )
           );
@@ -178,7 +178,7 @@ where
             &evaluated_arg2
               .deopt
               .unwrap_or_else(|| *second_arg.to_owned()),
-            NON_OBJECT_FOR_STYLEX_CALL,
+            &non_style_object("createTheme"),
             &mut self.state,
           )
         ),

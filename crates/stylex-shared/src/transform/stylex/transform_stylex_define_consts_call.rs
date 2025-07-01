@@ -7,15 +7,10 @@ use swc_core::{
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
 use crate::shared::{
-  constants::messages::NON_OBJECT_FOR_STYLEX_CALL,
-  transformers::stylex_define_consts::stylex_define_consts,
-};
-use crate::shared::{
-  constants::messages::NON_STATIC_VALUE,
-  utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast},
-};
-use crate::shared::{
+  constants::messages::{non_static_value, non_style_object},
   enums::data_structures::top_level_expression::TopLevelExpression,
+  transformers::stylex_define_consts::stylex_define_consts,
+  utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast},
   utils::{
     common::gen_file_based_identifier,
     js::evaluate::evaluate,
@@ -51,7 +46,7 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          NON_STATIC_VALUE,
+          &non_static_value("defineConsts"),
           &mut self.state,
         )
       );
@@ -67,13 +62,13 @@ where
             build_code_frame_error(
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              NON_OBJECT_FOR_STYLEX_CALL,
+              &non_style_object("defineConsts"),
               &mut self.state,
             )
           );
           value
         }
-        None => panic!("{}", NON_STATIC_VALUE),
+        None => panic!("{}", non_static_value("defineConsts")),
       };
 
       let file_name = self

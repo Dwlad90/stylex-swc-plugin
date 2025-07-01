@@ -7,7 +7,7 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::{common::COMPILED_KEY, messages::ILLEGAL_ARGUMENT_LENGTH},
+  constants::{common::COMPILED_KEY, messages::illegal_argument_length},
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{
     state_manager::StateManager, stylex_options::CheckModuleResolution, types::StylesObjectMap,
@@ -129,7 +129,7 @@ pub(crate) fn add_source_map_data(
         };
       }
       _ => {
-        panic!("{}", ILLEGAL_ARGUMENT_LENGTH)
+        panic!("{}", illegal_argument_length("add_source_map_data", 1));
       }
     };
   }

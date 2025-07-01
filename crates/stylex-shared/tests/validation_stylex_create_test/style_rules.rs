@@ -33,7 +33,7 @@ fn invalid_key_non_static() {
 }
 
 #[test]
-#[should_panic(expected = "A stylex namespace must be an object.")]
+#[should_panic(expected = "A StyleX namespace must be an object.")]
 fn invalid_rule_non_object() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -59,7 +59,7 @@ fn invalid_rule_non_object() {
 }
 
 #[test]
-#[should_panic(expected = "Object spreads are not allowed in stylex.create call.")]
+#[should_panic(expected = "Object spreads are not allowed in create() calls.")]
 fn invalid_rule_spread() {
   test_transform(
     Syntax::Typescript(TsSyntax {

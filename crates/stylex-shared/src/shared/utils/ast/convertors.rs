@@ -10,7 +10,7 @@ use swc_core::ecma::{
 use swc_ecma_parser::Context;
 
 use crate::shared::{
-  constants::messages::{ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
+  constants::messages::{ILLEGAL_PROP_VALUE, non_static_value},
   enums::{
     data_structures::evaluate_result_value::EvaluateResultValue,
     misc::{BinaryExprType, VarDeclAction},
@@ -543,7 +543,7 @@ pub fn expr_tpl_to_string(
 
               tpl_str.push_str(value.as_str());
             }
-            None => panic!("{}", NON_STATIC_VALUE),
+            None => panic!("{}", non_static_value("expr_tpl_to_string")),
           }
         }
         Expr::Bin(bin) => tpl_str.push_str(

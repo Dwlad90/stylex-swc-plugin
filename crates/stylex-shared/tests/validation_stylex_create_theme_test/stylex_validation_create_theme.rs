@@ -11,7 +11,7 @@ use swc_core::ecma::{
 };
 
 #[test]
-#[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
+#[should_panic(expected = "createTheme() calls must be bound to a bare variable.")]
 fn must_be_bound_to_a_variable() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -38,7 +38,7 @@ fn must_be_bound_to_a_variable() {
 }
 
 #[test]
-#[should_panic(expected = "stylex() should have 1 argument.")]
+#[should_panic(expected = "createTheme() should have 1 argument")]
 fn it_must_have_two_arguments_no_args() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -65,7 +65,7 @@ fn it_must_have_two_arguments_no_args() {
 }
 
 #[test]
-#[should_panic(expected = "stylex() should have 1 argument.")]
+#[should_panic(expected = "createTheme() should have 1 argument.")]
 fn it_must_have_two_arguments_one_args() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -92,7 +92,7 @@ fn it_must_have_two_arguments_one_args() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a createTheme() call.")]
 fn it_must_have_two_arguments_fn_args() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -168,7 +168,7 @@ test!(
 );
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a createTheme() call.")]
 fn variable_keys_must_be_a_static_value() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -242,7 +242,7 @@ test!(
 );
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a createTheme() call.")]
 fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -272,7 +272,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a createTheme() call.")]
 fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
   test_transform(
     Syntax::Typescript(TsSyntax {

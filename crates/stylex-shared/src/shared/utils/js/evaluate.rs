@@ -2369,7 +2369,7 @@ fn _evaluate(
 fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> Option<ObjectLit> {
   cached_arg.and_then(|arg| match arg {
     EvaluateResultValue::Expr(expr) => expr.as_object().cloned().or_else(|| {
-      if let Expr::Lit(Lit::Str(strng)) = expr {
+      if let Expr::Lit(Lit::Str(ref strng)) = expr {
         let keys = strng
           .value
           .chars()
@@ -2430,9 +2430,10 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValu
                 .iter()
                 .flatten()
                 .map(|item| {
+                  let item = item.as_expr().unwrap();
                   Some(ExprOrSpread {
                     spread: None,
-                    expr: Box::new(item.as_expr().unwrap().clone()),
+                    expr: Box::new(item.clone()),
                   })
                 })
                 .collect();

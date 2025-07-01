@@ -15,7 +15,7 @@ use crate::shared::utils::{
   validators::{assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent},
 };
 use crate::shared::{
-  constants::messages::{NON_OBJECT_FOR_STYLEX_CALL, NON_STATIC_VALUE},
+  constants::messages::{non_static_value, non_style_object},
   transformers::stylex_first_that_works::stylex_first_that_works,
 };
 use crate::shared::{
@@ -87,7 +87,7 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          NON_STATIC_VALUE,
+          &non_static_value("keyframes"),
           &mut self.state,
         )
       );
@@ -103,7 +103,7 @@ where
             build_code_frame_error(
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              NON_OBJECT_FOR_STYLEX_CALL,
+              &non_style_object("keyframes"),
               &mut self.state,
             )
           );
@@ -114,7 +114,7 @@ where
           build_code_frame_error(
             &Expr::Call(call.clone()),
             &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-            NON_STATIC_VALUE,
+            &non_static_value("keyframes"),
             &mut self.state,
           )
         ),

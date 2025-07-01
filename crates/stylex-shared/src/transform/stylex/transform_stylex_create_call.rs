@@ -19,7 +19,7 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::messages::NON_STATIC_VALUE,
+  constants::messages::non_static_value,
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
   utils::{
@@ -139,12 +139,17 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          evaluated_arg.reason.as_deref().unwrap_or(NON_STATIC_VALUE),
+          evaluated_arg
+            .reason
+            .as_deref()
+            .unwrap_or(&non_static_value("create")),
           &mut self.state,
         )
       );
 
-      let value = evaluated_arg.value.expect(NON_STATIC_VALUE);
+      let value = evaluated_arg
+        .value
+        .unwrap_or_else(|| panic!("{}", non_static_value("create")));
 
       assert!(
         evaluated_arg.confident,
@@ -152,7 +157,10 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          evaluated_arg.reason.as_deref().unwrap_or(NON_STATIC_VALUE),
+          evaluated_arg
+            .reason
+            .as_deref()
+            .unwrap_or(&non_static_value("create")),
           &mut self.state,
         )
       );

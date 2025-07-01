@@ -5,7 +5,7 @@ use swc_core::ecma::{
 };
 
 use crate::shared::{
-  constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, NON_STATIC_VALUE},
+  constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, non_static_value},
   enums::misc::VarDeclAction,
   regex::CSS_PROPERTY_KEY,
   structures::{
@@ -199,7 +199,7 @@ pub(crate) fn flatten_raw_style_object(
             flattened.extend(inner_flattened);
           }
           _ => {
-            panic!("{}", NON_STATIC_VALUE)
+            panic!("{}", non_static_value("stylex"));
           }
         }
       }
@@ -214,7 +214,7 @@ pub(crate) fn flatten_raw_style_object(
 
         flattened.extend(inner_flattened)
       }
-      Expr::Call(_) => panic!("{}", NON_STATIC_VALUE),
+      Expr::Call(_) => panic!("{}", non_static_value("stylex")),
       Expr::Object(obj) => {
         if !key.starts_with(':') && !key.starts_with('@') {
           if obj.props.is_empty() {
@@ -260,10 +260,10 @@ pub(crate) fn flatten_raw_style_object(
                   }
                 }
               } else {
-                panic!("{}", NON_STATIC_VALUE);
+                panic!("{}", non_static_value("stylex"));
               }
             } else {
-              panic!("{}", NON_STATIC_VALUE);
+              panic!("{}", non_static_value("stylex"));
             }
           }
 

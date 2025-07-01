@@ -8,11 +8,11 @@ use crate::shared::{
   constants::{
     common::THEME_NAME_KEY,
     messages::{
-      DUPLICATE_CONDITIONAL, ILLEGAL_ARGUMENT_LENGTH, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-      INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_EXPORT_NAMED_DECLARATION,
-      NON_OBJECT_FOR_STYLEX_CALL, NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, NON_OBJECT_KEYFRAME,
-      NON_STATIC_KEYFRAME_VALUE, NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
-      ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS, UNBOUND_STYLEX_CALL_VALUE,
+      DUPLICATE_CONDITIONAL, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+      INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
+      illegal_argument_length, non_export_named_declaration, non_static_value, non_style_object,
+      unbound_call_value,
     },
   },
   enums::data_structures::{
@@ -46,7 +46,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
     None => build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
-      UNBOUND_STYLEX_CALL_VALUE,
+      &unbound_call_value("create"),
       state,
     ),
   }
@@ -55,7 +55,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
     build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
-      ILLEGAL_ARGUMENT_LENGTH,
+      &illegal_argument_length("create", 1),
       state,
     );
   }
@@ -65,7 +65,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
     build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &first_arg.expr,
-      NON_OBJECT_FOR_STYLEX_CALL,
+      &non_style_object("create"),
       state,
     );
   }
@@ -96,22 +96,35 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
-    None => panic!("{}", NON_STATIC_KEYFRAME_VALUE),
+    None => panic!("{}", non_static_value("keyframes")),
   };
 
   let init_call = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(&init_expr, &init_expr, NON_STATIC_KEYFRAME_VALUE, state);
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      &non_static_value("keyframes"),
+      state,
+    );
   });
 
   match state.find_top_level_expr(init_call, |_| false, None) {
     Some(_) => {}
-    None => {
-      build_code_frame_error_and_panic(&init_expr, &init_expr, UNBOUND_STYLEX_CALL_VALUE, state)
-    }
+    None => build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      &unbound_call_value("keyframes"),
+      state,
+    ),
   }
 
   if init_call.args.len() != 1 {
-    build_code_frame_error_and_panic(&init_expr, &init_expr, ILLEGAL_ARGUMENT_LENGTH, state);
+    build_code_frame_error_and_panic(
+      &init_expr,
+      &init_expr,
+      &illegal_argument_length("keyframes", 1),
+      state,
+    );
   }
 
   let first_arg: &_ = &init_call.args[0];
@@ -119,7 +132,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
     build_code_frame_error_and_panic(
       &init_expr,
       &first_arg.expr,
-      NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL,
+      &non_style_object("keyframes"),
       state,
     );
   }
@@ -138,7 +151,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
-      UNBOUND_STYLEX_CALL_VALUE,
+      &unbound_call_value("createTheme"),
       state,
     );
   });
@@ -147,7 +160,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
-      NON_STATIC_KEYFRAME_VALUE,
+      &unbound_call_value("createTheme"),
       state,
     );
   });
@@ -156,7 +169,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     build_code_frame_error_and_panic(
       init_expr,
       &Expr::Call(call.clone()),
-      NON_STATIC_KEYFRAME_VALUE,
+      &non_static_value("keyframes"),
       state,
     );
   });
@@ -166,7 +179,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     None => build_code_frame_error_and_panic(
       init_expr,
       &Expr::Call(call.clone()),
-      UNBOUND_STYLEX_CALL_VALUE,
+      &unbound_call_value("createTheme"),
       state,
     ),
   };
@@ -175,7 +188,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     build_code_frame_error_and_panic(
       init_expr,
       &Expr::Call(call.clone()),
-      ILLEGAL_ARGUMENT_LENGTH,
+      &illegal_argument_length("createTheme", 1),
       state,
     );
   }
@@ -221,7 +234,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
           expr: Box::new(call_expr.clone()),
         })
         .expr,
-      UNBOUND_STYLEX_CALL_VALUE,
+      &unbound_call_value("defineVars"),
       state,
     ),
   };
@@ -238,7 +251,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
           expr: Box::new(call_expr.clone()),
         })
         .expr,
-      ILLEGAL_ARGUMENT_LENGTH,
+      &illegal_argument_length("defineVars", 1),
       state,
     );
   }
@@ -246,7 +259,12 @@ pub(crate) fn find_and_validate_stylex_define_vars(
   let TopLevelExpression(kind, _, _) = stylex_create_theme_top_level_expr;
 
   if !matches!(kind, TopLevelExpressionKind::NamedExport) {
-    build_code_frame_error_and_panic(&call_expr, &call_expr, NON_EXPORT_NAMED_DECLARATION, state);
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &call_expr,
+      &non_export_named_declaration("defineVars"),
+      state,
+    );
   }
 
   Some(stylex_create_theme_top_level_expr.clone())
@@ -275,7 +293,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
           expr: Box::new(call_expr.clone()),
         })
         .expr,
-      UNBOUND_STYLEX_CALL_VALUE,
+      &unbound_call_value("defineConsts"),
       state,
     ),
   };
@@ -292,7 +310,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
           expr: Box::new(call_expr.clone()),
         })
         .expr,
-      ILLEGAL_ARGUMENT_LENGTH,
+      &illegal_argument_length("defineConsts", 1),
       state,
     );
   }
@@ -301,7 +319,12 @@ pub(crate) fn find_and_validate_stylex_define_consts(
     define_consts_top_level_expr.0,
     TopLevelExpressionKind::NamedExport
   ) {
-    build_code_frame_error_and_panic(&call_expr, &call_expr, NON_EXPORT_NAMED_DECLARATION, state);
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &call_expr,
+      &non_export_named_declaration("defineConsts"),
+      state,
+    );
   }
 
   Some(define_consts_top_level_expr.clone())
@@ -532,10 +555,10 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
         }
       }
       _ => {
-        build_code_frame_error_and_panic(expr, expr, NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL, state);
+        build_code_frame_error_and_panic(expr, expr, &non_style_object("keyframes"), state);
       }
     },
-    _ => panic!("{}", NON_OBJECT_FOR_STYLEX_KEYFRAMES_CALL),
+    _ => panic!("{}", non_static_value("keyframes")),
   }
 }
 

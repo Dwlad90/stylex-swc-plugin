@@ -5,7 +5,7 @@ use swc_core::ecma::{
 };
 
 #[test]
-#[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
+#[should_panic(expected = "create() calls must be bound to a bare variable.")]
 fn invalid_use_not_bound() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -29,7 +29,7 @@ fn invalid_use_not_bound() {
 }
 
 #[test]
-#[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
+#[should_panic(expected = "create() calls must be bound to a bare variable.")]
 fn invalid_use_not_called_at_top_level() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -55,7 +55,7 @@ fn invalid_use_not_called_at_top_level() {
 }
 
 #[test]
-#[should_panic(expected = "stylex() should have 1 argument.")]
+#[should_panic(expected = "create() should have 1 argument.")]
 fn invalid_argument_none() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -79,7 +79,7 @@ fn invalid_argument_none() {
 }
 
 #[test]
-#[should_panic(expected = "stylex() should have 1 argument.")]
+#[should_panic(expected = "create() should have 1 argument.")]
 fn invalid_argument_too_many() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -103,7 +103,7 @@ fn invalid_argument_too_many() {
 }
 
 #[test]
-#[should_panic(expected = "stylex.create() can only accept a style object")]
+#[should_panic(expected = "create() can only accept an object.")]
 fn invalid_argument_non_static() {
   test_transform(
     Syntax::Typescript(TsSyntax {

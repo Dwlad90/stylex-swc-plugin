@@ -9,7 +9,7 @@ use swc_core::ecma::{
 };
 
 #[test]
-#[should_panic(expected = "stylex.keyframes() can only accept an object.")]
+#[should_panic(expected = "keyframes() can only accept an object.")]
 fn local_variable_keyframes_object() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -41,7 +41,7 @@ fn local_variable_keyframes_object() {
 }
 
 #[test]
-#[should_panic(expected = "stylex.keyframes() can only accept an object.")]
+#[should_panic(expected = "keyframes() can only accept an object.")]
 fn only_argument_must_be_an_object_of_objects_null() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -65,7 +65,7 @@ fn only_argument_must_be_an_object_of_objects_null() {
 }
 
 #[test]
-#[should_panic(expected = "Every frame within a stylex.keyframes() call must be an object.")]
+#[should_panic(expected = "Every frame within a keyframes() call must be an object.")]
 fn only_argument_must_be_an_object_of_objects_false() {
   test_transform(
     Syntax::Typescript(TsSyntax {

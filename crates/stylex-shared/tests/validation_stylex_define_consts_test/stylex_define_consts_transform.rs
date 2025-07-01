@@ -5,9 +5,7 @@ use swc_core::ecma::{
 };
 
 #[test]
-#[should_panic(
-  expected = "The return value of stylex.defineVars() must be bound to a named export."
-)]
+#[should_panic(expected = "The return value of defineConsts() must be bound to a named export.")]
 fn invalid_export_not_bound() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -31,7 +29,7 @@ fn invalid_export_not_bound() {
 }
 
 #[test]
-#[should_panic(expected = "stylex.create calls must be bound to a bare variable.")]
+#[should_panic(expected = "defineConsts() calls must be bound to a bare variable.")]
 fn invalid_export_not_bound_unbound() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -55,7 +53,7 @@ fn invalid_export_not_bound_unbound() {
 }
 
 #[test]
-#[should_panic(expected = "stylex() should have 1 argument.")]
+#[should_panic(expected = "defineConsts() should have 1 argument.")]
 fn invalid_argument_none() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -79,7 +77,7 @@ fn invalid_argument_none() {
 }
 
 #[test]
-#[should_panic(expected = "stylex() should have 1 argument.")]
+#[should_panic(expected = "defineConsts() should have 1 argument.")]
 fn invalid_argument_too_many() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -103,7 +101,7 @@ fn invalid_argument_too_many() {
 }
 
 #[test]
-#[should_panic(expected = "stylex.create() can only accept a style object.")]
+#[should_panic(expected = "defineConsts() can only accept an object.")]
 fn invalid_argument_number() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -127,7 +125,7 @@ fn invalid_argument_number() {
 }
 
 #[test]
-#[should_panic(expected = "stylex.create() can only accept a style object.")]
+#[should_panic(expected = "defineConsts() can only accept an object.")]
 fn invalid_argument_string() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -151,7 +149,7 @@ fn invalid_argument_string() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
 fn invalid_argument_non_static() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -222,7 +220,7 @@ fn invalid_key_starts_with_double_dash() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
 fn invalid_key_non_static() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -250,7 +248,7 @@ fn invalid_key_non_static() {
 /* Values */
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
 fn invalid_value_non_static_variable() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -276,7 +274,7 @@ fn invalid_value_non_static_variable() {
 }
 
 #[test]
-#[should_panic(expected = "Only static values are allowed inside of a stylex.create() call.")]
+#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
 fn invalid_value_non_static_function_call() {
   test_transform(
     Syntax::Typescript(TsSyntax {

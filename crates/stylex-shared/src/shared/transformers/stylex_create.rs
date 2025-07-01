@@ -84,19 +84,26 @@ pub(crate) fn stylex_create_set(
     for (key, value) in compiled_namespace_tuples {
       match value {
         CompiledResult::ComputedStyles(class_name_tuples) => {
-          for ComputedStyle(_class_name, _, classes_to_original_path) in class_name_tuples.iter() {
+          let mut unique_class_names = IndexSet::new();
+
+          for ComputedStyle(class_name, _, classes_to_original_path) in class_name_tuples.iter() {
+            unique_class_names.insert(class_name.as_str());
             class_paths_in_namespace.extend(classes_to_original_path.clone());
           }
 
-          let class_name = class_name_tuples
+          let class_name = unique_class_names
             .iter()
-            .map(|ComputedStyle(name, _, _)| name.as_str())
+            .cloned()
             .collect::<Vec<&str>>()
             .join(" ");
 
           namespace_obj.insert(
             key.clone(),
-            Rc::new(FlatCompiledStylesValue::String(class_name.clone())),
+            if !class_name.is_empty() {
+              Rc::new(FlatCompiledStylesValue::String(class_name.clone()))
+            } else {
+              Rc::new(FlatCompiledStylesValue::Null)
+            },
           );
 
           for ComputedStyle(class_name, injectable_styles, _) in class_name_tuples.iter() {

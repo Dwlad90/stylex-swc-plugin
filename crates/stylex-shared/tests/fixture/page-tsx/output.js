@@ -19,7 +19,7 @@ export default function Home(_props: Props) {
         "data-style-src": "input.stylex.js:118"
     }}>
         <p {...{
-        className: "display-xjg0vao position-x1n2onr6 position-x15f3dyk justifyContent-xo5s888 alignItems-xu8adaz width-x1v68ji2 margin-x1ghz6dp paddingInline-x1fvqwet paddingTop-x1eq7djj paddingTop-xrmelco paddingBottom-x1hsyo9t paddingBottom-x191vjuz backgroundColor-x1lz9bv1 backgroundImage-x1n7lvf9 borderWidth-xmkeg23 borderWidth-x1m60m6i         borderStyle-x1y0btm7 borderColor-x1hydj5d borderBottomColor-xslp3sd borderRadius-x1nklt0o borderRadius-xd22jv         inset-x1los6se",
+        className: "display-xjg0vao position-x1n2onr6 position-x15f3dyk justifyContent-xo5s888 alignItems-xu8adaz width-x1v68ji2 margin-x1ghz6dp paddingInline-x1fvqwet paddingTop-x1eq7djj paddingTop-xrmelco paddingBottom-x1hsyo9t paddingBottom-x191vjuz backgroundColor-x1lz9bv1 backgroundImage-x1n7lvf9 borderWidth-xmkeg23 borderWidth-x1m60m6i borderStyle-x1y0btm7 borderColor-x1hydj5d borderBottomColor-xslp3sd borderRadius-x1nklt0o borderRadius-xd22jv inset-x1los6se",
         "data-style-src": "input.stylex.js:135"
     }}>
           Get started by editing&nbsp;

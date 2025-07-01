@@ -14,7 +14,7 @@ export default function Home() {
         className: "x1jfb8zj xarpa2k x1h91t0o xlql8t6 xh8yej3 xhtitgo xum72dy"
     }}>
         <p {...{
-        className: "xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x2jueht xx1ocoh xzfjryi x1xwseyw x1hs85sq xhxofkm x1rgf71s xmkeg23 x1m60m6i         x1y0btm7 xbc1r81 x1e6d3oi xvm41bv xd22jv         x1los6se"
+        className: "xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x2jueht xx1ocoh xzfjryi x1xwseyw x1hs85sq xhxofkm x1rgf71s xmkeg23 x1m60m6i x1y0btm7 xbc1r81 x1e6d3oi xvm41bv xd22jv x1los6se"
     }}>
           Get started by editing&nbsp;
           <code {...{

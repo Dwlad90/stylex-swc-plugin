@@ -163,9 +163,9 @@ impl From<StyleXOptionsParams> for StyleXOptions {
     let runtime_injection = match options.runtime_injection {
       Some(value) => match value {
         true => RuntimeInjection::Regular(DEFAULT_INJECT_PATH.to_string()),
-        false => RuntimeInjection::Boolean(options.dev.unwrap_or(false)),
+        false => RuntimeInjection::Boolean(false),
       },
-      None => RuntimeInjection::Boolean(options.dev.unwrap_or(false)),
+      None => RuntimeInjection::Boolean(false),
     };
 
     StyleXOptions {

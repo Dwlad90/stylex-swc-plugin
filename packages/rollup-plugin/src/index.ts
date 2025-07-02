@@ -114,7 +114,7 @@ export default function stylexPlugin({
 
       if (
         extractCSS &&
-        !normalizedRsOptions.dev &&
+        !normalizedRsOptions.runtimeInjection &&
         metadata.stylex != null &&
         metadata.stylex.length > 0
       ) {

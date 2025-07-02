@@ -1,6 +1,4 @@
 'use client';
-import _inject from "@stylexjs/stylex/lib/stylex-inject";
-var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 import { display } from '@styles/utils';
 import foo from 'bar';
@@ -34,7 +32,6 @@ export const ComponentWithCallings = ()=>{
     });
     return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)}>{array.map((_)=>null)}</div> : null}</div>;
 };
-_inject2(".background-x1s5p4n8{background:#F7F5F6}", 1000);
 const s = {
     div: {
         "background-kC7eKd": "background-x1s5p4n8",

@@ -1,9 +1,8 @@
-use std::path::PathBuf;
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
-    stylex_options::{ModuleResolution, StyleXOptionsParams},
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
 };
 use swc_core::{
@@ -22,24 +21,24 @@ test!(
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
     PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/src/vars/default.cssvars.js".into()),
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: Some("cssvars".to_string()),
-      }),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
+      runtime_injection: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
-  processes_tokens_in_files_with_configured_extension,
+  tokens_object,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = stylex.defineVars({
-      color: 'red'
+      color: 'red',
+      nextColor: 'green',
+      otherColor: 'blue'
     });
   "#
 );

@@ -631,18 +631,53 @@ test!(
       ..StyleXOptionsParams::default()
     })
   ),
-  dev_adds_style_injection,
+  adds_dev_data,
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xwx8imx)",
-  otherColor: "var(--xaaua2w)",
-  radius: "var(--xbbre8)",
-  __themeName__: "xop34xu"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xwx8imx)",
+      otherColor: "var(--xaaua2w)",
+      radius: "var(--xbbre8)",
+      __themeName__: "xop34xu"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: 'orange'
-});
+    export const theme = stylex.createTheme(vars, {
+      color: 'orange'
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  options_runtime_injection_true,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xwx8imx)",
+      otherColor: "var(--xaaua2w)",
+      radius: "var(--xbbre8)",
+      __themeName__: "xop34xu"
+    };
+
+    export const theme = stylex.createTheme(vars, {
+      color: 'orange'
+    });
   "#
 );

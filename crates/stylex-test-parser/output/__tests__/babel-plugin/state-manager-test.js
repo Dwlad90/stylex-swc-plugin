@@ -124,7 +124,6 @@ describe('StateManager config parsing', ()=>{
             expect(stateManager.options.dev).toBe(true);
             expect(stateManager.options.debug).toBe(true);
             expect(stateManager.options.enableDevClassNames).toBe(false);
-            expect(stateManager.options.runtimeInjection).toBe('@stylexjs/stylex/lib/stylex-inject');
             expect(warnings).toEqual([]);
         });
     });

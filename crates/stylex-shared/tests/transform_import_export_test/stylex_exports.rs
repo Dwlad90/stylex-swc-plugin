@@ -5,11 +5,9 @@ use stylex_shared::{
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
 };
-use swc_core::{
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
+use swc_core::ecma::{
+  parser::{Syntax, TsSyntax},
+  transforms::testing::test,
 };
 
 test!(

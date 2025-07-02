@@ -140,7 +140,7 @@ function createBuilder() {
     filesToTransform.forEach(file => {
       const filePath = path.resolve(cwd || '/', file);
       const contents = fs.readFileSync(filePath, 'utf-8');
-      if (!bundler.shouldTransform(contents)) {
+      if (!bundler.shouldTransform(contents, rsOptions)) {
         return;
       }
       const transformedResult = bundler.transform(filePath, contents, rsOptions || {}, {

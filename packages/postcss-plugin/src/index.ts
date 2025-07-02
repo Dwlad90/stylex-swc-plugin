@@ -42,7 +42,10 @@ const plugin = ({
           include,
           exclude,
           cwd,
-          rsOptions,
+          rsOptions: {
+            ...rsOptions,
+            importSources: rsOptions?.importSources ?? ['@stylexjs/stylex', 'stylex'],
+          },
           useCSSLayers,
           isDev,
         });

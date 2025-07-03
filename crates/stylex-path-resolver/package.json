@@ -35,7 +35,7 @@
   "devDependencies": {
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
-    "prettier": "^3.5.3"
+    "prettier": "^3.6.2"
   },
   "keywords": [
     "stylex",

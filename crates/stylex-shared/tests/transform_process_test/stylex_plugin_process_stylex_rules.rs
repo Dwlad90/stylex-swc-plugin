@@ -110,3 +110,54 @@ fn all_rules_use_layers_true() {
   let code = transform(FIXTURE, Some(opts));
   assert_snapshot!("all_rules_use_layers_true_code", code);
 }
+
+#[test]
+fn respects_string_syntax_for_import_sources() {
+  let opts = StyleXOptionsParams {
+    import_sources: Some(vec![
+      stylex_shared::shared::structures::named_import_source::ImportSources::Regular(
+        "@stylexjs/stylex".to_string(),
+      ),
+    ]),
+    unstable_module_resolution: Some(ModuleResolution {
+      r#type: "commonJS".to_string(),
+      root_dir: Some(
+        std::env::current_dir()
+          .unwrap()
+          .join("tests/fixture/consts")
+          .to_string_lossy()
+          .to_string(),
+      ),
+      theme_file_extension: None,
+    }),
+    ..Default::default()
+  };
+  let code = transform(FIXTURE, Some(opts));
+  assert_snapshot!("respects_string_syntax_for_import_sources", code);
+}
+
+#[test]
+fn postcss_plugin_respects_string_syntax_for_import_sources() {
+  let input = r#"
+        import * as stylex from '@stylexjs/stylex';
+        import { constants } from './input.stylex';
+        export const styles = stylex.create({
+            root: {
+                color: constants.YELLOW,
+            }
+        });
+    "#;
+  let opts = StyleXOptionsParams {
+    import_sources: Some(vec![
+      stylex_shared::shared::structures::named_import_source::ImportSources::Regular(
+        "@stylexjs/postcss-plugin".to_string(),
+      ),
+    ]),
+    ..Default::default()
+  };
+  let code = transform(input, Some(opts));
+  assert_snapshot!(
+    "postcss_plugin_respects_string_syntax_for_import_sources_code",
+    code
+  );
+}

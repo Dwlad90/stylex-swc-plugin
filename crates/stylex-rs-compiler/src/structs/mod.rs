@@ -2,26 +2,13 @@ use napi::JsObject;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 use stylex_shared::shared::structures::{
-  named_import_source::ImportSources,
+  named_import_source::{ImportSources, NamedImportSource},
   stylex_options::{ModuleResolution, StyleResolution, StyleXOptionsParams},
 };
 
-#[napi(object)]
-#[derive(Debug)]
-pub struct StyleXModuleResolution {
-  pub r#type: String,
-  pub root_dir: Option<String>,
-  pub theme_file_extension: Option<String>,
-}
+use crate::enums::{ImportSourceUnion, SourceMaps, StyleXModuleResolution};
 
-#[napi(string_enum)]
 #[derive(Debug)]
-pub enum SourceMaps {
-  True,
-  False,
-  Inline,
-}
-
 #[napi(object)]
 pub struct StyleXOptions {
   pub style_resolution: Option<String>,
@@ -31,7 +18,7 @@ pub struct StyleXOptions {
   #[napi(ts_type = "Record<string, string>")]
   pub defined_stylex_css_variables: Option<FxHashMap<String, String>>,
   #[napi(ts_type = "(string | { as: string, from: string })[]")]
-  pub import_sources: Option<Vec<String>>,
+  pub import_sources: Option<Vec<ImportSourceUnion>>,
   pub treeshake_compensation: Option<bool>,
   pub enable_inlined_conditional_merge: Option<bool>,
   pub dev: Option<bool>,
@@ -71,7 +58,13 @@ impl From<StyleXOptions> for StyleXOptionsParams {
     let import_sources: Option<Vec<ImportSources>> = val.import_sources.map(|import_sources| {
       import_sources
         .into_iter()
-        .filter_map(|s| serde_json::from_str(&s).ok())
+        .map(|source| match source {
+          ImportSourceUnion::Regular(s) => ImportSources::Regular(s),
+          ImportSourceUnion::Named(named) => ImportSources::Named(NamedImportSource {
+            r#as: named.r#as,
+            from: named.from,
+          }),
+        })
         .collect()
     });
 

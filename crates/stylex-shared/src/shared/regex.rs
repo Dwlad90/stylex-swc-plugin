@@ -57,3 +57,6 @@ pub(crate) static URL_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 pub(crate) static JSON_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"(\{|,)\s*([a-zA-Z0-9_$*-]+)\s*:"#).unwrap());
+
+pub static NPM_NAME_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$").unwrap());

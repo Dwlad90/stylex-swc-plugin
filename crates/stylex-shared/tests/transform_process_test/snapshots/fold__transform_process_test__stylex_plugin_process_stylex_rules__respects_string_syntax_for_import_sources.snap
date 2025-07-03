@@ -1,0 +1,23 @@
+---
+source: crates/stylex-shared/tests/transform_process_test/stylex_plugin_process_stylex_rules.rs
+expression: code
+---
+import * as stylex from '@stylexjs/stylex';
+import { constants } from './input.stylex';
+export const styles = {
+    root: {
+        kKVMdj: "x9113fw",
+        kWkggS: "xrkmrrc",
+        kVAM5u: "x1bg2uv5 x1118g2m x1i4axbb",
+        kzOINU: null,
+        kGJrpR: null,
+        kaZRDh: null,
+        kBCPoo: null,
+        k26BEO: null,
+        k5QoK5: null,
+        kLZC3w: null,
+        kL6WhQ: null,
+        kKMj4B: "x1skrh0i x1cmij7u",
+        $$css: true
+    }
+};

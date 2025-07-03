@@ -441,16 +441,12 @@ impl StateManager {
     call: &CallExpr,
     extended_predicate_fn: impl Fn(&TopLevelExpression) -> bool,
     kind: Option<TopLevelExpressionKind>,
-  ) -> Option<TopLevelExpression> {
-    self
-      .top_level_expressions
-      .iter()
-      .find(|tpe| {
-        kind.is_none_or(|kind| tpe.0 == kind)
-          && (matches!(tpe.1, Expr::Call(ref c) if c.eq_ignore_span(call))
-            || extended_predicate_fn(tpe))
-      })
-      .cloned()
+  ) -> Option<&TopLevelExpression> {
+    self.top_level_expressions.iter().find(|tpe| {
+      kind.is_none_or(|kind| tpe.0 == kind)
+        && (matches!(tpe.1, Expr::Call(ref c) if c.eq_ignore_span(call))
+          || extended_predicate_fn(tpe))
+    })
   }
 
   pub(crate) fn register_styles(

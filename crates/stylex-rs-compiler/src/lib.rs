@@ -1,12 +1,11 @@
+mod enums;
 mod structs;
 mod utils;
 use log::info;
 use napi::{Env, Result};
 use std::panic;
 use std::{env, sync::Arc};
-use structs::{
-  SourceMaps, StyleXMetadata, StyleXModuleResolution, StyleXOptions, StyleXTransformResult,
-};
+use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_shared::{
@@ -28,6 +27,8 @@ use swc_core::{
 
 use napi_derive::napi;
 use utils::extract_stylex_metadata;
+
+use crate::enums::{ImportSourceUnion, SourceMaps, StyleXModuleResolution};
 
 #[napi]
 pub fn transform(
@@ -138,8 +139,8 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     runtime_injection: options.runtime_injection.or(Some(false)),
     treeshake_compensation: options.treeshake_compensation.or(Some(true)),
     import_sources: options.import_sources.or(Some(vec![
-      "stylex".to_string(),
-      "@stylexjs/stylex".to_string(),
+      ImportSourceUnion::Regular("stylex".to_string()),
+      ImportSourceUnion::Regular("@stylexjs/stylex".to_string()),
     ])),
     unstable_module_resolution: options.unstable_module_resolution.or_else(|| {
       Some(StyleXModuleResolution {

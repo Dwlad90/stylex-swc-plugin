@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/design-system",
   "description": "A design system for stylex workspace examples",
-  "version": "0.8.2-dev.1",
+  "version": "0.9.0-rc.1",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@stylexjs/stylex": "^0.12.0",
-    "@stylexswc/rs-compiler": "0.8.2-dev.1",
+    "@stylexswc/rs-compiler": "0.9.0-rc.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

@@ -12,13 +12,36 @@ export default function createBundler() {
   function shouldTransform(sourceCode: string, rsOptions?: StyleXPluginOption['rsOptions']) {
     const { importSources } = rsOptions ?? {};
 
-    return importSources?.some(importSource => {
+    let parsedImportSources: StyleXOptions['importSources'] | undefined;
+
+    try {
+      parsedImportSources = importSources?.map(importSource => {
+        const a = typeof importSource === 'string' ? JSON.parse(importSource) : importSource;
+
+        return a;
+      });
+    } catch (error) {
+      parsedImportSources = importSources;
+    }
+
+    const shouldTransform = parsedImportSources?.some(importSource => {
       if (typeof importSource === 'string') {
         return sourceCode.includes(importSource);
       }
-
       return sourceCode.includes(importSource.from);
     });
+
+    // if (importSourcesExtend != null) {
+    //   shouldTransform ||= importSourcesExtend.some(importSource => {
+    //     if (typeof importSource === 'string') {
+    //       return sourceCode.includes(importSource);
+    //     }
+
+    //     return sourceCode.includes(importSource.from);
+    //   });
+    // }
+
+    return shouldTransform;
   }
 
   // Transforms the source code using Babel, extracting StyleX rules and storing them.
@@ -37,7 +60,10 @@ export default function createBundler() {
     };
 
     try {
-      transformResult = stylexTransform(id, sourceCode, normalizeRsOptions(rsOptions ?? {}));
+      const rsOptionsNormalized = normalizeRsOptions(rsOptions);
+
+
+      transformResult = stylexTransform(id, sourceCode, rsOptionsNormalized);
     } catch (error) {
       if (shouldSkipTransformError) {
         console.warn(

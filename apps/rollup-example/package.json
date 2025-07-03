@@ -1,13 +1,13 @@
 {
   "name": "@stylexswc/rollup-example",
-  "description": "A simple rollup example to test stylexswc/rollup-plugin",
+  "description": "A simple rollup example to test @stylexswc/rollup-plugin",
   "version": "0.8.2-dev.1",
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "rollup --config ./rollup.config.mjs",
-    "serve": "serve --listen 3004 ./dist",
-    "start": "rollup --config ./rollup.config.mjs --watch",
+    "build": "NODE_ENV=production rollup --config ./rollup.config.mjs",
+    "serve": "serve --listen 3011 ./dist",
+    "start": "pnpx rollup --config ./rollup.config.mjs --watch",
     "test:visual": "playwright test"
   },
   "dependencies": {

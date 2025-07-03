@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import defaultConfig from '@stylexswc/playwright';
 
-const PORT = +(process.env.PORT || 3004);
+const PORT = +(process.env.PORT || 3011);
 
 export default defineConfig({
   ...defaultConfig,

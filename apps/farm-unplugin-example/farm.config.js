@@ -34,6 +34,7 @@ export default defineConfig({
         useCSSLayers: true,
         // this must set `true` in farm
         treeshakeCompensation: true,
+        runtimeInjection: true
       },
     }),
   ],

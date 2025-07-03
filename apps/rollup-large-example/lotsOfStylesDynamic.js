@@ -267,9 +267,7 @@ export const lotsOfStylesDynamic = [
   }),
   stylex.create({
     dynamicWrapperFocusable: (outline) => ({
-      ':focus': {
-        outline,
-      },
+      outline,
     }),
   }),
   stylex.create({

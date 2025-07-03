@@ -3,13 +3,13 @@
 exports[`Home render styles successfully 1`] = `
 <div>
   <main
-    class="x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 xhb9i9n xv7yizt x1nww67f xmz0i5r xs6rbim xysyzu8 x7f1qth  "
+    class="x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 xhb9i9n xv7yizt x1nww67f xmz0i5r xs6rbim xysyzu8 x7f1qth"
   >
     <div
       class="x1jfb8zj xarpa2k x1h91t0o x11iygpg xg7bv4n xh8yej3 xhtitgo xgnkaqo"
     >
       <p
-        class="xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x1hmfenf x1oemq8d xp5n8cg x1e66gtf x1nww67f xh4n78y xzclsrz xmkeg23 x1ehvz7d         x1y0btm7 xoey0em x1ngu7wn x137yrnm xd22jv         x1los6se"
+        class="xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x1hmfenf x1oemq8d xp5n8cg x1e66gtf x1nww67f xh4n78y xzclsrz xmkeg23 x1ehvz7d x1y0btm7 xoey0em x1ngu7wn x137yrnm xd22jv x1los6se"
       >
         Get started by editing 
         <code
@@ -66,7 +66,7 @@ exports[`Home render styles successfully 1`] = `
       class="xrvj5dj xtp8ymz xx3cr9d xtffbmy x1upcy5i x193iq5w xl858mc x15hltav"
     >
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih         x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://stylexjs.com/docs/learn/"
         rel="noopener noreferrer"
         target="_blank"
@@ -89,7 +89,7 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih         x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://stylexjs.com/docs/api/"
         rel="noopener noreferrer"
         target="_blank"
@@ -112,7 +112,7 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih         x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://stylexjs.com/playground/"
         rel="noopener noreferrer"
         target="_blank"
@@ -135,7 +135,7 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih         x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://github.com/nmn/nextjs-app-dir-stylex"
         rel="noopener noreferrer"
         target="_blank"

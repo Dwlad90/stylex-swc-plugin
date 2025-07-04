@@ -39,6 +39,10 @@ where
           return Some(value);
         }
 
+        if let Some(value) = self.transform_stylex_view_transition_class_call(parent_var_decl) {
+          return Some(value);
+        }
+
         if let Some(value) = self.transform_stylex_position_try_call(parent_var_decl) {
           return Some(value);
         }

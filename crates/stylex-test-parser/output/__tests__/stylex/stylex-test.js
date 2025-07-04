@@ -7,7 +7,8 @@ describe('stylex', ()=>{
             'defineVars',
             'firstThatWorks',
             'keyframes',
-            'positionTry'
+            'positionTry',
+            'viewTransitionClass'
         ].forEach((api)=>{
             test(`stylex.${api}`, ()=>{
                 expect(()=>stylex[api]()).toThrow();

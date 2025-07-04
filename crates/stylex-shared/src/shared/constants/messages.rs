@@ -78,3 +78,5 @@ pub(crate) static THEME_IMPORT_KEY_AS_OBJECT_KEY: &str =
   "Theme import keys cannot be used as object keys. Please use a valid object key.";
 
 pub(crate) static POSITION_TRY_INVALID_PROPERTY: &str = "Invalid property in `positionTry()` call. It may only contain, positionAnchor, positionArea, inset properties (top, left, insetInline etc.), margin properties, size properties (height, inlineSize, etc.), and self-alignment properties (alignSelf, justifySelf, placeSelf)";
+
+pub(crate) const VIEW_TRANSITION_CLASS_INVALID_PROPERTY: &str = "Invalid property in `viewTransitionClass()` call. It may only contain group, imagePair, old, and new properties";

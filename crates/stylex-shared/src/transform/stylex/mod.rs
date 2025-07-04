@@ -7,3 +7,4 @@ pub(crate) mod transform_stylex_define_vars_call;
 pub(crate) mod transform_stylex_keyframes_call;
 pub(crate) mod transform_stylex_position_try_call;
 pub(crate) mod transform_stylex_props_call;
+pub(crate) mod transform_stylex_view_transition_class_call;

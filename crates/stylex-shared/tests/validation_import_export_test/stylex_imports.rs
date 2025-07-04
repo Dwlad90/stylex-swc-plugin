@@ -97,3 +97,41 @@ test!(
     const positionName = stylex.positionTry({});
   "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  valid_import_named_view_transition_class,
+  r#"
+    import { viewTransitionClass } from '@stylexjs/stylex';
+    const transitionCls = viewTransitionClass({});
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      None,
+    )
+  },
+  valid_import_namespace_view_transition_class,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const transitionCls = stylex.viewTransitionClass({});
+  "#
+);

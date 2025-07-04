@@ -7,6 +7,10 @@ describe('inject', ()=>{
         const cssText = '@position-try --name { top: anchor(bottom); left: anchor(left); }';
         expect(inject(cssText, 10)).toMatchInlineSnapshot('"@position-try --name { top: anchor(bottom); left: anchor(left); }"');
     });
+    test('::view-transition', ()=>{
+        const cssText = '::view-transition-group(*.name){transition-property:none;}::view-transition-image-pair(*.name){border-radius:16px;}::view-transition-old(*.name){animation-duration:.5s;}::view-transition-new(*.name){animation-timing-function:ease-out;}';
+        expect(inject(cssText, 10)).toMatchInlineSnapshot('"::view-transition-group(*.name){transition-property:none;}::view-transition-image-pair(*.name){border-radius:16px;}::view-transition-old(*.name){animation-duration:.5s;}::view-transition-new(*.name){animation-timing-function:ease-out;}"');
+    });
     test('@media', ()=>{
         const cssText = '@media (min-width: 320px) { .color { color: red } }';
         expect(inject(cssText, 200)).toMatchInlineSnapshot('"@media (min-width: 320px) { .color { color: red } }"');

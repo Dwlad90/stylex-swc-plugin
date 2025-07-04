@@ -2,7 +2,7 @@ use std::fmt::Write;
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, ObjectLit, PropOrSpread};
+use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{
   enums::data_structures::{
@@ -13,20 +13,17 @@ use crate::shared::{
   structures::{
     functions::{FunctionConfig, FunctionType},
     injectable_style::InjectableStyle,
-    order_pair::OrderPair,
     pair::Pair,
-    pre_rule::PreRuleValue,
     state_manager::StateManager,
   },
   utils::{
     ast::{
-      convertors::{key_value_to_str, lit_to_string, string_to_expression},
+      convertors::{lit_to_string, string_to_expression},
       factories::{object_lit_factory, prop_or_spread_string_factory},
     },
     common::{create_hash, dashify},
-    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::common::{generate_ltr, generate_rtl, transform_value_cached},
-    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys},
+    object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
   },
 };
 
@@ -46,8 +43,8 @@ pub(crate) fn stylex_position_try(
 
   let extended_object = {
     let pipe_result = Pipe::create(styles.clone())
-      .pipe(|styles| preprocess_properties(styles, state))
-      .pipe(|entries| obj_map_keys(&entries, dashify))
+      .pipe(|styles| preprocess_object_properties(&Expr::Object(styles), state))
+      .pipe(|entries| obj_map_keys_string(&entries, dashify))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),
@@ -198,23 +195,4 @@ fn construct_position_try_obj(styles: IndexMap<String, Rc<FlatCompiledStylesValu
     })
     .collect::<Vec<String>>()
     .join("")
-}
-
-fn preprocess_properties(style: ObjectLit, state: &mut StateManager) -> IndexMap<String, String> {
-  let res: Vec<_> = obj_entries(&Expr::Object(style.clone()))
-    .iter()
-    .flat_map(|pair| {
-      let key = key_value_to_str(pair);
-
-      flat_map_expanded_shorthands(
-        (key, PreRuleValue::Expr(*pair.value.clone())),
-        &state.options,
-      )
-      .into_iter()
-      .collect::<Vec<OrderPair>>()
-    })
-    .filter(|item| item.1.is_some())
-    .collect::<Vec<OrderPair>>();
-
-  obj_from_entries(&res)
 }

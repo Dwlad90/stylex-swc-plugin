@@ -22,7 +22,7 @@ use crate::shared::{
     common::{create_hash, dashify},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::common::{generate_ltr, generate_rtl, transform_value_cached},
-    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys},
+    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
   },
 };
 
@@ -47,7 +47,7 @@ pub(crate) fn stylex_keyframes(
 
     let pipe_result = Pipe::create(frame)
       .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| obj_map_keys(&entries, dashify))
+      .pipe(|entries| obj_map_keys_string(&entries, dashify))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),

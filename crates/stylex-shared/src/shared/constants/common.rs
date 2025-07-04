@@ -73,3 +73,60 @@ pub(crate) static CSS_CONTENT_KEYWORDS: Lazy<[&str; 11]> = Lazy::new(|| {
     "unset",
   ]
 });
+
+// TODO: Once we have a reliable validator, these property checks should be replaced with
+// validators that can also validate the values.
+pub(crate) static VALID_POSITION_TRY_PROPERTIES: Lazy<[&str; 40]> = Lazy::new(|| {
+  [
+    // anchor Properties
+    "anchorName",
+    // position Properties
+    "positionAnchor",
+    "positionArea",
+    // inset Properties
+    "top",
+    "right",
+    "bottom",
+    "left",
+    "inset",
+    "insetBlock",
+    "insetBlockEnd",
+    "insetBlockStart",
+    "insetInline",
+    "insetInlineEnd",
+    "insetInlineStart",
+    // margin Properties
+    "margin",
+    "marginBlock",
+    "marginBlockEnd",
+    "marginBlockStart",
+    "marginInline",
+    "marginInlineEnd",
+    "marginInlineStart",
+    "marginTop",
+    "marginBottom",
+    "marginLeft",
+    "marginRight",
+    // size properties
+    "width",
+    "height",
+    "minWidth",
+    "minHeight",
+    "maxWidth",
+    "maxHeight",
+    "blockSize",
+    "inlineSize",
+    "minBlockSize",
+    "minInlineSize",
+    "maxBlockSize",
+    "maxInlineSize",
+    // self alignment properties
+    "alignSelf",
+    "justifySelf",
+    "placeSelf",
+  ]
+});
+
+// Validation of `stylex.viewTransitionClass` function call
+pub(crate) static VALID_VIEW_TRANSITION_CLASS_PROPERTIES: Lazy<[&str; 4]> =
+  Lazy::new(|| ["group", "imagePair", "old", "new"]);

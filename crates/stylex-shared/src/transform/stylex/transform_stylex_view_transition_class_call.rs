@@ -5,46 +5,49 @@ use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use crate::shared::{
-  constants::messages::{non_static_value, non_style_object},
-  transformers::stylex_first_that_works::stylex_first_that_works,
+use crate::StyleXTransform;
+use crate::shared::structures::{
+  functions::{FunctionConfig, FunctionMap, FunctionType},
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
+use crate::shared::utils::{
+  ast::convertors::string_to_expression, validators::assert_valid_properties,
 };
 use crate::shared::{
-  constants::{common::VALID_POSITION_TRY_PROPERTIES, messages::POSITION_TRY_INVALID_PROPERTY},
-  utils::js::evaluate::evaluate,
+  constants::{
+    common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
+    messages::{VIEW_TRANSITION_CLASS_INVALID_PROPERTY, non_static_value, non_style_object},
+  },
+  transformers::{
+    stylex_first_that_works::stylex_first_that_works,
+    stylex_view_transition_class::stylex_view_transition_class,
+  },
+  utils::validators::assert_valid_view_transition_class,
 };
 use crate::shared::{
   structures::functions::FunctionConfigType,
   utils::log::build_code_frame_error::build_code_frame_error,
 };
 use crate::shared::{
-  structures::{
-    functions::{FunctionConfig, FunctionMap, FunctionType},
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
-  utils::validators::validate_stylex_position_try_indent,
-};
-use crate::shared::{
-  transformers::stylex_position_try::stylex_position_try,
+  transformers::stylex_keyframes::get_keyframes_fn,
   utils::{
-    ast::convertors::string_to_expression,
-    validators::{assert_valid_position_try, assert_valid_properties},
+    js::evaluate::evaluate,
+    validators::{is_view_transition_class_call, validate_stylex_view_transition_class_indent},
   },
 };
-use crate::{StyleXTransform, shared::utils::validators::is_position_try_call};
 
 impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn transform_stylex_position_try_call(
+  pub(crate) fn transform_stylex_view_transition_class_call(
     &mut self,
     var_decl: &VarDeclarator,
   ) -> Option<Expr> {
-    let is_position_try_call = is_position_try_call(var_decl, &self.state);
+    let is_view_transition_class_call = is_view_transition_class_call(var_decl, &self.state);
 
-    let result = if is_position_try_call {
-      validate_stylex_position_try_indent(var_decl, &mut self.state);
+    let result = if is_view_transition_class_call {
+      validate_stylex_view_transition_class_indent(var_decl, &mut self.state);
 
       let call = var_decl
         .init
@@ -65,10 +68,19 @@ where
         takes_path: false,
       };
 
+      let keyframes_fn = get_keyframes_fn();
+
       for name in &self.state.stylex_first_that_works_import {
         identifiers.insert(
           name.clone(),
           Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
+        );
+      }
+
+      for name in &self.state.stylex_keyframes_import {
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }
 
@@ -78,6 +90,11 @@ where
         member_expression.insert(
           "firstThatWorks".into(),
           Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
+        );
+
+        member_expression.insert(
+          "keyframes".into(),
+          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }
 
@@ -94,7 +111,7 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value("positionTry"),
+          &non_static_value("viewTransitionClass"),
           &mut self.state,
         )
       );
@@ -110,7 +127,7 @@ where
             build_code_frame_error(
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object("positionTry"),
+              &non_style_object("viewTransitionClass"),
               &mut self.state,
             )
           );
@@ -121,28 +138,31 @@ where
           build_code_frame_error(
             &Expr::Call(call.clone()),
             &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-            &non_static_value("positionTry"),
+            &non_static_value("viewTransitionClass"),
             &mut self.state,
           )
         ),
       };
 
-      assert_valid_position_try(&plain_object, &mut self.state);
+      assert_valid_view_transition_class(&plain_object, &mut self.state);
       assert_valid_properties(
         &plain_object,
-        &*VALID_POSITION_TRY_PROPERTIES,
-        POSITION_TRY_INVALID_PROPERTY,
+        &*VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
+        VIEW_TRANSITION_CLASS_INVALID_PROPERTY,
         &mut self.state,
       );
 
-      let (position_try_name, injectable_style) =
-        stylex_position_try(&plain_object, &mut self.state);
+      let (view_transition_class_name, injectable_style) =
+        stylex_view_transition_class(&plain_object, &mut self.state);
 
       let mut injected_styles = IndexMap::new();
 
-      injected_styles.insert(position_try_name.clone(), Rc::new(injectable_style));
+      injected_styles.insert(
+        view_transition_class_name.clone(),
+        Rc::new(injectable_style),
+      );
 
-      let result_ast = string_to_expression(position_try_name.as_str());
+      let result_ast = string_to_expression(view_transition_class_name.as_str());
 
       self
         .state

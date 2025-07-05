@@ -4,6 +4,8 @@ pub(crate) mod cursor_flip;
 pub(crate) mod evaluation_errors;
 pub(crate) mod legacy_expand_shorthands_order;
 pub(crate) mod length_units;
+pub(crate) mod logical_to_ltr;
+pub(crate) mod logical_to_rtl;
 pub(crate) mod long_hand_logical;
 pub(crate) mod long_hand_physical;
 pub mod messages;

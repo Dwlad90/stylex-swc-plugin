@@ -7,6 +7,8 @@ use crate::shared::{
       COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES, CSS_CONTENT_FUNCTIONS,
       CSS_CONTENT_KEYWORDS,
     },
+    logical_to_ltr::LOGICAL_TO_LTR,
+    logical_to_rtl::LOGICAL_TO_RTL,
     long_hand_logical::LONG_HAND_LOGICAL,
     long_hand_physical::LONG_HAND_PHYSICAL,
     messages::LINT_UNCLOSED_FUNCTION,
@@ -29,7 +31,6 @@ use crate::shared::{
   },
 };
 
-use rustc_hash::FxHashMap;
 use swc_core::{
   common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{
@@ -49,55 +50,42 @@ use crate::shared::{
 
 use super::parser::parse_css;
 
-fn logical_to_physical(input: &str) -> &str {
+fn logical_to_physical(input: &str) -> Option<&str> {
   match input {
-    "start" => "left",
-    "end" => "right",
-    _ => input,
+    "start" => Some("left"),
+    "end" => Some("right"),
+    _ => None,
   }
 }
 
 fn property_to_ltr(pair: &Pair) -> Pair {
-  if pair.key == "background-position" {
-    let words: Vec<&str> = pair.value.split_whitespace().collect();
-    let new_val = words
-      .iter()
-      .map(|&word| match word {
-        "start" => "left",
-        "end" => "right",
-        _ => word,
-      })
-      .collect::<Vec<&str>>()
-      .join(" ");
-    return Pair::new(pair.key.to_string(), new_val);
-  };
-
-  let result = match pair.key.as_str() {
-    "margin-start" => ("margin-left", pair.value.as_str()),
-    "margin-end" => ("margin-right", pair.value.as_str()),
-    "padding-start" => ("padding-left", pair.value.as_str()),
-    "padding-end" => ("padding-right", pair.value.as_str()),
-    "border-start" => ("border-left", pair.value.as_str()),
-    "border-end" => ("border-right", pair.value.as_str()),
-    "border-start-width" => ("border-left-width", pair.value.as_str()),
-    "border-end-width" => ("border-right-width", pair.value.as_str()),
-    "border-start-color" => ("border-left-color", pair.value.as_str()),
-    "border-end-color" => ("border-right-color", pair.value.as_str()),
-    "border-start-style" => ("border-left-style", pair.value.as_str()),
-    "border-end-style" => ("border-right-style", pair.value.as_str()),
-    "border-top-start-radius" => ("border-top-left-radius", pair.value.as_str()),
-    "border-bottom-start-radius" => ("border-bottom-left-radius", pair.value.as_str()),
-    "border-top-end-radius" => ("border-top-right-radius", pair.value.as_str()),
-    "border-bottom-end-radius" => ("border-bottom-right-radius", pair.value.as_str()),
-    "float" => (pair.key.as_str(), logical_to_physical(pair.value.as_str())),
-    "clear" => (pair.key.as_str(), logical_to_physical(pair.value.as_str())),
-    "start" => ("left", pair.value.as_str()),
-    "end" => ("right", pair.value.as_str()),
-
-    _ => (pair.key.as_str(), pair.value.as_str()),
-  };
-
-  Pair::new(result.0.to_string(), result.1.to_string())
+  match pair.key.as_str() {
+    "background-position" => {
+      let new_val = pair
+        .value
+        .split_whitespace()
+        .map(|word| match word {
+          "start" => "left",
+          "end" => "right",
+          _ => word,
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+      Pair::new(pair.key.clone(), new_val)
+    }
+    k => {
+      if let Some(&physical) = LOGICAL_TO_LTR.get(k) {
+        Pair::new(physical.to_string(), pair.value.clone())
+      } else if k == "float" || k == "clear" {
+        match logical_to_physical(pair.value.as_str()) {
+          Some(value) => Pair::new(pair.key.clone(), value.to_string()),
+          None => pair.clone(),
+        }
+      } else {
+        Pair::new(pair.key.clone(), pair.value.clone())
+      }
+    }
+  }
 }
 
 pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
@@ -161,76 +149,30 @@ fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
 }
 
 fn property_to_rtl(pair: &Pair) -> Option<Pair> {
-  let logical_to_physical = [("start", "right"), ("end", "left")]
-    .iter()
-    .cloned()
-    .collect::<FxHashMap<_, _>>();
+  if let Some(&ltr_key) = LOGICAL_TO_RTL.get(pair.key.as_str()) {
+    return Some(Pair::new(ltr_key.to_string(), pair.value.clone()));
+  }
 
-  let key = pair.key.as_str();
-  let val = pair.value.as_str();
-
-  match key {
-    "margin-start" => Some(Pair::new("margin-right".to_string(), val.to_string())),
-    "margin-end" => Some(Pair::new("margin-left".to_string(), val.to_string())),
-    "padding-start" => Some(Pair::new("padding-right".to_string(), val.to_string())),
-    "padding-end" => Some(Pair::new("padding-left".to_string(), val.to_string())),
-    "border-start" => Some(Pair::new("border-right".to_string(), val.to_string())),
-    "border-end" => Some(Pair::new("border-left".to_string(), val.to_string())),
-    "border-start-width" => Some(Pair::new("border-right-width".to_string(), val.to_string())),
-    "border-end-width" => Some(Pair::new("border-lrft-width".to_string(), val.to_string())),
-
-    "border-start-color" => Some(Pair::new("border-right-color".to_string(), val.to_string())),
-    "border-end-color" => Some(Pair::new("border-lrft-colot".to_string(), val.to_string())),
-
-    "border-start-style" => Some(Pair::new("border-right-style".to_string(), val.to_string())),
-    "border-end-style" => Some(Pair::new("border-lrft-style".to_string(), val.to_string())),
-
-    "border-top-satrt-radius" => Some(Pair::new(
-      "border-top-right-radius".to_string(),
-      val.to_string(),
-    )),
-
-    "border-bottom-start-radius" => Some(Pair::new(
-      "border-bottom-right-radius".to_string(),
-      val.to_string(),
-    )),
-
-    "border-top-end-radius" => Some(Pair::new(
-      "border-top-left-radius".to_string(),
-      val.to_string(),
-    )),
-
-    "border-bottom-end-radius" => Some(Pair::new(
-      "border-bottom-left-radius".to_string(),
-      val.to_string(),
-    )),
-
-    "float" | "clear" => logical_to_physical
-      .get(val)
-      .map(|&physical_val| Pair::new(key.to_string(), physical_val.to_string())),
-    "start" => Some(Pair::new("right".to_string(), val.to_string())),
-    "end" => Some(Pair::new("left".to_string(), val.to_string())),
+  match pair.key.as_str() {
+    "float" | "clear" => logical_to_physical(pair.value.as_str())
+      .map(|value| Pair::new(pair.key.clone(), value.to_string())),
     "background-position" => {
-      let words: Vec<&str> = val.split_whitespace().collect();
-      if words.contains(&"start") || words.contains(&"end") {
-        let new_val: String = words
-          .iter()
-          .map(|&word| match word {
-            "start" => "right",
-            "end" => "left",
-            _ => word,
-          })
-          .collect::<Vec<_>>()
-          .join(" ");
-        Some(Pair::new(key.to_string(), new_val.to_string()))
-      } else {
-        None
-      }
+      let new_val = pair
+        .value
+        .split_whitespace()
+        .map(|word| match word {
+          "start" => "right",
+          "end" => "left",
+          _ => word,
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+      Some(Pair::new(pair.key.clone(), new_val))
     }
     "cursor" => CURSOR_FLIP
-      .get(val)
-      .map(|val| Pair::new(key.to_string(), val.to_string())),
-    _ => shadows_flip(key, val),
+      .get(pair.value.as_str())
+      .map(|val| Pair::new(pair.key.clone(), val.to_string())),
+    _ => shadows_flip(pair.key.as_str(), pair.value.as_str()),
   }
 }
 

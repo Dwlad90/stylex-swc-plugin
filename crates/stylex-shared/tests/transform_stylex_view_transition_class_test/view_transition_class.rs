@@ -94,6 +94,38 @@ test!(
   "#
 );
 
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams::default())
+  ),
+  using_inline_keyframes,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const cls = stylex.viewTransitionClass({
+      old: {
+        animationName: stylex.keyframes({
+          from: {opacity: 1},
+          to: {opacity: 0},
+        }),
+        animationDuration: '1s',
+      },
+      new: {
+        animationName: stylex.keyframes({
+          from: {opacity: 0},
+          to: {opacity: 1},
+        }),
+        animationDuration: '1s',
+      },
+    });
+  "#
+);
+
 #[test]
 #[ignore]
 fn using_contextual_styles() {

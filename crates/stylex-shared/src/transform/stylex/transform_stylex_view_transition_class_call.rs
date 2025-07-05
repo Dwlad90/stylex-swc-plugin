@@ -162,6 +162,13 @@ where
         Rc::new(injectable_style),
       );
 
+      let other_injected_css_rules: IndexMap<
+        String,
+        Rc<crate::shared::enums::data_structures::injectable_style::InjectableStyleKind>,
+      > = self.state.other_injected_css_rules.clone();
+
+      injected_styles.extend(other_injected_css_rules);
+
       let result_ast = string_to_expression(view_transition_class_name.as_str());
 
       self

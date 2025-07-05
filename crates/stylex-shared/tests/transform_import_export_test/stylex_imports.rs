@@ -1,4 +1,3 @@
-use crate::utils::transform::stringify_js;
 use insta::assert_snapshot;
 use stylex_shared::shared::structures::{
   named_import_source::{ImportSources, NamedImportSource},
@@ -7,8 +6,13 @@ use stylex_shared::shared::structures::{
 };
 use swc_core::{
   common::FileName,
-  ecma::parser::{Syntax, TsSyntax},
+  ecma::{
+    parser::{Syntax, TsSyntax},
+    transforms::testing::test,
+  },
 };
+
+use crate::utils::transform::stringify_js;
 
 fn get_default_opts() -> StyleXOptionsParams {
   StyleXOptionsParams {
@@ -17,6 +21,10 @@ fn get_default_opts() -> StyleXOptionsParams {
     ))),
     ..StyleXOptionsParams::default()
   }
+}
+
+fn transform(input: &str) -> String {
+  transform_with_options(input, None, None, None)
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +37,7 @@ struct FixtureImportMap {
   keyframes: &'static str,
   position_try: &'static str,
   props: &'static str,
+  view_transition_class: &'static str,
 }
 
 impl Default for FixtureImportMap {
@@ -42,6 +51,7 @@ impl Default for FixtureImportMap {
       keyframes: "stylex.keyframes",
       position_try: "stylex.positionTry",
       props: "stylex.props",
+      view_transition_class: "stylex.viewTransitionClass",
     }
   }
 }
@@ -85,6 +95,20 @@ export const vars = {}({{
 
   let formatted = format!(
     r#"{define_consts_and_vars_output}
+        const viewTransition1 = {view_transition_class}({{
+          group: {{
+            transitionProperty: 'none',
+          }},
+          imagePair: {{
+            borderRadius: 16,
+          }},
+          old: {{
+            animationDuration: '0.5s',
+          }},
+          new: {{
+            animationTimingFunction: 'ease-out',
+          }},
+        }});
         const fallback1 = {position_try}({{
           anchorName: '--myAnchor',
           positionArea: 'top left',
@@ -120,6 +144,7 @@ export const vars = {}({{
         {props}(styles.root, theme);
     "#,
     define_consts_and_vars_output = define_consts_and_vars_output,
+    view_transition_class = import_map.view_transition_class,
     position_try = import_map.position_try,
     create = import_map.create,
     keyframes = import_map.keyframes,
@@ -158,23 +183,8 @@ fn transform_with_options(
   })
 }
 
-fn transform_and_snapshot(input: &str, snapshot_name: &str) {
-  let opts = get_default_opts();
-  let syntax = Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  });
-  let output = stringify_js(input, syntax, |tr| {
-    stylex_shared::StyleXTransform::new_test_with_pass(
-      tr.comments.clone(),
-      stylex_shared::shared::structures::plugin_pass::PluginPass::default(),
-      Some(&mut opts.clone()),
-    )
-  });
-  assert_snapshot!(snapshot_name, output);
-}
+// Tests matching the JS file structure
 
-// --- import: none ---
 #[test]
 fn import_none() {
   let input = r#"
@@ -184,35 +194,35 @@ fn import_none() {
           }
         });
     "#;
-  transform_and_snapshot(input, "import_none");
+  let output = transform(input);
+  assert_snapshot!(output);
 }
 
-// --- import: non-stylex ---
 #[test]
 fn import_non_stylex() {
   let input = r#"
         import {foo, bar} from 'other';
     "#;
-  transform_and_snapshot(input, "import_non_stylex");
+  let output = transform(input);
+  assert_snapshot!(output);
 }
 
-// --- require: non-stylex ---
 #[test]
 fn require_non_stylex() {
   let input = r#"
         const {foo, bar} = require('other');
     "#;
-  transform_and_snapshot(input, "require_non_stylex");
+  let output = transform(input);
+  assert_snapshot!(output);
 }
 
-// --- import: wildcard (the default) ---
 #[test]
 fn import_wildcard_the_default() {
   let fixture = create_styles_fixture(None, None, None);
-  transform_and_snapshot(&fixture, "import_wildcard_the_default");
+  let output = transform(&fixture);
+  assert_snapshot!(output);
 }
 
-// --- import: wildcard (non-stylex name) ---
 #[test]
 fn import_wildcard_non_stylex_name() {
   let fixture = create_styles_fixture(
@@ -227,17 +237,18 @@ fn import_wildcard_non_stylex_name() {
       keyframes: "foo.keyframes",
       position_try: "foo.positionTry",
       props: "foo.props",
+      view_transition_class: "foo.viewTransitionClass",
     }),
   );
-  transform_and_snapshot(&fixture, "import_wildcard_non_stylex_name");
+  let output = transform(&fixture);
+  assert_snapshot!(output);
 }
 
-// --- import: named ---
 #[test]
 fn import_named() {
   let fixture = create_styles_fixture(
     Some(
-      "{create, createTheme, defineConsts, defineVars, firstThatWorks, keyframes, positionTry, props}",
+      "{create, createTheme, defineConsts, defineVars, firstThatWorks, keyframes, positionTry, props, viewTransitionClass}",
     ),
     None,
     Some(FixtureImportMap {
@@ -249,12 +260,13 @@ fn import_named() {
       keyframes: "keyframes",
       position_try: "positionTry",
       props: "props",
+      view_transition_class: "viewTransitionClass",
     }),
   );
-  transform_and_snapshot(&fixture, "import_named");
+  let output = transform(&fixture);
+  assert_snapshot!(output);
 }
 
-// --- import: named alias ---
 #[test]
 fn import_named_alias() {
   let fixture = create_styles_fixture(
@@ -267,7 +279,8 @@ fn import_named_alias() {
           firstThatWorks as _firstThatWorks,
           keyframes as _keyframes,
           positionTry as _positionTry,
-          props as _props
+          props as _props,
+          viewTransitionClass as _viewTransitionClass
         }"#,
     ),
     None,
@@ -280,13 +293,13 @@ fn import_named_alias() {
       keyframes: "_keyframes",
       position_try: "_positionTry",
       props: "_props",
+      view_transition_class: "_viewTransitionClass",
     }),
   );
-
-  transform_and_snapshot(&fixture, "import_named_alias");
+  let output = transform(&fixture);
+  assert_snapshot!(output);
 }
 
-// --- importSources (string) ---
 #[test]
 fn import_sources_string() {
   let import_source = "foo-bar";
@@ -298,10 +311,9 @@ fn import_sources_string() {
     Some(FileName::Real("/stylex/packages/vars.stylex.js".into())),
     Some(vec![ImportSources::Regular(import_source.to_string())]),
   );
-  assert_snapshot!("import_sources_string", output);
+  assert_snapshot!(output);
 }
 
-// --- importSources (object) ---
 #[test]
 fn import_sources_object() {
   let fixture = create_styles_fixture(
@@ -316,6 +328,7 @@ fn import_sources_object() {
       keyframes: "css.keyframes",
       position_try: "css.positionTry",
       props: "css.props",
+      view_transition_class: "css.viewTransitionClass",
     }),
   );
 
@@ -328,13 +341,13 @@ fn import_sources_object() {
       from: "react-strict-dom".to_string(),
     })]),
   );
-  assert_snapshot!("import_sources_object", output);
+  assert_snapshot!(output);
 }
 
-// --- [META-ONLY] import: default ---
 #[test]
 #[ignore = "META-ONLY test, not supported in OSS"]
 fn meta_only_import_default() {
   let fixture = create_styles_fixture(Some("stylex"), Some("stylex"), None);
-  transform_and_snapshot(&fixture, "meta_only_import_default");
+  let output = transform(&fixture);
+  assert_snapshot!(output);
 }

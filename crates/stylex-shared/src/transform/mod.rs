@@ -75,7 +75,7 @@ where
       None => {
         let config = StyleXOptions {
           runtime_injection: RuntimeInjection::Boolean(true),
-          treeshake_compensation: Some(true),
+          treeshake_compensation: true,
           unstable_module_resolution: CheckModuleResolution::Haste(
             StyleXOptions::get_haste_module_resolution(None),
           ),
@@ -124,7 +124,7 @@ where
       None => {
         let config = StyleXOptions {
           runtime_injection: RuntimeInjection::Boolean(false),
-          treeshake_compensation: Some(true),
+          treeshake_compensation: true,
           class_name_prefix: "x".to_string(),
           unstable_module_resolution: CheckModuleResolution::Haste(
             StyleXOptions::get_haste_module_resolution(None),

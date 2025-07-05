@@ -5,10 +5,13 @@ use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use crate::shared::utils::js::evaluate::evaluate;
 use crate::shared::{
   constants::messages::{non_static_value, non_style_object},
   transformers::stylex_first_that_works::stylex_first_that_works,
+};
+use crate::shared::{
+  constants::{common::VALID_POSITION_TRY_PROPERTIES, messages::POSITION_TRY_INVALID_PROPERTY},
+  utils::js::evaluate::evaluate,
 };
 use crate::shared::{
   structures::functions::FunctionConfigType,
@@ -125,7 +128,12 @@ where
       };
 
       assert_valid_position_try(&plain_object, &mut self.state);
-      assert_valid_properties(&plain_object, &mut self.state);
+      assert_valid_properties(
+        &plain_object,
+        &*VALID_POSITION_TRY_PROPERTIES,
+        POSITION_TRY_INVALID_PROPERTY,
+        &mut self.state,
+      );
 
       let (position_try_name, injectable_style) =
         stylex_position_try(&plain_object, &mut self.state);

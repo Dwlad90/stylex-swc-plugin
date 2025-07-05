@@ -7,8 +7,13 @@ use crate::shared::{
   enums::data_structures::{
     flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
   },
-  structures::{order_pair::OrderPair, pair::Pair, state_manager::StateManager},
-  utils::common::get_key_values_from_object,
+  structures::{
+    order_pair::OrderPair, pair::Pair, pre_rule::PreRuleValue, state_manager::StateManager,
+  },
+  utils::{
+    common::get_key_values_from_object,
+    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
+  },
 };
 
 use super::ast::convertors::key_value_to_str;
@@ -100,7 +105,7 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
   map
 }
 
-pub(crate) fn obj_map_keys(
+pub(crate) fn obj_map_keys_string(
   entries: &IndexMap<String, String>,
   mapper: fn(&str) -> String,
 ) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
@@ -121,6 +126,33 @@ pub(crate) fn obj_map_keys(
   map
 }
 
+pub(crate) fn obj_map_keys_key_value(
+  entries: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  mapper: fn(&str) -> String,
+) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+  let mut map = IndexMap::with_capacity(entries.len());
+
+  for (key, value) in entries {
+    let obejct_key = mapper(key);
+
+    let key_values = value
+      .as_key_values()
+      .expect("Value must be a key-value pairs");
+
+    let object_key_values = key_values
+      .iter()
+      .map(|pair| Pair::new(pair.key.clone(), pair.value.clone()))
+      .collect::<Vec<Pair>>();
+
+    map.insert(
+      obejct_key.clone(),
+      Rc::new(FlatCompiledStylesValue::KeyValues(object_key_values)),
+    );
+  }
+
+  map
+}
+
 pub(crate) fn _obj_map_entries(
   entries: &IndexMap<String, String>,
   mapper: fn((&str, &str)) -> Pair,
@@ -133,4 +165,26 @@ pub(crate) fn _obj_map_entries(
   }
 
   map
+}
+
+pub(crate) fn preprocess_object_properties(
+  style: &Expr,
+  state: &mut StateManager,
+) -> IndexMap<String, String> {
+  let res: Vec<OrderPair> = obj_entries(&style.clone())
+    .iter()
+    .flat_map(|pair| {
+      let key = key_value_to_str(pair);
+
+      flat_map_expanded_shorthands(
+        (key, PreRuleValue::Expr(*pair.value.clone())),
+        &state.options,
+      )
+      .into_iter()
+      .collect::<Vec<OrderPair>>()
+    })
+    .filter(|item| item.1.is_some())
+    .collect::<Vec<OrderPair>>();
+
+  obj_from_entries(&res)
 }

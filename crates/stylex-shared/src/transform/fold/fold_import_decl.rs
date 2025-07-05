@@ -208,6 +208,12 @@ where
             .stylex_position_try_import
             .insert(local_name_ident_atom);
         }
+        "viewTransitionClass" => {
+          self
+            .state
+            .stylex_view_transition_class_import
+            .insert(local_name_ident_atom);
+        }
         "types" => {
           self.state.stylex_types_import.insert(local_name_ident_atom);
         }

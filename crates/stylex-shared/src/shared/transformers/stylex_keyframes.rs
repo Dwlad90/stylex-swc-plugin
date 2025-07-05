@@ -22,7 +22,7 @@ use crate::shared::{
     common::{create_hash, dashify},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::common::{generate_ltr, generate_rtl, transform_value_cached},
-    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys},
+    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
   },
 };
 
@@ -47,7 +47,7 @@ pub(crate) fn stylex_keyframes(
 
     let pipe_result = Pipe::create(frame)
       .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| obj_map_keys(&entries, dashify))
+      .pipe(|entries| obj_map_keys_string(&entries, dashify))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),
@@ -73,6 +73,8 @@ pub(crate) fn stylex_keyframes(
     Rc::new(FlatCompiledStylesValue::KeyValues(pairs))
   });
 
+  let options = state.options.clone();
+
   let ltr_styles = obj_map(
     ObjMapType::Map(extended_object.clone()),
     state,
@@ -81,11 +83,16 @@ pub(crate) fn stylex_keyframes(
         panic!("Values must be an object")
       };
 
-      let ltr_values = pairs.iter().map(generate_ltr).collect();
+      let ltr_values = pairs
+        .iter()
+        .map(|pair| generate_ltr(pair, &options))
+        .collect();
 
       Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
     },
   );
+
+  let options = state.options.clone();
 
   let rtl_styles = obj_map(
     ObjMapType::Map(extended_object.clone()),
@@ -97,7 +104,7 @@ pub(crate) fn stylex_keyframes(
 
       let rtl_values = pairs
         .iter()
-        .map(|pair| generate_rtl(pair).unwrap_or_else(|| pair.clone()))
+        .map(|pair| generate_rtl(pair, &options).unwrap_or_else(|| pair.clone()))
         .collect();
 
       Rc::new(FlatCompiledStylesValue::KeyValues(rtl_values))

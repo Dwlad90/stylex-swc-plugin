@@ -21,7 +21,7 @@ use crate::shared::{
   regex::{CLEAN_CSS_VAR, MANY_SPACES},
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
-    stylex_state_options::StyleXStateOptions,
+    stylex_options::StyleResolution, stylex_state_options::StyleXStateOptions,
   },
   utils::css::{
     normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
@@ -57,9 +57,9 @@ fn logical_to_physical(input: &str) -> &str {
   }
 }
 
-fn property_to_ltr(pair: (&str, &str)) -> Pair {
-  if pair.0 == "background-position" {
-    let words: Vec<&str> = pair.1.split_whitespace().collect();
+fn property_to_ltr(pair: &Pair) -> Pair {
+  if pair.key == "background-position" {
+    let words: Vec<&str> = pair.value.split_whitespace().collect();
     let new_val = words
       .iter()
       .map(|&word| match word {
@@ -69,39 +69,47 @@ fn property_to_ltr(pair: (&str, &str)) -> Pair {
       })
       .collect::<Vec<&str>>()
       .join(" ");
-    return Pair::new(pair.0.to_string(), new_val);
+    return Pair::new(pair.key.to_string(), new_val);
   };
 
-  let result = match pair.0 {
-    "margin-start" => ("margin-left", pair.1),
-    "margin-end" => ("margin-right", pair.1),
-    "padding-start" => ("padding-left", pair.1),
-    "padding-end" => ("padding-right", pair.1),
-    "border-start" => ("border-left", pair.1),
-    "border-end" => ("border-right", pair.1),
-    "border-start-width" => ("border-left-width", pair.1),
-    "border-end-width" => ("border-right-width", pair.1),
-    "border-start-color" => ("border-left-color", pair.1),
-    "border-end-color" => ("border-right-color", pair.1),
-    "border-start-style" => ("border-left-style", pair.1),
-    "border-end-style" => ("border-right-style", pair.1),
-    "border-top-start-radius" => ("border-top-left-radius", pair.1),
-    "border-bottom-start-radius" => ("border-bottom-left-radius", pair.1),
-    "border-top-end-radius" => ("border-top-right-radius", pair.1),
-    "border-bottom-end-radius" => ("border-bottom-right-radius", pair.1),
-    "float" => (pair.0, logical_to_physical(pair.1)),
-    "clear" => (pair.0, logical_to_physical(pair.1)),
-    "start" => ("left", pair.1),
-    "end" => ("right", pair.1),
+  let result = match pair.key.as_str() {
+    "margin-start" => ("margin-left", pair.value.as_str()),
+    "margin-end" => ("margin-right", pair.value.as_str()),
+    "padding-start" => ("padding-left", pair.value.as_str()),
+    "padding-end" => ("padding-right", pair.value.as_str()),
+    "border-start" => ("border-left", pair.value.as_str()),
+    "border-end" => ("border-right", pair.value.as_str()),
+    "border-start-width" => ("border-left-width", pair.value.as_str()),
+    "border-end-width" => ("border-right-width", pair.value.as_str()),
+    "border-start-color" => ("border-left-color", pair.value.as_str()),
+    "border-end-color" => ("border-right-color", pair.value.as_str()),
+    "border-start-style" => ("border-left-style", pair.value.as_str()),
+    "border-end-style" => ("border-right-style", pair.value.as_str()),
+    "border-top-start-radius" => ("border-top-left-radius", pair.value.as_str()),
+    "border-bottom-start-radius" => ("border-bottom-left-radius", pair.value.as_str()),
+    "border-top-end-radius" => ("border-top-right-radius", pair.value.as_str()),
+    "border-bottom-end-radius" => ("border-bottom-right-radius", pair.value.as_str()),
+    "float" => (pair.key.as_str(), logical_to_physical(pair.value.as_str())),
+    "clear" => (pair.key.as_str(), logical_to_physical(pair.value.as_str())),
+    "start" => ("left", pair.value.as_str()),
+    "end" => ("right", pair.value.as_str()),
 
-    _ => pair,
+    _ => (pair.key.as_str(), pair.value.as_str()),
   };
 
   Pair::new(result.0.to_string(), result.1.to_string())
 }
 
-pub(crate) fn generate_ltr(pair: &Pair) -> Pair {
-  property_to_ltr((pair.key.as_str(), pair.value.as_str()))
+pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
+  let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
+  let style_resolution = &options.style_resolution;
+
+  if !enable_logical_styles_polyfill && style_resolution == &StyleResolution::LegacyExpandShorthands
+  {
+    return pair.clone();
+  }
+
+  property_to_ltr(pair)
 }
 
 fn flip_sign(value: &str) -> String {
@@ -146,17 +154,20 @@ fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
   match key {
     "box-shadow" | "text-shadow" => {
       let rtl_val = flip_shadow(val);
-      rtl_val.map(|rtl_val| Pair::new(key.to_string(), rtl_val))
+      rtl_val.map(|rtl_val| Pair::new(key.to_string(), rtl_val.to_string()))
     }
     _ => None,
   }
 }
 
-fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
+fn property_to_rtl(pair: &Pair) -> Option<Pair> {
   let logical_to_physical = [("start", "right"), ("end", "left")]
     .iter()
     .cloned()
     .collect::<FxHashMap<_, _>>();
+
+  let key = pair.key.as_str();
+  let val = pair.value.as_str();
 
   match key {
     "margin-start" => Some(Pair::new("margin-right".to_string(), val.to_string())),
@@ -211,7 +222,7 @@ fn property_to_rtl(key: &str, val: &str) -> Option<Pair> {
           })
           .collect::<Vec<_>>()
           .join(" ");
-        Some(Pair::new(key.to_string(), new_val))
+        Some(Pair::new(key.to_string(), new_val.to_string()))
       } else {
         None
       }
@@ -229,10 +240,16 @@ fn _flip_value(value: &PreRules) -> Option<PreRules> {
   Some(value.clone())
 }
 
-pub(crate) fn generate_rtl(pair: &Pair) -> Option<Pair> {
-  let result = property_to_rtl(pair.key.as_str(), pair.value.as_str());
+pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
+  let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
+  let style_resolution = &options.style_resolution;
 
-  result
+  if !enable_logical_styles_polyfill && style_resolution == &StyleResolution::LegacyExpandShorthands
+  {
+    return None;
+  }
+
+  property_to_rtl(pair)
 }
 
 pub(crate) fn split_value_required(strng: Option<&str>) -> (String, String, String, String) {
@@ -316,6 +333,7 @@ pub(crate) fn generate_css_rule(
   pseudos: &mut [String],
   at_rules: &mut [String],
   const_rules: &mut [String],
+  options: &StyleXStateOptions,
 ) -> InjectableStyle {
   let mut pairs: Vec<Pair> = vec![];
 
@@ -323,9 +341,15 @@ pub(crate) fn generate_css_rule(
     pairs.push(Pair::new(key.to_string(), value.clone()));
   }
 
-  let ltr_pairs: Vec<Pair> = pairs.iter().map(generate_ltr).collect::<Vec<Pair>>();
+  let ltr_pairs: Vec<Pair> = pairs
+    .iter()
+    .map(|pair| generate_ltr(pair, options))
+    .collect::<Vec<Pair>>();
 
-  let rtl_pairs: Vec<Pair> = pairs.iter().filter_map(generate_rtl).collect::<Vec<Pair>>();
+  let rtl_pairs: Vec<Pair> = pairs
+    .iter()
+    .filter_map(|pair| generate_rtl(pair, options))
+    .collect::<Vec<Pair>>();
 
   let ltr_decls = ltr_pairs
     .iter()

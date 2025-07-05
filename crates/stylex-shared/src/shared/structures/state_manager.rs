@@ -627,7 +627,7 @@ impl StateManager {
   // }
 
   pub(crate) fn get_treeshake_compensation(&self) -> bool {
-    self.options.treeshake_compensation.unwrap_or(false)
+    self.options.treeshake_compensation
   }
 
   // Now you can use these helper functions to simplify your function

@@ -1,1 +1,2 @@
 mod css_logical_properties;
+mod css_logical_properties_style_resolution_legacy_expand_shorthands;

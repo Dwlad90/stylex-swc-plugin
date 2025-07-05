@@ -71,6 +71,8 @@ pub(crate) fn stylex_position_try(
     )
   };
 
+  let options = state.options.clone();
+
   let ltr_styles = obj_map(
     ObjMapType::Object(extended_object.clone()),
     state,
@@ -79,17 +81,20 @@ pub(crate) fn stylex_position_try(
         panic!("Values must be a tuple of key, value, and css type")
       };
 
-      let ltr_values = generate_ltr(&Pair {
-        key: tuple.0.clone(),
-        value: lit_to_string(
-          tuple
-            .1
-            .clone()
-            .as_lit()
-            .expect("Value must be a string literal"),
-        )
-        .unwrap_or_default(),
-      });
+      let ltr_values = generate_ltr(
+        &Pair {
+          key: tuple.0.clone(),
+          value: lit_to_string(
+            tuple
+              .1
+              .clone()
+              .as_lit()
+              .expect("Value must be a string literal"),
+          )
+          .unwrap_or_default(),
+        },
+        &options,
+      );
 
       Rc::new(FlatCompiledStylesValue::KeyValue(ltr_values))
     },
@@ -114,10 +119,13 @@ pub(crate) fn stylex_position_try(
 
       let key = tuple.0.clone();
 
-      let rtl_values = generate_rtl(&Pair {
-        key: key.clone(),
-        value: value.clone(),
-      });
+      let rtl_values = generate_rtl(
+        &Pair {
+          key: key.clone(),
+          value: value.clone(),
+        },
+        &options,
+      );
 
       match rtl_values {
         Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value)),

@@ -135,9 +135,10 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     dev: options
       .dev
       .or_else(|| env::var("NODE_ENV").ok().map(|env| env == "development")),
-    enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.or(Some(true)),
+    enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.or(Some(false)),
+    enable_minified_keys: options.enable_minified_keys.or(Some(true)),
     runtime_injection: options.runtime_injection.or(Some(false)),
-    treeshake_compensation: options.treeshake_compensation.or(Some(true)),
+    treeshake_compensation: options.treeshake_compensation.or(Some(false)),
     import_sources: options.import_sources.or(Some(vec![
       ImportSourceUnion::Regular("stylex".to_string()),
       ImportSourceUnion::Regular("@stylexjs/stylex".to_string()),
@@ -150,6 +151,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
       })
     }),
     enable_inlined_conditional_merge: options.enable_inlined_conditional_merge.or(Some(true)),
+    enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.or(Some(true)),
     ..options
   })
 }

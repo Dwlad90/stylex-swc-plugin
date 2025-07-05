@@ -98,6 +98,7 @@ pub(crate) fn convert_style_to_class_name(
     pseudos,
     at_rules,
     const_rules,
+    &state.options,
   );
 
   (key.to_string(), class_name_hashed, css_rules)

@@ -73,6 +73,8 @@ pub(crate) fn stylex_keyframes(
     Rc::new(FlatCompiledStylesValue::KeyValues(pairs))
   });
 
+  let options = state.options.clone();
+
   let ltr_styles = obj_map(
     ObjMapType::Map(extended_object.clone()),
     state,
@@ -81,11 +83,16 @@ pub(crate) fn stylex_keyframes(
         panic!("Values must be an object")
       };
 
-      let ltr_values = pairs.iter().map(generate_ltr).collect();
+      let ltr_values = pairs
+        .iter()
+        .map(|pair| generate_ltr(pair, &options))
+        .collect();
 
       Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
     },
   );
+
+  let options = state.options.clone();
 
   let rtl_styles = obj_map(
     ObjMapType::Map(extended_object.clone()),
@@ -97,7 +104,7 @@ pub(crate) fn stylex_keyframes(
 
       let rtl_values = pairs
         .iter()
-        .map(|pair| generate_rtl(pair).unwrap_or_else(|| pair.clone()))
+        .map(|pair| generate_rtl(pair, &options).unwrap_or_else(|| pair.clone()))
         .collect();
 
       Rc::new(FlatCompiledStylesValue::KeyValues(rtl_values))

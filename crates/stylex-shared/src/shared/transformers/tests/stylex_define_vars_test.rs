@@ -216,7 +216,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.0
+            0.1
           )
         ),
         (
@@ -301,7 +301,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
-            0.0
+            0.1
           )
         ),
         (
@@ -432,7 +432,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.0
+            0.1
           )
         ),
         (
@@ -582,7 +582,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--bgColor-xgck17p:blue;--bgColorDisabled-xpegid5:grey;--cornerRadius-xrqfjmn:10px;--fgColor-x4y59db:pink;}",
-            0.0
+            0.1
           )
         ),
         (
@@ -736,7 +736,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.0
+            0.1
           )
         ),
         (
@@ -933,7 +933,7 @@ mod stylex_define_vars {
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.0
           )
         ),
         (
@@ -944,7 +944,7 @@ mod stylex_define_vars {
           "x568ih9-kpd015",
           (
             "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
-            0.1
+            0.0
           )
         ),
         (
@@ -966,6 +966,45 @@ mod stylex_define_vars {
           (
             r#"@property --xrqfjmn { syntax: "<length>"; inherits: true; initial-value: 10px }"#,
             0.0
+          )
+        ),
+        (
+          "x4y59db",
+          (
+            r#"@property --x4y59db { syntax: "<color>"; inherits: true; initial-value: pink }"#,
+            0.0
+          )
+        ),
+        (
+          "x568ih9",
+          (
+            ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
+            0.1
+          )
+        ),
+        (
+          "x568ih9-1lveb7",
+          (
+            "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
+            0.1
+          )
+        ),
+        (
+          "x568ih9-1e6ryz3",
+          (
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
+            0.2
+          )
+        ),
+        (
+          "x568ih9-bdddrq",
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+        ),
+        (
+          "x568ih9-kpd015",
+          (
+            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
+            0.1
           )
         ),
       ])
@@ -1144,7 +1183,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
-            0.0
+            0.1
           )
         ),
         (

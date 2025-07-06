@@ -125,7 +125,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 "ltr": "@keyframes x18re5ia-B{from{opacity:0;}to{opacity:1;}}",
                 "rtl": null,
               },
-              1,
+              0,
             ],
             [
               "x1jn504y-B",
@@ -133,7 +133,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 "ltr": "@keyframes x1jn504y-B{from{opacity:1;}to{opacity:0;}}",
                 "rtl": null,
               },
-              1,
+              0,
             ],
             [
               "xfh0f9i",
@@ -180,7 +180,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 "ltr": "@keyframes x1jn504y-B{from{opacity:1;}to{opacity:0;}}",
                 "rtl": null,
               },
-              1,
+              0,
             ],
             [
               "x18re5ia-B",
@@ -188,7 +188,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 "ltr": "@keyframes x18re5ia-B{from{opacity:0;}to{opacity:1;}}",
                 "rtl": null,
               },
-              1,
+              0,
             ],
             [
               "xfh0f9i",

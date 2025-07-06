@@ -154,7 +154,7 @@ pub(crate) fn stylex_position_try(
     InjectableStyleKind::Regular(InjectableStyle {
       ltr,
       rtl,
-      priority: Some(1.0),
+      priority: Some(0.0),
     }),
   )
 }

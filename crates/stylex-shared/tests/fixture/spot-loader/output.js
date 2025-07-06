@@ -2,7 +2,7 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import { COMMON_SIZES } from "@/app/components/Test";
 import * as stylex from "@stylexjs/stylex";
-_inject2("@keyframes xn4wiy6-B{from{transform:perspective(120px) rotatex(0deg) rotatey(0deg);}to{transform:perspective(120px) rotatex(-180.1deg) rotatey(0deg);}}", 1);
+_inject2("@keyframes xn4wiy6-B{from{transform:perspective(120px) rotatex(0deg) rotatey(0deg);}to{transform:perspective(120px) rotatex(-180.1deg) rotatey(0deg);}}", 0);
 _inject2(".display-xrvj5dj{display:grid}", 3000);
 _inject2(".gridAutoFlow-x1mt1orb{grid-auto-flow:column}", 3000);
 _inject2(".gridTemplateColumns-xernuvs{grid-template-columns:repeat(5,12%)}", 3000);

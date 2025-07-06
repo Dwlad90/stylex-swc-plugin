@@ -67,7 +67,6 @@ fn logical_to_physical_rtl(input: &str) -> Option<&str> {
 }
 
 fn property_to_ltr(pair: &Pair) -> Pair {
-  dbg!(&pair);
   match pair.key.as_str() {
     "background-position" => {
       let new_val = pair
@@ -86,7 +85,6 @@ fn property_to_ltr(pair: &Pair) -> Pair {
       if let Some(&physical) = LOGICAL_TO_LTR.get(k) {
         Pair::new(physical.to_string(), pair.value.clone())
       } else if k == "float" || k == "clear" {
-        dbg!(&pair);
         match logical_to_physical_ltr(pair.value.as_str()) {
           Some(value) => Pair::new(pair.key.clone(), value.to_string()),
           None => pair.clone(),
@@ -99,7 +97,6 @@ fn property_to_ltr(pair: &Pair) -> Pair {
 }
 
 pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
-  dbg!(&pair);
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
   let style_resolution = &options.style_resolution;
   let key = pair.key.as_str();
@@ -166,7 +163,6 @@ fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
 }
 
 fn property_to_rtl(pair: &Pair) -> Option<Pair> {
-  dbg!(&pair);
   if let Some(&ltr_key) = LOGICAL_TO_RTL.get(pair.key.as_str()) {
     return Some(Pair::new(ltr_key.to_string(), pair.value.clone()));
   }
@@ -201,7 +197,6 @@ fn _flip_value(value: &PreRules) -> Option<PreRules> {
 }
 
 pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
-  dbg!(&pair);
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
   let style_resolution = &options.style_resolution;
   let key = pair.key.as_str();

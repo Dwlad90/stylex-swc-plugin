@@ -65,7 +65,7 @@ mod stylex_keyframes {
       "xbopttm-B",
       (
         "@keyframes xbopttm-B{from{background-color:red;}to{background-color:blue;}}",
-        1.0,
+        0.0,
       ),
     )]);
 
@@ -83,7 +83,7 @@ mod stylex_keyframes {
       "x1jkcf39-B",
       (
         "@keyframes x1jkcf39-B{from{inset-inline-start:0;}to{inset-inline-start:500px;}}",
-        1.0,
+        0.0,
       ),
     )]);
 

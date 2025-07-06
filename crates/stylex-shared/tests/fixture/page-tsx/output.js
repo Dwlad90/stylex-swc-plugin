@@ -56,7 +56,7 @@ export default function Home(_props: Props) {
       </div>
     </main>;
 }
-_inject2("@keyframes xhab9pt-B{0%{transform:var(--medium-x1m1o2d4);}10%{transform:var(--large-x13z98d3);}20%{transform:var(--medium-x1m1o2d4);}30%{transform:var(--large-x13z98d3);}40%{transform:var(--medium-x1m1o2d4);}90%{transform:var(--small-xrkhmu4);}100%{transform:var(--medium-x1m1o2d4);}}", 1);
+_inject2("@keyframes xhab9pt-B{0%{transform:var(--medium-x1m1o2d4);}10%{transform:var(--large-x13z98d3);}20%{transform:var(--medium-x1m1o2d4);}30%{transform:var(--large-x13z98d3);}40%{transform:var(--medium-x1m1o2d4);}90%{transform:var(--small-xrkhmu4);}100%{transform:var(--medium-x1m1o2d4);}}", 0);
 _inject2(".display-x78zum5{display:flex}", 3000);
 _inject2(".flexDirection-xdt5ytf{flex-direction:column}", 3000);
 _inject2(".alignItems-x6s0dn4{align-items:center}", 3000);

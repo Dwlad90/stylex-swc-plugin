@@ -70,7 +70,7 @@ pub static UNKNOWN_PROP_KEY: &str = "Unknown property key";
 pub(crate) static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";
 
 pub(crate) static NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE: &str =
-  "stylex.createTheme() can only accept an object as the second argument.";
+  "createTheme() can only accept an object as the second argument.";
 
 pub(crate) static BUILT_IN_FUNCTION: &str = "Evaluation built-in functions not supported";
 

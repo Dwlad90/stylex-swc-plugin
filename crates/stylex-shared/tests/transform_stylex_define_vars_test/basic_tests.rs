@@ -31,6 +31,41 @@ test!(
       ..StyleXOptionsParams::default()
     })
   ),
+  tokens_as_null,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      color: null,
+      nextColor: {
+        default: null
+      },
+      otherColor: {
+        default: null,
+        '@media (prefers-color-scheme: dark)': null,
+        '@media print': null,
+      },
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
   tokens_object,
   r#"
     import * as stylex from '@stylexjs/stylex';

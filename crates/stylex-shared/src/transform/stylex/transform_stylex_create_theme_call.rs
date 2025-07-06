@@ -154,7 +154,7 @@ where
             &evaluated_arg1
               .deopt
               .unwrap_or_else(|| *first_arg.to_owned()),
-            "Can only override variables theme created with stylex.defineVars().",
+            "Can only override variables theme created with defineVars().",
             &mut self.state,
           )
         ),

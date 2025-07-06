@@ -74,7 +74,7 @@ where
       let file_name = self
         .state
         .get_filename_for_hashing(&mut FxHashMap::default())
-        .expect("No filename found for generating theme name.");
+        .expect("No filename found for generating defineConsts key name.");
 
       let export_name = var_id.expect("Export variable not found");
 

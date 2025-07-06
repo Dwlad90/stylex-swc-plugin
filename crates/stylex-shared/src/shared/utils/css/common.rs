@@ -218,20 +218,20 @@ pub(crate) fn get_priority(key: &str) -> f64 {
     return **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0);
   };
 
-  if LONG_HAND_PHYSICAL.contains(key) {
-    return 4000.0;
-  }
-
-  if LONG_HAND_LOGICAL.contains(key) {
-    return 3000.0;
+  if SHORTHANDS_OF_SHORTHANDS.contains(key) {
+    return 1000.0;
   }
 
   if SHORTHANDS_OF_LONGHANDS.contains(key) {
     return 2000.0;
   }
 
-  if SHORTHANDS_OF_SHORTHANDS.contains(key) {
-    return 1000.0;
+  if LONG_HAND_LOGICAL.contains(key) {
+    return 3000.0;
+  }
+
+  if LONG_HAND_PHYSICAL.contains(key) {
+    return 4000.0;
   }
 
   3000.0

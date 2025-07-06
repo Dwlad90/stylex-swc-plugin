@@ -7,10 +7,10 @@ export const buttonTheme = {
     __themeName__: "x568ih9"
 };
 export const buttonThemePositive = {
-    $$css: true,
-    x568ih9: "xtrlmmh x568ih9"
+    x568ih9: "xtrlmmh x568ih9",
+    $$css: true
 };
 export const buttonThemeNew = {
-    $$css: true,
-    x568ih9: "x1qnwd2l x568ih9"
+    x568ih9: "x1qnwd2l x568ih9",
+    $$css: true
 };

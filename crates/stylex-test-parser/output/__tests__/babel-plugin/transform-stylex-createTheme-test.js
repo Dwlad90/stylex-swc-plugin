@@ -81,8 +81,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "xop34xu"
         };
         export const theme = {
-          $$css: true,
-          xop34xu: "x4aw18j xop34xu"
+          xop34xu: "x4aw18j xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -158,8 +158,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "xop34xu"
         };
         export const theme = {
-          $$css: true,
-          xop34xu: "x4aw18j xop34xu"
+          xop34xu: "x4aw18j xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -233,8 +233,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "x1xohuxq"
         };
         export const theme = {
-          $$css: true,
-          x1xohuxq: "xv0nx9o x1xohuxq"
+          x1xohuxq: "xv0nx9o x1xohuxq",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -312,8 +312,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "xop34xu"
         };
         export const theme = {
-          $$css: true,
-          xop34xu: "x1l2ihi1 xop34xu"
+          xop34xu: "x1l2ihi1 xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -381,8 +381,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           radius: '6px'
         };
         export const theme = {
-          $$css: true,
-          xop34xu: "x4aw18j xop34xu"
+          xop34xu: "x4aw18j xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -457,8 +457,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         const RADIUS = 10;
         export const theme = {
-          $$css: true,
-          xop34xu: "x1s6ff5p xop34xu"
+          xop34xu: "x1s6ff5p xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -517,8 +517,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         const name = 'light';
         export const theme = {
-          $$css: true,
-          xop34xu: "xp8mj21 xop34xu"
+          xop34xu: "xp8mj21 xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -577,8 +577,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         const RADIUS = 10;
         export const theme = {
-          $$css: true,
-          xop34xu: "x1et03wi xop34xu"
+          xop34xu: "x1et03wi xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -646,8 +646,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         const RADIUS = 10;
         export const theme = {
-          $$css: true,
-          xop34xu: "x5gq8ml xop34xu"
+          xop34xu: "x5gq8ml xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -722,12 +722,12 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "xop34xu"
         };
         export const theme = {
-          $$css: true,
-          xop34xu: "x4aw18j xop34xu"
+          xop34xu: "x4aw18j xop34xu",
+          $$css: true
         };
         export const otherTheme = {
-          $$css: true,
-          xop34xu: "xw6msop xop34xu"
+          xop34xu: "xw6msop xop34xu",
+          $$css: true
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -813,8 +813,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "xop34xu"
         };
         export const theme = {
-          $$css: true,
-          xop34xu: "x4aw18j xop34xu"
+          xop34xu: "x4aw18j xop34xu",
+          $$css: true
         };"
       `);
             expect(code2).toMatchInlineSnapshot(`
@@ -826,8 +826,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "x1ngxneg"
         };
         export const theme = {
-          $$css: true,
-          x1ngxneg: "xgl5cw9 x1ngxneg"
+          x1ngxneg: "xgl5cw9 x1ngxneg",
+          $$css: true
         };"
       `);
             expect(metadata1).toMatchInlineSnapshot(`
@@ -980,8 +980,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             __themeName__: "xop34xu"
           };
           export const theme = {
-            $$css: true,
-            xop34xu: "xowvtgn xop34xu"
+            xop34xu: "xowvtgn xop34xu",
+            $$css: true
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -1042,8 +1042,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             __themeName__: "xop34xu"
           };
           export const theme = {
-            $$css: true,
-            xop34xu: "xowvtgn xop34xu"
+            xop34xu: "xowvtgn xop34xu",
+            $$css: true
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -1107,8 +1107,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             __themeName__: "xop34xu"
           };
           export const theme = {
-            $$css: true,
-            xop34xu: "xowvtgn xop34xu"
+            xop34xu: "xowvtgn xop34xu",
+            $$css: true
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -1172,8 +1172,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             __themeName__: "xop34xu"
           };
           export const theme = {
-            $$css: true,
-            xop34xu: "xowvtgn xop34xu"
+            xop34xu: "xowvtgn xop34xu",
+            $$css: true
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -1237,8 +1237,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           };
           export const theme = {
             Foo__theme: "Foo__theme",
-            $$css: true,
-            xop34xu: "xowvtgn xop34xu"
+            xop34xu: "xowvtgn xop34xu",
+            $$css: true
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -1304,8 +1304,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           };
           _inject2(".xowvtgn, .xowvtgn:root{--xwx8imx:orange;}", 0.5);
           export const theme = {
-            $$css: true,
-            xop34xu: "xowvtgn xop34xu"
+            xop34xu: "xowvtgn xop34xu",
+            $$css: true
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`

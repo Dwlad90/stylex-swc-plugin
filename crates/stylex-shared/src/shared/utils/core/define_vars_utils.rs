@@ -84,7 +84,7 @@ pub(crate) fn collect_vars_by_at_rules(
   }
 
   match value {
-    Expr::Array(_) => panic!("Array is not supported in stylex.defineVars"),
+    Expr::Array(_) => panic!("Array is not supported in defineVars"),
     Expr::Lit(lit) => {
       if let Lit::Null(_) = lit {
         return;

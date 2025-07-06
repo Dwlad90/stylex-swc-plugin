@@ -680,8 +680,16 @@ mod nested_objects {
     expected_result.insert(
       "marginInlineStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginInlineStart", "4px", &["marginInlineStart", "default"]),
-        pre_rule_factory("marginInlineStart", "20px", &["marginInlineStart", ":hover"]),
+        pre_rule_factory(
+          "marginInlineStart",
+          "4px",
+          &["marginInlineStart", "default"],
+        ),
+        pre_rule_factory(
+          "marginInlineStart",
+          "20px",
+          &["marginInlineStart", ":hover"],
+        ),
       ]),
     );
 
@@ -795,7 +803,11 @@ mod multiple_levels_of_nesting {
       "marginInlineEnd".to_string(),
       pre_rule_set_factory(&[
         pre_rule_factory("marginInlineEnd", "2px", &["marginInlineEnd", "default"]),
-        pre_rule_vec_factory("marginInlineEnd", &["20px", "2dvh"], &["marginInlineEnd", ":hover"]),
+        pre_rule_vec_factory(
+          "marginInlineEnd",
+          &["20px", "2dvh"],
+          &["marginInlineEnd", ":hover"],
+        ),
       ]),
     );
 
@@ -814,8 +826,16 @@ mod multiple_levels_of_nesting {
     expected_result.insert(
       "marginInlineStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginInlineStart", "4px", &["marginInlineStart", "default"]),
-        pre_rule_vec_factory("marginInlineStart", &["20px", "2dvh"], &["marginInlineStart", ":hover"]),
+        pre_rule_factory(
+          "marginInlineStart",
+          "4px",
+          &["marginInlineStart", "default"],
+        ),
+        pre_rule_vec_factory(
+          "marginInlineStart",
+          &["20px", "2dvh"],
+          &["marginInlineStart", ":hover"],
+        ),
       ]),
     );
 

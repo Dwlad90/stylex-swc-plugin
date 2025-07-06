@@ -756,7 +756,7 @@ pub(crate) fn validate_theme_variables(
   }
 
   if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    panic!("Can only override variables theme created with stylex.defineVars().");
+    panic!("Can only override variables theme created with defineVars().");
   }
 
   variables
@@ -785,5 +785,5 @@ pub(crate) fn validate_theme_variables(
 
       None
     })
-    .expect("Can only override variables theme created with stylex.defineVars().")
+    .expect("Can only override variables theme created with defineVars().")
 }

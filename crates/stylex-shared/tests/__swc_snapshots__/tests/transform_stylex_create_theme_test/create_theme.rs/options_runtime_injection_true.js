@@ -9,6 +9,6 @@ export const vars = {
 };
 _inject2(".xowvtgn, .xowvtgn:root{--xwx8imx:orange;}", 0.5);
 export const theme = {
-    $$css: true,
-    xop34xu: "xowvtgn xop34xu"
+    xop34xu: "xowvtgn xop34xu",
+    $$css: true
 };

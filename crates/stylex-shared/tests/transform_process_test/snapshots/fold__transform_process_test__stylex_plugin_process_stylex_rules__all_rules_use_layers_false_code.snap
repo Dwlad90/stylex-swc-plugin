@@ -20,12 +20,12 @@ export const spacing = {
     __themeName__: "xuhkdh4"
 };
 export const themeColor = {
-    $$css: true,
-    x18ubi5e: "xtrz4el x18ubi5e"
+    x18ubi5e: "xtrz4el x18ubi5e",
+    $$css: true
 };
 export const themeSpacing = {
-    $$css: true,
-    xuhkdh4: "x1bn9r7g xuhkdh4"
+    xuhkdh4: "x1bn9r7g xuhkdh4",
+    $$css: true
 };
 export const styles = {
     root: {

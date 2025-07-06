@@ -9,6 +9,6 @@ export const buttonTheme = {
 export const RADIUS = 2;
 export const buttonThemePositive = {
     TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
-    $$css: true,
-    x568ih9: "x41sqjo x568ih9"
+    x568ih9: "x41sqjo x568ih9",
+    $$css: true
 };

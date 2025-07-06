@@ -119,7 +119,7 @@ fn it_must_have_two_arguments_fn_args() {
 }
 
 #[test]
-#[should_panic(expected = "Can only override variables theme created with stylex.defineVars().")]
+#[should_panic(expected = "Can only override variables theme created with defineVars().")]
 fn it_must_have_two_arguments_empty_object_args() {
   test_transform(
     Syntax::Typescript(TsSyntax {
@@ -302,7 +302,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
 }
 
 #[test]
-#[should_panic(expected = "stylex.createTheme() can only accept an object as the second argument")]
+#[should_panic(expected = "createTheme() can only accept an object as the second argument")]
 fn second_arg_cant_be_imported_variable_in_stylex_create_theme_fn() {
   test_transform(
     Syntax::Typescript(TsSyntax {

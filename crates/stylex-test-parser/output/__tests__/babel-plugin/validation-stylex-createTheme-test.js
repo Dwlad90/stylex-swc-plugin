@@ -51,7 +51,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const variables = stylex.createTheme({}, {});
         `);
-            }).toThrow('Can only override variables theme created with stylex.defineVars().');
+            }).toThrow('Can only override variables theme created with defineVars().');
             expect(()=>{
                 transform(`
           import stylex from 'stylex';

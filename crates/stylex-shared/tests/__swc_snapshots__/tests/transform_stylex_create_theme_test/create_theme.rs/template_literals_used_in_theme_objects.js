@@ -6,6 +6,6 @@ export const vars = {
     __themeName__: "x1xohuxq"
 };
 export const theme = {
-    $$css: true,
-    x1xohuxq: "x19ko8q0 x1xohuxq"
+    x1xohuxq: "x19ko8q0 x1xohuxq",
+    $$css: true
 };

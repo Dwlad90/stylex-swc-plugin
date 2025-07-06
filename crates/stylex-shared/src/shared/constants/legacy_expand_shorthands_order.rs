@@ -399,8 +399,6 @@ impl Aliases {
   fn max_inline_size(val: Option<String>) -> Vec<OrderPair> {
     vec![OrderPair("maxWidth".into(), val)]
   }
-
-
   fn border_start(val: Option<String>) -> Vec<OrderPair> {
     vec![OrderPair("borderInlineStart".into(), val)]
   }

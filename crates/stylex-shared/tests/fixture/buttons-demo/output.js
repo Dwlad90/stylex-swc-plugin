@@ -37,8 +37,8 @@ export default function ButtonsDemo(props) {
 _inject2(".x1582kvi, .x1582kvi:root{--bgColor-xxn4pt7:red;--cornerRadius-xebqz1:4px;--paddingBlock-x9c4myw:4px;--paddingInline-xscmh3t:8px;--textColor-xnblhe2:white;}", 0.5);
 const redTheme = {
     input__redTheme: "input__redTheme",
-    $$css: true,
-    "__themeName__-xhq9i64": "x1582kvi "
+    xhq9i64: "x1582kvi ",
+    $$css: true
 };
 _inject2(".display-x78zum5{display:flex}", 3000);
 _inject2(".flexDirection-xdt5ytf{flex-direction:column}", 3000);
@@ -108,14 +108,14 @@ const styles = {
 _inject2(".xm1pwqw, .xm1pwqw:root{--background-x166rmrk:#000;--text-x1rr8s3j:#fff;}", 0.5);
 const priorityIntent = {
     input__priorityIntent: "input__priorityIntent",
-    $$css: true,
-    "__themeName__-xhq9i64": "xm1pwqw "
+    xhq9i64: "xm1pwqw ",
+    $$css: true
 };
 _inject2(".x1h9f7e8, .x1h9f7e8:root{--background-x166rmrk:#000000;--text-x1rr8s3j:#555555;}", 0.5);
 const defaultIntent = {
     input__defaultIntent: "input__defaultIntent",
-    $$css: true,
-    "__themeName__-xhq9i64": "x1h9f7e8 "
+    xhq9i64: "x1h9f7e8 ",
+    $$css: true
 };
 const intents = {
     priority: priorityIntent,

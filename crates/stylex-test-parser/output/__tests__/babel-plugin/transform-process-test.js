@@ -167,12 +167,12 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "xbiwvf9"
         };
         export const themeColor = {
-          $$css: true,
-          xsg933n: "x6xqkwy xsg933n"
+          xsg933n: "x6xqkwy xsg933n",
+          $$css: true
         };
         export const themeSpacing = {
-          $$css: true,
-          xbiwvf9: "x57uvma xbiwvf9"
+          xbiwvf9: "x57uvma xbiwvf9",
+          $$css: true
         };
         export const styles = {
           root: {
@@ -235,12 +235,12 @@ describe('@stylexjs/babel-plugin', ()=>{
           __themeName__: "xbiwvf9"
         };
         export const themeColor = {
-          $$css: true,
-          xsg933n: "x6xqkwy xsg933n"
+          xsg933n: "x6xqkwy xsg933n",
+          $$css: true
         };
         export const themeSpacing = {
-          $$css: true,
-          xbiwvf9: "x57uvma xbiwvf9"
+          xbiwvf9: "x57uvma xbiwvf9",
+          $$css: true
         };
         export const styles = {
           root: {

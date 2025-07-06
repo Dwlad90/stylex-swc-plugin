@@ -148,11 +148,6 @@ pub(crate) fn stylex_create_theme(
     }
   }
 
-  resolved_theme_vars.insert(
-    COMPILED_KEY.to_string(),
-    Rc::new(FlatCompiledStylesValue::Bool(true)),
-  );
-
   let theme_name_str_value = match theme_vars {
     EvaluateResultValue::Expr(_) => expr_to_str(
       theme_name_key_value.value.as_ref(),
@@ -168,6 +163,11 @@ pub(crate) fn stylex_create_theme(
   resolved_theme_vars.insert(
     theme_name_str_value,
     Rc::new(FlatCompiledStylesValue::String(theme_class)),
+  );
+
+  resolved_theme_vars.insert(
+    COMPILED_KEY.to_string(),
+    Rc::new(FlatCompiledStylesValue::Bool(true)),
   );
 
   (resolved_theme_vars, styles_to_inject)

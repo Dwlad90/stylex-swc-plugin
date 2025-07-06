@@ -8,6 +8,6 @@ export const buttonTheme = {
 };
 export const buttonThemePositive = {
     TestTheme__buttonThemePositive: "TestTheme__buttonThemePositive",
-    $$css: true,
-    x568ih9: "xtrlmmh x568ih9"
+    x568ih9: "xtrlmmh x568ih9",
+    $$css: true
 };

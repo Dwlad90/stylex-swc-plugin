@@ -32,8 +32,8 @@ export default function ButtonsDemo(props) {
     </div>;
 }
 const redTheme = {
-    $$css: true,
-    xhq9i64: "x1idg7kz "
+    xhq9i64: "x1idg7kz ",
+    $$css: true
 };
 const styles = {
     container: {
@@ -91,12 +91,12 @@ const styles = {
     }
 };
 const priorityIntent = {
-    $$css: true,
-    xhq9i64: "x13g83z8 "
+    xhq9i64: "x13g83z8 ",
+    $$css: true
 };
 const defaultIntent = {
-    $$css: true,
-    xhq9i64: "x13xmhq7 "
+    xhq9i64: "x13xmhq7 ",
+    $$css: true
 };
 const intents = {
     priority: priorityIntent,

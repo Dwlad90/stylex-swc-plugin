@@ -1,5 +1,5 @@
 use crate::shared::{
-  constants::logical_to_ltr::{INLINE_TO_LTR, LOGICAL_TO_LTR},
+  constants::logical_to_ltr::{INLINE_PROPERTY_TO_LTR, PROPERTY_TO_LTR},
   structures::{
     pair::Pair, stylex_options::StyleResolution, stylex_state_options::StyleXStateOptions,
   },
@@ -13,19 +13,33 @@ pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
 
   if style_resolution == &StyleResolution::LegacyExpandShorthands {
     if !enable_logical_styles_polyfill {
+      if let Some(value) = legacy_values_polyfill(pair, key) {
+        return value;
+      }
+
       return pair.clone();
     }
 
-    if let Some(inline_to_ltr_value) = INLINE_TO_LTR.get(key) {
+    if let Some(inline_to_ltr_value) = INLINE_PROPERTY_TO_LTR.get(key) {
       return Pair::new(inline_to_ltr_value.to_string(), pair.value.clone());
     }
   }
 
-  if let Some(pair) = convert_to_standard_properties(pair.key.as_str(), pair.value.as_str()) {
-    return pair;
+  if let Some(value) = legacy_values_polyfill(pair, key) {
+    return value;
   }
 
   property_to_ltr(pair)
+}
+
+// Always polyfill float/clear values, regardless of enable_logical_styles_polyfill
+fn legacy_values_polyfill(pair: &Pair, key: &str) -> Option<Pair> {
+  if key == "float" || key == "clear" {
+    let new_val = logical_to_physical_ltr(pair.value.as_str()).unwrap_or(pair.value.as_str());
+    dbg!(&new_val);
+    return Some(Pair::new(key.to_string(), new_val.to_string()));
+  }
+  None
 }
 
 fn property_to_ltr(pair: &Pair) -> Pair {
@@ -44,13 +58,8 @@ fn property_to_ltr(pair: &Pair) -> Pair {
       Pair::new(pair.key.clone(), new_val)
     }
     k => {
-      if let Some(&physical) = LOGICAL_TO_LTR.get(k) {
+      if let Some(&physical) = PROPERTY_TO_LTR.get(k) {
         Pair::new(physical.to_string(), pair.value.clone())
-      } else if k == "float" || k == "clear" {
-        match logical_to_physical_ltr(pair.value.as_str()) {
-          Some(value) => Pair::new(pair.key.clone(), value.to_string()),
-          None => pair.clone(),
-        }
       } else {
         Pair::new(pair.key.clone(), pair.value.clone())
       }
@@ -62,25 +71,8 @@ fn logical_to_physical_ltr(input: &str) -> Option<&str> {
   match input {
     "start" => Some("left"),
     "end" => Some("right"),
-    _ => None,
-  }
-}
-
-// Helper function to convert logical values to standard values
-fn logical_to_standard_value(val: &str) -> &str {
-  match val {
-    "start" => "inline-start",
-    "end" => "inline-end",
-    _ => val,
-  }
-}
-
-pub(crate) fn convert_to_standard_properties<'a>(key: &'a str, val: &'a str) -> Option<Pair> {
-  match key {
-    "float" | "clear" => Some(Pair::new(
-      key.to_string(),
-      logical_to_standard_value(val).to_string(),
-    )),
+    "inline-start" => Some("left"),
+    "inline-end" => Some("right"),
     _ => None,
   }
 }

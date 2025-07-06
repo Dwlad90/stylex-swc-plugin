@@ -14,6 +14,8 @@ fn logical_to_physical_rtl(input: &str) -> Option<&str> {
   match input {
     "start" => Some("right"),
     "end" => Some("left"),
+    "inline-start" => Some("right"),
+    "inline-end" => Some("left"),
     _ => None,
   }
 }
@@ -53,6 +55,10 @@ pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<
 
   if style_resolution == &StyleResolution::LegacyExpandShorthands {
     if !enable_logical_styles_polyfill {
+      if let Some(value) = legacy_values_polyfill(pair, key) {
+        return Some(value);
+      }
+
       return None;
     }
 
@@ -62,6 +68,10 @@ pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<
         pair.value.clone(),
       ));
     }
+  }
+
+  if let Some(value) = legacy_values_polyfill(pair, key) {
+    return Some(value);
   }
 
   property_to_rtl(pair)
@@ -119,4 +129,12 @@ fn flip_sign(value: &str) -> String {
   } else {
     format!("-{}", value)
   }
+}
+
+fn legacy_values_polyfill(pair: &Pair, key: &str) -> Option<Pair> {
+  if key == "float" || key == "clear" {
+    let new_val = logical_to_physical_rtl(pair.value.as_str()).unwrap_or(pair.value.as_str());
+    return Some(Pair::new(key.to_string(), new_val.to_string()));
+  }
+  None
 }

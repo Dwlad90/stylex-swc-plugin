@@ -22,7 +22,7 @@ use crate::shared::{
       factories::{object_lit_factory, prop_or_spread_string_factory},
     },
     common::{create_hash, dashify},
-    css::common::{generate_ltr, generate_rtl, transform_value_cached},
+    css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
     object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
   },
 };

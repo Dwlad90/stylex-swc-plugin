@@ -7,8 +7,6 @@ use crate::shared::{
       COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES, CSS_CONTENT_FUNCTIONS,
       CSS_CONTENT_KEYWORDS,
     },
-    logical_to_ltr::{INLINE_TO_LTR, LOGICAL_TO_LTR},
-    logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL},
     long_hand_logical::LONG_HAND_LOGICAL,
     long_hand_physical::LONG_HAND_PHYSICAL,
     messages::LINT_UNCLOSED_FUNCTION,
@@ -23,9 +21,11 @@ use crate::shared::{
   regex::{CLEAN_CSS_VAR, MANY_SPACES},
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
-    stylex_options::StyleResolution, stylex_state_options::StyleXStateOptions,
+    stylex_state_options::StyleXStateOptions,
   },
   utils::css::{
+    generate_ltr::generate_ltr,
+    generate_rtl::generate_rtl,
     normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
     validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
   },
@@ -43,179 +43,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  constants::cursor_flip::CURSOR_FLIP, regex::LENGTH_UNIT_TESTER_REGEX,
-  structures::pre_rule::PreRules,
-};
-
 use super::parser::parse_css;
-
-fn logical_to_physical_ltr(input: &str) -> Option<&str> {
-  match input {
-    "start" => Some("left"),
-    "end" => Some("right"),
-    _ => None,
-  }
-}
-
-fn logical_to_physical_rtl(input: &str) -> Option<&str> {
-  match input {
-    "start" => Some("right"),
-    "end" => Some("left"),
-    _ => None,
-  }
-}
-
-fn property_to_ltr(pair: &Pair) -> Pair {
-  match pair.key.as_str() {
-    "background-position" => {
-      let new_val = pair
-        .value
-        .split_whitespace()
-        .map(|word| match word {
-          "start" => "left",
-          "end" => "right",
-          _ => word,
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
-      Pair::new(pair.key.clone(), new_val)
-    }
-    k => {
-      if let Some(&physical) = LOGICAL_TO_LTR.get(k) {
-        Pair::new(physical.to_string(), pair.value.clone())
-      } else if k == "float" || k == "clear" {
-        match logical_to_physical_ltr(pair.value.as_str()) {
-          Some(value) => Pair::new(pair.key.clone(), value.to_string()),
-          None => pair.clone(),
-        }
-      } else {
-        Pair::new(pair.key.clone(), pair.value.clone())
-      }
-    }
-  }
-}
-
-pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
-  let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
-  let style_resolution = &options.style_resolution;
-  let key = pair.key.as_str();
-
-  if style_resolution == &StyleResolution::LegacyExpandShorthands {
-    if !enable_logical_styles_polyfill {
-      return pair.clone();
-    }
-
-    if let Some(inline_to_ltr_value) = INLINE_TO_LTR.get(key) {
-      return Pair::new(inline_to_ltr_value.to_string(), pair.value.clone());
-    }
-  }
-
-  property_to_ltr(pair)
-}
-
-fn flip_sign(value: &str) -> String {
-  if value == "0" {
-    value.to_string()
-  } else if value.starts_with('-') {
-    value.strip_prefix('-').unwrap().to_string()
-  } else {
-    format!("-{}", value)
-  }
-}
-
-fn is_unit(input: &str) -> bool {
-  LENGTH_UNIT_TESTER_REGEX.is_match(input)
-}
-
-fn flip_shadow(value: &str) -> Option<String> {
-  let defs: Vec<&str> = value.split(',').collect();
-  let mut built_defs = Vec::new();
-
-  for def in defs {
-    let mut parts = def
-      .split_whitespace()
-      .map(|x| x.to_string())
-      .collect::<Vec<String>>();
-
-    // NOTE: temporary solution, need to implement unit parser
-    let index = if is_unit(parts[0].as_str()) { 0 } else { 1 };
-
-    if index < parts.len() {
-      let flipped = flip_sign(&parts[index]);
-      parts[index] = flipped;
-    }
-    built_defs.push(parts.join(" "));
-  }
-
-  let rtl = built_defs.join(", ");
-  if rtl != value { Some(rtl) } else { None }
-}
-
-fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
-  match key {
-    "box-shadow" | "text-shadow" => {
-      let rtl_val = flip_shadow(val);
-      rtl_val.map(|rtl_val| Pair::new(key.to_string(), rtl_val.to_string()))
-    }
-    _ => None,
-  }
-}
-
-fn property_to_rtl(pair: &Pair) -> Option<Pair> {
-  if let Some(&ltr_key) = LOGICAL_TO_RTL.get(pair.key.as_str()) {
-    return Some(Pair::new(ltr_key.to_string(), pair.value.clone()));
-  }
-
-  match pair.key.as_str() {
-    "float" | "clear" => logical_to_physical_rtl(pair.value.as_str())
-      .map(|value| Pair::new(pair.key.clone(), value.to_string())),
-    "background-position" => {
-      let new_val = pair
-        .value
-        .split_whitespace()
-        .map(|word| match word {
-          "start" => "right",
-          "end" => "left",
-          _ => word,
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
-      Some(Pair::new(pair.key.clone(), new_val))
-    }
-    "cursor" => CURSOR_FLIP
-      .get(pair.value.as_str())
-      .map(|val| Pair::new(pair.key.clone(), val.to_string())),
-    _ => shadows_flip(pair.key.as_str(), pair.value.as_str()),
-  }
-}
-
-fn _flip_value(value: &PreRules) -> Option<PreRules> {
-  // Implement your logic here to flip the value
-  // For now, I'm just returning the same value
-  Some(value.clone())
-}
-
-pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
-  let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
-  let style_resolution = &options.style_resolution;
-  let key = pair.key.as_str();
-
-  if style_resolution == &StyleResolution::LegacyExpandShorthands {
-    if !enable_logical_styles_polyfill {
-      return None;
-    }
-
-    if let Some(inline_to_rtl_value) = INLINE_TO_RTL.get(key) {
-      return Some(Pair::new(
-        inline_to_rtl_value.to_string(),
-        pair.value.clone(),
-      ));
-    }
-  }
-
-  property_to_rtl(pair)
-}
 
 pub(crate) fn split_value_required(strng: Option<&str>) -> (String, String, String, String) {
   let values = split_value(strng);

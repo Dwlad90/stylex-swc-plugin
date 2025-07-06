@@ -1,8 +1,12 @@
 use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
+  transforms::testing::test,
 };
+
+// =============================================================================
+// [transform] CSS property polyfills (styleResolution: application-order)
+// =============================================================================
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -18,7 +22,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { end: 5 } });
-    "#
+      "#
 );
 
 test!(
@@ -35,7 +39,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { marginEnd: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -52,7 +56,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { marginHorizontal: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -69,7 +73,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { marginStart: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -86,7 +90,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { marginVertical: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -103,7 +107,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { paddingEnd: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -120,7 +124,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { paddingHorizontal: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -137,7 +141,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { paddingStart: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -154,7 +158,7 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { paddingVertical: 0 } });
-    "#
+      "#
 );
 
 test!(
@@ -171,5 +175,5 @@ test!(
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { start: 5 } });
-    "#
+      "#
 );

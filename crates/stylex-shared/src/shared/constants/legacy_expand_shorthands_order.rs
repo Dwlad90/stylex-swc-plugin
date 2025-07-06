@@ -116,10 +116,10 @@ impl Shorthands {
     let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
 
     vec![
-      OrderPair("borderTopStartRadius".into(), Some(top)),
-      OrderPair("borderTopEndRadius".into(), Some(right)),
-      OrderPair("borderBottomEndRadius".into(), Some(bottom)),
-      OrderPair("borderBottomStartRadius".into(), Some(left)),
+      OrderPair("borderStartStartRadius".into(), Some(top)),
+      OrderPair("borderStartEndRadius".into(), Some(right)),
+      OrderPair("borderEndEndRadius".into(), Some(bottom)),
+      OrderPair("borderEndStartRadius".into(), Some(left)),
     ]
   }
 
@@ -152,9 +152,9 @@ impl Shorthands {
   fn inset(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("top".into(), raw_value.to_owned()),
-      OrderPair("end".into(), raw_value.to_owned()),
+      OrderPair("insetInlineEnd".into(), raw_value.to_owned()),
       OrderPair("bottom".into(), raw_value.to_owned()),
-      OrderPair("start".into(), raw_value),
+      OrderPair("insetInlineStart".into(), raw_value),
     ]
   }
   fn inset_inline(raw_value: Option<String>) -> Vec<OrderPair> {
@@ -173,14 +173,14 @@ impl Shorthands {
   }
   fn start(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("start".into(), raw_value),
+      OrderPair("insetInlineStart".into(), raw_value),
       OrderPair("left".into(), None),
       OrderPair("right".into(), None),
     ]
   }
   fn end(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("end".into(), raw_value),
+      OrderPair("insetInlineEnd".into(), raw_value),
       OrderPair("left".into(), None),
       OrderPair("right".into(), None),
     ]
@@ -188,15 +188,15 @@ impl Shorthands {
   fn left(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("left".into(), raw_value),
-      OrderPair("start".into(), None),
-      OrderPair("end".into(), None),
+      OrderPair("insetInlineStart".into(), None),
+      OrderPair("insetInlineEnd".into(), None),
     ]
   }
   fn right(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("right".into(), raw_value),
-      OrderPair("start".into(), None),
-      OrderPair("end".into(), None),
+      OrderPair("insetInlineStart".into(), None),
+      OrderPair("insetInlineEnd".into(), None),
     ]
   }
 
@@ -400,6 +400,13 @@ impl Aliases {
     vec![OrderPair("maxWidth".into(), val)]
   }
 
+
+  fn border_start(val: Option<String>) -> Vec<OrderPair> {
+    vec![OrderPair("borderInlineStart".into(), val)]
+  }
+  fn border_end(val: Option<String>) -> Vec<OrderPair> {
+    vec![OrderPair("borderInlineEnd".into(), val)]
+  }
   fn border_block_start_width(val: Option<String>) -> Vec<OrderPair> {
     vec![OrderPair("borderTopWidth".into(), val)]
   }
@@ -513,6 +520,8 @@ impl Aliases {
       "borderBlockWidth" => Shorthands::get("borderVerticalWidth"),
       "borderBlockStyle" => Shorthands::get("borderVerticalStyle"),
       "borderBlockColor" => Shorthands::get("borderVerticalColor"),
+      "borderStart" => Some(Aliases::border_start),
+      "borderEnd" => Some(Aliases::border_end),
       "borderBlockStartWidth" => Some(Aliases::border_block_start_width),
       "borderBlockStartStyle" => Some(Aliases::border_block_start_style),
       "borderBlockStartColor" => Some(Aliases::border_block_start_color),
@@ -522,16 +531,10 @@ impl Aliases {
       "borderInlineWidth" => Shorthands::get("borderInlineWidth"),
       "borderInlineStyle" => Shorthands::get("borderInlineStyle"),
       "borderInlineColor" => Shorthands::get("borderInlineColor"),
-      "borderInlineStartWidth" => Some(Aliases::border_inline_start_width),
-      "borderInlineStartStyle" => Some(Aliases::border_inline_start_style),
-      "borderInlineStartColor" => Some(Aliases::border_inline_start_color),
-      "borderInlineEndWidth" => Some(Aliases::border_inline_end_width),
-      "borderInlineEndStyle" => Some(Aliases::border_inline_end_style),
-      "borderInlineEndColor" => Some(Aliases::border_inline_end_color),
-      "borderInlineStartStartRadius" => Some(Aliases::border_start_start_radius),
-      "borderInlineStartEndRadius" => Some(Aliases::border_start_end_radius),
-      "borderInlineEndStartRadius" => Some(Aliases::border_end_start_radius),
-      "borderInlineEndEndRadius" => Some(Aliases::border_end_end_radius),
+      "borderTopStartRadius" => Some(Aliases::border_start_start_radius),
+      "borderTopEndRadius" => Some(Aliases::border_start_end_radius),
+      "borderBottomStartRadius" => Some(Aliases::border_end_start_radius),
+      "borderBottomEndRadius" => Some(Aliases::border_end_end_radius),
       "gridGap" => Shorthands::get("gap"),
       "gridRowGap" => Some(Aliases::grid_row_gap),
       "gridColumnGap" => Some(Aliases::grid_column_gap),

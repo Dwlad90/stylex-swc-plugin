@@ -75,18 +75,20 @@ mod stylex_keyframes {
   #[test]
   fn generates_rtl_specific_keyframes() {
     let keyframes =
-      default_vars_factory(&[("from", &[("start", "0")]), ("to", &[("start", "500")])]);
+      default_vars_factory(&[("from", &[("left", "0")]), ("to", &[("left", "500px")])]);
 
     let (key, result) = stylex_keyframes(&keyframes, &mut StateManager::default());
 
-    let expected_result = expected_css_result_factory(&[(
-      "x1jkcf39-B",
-      (
-        "@keyframes x1jkcf39-B{from{inset-inline-start:0;}to{inset-inline-start:500px;}}",
-        0.0,
-      ),
-    )]);
+    let mut expected_injected_styles = IndexMap::new();
+    expected_injected_styles.insert(
+      "x1lvx8r0-B".to_string(),
+      InjectableStyleKind::Regular(InjectableStyle {
+        ltr: "@keyframes x1lvx8r0-B{from{left:0;}to{left:500px;}}".to_string(),
+        rtl: None,
+        priority: Some(0.0),
+      }),
+    );
 
-    assert_eq!(result, *expected_result.get(key.as_str()).unwrap())
+    assert_eq!(result, *expected_injected_styles.get(key.as_str()).unwrap())
   }
 }

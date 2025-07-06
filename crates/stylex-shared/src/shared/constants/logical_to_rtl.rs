@@ -39,4 +39,6 @@ pub(crate) static INLINE_TO_RTL: phf::Map<&'static str, &'static str> = phf_map!
     "border-end-start-radius" => "border-bottom-right-radius",
     "border-start-end-radius" => "border-top-left-radius",
     "border-end-end-radius" => "border-bottom-left-radius",
+    "inset-inline-start" => "right",
+    "inset-inline-end" => "left",
 };

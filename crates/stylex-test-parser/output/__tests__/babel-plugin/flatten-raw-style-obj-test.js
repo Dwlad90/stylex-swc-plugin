@@ -172,9 +172,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'borderEndColor',
-                    new PreRule('borderEndColor', 'red', [
-                        'borderEndColor'
+                    'borderInlineEndColor',
+                    new PreRule('borderInlineEndColor', 'red', [
+                        'borderInlineEndColor'
                     ])
                 ],
                 [
@@ -184,9 +184,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'borderStartColor',
-                    new PreRule('borderStartColor', 'red', [
-                        'borderStartColor'
+                    'borderInlineStartColor',
+                    new PreRule('borderInlineStartColor', 'red', [
+                        'borderInlineStartColor'
                     ])
                 ]
             ]);

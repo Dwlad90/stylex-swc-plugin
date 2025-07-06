@@ -364,16 +364,16 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       pre_rule_factory("borderTopColor", "red", &["borderTopColor"]),
     );
     expected_result.insert(
-      "borderEndColor".to_string(),
-      pre_rule_factory("borderEndColor", "red", &["borderEndColor"]),
+      "borderInlineEndColor".to_string(),
+      pre_rule_factory("borderInlineEndColor", "red", &["borderInlineEndColor"]),
     );
     expected_result.insert(
       "borderBottomColor".to_string(),
       pre_rule_factory("borderBottomColor", "red", &["borderBottomColor"]),
     );
     expected_result.insert(
-      "borderStartColor".to_string(),
-      pre_rule_factory("borderStartColor", "red", &["borderStartColor"]),
+      "borderInlineStartColor".to_string(),
+      pre_rule_factory("borderInlineStartColor", "red", &["borderInlineStartColor"]),
     );
 
     assert_eq!(result, expected_result)

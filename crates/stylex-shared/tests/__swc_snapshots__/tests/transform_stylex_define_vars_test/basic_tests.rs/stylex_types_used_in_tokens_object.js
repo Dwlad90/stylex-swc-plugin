@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
-    color: "var(--xjrzwe6)",
-    __themeName__: "xm1nzai"
+    color: "var(--xwx8imx)",
+    __themeName__: "xop34xu"
 };

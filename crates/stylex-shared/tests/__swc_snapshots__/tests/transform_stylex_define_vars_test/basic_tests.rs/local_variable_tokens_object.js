@@ -3,5 +3,5 @@ export const vars = {
     "--color": "var(--color)",
     "--nextColor": "var(--nextColor)",
     "--otherColor": "var(--otherColor)",
-    __themeName__: "xm1nzai"
+    __themeName__: "xop34xu"
 };

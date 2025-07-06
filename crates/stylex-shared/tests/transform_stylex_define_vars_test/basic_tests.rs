@@ -20,7 +20,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -52,7 +55,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
       ..StyleXOptionsParams::default()
@@ -111,7 +117,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -141,7 +150,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -169,7 +181,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -202,7 +217,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -227,7 +245,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -252,7 +273,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -277,7 +301,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -305,7 +332,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -313,7 +343,7 @@ test!(
       ..StyleXOptionsParams::default()
     })
   ),
-  multiple_variables_objects,
+  multiple_variables_objects_same_file,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = stylex.defineVars({
@@ -332,7 +362,10 @@ test!(
   }),
   |tr| StyleXTransform::new_test_with_pass(
     tr.comments.clone(),
-    PluginPass::new(None, None),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
     Some(&mut StyleXOptionsParams {
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
@@ -348,6 +381,60 @@ test!(
     });
     export const otherVars = stylex.defineVars({
       otherColor: vars.color
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  multiple_variables_objects_different_files_first,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      color: 'red'
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/stylex/packages/".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  multiple_variables_objects_different_files_second,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const otherVars = stylex.defineVars({
+      otherColor: 'orange'
     });
   "#
 );

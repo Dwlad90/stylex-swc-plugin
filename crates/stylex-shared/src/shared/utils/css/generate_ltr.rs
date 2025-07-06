@@ -6,7 +6,6 @@ use crate::shared::{
 };
 
 pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
-  dbg!(&pair);
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
   let style_resolution = &options.style_resolution;
   let key = pair.key.as_str();
@@ -36,7 +35,7 @@ pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
 fn legacy_values_polyfill(pair: &Pair, key: &str) -> Option<Pair> {
   if key == "float" || key == "clear" {
     let new_val = logical_to_physical_ltr(pair.value.as_str()).unwrap_or(pair.value.as_str());
-    dbg!(&new_val);
+
     return Some(Pair::new(key.to_string(), new_val.to_string()));
   }
   None

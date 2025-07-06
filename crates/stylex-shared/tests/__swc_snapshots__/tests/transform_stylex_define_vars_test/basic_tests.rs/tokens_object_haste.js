@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
-    color: "var(--xjrzwe6)",
-    nextColor: "var(--x1ybzi8d)",
-    otherColor: "var(--x1o4mfbm)",
-    __themeName__: "xm1nzai"
+    color: "var(--xwx8imx)",
+    nextColor: "var(--xk6xtqk)",
+    otherColor: "var(--xaaua2w)",
+    __themeName__: "xop34xu"
 };

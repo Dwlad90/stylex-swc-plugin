@@ -50,8 +50,6 @@ const styles = {
         paddingBottom: "paddingBottom-xsag5q8",
         paddingLeft: "paddingLeft-x5tiur9",
         paddingRight: "paddingRight-x1s7jvk7",
-        paddingInlineStart: null,
-        paddingInlineEnd: null,
         paddingTop: "paddingTop-xz9dl7a",
         $$css: "input.stylex.js:37"
     }

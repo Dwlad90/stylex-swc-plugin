@@ -8,6 +8,7 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=1091
 . "$script_dir"/../../parse-args.sh
 : "${build_ts:=false}"
+: "${flatten:=false}"
 
 if [ "$build_ts" = true ]; then
   tsconfig_name="tsconfig.build.json"
@@ -18,6 +19,13 @@ if [ "$build_ts" = true ]; then
   fi
 
   pnpm tsc -p "${tsconfig_name}"|| handle_error "Failed to build the TypeScript project"
+
+  if( [ "$flatten" = true ] ); then
+    # Move all files from src to dist and remove src directory
+    mkdir -p dist
+    mv dist/src/* dist/ || handle_error "Failed to move files from src to dist"
+    rmdir dist/src || handle_error "Failed to remove src directory"
+  fi
 
   # Copy virtual CSS if exists
   if [ -f "src/stylex.virtual.css" ]; then

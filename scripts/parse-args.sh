@@ -4,6 +4,7 @@ PARAMS=""
 
 build_rust=false
 build_ts=false
+flatten=false
 
 while [ "$#" -ne 0 ]; do
   # shellcheck disable=2034
@@ -14,6 +15,10 @@ while [ "$#" -ne 0 ]; do
     ;;
   -ts | --ts | -typescript | --typescript)
     build_ts=true
+    shift
+    ;;
+  --flatten)
+    flatten=true
     shift
     ;;
   # unsupported flags

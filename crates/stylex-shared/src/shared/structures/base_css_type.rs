@@ -152,7 +152,7 @@ impl From<ObjectLit> for BaseCSSType {
       }
     }
 
-    assert!(!values.is_empty(), "Invalid value in stylex.defineVars");
+    assert!(!values.is_empty(), "Invalid value in defineVars");
 
     assert!(
       values.contains_key("default"),

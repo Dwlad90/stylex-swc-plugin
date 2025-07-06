@@ -33,17 +33,7 @@ export const ComponentWithCallings = ()=>{
 };
 const s = {
     div: {
-        "background-kC7eKd": "background-x1s5p4n8",
-        "backgroundAttachment-ku1ltF": null,
-        "backgroundClip-kHypHr": null,
-        "backgroundColor-kWkggS": null,
-        "backgroundImage-kKwaWg": null,
-        "backgroundOrigin-kl9DO0": null,
-        "backgroundRepeat-kz484i": null,
-        "backgroundSize-kgSjnq": null,
-        "backgroundPosition-k1YJky": null,
-        "backgroundPositionX-kDwdnV": null,
-        "backgroundPositionY-kAiEkY": null,
+        "backgroundColor-kWkggS": "backgroundColor-xvto61e",
         $$css: true
     }
 };

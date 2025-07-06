@@ -32,7 +32,7 @@ pub struct StyleXOptionsParams {
 impl Default for StyleXOptionsParams {
   fn default() -> Self {
     StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
+      style_resolution: Some(StyleResolution::PropertySpecificity),
       enable_font_size_px_to_rem: Some(false),
       runtime_injection: Some(false),
       class_name_prefix: Some("x".to_string()),
@@ -128,7 +128,7 @@ impl StyleXOptions {
 impl Default for StyleXOptions {
   fn default() -> Self {
     StyleXOptions {
-      style_resolution: StyleResolution::ApplicationOrder,
+      style_resolution: StyleResolution::PropertySpecificity,
       enable_font_size_px_to_rem: false,
       runtime_injection: RuntimeInjection::Boolean(false),
       class_name_prefix: "x".to_string(),
@@ -175,7 +175,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
     StyleXOptions {
       style_resolution: options
         .style_resolution
-        .unwrap_or(StyleResolution::ApplicationOrder),
+        .unwrap_or(StyleResolution::PropertySpecificity),
       enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.unwrap_or(false),
       runtime_injection,
       class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),

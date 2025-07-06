@@ -82,7 +82,7 @@ test!(
 
     const s = stylex.create({
       div: {
-        background: '#F7F5F6',
+        backgroundColor: '#F7F5F6',
       },
     });
   "#
@@ -136,7 +136,7 @@ test!(
 
       const s = stylex.create({
         div: {
-          background: '#F7F5F6',
+          backgroundColor: '#F7F5F6',
         },
       });
     "#
@@ -190,7 +190,7 @@ test!(
 
       const s = stylex.create({
         div: {
-          background: '#F7F5F6',
+          backgroundColor: '#F7F5F6',
         },
       });
     "#
@@ -246,7 +246,7 @@ test!(
 
       const s = stylex.create({
         div: {
-          background: '#F7F5F6',
+          backgroundColor: '#F7F5F6',
         },
       });
     "#
@@ -301,7 +301,7 @@ test!(
 
       const s = stylex.create({
         div: {
-          background: '#F7F5F6',
+          backgroundColor: '#F7F5F6',
         },
       });
     "#
@@ -357,7 +357,7 @@ test!(
 
       const s = stylex.create({
         div: {
-          background: '#F7F5F6',
+          backgroundColor: '#F7F5F6',
         },
       });
     "#
@@ -412,7 +412,7 @@ test!(
 
       const s = stylex.create({
         div: {
-          background: '#F7F5F6',
+          backgroundColor: '#F7F5F6',
         },
       });
     "#

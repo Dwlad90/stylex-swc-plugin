@@ -9,6 +9,7 @@ function transform(source, opts = {}) {
             [
                 stylexPlugin,
                 {
+                    styleResolution: 'application-order',
                     runtimeInjection: true,
                     ...opts
                 }

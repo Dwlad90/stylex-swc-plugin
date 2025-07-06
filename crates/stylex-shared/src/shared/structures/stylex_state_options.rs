@@ -33,7 +33,7 @@ pub struct StyleXStateOptions {
 impl Default for StyleXStateOptions {
   fn default() -> Self {
     StyleXStateOptions {
-      style_resolution: StyleResolution::ApplicationOrder,
+      style_resolution: StyleResolution::PropertySpecificity,
       dev: false,
       test: false,
       debug: false,

@@ -4,11 +4,7 @@ export const styles = {
         kMwMTN: "x1e2nbdu",
         kZKoxP: "x1ycjhwn",
         k2gyfz: "xaiupp8",
-        kdEERS: null,
-        kteFOC: null,
         kXpG3g: "x1uy60zq",
-        kuXX87: null,
-        kVmKhW: null,
         $$css: true
     }
 };

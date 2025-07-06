@@ -2,7 +2,7 @@ import path from 'path';
 import postcss from 'postcss';
 import createPlugin from '../src/plugin';
 
-describe('@stylexjs/postcss-plugin', () => {
+describe('@stylexswc/postcss-plugin', () => {
   const fixturesDir = path.resolve(__dirname, '__fixtures__');
 
   async function runStylexPostcss(options = {}, inputCSS = '@stylex;') {

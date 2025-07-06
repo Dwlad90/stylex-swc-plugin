@@ -40,8 +40,6 @@ const styles = {
         kGO01o: "xsag5q8",
         kE3dHu: "x5tiur9",
         kpe85a: "x1s7jvk7",
-        kZCmMZ: null,
-        kwRFfy: null,
         kLKAdn: "xz9dl7a",
         $$css: true
     }

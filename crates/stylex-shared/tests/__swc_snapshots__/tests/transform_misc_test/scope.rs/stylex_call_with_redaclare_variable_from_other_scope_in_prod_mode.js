@@ -33,7 +33,7 @@ export const ComponentWithCallings = ()=>{
 };
 const s = {
     div: {
-        kC7eKd: "x1s5p4n8",
+        kWkggS: "xvto61e",
         $$css: true
     }
 };

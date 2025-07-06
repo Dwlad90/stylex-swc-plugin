@@ -409,7 +409,7 @@ describe('StateManager config parsing', ()=>{
             const stateManager = makeState({
                 styleResolution: 'something-else'
             });
-            expect(stateManager.options.styleResolution).toBe('application-order');
+            expect(stateManager.options.styleResolution).toBe('property-specificity');
             expect(warnings).toMatchInlineSnapshot(`
         [
           [
@@ -425,7 +425,7 @@ describe('StateManager config parsing', ()=>{
         });
         test('default value', ()=>{
             const stateManager = makeState();
-            expect(stateManager.options.styleResolution).toBe('application-order');
+            expect(stateManager.options.styleResolution).toBe('property-specificity');
             expect(warnings).toEqual([]);
         });
         test('valid values', ()=>{

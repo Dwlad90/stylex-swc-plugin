@@ -42,7 +42,7 @@ mod convert_style_to_class_name {
       &mut StateManager {
         options: StyleXStateOptions {
           class_name_prefix: 'x'.to_string(),
-          style_resolution: StyleResolution::ApplicationOrder,
+          style_resolution: StyleResolution::PropertySpecificity,
           dev: false,
           test: false,
           debug: true,
@@ -64,7 +64,7 @@ mod convert_style_to_class_name {
       &mut StateManager {
         options: StyleXStateOptions {
           class_name_prefix: 'x'.to_string(),
-          style_resolution: StyleResolution::ApplicationOrder,
+          style_resolution: StyleResolution::PropertySpecificity,
           dev: false,
           test: false,
           debug: true,
@@ -88,7 +88,7 @@ mod convert_style_to_class_name {
       &mut StateManager {
         options: StyleXStateOptions {
           class_name_prefix: 'x'.to_string(),
-          style_resolution: StyleResolution::ApplicationOrder,
+          style_resolution: StyleResolution::PropertySpecificity,
           dev: false,
           test: false,
           debug: false,

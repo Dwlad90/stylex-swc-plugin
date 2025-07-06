@@ -1,4 +1,10 @@
-use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use stylex_shared::{
+  StyleXTransform,
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleResolution, StyleXOptionsParams},
+  },
+};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -12,7 +18,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   empty_stylex_call,
   r#"
@@ -29,7 +38,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   basic_stylex_call,
   r#"
@@ -51,7 +63,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_number,
   r#"
@@ -76,7 +91,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_computed_number,
   r#"
@@ -101,7 +119,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_computed_number_without_declaration,
   r#"
@@ -126,7 +147,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_multiple_namespaces,
   r#"
@@ -153,7 +177,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_within_variable_declarations,
   r#"
@@ -176,7 +203,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_styles_variable_assignment,
   r#"
@@ -203,7 +233,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_short_form_properties,
   r#"
@@ -225,7 +258,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_with_exported_short_form_properties,
   r#"
@@ -247,7 +283,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_keeps_only_the_styles_that_are_needed,
   r#"
@@ -279,7 +318,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_keeps_all_null_when_applied_after_unknown,
   r#"
@@ -311,7 +353,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_keeps_only_the_nulls_that_are_needed,
   r#"
@@ -343,7 +388,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_keeps_only_the_nulls_that_are_needed_second,
   r#"
@@ -375,7 +423,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_using_styles_with_pseudo_selectors,
   r#"
@@ -400,7 +451,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_using_styles_with_pseudo_selectors_within_property,
   r#"
@@ -425,7 +479,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_using_styles_with_media_queries,
   r#"
@@ -453,7 +510,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
   ),
   stylex_call_using_styles_with_media_queries_within_property,
   r#"

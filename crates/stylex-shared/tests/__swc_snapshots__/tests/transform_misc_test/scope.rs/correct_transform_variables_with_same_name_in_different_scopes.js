@@ -47,20 +47,10 @@ export const ComponentWithCallings = ()=>{
     });
     return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)}>{array.map((_)=>null)}</div> : null}</div>;
 };
-_inject2(".background-x1s5p4n8{background:#F7F5F6}", 1000);
+_inject2(".backgroundColor-xvto61e{background-color:#F7F5F6}", 3000);
 const s = {
     div: {
-        "background-kC7eKd": "background-x1s5p4n8",
-        "backgroundAttachment-ku1ltF": null,
-        "backgroundClip-kHypHr": null,
-        "backgroundColor-kWkggS": null,
-        "backgroundImage-kKwaWg": null,
-        "backgroundOrigin-kl9DO0": null,
-        "backgroundRepeat-kz484i": null,
-        "backgroundSize-kgSjnq": null,
-        "backgroundPosition-k1YJky": null,
-        "backgroundPositionX-kDwdnV": null,
-        "backgroundPositionY-kAiEkY": null,
+        "backgroundColor-kWkggS": "backgroundColor-xvto61e",
         $$css: true
     }
 };

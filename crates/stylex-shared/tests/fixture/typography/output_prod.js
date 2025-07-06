@@ -5,14 +5,6 @@ import { fontSizes, fonts, typographyBase } from '../../../styles/typography/typ
 const styles = {
     text: {
         kogj98: "x1ghz6dp",
-        kUOVxO: null,
-        keTefX: null,
-        koQZXg: null,
-        k71WvV: null,
-        km5ZXQ: null,
-        kqGvvJ: null,
-        keoZOQ: null,
-        k1K539: null,
         kHjlTd: "xj0a0fe",
         kMv6JI: "xxtxygr",
         $$css: true
@@ -66,8 +58,6 @@ const styles = {
         khDVqt: "xuxw1ft",
         kg5iWk: "xlyipyv",
         kVQacm: "xb3r6kr",
-        kXHlph: null,
-        kORKVm: null,
         $$css: true
     },
     bold: {
@@ -96,10 +86,6 @@ const styles = {
     },
     underline: {
         kybGjl: "x1bvjpef",
-        k1TLXF: null,
-        kMnn75: null,
-        kmVMDM: null,
-        kNySMw: null,
         $$css: true
     },
     colorSuccess: {

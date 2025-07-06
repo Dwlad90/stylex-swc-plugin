@@ -37,14 +37,6 @@ _inject2(".color-x10gd8tk{color:var(--secondary-x1pnddxr)}", 3000);
 const styles = {
     text: {
         margin: "margin-x1ghz6dp",
-        marginInline: null,
-        marginInlineStart: null,
-        marginLeft: null,
-        marginInlineEnd: null,
-        marginRight: null,
-        marginBlock: null,
-        marginTop: null,
-        marginBottom: null,
         overflowWrap: "overflowWrap-xj0a0fe",
         fontFamily: "fontFamily-xbwy7e6",
         $$css: "input.stylex.js:8"
@@ -98,8 +90,6 @@ const styles = {
         whiteSpace: "whiteSpace-xuxw1ft",
         textOverflow: "textOverflow-xlyipyv",
         overflow: "overflow-xb3r6kr",
-        overflowX: null,
-        overflowY: null,
         $$css: "input.stylex.js:49"
     },
     bold: {
@@ -128,10 +118,6 @@ const styles = {
     },
     underline: {
         textDecoration: "textDecoration-x1bvjpef",
-        textDecorationColor: null,
-        textDecorationLine: null,
-        textDecorationStyle: null,
-        textDecorationThickness: null,
         $$css: "input.stylex.js:72"
     },
     colorSuccess: {

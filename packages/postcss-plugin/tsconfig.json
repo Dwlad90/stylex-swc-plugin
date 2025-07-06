@@ -5,7 +5,9 @@
     "moduleResolution": "Node",
     "module": "CommonJS",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "composite": true,
+    "incremental": true
   },
   "include": [
     "src/**/*.ts",
@@ -13,5 +15,16 @@
   ],
   "exclude": [
     "node_modules"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.test.json"
+    },
+    {
+      "path": "./tsconfig.build.json"
+    },
+    {
+      "path": "./tsconfig.typecheck.json"
+    }
   ]
 }

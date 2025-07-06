@@ -91,6 +91,8 @@ pub(crate) fn convert_style_to_class_name(
   } else {
     format!("{}{}", prefix, create_hash(string_to_hash.as_str()))
   };
+  dbg!(&string_to_hash, &class_name_hashed);
+
   let css_rules = generate_css_rule(
     class_name_hashed.as_str(),
     dashed_key.as_str(),

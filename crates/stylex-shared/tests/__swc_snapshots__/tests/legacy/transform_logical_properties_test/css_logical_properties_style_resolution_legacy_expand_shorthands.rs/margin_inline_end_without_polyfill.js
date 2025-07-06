@@ -1,5 +1,5 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".xmo9yow{margin-end:10px}", 3000);
-export const classnames = "xmo9yow";
+_inject2(".x1sa5p1d{margin-inline-end:10px}", 3000);
+export const classnames = "x1sa5p1d";

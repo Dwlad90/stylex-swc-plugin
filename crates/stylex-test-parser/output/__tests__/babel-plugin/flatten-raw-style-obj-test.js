@@ -20,9 +20,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
-                    new PreRule('marginStart', 10, [
-                        'marginStart'
+                    'marginInlineStart',
+                    new PreRule('marginInlineStart', 10, [
+                        'marginInlineStart'
                     ])
                 ],
                 [
@@ -82,9 +82,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginEnd',
-                    new PreRule('marginEnd', 10, [
-                        'marginEnd'
+                    'marginInlineEnd',
+                    new PreRule('marginInlineEnd', 10, [
+                        'marginInlineEnd'
                     ])
                 ],
                 [
@@ -94,9 +94,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
-                    new PreRule('marginStart', 10, [
-                        'marginStart'
+                    'marginInlineStart',
+                    new PreRule('marginInlineStart', 10, [
+                        'marginInlineStart'
                     ])
                 ]
             ]);
@@ -111,9 +111,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginEnd',
-                    new PreRule('marginEnd', 10, [
-                        'marginEnd'
+                    'marginInlineEnd',
+                    new PreRule('marginInlineEnd', 10, [
+                        'marginInlineEnd'
                     ])
                 ],
                 [
@@ -123,9 +123,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
-                    new PreRule('marginStart', 10, [
-                        'marginStart'
+                    'marginInlineStart',
+                    new PreRule('marginInlineStart', 10, [
+                        'marginInlineStart'
                     ])
                 ],
                 [
@@ -148,9 +148,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginEnd',
-                    new PreRule('marginEnd', '20px', [
-                        'marginEnd'
+                    'marginInlineEnd',
+                    new PreRule('marginInlineEnd', '20px', [
+                        'marginInlineEnd'
                     ])
                 ],
                 [
@@ -160,9 +160,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
-                    new PreRule('marginStart', '20px', [
-                        'marginStart'
+                    'marginInlineStart',
+                    new PreRule('marginInlineStart', '20px', [
+                        'marginInlineStart'
                     ])
                 ],
                 [
@@ -294,9 +294,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginEnd',
-                    new PreRule('marginEnd', '20px', [
-                        'marginEnd'
+                    'marginInlineEnd',
+                    new PreRule('marginInlineEnd', '20px', [
+                        'marginInlineEnd'
                     ])
                 ],
                 [
@@ -309,9 +309,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
-                    new PreRule('marginStart', '20px', [
-                        'marginStart'
+                    'marginInlineStart',
+                    new PreRule('marginInlineStart', '20px', [
+                        'marginInlineStart'
                     ])
                 ]
             ]);
@@ -334,9 +334,9 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
-                    new PreRule('marginStart', 0, [
-                        'marginStart'
+                    'marginInlineStart',
+                    new PreRule('marginInlineStart', 0, [
+                        'marginInlineStart'
                     ])
                 ],
                 [
@@ -355,10 +355,10 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    ':hover_marginStart',
-                    new PreRule('marginStart', 10, [
+                    ':hover_marginInlineStart',
+                    new PreRule('marginInlineStart', 10, [
                         ':hover',
-                        'marginStart'
+                        'marginInlineStart'
                     ])
                 ],
                 [
@@ -396,14 +396,14 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
+                    'marginInlineStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', 0, [
-                            'marginStart',
+                        new PreRule('marginInlineStart', 0, [
+                            'marginInlineStart',
                             'default'
                         ]),
-                        new PreRule('marginStart', 10, [
-                            'marginStart',
+                        new PreRule('marginInlineStart', 10, [
+                            'marginInlineStart',
                             ':hover'
                         ])
                     ])
@@ -462,14 +462,14 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginEnd',
+                    'marginInlineEnd',
                     PreRuleSet.create([
-                        new PreRule('marginEnd', 0, [
-                            'marginEnd',
+                        new PreRule('marginInlineEnd', 0, [
+                            'marginInlineEnd',
                             'default'
                         ]),
-                        new PreRule('marginEnd', 10, [
-                            'marginEnd',
+                        new PreRule('marginInlineEnd', 10, [
+                            'marginInlineEnd',
                             ':hover'
                         ])
                     ])
@@ -488,14 +488,14 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
+                    'marginInlineStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', 0, [
-                            'marginStart',
+                        new PreRule('marginInlineStart', 0, [
+                            'marginInlineStart',
                             'default'
                         ]),
-                        new PreRule('marginStart', 10, [
-                            'marginStart',
+                        new PreRule('marginInlineStart', 10, [
+                            'marginInlineStart',
                             ':hover'
                         ])
                     ])
@@ -540,14 +540,14 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginEnd',
+                    'marginInlineEnd',
                     PreRuleSet.create([
-                        new PreRule('marginEnd', '2px', [
-                            'marginEnd',
+                        new PreRule('marginInlineEnd', '2px', [
+                            'marginInlineEnd',
                             'default'
                         ]),
-                        new PreRule('marginEnd', '20px', [
-                            'marginEnd',
+                        new PreRule('marginInlineEnd', '20px', [
+                            'marginInlineEnd',
                             ':hover'
                         ])
                     ])
@@ -566,14 +566,14 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
+                    'marginInlineStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', '4px', [
-                            'marginStart',
+                        new PreRule('marginInlineStart', '4px', [
+                            'marginInlineStart',
                             'default'
                         ]),
-                        new PreRule('marginStart', '20px', [
-                            'marginStart',
+                        new PreRule('marginInlineStart', '20px', [
+                            'marginInlineStart',
                             ':hover'
                         ])
                     ])
@@ -610,14 +610,14 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
+                    'marginInlineStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', 0, [
-                            'marginStart',
+                        new PreRule('marginInlineStart', 0, [
+                            'marginInlineStart',
                             'default'
                         ]),
-                        new PreRule('marginStart', 10, [
-                            'marginStart',
+                        new PreRule('marginInlineStart', 10, [
+                            'marginInlineStart',
                             ':hover'
                         ])
                     ])
@@ -667,17 +667,17 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginEnd',
+                    'marginInlineEnd',
                     PreRuleSet.create([
-                        new PreRule('marginEnd', '2px', [
-                            'marginEnd',
+                        new PreRule('marginInlineEnd', '2px', [
+                            'marginInlineEnd',
                             'default'
                         ]),
-                        new PreRule('marginEnd', [
+                        new PreRule('marginInlineEnd', [
                             '20px',
                             '2dvw'
                         ], [
-                            'marginEnd',
+                            'marginInlineEnd',
                             ':hover'
                         ])
                     ])
@@ -699,17 +699,17 @@ describe('Flatten Style Object with legacy shorthand expansion', ()=>{
                     ])
                 ],
                 [
-                    'marginStart',
+                    'marginInlineStart',
                     PreRuleSet.create([
-                        new PreRule('marginStart', '4px', [
-                            'marginStart',
+                        new PreRule('marginInlineStart', '4px', [
+                            'marginInlineStart',
                             'default'
                         ]),
-                        new PreRule('marginStart', [
+                        new PreRule('marginInlineStart', [
                             '20px',
                             '2dvw'
                         ], [
-                            'marginStart',
+                            'marginInlineStart',
                             ':hover'
                         ])
                     ])

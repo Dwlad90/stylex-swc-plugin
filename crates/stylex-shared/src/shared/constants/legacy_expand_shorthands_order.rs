@@ -75,6 +75,24 @@ impl Shorthands {
       OrderPair("borderEndWidth".into(), raw_value),
     ]
   }
+  fn border_inline_color(raw_value: Option<String>) -> Vec<OrderPair> {
+    vec![
+      OrderPair("borderStartColor".into(), raw_value.to_owned()),
+      OrderPair("borderEndColor".into(), raw_value),
+    ]
+  }
+  fn border_inline_style(raw_value: Option<String>) -> Vec<OrderPair> {
+    vec![
+      OrderPair("borderStartStyle".into(), raw_value.to_owned()),
+      OrderPair("borderEndStyle".into(), raw_value),
+    ]
+  }
+  fn border_inline_width(raw_value: Option<String>) -> Vec<OrderPair> {
+    vec![
+      OrderPair("borderStartWidth".into(), raw_value.to_owned()),
+      OrderPair("borderEndWidth".into(), raw_value),
+    ]
+  }
   fn border_vertical_color(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("borderTopColor".into(), raw_value.to_owned()),
@@ -195,9 +213,9 @@ impl Shorthands {
 
     vec![
       OrderPair("marginTop".into(), Some(top)),
-      OrderPair("marginEnd".into(), Some(right)),
+      OrderPair("marginInlineEnd".into(), Some(right)),
       OrderPair("marginBottom".into(), Some(bottom)),
-      OrderPair("marginStart".into(), Some(left)),
+      OrderPair("marginInlineStart".into(), Some(left)),
     ]
   }
   fn margin_horizontal(raw_value: Option<String>) -> Vec<OrderPair> {
@@ -210,14 +228,14 @@ impl Shorthands {
   }
   fn margin_start(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("marginStart".into(), raw_value),
+      OrderPair("marginInlineStart".into(), raw_value),
       OrderPair("marginLeft".into(), None),
       OrderPair("marginRight".into(), None),
     ]
   }
   fn margin_end(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("marginEnd".into(), raw_value),
+      OrderPair("marginInlineEnd".into(), raw_value),
       OrderPair("marginLeft".into(), None),
       OrderPair("marginRight".into(), None),
     ]
@@ -225,15 +243,15 @@ impl Shorthands {
   fn margin_left(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("marginLeft".into(), raw_value),
-      OrderPair("marginStart".into(), None),
-      OrderPair("marginEnd".into(), None),
+      OrderPair("marginInlineStart".into(), None),
+      OrderPair("marginInlineEnd".into(), None),
     ]
   }
   fn margin_right(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("marginRight".into(), raw_value),
-      OrderPair("marginStart".into(), None),
-      OrderPair("marginEnd".into(), None),
+      OrderPair("marginInlineStart".into(), None),
+      OrderPair("marginInlineEnd".into(), None),
     ]
   }
   fn margin_vertical(raw_value: Option<String>) -> Vec<OrderPair> {
@@ -255,9 +273,9 @@ impl Shorthands {
 
     vec![
       OrderPair("paddingTop".into(), Some(top)),
-      OrderPair("paddingEnd".into(), Some(right)),
+      OrderPair("paddingInlineEnd".into(), Some(right)),
       OrderPair("paddingBottom".into(), Some(bottom)),
-      OrderPair("paddingStart".into(), Some(left)),
+      OrderPair("paddingInlineStart".into(), Some(left)),
     ]
   }
   fn padding_horizontal(val: Option<String>) -> Vec<OrderPair> {
@@ -270,14 +288,14 @@ impl Shorthands {
   }
   fn padding_start(val: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("paddingStart".into(), val),
+      OrderPair("paddingInlineStart".into(), val),
       OrderPair("paddingLeft".into(), None),
       OrderPair("paddingRight".into(), None),
     ]
   }
   fn padding_end(val: Option<String>) -> Vec<OrderPair> {
     vec![
-      OrderPair("paddingEnd".into(), val),
+      OrderPair("paddingInlineEnd".into(), val),
       OrderPair("paddingLeft".into(), None),
       OrderPair("paddingRight".into(), None),
     ]
@@ -292,8 +310,8 @@ impl Shorthands {
   fn padding_right(val: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("paddingRight".into(), val),
-      OrderPair("paddingStart".into(), None),
-      OrderPair("paddingEnd".into(), None),
+      OrderPair("paddingInlineStart".into(), None),
+      OrderPair("paddingInlineEnd".into(), None),
     ]
   }
   fn padding_vertical(val: Option<String>) -> Vec<OrderPair> {
@@ -314,6 +332,9 @@ impl Shorthands {
       "borderHorizontalColor" => Some(Shorthands::border_horizontal_color),
       "borderHorizontalStyle" => Some(Shorthands::border_horizontal_style),
       "borderHorizontalWidth" => Some(Shorthands::border_horizontal_width),
+      "borderInlineColor" => Some(Shorthands::border_inline_color),
+      "borderInlineStyle" => Some(Shorthands::border_inline_style),
+      "borderInlineWidth" => Some(Shorthands::border_inline_width),
       "borderVerticalColor" => Some(Shorthands::border_vertical_color),
       "borderVerticalStyle" => Some(Shorthands::border_vertical_style),
       "borderVerticalWidth" => Some(Shorthands::border_vertical_width),
@@ -443,10 +464,10 @@ impl Aliases {
     vec![OrderPair("marginBottom".into(), val)]
   }
   fn margin_inline_start(val: Option<String>) -> Vec<OrderPair> {
-    vec![OrderPair("marginStart".into(), val)]
+    vec![OrderPair("marginInlineStart".into(), val)]
   }
   fn margin_inline_end(val: Option<String>) -> Vec<OrderPair> {
-    vec![OrderPair("marginEnd".into(), val)]
+    vec![OrderPair("marginInlineEnd".into(), val)]
   }
 
   fn overflow_block(value: Option<String>) -> Vec<OrderPair> {
@@ -464,10 +485,10 @@ impl Aliases {
   }
 
   fn padding_inline_start(val: Option<String>) -> Vec<OrderPair> {
-    vec![OrderPair("paddingStart".into(), val)]
+    vec![OrderPair("paddingInlineStart".into(), val)]
   }
   fn padding_inline_end(val: Option<String>) -> Vec<OrderPair> {
-    vec![OrderPair("paddingEnd".into(), val)]
+    vec![OrderPair("paddingInlineEnd".into(), val)]
   }
 
   fn scroll_margin_block_start(value: Option<String>) -> Vec<OrderPair> {
@@ -498,9 +519,9 @@ impl Aliases {
       "borderBlockEndWidth" => Some(Aliases::border_block_end_width),
       "borderBlockEndStyle" => Some(Aliases::border_block_end_style),
       "borderBlockEndColor" => Some(Aliases::border_block_end_color),
-      "borderInlineWidth" => Shorthands::get("borderHorizontalWidth"),
-      "borderInlineStyle" => Shorthands::get("borderHorizontalStyle"),
-      "borderInlineColor" => Shorthands::get("borderHorizontalColor"),
+      "borderInlineWidth" => Shorthands::get("borderInlineWidth"),
+      "borderInlineStyle" => Shorthands::get("borderInlineStyle"),
+      "borderInlineColor" => Shorthands::get("borderInlineColor"),
       "borderInlineStartWidth" => Some(Aliases::border_inline_start_width),
       "borderInlineStartStyle" => Some(Aliases::border_inline_start_style),
       "borderInlineStartColor" => Some(Aliases::border_inline_start_color),

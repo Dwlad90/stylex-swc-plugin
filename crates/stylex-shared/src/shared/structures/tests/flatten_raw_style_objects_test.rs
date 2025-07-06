@@ -72,6 +72,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       &FunctionMap::default(),
     );
 
+    dbg!(&result);
     assert_eq!(result.len(), 4);
 
     let mut expected_result = IndexMap::new();
@@ -81,8 +82,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       pre_rule_factory("color", "red", &["color"]),
     );
     expected_result.insert(
-      "marginStart".to_string(),
-      pre_rule_factory("marginStart", "10", &["marginStart"]),
+      "marginInlineStart".to_string(),
+      pre_rule_factory("marginInlineStart", "10", &["marginInlineStart"]),
     );
     expected_result.insert("marginLeft".to_string(), null_rule_factory());
     expected_result.insert("marginRight".to_string(), null_rule_factory());
@@ -268,16 +269,16 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       pre_rule_factory("marginTop", "10", &["marginTop"]),
     );
     expected_result.insert(
-      "marginEnd".to_string(),
-      pre_rule_factory("marginEnd", "10", &["marginEnd"]),
+      "marginInlineEnd".to_string(),
+      pre_rule_factory("marginInlineEnd", "10", &["marginInlineEnd"]),
     );
     expected_result.insert(
       "marginBottom".to_string(),
       pre_rule_factory("marginBottom", "10", &["marginBottom"]),
     );
     expected_result.insert(
-      "marginStart".to_string(),
-      pre_rule_factory("marginStart", "10", &["marginStart"]),
+      "marginInlineStart".to_string(),
+      pre_rule_factory("marginInlineStart", "10", &["marginInlineStart"]),
     );
 
     assert_eq!(result, expected_result)
@@ -305,16 +306,16 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       pre_rule_factory("marginTop", "10", &["marginTop"]),
     );
     expected_result.insert(
-      "marginEnd".to_string(),
-      pre_rule_factory("marginEnd", "10", &["marginEnd"]),
+      "marginInlineEnd".to_string(),
+      pre_rule_factory("marginInlineEnd", "10", &["marginInlineEnd"]),
     );
     expected_result.insert(
       "marginBottom".to_string(),
       pre_rule_factory("marginBottom", "10", &["marginBottom"]),
     );
     expected_result.insert(
-      "marginStart".to_string(),
-      pre_rule_factory("marginStart", "10", &["marginStart"]),
+      "marginInlineStart".to_string(),
+      pre_rule_factory("marginInlineStart", "10", &["marginInlineStart"]),
     );
 
     expected_result.insert(
@@ -347,16 +348,16 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       pre_rule_factory("marginTop", "10px", &["marginTop"]),
     );
     expected_result.insert(
-      "marginEnd".to_string(),
-      pre_rule_factory("marginEnd", "20px", &["marginEnd"]),
+      "marginInlineEnd".to_string(),
+      pre_rule_factory("marginInlineEnd", "20px", &["marginInlineEnd"]),
     );
     expected_result.insert(
       "marginBottom".to_string(),
       pre_rule_factory("marginBottom", "10px", &["marginBottom"]),
     );
     expected_result.insert(
-      "marginStart".to_string(),
-      pre_rule_factory("marginStart", "20px", &["marginStart"]),
+      "marginInlineStart".to_string(),
+      pre_rule_factory("marginInlineStart", "20px", &["marginInlineStart"]),
     );
 
     expected_result.insert(
@@ -404,16 +405,16 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       pre_rule_vec_factory("marginTop", &["10vh", "10dvh"], &["marginTop"]),
     );
     expected_result.insert(
-      "marginEnd".to_string(),
-      pre_rule_factory("marginEnd", "20px", &["marginEnd"]),
+      "marginInlineEnd".to_string(),
+      pre_rule_factory("marginInlineEnd", "20px", &["marginInlineEnd"]),
     );
     expected_result.insert(
       "marginBottom".to_string(),
       pre_rule_vec_factory("marginBottom", &["10vh", "10dvh"], &["marginBottom"]),
     );
     expected_result.insert(
-      "marginStart".to_string(),
-      pre_rule_factory("marginStart", "20px", &["marginStart"]),
+      "marginInlineStart".to_string(),
+      pre_rule_factory("marginInlineStart", "20px", &["marginInlineStart"]),
     );
 
     assert_eq!(result, expected_result)
@@ -464,8 +465,8 @@ mod nested_objects {
       pre_rule_factory("color", "blue", &["color"]),
     );
     expected_result.insert(
-      "marginStart".to_string(),
-      pre_rule_factory("marginStart", "0", &["marginStart"]),
+      "marginInlineStart".to_string(),
+      pre_rule_factory("marginInlineStart", "0", &["marginInlineStart"]),
     );
     expected_result.insert("marginLeft".to_string(), null_rule_factory());
     expected_result.insert("marginRight".to_string(), null_rule_factory());
@@ -475,8 +476,8 @@ mod nested_objects {
     );
 
     expected_result.insert(
-      ":hover_marginStart".to_string(),
-      pre_rule_factory("marginStart", "10", &[":hover", "marginStart"]),
+      ":hover_marginInlineStart".to_string(),
+      pre_rule_factory("marginInlineStart", "10", &[":hover", "marginInlineStart"]),
     );
 
     expected_result.insert(":hover_marginLeft".to_string(), null_rule_factory());
@@ -524,10 +525,10 @@ mod nested_objects {
     );
 
     expected_result.insert(
-      "marginStart".to_string(),
+      "marginInlineStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "0", &["marginStart", "default"]),
-        pre_rule_factory("marginStart", "10", &["marginStart", ":hover"]),
+        pre_rule_factory("marginInlineStart", "0", &["marginInlineStart", "default"]),
+        pre_rule_factory("marginInlineStart", "10", &["marginInlineStart", ":hover"]),
       ]),
     );
 
@@ -590,10 +591,10 @@ mod nested_objects {
     );
 
     expected_result.insert(
-      "marginEnd".to_string(),
+      "marginInlineEnd".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginEnd", "0", &["marginEnd", "default"]),
-        pre_rule_factory("marginEnd", "10", &["marginEnd", ":hover"]),
+        pre_rule_factory("marginInlineEnd", "0", &["marginInlineEnd", "default"]),
+        pre_rule_factory("marginInlineEnd", "10", &["marginInlineEnd", ":hover"]),
       ]),
     );
 
@@ -606,10 +607,10 @@ mod nested_objects {
     );
 
     expected_result.insert(
-      "marginStart".to_string(),
+      "marginInlineStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "0", &["marginStart", "default"]),
-        pre_rule_factory("marginStart", "10", &["marginStart", ":hover"]),
+        pre_rule_factory("marginInlineStart", "0", &["marginInlineStart", "default"]),
+        pre_rule_factory("marginInlineStart", "10", &["marginInlineStart", ":hover"]),
       ]),
     );
 
@@ -662,10 +663,10 @@ mod nested_objects {
     );
 
     expected_result.insert(
-      "marginEnd".to_string(),
+      "marginInlineEnd".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginEnd", "2px", &["marginEnd", "default"]),
-        pre_rule_factory("marginEnd", "20px", &["marginEnd", ":hover"]),
+        pre_rule_factory("marginInlineEnd", "2px", &["marginInlineEnd", "default"]),
+        pre_rule_factory("marginInlineEnd", "20px", &["marginInlineEnd", ":hover"]),
       ]),
     );
 
@@ -678,10 +679,10 @@ mod nested_objects {
     );
 
     expected_result.insert(
-      "marginStart".to_string(),
+      "marginInlineStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "4px", &["marginStart", "default"]),
-        pre_rule_factory("marginStart", "20px", &["marginStart", ":hover"]),
+        pre_rule_factory("marginInlineStart", "4px", &["marginInlineStart", "default"]),
+        pre_rule_factory("marginInlineStart", "20px", &["marginInlineStart", ":hover"]),
       ]),
     );
 
@@ -728,10 +729,10 @@ mod nested_objects {
     );
 
     expected_result.insert(
-      "marginStart".to_string(),
+      "marginInlineStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "0", &["marginStart", "default"]),
-        pre_rule_factory("marginStart", "10", &["marginStart", ":hover"]),
+        pre_rule_factory("marginInlineStart", "0", &["marginInlineStart", "default"]),
+        pre_rule_factory("marginInlineStart", "10", &["marginInlineStart", ":hover"]),
       ]),
     );
     expected_result.insert(
@@ -792,10 +793,10 @@ mod multiple_levels_of_nesting {
     );
 
     expected_result.insert(
-      "marginEnd".to_string(),
+      "marginInlineEnd".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginEnd", "2px", &["marginEnd", "default"]),
-        pre_rule_vec_factory("marginEnd", &["20px", "2dvh"], &["marginEnd", ":hover"]),
+        pre_rule_factory("marginInlineEnd", "2px", &["marginInlineEnd", "default"]),
+        pre_rule_vec_factory("marginInlineEnd", &["20px", "2dvh"], &["marginInlineEnd", ":hover"]),
       ]),
     );
 
@@ -812,10 +813,10 @@ mod multiple_levels_of_nesting {
     );
 
     expected_result.insert(
-      "marginStart".to_string(),
+      "marginInlineStart".to_string(),
       pre_rule_set_factory(&[
-        pre_rule_factory("marginStart", "4px", &["marginStart", "default"]),
-        pre_rule_vec_factory("marginStart", &["20px", "2dvh"], &["marginStart", ":hover"]),
+        pre_rule_factory("marginInlineStart", "4px", &["marginInlineStart", "default"]),
+        pre_rule_vec_factory("marginInlineStart", &["20px", "2dvh"], &["marginInlineStart", ":hover"]),
       ]),
     );
 

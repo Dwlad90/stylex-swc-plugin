@@ -7,8 +7,8 @@ use crate::shared::{
       COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES, CSS_CONTENT_FUNCTIONS,
       CSS_CONTENT_KEYWORDS,
     },
-    logical_to_ltr::LOGICAL_TO_LTR,
-    logical_to_rtl::LOGICAL_TO_RTL,
+    logical_to_ltr::{INLINE_TO_LTR, LOGICAL_TO_LTR},
+    logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL},
     long_hand_logical::LONG_HAND_LOGICAL,
     long_hand_physical::LONG_HAND_PHYSICAL,
     messages::LINT_UNCLOSED_FUNCTION,
@@ -50,7 +50,7 @@ use crate::shared::{
 
 use super::parser::parse_css;
 
-fn logical_to_physical(input: &str) -> Option<&str> {
+fn logical_to_physical_ltr(input: &str) -> Option<&str> {
   match input {
     "start" => Some("left"),
     "end" => Some("right"),
@@ -58,7 +58,16 @@ fn logical_to_physical(input: &str) -> Option<&str> {
   }
 }
 
+fn logical_to_physical_rtl(input: &str) -> Option<&str> {
+  match input {
+    "start" => Some("right"),
+    "end" => Some("left"),
+    _ => None,
+  }
+}
+
 fn property_to_ltr(pair: &Pair) -> Pair {
+  dbg!(&pair);
   match pair.key.as_str() {
     "background-position" => {
       let new_val = pair
@@ -77,7 +86,8 @@ fn property_to_ltr(pair: &Pair) -> Pair {
       if let Some(&physical) = LOGICAL_TO_LTR.get(k) {
         Pair::new(physical.to_string(), pair.value.clone())
       } else if k == "float" || k == "clear" {
-        match logical_to_physical(pair.value.as_str()) {
+        dbg!(&pair);
+        match logical_to_physical_ltr(pair.value.as_str()) {
           Some(value) => Pair::new(pair.key.clone(), value.to_string()),
           None => pair.clone(),
         }
@@ -89,12 +99,19 @@ fn property_to_ltr(pair: &Pair) -> Pair {
 }
 
 pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
+  dbg!(&pair);
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
   let style_resolution = &options.style_resolution;
+  let key = pair.key.as_str();
 
-  if !enable_logical_styles_polyfill && style_resolution == &StyleResolution::LegacyExpandShorthands
-  {
-    return pair.clone();
+  if style_resolution == &StyleResolution::LegacyExpandShorthands {
+    if !enable_logical_styles_polyfill {
+      return pair.clone();
+    }
+
+    if let Some(inline_to_ltr_value) = INLINE_TO_LTR.get(key) {
+      return Pair::new(inline_to_ltr_value.to_string(), pair.value.clone());
+    }
   }
 
   property_to_ltr(pair)
@@ -149,12 +166,13 @@ fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
 }
 
 fn property_to_rtl(pair: &Pair) -> Option<Pair> {
+  dbg!(&pair);
   if let Some(&ltr_key) = LOGICAL_TO_RTL.get(pair.key.as_str()) {
     return Some(Pair::new(ltr_key.to_string(), pair.value.clone()));
   }
 
   match pair.key.as_str() {
-    "float" | "clear" => logical_to_physical(pair.value.as_str())
+    "float" | "clear" => logical_to_physical_rtl(pair.value.as_str())
       .map(|value| Pair::new(pair.key.clone(), value.to_string())),
     "background-position" => {
       let new_val = pair
@@ -183,12 +201,22 @@ fn _flip_value(value: &PreRules) -> Option<PreRules> {
 }
 
 pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
+  dbg!(&pair);
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
   let style_resolution = &options.style_resolution;
+  let key = pair.key.as_str();
 
-  if !enable_logical_styles_polyfill && style_resolution == &StyleResolution::LegacyExpandShorthands
-  {
-    return None;
+  if style_resolution == &StyleResolution::LegacyExpandShorthands {
+    if !enable_logical_styles_polyfill {
+      return None;
+    }
+
+    if let Some(inline_to_rtl_value) = INLINE_TO_RTL.get(key) {
+      return Some(Pair::new(
+        inline_to_rtl_value.to_string(),
+        pair.value.clone(),
+      ));
+    }
   }
 
   property_to_rtl(pair)

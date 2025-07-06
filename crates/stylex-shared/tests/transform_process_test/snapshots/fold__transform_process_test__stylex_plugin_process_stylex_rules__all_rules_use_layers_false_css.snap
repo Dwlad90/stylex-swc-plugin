@@ -1,0 +1,6 @@
+---
+source: crates/stylex-shared/tests/transform_process_test/stylex_plugin_process_stylex_rules.rs
+expression: css_rules
+---
+:root, .xsg933n{--blue-xpqh4lw:blue;}
+:root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}

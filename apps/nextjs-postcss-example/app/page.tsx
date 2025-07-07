@@ -4,6 +4,7 @@ import Card from '@/components/Card';
 import { globalTokens as $, spacing, text, scales } from './globalTokens.stylex';
 import Counter from './Counter';
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
+import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 import { Text } from '@stylexswc/design-system';
 import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
 import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
@@ -27,8 +28,11 @@ export default function Home(_props: Props) {
         </h1>
         <Counter />
       </div>
-      <div {...stylex.props(style.card, style.pinkBg)}>
+      <div {...stylex.props(style.card, style.pinkBg, style.onlyMobile)}>
         <Text>Pink rounded rectangle with blue text</Text>
+      </div>
+      <div {...stylex.props(style.card, style.redBg, style.onlyDesktop)}>
+        <Text>Red rounded rectangle with green text</Text>
       </div>
 
       <div {...stylex.props(style.grid)}>
@@ -211,5 +215,20 @@ const style = stylex.create({
   },
   pinkBg: {
     backgroundColor: tokens.pink7,
+  },
+  redBg: {
+    backgroundColor: tokens.red7,
+  },
+  onlyMobile: {
+    display: {
+      default: 'none',
+      [breakpoints.mobile]: 'block',
+    }
+  },
+  onlyDesktop: {
+    display: {
+      default: 'none',
+      [breakpoints.desktop]: 'block',
+    }
   },
 });

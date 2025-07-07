@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const path = require('node:path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const styleXRSPlugin = require('@stylexswc/unplugin/webpack')
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -32,6 +34,7 @@ module.exports = {
                 syntax: 'ecmascript',
                 jsx: true,
               },
+              target: "es2015",
               transform: {
                 react: {
                   runtime: 'automatic', // Use 'classic' if you are not using the new JSX transform

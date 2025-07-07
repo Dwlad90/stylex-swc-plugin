@@ -6,7 +6,7 @@ import * as stylex from '@stylexjs/stylex';
 import { breakpoints, colors } from './input.stylex';
 export const styles = {
     root: {
-        kMwMTN: "x1mqxbix x1r3tjmx x1bs297l",
+        kMwMTN: "x1mqxbix xsh01xf xui6vf",
         $$css: true
     }
 };

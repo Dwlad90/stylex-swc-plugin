@@ -303,7 +303,7 @@ pub(crate) fn build_nested_css_rule(
       .join(", ");
   }
 
-  at_rules.iter().fold(
+  combined_at_rules.iter().fold(
     format!("{}{{{}}}", selector_for_at_rules, decls),
     |acc, at_rule| format!("{}{{{}}}", at_rule, acc),
   )

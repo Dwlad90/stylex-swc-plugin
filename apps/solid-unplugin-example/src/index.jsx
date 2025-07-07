@@ -4,6 +4,7 @@ import { sizes } from '@stylexjs/open-props/lib/sizes.stylex'
 import * as stylex from '@stylexjs/stylex'
 import { render } from 'solid-js/web'
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
+import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 
 const styles = stylex.create({
   main: {
@@ -35,6 +36,24 @@ const styles = stylex.create({
   blueFg: {
     color: tokens.blue9,
   },
+  redBg: {
+    backgroundColor: tokens.red7,
+  },
+  greenFg: {
+    color: tokens.green7,
+  },
+  onlyMobile: {
+    display: {
+      default: 'none',
+      [breakpoints.mobile]: 'block',
+    }
+  },
+  onlyDesktop: {
+    display: {
+      default: 'none',
+      [breakpoints.desktop]: 'block',
+    }
+  },
 })
 
 function App() {
@@ -43,8 +62,11 @@ function App() {
       <div {...stylex.props(styles.card, styles.blueBg)}>
         <span {...stylex.props(styles.orangeFg)}>Blue rounded rectangle with orange text</span>
       </div>
-      <div {...stylex.props(styles.card, styles.pinkBg)}>
-      <span {...stylex.props(styles.blueFg)}>Pink rounded rectangle with blue text</span>
+      <div {...stylex.props(styles.card, styles.pinkBg, styles.onlyMobile)}>
+        <span {...stylex.props(styles.blueFg)}>Pink rounded rectangle with blue text</span>
+      </div>
+      <div {...stylex.props(styles.card, styles.redBg, styles.onlyDesktop)}>
+        <span {...stylex.props(styles.greenFg)}>Red rounded rectangle with green text</span>
       </div>
     </div>
   )

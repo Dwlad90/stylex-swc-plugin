@@ -32,12 +32,14 @@ export default {
               syntax: 'ecmascript',
               jsx: true,
             },
+            target: "es2015",
             transform: {
               react: {
                 runtime: 'automatic',
               },
             },
           },
+          isModule: 'unknown',
         },
         type: 'javascript/auto',
       },

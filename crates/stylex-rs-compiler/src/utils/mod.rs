@@ -21,10 +21,17 @@ pub(crate) fn extract_stylex_metadata(
 
       match styles {
         InjectableStyleBaseKind::Regular(styles) => {
-          set_metadata_ltr_and_rtl(env, &mut style_value, &styles.ltr, &styles.rtl)?;
+          set_metadata_ltr_and_rtl(env, &mut style_value, &styles.ltr, &styles.rtl, None, None)?;
         }
         InjectableStyleBaseKind::Const(styles) => {
-          set_metadata_ltr_and_rtl(env, &mut style_value, &styles.ltr, &styles.rtl)?;
+          set_metadata_ltr_and_rtl(
+            env,
+            &mut style_value,
+            &styles.ltr,
+            &styles.rtl,
+            Some(&styles.const_key),
+            Some(&styles.const_value),
+          )?;
         }
       }
 
@@ -43,13 +50,27 @@ fn set_metadata_ltr_and_rtl(
   style_value: &mut JsObject,
   ltr: &str,
   rtl: &Option<String>,
+  consts_key: Option<&str>,
+  consts_value: Option<&str>,
 ) -> Result<(), Error> {
+  if let Some(consts_key) = consts_key {
+    style_value.set_named_property("constKey", consts_key)?;
+  }
+
+  if let Some(consts_value) = consts_value {
+    style_value.set_named_property("constVal", consts_value)?;
+  }
+
   style_value.set_named_property("ltr", ltr)?;
 
-  if let Some(rtl) = rtl.as_deref() {
-    style_value.set_named_property("rtl", rtl)?;
-  } else {
-    style_value.set_named_property("rtl", env.get_null())?;
-  };
+  style_value.set_named_property(
+    "rtl",
+    rtl
+      .as_ref()
+      .map_or(env.get_null()?.into_unknown(), |rtl_str| {
+        env.create_string(rtl_str).unwrap().into_unknown()
+      }),
+  )?;
+
   Ok(())
 }

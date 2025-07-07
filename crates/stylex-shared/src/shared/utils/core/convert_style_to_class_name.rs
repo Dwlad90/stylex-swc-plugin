@@ -36,7 +36,7 @@ pub(crate) fn convert_style_to_class_name(
   combined_at_rules.extend_from_slice(at_rules);
   combined_at_rules.extend_from_slice(const_rules);
 
-  let sorted_at_rules = sort_at_rules(at_rules);
+  let sorted_at_rules = sort_at_rules(&combined_at_rules);
 
   let at_rule_hash_string = sorted_at_rules.join("");
   let pseudo_hash_string = sorted_pseudos.join("");

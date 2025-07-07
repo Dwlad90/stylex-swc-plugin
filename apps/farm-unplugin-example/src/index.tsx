@@ -4,6 +4,7 @@ import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
 import * as stylex from '@stylexjs/stylex';
 import { createRoot } from 'react-dom/client';
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
+import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 import { Text } from '@stylexswc/design-system';
 
 const styles = stylex.create({
@@ -33,6 +34,21 @@ const styles = stylex.create({
   orangeFg: {
     color: colors.orange7,
   },
+  redBg: {
+    backgroundColor: tokens.red7,
+  },
+  onlyMobile: {
+    display: {
+      default: 'none',
+      [breakpoints.mobile]: 'block',
+    },
+  },
+  onlyDesktop: {
+    display: {
+      default: 'none',
+      [breakpoints.desktop]: 'block',
+    },
+  },
 });
 
 function App() {
@@ -41,8 +57,11 @@ function App() {
       <div {...stylex.props(styles.card, styles.blueBg)}>
         <span {...stylex.props(styles.orangeFg)}>Blue rounded rectangle with orange text</span>
       </div>
-      <div {...stylex.props(styles.card, styles.pinkBg)}>
+      <div {...stylex.props(styles.card, styles.pinkBg, styles.onlyMobile)}>
         <Text>Pink rounded rectangle with blue text</Text>
+      </div>
+      <div {...stylex.props(styles.card, styles.redBg, styles.onlyDesktop)}>
+        <Text>Red rounded rectangle with green text</Text>
       </div>
     </div>
   );

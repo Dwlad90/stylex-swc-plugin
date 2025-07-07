@@ -54,12 +54,21 @@ exports[`Home render styles successfully 1`] = `
       </div>
     </div>
     <div
-      class="xq5fvzb x18mbai7 xl56j7k x78zum5 x6s0dn4 x1jwldgz xvnzane"
+      class="xq5fvzb x18mbai7 xl56j7k x6s0dn4 x1jwldgz xvnzane x1s85apg x1k4oyu6"
     >
       <div
-        class="x19na6o3"
+        class="x1awj2ng xfebpd xusmn32"
       >
         Pink rounded rectangle with blue text
+      </div>
+    </div>
+    <div
+      class="xq5fvzb x18mbai7 xl56j7k x6s0dn4 x1jwldgz xvcfkjc x1s85apg x8ceulb"
+    >
+      <div
+        class="x1awj2ng xfebpd xusmn32"
+      >
+        Red rounded rectangle with green text
       </div>
     </div>
     <div

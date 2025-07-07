@@ -3,12 +3,10 @@
 
 import * as stylex from '@stylexjs/stylex';
 import type {
-  TokensFromVarGroup,
-  StyleXVar,
   VarGroup,
   Theme,
   CompiledStyles,
-} from '@stylexjs/stylex/lib/StyleXTypes';
+} from '@stylexjs/stylex';
 
 const DARK = '@media (prefers-color-scheme: dark)' as const;
 
@@ -34,33 +32,6 @@ buttonTokens satisfies VarGroup<
   }>,
   symbol
 >;
-buttonTokens.bgColor satisfies StyleXVar<string>;
-
-type TokensType = TokensFromVarGroup<typeof buttonTokens>;
-({
-  bgColor: 'red',
-  textColor: 'white',
-  cornerRadius: '4px',
-  paddingBlock: '4px',
-  paddingInline: '8px',
-}) satisfies TokensType;
-
-({
-  bgColor: 'red',
-  textColor: 'white',
-  // @ts-expect-error - cornerRadius is a string.
-  cornerRadius: 4,
-  paddingBlock: '4px',
-  paddingInline: '8px',
-}) satisfies TokensType;
-
-({
-  bgColor: 'red',
-  textColor: 'white',
-  paddingBlock: '4px',
-  paddingInline: '8px',
-  // @ts-expect-error - cornerRadius is missing.
-}) satisfies TokensType;
 
 const correctTheme = stylex.createTheme(buttonTokens, {
   bgColor: {

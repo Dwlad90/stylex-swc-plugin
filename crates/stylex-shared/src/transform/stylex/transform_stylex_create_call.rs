@@ -519,6 +519,7 @@ where
           result_ast = object_expression_factory(props);
         }
       };
+
       self
         .state
         .register_styles(call, &injected_styles, &result_ast);

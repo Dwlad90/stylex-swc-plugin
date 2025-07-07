@@ -93,7 +93,7 @@ pub(crate) fn stylex_define_consts(
             ltr: String::default(),
             rtl: None,
             priority: Some(0.0),
-            const_key: key.to_owned(),
+            const_key: name_hash,
             const_value: value.to_owned(),
           })),
         ))

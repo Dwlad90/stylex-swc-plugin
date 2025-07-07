@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-example",
   "description": "A simple webpack example to test stylexswc/webpack-plugin",
-  "version": "0.9.0",
+  "version": "0.9.1-rc.1",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -12,7 +12,7 @@
     "@stylexjs/stylex": "^0.13.1"
   },
   "devDependencies": {
-    "@stylexswc/webpack-plugin": "0.9.0",
+    "@stylexswc/webpack-plugin": "0.9.1-rc.1",
     "css-loader": "^7.1.2",
     "html-webpack-plugin": "^5.6.0",
     "mini-css-extract-plugin": "^2.9.2",

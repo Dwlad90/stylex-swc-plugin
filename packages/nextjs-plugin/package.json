@@ -41,7 +41,7 @@
     "@types/babel__core": "^7.20.5",
     "@types/node": "^22.15.29",
     "next": "^15.3.4",
-    "postcss": "^8.5.3",
+    "postcss": "^8.5.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "webpack": "^5.99.8"

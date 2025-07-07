@@ -25,6 +25,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   let viteConfig: UserConfig | null = null;
 
   let hasCssToExtract = false;
+  let cssFileName: string | null = null;
 
   return {
     name: 'unplugin-stylex-rs',
@@ -130,10 +131,28 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           type: 'asset',
         });
       },
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (cssFileName && req.url?.includes(cssFileName)) {
+            const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
 
+            res.setHeader('Content-Type', 'text/css');
+            res.end(collectedCSS);
+            return;
+          }
+          next();
+        });
+      },
       transformIndexHtml(html, ctx) {
+        const isDev = !!ctx.server;
+
         const fileName = `${viteConfig?.build?.assetsDir ?? 'assets'}/${normalizedOptions.fileName}`;
-        const css = ctx.bundle?.[fileName];
+
+        if (isDev) {
+          cssFileName = fileName;
+        }
+
+        const css = ctx.bundle?.[fileName] || cssFileName;
 
         if (!css) {
           return html;

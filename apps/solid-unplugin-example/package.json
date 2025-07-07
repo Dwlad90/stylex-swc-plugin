@@ -12,19 +12,19 @@
   },
   "dependencies": {
     "@playwright/test": "^1.53.2",
-    "@stylexswc/playwright": "0.9.0",
     "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.12.0",
+    "@stylexjs/stylex": "^0.13.1",
     "@stylexswc/design-system": "0.9.0",
+    "@stylexswc/playwright": "0.9.0",
     "@stylexswc/rs-compiler": "0.9.0",
     "@stylexswc/unplugin": "0.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "serve": "^14.2.4",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
+    "serve": "^14.2.4",
     "solid-js": "^1.9.7",
     "vite": "^6.3.5",
     "vite-plugin-solid": "^2.11.7"

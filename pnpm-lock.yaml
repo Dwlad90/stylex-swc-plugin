@@ -89,8 +89,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -132,8 +132,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -181,8 +181,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -203,8 +203,8 @@ importers:
         specifier: ^1.53.2
         version: 1.53.2
       '@stylexjs/eslint-plugin':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/jest':
         specifier: 0.9.0
         version: link:../../packages/jest
@@ -269,8 +269,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -294,8 +294,8 @@ importers:
         specifier: ^1.53.2
         version: 1.53.2
       '@stylexjs/eslint-plugin':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/jest':
         specifier: 0.9.0
         version: link:../../packages/jest
@@ -357,8 +357,8 @@ importers:
   apps/rollup-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -403,8 +403,8 @@ importers:
   apps/rollup-large-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/rollup-plugin':
         specifier: 0.9.0
         version: link:../../packages/rollup-plugin
@@ -415,8 +415,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -470,8 +470,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -516,8 +516,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -571,8 +571,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -620,8 +620,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -663,8 +663,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -706,8 +706,8 @@ importers:
   apps/webpack-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
     devDependencies:
       '@stylexswc/webpack-plugin':
         specifier: 0.9.0
@@ -734,8 +734,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/design-system':
         specifier: 0.9.0
         version: link:../../packages/design-system
@@ -807,8 +807,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/shared':
         specifier: 0.9.0
         version: link:../stylex-shared
@@ -882,8 +882,8 @@ importers:
   packages/design-system:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/rs-compiler':
         specifier: 0.9.0
         version: link:../../crates/stylex-rs-compiler
@@ -1018,8 +1018,8 @@ importers:
   packages/postcss-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/rs-compiler':
         specifier: 0.9.0
         version: link:../../crates/stylex-rs-compiler
@@ -1076,8 +1076,8 @@ importers:
   packages/rollup-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/rs-compiler':
         specifier: 0.9.0
         version: link:../../crates/stylex-rs-compiler
@@ -1103,8 +1103,8 @@ importers:
         specifier: '>=1.7.4'
         version: 1.7.4
       '@stylexjs/babel-plugin':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/rs-compiler':
         specifier: 0.9.0
         version: link:../../crates/stylex-rs-compiler
@@ -1164,8 +1164,8 @@ importers:
   packages/webpack-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.1
+        version: 0.13.1
       '@stylexswc/rs-compiler':
         specifier: 0.9.0
         version: link:../../crates/stylex-rs-compiler
@@ -1267,10 +1267,6 @@ packages:
 
   '@babel/helper-module-imports@7.18.6':
     resolution: {integrity: sha512-0NFvs3VkuSYbFi1x2Vd6tKrywq+z/cLeYC/RJNFrIX/30Bf5aiGYbtvGXolEktzJH8o5E5KJ3tT+nkxuuZFVlA==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-module-imports@7.25.9':
-    resolution: {integrity: sha512-tnUA4RsrmflIM6W6RFTLFSXITtl0wKjgpnLgXyowocVPrbYrLUXSBXDgTs8BlbmIzIdlBySRQjINYs2BAkiLtw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-module-imports@7.27.1':
@@ -1495,10 +1491,6 @@ packages:
 
   '@babel/template@7.27.2':
     resolution: {integrity: sha512-LPDZ85aEJyYSd18/DkjNh4/y1ntkE5KwUHWTiqgRxruuZL2F1yuHligVHLvcHY2vMHXttKFpJn6LwfI7cw7ODw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/traverse@7.25.9':
-    resolution: {integrity: sha512-ZCuvfwOwlz/bawvAuvcj8rrithP2/N55Tzz342AkTvq4qaWbGfmCk/tKhNaV2cthijKrPAA8SRJV5WWe7IBMJw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/traverse@7.26.10':
@@ -2887,25 +2879,21 @@ packages:
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
-  '@stylexjs/babel-plugin@0.12.0':
-    resolution: {integrity: sha512-Xu4pydpzXCDAWMmBhmvnrVEmqR69BztZuNXe2W+NFUz4mnyWlQnkm+h6sWFEELGdJR4EDOzwOikEeW2Vb435eQ==}
+  '@stylexjs/babel-plugin@0.13.1':
+    resolution: {integrity: sha512-W3l025ebB88GP/XO2NCNjXFMQYkl7YqWk/z2UfvXRYY8LoQ7O7fhds+0iLJ8R+39CerpFU1CDHWIbPhAuLUKtA==}
 
-  '@stylexjs/eslint-plugin@0.12.0':
-    resolution: {integrity: sha512-pBT/AYxZKIv1RpNasPngRbJn7ecF4f+eRDdBUAEZu1PJvRzB1vcmMZvo2XjfYVFUHmkerBjk4MnZiEC10uW72w==}
+  '@stylexjs/eslint-plugin@0.13.1':
+    resolution: {integrity: sha512-GwBpWrEUgRqDFwWcewQM3r8JKlhP9vATMrgcQTVqMULkxUc/4yTfgeet7j0Meqg32HiBTDMhw8DsjGHq3Sb7Xw==}
 
   '@stylexjs/open-props@0.11.1':
     resolution: {integrity: sha512-UYeJV34LOmDZ1igQknB+iM3JMg+lbncHr/zG7i1tBwwQslNNWOMM7iR4hwSUvczQYcW5G8vMAorP/2j4T8XBjA==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
-  '@stylexjs/shared@0.12.0':
-    resolution: {integrity: sha512-R698EHDuMo6OJCxcNg/tlA7ZCDQlrHeHaV7as78hDZ9WgP/IPhcg5HWmlF0H0kJ5WcC3jMEPGtsWWRxdWolZ1w==}
-    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-
   '@stylexjs/stylex@0.11.1':
     resolution: {integrity: sha512-1OofsiCP2DYV+Cw/iIuHYTAJRy34TtxQt0FDuQGTnNH915hb6NkPmX6iPa++9t4KP3HWR9oVRmAHkpP58BIYbw==}
 
-  '@stylexjs/stylex@0.12.0':
-    resolution: {integrity: sha512-gvazVsoTNRTnXldvmV/IIa1bB6UStoWMmRpoH/O+/f05IWnq5xES5foWxaPKm0uZD1vQ2Ue5e820lwT5+YqnrQ==}
+  '@stylexjs/stylex@0.13.1':
+    resolution: {integrity: sha512-s/aRE+pGaroMSttMDlrSMHf1lTF+uGe4ncWoRMlKZav6pg5g11sWuJojgA640aZy9jFgWvWSWbXzyUzeoDuMUQ==}
 
   '@swc-node/core@1.13.3':
     resolution: {integrity: sha512-OGsvXIid2Go21kiNqeTIn79jcaX4l0G93X2rAnas4LFoDyA9wAwVK7xZdm+QsKoMn5Mus2yFLCc4OtX2dD/PWA==}
@@ -9250,13 +9238,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.27.7
 
-  '@babel/helper-module-imports@7.25.9':
-    dependencies:
-      '@babel/traverse': 7.25.9
-      '@babel/types': 7.27.7
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/helper-module-imports@7.27.1':
     dependencies:
       '@babel/traverse': 7.27.4
@@ -9267,9 +9248,9 @@ snapshots:
   '@babel/helper-module-transforms@7.26.0(@babel/core@7.26.10)':
     dependencies:
       '@babel/core': 7.26.10
-      '@babel/helper-module-imports': 7.25.9
+      '@babel/helper-module-imports': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
-      '@babel/traverse': 7.26.10
+      '@babel/traverse': 7.27.4
     transitivePeerDependencies:
       - supports-color
 
@@ -9478,18 +9459,6 @@ snapshots:
       '@babel/parser': 7.27.4
       '@babel/types': 7.27.7
 
-  '@babel/traverse@7.25.9':
-    dependencies:
-      '@babel/code-frame': 7.27.1
-      '@babel/generator': 7.27.3
-      '@babel/parser': 7.27.5
-      '@babel/template': 7.27.2
-      '@babel/types': 7.27.7
-      debug: 4.4.1
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/traverse@7.26.10':
     dependencies:
       '@babel/code-frame': 7.26.2
@@ -9506,7 +9475,7 @@ snapshots:
     dependencies:
       '@babel/code-frame': 7.27.1
       '@babel/generator': 7.27.3
-      '@babel/parser': 7.27.4
+      '@babel/parser': 7.27.5
       '@babel/template': 7.27.2
       '@babel/types': 7.27.7
       debug: 4.4.1
@@ -10989,19 +10958,19 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@stylexjs/babel-plugin@0.12.0':
+  '@stylexjs/babel-plugin@0.13.1':
     dependencies:
-      '@babel/core': 7.26.10
-      '@babel/helper-module-imports': 7.25.9
-      '@babel/traverse': 7.26.10
+      '@babel/core': 7.27.4
+      '@babel/helper-module-imports': 7.27.1
+      '@babel/traverse': 7.27.4
       '@babel/types': 7.27.7
       '@dual-bundle/import-meta-resolve': 4.1.0
-      '@stylexjs/shared': 0.12.0
-      '@stylexjs/stylex': 0.12.0
+      '@stylexjs/stylex': 0.13.1
+      postcss-value-parser: 4.2.0
     transitivePeerDependencies:
       - supports-color
 
-  '@stylexjs/eslint-plugin@0.12.0':
+  '@stylexjs/eslint-plugin@0.13.1':
     dependencies:
       css-shorthand-expand: 1.2.0
       micromatch: 4.0.8
@@ -11010,17 +10979,13 @@ snapshots:
     dependencies:
       '@stylexjs/stylex': 0.11.1
 
-  '@stylexjs/shared@0.12.0':
-    dependencies:
-      postcss-value-parser: 4.2.0
-
   '@stylexjs/stylex@0.11.1':
     dependencies:
       css-mediaquery: 0.1.2
       invariant: 2.2.4
       styleq: 0.2.1
 
-  '@stylexjs/stylex@0.12.0':
+  '@stylexjs/stylex@0.13.1':
     dependencies:
       css-mediaquery: 0.1.2
       invariant: 2.2.4

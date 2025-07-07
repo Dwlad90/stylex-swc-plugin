@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.12.0",
+    "@stylexjs/stylex": "^0.13.1",
     "@stylexswc/design-system": "0.9.0",
     "@stylexswc/rs-compiler": "0.9.0",
     "@stylexswc/unplugin": "0.9.0",
@@ -21,12 +21,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.53.2",
-    "serve": "^14.2.4",
     "@stylexswc/playwright": "0.9.0",
     "@swc/core": "^1.12.9",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "html-webpack-plugin": "^5.6.0",
+    "serve": "^14.2.4",
     "swc-loader": "^0.2.6",
     "webpack": "^5.99.8",
     "webpack-cli": "^6.0.1",

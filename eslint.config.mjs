@@ -21,7 +21,7 @@ const eslintConfig = [{
 ...stylexLibraryConfig,
 ...stylexJsonConfig,
 {
-  ignores: ["**/dist", "**/node_modules", "**/output", "**/fixture", "**/performance_fixture", "**/__swc_snapshots__", "**/__snapshots__", "**/.next", "crates/stylex-test-parser/output/"],
+  ignores: ["**/dist", "**/node_modules", "**/output", "**/fixture", "**/performance_fixture", "**/__swc_snapshots__", "**/__snapshots__", "**/.next", "crates/stylex-test-parser/output/", "**/visual-tests"],
 },
 ];
 

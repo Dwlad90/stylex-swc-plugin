@@ -6,13 +6,13 @@
   "license": "MIT",
   "scripts": {
     "build": "NODE_ENV=production rollup --config ./rollup.config.mjs",
-    "start": "pnpx rollup --config ./rollup.config.mjs --watch",
     "serve": "serve --listen 3004 ./dist",
+    "start": "pnpx rollup --config ./rollup.config.mjs --watch",
     "test:visual": "playwright test"
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.12.0",
+    "@stylexjs/stylex": "^0.13.1",
     "@stylexswc/design-system": "0.9.0",
     "@stylexswc/rs-compiler": "0.9.0",
     "@stylexswc/unplugin": "0.9.0",
@@ -20,15 +20,15 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "serve": "^14.2.4",
     "@playwright/test": "^1.53.2",
-    "@stylexswc/playwright": "0.9.0",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-swc": "^0.4.0",
+    "@stylexswc/playwright": "0.9.0",
     "rollup": "^4.40.2",
-    "rollup-plugin-serve": "^3.0.0"
+    "rollup-plugin-serve": "^3.0.0",
+    "serve": "^14.2.4"
   }
 }

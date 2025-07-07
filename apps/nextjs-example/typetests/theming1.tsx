@@ -6,7 +6,6 @@ import type {
   VarGroup,
   Theme,
   CompiledStyles,
-
 } from '@stylexjs/stylex';
 
 const DARK = '@media (prefers-color-scheme: dark)' as const;

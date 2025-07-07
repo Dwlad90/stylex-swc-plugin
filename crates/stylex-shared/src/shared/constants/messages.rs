@@ -29,6 +29,13 @@ pub fn unbound_call_value(fn_name: &str) -> String {
   format!("{}() calls must be bound to a bare variable.", fn_name)
 }
 
+pub fn cannot_generate_hash(fn_name: &str) -> String {
+  format!(
+    "Unable to generate hash for {}(). Check that the file has a valid extension and that unstable_moduleResolution is configured.",
+    fn_name
+  )
+}
+
 // Static constants
 pub static DUPLICATE_CONDITIONAL: &str =
   "The same pseudo selector or at-rule cannot be used more than once.";

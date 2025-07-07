@@ -4,8 +4,10 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::functions::FunctionMap;
 use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
+use crate::shared::{
+  constants::messages::cannot_generate_hash, structures::functions::FunctionMap,
+};
 use crate::shared::{
   constants::messages::{non_static_value, non_style_object},
   enums::data_structures::top_level_expression::TopLevelExpression,
@@ -74,7 +76,7 @@ where
       let file_name = self
         .state
         .get_filename_for_hashing(&mut FxHashMap::default())
-        .expect("No filename found for generating defineConsts key name.");
+        .unwrap_or_else(|| panic!("{}", cannot_generate_hash("defineConsts")));
 
       let export_name = var_id.expect("Export variable not found");
 

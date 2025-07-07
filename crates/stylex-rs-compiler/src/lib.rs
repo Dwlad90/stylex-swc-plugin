@@ -151,7 +151,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
       })
     }),
     enable_inlined_conditional_merge: options.enable_inlined_conditional_merge.or(Some(true)),
-    enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.or(Some(true)),
+    enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.or(Some(false)),
     ..options
   })
 }

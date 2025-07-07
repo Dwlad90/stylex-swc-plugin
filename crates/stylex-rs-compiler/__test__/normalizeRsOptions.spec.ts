@@ -4,14 +4,16 @@ import type { StyleXOptions } from '../dist/index';
 
 const defaultResult: StyleXOptions = {
   dev: false,
-  enableFontSizePxToRem: true,
+  enableFontSizePxToRem: false,
   enableInlinedConditionalMerge: true,
   importSources: ['stylex', '@stylexjs/stylex'],
   runtimeInjection: false,
-  treeshakeCompensation: true,
+  treeshakeCompensation: false,
   unstable_moduleResolution: {
     type: 'commonJS',
   },
+  enableLogicalStylesPolyfill: false,
+  enableMinifiedKeys: true,
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {

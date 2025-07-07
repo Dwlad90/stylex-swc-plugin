@@ -5,7 +5,7 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::messages::{non_static_value, non_style_object},
+  constants::messages::{cannot_generate_hash, non_static_value, non_style_object},
   enums::data_structures::top_level_expression::TopLevelExpression,
   transformers::stylex_position_try::get_position_try_fn,
   utils::{
@@ -141,7 +141,7 @@ where
       let file_name = self
         .state
         .get_filename_for_hashing(&mut FxHashMap::default())
-        .expect("No filename found for generating defineVars key name.");
+        .unwrap_or_else(|| panic!("{}", cannot_generate_hash("defineVars")));
 
       let export_name = var_id
         .map(|decl| decl.to_string())

@@ -10,10 +10,6 @@ use swc_core::ecma::{
   transforms::testing::test,
 };
 
-// =============================================================================
-// [transform] CSS property polyfills (styleResolution: legacy-expand-shorthands and enableLogicalStylesPolyfill: true)
-// =============================================================================
-
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,

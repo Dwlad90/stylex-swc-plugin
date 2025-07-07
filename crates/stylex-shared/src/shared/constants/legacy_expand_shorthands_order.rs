@@ -219,10 +219,12 @@ impl Shorthands {
     ]
   }
   fn margin_horizontal(raw_value: Option<String>) -> Vec<OrderPair> {
+    let (start, end, _, _) = split_value_required(raw_value.as_deref());
+
     let mut result = vec![];
 
-    result.extend(Shorthands::margin_start(raw_value.to_owned()));
-    result.extend(Shorthands::margin_end(raw_value));
+    result.extend(Shorthands::margin_start(Some(start)));
+    result.extend(Shorthands::margin_end(Some(end)));
 
     result
   }
@@ -255,9 +257,11 @@ impl Shorthands {
     ]
   }
   fn margin_vertical(raw_value: Option<String>) -> Vec<OrderPair> {
+    let (top, bottom, _, _) = split_value_required(raw_value.as_deref());
+
     vec![
-      OrderPair("marginTop".into(), raw_value.to_owned()),
-      OrderPair("marginBottom".into(), raw_value),
+      OrderPair("marginTop".into(), Some(top)),
+      OrderPair("marginBottom".into(), Some(bottom)),
     ]
   }
 
@@ -278,11 +282,13 @@ impl Shorthands {
       OrderPair("paddingInlineStart".into(), Some(left)),
     ]
   }
-  fn padding_horizontal(val: Option<String>) -> Vec<OrderPair> {
+  fn padding_horizontal(raw_value: Option<String>) -> Vec<OrderPair> {
+    let (start, end, _, _) = split_value_required(raw_value.as_deref());
+
     let mut result = vec![];
 
-    result.extend(Shorthands::padding_start(val.to_owned()));
-    result.extend(Shorthands::padding_end(val));
+    result.extend(Shorthands::padding_start(Some(start)));
+    result.extend(Shorthands::padding_end(Some(end)));
 
     result
   }
@@ -314,10 +320,12 @@ impl Shorthands {
       OrderPair("paddingInlineEnd".into(), None),
     ]
   }
-  fn padding_vertical(val: Option<String>) -> Vec<OrderPair> {
+  fn padding_vertical(raw_value: Option<String>) -> Vec<OrderPair> {
+    let (top, bottom, _, _) = split_value_required(raw_value.as_deref());
+
     vec![
-      OrderPair("paddingTop".into(), val.to_owned()),
-      OrderPair("paddingBottom".into(), val),
+      OrderPair("paddingTop".into(), Some(top)),
+      OrderPair("paddingBottom".into(), Some(bottom)),
     ]
   }
 

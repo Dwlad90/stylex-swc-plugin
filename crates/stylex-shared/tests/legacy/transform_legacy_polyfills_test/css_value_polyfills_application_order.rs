@@ -4,10 +4,6 @@ use swc_core::ecma::{
   transforms::testing::test,
 };
 
-// =============================================================================
-// [transform] CSS value polyfills (styleResolution: application-order)
-// =============================================================================
-
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,

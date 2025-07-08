@@ -62,7 +62,7 @@
       "@babel/runtime@<7.26.10": ">=7.26.10",
       "http-proxy-middleware@<2.0.9": ">=2.0.9",
       "http-proxy-middleware@>=3 <3.0.5": ">=3.0.5",
-      "@farmfe/core@<1.7.4": ">=1.7.4"
+      "@farmfe/core@<1.7.7": ">=1.7.7"
     },
     "patchedDependencies": {
       "scripty@3.0.0": "patches/scripty@3.0.0.patch"

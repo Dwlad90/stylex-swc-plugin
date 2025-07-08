@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@farmfe/cli": "^1.0.4",
-    "@farmfe/core": "^1.7.4",
+    "@farmfe/core": "^1.7.9",
     "@farmfe/plugin-react": "^1.2.6",
     "@playwright/test": "^1.53.2",
     "@stylexswc/playwright": "0.9.1",

@@ -10,6 +10,8 @@ test('sync function from native code', t => {
       default: {
         backgroundColor: "red",
         color: "blue",
+        backgroundPosition: "end",
+        float: "start"
       },
     });
   `;
@@ -23,7 +25,17 @@ test('sync function from native code', t => {
   });
 
   const expected = {
-    code: 'import stylex from "@stylexjs/stylex";\nexport const styles = {\n    default: {\n        kWkggS: "xrkmrrc",\n        kMwMTN: "xju2f9n",\n        $$css: true\n    }\n};\n',
+    code: `import stylex from "@stylexjs/stylex";
+export const styles = {
+    default: {
+        kWkggS: "xrkmrrc",
+        kMwMTN: "xju2f9n",
+        k1YJky: "x1ifmvib",
+        kyUFMd: "xrbpyxo",
+        $$css: true
+    }
+};
+`,
     metadata: {
       stylex: [
         [
@@ -42,9 +54,25 @@ test('sync function from native code', t => {
           },
           3000,
         ],
+        [
+          'x1ifmvib',
+          {
+            ltr: '.x1ifmvib{background-position:right}',
+            rtl: '.x1ifmvib{background-position:left}',
+          },
+          2000,
+        ],
+        [
+          'xrbpyxo',
+          {
+            ltr: '.xrbpyxo{float:left}',
+            rtl: '.xrbpyxo{float:right}',
+          },
+          3000,
+        ],
       ],
     },
-    map: '{"version":3,"sources":["page.tsx"],"names":[],"mappings":"AACI;AAEA;;;;;;EAKG"}',
+    map: '{"version":3,"sources":["page.tsx"],"names":[],"mappings":"AACI;AAEA;;;;;;;;EAOG"}',
   };
 
   t.deepEqual(result, expected);

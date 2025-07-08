@@ -1,13 +1,14 @@
 import type { UnpluginStylexRSOptions } from './types';
 
 import unplugin from './index';
-import { Plugin } from 'vite';
+
+type VitePlugin = ReturnType<typeof unplugin.vite>;
 
 export default (options: UnpluginStylexRSOptions) => ({
-  name: 'unplugin-starter',
+  name: '@stylexswc/unplugin/astro',
   hooks: {
     'astro:config:setup': async (astro: {
-      config: { vite: { plugins: (Plugin<unknown> | Plugin<unknown>[])[] } };
+      config: { vite: { plugins: VitePlugin[] } };
     }) => {
       astro.config.vite.plugins ||= [];
       astro.config.vite.plugins.push(unplugin.vite(options));

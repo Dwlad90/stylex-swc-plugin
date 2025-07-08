@@ -22,8 +22,8 @@
   "devDependencies": {
     "@playwright/test": "^1.53.2",
     "@stylexswc/playwright": "0.9.1-rc.1",
-    "@types/react": "^19.1.6",
-    "@types/react-dom": "^19.1.5",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "esbuild": "^0.25.4",
     "serve": "^14.2.4"
   }

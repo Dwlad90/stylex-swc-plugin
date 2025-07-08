@@ -22,8 +22,8 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@types/react": "^19.1.6",
-    "@types/react-dom": "^19.1.5",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "serve": "^14.2.4",
     "vite": "^6.3.5"

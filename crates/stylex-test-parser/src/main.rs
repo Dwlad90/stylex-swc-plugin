@@ -1,6 +1,7 @@
 use clap::Parser;
 use regex::Regex;
-use swc_compiler_base::{IsModule, PrintArgs, SourceMapsConfig, parse_js, print};
+use swc_compiler_base::{PrintArgs, SourceMapsConfig, parse_js, print};
+use swc_config::is_module::IsModule;
 
 use std::{
   fmt::Display,

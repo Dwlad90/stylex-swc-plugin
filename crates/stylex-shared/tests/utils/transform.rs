@@ -41,7 +41,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
   let file_name = Arc::new(FileName::Custom("input.js".into()));
 
   // This is the JavaScript code you want to parse.
-  let fm = cm.new_source_file(file_name, source_code.into());
+  let fm = cm.new_source_file(file_name, source_code.to_string());
 
   let lexer = Lexer::new(
     Syntax::default(),
@@ -57,7 +57,7 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
       // Do something with the parsed module.
       module.fold_with(&mut StyleXTransform::new_test_force_runtime_injection(
         Rc::new(SingleThreadedComments::default()),
-        PluginPass::default(),
+        PluginPass::new(None, None),
         None,
       ))
     }

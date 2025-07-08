@@ -1,25 +1,32 @@
 use anyhow::Error;
 use log::{debug, warn};
 use std::{fs, path::Path, sync::Arc};
-use swc_compiler_base::{IsModule, PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
+use swc_config::is_module::IsModule;
+
+use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_core::{
   common::{
-    DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, SyntaxContext, errors::*, sync::Lrc,
+    DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, SyntaxContext,
+    errors::{Handler, *},
   },
-  ecma::{ast::*, codegen::Config, visit::*},
+  ecma::{
+    ast::*,
+    codegen::Config,
+    parser::{Syntax, TsSyntax},
+    visit::*,
+  },
 };
-use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::shared::{regex::URL_REGEX, structures::state_manager::StateManager};
 
 pub(crate) struct CodeFrame {
-  source_map: Lrc<SourceMap>,
+  source_map: Arc<SourceMap>,
   handler: Handler,
 }
 
 impl CodeFrame {
   pub(crate) fn new() -> Self {
-    let source_map: Lrc<SourceMap> = Default::default();
+    let source_map = Arc::new(SourceMap::default());
     let handler =
       Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(source_map.clone()));
 

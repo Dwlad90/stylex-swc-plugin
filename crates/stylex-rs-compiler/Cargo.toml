@@ -27,12 +27,11 @@ swc_core = { workspace = true, features = [
   "css_parser",
   "css_ast",
 ] }
+swc_ecma_parser = { workspace = true, features = ["verify"] }
+swc_compiler_base = { workspace = true, features = ["node"] }
 color-backtrace.workspace = true
 rustc-hash.workspace = true
 log.workspace = true
-
-swc_compiler_base = { version = "*", features = ["node"] }
-swc_ecma_parser = { version = "*", features = ["verify"] }
 
 stylex_shared = { path = "../stylex-shared" }
 napi = "2"

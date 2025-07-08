@@ -26,6 +26,9 @@ swc_core = { workspace = true, features = [
   "css_ast",
 ] }
 
+swc_config.workspace = true
+swc_ecma_parser = { workspace = true, features = ["verify"] }
+swc_compiler_base = { workspace = true, features = ["node"] }
 lazy_static.workspace = true
 serde_json.workspace = true
 regex.workspace = true
@@ -48,9 +51,6 @@ env_logger.workspace = true
 rustc-hash.workspace = true
 base62.workspace = true
 md5.workspace = true
-
-swc_ecma_parser = { version = "*", features = ["verify"] }
-swc_compiler_base = { version = "*", features = ["node"] }
 
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 

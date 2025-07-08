@@ -1,13 +1,15 @@
 use anyhow::anyhow;
-use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl, UnaryExpr, UnaryOp,
-};
 use swc_core::ecma::{
   ast::BigInt,
   utils::{ExprExt, quote_ident, quote_str},
 };
-
-use swc_ecma_parser::Context;
+use swc_core::ecma::{
+  ast::{
+    BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl, UnaryExpr,
+    UnaryOp,
+  },
+  parser::Context,
+};
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, non_static_value},

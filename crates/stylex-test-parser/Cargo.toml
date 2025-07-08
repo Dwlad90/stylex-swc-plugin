@@ -18,6 +18,9 @@ swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_codegen",
 ] }
+swc_config.workspace = true
+swc_compiler_base = { workspace = true, features = ["node"] }
+swc_ecma_parser = { workspace = true, features = ["verify"] }
 regex.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
@@ -29,6 +32,3 @@ env_logger.workspace = true
 
 clap = { version = "4.5.40", features = ["derive"] }
 walkdir = { version = "2.5.0" }
-
-swc_compiler_base = { version = "*", features = ["node"] }
-swc_ecma_parser = { version = "*", features = ["verify"] }

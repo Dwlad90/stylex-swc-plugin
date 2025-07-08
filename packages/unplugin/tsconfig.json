@@ -1,7 +1,11 @@
 {
+  "extends": "@stylexswc/typescript-config/base.json",
   "compilerOptions": {
     "target": "es2017",
-    "lib": ["esnext", "DOM"],
+    "lib": [
+      "esnext",
+      "DOM"
+    ],
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
@@ -10,5 +14,14 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "exclude": ["dist", "eslint.config.js"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    "__tests__/**/*.mts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

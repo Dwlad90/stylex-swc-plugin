@@ -9,11 +9,20 @@ import normalizeOptions from './utils/normalizeOptions';
 import type { UnpluginStylexRSOptions } from './types';
 import stylexRsCompiler from '@stylexswc/rs-compiler';
 import generateHash from './utils/generateHash';
+import crypto from 'crypto';
 
 import type { StyleXMetadata } from '@stylexswc/rs-compiler';
 import { UserConfig } from 'vite';
 
 const { writeFile, mkdir } = promises;
+
+function replaceFileName(original: string, css: string) {
+  if (!original.includes('[hash]')) {
+    return original;
+  }
+  const hash = crypto.createHash('sha256').update(css).digest('hex').slice(0, 8);
+  return original.replace(/\[hash\]/g, hash);
+}
 
 export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefined> = (
   options = {}
@@ -51,7 +60,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     async transform(inputCode, id) {
       const dir = path.dirname(id);
       const basename = path.basename(id);
-      const file = path.join(dir, basename.includes('?') ? basename.split('?')[0] : basename);
+      const file = path.join(dir, basename.split('?')[0] || basename);
 
       if (
         !normalizedOptions.rsOptions.importSources?.some(importName =>
@@ -99,8 +108,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
       hasCssToExtract = true;
 
+      const processedFileName = replaceFileName(normalizedOptions.fileName, collectedCSS);
+
       this.emitFile({
-        fileName: normalizedOptions.fileName,
+        fileName: processedFileName,
         source: collectedCSS,
         type: 'asset',
       });
@@ -125,8 +136,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         if (!collectedCSS) return;
 
+        const processedFileName = replaceFileName(fileName, collectedCSS);
+
         this.emitFile({
-          fileName,
+          fileName: processedFileName,
           source: collectedCSS,
           type: 'asset',
         });

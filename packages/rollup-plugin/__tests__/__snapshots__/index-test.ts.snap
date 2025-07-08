@@ -1,0 +1,224 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`@stylexswc/rollup-plugin extracts CSS and removes stylex.inject calls 1`] = `
+"@layer priority1;
+
+@layer priority2 {
+  .xeuoslp {
+    animation-name: xgnty7z-B;
+  }
+
+  .xu4yf9m {
+    border-start-start-radius: 7.5px;
+  }
+
+  .x1lliihq {
+    display: block;
+  }
+
+  .x78zum5 {
+    display: flex;
+  }
+
+  .xt0psk2 {
+    display: inline;
+  }
+
+  .x1hm9lzh {
+    margin-inline-start: 10px;
+  }
+
+  .x1gykpug:hover {
+    background-color: red;
+  }
+}
+
+@layer priority3 {
+  .x1egiwwb {
+    height: 500px;
+  }
+
+  .xlrshdv {
+    margin-top: 99px;
+  }
+
+  .xh8yej3 {
+    width: 100%;
+  }
+
+  .x3hqpx7 {
+    width: 50%;
+  }
+}
+
+@keyframes xgnty7z-B {
+  0% {
+    opacity: .25;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+"
+`;
+
+exports[`@stylexswc/rollup-plugin extracts CSS and removes stylex.inject calls 2`] = `
+"import * as stylex from 'stylex';
+
+const styles$2 = {
+    bar: {
+        k1xSpc: "x1lliihq",
+        kzqmXN: "xh8yej3",
+        $$css: true
+    }
+};
+
+const styles$1 = {
+    baz: {
+        k1xSpc: "xt0psk2",
+        kZKoxP: "x1egiwwb",
+        kzqmXN: "x3hqpx7",
+        $$css: true
+    }
+};
+
+const styles = {
+    foo: {
+        kKVMdj: "xeuoslp",
+        kWkggS: "x1gykpug",
+        krdFHd: "xu4yf9m",
+        k1xSpc: "x78zum5",
+        kZKoxP: "x1egiwwb",
+        keTefX: "x1hm9lzh",
+        keoZOQ: "xlrshdv",
+        $$css: true
+    }
+};
+function App() {
+    return stylex.props(styles$2.bar, styles.foo, styles$1.baz);
+}
+
+export { App as default };
+"
+`;
+
+exports[`@stylexswc/rollup-plugin output filename match pattern 1`] = `
+"@layer priority1;
+
+@layer priority2 {
+  .xeuoslp {
+    animation-name: xgnty7z-B;
+  }
+
+  .xu4yf9m {
+    border-start-start-radius: 7.5px;
+  }
+
+  .x1lliihq {
+    display: block;
+  }
+
+  .x78zum5 {
+    display: flex;
+  }
+
+  .xt0psk2 {
+    display: inline;
+  }
+
+  .x1hm9lzh {
+    margin-inline-start: 10px;
+  }
+
+  .x1gykpug:hover {
+    background-color: red;
+  }
+}
+
+@layer priority3 {
+  .x1egiwwb {
+    height: 500px;
+  }
+
+  .xlrshdv {
+    margin-top: 99px;
+  }
+
+  .xh8yej3 {
+    width: 100%;
+  }
+
+  .x3hqpx7 {
+    width: 50%;
+  }
+}
+
+@keyframes xgnty7z-B {
+  0% {
+    opacity: .25;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+"
+`;
+
+exports[`@stylexswc/rollup-plugin runtimeInjection:true preserves stylex.inject calls and does not extract CSS 1`] = `
+"import _inject from '@stylexjs/stylex/lib/stylex-inject';
+import * as stylex from 'stylex';
+
+var _inject2$2 = _inject;
+_inject2$2(".display-x1lliihq{display:block}", 3000);
+_inject2$2(".width-xh8yej3{width:100%}", 4000);
+const styles$2 = {
+    bar: {
+        "display-k1xSpc": "display-x1lliihq",
+        "width-kzqmXN": "width-xh8yej3",
+        $$css: "__fixtures__/otherStyles.js:6"
+    }
+};
+
+var _inject2$1 = _inject;
+_inject2$1(".display-xt0psk2{display:inline}", 3000);
+_inject2$1(".height-x1egiwwb{height:500px}", 4000);
+_inject2$1(".width-x3hqpx7{width:50%}", 4000);
+const styles$1 = {
+    baz: {
+        "display-k1xSpc": "display-xt0psk2",
+        "height-kZKoxP": "height-x1egiwwb",
+        "width-kzqmXN": "width-x3hqpx7",
+        $$css: "__fixtures__/npmStyles.js:6"
+    }
+};
+
+var _inject2 = _inject;
+_inject2("@keyframes xgnty7z-B{0%{opacity:.25;}100%{opacity:1;}}", 0);
+_inject2(".animationName-xeuoslp{animation-name:xgnty7z-B}", 3000);
+_inject2(".backgroundColor-x1gykpug:hover{background-color:red}", 3130);
+_inject2(".borderStartStartRadius-xu4yf9m{border-start-start-radius:7.5px}", 3000);
+_inject2(".display-x78zum5{display:flex}", 3000);
+_inject2(".height-x1egiwwb{height:500px}", 4000);
+_inject2(".marginInlineStart-x1hm9lzh{margin-inline-start:10px}", 3000);
+_inject2(".marginTop-xlrshdv{margin-top:99px}", 4000);
+const styles = {
+    foo: {
+        "animationName-kKVMdj": "animationName-xeuoslp",
+        "backgroundColor-kWkggS": "backgroundColor-x1gykpug",
+        "borderStartStartRadius-krdFHd": "borderStartStartRadius-xu4yf9m",
+        "display-k1xSpc": "display-x78zum5",
+        "height-kZKoxP": "height-x1egiwwb",
+        "marginInlineStart-keTefX": "marginInlineStart-x1hm9lzh",
+        "marginTop-keoZOQ": "marginTop-xlrshdv",
+        $$css: "__fixtures__/index.js:17"
+    }
+};
+function App() {
+    return stylex.props(styles$2.bar, styles.foo, styles$1.baz);
+}
+
+export { App as default };
+"
+`;

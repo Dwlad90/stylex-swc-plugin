@@ -20,11 +20,13 @@ if [ "$build_ts" = true ]; then
 
   pnpm tsc -p "${tsconfig_name}"|| handle_error "Failed to build the TypeScript project"
 
-  if( [ "$flatten" = true ] ); then
+  if [ "$flatten" = true ]; then
     # Move all files from src to dist and remove src directory
-    mkdir -p dist
-    mv dist/src/* dist/ || handle_error "Failed to move files from src to dist"
-    rmdir dist/src || handle_error "Failed to remove src directory"
+    if [ -d dist/src ]; then
+      mkdir -p dist
+      mv dist/src/* dist/ || handle_error "Failed to move files from src to dist"
+      rmdir dist/src || handle_error "Failed to remove src directory"
+    fi
   fi
 
   # Copy virtual CSS if exists

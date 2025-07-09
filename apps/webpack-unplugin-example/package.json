@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-unplugin-example",
   "description": "A simple webpack unplugin example to test @stylexswc/unplugin/webpack",
-  "version": "0.9.1",
+  "version": "0.10.0-rc.1",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -13,15 +13,15 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.14.1",
-    "@stylexswc/design-system": "0.9.1",
-    "@stylexswc/rs-compiler": "0.9.1",
-    "@stylexswc/unplugin": "0.9.1",
+    "@stylexswc/design-system": "0.10.0-rc.1",
+    "@stylexswc/rs-compiler": "0.10.0-rc.1",
+    "@stylexswc/unplugin": "0.10.0-rc.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.2",
-    "@stylexswc/playwright": "0.9.1",
+    "@stylexswc/playwright": "0.10.0-rc.1",
     "@swc/core": "^1.12.9",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

@@ -14,6 +14,7 @@ const defaultResult: StyleXOptions = {
   },
   enableLogicalStylesPolyfill: false,
   enableMinifiedKeys: true,
+  styleResolution: 'property-specificity',
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {
@@ -222,6 +223,50 @@ test('normalizeRsOptions: importSources - array with null/undefined', t => {
   // @ts-expect-error - input not suitable for normalizeRsOptions
   const error = t.throws(() => normalizeRsOptions(input), {
     message: 'Cannot convert undefined or null to object',
+  });
+  t.truthy(error);
+});
+
+test('normalizeRsOptions: styleResolution - default input', t => {
+  const input: StyleXOptions = {};
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    styleResolution: 'property-specificity',
+    dev: process.env.NODE_ENV === 'development',
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: styleResolution - valid input', t => {
+  const input: StyleXOptions = { styleResolution: 'application-order' };
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    styleResolution: 'application-order',
+    dev: process.env.NODE_ENV === 'development',
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: styleResolution - valid input with legacy-expand-shorthands', t => {
+  const input: StyleXOptions = { styleResolution: 'legacy-expand-shorthands' };
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    styleResolution: 'legacy-expand-shorthands',
+    dev: process.env.NODE_ENV === 'development',
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: styleResolution - invalid input', t => {
+  // @ts-expect-error - input not suitable for normalizeRsOptions
+  const input: StyleXOptions = { styleResolution: 'invalid-resolution' };
+
+  const error = t.throws(() => normalizeRsOptions(input), {
+    message:
+      'Failed to parse style resolution: unknown variant `invalid-resolution`, expected one of `application-order`, `property-specificity`, `legacy-expand-shorthands`',
   });
   t.truthy(error);
 });

@@ -10,8 +10,10 @@ use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_shared::{
   StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-  shared::utils::log::logger,
+  shared::{
+    structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+    utils::log::logger,
+  },
 };
 use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
 
@@ -62,7 +64,7 @@ pub fn transform(
       None => SourceMapsConfig::Bool(true),
     };
 
-    let mut config: StyleXOptionsParams = options.into();
+    let mut config: StyleXOptionsParams = options.try_into()?;
 
     let mut stylex: StyleXTransform<PluginCommentsProxy> =
       StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
@@ -131,7 +133,7 @@ pub fn transform(
 
 #[napi]
 pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
-  Ok(StyleXOptions {
+  let normalized_options = StyleXOptions {
     dev: options
       .dev
       .or_else(|| env::var("NODE_ENV").ok().map(|env| env == "development")),
@@ -152,6 +154,14 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     }),
     enable_inlined_conditional_merge: options.enable_inlined_conditional_merge.or(Some(true)),
     enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.or(Some(false)),
+    style_resolution: options
+      .style_resolution
+      .or(Some("property-specificity".to_string())),
     ..options
-  })
+  };
+
+  // NOTE: Validate StyleXOptions
+  StyleXOptionsParams::try_from(normalized_options.clone())?;
+
+  Ok(normalized_options)
 }

@@ -18,6 +18,7 @@ module.exports = stylexPlugin({
     },
     runtimeInjection: false,
     treeshakeCompensation: true,
+    styleResolution: "application-order",
   }
 })({
   transpilePackages: ['@stylexjs/open-props'],

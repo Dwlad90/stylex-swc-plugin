@@ -29,6 +29,7 @@ const bgDefault = `rgba(${$.cardR}, ${$.cardG}, ${$.cardB}, 0)` as const;
 
 const styles = stylex.create({
   link: {
+    background: 'inherit',
     display: {
       default: 'flex',
       [MOBILE]: 'block',

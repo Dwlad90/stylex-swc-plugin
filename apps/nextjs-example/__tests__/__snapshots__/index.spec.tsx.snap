@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Home render styles successfully 1`] = `
 <div>
@@ -75,7 +75,7 @@ exports[`Home render styles successfully 1`] = `
       class="xrvj5dj xtp8ymz xx3cr9d xtffbmy x1upcy5i x193iq5w xl858mc x15hltav"
     >
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x130j894 x1hsxm3o xqz2gh5 x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://stylexjs.com/docs/learn/"
         rel="noopener noreferrer"
         target="_blank"
@@ -98,7 +98,7 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x130j894 x1hsxm3o xqz2gh5 x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://stylexjs.com/docs/api/"
         rel="noopener noreferrer"
         target="_blank"
@@ -121,7 +121,7 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x130j894 x1hsxm3o xqz2gh5 x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://stylexjs.com/playground/"
         rel="noopener noreferrer"
         target="_blank"
@@ -144,7 +144,7 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm x1hsxm3o xqz2gh5 xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
+        class="x130j894 x1hsxm3o xqz2gh5 x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf x137yrnm xmkeg23 x1y0btm7 x1vbq3mp xj72yih x1heor9g x1jn5nl8 xeb0fle xts7igz xofcydl x2b8uid x1hl2dhg xn6cftr xf8ip7e"
         href="https://github.com/nmn/nextjs-app-dir-stylex"
         rel="noopener noreferrer"
         target="_blank"

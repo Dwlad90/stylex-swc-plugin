@@ -8,9 +8,10 @@ use stylex_shared::shared::structures::{
 
 use crate::enums::{ImportSourceUnion, SourceMaps, StyleXModuleResolution};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct StyleXOptions {
+  #[napi(ts_type = "'application-order' | 'property-specificity' | 'legacy-expand-shorthands'")]
   pub style_resolution: Option<String>,
   pub enable_font_size_px_to_rem: Option<bool>,
   pub runtime_injection: Option<bool>,
@@ -49,12 +50,16 @@ pub struct StyleXTransformResult {
   pub map: Option<String>,
 }
 
-impl From<StyleXOptions> for StyleXOptionsParams {
-  fn from(val: StyleXOptions) -> Self {
-    let style_resolution: Option<StyleResolution> = match val.style_resolution {
-      Some(style_resolution) => serde_json::from_str(&style_resolution).ok(),
-      None => None,
-    };
+impl TryFrom<StyleXOptions> for StyleXOptionsParams {
+  type Error = napi::Error;
+  fn try_from(val: StyleXOptions) -> Result<Self, Self::Error> {
+    let style_resolution: Option<StyleResolution> = val
+      .style_resolution
+      .map(|sr| {
+        serde_plain::from_str(&sr)
+          .map_err(|e| napi::Error::from_reason(format!("Failed to parse style resolution: {}", e)))
+      })
+      .transpose()?;
 
     let import_sources: Option<Vec<ImportSources>> = val.import_sources.map(|import_sources| {
       import_sources
@@ -75,7 +80,7 @@ impl From<StyleXOptions> for StyleXOptionsParams {
       theme_file_extension: res.theme_file_extension,
     });
 
-    StyleXOptionsParams {
+    Ok(StyleXOptionsParams {
       style_resolution,
       enable_font_size_px_to_rem: val.enable_font_size_px_to_rem,
       runtime_injection: val.runtime_injection,
@@ -94,6 +99,6 @@ impl From<StyleXOptions> for StyleXOptionsParams {
       enable_minified_keys: val.enable_minified_keys,
       aliases: val.aliases,
       unstable_module_resolution,
-    }
+    })
   }
 }

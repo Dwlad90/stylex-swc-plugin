@@ -20,6 +20,7 @@ const customJestConfig = {
               unstable_moduleResolution: {
                 type: 'commonJS',
               },
+              styleResolution: "application-order",
             }
           }], ['@swc/jest', {
             "$schema": "https://json.schemastore.org/swcrc",

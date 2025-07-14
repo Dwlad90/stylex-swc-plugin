@@ -9,7 +9,7 @@ use stylex_shared::shared::{
 };
 
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StyleXModuleResolution {
   pub r#type: String,
   pub root_dir: Option<String>,
@@ -32,7 +32,7 @@ pub struct ImportSourceInput {
   pub from: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImportSourceUnion {
   Regular(String),
   Named(NamedImportSource),

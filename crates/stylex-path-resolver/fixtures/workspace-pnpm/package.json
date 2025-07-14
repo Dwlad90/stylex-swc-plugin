@@ -1,6 +1,6 @@
 {
   "name": "workspace-app",
-  "version": "0.10.0",
+  "version": "0.10.1-rc.1",
   "dependencies": {
     "@stylex/theme-lib": "workspace:^",
     "@stylex/theme-lib-main-dist": "workspace:^",

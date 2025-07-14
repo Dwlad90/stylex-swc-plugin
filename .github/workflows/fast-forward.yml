@@ -80,7 +80,7 @@ jobs:
       - name: Merge
         id: ff-only
         if: steps.check-pr.outputs.merge_ready == 'true'
-        uses: endre-spotlab/fast-forward-js-action@2.1
+        uses: endre-spotlab/fast-forward-js-action@94a5506807d4621228d7e5ebf161a4e7072e0de0 # v2.1.0
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           success_message: 'Success! Fast forwarded ***target_base*** to ***source_head***!'

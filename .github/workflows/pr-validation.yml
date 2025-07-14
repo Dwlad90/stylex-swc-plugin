@@ -131,7 +131,7 @@ jobs:
         run: pnpm run --filter @stylexswc/rs-compiler bench
 
       - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
+        uses: benchmark-action/github-action-benchmark@d48d326b4ca9ba73ca0cd0d59f108f9e02a381c7 # v1.20.4
         with:
           tool: 'benchmarkjs'
           output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.txt'
@@ -159,7 +159,7 @@ jobs:
 
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@08eff52bf64351f401fb50d4972fa95b9f2c2d1b # v2.4.0
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
 

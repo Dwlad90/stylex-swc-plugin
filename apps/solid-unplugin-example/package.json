@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/solid-unplugin-example",
   "description": "A simple solid unplugin example to test @stylexswc/unplugin/solid",
-  "version": "0.10.1-rc.1",
+  "version": "0.10.1",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -14,10 +14,10 @@
     "@playwright/test": "^1.53.2",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.14.1",
-    "@stylexswc/design-system": "0.10.1-rc.1",
-    "@stylexswc/playwright": "0.10.1-rc.1",
-    "@stylexswc/rs-compiler": "0.10.1-rc.1",
-    "@stylexswc/unplugin": "0.10.1-rc.1",
+    "@stylexswc/design-system": "0.10.1",
+    "@stylexswc/playwright": "0.10.1",
+    "@stylexswc/rs-compiler": "0.10.1",
+    "@stylexswc/unplugin": "0.10.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

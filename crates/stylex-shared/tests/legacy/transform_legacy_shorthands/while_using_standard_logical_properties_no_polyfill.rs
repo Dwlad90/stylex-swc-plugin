@@ -405,3 +405,183 @@ test!(
     stylex(styles.foo);
   "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      enable_logical_styles_polyfill: Some(false),
+      ..StyleXOptionsParams::default()
+    };
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  inset_basic_shorthand,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        inset: 10
+      }
+    });
+    stylex(styles.foo);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      enable_logical_styles_polyfill: Some(false),
+      ..StyleXOptionsParams::default()
+    };
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  inset_multivalue_shorthand,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        inset: '10px 20px 30px 40px'
+      }
+    });
+    stylex(styles.foo);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      enable_logical_styles_polyfill: Some(false),
+      ..StyleXOptionsParams::default()
+    };
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  inset_inline_basic_shorthand,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        insetInline: 10
+      }
+    });
+    stylex(styles.foo);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      enable_logical_styles_polyfill: Some(false),
+      ..StyleXOptionsParams::default()
+    };
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  inset_inline_multivalue_shorthand,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        insetInline: '10px 20px'
+      }
+    });
+    stylex(styles.foo);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      enable_logical_styles_polyfill: Some(false),
+      ..StyleXOptionsParams::default()
+    };
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  inset_block_basic_shorthand,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        insetBlock: 10
+      }
+    });
+    stylex(styles.foo);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      enable_logical_styles_polyfill: Some(false),
+      ..StyleXOptionsParams::default()
+    };
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  inset_block_multivalue_shorthand,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        insetBlock: '10px 20px'
+      }
+    });
+    stylex(styles.foo);
+  "#
+);

@@ -150,25 +150,31 @@ impl Shorthands {
   }
 
   fn inset(raw_value: Option<String>) -> Vec<OrderPair> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+
     vec![
-      OrderPair("top".into(), raw_value.to_owned()),
-      OrderPair("insetInlineEnd".into(), raw_value.to_owned()),
-      OrderPair("bottom".into(), raw_value.to_owned()),
-      OrderPair("insetInlineStart".into(), raw_value),
+      OrderPair("top".into(), Some(top)),
+      OrderPair("insetInlineEnd".into(), Some(right)),
+      OrderPair("bottom".into(), Some(bottom)),
+      OrderPair("insetInlineStart".into(), Some(left)),
     ]
   }
   fn inset_inline(raw_value: Option<String>) -> Vec<OrderPair> {
+    let (start, end, _, _) = split_value_required(raw_value.as_deref());
+
     let mut result = vec![];
 
-    result.extend(Shorthands::start(raw_value.to_owned()));
-    result.extend(Shorthands::end(raw_value));
+    result.extend(Shorthands::start(Some(start)));
+    result.extend(Shorthands::end(Some(end)));
 
     result
   }
   fn inset_block(raw_value: Option<String>) -> Vec<OrderPair> {
+    let (top, bottom, _, _) = split_value_required(raw_value.as_deref());
+
     vec![
-      OrderPair("top".into(), raw_value.to_owned()),
-      OrderPair("bottom".into(), raw_value),
+      OrderPair("top".into(), Some(top)),
+      OrderPair("bottom".into(), Some(bottom)),
     ]
   }
   fn start(raw_value: Option<String>) -> Vec<OrderPair> {

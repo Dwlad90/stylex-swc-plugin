@@ -170,7 +170,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           bar: "var(--x1hi1hmf)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
         const fallback1 = "--x5jppmd";
@@ -301,7 +301,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           bar: "var(--x1hi1hmf)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
         const fallback1 = "--x5jppmd";
@@ -346,7 +346,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           bar: "var(--x1hi1hmf)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
         const fallback1 = "--x5jppmd";
@@ -401,7 +401,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           bar: "var(--x1hi1hmf)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
         const fallback1 = "--x5jppmd";
@@ -442,7 +442,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           bar: "var(--x1hi1hmf)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
         const fallback1 = "--x5jppmd";
@@ -497,7 +497,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           bar: "var(--x1hi1hmf)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
         const fallback1 = "--x5jppmd";
@@ -532,7 +532,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           bar: "var(--x1hi1hmf)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
         const fallback1 = "--x5jppmd";

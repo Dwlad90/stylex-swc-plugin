@@ -767,7 +767,7 @@ pub(crate) fn validate_theme_variables(
       for key_value in key_values.into_iter() {
         let key = key_value_to_str(&key_value);
 
-        if key == "__themeName__" {
+        if key == "__varGroupHash__" {
           let value = &key_value.value;
 
           if let Some(lit) = value.as_lit() {

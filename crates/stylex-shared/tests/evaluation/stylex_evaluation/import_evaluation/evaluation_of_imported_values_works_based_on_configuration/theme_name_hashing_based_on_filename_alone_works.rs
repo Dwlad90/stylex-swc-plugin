@@ -77,12 +77,12 @@ fn importing_file_with_stylex_suffix_works() {
 }
 
 #[test]
-fn importing_file_with_dot_stylex_and_reading_theme_name_returns_a_class_name() {
+fn importing_file_with_dot_stylex_and_reading_var_group_hash_returns_a_class_name() {
   let input = r#"import stylex from 'stylex';
         import { MyTheme } from 'otherFile.stylex';
         const styles = stylex.create({
           red: {
-            color: MyTheme.__themeName__,
+            color: MyTheme.__varGroupHash__,
           }
         });
         stylex(styles.red);"#;

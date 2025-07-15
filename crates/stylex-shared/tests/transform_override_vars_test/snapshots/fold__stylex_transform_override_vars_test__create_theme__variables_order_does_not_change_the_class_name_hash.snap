@@ -10,7 +10,7 @@ export const buttonTheme = {
     bgColorDisabled: "var(--xpegid5)",
     cornerRadius: "var(--xrqfjmn)",
     fgColor: "var(--x4y59db)",
-    __themeName__: "x568ih9"
+    __varGroupHash__: "x568ih9"
 };
 _inject2(".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}", 0.5);
 _inject2("@media (prefers-color-scheme: dark){.xtrlmmh, .xtrlmmh:root{--xgck17p:lightgreen;--xpegid5:floralwhite;}}", 0.6);

@@ -147,7 +147,7 @@ where
         .map(|decl| decl.to_string())
         .expect("Export variable not found");
 
-      self.state.theme_name = Some(gen_file_based_identifier(&file_name, &export_name, None));
+      self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);

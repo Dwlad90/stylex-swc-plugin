@@ -5,5 +5,5 @@ _inject2("@keyframes xekv6nw-B{0%{opacity:0;}100%{opacity:1;}}", 0);
 _inject2(":root, .xm1nzai{--x1hdlbcx:xekv6nw-B;}", 0.1);
 export const vars = {
     fadeIn: "var(--x1hdlbcx)",
-    __themeName__: "xm1nzai"
+    __varGroupHash__: "xm1nzai"
 };

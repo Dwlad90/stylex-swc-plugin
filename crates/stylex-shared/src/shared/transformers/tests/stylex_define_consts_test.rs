@@ -17,14 +17,14 @@ mod stylex_define_consts {
     },
   };
 
-  fn create_test_state_manager(theme_name: &str) -> StateManager {
+  fn create_test_state_manager(export_id: &str) -> StateManager {
     let mut state = StateManager::new(StyleXOptions {
       class_name_prefix: "x".to_string(),
       debug: false,
       enable_debug_class_names: false,
       ..Default::default()
     });
-    state.theme_name = Some(theme_name.to_string());
+    state.export_id = Some(export_id.to_string());
     state
   }
 
@@ -37,18 +37,18 @@ mod stylex_define_consts {
     EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
-  fn get_const_hash(theme_name: &str, key: &str, class_name_prefix: &str) -> String {
+  fn get_const_hash(export_id: &str, key: &str, class_name_prefix: &str) -> String {
     format!(
       "{}{}",
       class_name_prefix,
-      create_hash(&format!("{}.{}", theme_name, key))
+      create_hash(&format!("{}.{}", export_id, key))
     )
   }
 
   #[test]
   fn returns_correct_structure_for_basic_constants() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
-    let mut state = create_test_state_manager(theme_name);
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let mut state = create_test_state_manager(export_id);
 
     let constants =
       constants_factory(&[("sm", "(min-width: 768px)"), ("md", "(min-width: 1024px)")]);
@@ -65,8 +65,8 @@ mod stylex_define_consts {
       "(min-width: 1024px)"
     );
 
-    let sm_hash = get_const_hash(theme_name, "sm", "x");
-    let md_hash = get_const_hash(theme_name, "md", "x");
+    let sm_hash = get_const_hash(export_id, "sm", "x");
+    let md_hash = get_const_hash(export_id, "md", "x");
 
     assert!(injectable_styles.contains_key(&sm_hash));
     assert!(injectable_styles.contains_key(&md_hash));
@@ -96,8 +96,8 @@ mod stylex_define_consts {
 
   #[test]
   fn handles_special_characters_in_keys() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
-    let mut state = create_test_state_manager(theme_name);
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let mut state = create_test_state_manager(export_id);
 
     let constants = constants_factory(&[("max-width", "1200px"), ("font-size*large", "18px")]);
 
@@ -117,8 +117,8 @@ mod stylex_define_consts {
       "18px"
     );
 
-    let max_width_hash = get_const_hash(theme_name, "max-width", "x");
-    let font_size_hash = get_const_hash(theme_name, "font-size*large", "x");
+    let max_width_hash = get_const_hash(export_id, "max-width", "x");
+    let font_size_hash = get_const_hash(export_id, "font-size*large", "x");
 
     assert!(injectable_styles.contains_key(&max_width_hash));
     assert!(injectable_styles.contains_key(&font_size_hash));
@@ -128,8 +128,8 @@ mod stylex_define_consts {
 
   #[test]
   fn handles_numeric_keys() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
-    let mut state = create_test_state_manager(theme_name);
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let mut state = create_test_state_manager(export_id);
 
     let constants = constants_factory(&[("1", "one"), ("2", "two")]);
 
@@ -139,8 +139,8 @@ mod stylex_define_consts {
     assert_eq!(js_output.get("1").unwrap().as_string().unwrap(), "one");
     assert_eq!(js_output.get("2").unwrap().as_string().unwrap(), "two");
 
-    let hash_1 = get_const_hash(theme_name, "1", "x");
-    let hash_2 = get_const_hash(theme_name, "2", "x");
+    let hash_1 = get_const_hash(export_id, "1", "x");
+    let hash_2 = get_const_hash(export_id, "2", "x");
 
     assert!(injectable_styles.contains_key(&hash_1));
     assert!(injectable_styles.contains_key(&hash_2));
@@ -150,16 +150,16 @@ mod stylex_define_consts {
 
   #[test]
   fn generates_consistent_hashes_for_identical_constants() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
-    let mut state1 = create_test_state_manager(theme_name);
-    let mut state2 = create_test_state_manager(theme_name);
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let mut state1 = create_test_state_manager(export_id);
+    let mut state2 = create_test_state_manager(export_id);
 
     let constants = constants_factory(&[("padding", "10px")]);
 
     let (js_output1, styles1) = stylex_define_consts(&constants, &mut state1);
     let (js_output2, styles2) = stylex_define_consts(&constants, &mut state2);
 
-    let key_hash = get_const_hash(theme_name, "padding", "x");
+    let key_hash = get_const_hash(export_id, "padding", "x");
 
     assert_eq!(js_output1, js_output2);
 
@@ -179,9 +179,9 @@ mod stylex_define_consts {
 
   #[test]
   fn generates_different_hashes_for_different_constants() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
-    let mut state1 = create_test_state_manager(theme_name);
-    let mut state2 = create_test_state_manager(theme_name);
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let mut state1 = create_test_state_manager(export_id);
+    let mut state2 = create_test_state_manager(export_id);
 
     let constants1 = constants_factory(&[("padding", "10px")]);
     let constants2 = constants_factory(&[("margin", "10px")]);
@@ -189,8 +189,8 @@ mod stylex_define_consts {
     let (_, styles1) = stylex_define_consts(&constants1, &mut state1);
     let (_, styles2) = stylex_define_consts(&constants2, &mut state2);
 
-    let padding_key = get_const_hash(theme_name, "padding", "x");
-    let margin_key = get_const_hash(theme_name, "margin", "x");
+    let padding_key = get_const_hash(export_id, "padding", "x");
+    let margin_key = get_const_hash(export_id, "margin", "x");
 
     assert_ne!(padding_key, margin_key);
 
@@ -210,8 +210,8 @@ mod stylex_define_consts {
 
   #[test]
   fn preserves_object_keys() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
-    let mut state = create_test_state_manager(theme_name);
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let mut state = create_test_state_manager(export_id);
 
     let constants = constants_factory(&[("borderRadius", "8px"), ("colorPrimary", "#ff0000")]);
 
@@ -226,8 +226,8 @@ mod stylex_define_consts {
   #[test]
   #[should_panic(expected = "Keys in defineConsts() cannot start with \"--\".")]
   fn throws_an_error_for_keys_that_start_with_double_dash() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
-    let mut state = create_test_state_manager(theme_name);
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let mut state = create_test_state_manager(export_id);
 
     let constants = constants_factory(&[("--custom-var", "red")]);
 

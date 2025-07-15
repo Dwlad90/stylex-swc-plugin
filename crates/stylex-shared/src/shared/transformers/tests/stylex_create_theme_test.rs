@@ -96,10 +96,10 @@ mod stylex_create_theme {
 
   #[test]
   fn overrides_set_of_vars_with_css_class() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
 
     let mut default_vars = default_vars_factory(&[
-      ("__themeName__", theme_name),
+      ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
       ("cornerRadius", "var(--xrqfjmn)"),
@@ -138,7 +138,7 @@ mod stylex_create_theme {
     );
 
     let key = class_name_output
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
       .as_string()
       .unwrap()
@@ -151,23 +151,23 @@ mod stylex_create_theme {
     assert_eq!(
       injectable_rule,
       exprected_result_factory(&[(
-        theme_name,
+        export_id,
         (
           ".xtrlmmh, .xtrlmmh:root{--xgck17p:green;--xpegid5:antiquewhite;--xrqfjmn:6px;--x4y59db:coral;}",
           0.5
         )
       )])
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
     )
   }
 
   #[test]
   fn overrides_set_of_literal_vars_with_css_class() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
 
     let mut default_vars = default_vars_factory(&[
-      ("__themeName__", theme_name),
+      ("__varGroupHash__", export_id),
       ("--bgColor", "var(--bgColor)"),
       ("--bgColorDisabled", "var(--bgColorDisabled)"),
       ("--cornerRadius", "var(--cornerRadius)"),
@@ -206,7 +206,7 @@ mod stylex_create_theme {
     );
 
     let key = class_name_output
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
       .as_string()
       .unwrap()
@@ -219,23 +219,23 @@ mod stylex_create_theme {
     assert_eq!(
       injectable_rule,
       exprected_result_factory(&[(
-        theme_name,
+        export_id,
         (
           ".x4znj40, .x4znj40:root{--bgColor:green;--bgColorDisabled:antiquewhite;--cornerRadius:6px;--fgColor:coral;}",
           0.5
         )
       )])
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
     )
   }
 
   #[test]
   fn variables_order_does_not_change_the_hash() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
 
     let mut default_vars = default_vars_factory(&[
-      ("__themeName__", theme_name),
+      ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
       ("cornerRadius", "var(--xrqfjmn)"),
@@ -307,7 +307,7 @@ mod stylex_create_theme {
     assert_eq!(class_name_output, class_name_output_2);
 
     let key = class_name_output
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
       .as_string()
       .unwrap()
@@ -316,7 +316,7 @@ mod stylex_create_theme {
       .unwrap();
 
     let key_2 = class_name_output_2
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
       .as_string()
       .unwrap()
@@ -332,10 +332,12 @@ mod stylex_create_theme {
 
   #[test]
   fn adding_an_at_rule_changes_the_hash() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars =
-      default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
+    let mut default_vars = default_vars_factory(&[
+      ("__varGroupHash__", export_id),
+      ("bgColor", "var(--xgck17p)"),
+    ]);
 
     let created_theme = style_object_factory(&[], &[("bgColor", "green")]);
 
@@ -368,7 +370,7 @@ mod stylex_create_theme {
     assert_ne!(class_name_output, class_name_output_2);
 
     let key = class_name_output
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
       .as_string()
       .unwrap()
@@ -377,7 +379,7 @@ mod stylex_create_theme {
       .unwrap();
 
     let key_2 = class_name_output_2
-      .get(theme_name)
+      .get(export_id)
       .unwrap()
       .as_string()
       .unwrap()
@@ -393,10 +395,12 @@ mod stylex_create_theme {
 
   #[test]
   fn generates_styles_for_nested_at_rules() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars =
-      default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
+    let mut default_vars = default_vars_factory(&[
+      ("__varGroupHash__", export_id),
+      ("bgColor", "var(--xgck17p)"),
+    ]);
 
     let created_theme = style_object_factory(
       &[(
@@ -457,10 +461,12 @@ mod stylex_create_theme {
 
   #[test]
   fn generates_styles_for_typed_nested_at_rules() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars =
-      default_vars_factory(&[("__themeName__", theme_name), ("bgColor", "var(--xgck17p)")]);
+    let mut default_vars = default_vars_factory(&[
+      ("__varGroupHash__", export_id),
+      ("bgColor", "var(--xgck17p)"),
+    ]);
 
     let created_theme = style_object_factory(
       &[(

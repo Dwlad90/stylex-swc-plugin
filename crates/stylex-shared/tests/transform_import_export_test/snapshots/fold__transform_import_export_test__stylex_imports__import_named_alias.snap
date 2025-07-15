@@ -8,7 +8,7 @@ export const constants = {
 };
 export const vars = {
     bar: "var(--x1hi1hmf)",
-    __themeName__: "xop34xu"
+    __varGroupHash__: "xop34xu"
 };
 const styles = {
     root: {

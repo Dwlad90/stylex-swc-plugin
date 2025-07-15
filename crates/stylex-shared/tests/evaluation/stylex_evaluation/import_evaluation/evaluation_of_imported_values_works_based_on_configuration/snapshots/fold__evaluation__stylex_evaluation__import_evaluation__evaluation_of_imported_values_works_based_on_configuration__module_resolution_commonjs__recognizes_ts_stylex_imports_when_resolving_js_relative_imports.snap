@@ -1,0 +1,11 @@
+---
+source: crates/stylex-shared/tests/evaluation/stylex_evaluation/import_evaluation/evaluation_of_imported_values_works_based_on_configuration/module_resolution_commonjs.rs
+expression: transformation
+---
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import "./input.stylex";
+import stylex from 'stylex';
+import { MyTheme } from './input.stylex';
+_inject2(".x2yizs4{color:x1tseezp}", 3000);
+"x2yizs4";

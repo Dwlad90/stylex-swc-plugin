@@ -23,7 +23,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             expect(()=>{
                 transform(`
           import stylex from 'stylex';
-          stylex.createTheme({__themeName__: 'x568ih9'}, {});
+          stylex.createTheme({__varGroupHash__: 'x568ih9'}, {});
         `);
             }).toThrow(messages.unboundCallValue('createTheme'));
         });
@@ -55,13 +55,13 @@ describe('@stylexjs/babel-plugin', ()=>{
             expect(()=>{
                 transform(`
           import stylex from 'stylex';
-          const variables = stylex.createTheme({__themeName__: 'x568ih9'}, genStyles());
+          const variables = stylex.createTheme({__varGroupHash__: 'x568ih9'}, genStyles());
         `);
             }).toThrow(messages.nonStaticValue('createTheme'));
             expect(()=>{
                 transform(`
           import stylex from 'stylex';
-          const variables = stylex.createTheme({__themeName__: 'x568ih9'}, {});
+          const variables = stylex.createTheme({__varGroupHash__: 'x568ih9'}, {});
         `);
             }).not.toThrow();
         });
@@ -70,7 +70,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 transform(`
           import stylex from 'stylex';
           const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
             {[labelColor]: 'red',});
         `);
             }).toThrow(messages.nonStaticValue('createTheme'));
@@ -80,7 +80,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 transform(`
           import stylex from 'stylex';
           const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
+            {__varGroupHash__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
             {cornerRadius: 5,}
           );
         `);
@@ -89,7 +89,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 transform(`
           import stylex from 'stylex';
           const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
             {labelColor: 'red',}
           );
         `);
@@ -98,7 +98,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 transform(`
           import stylex from 'stylex';
           const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
             {labelColor: labelColor,}
           );
         `);
@@ -107,7 +107,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 transform(`
           import stylex from 'stylex';
           const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
             {labelColor: labelColor(),}
           );
         `);

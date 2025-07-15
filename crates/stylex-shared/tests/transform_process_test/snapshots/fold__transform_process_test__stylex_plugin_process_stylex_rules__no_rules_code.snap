@@ -11,11 +11,11 @@ export const constants = {
 };
 export const vars = {
     blue: "var(--blue-x1wjvfvx)",
-    __themeName__: "x18ubi5e"
+    __varGroupHash__: "x18ubi5e"
 };
 export const spacing = {
     small: "var(--small-x1chbf7y)",
     medium: "var(--medium-xc90lyb)",
     large: "var(--large-x6v7g7j)",
-    __themeName__: "xuhkdh4"
+    __varGroupHash__: "xuhkdh4"
 };

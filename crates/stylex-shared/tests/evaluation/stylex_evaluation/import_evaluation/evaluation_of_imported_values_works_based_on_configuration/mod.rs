@@ -1,1 +1,2 @@
+mod module_resolution_commonjs;
 mod theme_name_hashing_based_on_filename_alone_works;

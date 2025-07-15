@@ -46,7 +46,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           color: "var(--xwx8imx)",
           nextColor: "var(--xk6xtqk)",
           otherColor: "var(--xaaua2w)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -76,7 +76,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           color: "var(--xwx8imx)",
           nextColor: "var(--xk6xtqk)",
           otherColor: "var(--xaaua2w)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -136,7 +136,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           color: "var(--xwx8imx)",
           nextColor: "var(--xk6xtqk)",
           otherColor: "var(--xaaua2w)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -184,7 +184,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import * as stylex from '@stylexjs/stylex';
         export const vars = {
           color: "var(--xt4ziaz)",
-          __themeName__: "x1xohuxq"
+          __varGroupHash__: "x1xohuxq"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -219,7 +219,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import * as stylex from '@stylexjs/stylex';
         export const vars = {
           color: "var(--xwx8imx)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -269,7 +269,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         export const vars = {
           "--color": "var(--color)",
           "--otherColor": "var(--otherColor)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -328,7 +328,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           "--color": "var(--color)",
           "--nextColor": "var(--nextColor)",
           "--otherColor": "var(--otherColor)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -375,7 +375,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         const COLOR = 'red';
         export const vars = {
           color: "var(--xwx8imx)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -406,7 +406,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         const NUMBER = 10;
         export const vars = {
           size: "var(--xu6xznv)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -437,7 +437,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         const NUMBER = 10;
         export const vars = {
           radius: "var(--xbbre8)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -470,7 +470,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import * as stylex from '@stylexjs/stylex';
         export const vars = {
           color: "var(--xwx8imx)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -526,11 +526,11 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import * as stylex from '@stylexjs/stylex';
         export const vars = {
           color: "var(--xwx8imx)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         export const otherVars = {
           otherColor: "var(--xnjepv0)",
-          __themeName__: "x1pfrffu"
+          __varGroupHash__: "x1pfrffu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -570,11 +570,11 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import * as stylex from '@stylexjs/stylex';
         export const vars = {
           color: "var(--xwx8imx)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };
         export const otherVars = {
           otherColor: "var(--xnjepv0)",
-          __themeName__: "x1pfrffu"
+          __varGroupHash__: "x1pfrffu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -617,14 +617,14 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import * as stylex from '@stylexjs/stylex';
         export const vars = {
           color: "var(--xwx8imx)",
-          __themeName__: "xop34xu"
+          __varGroupHash__: "xop34xu"
         };"
       `);
             expect(code2).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         export const otherVars = {
           otherColor: "var(--xnjepv0)",
-          __themeName__: "x1pfrffu"
+          __varGroupHash__: "x1pfrffu"
         };"
       `);
             expect(metadata).toMatchInlineSnapshot(`
@@ -679,7 +679,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           export const vars = {
             color: "var(--color-xwx8imx)",
             otherColor: "var(--otherColor-xaaua2w)",
-            __themeName__: "xop34xu"
+            __varGroupHash__: "xop34xu"
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -733,7 +733,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "1.5 pixels": "var(--_1_5_pixels-x15ahj5d)",
             "corner#radius": "var(--corner_radius-x2ajqv2)",
             "@@primary": "var(--__primary-x13tvx0f)",
-            __themeName__: "xop34xu"
+            __varGroupHash__: "xop34xu"
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -771,7 +771,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             color: "var(--color-xwx8imx)",
             nextColor: "var(--nextColor-xk6xtqk)",
             otherColor: "var(--otherColor-xaaua2w)",
-            __themeName__: "xop34xu"
+            __varGroupHash__: "xop34xu"
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -812,7 +812,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             color: "var(--xwx8imx)",
             nextColor: "var(--xk6xtqk)",
             otherColor: "var(--xaaua2w)",
-            __themeName__: "xop34xu"
+            __varGroupHash__: "xop34xu"
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`
@@ -852,7 +852,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           "import * as stylex from '@stylexjs/stylex';
           export const vars = {
             color: "var(--color-x1lzcbr1)",
-            __themeName__: "x1bxutiz"
+            __varGroupHash__: "x1bxutiz"
           };"
         `);
                 expect(metadata).toMatchInlineSnapshot(`

@@ -24,10 +24,10 @@ pub(crate) fn stylex_define_vars(
   IndexMap<String, Rc<FlatCompiledStylesValue>>,
   IndexMap<String, Rc<InjectableStyleKind>>,
 ) {
-  let theme_name_hash = format!(
+  let var_group_hash = format!(
     "{}{}",
     state.options.class_name_prefix,
-    create_hash(state.theme_name.as_ref().unwrap())
+    create_hash(state.export_id.as_ref().unwrap())
   );
 
   let mut typed_variables: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
@@ -45,7 +45,7 @@ pub(crate) fn stylex_define_vars(
           panic!("InjectableStyle is not supported")
         }
         FlatCompiledStylesValue::Tuple(key, value, _) => {
-          let str_to_hash = format!("{}.{}", state.theme_name.as_ref().unwrap(), key);
+          let str_to_hash = format!("{}.{}", state.export_id.as_ref().unwrap(), key);
 
           let debug = state.options.debug;
           let enable_debug_class_names = state.options.enable_debug_class_names;
@@ -108,7 +108,7 @@ pub(crate) fn stylex_define_vars(
   );
 
   let injectable_styles =
-    construct_css_variables_string(&variables_map, &theme_name_hash, &mut typed_variables);
+    construct_css_variables_string(&variables_map, &var_group_hash, &mut typed_variables);
 
   let injectable_types = obj_map(
     ObjMapType::Map(typed_variables),
@@ -146,8 +146,8 @@ pub(crate) fn stylex_define_vars(
     .collect();
 
   theme_variables_objects.insert(
-    "__themeName__".to_string(),
-    Rc::new(FlatCompiledStylesValue::String(theme_name_hash)),
+    "__varGroupHash__".to_string(),
+    Rc::new(FlatCompiledStylesValue::String(var_group_hash)),
   );
 
   injectable_types.extend(injectable_styles);

@@ -42,16 +42,16 @@ pub(crate) fn stylex_create_theme(
 
   variables_key_values.sort_by_key(key_value_to_str);
 
-  let mut __theme_name: String = String::new();
+  let mut var_group_hash: String = String::new();
   let mut theme_vars_key_values: Vec<KeyValueProp> = Vec::new();
 
   if let EvaluateResultValue::Expr(expr) = theme_vars {
     theme_vars_key_values =
       get_key_values_from_object(expr.as_object().expect("Theme vars must be an object"));
 
-    __theme_name = theme_vars_key_values
+    var_group_hash = theme_vars_key_values
       .iter()
-      .find(|key_value| key_value_to_str(key_value) == "__themeName__")
+      .find(|key_value| key_value_to_str(key_value) == "__varGroupHash__")
       .map(|key_value| expr_to_str(&key_value.value, state, &FunctionMap::default()))
       .unwrap_or_default();
   };
@@ -158,7 +158,7 @@ pub(crate) fn stylex_create_theme(
     _ => unimplemented!("Unsupported theme vars type"),
   };
 
-  let theme_class = format!("{override_class_name} {__theme_name}");
+  let theme_class = format!("{override_class_name} {var_group_hash}");
 
   resolved_theme_vars.insert(
     theme_name_str_value,

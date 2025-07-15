@@ -9,7 +9,7 @@ export const text = {
     h3: "var(--x10x8zfg)",
     h2: "var(--xlwww2k)",
     h1: "var(--x1i1r9v3)",
-    __themeName__: "x1vcjoem"
+    __varGroupHash__: "x1vcjoem"
 };
 export const spacing = {
     xxxs: "var(--x3cye43)",
@@ -22,7 +22,7 @@ export const spacing = {
     xxl: "var(--x1dmotu)",
     xxxl: "var(--xvifb1g)",
     xxxxl: "var(--xaf6x9y)",
-    __themeName__: "x13ugf1"
+    __varGroupHash__: "x13ugf1"
 };
 export const globalTokens = {
     maxWidth: "var(--x1bo0nks)",
@@ -48,5 +48,5 @@ export const globalTokens = {
     cardBorderB: "var(--x1iubk2o)",
     primaryGlow: "var(--xak0q76)",
     secondaryGlow: "var(--x161d19a)",
-    __themeName__: "x1hleyp6"
+    __varGroupHash__: "x1hleyp6"
 };

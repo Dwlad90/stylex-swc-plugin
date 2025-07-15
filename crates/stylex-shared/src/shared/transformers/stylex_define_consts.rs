@@ -30,7 +30,7 @@ pub(crate) fn stylex_define_consts(
   let class_name_prefix = state.options.class_name_prefix.clone();
   let debug = state.options.debug;
   let enable_debug_class_names = state.options.enable_debug_class_names;
-  let theme_name = state.theme_name.clone().expect("Theme name must be set");
+  let export_id = state.export_id.clone().expect("Export ID must be set");
 
   let js_output = obj_map(
     ObjMapType::Object(constants.clone()),
@@ -72,28 +72,28 @@ pub(crate) fn stylex_define_consts(
         .map(|c| if c.is_alphanumeric() { c } else { '_' })
         .collect::<String>();
 
-        let name_hash = if debug && enable_debug_class_names {
+        let const_key = if debug && enable_debug_class_names {
           format!(
             "{}-{}{}",
             var_safe_key,
             class_name_prefix,
-            create_hash(&format!("{}.{}", theme_name, key))
+            create_hash(&format!("{}.{}", export_id, key))
           )
         } else {
           format!(
             "{}{}",
             class_name_prefix,
-            create_hash(&format!("{}.{}", theme_name, key))
+            create_hash(&format!("{}.{}", export_id, key))
           )
         };
 
         Some((
-          name_hash.to_owned(),
+          const_key.to_owned(),
           Rc::new(InjectableStyleKind::Const(InjectableConstStyle {
             ltr: String::default(),
             rtl: None,
             priority: Some(0.0),
-            const_key: name_hash,
+            const_key,
             const_value: value.to_owned(),
           })),
         ))

@@ -31,7 +31,7 @@ fn must_be_bound_to_a_variable() {
     },
     r#"
             import stylex from 'stylex';
-            stylex.createTheme({__themeName__: 'x568ih9'}, {});
+            stylex.createTheme({__varGroupHash__: 'x568ih9'}, {});
         "#,
     r#""#,
   )
@@ -161,7 +161,7 @@ test!(
   r#"
         import stylex from 'stylex';
         export const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
             {}
         );
     "#
@@ -189,7 +189,7 @@ fn variable_keys_must_be_a_static_value() {
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme(
-                {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+                {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
                 {[labelColor]: 'red',}
             );
         "#,
@@ -213,7 +213,7 @@ test!(
   r#"
         import stylex from 'stylex';
         export const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
+            {__varGroupHash__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
             {cornerRadius: 5,}
         );
     "#
@@ -235,7 +235,7 @@ test!(
   r#"
         import stylex from 'stylex';
         export const variables = stylex.createTheme(
-            {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
             {labelColor: 'red',}
         );
     "#
@@ -263,7 +263,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_var() {
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme(
-                {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+                {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
                 {labelColor: labelColor,}
             );
         "#,
@@ -293,7 +293,7 @@ fn values_must_be_static_number_or_string_in_stylex_create_theme_fn() {
     r#"
             import stylex from 'stylex';
             const variables = stylex.createTheme(
-                {__themeName__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+                {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
                 {labelColor: labelColor(),}
             );
         "#,
@@ -350,7 +350,7 @@ test!(
             import stylex from 'stylex';
 
             const buttonTokens ={
-                __themeName__: 'TestTheme.stylex.js//buttonTheme',
+                __varGroupHash__: 'TestTheme.stylex.js//buttonTheme',
                 bgColor: 'var(--xgck17p)',
             };
 

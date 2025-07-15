@@ -4,7 +4,7 @@ export const buttonTheme = {
     bgColorDisabled: "var(--xpegid5)",
     cornerRadius: "var(--xrqfjmn)",
     fgColor: "var(--x4y59db)",
-    __themeName__: "x568ih9"
+    __varGroupHash__: "x568ih9"
 };
 export const buttonThemePositive = {
     x568ih9: "xtrlmmh x568ih9",

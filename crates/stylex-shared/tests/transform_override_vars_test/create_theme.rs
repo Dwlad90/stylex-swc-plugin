@@ -55,7 +55,7 @@ export const buttonTheme = {
     bgColorDisabled: "var(--xpegid5)",
     cornerRadius: "var(--xrqfjmn)",
     fgColor: "var(--x4y59db)",
-    __themeName__: "x568ih9"
+    __varGroupHash__: "x568ih9"
 };
 "#;
 

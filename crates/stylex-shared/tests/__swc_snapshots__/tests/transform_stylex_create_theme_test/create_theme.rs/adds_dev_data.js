@@ -3,7 +3,7 @@ export const vars = {
     color: "var(--xwx8imx)",
     otherColor: "var(--xaaua2w)",
     radius: "var(--xbbre8)",
-    __themeName__: "xop34xu"
+    __varGroupHash__: "xop34xu"
 };
 export const theme = {
     Foo__theme: "Foo__theme",

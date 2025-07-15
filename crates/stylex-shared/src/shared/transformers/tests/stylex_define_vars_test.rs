@@ -119,7 +119,7 @@ mod stylex_define_vars {
 
   #[test]
   fn converts_set_of_vars_to_css() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
     let default_vars = default_vars_factory(&[
@@ -157,7 +157,7 @@ mod stylex_define_vars {
     ]);
 
     let mut state = Box::new(StateManager {
-      theme_name: Some(theme_name.to_string()),
+      export_id: Some(export_id.to_string()),
       ..StateManager::default()
     });
 
@@ -167,15 +167,15 @@ mod stylex_define_vars {
       js_output,
       expected_js_result_factory(&[
         (
-          "__themeName__",
-          format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
+          "__varGroupHash__",
+          format!("{}{}", class_name_prefix, create_hash(export_id)).as_str()
         ),
         (
           "bgColor",
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColor", theme_name).as_str())
+            create_hash(format!("{}.bgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -184,7 +184,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColorDisabled", theme_name).as_str())
+            create_hash(format!("{}.bgColorDisabled", export_id).as_str())
           )
           .as_str()
         ),
@@ -193,7 +193,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.cornerRadius", theme_name).as_str())
+            create_hash(format!("{}.cornerRadius", export_id).as_str())
           )
           .as_str()
         ),
@@ -202,7 +202,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.fgColor", theme_name).as_str())
+            create_hash(format!("{}.fgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -236,7 +236,7 @@ mod stylex_define_vars {
 
   #[test]
   fn maintains_literal_var_names_in_css() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
     let default_vars = default_vars_factory(&[
@@ -274,7 +274,7 @@ mod stylex_define_vars {
     ]);
 
     let mut state = Box::new(StateManager {
-      theme_name: Some(theme_name.to_string()),
+      export_id: Some(export_id.to_string()),
       ..StateManager::default()
     });
 
@@ -284,8 +284,8 @@ mod stylex_define_vars {
       js_output,
       expected_js_result_factory(&[
         (
-          "__themeName__",
-          format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
+          "__varGroupHash__",
+          format!("{}{}", class_name_prefix, create_hash(export_id)).as_str()
         ),
         ("--bgColor", "var(--bgColor)"),
         ("--bgColorDisabled", "var(--bgColorDisabled)"),
@@ -321,7 +321,7 @@ mod stylex_define_vars {
 
   #[test]
   fn converts_set_of_vars_with_nested_at_rules_to_css() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
     let default_vars = default_vars_factory(&[
@@ -373,7 +373,7 @@ mod stylex_define_vars {
     ]);
 
     let mut state = Box::new(StateManager {
-      theme_name: Some(theme_name.to_string()),
+      export_id: Some(export_id.to_string()),
       ..StateManager::default()
     });
 
@@ -383,15 +383,15 @@ mod stylex_define_vars {
       js_output,
       expected_js_result_factory(&[
         (
-          "__themeName__",
-          format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
+          "__varGroupHash__",
+          format!("{}{}", class_name_prefix, create_hash(export_id)).as_str()
         ),
         (
           "bgColor",
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColor", theme_name).as_str())
+            create_hash(format!("{}.bgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -400,7 +400,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColorDisabled", theme_name).as_str())
+            create_hash(format!("{}.bgColorDisabled", export_id).as_str())
           )
           .as_str()
         ),
@@ -409,7 +409,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.cornerRadius", theme_name).as_str())
+            create_hash(format!("{}.cornerRadius", export_id).as_str())
           )
           .as_str()
         ),
@@ -418,7 +418,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.fgColor", theme_name).as_str())
+            create_hash(format!("{}.fgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -467,7 +467,7 @@ mod stylex_define_vars {
   #[test]
   fn converts_set_of_vars_with_nested_at_rules_to_css_and_includes_key_in_variable_name_as_prefix_in_debug_mode()
    {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
     let default_vars = default_vars_factory(&[
@@ -519,7 +519,7 @@ mod stylex_define_vars {
     ]);
 
     let mut state = Box::new(StateManager {
-      theme_name: Some(theme_name.to_string()),
+      export_id: Some(export_id.to_string()),
       options: StyleXStateOptions {
         debug: true,
         ..StateManager::default().options
@@ -533,15 +533,15 @@ mod stylex_define_vars {
       js_output,
       expected_js_result_factory(&[
         (
-          "__themeName__",
-          format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
+          "__varGroupHash__",
+          format!("{}{}", class_name_prefix, create_hash(export_id)).as_str()
         ),
         (
           "bgColor",
           format!(
             "var(--bgColor-{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColor", theme_name).as_str())
+            create_hash(format!("{}.bgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -550,7 +550,7 @@ mod stylex_define_vars {
           format!(
             "var(--bgColorDisabled-{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColorDisabled", theme_name).as_str())
+            create_hash(format!("{}.bgColorDisabled", export_id).as_str())
           )
           .as_str()
         ),
@@ -559,7 +559,7 @@ mod stylex_define_vars {
           format!(
             "var(--cornerRadius-{}{})",
             class_name_prefix,
-            create_hash(format!("{}.cornerRadius", theme_name).as_str())
+            create_hash(format!("{}.cornerRadius", export_id).as_str())
           )
           .as_str()
         ),
@@ -568,7 +568,7 @@ mod stylex_define_vars {
           format!(
             "var(--fgColor-{}{})",
             class_name_prefix,
-            create_hash(format!("{}.fgColor", theme_name).as_str())
+            create_hash(format!("{}.fgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -620,7 +620,7 @@ mod stylex_define_vars {
   #[test]
   fn converts_set_of_vars_with_nested_at_rules_to_css_and_does_not_include_key_prefix_in_debug_mode_with_debug_classnames_off()
    {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
     let default_vars = default_vars_factory(&[
@@ -672,7 +672,7 @@ mod stylex_define_vars {
     ]);
 
     let mut state = Box::new(StateManager {
-      theme_name: Some(theme_name.to_string()),
+      export_id: Some(export_id.to_string()),
       options: StyleXStateOptions {
         debug: false,
         enable_debug_class_names: false,
@@ -687,15 +687,15 @@ mod stylex_define_vars {
       js_output,
       expected_js_result_factory(&[
         (
-          "__themeName__",
-          format!("{}{}", class_name_prefix, create_hash(theme_name)).as_str()
+          "__varGroupHash__",
+          format!("{}{}", class_name_prefix, create_hash(export_id)).as_str()
         ),
         (
           "bgColor",
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColor", theme_name).as_str())
+            create_hash(format!("{}.bgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -704,7 +704,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.bgColorDisabled", theme_name).as_str())
+            create_hash(format!("{}.bgColorDisabled", export_id).as_str())
           )
           .as_str()
         ),
@@ -713,7 +713,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.cornerRadius", theme_name).as_str())
+            create_hash(format!("{}.cornerRadius", export_id).as_str())
           )
           .as_str()
         ),
@@ -722,7 +722,7 @@ mod stylex_define_vars {
           format!(
             "var(--{}{})",
             class_name_prefix,
-            create_hash(format!("{}.fgColor", theme_name).as_str())
+            create_hash(format!("{}.fgColor", export_id).as_str())
           )
           .as_str()
         ),
@@ -770,7 +770,7 @@ mod stylex_define_vars {
 
   #[test]
   fn converts_set_of_typed_vars_with_nested_at_rules_to_css() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
     let types_fn = match get_types_fn().fn_ptr {
@@ -895,7 +895,7 @@ mod stylex_define_vars {
 
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
-      theme_name: Some(theme_name.to_string()),
+      export_id: Some(export_id.to_string()),
       options: StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
         ..state.options.clone()
@@ -1013,7 +1013,7 @@ mod stylex_define_vars {
 
   #[test]
   fn preserves_names_of_literals_with_double_dash_prefix() {
-    let theme_name = "TestTheme.stylex.js//buttonTheme";
+    let export_id = "TestTheme.stylex.js//buttonTheme";
     let class_name_prefix = 'x';
 
     let types_fn = match get_types_fn().fn_ptr {
@@ -1138,7 +1138,7 @@ mod stylex_define_vars {
 
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
-      theme_name: Some(theme_name.to_string()),
+      export_id: Some(export_id.to_string()),
       options: StyleXStateOptions {
         class_name_prefix: class_name_prefix.to_string(),
         ..state.options.clone()

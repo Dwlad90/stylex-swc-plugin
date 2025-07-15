@@ -91,7 +91,7 @@ pub struct StateManager {
   pub(crate) stylex_view_transition_class_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
-  pub(crate) theme_name: Option<String>,
+  pub(crate) export_id: Option<String>,
 
   pub(crate) debug_assertions_module: Option<Module>,
 
@@ -157,7 +157,7 @@ impl StateManager {
       style_vars: FxHashMap::default(),
       style_vars_to_keep: IndexSet::default(),
       member_object_ident_count_map: FxHashMap::default(),
-      theme_name: None,
+      export_id: None,
 
       debug_assertions_module: None,
 
@@ -660,7 +660,7 @@ impl StateManager {
       .inject_import_inserted
       .clone()
       .or(other.inject_import_inserted.clone());
-    self.theme_name = self.theme_name.clone().or(other.theme_name.clone());
+    self.export_id = self.export_id.clone().or(other.export_id.clone());
     self.declarations = chain_collect(self.declarations.clone(), other.declarations.clone());
     self.top_level_expressions = chain_collect(
       self.top_level_expressions.clone(),
@@ -892,6 +892,7 @@ fn file_path_resolver(
     .iter()
     .any(|ext| relative_file_path.ends_with(ext))
   {
+    dbg!(&relative_file_path);
     unimplemented!("Extension match found, but handling is unimplemented");
   }
 

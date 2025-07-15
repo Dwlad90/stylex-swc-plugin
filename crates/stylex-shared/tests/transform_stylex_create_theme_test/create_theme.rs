@@ -35,7 +35,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -73,7 +73,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -118,7 +118,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -158,7 +158,7 @@ export const vars = {
   "--color": "var(--color)",
   "--otherColor": "var(--otherColor)",
   "--radius": "var(--radius)",
-  __themeName__: "xop34xu"
+  __varGroupHash__: "xop34xu"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -191,7 +191,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 const themeObj = {
@@ -232,7 +232,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 const RADIUS = 10;
@@ -264,7 +264,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 const name = 'light';
@@ -296,7 +296,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 const RADIUS = 10;
@@ -328,7 +328,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 const RADIUS = 10;
@@ -369,7 +369,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -418,7 +418,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -458,7 +458,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -502,7 +502,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -537,7 +537,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -570,7 +570,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -603,7 +603,7 @@ export const vars = {
   color: "var(--xt4ziaz)",
   otherColor: "var(--x1e3it8h)",
   radius: "var(--x1onrunl)",
-  __themeName__: "x1xohuxq"
+  __varGroupHash__: "x1xohuxq"
 };
 
 export const theme = stylex.createTheme(vars, {
@@ -638,7 +638,7 @@ test!(
       color: "var(--xwx8imx)",
       otherColor: "var(--xaaua2w)",
       radius: "var(--xbbre8)",
-      __themeName__: "xop34xu"
+      __varGroupHash__: "xop34xu"
     };
 
     export const theme = stylex.createTheme(vars, {
@@ -673,7 +673,7 @@ test!(
       color: "var(--xwx8imx)",
       otherColor: "var(--xaaua2w)",
       radius: "var(--xbbre8)",
-      __themeName__: "xop34xu"
+      __varGroupHash__: "xop34xu"
     };
 
     export const theme = stylex.createTheme(vars, {

@@ -1,7 +1,7 @@
 import stylex from "@stylexjs/stylex";
 export const text = {
     xs: "var(--x17clhcw)",
-    __themeName__: "x1vcjoem"
+    __varGroupHash__: "x1vcjoem"
 };
 export const globalTokens = {
     foregroundR: "var(--xfahlp9)",
@@ -24,5 +24,5 @@ export const globalTokens = {
     cardBorderB: "var(--x1iubk2o)",
     primaryGlow: "var(--xak0q76)",
     secondaryGlow: "var(--x161d19a)",
-    __themeName__: "x1hleyp6"
+    __varGroupHash__: "x1hleyp6"
 };

@@ -26,7 +26,7 @@ pub(crate) static SPLIT_TOKEN: &str = "__$$__";
 
 pub(crate) static ROOT_FONT_SIZE: i8 = 16;
 
-pub(crate) static THEME_NAME_KEY: &str = "__themeName__";
+pub(crate) static THEME_NAME_KEY: &str = "__varGroupHash__";
 
 pub(crate) static COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 9]> =
   Lazy::new(|| {

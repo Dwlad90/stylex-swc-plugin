@@ -100,7 +100,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { cursor: 'e-resize' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -113,7 +115,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { cursor: 'w-resize' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -126,7 +130,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { cursor: 'ne-resize' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -139,7 +145,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { cursor: 'nw-resize' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -152,7 +160,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { cursor: 'se-resize' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -165,7 +175,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { cursor: 'sw-resize' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -215,7 +227,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { boxShadow: 'none' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -226,7 +240,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { boxShadow: '1px 1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -237,7 +253,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { boxShadow: '-1px -1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -248,7 +266,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -259,7 +279,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { boxShadow: '1px 1px 1px 1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -270,7 +292,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px 1px 1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -281,7 +305,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { boxShadow: '2px 2px 2px 2px red, inset 1px 1px 1px 1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -294,7 +320,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { textShadow: 'none' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -305,7 +333,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { textShadow: '1px 1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -316,7 +346,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { textShadow: '-1px -1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';
@@ -327,7 +359,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           import stylex from 'stylex';
           const styles = stylex.create({ x: { textShadow: '1px 1px 1px #000' } });
           const classnames = stylex(styles.x);
-        `)).toMatchInlineSnapshot(`
+        `, {
+                enableLegacyValueFlipping: true
+            })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import stylex from 'stylex';

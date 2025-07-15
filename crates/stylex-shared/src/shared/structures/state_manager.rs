@@ -892,7 +892,6 @@ fn file_path_resolver(
     .iter()
     .any(|ext| relative_file_path.ends_with(ext))
   {
-    dbg!(&relative_file_path);
     unimplemented!("Extension match found, but handling is unimplemented");
   }
 

@@ -6,7 +6,7 @@ use swc_core::{
 
 use crate::shared::{
   constants::{
-    common::THEME_NAME_KEY,
+    common::VAR_GROUP_HASH_KEY,
     messages::{
       DUPLICATE_CONDITIONAL, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
       INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
@@ -748,9 +748,9 @@ pub(crate) fn validate_theme_variables(
   if let Some(theme_ref) = variables.as_theme_ref() {
     let mut cloned_theme_ref = theme_ref.clone();
 
-    let value = cloned_theme_ref.get(THEME_NAME_KEY, state);
+    let value = cloned_theme_ref.get(VAR_GROUP_HASH_KEY, state);
 
-    let key_value = key_value_factory(THEME_NAME_KEY, string_to_expression(value.as_str()));
+    let key_value = key_value_factory(VAR_GROUP_HASH_KEY, string_to_expression(value.as_str()));
 
     return key_value;
   }
@@ -767,7 +767,7 @@ pub(crate) fn validate_theme_variables(
       for key_value in key_values.into_iter() {
         let key = key_value_to_str(&key_value);
 
-        if key == "__varGroupHash__" {
+        if key == VAR_GROUP_HASH_KEY {
           let value = &key_value.value;
 
           if let Some(lit) = value.as_lit() {

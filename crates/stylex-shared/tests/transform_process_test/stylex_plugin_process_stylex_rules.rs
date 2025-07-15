@@ -167,7 +167,6 @@ fn process_stylex_rules(metadata: &[MetaData], use_layers: bool) -> String {
 @layer priority1, priority2, priority3, priority4;
 @property --color { syntax: "*"; inherits: false;}
 @keyframes xi07kvp-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange);}}
-@keyframes xi07kvp-B{0%{box-shadow:-1px 2px 3px 4px red;color:yellow;}100%{box-shadow:-10px 20px 30px 40px green;color:var(--orange);}}
 :root, .xsg933n{--blue-xpqh4lw:blue;}
 :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
 .x6xqkwy, .x6xqkwy:root{--blue-xpqh4lw:lightblue;}
@@ -184,16 +183,13 @@ fn process_stylex_rules(metadata: &[MetaData], use_layers: bool) -> String {
 .animationName-xckgs0v{animation-name:xi07kvp-B}
 .backgroundColor-xrkmrrc{background-color:red}
 .color-xfx01vb{color:var(--color)}
-html:not([dir='rtl']) .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
-html[dir='rtl'] .textShadow-x1skrh0i{text-shadow:-1px 2px 3px 4px red}
-@media (min-width:320px){html:not([dir='rtl']) .textShadow-x1cmij7u.textShadow-x1cmij7u{text-shadow:10px 20px 30px 40px green}}
-@media (min-width:320px){html[dir='rtl'] .textShadow-x1cmij7u.textShadow-x1cmij7u{text-shadow:-10px 20px 30px 40px green}}
-}"#.to_string()
+
+.textShadow-x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}
+@media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}"#.to_string()
   } else {
     // Expected output for useLayers:false from JS test
     r#"@property --color { syntax: "*"; inherits: false;}
 @keyframes xi07kvp-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange);}}
-@keyframes xi07kvp-B{0%{box-shadow:-1px 2px 3px 4px red;color:yellow;}100%{box-shadow:-10px 20px 30px 40px green;color:var(--orange);}}
 :root, .xsg933n{--blue-xpqh4lw:blue;}
 :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
 .x6xqkwy, .x6xqkwy:root{--blue-xpqh4lw:lightblue;}
@@ -205,10 +201,8 @@ html[dir='rtl'] .textShadow-x1skrh0i{text-shadow:-1px 2px 3px 4px red}
 .animationName-xckgs0v:not(#\#):not(#\#):not(#\#){animation-name:xi07kvp-B}
 .backgroundColor-xrkmrrc:not(#\#):not(#\#):not(#\#){background-color:red}
 .color-xfx01vb:not(#\#):not(#\#):not(#\#){color:var(--color)}
-html:not([dir='rtl']) .textShadow-x1skrh0i:not(#\#):not(#\#):not(#\#){text-shadow:1px 2px 3px 4px red}
-html[dir='rtl'] .textShadow-x1skrh0i:not(#\#):not(#\#):not(#\#){text-shadow:-1px 2px 3px 4px red}
-@media (min-width:320px){html:not([dir='rtl']) .textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\#):not(#\#):not(#\#){text-shadow:10px 20px 30px 40px green}}
-@media (min-width:320px){html[dir='rtl'] .textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\#):not(#\#):not(#\#){text-shadow:-10px 20px 30px 40px green}}"#.to_string()
+.textShadow-x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}
+@media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}"#.to_string()
   }
 }
 

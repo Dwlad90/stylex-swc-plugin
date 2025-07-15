@@ -6,6 +6,7 @@ const defaultResult: StyleXOptions = {
   dev: false,
   enableFontSizePxToRem: false,
   enableInlinedConditionalMerge: true,
+  enableLegacyValueFlipping: false,
   importSources: ['stylex', '@stylexjs/stylex'],
   runtimeInjection: false,
   treeshakeCompensation: false,
@@ -269,4 +270,24 @@ test('normalizeRsOptions: styleResolution - invalid input', t => {
       'Failed to parse style resolution: unknown variant `invalid-resolution`, expected one of `application-order`, `property-specificity`, `legacy-expand-shorthands`',
   });
   t.truthy(error);
+});
+
+test('normalizeRsOptions: enableLegacyValueFlipping - true input', t => {
+  const input: StyleXOptions = { enableLegacyValueFlipping: true };
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    enableLegacyValueFlipping: true,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: enableLegacyValueFlipping - false input', t => {
+  const input: StyleXOptions = { enableLegacyValueFlipping: false };
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    enableLegacyValueFlipping: false,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
 });

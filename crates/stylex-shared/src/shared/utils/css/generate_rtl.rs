@@ -20,7 +20,7 @@ fn logical_to_physical_rtl(input: &str) -> Option<&str> {
   }
 }
 
-fn property_to_rtl(pair: &Pair) -> Option<Pair> {
+fn property_to_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
   if let Some(&ltr_key) = LOGICAL_TO_RTL.get(pair.key.as_str()) {
     return Some(Pair::new(ltr_key.to_string(), pair.value.clone()));
   }
@@ -41,10 +41,16 @@ fn property_to_rtl(pair: &Pair) -> Option<Pair> {
         .join(" ");
       Some(Pair::new(pair.key.clone(), new_val))
     }
-    "cursor" => CURSOR_FLIP
-      .get(pair.value.as_str())
-      .map(|val| Pair::new(pair.key.clone(), val.to_string())),
-    _ => shadows_flip(pair.key.as_str(), pair.value.as_str()),
+    "cursor" => {
+      if !options.enable_legacy_value_flipping {
+        return None;
+      }
+
+      CURSOR_FLIP
+        .get(pair.value.as_str())
+        .map(|val| Pair::new(pair.key.clone(), val.to_string()))
+    }
+    _ => shadows_flip(pair.key.as_str(), pair.value.as_str(), options),
   }
 }
 
@@ -74,12 +80,16 @@ pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<
     return Some(value);
   }
 
-  property_to_rtl(pair)
+  property_to_rtl(pair, options)
 }
 
-fn shadows_flip(key: &str, val: &str) -> Option<Pair> {
+fn shadows_flip(key: &str, val: &str, options: &StyleXStateOptions) -> Option<Pair> {
   match key {
     "box-shadow" | "text-shadow" => {
+      if !options.enable_legacy_value_flipping {
+        return None;
+      }
+
       let rtl_val = flip_shadow(val);
       rtl_val.map(|rtl_val| Pair::new(key.to_string(), rtl_val.to_string()))
     }

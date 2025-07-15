@@ -1,6 +1,9 @@
 use rustc_hash::FxHashMap;
 
-use crate::shared::utils::common::{create_hash, gen_file_based_identifier};
+use crate::shared::{
+  constants::common::VAR_GROUP_HASH_KEY,
+  utils::common::{create_hash, gen_file_based_identifier},
+};
 
 use super::state_manager::StateManager;
 
@@ -31,7 +34,7 @@ impl ThemeRef {
       let str_to_hash = gen_file_based_identifier(
         &self.file_name,
         &self.export_name,
-        if key == "__varGroupHash__" {
+        if key == VAR_GROUP_HASH_KEY {
           None
         } else {
           Some(key)
@@ -41,7 +44,7 @@ impl ThemeRef {
       let debug = state.options.debug;
       let enable_debug_class_names = state.options.enable_debug_class_names;
 
-      let var_safe_key = if key == "__varGroupHash__" {
+      let var_safe_key = if key == VAR_GROUP_HASH_KEY {
         String::new()
       } else {
         let mut safe = if key.chars().next().unwrap_or('\0').is_ascii_digit() {
@@ -69,7 +72,7 @@ impl ThemeRef {
         format!("{}{}", self.class_name_prefix, create_hash(&str_to_hash))
       };
 
-      if key == "__varGroupHash__" {
+      if key == VAR_GROUP_HASH_KEY {
         return var_name;
       }
 

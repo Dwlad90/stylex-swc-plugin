@@ -1,4 +1,7 @@
-use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use stylex_shared::{
+  StyleXTransform,
+  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -120,7 +123,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_e_resize_for_cursor_property,
   r#"
@@ -138,7 +144,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_w_resize_for_cursor_property,
   r#"
@@ -156,7 +165,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_ne_resize_for_cursor_property,
   r#"
@@ -174,7 +186,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_nw_resize_for_cursor_property,
   r#"
@@ -192,7 +207,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_se_resize_for_cursor_property,
   r#"
@@ -210,7 +228,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_sw_resize_for_cursor_property,
   r#"
@@ -282,7 +303,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_box_shadow_property_none,
   r#"
@@ -300,7 +324,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_box_shadow_property_1px_1px_hash000,
   r#"
@@ -318,7 +345,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_box_shadow_property_negative_1px_negative_1px_hash000,
   r#"
@@ -336,7 +366,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_box_shadow_property_inset_1px_1px_hash000,
   r#"
@@ -354,7 +387,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_box_shadow_property_1px_1px_1px_1px_hash000,
   r#"
@@ -372,7 +408,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_box_shadow_property_inset_1px_1px_1px_1px_hash000,
   r#"
@@ -390,7 +429,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_box_shadow_property_complex,
   r#"
@@ -408,7 +450,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_text_shadow_property_none,
   r#"
@@ -426,7 +471,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_text_shadow_property_1px_1px_hash000,
   r#"
@@ -444,7 +492,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_text_shadow_property_negative_1px_negative_1px_hash000,
   r#"
@@ -462,7 +513,10 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
   ),
   legacy_value_of_text_shadow_property_1px_1px_1px_hash000,
   r#"

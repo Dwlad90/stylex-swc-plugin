@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::KeyValueProp;
 
 use crate::shared::{
-  constants::common::{COMPILED_KEY, THEME_NAME_KEY},
+  constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
   enums::data_structures::{
     evaluate_result_value::EvaluateResultValue,
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -51,7 +51,7 @@ pub(crate) fn stylex_create_theme(
 
     var_group_hash = theme_vars_key_values
       .iter()
-      .find(|key_value| key_value_to_str(key_value) == "__varGroupHash__")
+      .find(|key_value| key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
       .map(|key_value| expr_to_str(&key_value.value, state, &FunctionMap::default()))
       .unwrap_or_default();
   };
@@ -154,7 +154,7 @@ pub(crate) fn stylex_create_theme(
       state,
       &FunctionMap::default(),
     ),
-    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(THEME_NAME_KEY, state).to_owned(),
+    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(VAR_GROUP_HASH_KEY, state).to_owned(),
     _ => unimplemented!("Unsupported theme vars type"),
   };
 

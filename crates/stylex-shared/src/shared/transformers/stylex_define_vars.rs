@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
 use crate::shared::{
+  constants::common::VAR_GROUP_HASH_KEY,
   enums::data_structures::{
     evaluate_result_value::EvaluateResultValue,
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -146,7 +147,7 @@ pub(crate) fn stylex_define_vars(
     .collect();
 
   theme_variables_objects.insert(
-    "__varGroupHash__".to_string(),
+    VAR_GROUP_HASH_KEY.to_owned(),
     Rc::new(FlatCompiledStylesValue::String(var_group_hash)),
   );
 

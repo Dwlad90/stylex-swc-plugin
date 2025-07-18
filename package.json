@@ -64,7 +64,8 @@
       "http-proxy-middleware@>=3 <3.0.5": ">=3.0.5",
       "@farmfe/core@<1.7.7": ">=1.7.7",
       "brace-expansion@>=1.0.0 <=1.1.11": ">=1.1.12 <2.0.0",
-      "brace-expansion@>=2.0.0 <=2.0.1": ">=2.0.2 <3.0.0"
+      "brace-expansion@>=2.0.0 <=2.0.1": ">=2.0.2 <3.0.0",
+      "on-headers@<1.1.0": ">=1.1.0 <2.0.0"
     },
     "patchedDependencies": {
       "scripty@3.0.0": "patches/scripty@3.0.0.patch"

@@ -12,7 +12,9 @@ import generateHash from './utils/generateHash';
 import crypto from 'crypto';
 
 import type { StyleXMetadata } from '@stylexswc/rs-compiler';
-import { UserConfig } from 'vite';
+import type { HotPayload, UserConfig } from 'vite';
+
+type StyleXRules = Record<string, StyleXMetadata['stylex']>;
 
 const { writeFile, mkdir } = promises;
 
@@ -29,12 +31,14 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 ) => {
   const normalizedOptions = normalizeOptions(options);
 
-  const stylexRules: Record<string, StyleXMetadata['stylex']> = {};
+  const stylexRules: StyleXRules = {};
 
   let viteConfig: UserConfig | null = null;
 
   let hasCssToExtract = false;
   let cssFileName: string | null = null;
+
+  let wsSend: undefined | ((payload: HotPayload) => void) = undefined;
 
   return {
     name: 'unplugin-stylex-rs',
@@ -58,31 +62,37 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
 
     async transform(inputCode, id) {
-      const dir = path.dirname(id);
-      const basename = path.basename(id);
-      const file = path.join(dir, basename.split('?')[0] || basename);
-
-      if (
-        !normalizedOptions.rsOptions.importSources?.some(importName =>
-          typeof importName === 'string'
-            ? inputCode.includes(importName)
-            : inputCode.includes(importName.from)
-        )
-      ) {
+      if (!hasStyleXCode(normalizedOptions, inputCode)) {
         return {
           code: inputCode,
         };
       }
 
+      const dir = path.dirname(id);
+      const basename = path.basename(id);
+      const file = path.join(dir, basename.split('?')[0] || basename);
+
       try {
-        const { code, metadata, map } = stylexRsCompiler.transform(
+        const { code, map } = transformStyleXCode(
           file,
           inputCode,
-          normalizedOptions.rsOptions
+          normalizedOptions,
+          stylexRules,
+          id
         );
 
-        if (normalizedOptions.extractCSS && metadata.stylex && metadata.stylex.length > 0) {
-          stylexRules[id] = metadata.stylex;
+        if (typeof wsSend === 'function' && cssFileName) {
+          wsSend({
+            type: 'update',
+            updates: [
+              {
+                acceptedPath: cssFileName,
+                path: cssFileName,
+                timestamp: Date.now(),
+                type: 'css-update',
+              },
+            ],
+          });
         }
 
         return {
@@ -102,19 +112,20 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // will handle the CSS generation in the plugin itself
         return;
       }
-      const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+
+      const { processedFileName, collectedCSS } = generateCSSAssets(stylexRules, normalizedOptions);
 
       if (!collectedCSS) return;
 
       hasCssToExtract = true;
 
-      const processedFileName = replaceFileName(normalizedOptions.fileName, collectedCSS);
-
-      this.emitFile({
-        fileName: processedFileName,
-        source: collectedCSS,
-        type: 'asset',
-      });
+      if (processedFileName) {
+        this.emitFile({
+          fileName: processedFileName,
+          source: collectedCSS,
+          type: 'asset',
+        });
+      }
     },
 
     vite: {
@@ -131,18 +142,21 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       },
 
       buildEnd() {
-        const fileName = `${viteConfig?.build?.assetsDir ?? 'assets'}/${normalizedOptions.fileName}`;
-        const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+        const { processedFileName, collectedCSS } = generateCSSAssets(
+          stylexRules,
+          normalizedOptions,
+          viteConfig?.build?.assetsDir
+        );
 
         if (!collectedCSS) return;
 
-        const processedFileName = replaceFileName(fileName, collectedCSS);
-
-        this.emitFile({
-          fileName: processedFileName,
-          source: collectedCSS,
-          type: 'asset',
-        });
+        if (processedFileName) {
+          this.emitFile({
+            fileName: processedFileName,
+            source: collectedCSS,
+            type: 'asset',
+          });
+        }
       },
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
@@ -156,29 +170,61 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           next();
         });
       },
-      transformIndexHtml(html, ctx) {
-        const isDev = !!ctx.server;
+      async handleHotUpdate({ file: id, file, server, read }) {
+        const inputCode = await read();
 
-        const fileName = `${viteConfig?.build?.assetsDir ?? 'assets'}/${normalizedOptions.fileName}`;
-
-        if (isDev) {
-          cssFileName = fileName;
+        if (!hasStyleXCode(normalizedOptions, inputCode)) {
+          return;
         }
 
-        const css = ctx.bundle?.[fileName] || cssFileName;
+        transformStyleXCode(file, inputCode, normalizedOptions, stylexRules, id);
 
-        if (!css) {
+        const { processedFileName, collectedCSS } = generateCSSAssets(
+          stylexRules,
+          normalizedOptions,
+          viteConfig?.build?.assetsDir
+        );
+
+        if (!collectedCSS) return;
+
+        if (processedFileName) {
+          server.ws.send({
+            type: 'update',
+            updates: [
+              {
+                acceptedPath: processedFileName,
+                path: processedFileName,
+                timestamp: Date.now(),
+                type: 'css-update',
+              },
+            ],
+          });
+        }
+      },
+      transformIndexHtml: (html, ctx) => {
+        const isDev = !!ctx.server;
+
+        const { processedFileName } = generateCSSAssets(
+          stylexRules,
+          normalizedOptions,
+          viteConfig?.build?.assetsDir
+        );
+
+        if (!processedFileName) {
           return html;
         }
 
-        const publicPath = path.posix.join(viteConfig?.base ?? '/', fileName.replace(/\\/g, '/'));
+        if (isDev) {
+          wsSend ||= ctx.server?.ws.send.bind(ctx.server.ws);
+          cssFileName ||= processedFileName;
+        }
 
         return [
           {
             tag: 'link',
             attrs: {
               rel: 'stylesheet',
-              href: publicPath,
+              href: processedFileName,
             },
             injectTo: 'head',
           },
@@ -238,6 +284,59 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
   };
 };
+
+function generateCSSAssets(
+  stylexRules: Record<string, [string, { ltr: string; rtl?: null | string }, number][]>,
+  normalizedOptions: Required<UnpluginStylexRSOptions>,
+  assetsDir?: string
+) {
+  const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+
+  const processedFileName = getProcessedFileName(normalizedOptions, collectedCSS || '', assetsDir);
+
+  return { processedFileName, collectedCSS };
+}
+
+function hasStyleXCode(normalizedOptions: Required<UnpluginStylexRSOptions>, inputCode: string) {
+  return normalizedOptions.rsOptions.importSources?.some(importName =>
+    typeof importName === 'string'
+      ? inputCode.includes(importName)
+      : inputCode.includes(importName.from)
+  );
+}
+
+function transformStyleXCode(
+  file: string,
+  inputCode: string,
+  normalizedOptions: Required<UnpluginStylexRSOptions>,
+  stylexRules: StyleXRules,
+  id: string
+) {
+  const result = stylexRsCompiler.transform(file, inputCode, normalizedOptions.rsOptions);
+
+  const { metadata } = result;
+
+  if (normalizedOptions.extractCSS && metadata.stylex && metadata.stylex.length > 0) {
+    stylexRules[id] = metadata.stylex;
+  }
+
+  return result;
+}
+
+function getProcessedFileName(
+  normalizedOptions: UnpluginStylexRSOptions,
+  collectedCSS?: string,
+  assetsDir?: string
+) {
+  if (!normalizedOptions.fileName) {
+    return null;
+  }
+
+  return replaceFileName(
+    `${assetsDir ? `${assetsDir}/` : ''}${normalizedOptions.fileName}`,
+    collectedCSS || ''
+  );
+}
 
 export const unplugin: UnpluginInstance<UnpluginStylexRSOptions | undefined, boolean> =
   createUnplugin(unpluginFactory);

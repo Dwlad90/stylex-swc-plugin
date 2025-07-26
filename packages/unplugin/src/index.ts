@@ -188,12 +188,14 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         if (!collectedCSS) return;
 
         if (processedFileName) {
+          const normalizedFileName = ensureLeadingSlash(processedFileName);
+
           server.ws.send({
             type: 'update',
             updates: [
               {
-                acceptedPath: processedFileName,
-                path: processedFileName,
+                acceptedPath: normalizedFileName,
+                path: normalizedFileName,
                 timestamp: Date.now(),
                 type: 'css-update',
               },
@@ -214,9 +216,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           return html;
         }
 
+        const normalizedFileName = ensureLeadingSlash(processedFileName);
+
         if (isDev) {
           wsSend ||= ctx.server?.ws.send.bind(ctx.server.ws);
-          cssFileName ||= processedFileName;
+          cssFileName ||= normalizedFileName;
         }
 
         return [
@@ -224,7 +228,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             tag: 'link',
             attrs: {
               rel: 'stylesheet',
-              href: processedFileName,
+              href: normalizedFileName,
             },
             injectTo: 'head',
           },
@@ -285,6 +289,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   };
 };
 
+function ensureLeadingSlash(filePath: string) {
+  return filePath.startsWith('/') ? filePath : `/${filePath}`;
+}
+
 function generateCSSAssets(
   stylexRules: Record<string, [string, { ltr: string; rtl?: null | string }, number][]>,
   normalizedOptions: Required<UnpluginStylexRSOptions>,
@@ -328,14 +336,13 @@ function getProcessedFileName(
   collectedCSS?: string,
   assetsDir?: string
 ) {
-  if (!normalizedOptions.fileName) {
-    return null;
-  }
+  if (!normalizedOptions.fileName) return null;
 
-  return replaceFileName(
-    `${assetsDir ? `${assetsDir}/` : ''}${normalizedOptions.fileName}`,
-    collectedCSS || ''
-  );
+  const computedFileName = assetsDir
+    ? path.posix.join(assetsDir, normalizedOptions.fileName)
+    : normalizedOptions.fileName;
+
+  return replaceFileName(computedFileName, collectedCSS || '');
 }
 
 export const unplugin: UnpluginInstance<UnpluginStylexRSOptions | undefined, boolean> =

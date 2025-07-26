@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler-win32-x64-msvc",
   "description": "NAPI-RS compiler for transform StyleX code",
-  "version": "0.10.3",
+  "version": "0.10.4-rc.1",
   "private": false,
   "license": "MIT",
   "files": [

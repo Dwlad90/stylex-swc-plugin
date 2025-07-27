@@ -85,3 +85,95 @@ This project is organized into several packages:
 
 - [`playwright`](./packages/playwright) - Playwright integration for StyleX
   visual regression testing.
+
+## Development
+
+This project includes a comprehensive Makefile that provides convenient shortcuts for common development tasks. The Makefile integrates with both the Node.js ecosystem (using pnpm and Turborepo) and Rust toolchain.
+
+### Quick Start
+
+```bash
+# Setup development environment
+make setup
+
+# Show all available commands
+make help
+
+# Build all packages
+make build
+
+# Start development servers
+make dev
+
+# Run tests
+make test
+
+# Run quality checks
+make quick-check
+```
+
+### Available Commands
+
+The Makefile organizes commands into several categories:
+
+**Setup Commands:**
+
+- `make install` - Install all dependencies (Node.js and Rust)
+- `make setup` - Full development environment setup
+- `make prepare` - Prepare hooks and development tools
+
+**Build Commands:**
+
+- `make build` - Build all packages (Node.js and Rust)
+- `make build-rust` - Build only Rust packages
+- `make build-node` - Build only Node.js packages
+- `make clean` - Clean all build artifacts
+
+**Development Commands:**
+
+- `make dev` - Start development servers
+- `make watch` - Watch for changes and rebuild
+
+**Quality Commands:**
+
+- `make lint` - Run linting on all packages
+- `make format` - Format all code
+- `make typecheck` - Run TypeScript type checking
+- `make quick-check` - Quick development check (format, lint, typecheck)
+- `make full-check` - Full development check including tests
+
+**Test Commands:**
+
+- `make test` - Run all tests
+- `make test-visual` - Run visual regression tests
+- `make bench` - Run benchmarks
+
+**Documentation & Release:**
+
+- `make docs` - Generate documentation
+- `make info` - Show project information
+
+### Manual Commands (Alternative to Makefile)
+
+If you prefer to use the tools directly:
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm turbo run build
+
+# Start development
+pnpm turbo dev
+
+# Run tests
+pnpm turbo run test --continue
+
+# Lint code
+pnpm turbo lint --continue
+
+# Format code
+pnpm format
+cargo fmt --all
+```

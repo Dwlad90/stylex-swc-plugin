@@ -88,7 +88,9 @@ This project is organized into several packages:
 
 ## Development
 
-This project includes a comprehensive Makefile that provides convenient shortcuts for common development tasks. The Makefile integrates with both the Node.js ecosystem (using pnpm and Turborepo) and Rust toolchain.
+This project includes a comprehensive Makefile that provides convenient
+shortcuts for common development tasks. The Makefile integrates with both the
+Node.js ecosystem (using pnpm and Turborepo) and Rust toolchain.
 
 ### Quick Start
 
@@ -170,6 +172,42 @@ The Makefile organizes commands into several categories:
 - `make docs` - Generate documentation
 - `make info` - Show project information
 
+**Package Commands:**
+
+_Bulk Package Operations:_
+
+- `make packages-build` - Build all Node.js packages
+- `make packages-lint` - Lint all Node.js packages
+- `make packages-test` - Test all Node.js packages
+- `make packages-typecheck` - Typecheck all Node.js packages
+- `make packages-clean` - Clean all Node.js packages
+
+_Bulk Rust Crate Operations:_
+
+- `make crates-build` - Build all Rust crates
+- `make crates-format` - Format all Rust crates
+- `make crates-lint` - Lint all Rust crates
+- `make crates-clean` - Clean all Rust crates
+- `make crates-docs` - Generate docs for all Rust crates
+
+_Individual Package Commands:_
+
+Each package has individual commands available in the format
+`pkg-{name}-{action}` and `crate-{name}-{action}`:
+
+- **Node.js packages**: unplugin, nextjs, webpack, rollup, postcss, jest,
+  design, playwright, eslint, typescript
+- **Rust crates**: compiler, shared, resolver, parser
+- **Available actions**: build, lint, test, typecheck, clean (for Node.js) /
+  build, format, lint, clean, docs (for Rust)
+
+Examples:
+
+- `make pkg-unplugin-build` - Build unplugin package
+- `make pkg-webpack-lint` - Lint webpack plugin package
+- `make crate-compiler-format` - Format Rust compiler crate
+- `make crate-shared-docs` - Generate docs for shared crate
+
 ### Manual Commands (Alternative to Makefile)
 
 If you prefer to use the tools directly:
@@ -179,18 +217,26 @@ If you prefer to use the tools directly:
 pnpm install
 
 # Build all packages
-pnpm turbo run build
-
-# Start development
-pnpm turbo dev
+pnpm build
 
 # Run tests
-pnpm turbo run test --continue
+pnpm test
+
+# Run visual regression tests
+pnpm test:visual
 
 # Lint code
-pnpm turbo lint --continue
+pnpm lint
+
+# Check lint
+pnpm lint:check
 
 # Format code
 pnpm format
-cargo fmt --all
+
+# Check format
+pnpm format:check
+
+# Typecheck code
+pnpm typecheck
 ```

@@ -17,7 +17,23 @@ NC := \033[0m # No Color
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: help install clean build build-rust build-node dev test test-visual bench lint format typecheck docs setup prepare release publish check-deps apps-build apps-dev apps-clean apps-serve-common app-nextjs-dev app-nextjs-build app-nextjs-serve app-vite-dev app-vite-build app-vite-serve app-webpack-dev app-webpack-build app-rollup-dev app-rollup-build
+.PHONY: help install clean build build-rust build-node dev test test-visual bench lint format typecheck docs setup prepare release publish check-deps \
+	apps-build apps-dev apps-clean apps-serve-common app-nextjs-dev app-nextjs-build app-nextjs-serve app-vite-dev app-vite-build app-vite-serve app-webpack-dev app-webpack-build app-rollup-dev app-rollup-build \
+	packages-build packages-lint packages-test packages-typecheck packages-clean crates-build crates-format crates-lint crates-clean crates-docs \
+	pkg-unplugin-build pkg-unplugin-lint pkg-unplugin-test pkg-unplugin-typecheck pkg-unplugin-clean \
+	pkg-nextjs-build pkg-nextjs-lint pkg-nextjs-test pkg-nextjs-typecheck pkg-nextjs-clean \
+	pkg-webpack-build pkg-webpack-lint pkg-webpack-test pkg-webpack-typecheck pkg-webpack-clean \
+	pkg-rollup-build pkg-rollup-lint pkg-rollup-test pkg-rollup-typecheck pkg-rollup-clean \
+	pkg-postcss-build pkg-postcss-lint pkg-postcss-test pkg-postcss-typecheck pkg-postcss-clean \
+	pkg-jest-build pkg-jest-lint pkg-jest-test pkg-jest-typecheck pkg-jest-clean \
+	pkg-design-build pkg-design-lint pkg-design-test pkg-design-typecheck pkg-design-clean \
+	pkg-playwright-build pkg-playwright-lint pkg-playwright-test pkg-playwright-typecheck pkg-playwright-clean \
+	pkg-eslint-build pkg-eslint-lint pkg-eslint-test pkg-eslint-typecheck pkg-eslint-clean \
+	pkg-typescript-build pkg-typescript-lint pkg-typescript-test pkg-typescript-typecheck pkg-typescript-clean \
+	crate-compiler-build crate-compiler-format crate-compiler-lint crate-compiler-clean crate-compiler-docs \
+	crate-shared-build crate-shared-format crate-shared-lint crate-shared-clean crate-shared-docs \
+	crate-resolver-build crate-resolver-format crate-resolver-lint crate-resolver-clean crate-resolver-docs \
+	crate-parser-build crate-parser-format crate-parser-lint crate-parser-clean crate-parser-docs
 
 # Help target - shows available commands
 help: ## Show this help message
@@ -41,6 +57,10 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(YELLOW)App Commands:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E "(app|apps)" | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(YELLOW)Package Commands:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E "(pkg|packages|crate|crates)" | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' | head -20
+	@echo "  $(BLUE)...and many more individual package commands$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Documentation & Release:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E "(docs|release|publish)" | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
@@ -210,6 +230,358 @@ build-unplugin: ## Build the unplugin package
 build-nextjs: ## Build the Next.js plugin package
 	@echo "$(YELLOW)Building nextjs-plugin...$(NC)"
 	cd packages/nextjs-plugin && $(PNPM) run build
+
+# =============================================================================
+# Package Commands
+# =============================================================================
+
+# Bulk package operations
+packages-build: ## Build all Node.js packages
+	@echo "$(YELLOW)Building all Node.js packages...$(NC)"
+	$(TURBO) run build --filter="./packages/*"
+	@echo "$(GREEN)All Node.js packages built successfully!$(NC)"
+
+packages-lint: ## Lint all Node.js packages
+	@echo "$(YELLOW)Linting all Node.js packages...$(NC)"
+	$(TURBO) run lint --filter="./packages/*" --continue
+	@echo "$(GREEN)All Node.js packages linted successfully!$(NC)"
+
+packages-test: ## Test all Node.js packages
+	@echo "$(YELLOW)Testing all Node.js packages...$(NC)"
+	$(TURBO) run test --filter="./packages/*" --continue
+	@echo "$(GREEN)All Node.js package tests completed!$(NC)"
+
+packages-typecheck: ## Typecheck all Node.js packages
+	@echo "$(YELLOW)Typechecking all Node.js packages...$(NC)"
+	$(TURBO) run typecheck --filter="./packages/*" --continue
+	@echo "$(GREEN)All Node.js packages typechecked successfully!$(NC)"
+
+packages-clean: ## Clean all Node.js packages
+	@echo "$(YELLOW)Cleaning all Node.js packages...$(NC)"
+	$(TURBO) run clean --filter="./packages/*"
+	@echo "$(GREEN)All Node.js packages cleaned successfully!$(NC)"
+
+# Bulk crate operations
+crates-build: ## Build all Rust crates
+	@echo "$(YELLOW)Building all Rust crates...$(NC)"
+	$(CARGO) build --workspace --release
+	@echo "$(GREEN)All Rust crates built successfully!$(NC)"
+
+crates-format: ## Format all Rust crates
+	@echo "$(YELLOW)Formatting all Rust crates...$(NC)"
+	$(CARGO) fmt --all
+	@echo "$(GREEN)All Rust crates formatted successfully!$(NC)"
+
+crates-lint: ## Lint all Rust crates
+	@echo "$(YELLOW)Linting all Rust crates...$(NC)"
+	$(CARGO) clippy --workspace --all-targets --all-features -- -D warnings
+	@echo "$(GREEN)All Rust crates linted successfully!$(NC)"
+
+crates-clean: ## Clean all Rust crates
+	@echo "$(YELLOW)Cleaning all Rust crates...$(NC)"
+	$(CARGO) clean
+	@echo "$(GREEN)All Rust crates cleaned successfully!$(NC)"
+
+crates-docs: ## Generate docs for all Rust crates
+	@echo "$(YELLOW)Generating docs for all Rust crates...$(NC)"
+	$(CARGO) doc --workspace --no-deps
+	@echo "$(GREEN)All Rust crate docs generated successfully!$(NC)"
+
+# Individual Node.js package commands
+# Unplugin package
+pkg-unplugin-build: ## Build unplugin package
+	@echo "$(YELLOW)Building unplugin package...$(NC)"
+	cd packages/unplugin && $(PNPM) run build
+
+pkg-unplugin-lint: ## Lint unplugin package
+	@echo "$(YELLOW)Linting unplugin package...$(NC)"
+	cd packages/unplugin && $(PNPM) run lint
+
+pkg-unplugin-test: ## Test unplugin package
+	@echo "$(YELLOW)Testing unplugin package...$(NC)"
+	cd packages/unplugin && $(PNPM) run test
+
+pkg-unplugin-typecheck: ## Typecheck unplugin package
+	@echo "$(YELLOW)Typechecking unplugin package...$(NC)"
+	cd packages/unplugin && $(PNPM) run typecheck
+
+pkg-unplugin-clean: ## Clean unplugin package
+	@echo "$(YELLOW)Cleaning unplugin package...$(NC)"
+	cd packages/unplugin && $(PNPM) run clean
+
+# Next.js plugin package
+pkg-nextjs-build: ## Build Next.js plugin package
+	@echo "$(YELLOW)Building nextjs-plugin package...$(NC)"
+	cd packages/nextjs-plugin && $(PNPM) run build
+
+pkg-nextjs-lint: ## Lint Next.js plugin package
+	@echo "$(YELLOW)Linting nextjs-plugin package...$(NC)"
+	cd packages/nextjs-plugin && $(PNPM) run lint
+
+pkg-nextjs-test: ## Test Next.js plugin package
+	@echo "$(YELLOW)Testing nextjs-plugin package...$(NC)"
+	cd packages/nextjs-plugin && $(PNPM) run test
+
+pkg-nextjs-typecheck: ## Typecheck Next.js plugin package
+	@echo "$(YELLOW)Typechecking nextjs-plugin package...$(NC)"
+	cd packages/nextjs-plugin && $(PNPM) run typecheck
+
+pkg-nextjs-clean: ## Clean Next.js plugin package
+	@echo "$(YELLOW)Cleaning nextjs-plugin package...$(NC)"
+	cd packages/nextjs-plugin && $(PNPM) run clean
+
+# Webpack plugin package
+pkg-webpack-build: ## Build webpack plugin package
+	@echo "$(YELLOW)Building webpack-plugin package...$(NC)"
+	cd packages/webpack-plugin && $(PNPM) run build
+
+pkg-webpack-lint: ## Lint webpack plugin package
+	@echo "$(YELLOW)Linting webpack-plugin package...$(NC)"
+	cd packages/webpack-plugin && $(PNPM) run lint
+
+pkg-webpack-test: ## Test webpack plugin package
+	@echo "$(YELLOW)Testing webpack-plugin package...$(NC)"
+	cd packages/webpack-plugin && $(PNPM) run test
+
+pkg-webpack-typecheck: ## Typecheck webpack plugin package
+	@echo "$(YELLOW)Typechecking webpack-plugin package...$(NC)"
+	cd packages/webpack-plugin && $(PNPM) run typecheck
+
+pkg-webpack-clean: ## Clean webpack plugin package
+	@echo "$(YELLOW)Cleaning webpack-plugin package...$(NC)"
+	cd packages/webpack-plugin && $(PNPM) run clean
+
+# Rollup plugin package
+pkg-rollup-build: ## Build rollup plugin package
+	@echo "$(YELLOW)Building rollup-plugin package...$(NC)"
+	cd packages/rollup-plugin && $(PNPM) run build
+
+pkg-rollup-lint: ## Lint rollup plugin package
+	@echo "$(YELLOW)Linting rollup-plugin package...$(NC)"
+	cd packages/rollup-plugin && $(PNPM) run lint
+
+pkg-rollup-test: ## Test rollup plugin package
+	@echo "$(YELLOW)Testing rollup-plugin package...$(NC)"
+	cd packages/rollup-plugin && $(PNPM) run test
+
+pkg-rollup-typecheck: ## Typecheck rollup plugin package
+	@echo "$(YELLOW)Typechecking rollup-plugin package...$(NC)"
+	cd packages/rollup-plugin && $(PNPM) run typecheck
+
+pkg-rollup-clean: ## Clean rollup plugin package
+	@echo "$(YELLOW)Cleaning rollup-plugin package...$(NC)"
+	cd packages/rollup-plugin && $(PNPM) run clean
+
+# PostCSS plugin package
+pkg-postcss-build: ## Build PostCSS plugin package
+	@echo "$(YELLOW)Building postcss-plugin package...$(NC)"
+	cd packages/postcss-plugin && $(PNPM) run build
+
+pkg-postcss-lint: ## Lint PostCSS plugin package
+	@echo "$(YELLOW)Linting postcss-plugin package...$(NC)"
+	cd packages/postcss-plugin && $(PNPM) run lint
+
+pkg-postcss-test: ## Test PostCSS plugin package
+	@echo "$(YELLOW)Testing postcss-plugin package...$(NC)"
+	cd packages/postcss-plugin && $(PNPM) run test
+
+pkg-postcss-typecheck: ## Typecheck PostCSS plugin package
+	@echo "$(YELLOW)Typechecking postcss-plugin package...$(NC)"
+	cd packages/postcss-plugin && $(PNPM) run typecheck
+
+pkg-postcss-clean: ## Clean PostCSS plugin package
+	@echo "$(YELLOW)Cleaning postcss-plugin package...$(NC)"
+	cd packages/postcss-plugin && $(PNPM) run clean
+
+# Jest package
+pkg-jest-build: ## Build Jest package
+	@echo "$(YELLOW)Building jest package...$(NC)"
+	cd packages/jest && $(PNPM) run build
+
+pkg-jest-lint: ## Lint Jest package
+	@echo "$(YELLOW)Linting jest package...$(NC)"
+	cd packages/jest && $(PNPM) run lint
+
+pkg-jest-test: ## Test Jest package
+	@echo "$(YELLOW)Testing jest package...$(NC)"
+	cd packages/jest && $(PNPM) run test
+
+pkg-jest-typecheck: ## Typecheck Jest package
+	@echo "$(YELLOW)Typechecking jest package...$(NC)"
+	cd packages/jest && $(PNPM) run typecheck
+
+pkg-jest-clean: ## Clean Jest package
+	@echo "$(YELLOW)Cleaning jest package...$(NC)"
+	cd packages/jest && $(PNPM) run clean
+
+# Design system package
+pkg-design-build: ## Build design system package
+	@echo "$(YELLOW)Building design-system package...$(NC)"
+	cd packages/design-system && $(PNPM) run build
+
+pkg-design-lint: ## Lint design system package
+	@echo "$(YELLOW)Linting design-system package...$(NC)"
+	cd packages/design-system && $(PNPM) run lint
+
+pkg-design-test: ## Test design system package
+	@echo "$(YELLOW)Testing design-system package...$(NC)"
+	cd packages/design-system && $(PNPM) run test
+
+pkg-design-typecheck: ## Typecheck design system package
+	@echo "$(YELLOW)Typechecking design-system package...$(NC)"
+	cd packages/design-system && $(PNPM) run typecheck
+
+pkg-design-clean: ## Clean design system package
+	@echo "$(YELLOW)Cleaning design-system package...$(NC)"
+	cd packages/design-system && $(PNPM) run clean
+
+# Playwright package
+pkg-playwright-build: ## Build Playwright package
+	@echo "$(YELLOW)Building playwright package...$(NC)"
+	cd packages/playwright && $(PNPM) run build
+
+pkg-playwright-lint: ## Lint Playwright package
+	@echo "$(YELLOW)Linting playwright package...$(NC)"
+	cd packages/playwright && $(PNPM) run lint
+
+pkg-playwright-test: ## Test Playwright package
+	@echo "$(YELLOW)Testing playwright package...$(NC)"
+	cd packages/playwright && $(PNPM) run test
+
+pkg-playwright-typecheck: ## Typecheck Playwright package
+	@echo "$(YELLOW)Typechecking playwright package...$(NC)"
+	cd packages/playwright && $(PNPM) run typecheck
+
+pkg-playwright-clean: ## Clean Playwright package
+	@echo "$(YELLOW)Cleaning playwright package...$(NC)"
+	cd packages/playwright && $(PNPM) run clean
+
+# ESLint config package
+pkg-eslint-build: ## Build ESLint config package
+	@echo "$(YELLOW)Building eslint-config package...$(NC)"
+	cd packages/eslint-config && $(PNPM) run build
+
+pkg-eslint-lint: ## Lint ESLint config package
+	@echo "$(YELLOW)Linting eslint-config package...$(NC)"
+	cd packages/eslint-config && $(PNPM) run lint
+
+pkg-eslint-test: ## Test ESLint config package
+	@echo "$(YELLOW)Testing eslint-config package...$(NC)"
+	cd packages/eslint-config && $(PNPM) run test
+
+pkg-eslint-typecheck: ## Typecheck ESLint config package
+	@echo "$(YELLOW)Typechecking eslint-config package...$(NC)"
+	cd packages/eslint-config && $(PNPM) run typecheck
+
+pkg-eslint-clean: ## Clean ESLint config package
+	@echo "$(YELLOW)Cleaning eslint-config package...$(NC)"
+	cd packages/eslint-config && $(PNPM) run clean
+
+# TypeScript config package
+pkg-typescript-build: ## Build TypeScript config package
+	@echo "$(YELLOW)Building typescript-config package...$(NC)"
+	cd packages/typescript-config && $(PNPM) run build
+
+pkg-typescript-lint: ## Lint TypeScript config package
+	@echo "$(YELLOW)Linting typescript-config package...$(NC)"
+	cd packages/typescript-config && $(PNPM) run lint
+
+pkg-typescript-test: ## Test TypeScript config package
+	@echo "$(YELLOW)Testing typescript-config package...$(NC)"
+	cd packages/typescript-config && $(PNPM) run test
+
+pkg-typescript-typecheck: ## Typecheck TypeScript config package
+	@echo "$(YELLOW)Typechecking typescript-config package...$(NC)"
+	cd packages/typescript-config && $(PNPM) run typecheck
+
+pkg-typescript-clean: ## Clean TypeScript config package
+	@echo "$(YELLOW)Cleaning typescript-config package...$(NC)"
+	cd packages/typescript-config && $(PNPM) run clean
+
+# Individual Rust crate commands
+# Compiler crate
+crate-compiler-build: ## Build Rust compiler crate
+	@echo "$(YELLOW)Building stylex-rs-compiler crate...$(NC)"
+	cd crates/stylex-rs-compiler && $(PNPM) run build
+
+crate-compiler-format: ## Format Rust compiler crate
+	@echo "$(YELLOW)Formatting stylex-rs-compiler crate...$(NC)"
+	cd crates/stylex-rs-compiler && $(PNPM) run format
+
+crate-compiler-lint: ## Lint Rust compiler crate
+	@echo "$(YELLOW)Linting stylex-rs-compiler crate...$(NC)"
+	cd crates/stylex-rs-compiler && $(PNPM) run lint:check
+
+crate-compiler-clean: ## Clean Rust compiler crate
+	@echo "$(YELLOW)Cleaning stylex-rs-compiler crate...$(NC)"
+	cd crates/stylex-rs-compiler && $(PNPM) run clean
+
+crate-compiler-docs: ## Generate docs for Rust compiler crate
+	@echo "$(YELLOW)Generating docs for stylex-rs-compiler crate...$(NC)"
+	cd crates/stylex-rs-compiler && $(CARGO) doc --no-deps
+
+# Shared crate
+crate-shared-build: ## Build shared crate
+	@echo "$(YELLOW)Building stylex-shared crate...$(NC)"
+	cd crates/stylex-shared && $(CARGO) build --release
+
+crate-shared-format: ## Format shared crate
+	@echo "$(YELLOW)Formatting stylex-shared crate...$(NC)"
+	cd crates/stylex-shared && $(PNPM) run format
+
+crate-shared-lint: ## Lint shared crate
+	@echo "$(YELLOW)Linting stylex-shared crate...$(NC)"
+	cd crates/stylex-shared && $(PNPM) run lint:check
+
+crate-shared-clean: ## Clean shared crate
+	@echo "$(YELLOW)Cleaning stylex-shared crate...$(NC)"
+	cd crates/stylex-shared && $(PNPM) run clean
+
+crate-shared-docs: ## Generate docs for shared crate
+	@echo "$(YELLOW)Generating docs for stylex-shared crate...$(NC)"
+	cd crates/stylex-shared && $(CARGO) doc --no-deps
+
+# Path resolver crate
+crate-resolver-build: ## Build path resolver crate
+	@echo "$(YELLOW)Building stylex-path-resolver crate...$(NC)"
+	cd crates/stylex-path-resolver && $(CARGO) build --release
+
+crate-resolver-format: ## Format path resolver crate
+	@echo "$(YELLOW)Formatting stylex-path-resolver crate...$(NC)"
+	cd crates/stylex-path-resolver && $(CARGO) fmt
+
+crate-resolver-lint: ## Lint path resolver crate
+	@echo "$(YELLOW)Linting stylex-path-resolver crate...$(NC)"
+	cd crates/stylex-path-resolver && $(CARGO) clippy --all-targets --all-features -- -D warnings
+
+crate-resolver-clean: ## Clean path resolver crate
+	@echo "$(YELLOW)Cleaning stylex-path-resolver crate...$(NC)"
+	cd crates/stylex-path-resolver && $(CARGO) clean
+
+crate-resolver-docs: ## Generate docs for path resolver crate
+	@echo "$(YELLOW)Generating docs for stylex-path-resolver crate...$(NC)"
+	cd crates/stylex-path-resolver && $(CARGO) doc --no-deps
+
+# Test parser crate
+crate-parser-build: ## Build test parser crate
+	@echo "$(YELLOW)Building stylex-test-parser crate...$(NC)"
+	cd crates/stylex-test-parser && $(PNPM) run build
+
+crate-parser-format: ## Format test parser crate
+	@echo "$(YELLOW)Formatting stylex-test-parser crate...$(NC)"
+	cd crates/stylex-test-parser && $(PNPM) run format
+
+crate-parser-lint: ## Lint test parser crate
+	@echo "$(YELLOW)Linting stylex-test-parser crate...$(NC)"
+	cd crates/stylex-test-parser && $(PNPM) run lint:check
+
+crate-parser-clean: ## Clean test parser crate
+	@echo "$(YELLOW)Cleaning stylex-test-parser crate...$(NC)"
+	cd crates/stylex-test-parser && $(PNPM) run clean
+
+crate-parser-docs: ## Generate docs for test parser crate
+	@echo "$(YELLOW)Generating docs for stylex-test-parser crate...$(NC)"
+	cd crates/stylex-test-parser && $(CARGO) doc --no-deps
 
 # =============================================================================
 # App Commands

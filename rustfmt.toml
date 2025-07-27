@@ -1,4 +1,4 @@
-edition = "2021"
+edition = "2024"
 disable_all_formatting = false
 fn_params_layout = "Tall"
 force_explicit_abi = true

@@ -179,7 +179,7 @@ test-visual: ## Run visual regression tests
 
 test-rust: ## Run only Rust tests
 	@echo "$(YELLOW)Running Rust tests...$(NC)"
-	$(CARGO) test --workspace
+	$(TURBO) --filter "./crates/*" test
 	@echo "$(GREEN)Rust tests completed!$(NC)"
 
 bench: ## Run benchmarks

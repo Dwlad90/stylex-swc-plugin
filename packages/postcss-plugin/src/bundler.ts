@@ -62,7 +62,6 @@ export default function createBundler() {
     try {
       const rsOptionsNormalized = normalizeRsOptions(rsOptions);
 
-
       transformResult = stylexTransform(id, sourceCode, rsOptionsNormalized);
     } catch (error) {
       if (shouldSkipTransformError) {

@@ -2,11 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as stylex from '@stylexjs/stylex';
-import type {
-  VarGroup,
-  Theme,
-  CompiledStyles,
-} from '@stylexjs/stylex';
+import type { VarGroup, Theme, CompiledStyles } from '@stylexjs/stylex';
 
 const DARK = '@media (prefers-color-scheme: dark)' as const;
 

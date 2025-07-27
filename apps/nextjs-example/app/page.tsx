@@ -223,12 +223,12 @@ const style = stylex.create({
     display: {
       default: 'none',
       [breakpoints.mobile]: 'block',
-    }
+    },
   },
   onlyDesktop: {
     display: {
       default: 'none',
       [breakpoints.desktop]: 'block',
-    }
+    },
   },
 });

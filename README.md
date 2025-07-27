@@ -148,6 +148,23 @@ The Makefile organizes commands into several categories:
 - `make test-visual` - Run visual regression tests
 - `make bench` - Run benchmarks
 
+**App Commands:**
+
+- `make apps-build` - Build all example apps
+- `make apps-dev` - Start development servers for all apps
+- `make apps-clean` - Clean all app build artifacts
+- `make app-nextjs-dev` - Start Next.js example app in development mode
+- `make app-nextjs-build` - Build Next.js example app
+- `make app-nextjs-serve` - Serve Next.js example app (requires build first)
+- `make app-vite-dev` - Start Vite example app in development mode
+- `make app-vite-build` - Build Vite example app
+- `make app-vite-serve` - Serve Vite example app (requires build first)
+- `make app-webpack-dev` - Start Webpack example app in development mode
+- `make app-webpack-build` - Build Webpack example app
+- `make app-rollup-dev` - Start Rollup example app in development mode
+- `make app-rollup-build` - Build Rollup example app
+- `make apps-serve-common` - Serve commonly used example apps simultaneously
+
 **Documentation & Release:**
 
 - `make docs` - Generate documentation

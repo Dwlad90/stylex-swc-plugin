@@ -17,7 +17,7 @@ NC := \033[0m # No Color
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: help install clean build build-rust build-node dev test test-visual bench lint format typecheck docs setup prepare release publish check-deps
+.PHONY: help install clean build build-rust build-node dev test test-visual bench lint format typecheck docs setup prepare release publish check-deps apps-build apps-dev apps-clean apps-serve-common app-nextjs-dev app-nextjs-build app-nextjs-serve app-vite-dev app-vite-build app-vite-serve app-webpack-dev app-webpack-build app-rollup-dev app-rollup-build
 
 # Help target - shows available commands
 help: ## Show this help message
@@ -38,6 +38,9 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(YELLOW)Test Commands:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E "(test|bench)" | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(YELLOW)App Commands:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E "(app|apps)" | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Documentation & Release:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E "(docs|release|publish)" | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
@@ -207,6 +210,76 @@ build-unplugin: ## Build the unplugin package
 build-nextjs: ## Build the Next.js plugin package
 	@echo "$(YELLOW)Building nextjs-plugin...$(NC)"
 	cd packages/nextjs-plugin && $(PNPM) run build
+
+# =============================================================================
+# App Commands
+# =============================================================================
+
+apps-build: ## Build all example apps
+	@echo "$(YELLOW)Building all example apps...$(NC)"
+	$(TURBO) run build --filter="./apps/*"
+	@echo "$(GREEN)All apps built successfully!$(NC)"
+
+apps-dev: ## Start development servers for all apps
+	@echo "$(YELLOW)Starting development servers for all apps...$(NC)"
+	$(TURBO) run dev --filter="./apps/*" --parallel
+	@echo "$(GREEN)All app dev servers started!$(NC)"
+
+apps-clean: ## Clean all app build artifacts
+	@echo "$(YELLOW)Cleaning all app build artifacts...$(NC)"
+	$(TURBO) run clean --filter="./apps/*"
+	@echo "$(GREEN)All app artifacts cleaned!$(NC)"
+
+# Individual app commands
+app-nextjs-dev: ## Start Next.js example app in development mode
+	@echo "$(YELLOW)Starting Next.js example app...$(NC)"
+	cd apps/nextjs-example && $(PNPM) run dev
+
+app-nextjs-build: ## Build Next.js example app
+	@echo "$(YELLOW)Building Next.js example app...$(NC)"
+	cd apps/nextjs-example && $(PNPM) run build
+
+app-nextjs-serve: ## Serve Next.js example app (requires build first)
+	@echo "$(YELLOW)Serving Next.js example app...$(NC)"
+	cd apps/nextjs-example && $(PNPM) run serve
+
+app-vite-dev: ## Start Vite example app in development mode
+	@echo "$(YELLOW)Starting Vite example app...$(NC)"
+	cd apps/vite-unplugin-example && $(PNPM) run dev
+
+app-vite-build: ## Build Vite example app
+	@echo "$(YELLOW)Building Vite example app...$(NC)"
+	cd apps/vite-unplugin-example && $(PNPM) run build
+
+app-vite-serve: ## Serve Vite example app (requires build first)
+	@echo "$(YELLOW)Serving Vite example app...$(NC)"
+	cd apps/vite-unplugin-example && $(PNPM) run serve
+
+app-webpack-dev: ## Start Webpack example app in development mode
+	@echo "$(YELLOW)Starting Webpack example app...$(NC)"
+	cd apps/webpack-example && $(PNPM) run start
+
+app-webpack-build: ## Build Webpack example app
+	@echo "$(YELLOW)Building Webpack example app...$(NC)"
+	cd apps/webpack-example && $(PNPM) run build
+
+app-rollup-dev: ## Start Rollup example app in development mode
+	@echo "$(YELLOW)Starting Rollup example app...$(NC)"
+	cd apps/rollup-example && $(PNPM) run dev
+
+app-rollup-build: ## Build Rollup example app
+	@echo "$(YELLOW)Building Rollup example app...$(NC)"
+	cd apps/rollup-example && $(PNPM) run build
+
+# Serve multiple apps simultaneously
+apps-serve-common: ## Serve commonly used example apps (Next.js, Vite, Webpack)
+	@echo "$(YELLOW)Starting multiple app servers...$(NC)"
+	@echo "$(BLUE)Next.js app will be available at http://localhost:3000$(NC)"
+	@echo "$(BLUE)Vite app will be available at http://localhost:5173$(NC)"
+	@echo "$(BLUE)Press Ctrl+C to stop all servers$(NC)"
+	@(cd apps/nextjs-example && $(PNPM) run dev) & \
+	(cd apps/vite-unplugin-example && $(PNPM) run dev) & \
+	wait
 
 # Development shortcuts
 quick-check: ## Quick development check (format, lint, typecheck)

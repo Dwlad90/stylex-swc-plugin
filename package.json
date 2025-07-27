@@ -65,7 +65,9 @@
       "@farmfe/core@<1.7.7": ">=1.7.7",
       "brace-expansion@>=1.0.0 <=1.1.11": ">=1.1.12 <2.0.0",
       "brace-expansion@>=2.0.0 <=2.0.1": ">=2.0.2 <3.0.0",
-      "on-headers@<1.1.0": ">=1.1.0 <2.0.0"
+      "on-headers@<1.1.0": ">=1.1.0 <2.0.0",
+      "form-data@>=4.0.0 <4.0.4": ">=4.0.4 <5.0.0",
+      "@eslint/plugin-kit@<0.3.3": ">=0.3.3 <1.0.0"
     },
     "patchedDependencies": {
       "scripty@3.0.0": "patches/scripty@3.0.0.patch"

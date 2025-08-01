@@ -35,7 +35,7 @@
     "@stylexswc/webpack-plugin": "0.10.4"
   },
   "devDependencies": {
-    "@babel/types": "^7.27.7",
+    "@babel/types": "^7.28.2",
     "@stylexswc/eslint-config": "0.10.4",
     "@stylexswc/typescript-config": "0.10.4",
     "@types/babel__core": "^7.20.5",

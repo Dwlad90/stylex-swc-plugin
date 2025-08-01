@@ -20,7 +20,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@farmfe/cli": "^1.0.4",
+    "@farmfe/cli": "^1.0.5",
     "@farmfe/core": "^1.7.9",
     "@farmfe/plugin-react": "^1.2.6",
     "@playwright/test": "^1.53.2",

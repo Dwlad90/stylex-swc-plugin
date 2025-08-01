@@ -43,7 +43,7 @@
     "@rollup/plugin-swc": "^0.4.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.10",
-    "browserslist": "^4.25.0",
+    "browserslist": "^4.25.1",
     "jest": "^30.0.4",
     "jest-chain-transform": "^0.0.8",
     "rollup": "^4.40.2"

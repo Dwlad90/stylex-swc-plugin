@@ -36,7 +36,7 @@ log.workspace = true
 
 stylex_shared = { path = "../stylex-shared" }
 napi = "2"
-napi-derive = "2"
+napi-derive = "3"
 
 
 [dev-dependencies]

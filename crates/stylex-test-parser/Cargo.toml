@@ -30,5 +30,5 @@ color-backtrace.workspace = true
 ctor.workspace = true
 env_logger.workspace = true
 
-clap = { version = "4.5.40", features = ["derive"] }
+clap = { version = "4.5.42", features = ["derive"] }
 walkdir = { version = "2.5.0" }

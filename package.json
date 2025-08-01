@@ -40,7 +40,7 @@
     "shellcheck": "^3.1.0",
     "syncpack": "^13.0.4",
     "turbo": "^2.5.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=22.13.0"

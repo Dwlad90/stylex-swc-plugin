@@ -47,7 +47,7 @@
     "@swc-node/register": "^1.10.10",
     "@swc/core": "^1.13.3",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^24.0.10",
+    "@types/node": "^24.1.0",
     "ava": "^6.4.0",
     "benchmark": "^2.1.2",
     "chalk": "^5.4.1",
@@ -56,7 +56,7 @@
     "oxlint": "^0.17.0",
     "prettier": "^3.5.3",
     "tinybench": "^4.0.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "ava": {
     "extensions": {

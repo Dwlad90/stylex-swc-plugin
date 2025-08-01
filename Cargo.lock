@@ -1368,8 +1368,22 @@ dependencies = [
  "bitflags",
  "ctor 0.2.9",
  "napi-derive",
- "napi-sys",
+ "napi-sys 2.4.0",
  "once_cell",
+]
+
+[[package]]
+name = "napi"
+version = "3.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f995fe29e20a4d5bf5af93d3c8384fd53772bbbc1bf3b03e38dce2b1b0425e3"
+dependencies = [
+ "bitflags",
+ "ctor 0.4.3",
+ "napi-build",
+ "napi-sys 3.0.0",
+ "nohash-hasher",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1417,6 +1431,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "napi-sys"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e4e7135a8f97aa0f1509cce21a8a1f9dcec1b50d8dee006b48a5adb69a9d64d"
+dependencies = [
+ "libloading",
+]
+
+[[package]]
 name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1437,6 +1460,12 @@ dependencies = [
  "node-builtins",
  "serde_json",
 ]
+
+[[package]]
+name = "nohash-hasher"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
 name = "normpath"
@@ -2169,7 +2198,7 @@ version = "0.10.4"
 dependencies = [
  "color-backtrace",
  "log",
- "napi",
+ "napi 3.1.6",
  "napi-build",
  "napi-derive",
  "rustc-hash",
@@ -2328,7 +2357,7 @@ dependencies = [
  "anyhow",
  "base64",
  "bytes-str",
- "napi",
+ "napi 2.16.17",
  "napi-derive",
  "once_cell",
  "pathdiff",

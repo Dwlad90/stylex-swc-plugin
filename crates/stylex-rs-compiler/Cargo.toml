@@ -35,7 +35,7 @@ rustc-hash.workspace = true
 log.workspace = true
 
 stylex_shared = { path = "../stylex-shared" }
-napi = "2"
+napi = "3"
 napi-derive = "2"
 
 

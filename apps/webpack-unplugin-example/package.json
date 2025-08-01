@@ -22,7 +22,7 @@
   "devDependencies": {
     "@playwright/test": "^1.53.2",
     "@stylexswc/playwright": "0.10.4",
-    "@swc/core": "^1.12.9",
+    "@swc/core": "^1.13.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "html-webpack-plugin": "^5.6.0",

@@ -90,7 +90,7 @@
     "@stylexjs/babel-plugin": "^0.14.1",
     "@stylexswc/rs-compiler": "0.10.4",
     "unplugin": "^2.3.5",
-    "vite": "^6.3.5",
+    "vite": "^7.0.6",
     "vite-plugin-inspect": "^11.3.2"
   },
   "devDependencies": {
@@ -109,12 +109,12 @@
     "fast-glob": "^3.3.3",
     "jest": "^30.0.5",
     "nodemon": "^3.1.10",
-    "rollup": "^4.40.2",
-    "tsup": "^8.4.0",
+    "rollup": "^4.46.2",
+    "tsup": "^8.5.0",
     "typescript": "^5.9.2",
-    "vite": "^6.3.5",
+    "vite": "^7.0.6",
     "vitest": "^3.2.4",
-    "webpack": "^5.99.8"
+    "webpack": "^5.101.0"
   },
   "peerDependencies": {
     "@farmfe/core": ">=1.0.0",

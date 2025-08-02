@@ -96,8 +96,7 @@ export default class StyleXPlugin {
     // "sideEffects" setting.
     compiler.hooks.normalModuleFactory.tap(PLUGIN_NAME, nmf => {
       nmf.hooks.createModule.tap(PLUGIN_NAME, createData => {
-        const modPath: string | undefined =
-          createData.matchResource ?? createData.resourceResolveData?.path;
+        const modPath = createData.matchResource ?? createData.resourceResolveData?.path;
 
         if (modPath === VIRTUAL_CSS_PATH) {
           createData.settings ??= {};

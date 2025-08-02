@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@babel/types": "^7.28.2",
-    "@jest/transform": "^29.7.0",
+    "@jest/transform": "^30.0.5",
     "@jest/types": "^29.5.14",
     "@stylexswc/eslint-config": "0.10.4",
     "@stylexswc/typescript-config": "0.10.4"

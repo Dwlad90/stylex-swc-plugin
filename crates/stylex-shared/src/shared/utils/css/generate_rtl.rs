@@ -117,7 +117,7 @@ fn flip_shadow(value: &str) -> Option<String> {
     built_defs.push(parts.join(" "));
   }
 
-  let rtl = built_defs.join(", ");
+  let rtl = built_defs.join(",");
   if rtl != value { Some(rtl) } else { None }
 }
 

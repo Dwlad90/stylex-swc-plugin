@@ -329,6 +329,38 @@ test!(
       ..StyleXOptionsParams::default()
     }),
   ),
+  legacy_value_of_box_shadow_property_v2,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: {
+        animationName: stylex.keyframes({
+          '0%': {
+            boxShadow: '1px 2px 3px 4px red'
+          },
+          '100%': {
+            boxShadow: '10px 20px 30px 40px green'
+          }
+        })
+      }
+    });
+    export const classnames = stylex(styles.x);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_legacy_value_flipping: Some(true),
+      ..StyleXOptionsParams::default()
+    }),
+  ),
   legacy_value_of_box_shadow_property_1px_1px_hash000,
   r#"
         import stylex from 'stylex';

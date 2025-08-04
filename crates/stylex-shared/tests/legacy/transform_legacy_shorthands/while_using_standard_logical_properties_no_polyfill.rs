@@ -149,6 +149,46 @@ test!(
     let mut config = StyleXOptionsParams {
       runtime_injection: Some(true),
       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      enable_logical_styles_polyfill: Some(true),
+      debug: Some(true),
+      ..StyleXOptionsParams::default()
+    };
+
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut config),
+    )
+  },
+  padding_with_longhand_directional_and_logical_property_collisions,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        padding: 5,
+        paddingInlineEnd: 10,
+      },
+
+      bar: {
+        padding: 2,
+        paddingInlineStart: 10,
+        paddingLeft: 22
+      },
+    });
+    stylex(styles.foo, styles.bar)
+    export const string = stylex(styles.foo, styles.bar, xstyle);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut config = StyleXOptionsParams {
+      runtime_injection: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       enable_logical_styles_polyfill: Some(false),
       ..StyleXOptionsParams::default()
     };

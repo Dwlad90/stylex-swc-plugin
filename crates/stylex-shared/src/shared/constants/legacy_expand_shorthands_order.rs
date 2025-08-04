@@ -315,8 +315,8 @@ impl Shorthands {
   fn padding_left(val: Option<String>) -> Vec<OrderPair> {
     vec![
       OrderPair("paddingLeft".into(), val),
-      OrderPair("paddingStart".into(), None),
-      OrderPair("paddingEnd".into(), None),
+      OrderPair("paddingInlineStart".into(), None),
+      OrderPair("paddingInlineEnd".into(), None),
     ]
   }
   fn padding_right(val: Option<String>) -> Vec<OrderPair> {

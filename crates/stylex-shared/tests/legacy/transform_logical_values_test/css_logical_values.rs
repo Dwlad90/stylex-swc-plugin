@@ -1,6 +1,9 @@
 use stylex_shared::{
   StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleResolution, StyleXOptionsParams},
+  },
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -326,19 +329,23 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       enable_legacy_value_flipping: Some(true),
+      enable_logical_styles_polyfill: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       ..StyleXOptionsParams::default()
     }),
   ),
-  legacy_value_of_box_shadow_property_v2,
+  legacy_value_of_box_shadow_property,
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
       x: {
         animationName: stylex.keyframes({
           '0%': {
+            borderInlineEnd: '1px solid red',
             boxShadow: '1px 2px 3px 4px red'
           },
           '100%': {
+            borderInlineEnd: '1px solid transparent',
             boxShadow: '10px 20px 30px 40px green'
           }
         })

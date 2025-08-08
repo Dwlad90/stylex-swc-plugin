@@ -260,6 +260,46 @@ fn adds_media_query_placeholder_from_constants_stylex() {
 }
 
 #[test]
+#[ignore]
+fn works_with_first_that_works() {
+  let input = r#"
+      import * as stylex from '@stylexjs/stylex';
+      import { colors } from './constants.stylex';
+
+      export const styles = stylex.create({
+        nodeEnd: (animationDuration) => ({
+          foo: {
+            color: stylex.firstThatWorks(colors.background, 'transparent'),
+          },
+        }),
+      });
+    "#;
+
+  let output = transform_with_inline_consts(input);
+  insta::assert_snapshot!("works_with_first_that_works", output);
+}
+
+#[test]
+#[ignore]
+fn works_with_dynamic_styles() {
+  let input = r#"
+      import * as stylex from '@stylexjs/stylex';
+      import { breakpoints } from './constants.stylex';
+
+      export const styles = stylex.create({
+        nodeEnd: (animationDuration) => ({
+          transition: {
+            [breakpoints.small]: 'none',
+            default: \`transform \${animationDuration}ms ease-in-out\`,
+          },
+        }),
+      });
+    "#;
+  let output = transform_with_inline_consts(input);
+  insta::assert_snapshot!("works_with_dynamic_styles", output);
+}
+
+#[test]
 fn adds_multiple_media_query_placeholders_from_constants_stylex() {
   let input = r#"
         import * as stylex from '@stylexjs/stylex';

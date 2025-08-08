@@ -5,6 +5,7 @@ pub enum VarDeclAction {
   None,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum BinaryExprType {
   Number(f64),
   String(String),

@@ -48,6 +48,24 @@ pub(crate) fn flatten_raw_style_object(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> IndexMap<String, PreRules> {
+  let processed_style = if traversal_state.options.enable_last_media_query_wins {
+    // TODO: Implement last media query wins logic
+    // last_media_query_wins_transform(style)
+
+    unimplemented!("last_media_query_wins_transform is not implemented yet")
+  } else {
+    style.to_vec()
+  };
+  flatten_raw_style_object_logic(&processed_style, key_path, state, traversal_state, fns)
+}
+
+pub(crate) fn flatten_raw_style_object_logic(
+  style: &[KeyValueProp],
+  key_path: &mut Vec<String>,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> IndexMap<String, PreRules> {
   let mut flattened: IndexMap<String, PreRules> = IndexMap::new();
 
   for property in style.iter() {

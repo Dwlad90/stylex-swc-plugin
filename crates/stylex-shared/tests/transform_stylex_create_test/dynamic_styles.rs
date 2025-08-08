@@ -104,6 +104,25 @@ test!(
     tsx: true,
     ..Default::default()
   }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  set_mixed_values,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (width) => ({
+        width,
+        backgroundColor: 'red',
+        height: width + 100,
+      })
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
   |tr| {
     let mut config = StyleXOptionsParams {
       unstable_module_resolution: Some(ModuleResolution {

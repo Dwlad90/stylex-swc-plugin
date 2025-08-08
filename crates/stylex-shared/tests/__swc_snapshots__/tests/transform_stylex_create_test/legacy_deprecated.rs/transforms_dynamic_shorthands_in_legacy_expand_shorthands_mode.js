@@ -16,10 +16,10 @@ export const styles = {
     default: (margin)=>[
             {
                 kWkggS: "xrkmrrc",
-                k71WvV: (margin != null ? "x1555q52" : margin) + (margin + 4 != null ? "x1bi16m7" : margin + 4),
-                k1K539: (margin != null ? "x1hvr6ea" : margin) + (margin + 4 != null ? "x3skgmg" : margin + 4),
-                keTefX: (margin != null ? "x1feukp3" : margin) + (margin + 4 != null ? "xgzim5p" : margin + 4),
-                keoZOQ: margin - 4 != null ? "x17zef60" : margin - 4,
+                k71WvV: (margin != null ? "x1555q52" : margin) + "x1bi16m7",
+                k1K539: (margin != null ? "x1hvr6ea" : margin) + "x3skgmg",
+                keTefX: (margin != null ? "x1feukp3" : margin) + "xgzim5p",
+                keoZOQ: "x17zef60",
                 $$css: true
             },
             {

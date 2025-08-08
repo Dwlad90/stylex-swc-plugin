@@ -10,7 +10,7 @@ _inject2('@property --1obb2yn { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     root: (a, b, c)=>[
             {
-                kzqmXN: ('color-mix(' + color + ', blue)' != null ? "x1svif2g" : 'color-mix(' + color + ', blue)') + (b != null ? "x1a6pj3q" : b) + (c != null ? "xf0apgt" : c),
+                kzqmXN: "x1svif2g" + (b != null ? "x1a6pj3q" : b) + (c != null ? "xf0apgt" : c),
                 $$css: true
             },
             {

@@ -68,7 +68,7 @@ _inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     size: (size)=>[
             {
-                fontSize: 8 * size + 'px' != null ? "fontSize-x6zurak" : 8 * size + 'px',
+                fontSize: "fontSize-x6zurak",
                 $$css: "input.stylex.js:41"
             },
             {

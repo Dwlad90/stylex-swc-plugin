@@ -26,7 +26,7 @@ export default function Counter() {
 const styles = {
     size: (size)=>[
             {
-                kGuDYH: 8 * size + 'px' != null ? "x6zurak" : 8 * size + 'px',
+                kGuDYH: "x6zurak",
                 $$css: true
             },
             {

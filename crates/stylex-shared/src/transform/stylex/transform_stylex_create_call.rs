@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{BinExpr, KeyValueProp, ParenExpr},
+    ast::{BinExpr, KeyValueProp, ParenExpr, UnaryOp},
     utils::drop_span,
   },
 };
@@ -382,7 +382,13 @@ where
                                   })
                                   .map(|dynamic_style| dynamic_style.expression.clone());
 
-                                if let Some(expr) = expr {
+                                if let Some(expr) = expr.and_then(|e| {
+                                  if is_safe_to_skip_null_check(&e) {
+                                    None
+                                  } else {
+                                    Some(e)
+                                  }
+                                }) {
                                   expr_list.push(Expr::Cond(CondExpr {
                                     span: DUMMY_SP,
                                     test: Box::new(Expr::Bin(BinExpr {
@@ -559,4 +565,15 @@ fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicSty
     .collect();
 
   expanded_keys_to_key_paths
+}
+
+fn is_safe_to_skip_null_check(expr: &Expr) -> bool {
+  match expr {
+    Expr::Bin(bin_expr) => matches!(
+      bin_expr.op,
+      BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Exp
+    ),
+    Expr::Unary(unary_expr) => matches!(unary_expr.op, UnaryOp::Minus | UnaryOp::Plus),
+    _ => false,
+  }
 }

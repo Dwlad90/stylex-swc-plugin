@@ -7,7 +7,7 @@ _inject2('@property --6bge3v { syntax: "*"; }', 0);
 export const styles = {
     foo: (color)=>[
             {
-                kxBb7d: "x16oeupf x10u3axo",
+                kxBb7d: "x16oeupf" + "x10u3axo",
                 $$css: true
             },
             {

@@ -8,7 +8,7 @@ _inject2('@property ----x1anmu0j { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     root: (width)=>[
             {
-                "--x1anmu0j": width == null ? null : "x14vhreu",
+                "--x1anmu0j": width != null ? "x14vhreu" : width,
                 $$css: true
             },
             {

@@ -7,7 +7,7 @@ _inject2('@property --color { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     one: (color)=>[
             {
-                kMwMTN: "xfx01vb",
+                kMwMTN: color != null ? "xfx01vb" : color,
                 $$css: true
             },
             {

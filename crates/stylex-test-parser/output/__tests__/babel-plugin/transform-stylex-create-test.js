@@ -1977,7 +1977,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           export const styles = {
             root: color => [{
               kWkggS: "xrkmrrc",
-              kMwMTN: "xfx01vb",
+              kMwMTN: color != null ? "xfx01vb" : color,
               $$css: true
             }, {
               "--color": color != null ? color : undefined
@@ -2031,7 +2031,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           "import * as stylex from '@stylexjs/stylex';
           export const styles = {
             one: color => [{
-              kMwMTN: "xfx01vb",
+              kMwMTN: color != null ? "xfx01vb" : color,
               $$css: true
             }, {
               "--color": color != null ? color : undefined
@@ -2087,8 +2087,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           "import * as stylex from '@stylexjs/stylex';
           export const styles = {
             root: (bgColor, otherColor) => [{
-              "--background-color": bgColor == null ? null : "x15mgraa",
-              "--otherColor": otherColor == null ? null : "x1qph05k",
+              "--background-color": bgColor != null ? "x15mgraa" : bgColor,
+              "--otherColor": otherColor != null ? "x1qph05k" : otherColor,
               $$css: true
             }, {
               "----background-color": bgColor != null ? bgColor : undefined,
@@ -2149,7 +2149,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: width => [{
-                kzqmXN: "x1bl4301",
+                kzqmXN: width != null ? "x1bl4301" : width,
                 $$css: true
               }, {
                 "--width": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)(width)
@@ -2171,6 +2171,78 @@ describe('@stylexjs/babel-plugin', ()=>{
                   "--width",
                   {
                     "ltr": "@property --width { syntax: "*"; inherits: false;}",
+                    "rtl": null,
+                  },
+                  0,
+                ],
+              ],
+            }
+          `);
+                });
+                test('set mixed values', ()=>{
+                    const { code, metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (width) => ({
+                width,
+                backgroundColor: 'red',
+                height: width + 100,
+              })
+            });
+          `);
+                    expect(code).toMatchInlineSnapshot(`
+            "import * as stylex from '@stylexjs/stylex';
+            export const styles = {
+              root: width => [{
+                kzqmXN: width != null ? "x1bl4301" : width,
+                kWkggS: "xrkmrrc",
+                kZKoxP: width + 100 != null ? "x1f5funs" : width + 100,
+                $$css: true
+              }, {
+                "--width": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)(width),
+                "--height": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)(width + 100)
+              }]
+            };"
+          `);
+                    expect(metadata).toMatchInlineSnapshot(`
+            {
+              "stylex": [
+                [
+                  "x1bl4301",
+                  {
+                    "ltr": ".x1bl4301{width:var(--width)}",
+                    "rtl": null,
+                  },
+                  4000,
+                ],
+                [
+                  "xrkmrrc",
+                  {
+                    "ltr": ".xrkmrrc{background-color:red}",
+                    "rtl": null,
+                  },
+                  3000,
+                ],
+                [
+                  "x1f5funs",
+                  {
+                    "ltr": ".x1f5funs{height:var(--height)}",
+                    "rtl": null,
+                  },
+                  4000,
+                ],
+                [
+                  "--width",
+                  {
+                    "ltr": "@property --width { syntax: "*"; inherits: false;}",
+                    "rtl": null,
+                  },
+                  0,
+                ],
+                [
+                  "--height",
+                  {
+                    "ltr": "@property --height { syntax: "*"; inherits: false;}",
                     "rtl": null,
                   },
                   0,
@@ -2201,7 +2273,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             import { vars } from 'vars.stylex.js';
             export const styles = {
               root: width => [{
-                "--x1anmu0j": width == null ? null : "x14vhreu",
+                "--x1anmu0j": width != null ? "x14vhreu" : width,
                 $$css: true
               }, {
                 "----x1anmu0j": width != null ? width : undefined
@@ -2251,8 +2323,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: color => [{
-                kWkggS: "x1ttfofm",
-                kMwMTN: "x74ai9j",
+                kWkggS: color != null ? "x1ttfofm" : color,
+                kMwMTN: color != null ? "x74ai9j" : color,
                 $$css: true
               }, {
                 "--1e2mv7m": color != null ? color : undefined,
@@ -2317,7 +2389,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: (hover, active, focus) => [{
-                kMwMTN: "x74ai9j x19c4yy1 x10peeyq x126ychx",
+                kMwMTN: (hover != null ? "x74ai9j" : hover) + (active != null ? "x19c4yy1" : active) + (focus != null ? "x10peeyq" : focus) + "x126ychx",
                 $$css: true
               }, {
                 "--1113oo7": hover != null ? hover : undefined,
@@ -2409,8 +2481,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               foo: (a, b) => [{
-                kxBb7d: "x6r7ojb",
-                kB1Fuz: "x5ga601",
+                kxBb7d: a != null ? "x6r7ojb" : a,
+                kB1Fuz: b != null ? "x5ga601" : b,
                 $$css: true
               }, {
                 "--1g451k2": a != null ? a : undefined,
@@ -2472,7 +2544,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               foo: color => [{
-                k8Qsv1: "xwdnmik",
+                k8Qsv1: color != null ? "xwdnmik" : color,
                 $$css: true
               }, {
                 "--163tekb": color != null ? color : undefined
@@ -2517,7 +2589,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               foo: width => [{
-                k8pbKx: "x3j4sww",
+                k8pbKx: width != null ? "x3j4sww" : width,
                 $$css: true
               }, {
                 "--msahdu": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)(width)
@@ -2565,7 +2637,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               foo: color => [{
-                kxBb7d: "x16oeupf x10u3axo",
+                kxBb7d: "x16oeupf" + "x10u3axo",
                 $$css: true
               }, {
                 "--6bge3v": color != null ? color : undefined
@@ -2622,7 +2694,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: (a, b, c) => [{
-                kzqmXN: "x1svif2g x1a6pj3q xf0apgt",
+                kzqmXN: ('color-mix(' + color + ', blue)' != null ? "x1svif2g" : 'color-mix(' + color + ', blue)') + (b != null ? "x1a6pj3q" : b) + (c != null ? "xf0apgt" : c),
                 $$css: true
               }, {
                 "--1xmrurk": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)('color-mix(' + color + ', blue)'),
@@ -2703,7 +2775,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: (a, b, c) => [{
-                kMwMTN: "x1n25116 x1oeo35w x10db8fb",
+                kMwMTN: (a != null ? "x1n25116" : a) + (b != null ? "x1oeo35w" : b) + (c != null ? "x10db8fb" : c),
                 $$css: true
               }, {
                 "--4xs81a": a != null ? a : undefined,
@@ -2786,7 +2858,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: (a, b, c) => [{
-                kGuDYH: "x1cfcgx7 x956mei xarp7f8",
+                kGuDYH: (a != null ? "x1cfcgx7" : a) + (b != null ? "x956mei" : b) + (c != null ? "xarp7f8" : c),
                 $$css: true
               }, {
                 "--19zvkyr": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)(a),
@@ -3392,10 +3464,10 @@ describe('@stylexjs/babel-plugin', ()=>{
           export const styles = {
             default: margin => [{
               kWkggS: "xrkmrrc",
-              k71WvV: "x1555q52 x1bi16m7",
-              k1K539: "x1hvr6ea x3skgmg",
-              keTefX: "x1feukp3 xgzim5p",
-              keoZOQ: "x17zef60",
+              k71WvV: (margin != null ? "x1555q52" : margin) + (margin + 4 != null ? "x1bi16m7" : margin + 4),
+              k1K539: (margin != null ? "x1hvr6ea" : margin) + (margin + 4 != null ? "x3skgmg" : margin + 4),
+              keTefX: (margin != null ? "x1feukp3" : margin) + (margin + 4 != null ? "xgzim5p" : margin + 4),
+              keoZOQ: margin - 4 != null ? "x17zef60" : margin - 4,
               $$css: true
             }, {
               "--14mfytm": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)(margin),

@@ -8,8 +8,8 @@ _inject2('@property ----otherColor { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     root: (bgColor, otherColor)=>[
             {
-                "--background-color": bgColor == null ? null : "x15mgraa",
-                "--otherColor": otherColor == null ? null : "x1qph05k",
+                "--background-color": bgColor != null ? "x15mgraa" : bgColor,
+                "--otherColor": otherColor != null ? "x1qph05k" : otherColor,
                 $$css: true
             },
             {

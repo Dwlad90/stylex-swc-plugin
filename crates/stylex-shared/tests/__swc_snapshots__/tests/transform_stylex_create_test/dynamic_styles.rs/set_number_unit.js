@@ -6,7 +6,7 @@ _inject2('@property --width { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     root: (width)=>[
             {
-                kzqmXN: "x1bl4301",
+                kzqmXN: width != null ? "x1bl4301" : width,
                 $$css: true
             },
             {

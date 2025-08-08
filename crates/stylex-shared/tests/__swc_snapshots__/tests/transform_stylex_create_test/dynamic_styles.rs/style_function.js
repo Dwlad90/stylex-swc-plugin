@@ -8,7 +8,7 @@ export const styles = {
     root: (color)=>[
             {
                 kWkggS: "xrkmrrc",
-                kMwMTN: "xfx01vb",
+                kMwMTN: color != null ? "xfx01vb" : color,
                 $$css: true
             },
             {

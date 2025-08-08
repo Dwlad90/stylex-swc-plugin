@@ -8,8 +8,8 @@ _inject2('@property --19erzii { syntax: "*"; }', 0);
 export const styles = {
     foo: (a, b)=>[
             {
-                kxBb7d: "x6r7ojb",
-                kB1Fuz: "x5ga601",
+                kxBb7d: a != null ? "x6r7ojb" : a,
+                kB1Fuz: b != null ? "x5ga601" : b,
                 $$css: true
             },
             {

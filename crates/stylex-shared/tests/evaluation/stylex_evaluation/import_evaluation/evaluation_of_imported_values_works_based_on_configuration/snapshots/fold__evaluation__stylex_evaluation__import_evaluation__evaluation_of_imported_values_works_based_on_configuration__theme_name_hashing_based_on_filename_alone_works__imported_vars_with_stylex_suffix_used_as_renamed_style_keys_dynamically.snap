@@ -12,7 +12,7 @@ _inject2('@property ----__hashed_var__11epo5g { syntax: "*"; inherits: false; }'
 export const styles = {
     color: (color)=>[
             {
-                "--__hashed_var__11epo5g": color == null ? null : "__hashed_var__z0fnog",
+                "--__hashed_var__11epo5g": color != null ? "__hashed_var__z0fnog" : color,
                 $$css: true
             },
             {

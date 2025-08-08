@@ -6,7 +6,7 @@ _inject2('@property --msahdu { syntax: "*"; }', 0);
 export const styles = {
     foo: (width)=>[
             {
-                k8pbKx: "x3j4sww",
+                k8pbKx: width != null ? "x3j4sww" : width,
                 $$css: true
             },
             {

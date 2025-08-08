@@ -21,7 +21,7 @@ use crate::shared::{
   },
   structures::state_manager::StateManager,
   utils::{
-    ast::{convertors::string_to_expression, factories::key_value_factory},
+    ast::{convertors::string_to_expression, factories::key_value_ident_factory},
     common::get_import_from,
     log::build_code_frame_error::build_code_frame_error_and_panic,
   },
@@ -750,7 +750,8 @@ pub(crate) fn validate_theme_variables(
 
     let value = cloned_theme_ref.get(VAR_GROUP_HASH_KEY, state);
 
-    let key_value = key_value_factory(VAR_GROUP_HASH_KEY, string_to_expression(value.as_str()));
+    let key_value =
+      key_value_ident_factory(VAR_GROUP_HASH_KEY, string_to_expression(value.as_str()));
 
     return key_value;
   }

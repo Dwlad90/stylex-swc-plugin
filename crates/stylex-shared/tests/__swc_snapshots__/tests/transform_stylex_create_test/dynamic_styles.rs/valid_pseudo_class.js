@@ -8,8 +8,8 @@ _inject2('@property --1113oo7 { syntax: "*"; }', 0);
 export const styles = {
     root: (color)=>[
             {
-                kWkggS: "x1ttfofm",
-                kMwMTN: "x74ai9j",
+                kWkggS: color != null ? "x1ttfofm" : color,
+                kMwMTN: color != null ? "x74ai9j" : color,
                 $$css: true
             },
             {

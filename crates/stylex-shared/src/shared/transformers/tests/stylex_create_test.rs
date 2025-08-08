@@ -22,8 +22,8 @@ mod stylex_create {
     utils::ast::{
       convertors::string_to_expression,
       factories::{
-        array_expression_factory, key_value_factory, lit_null_factory, object_expression_factory,
-        prop_or_spread_expr_factory, prop_or_spread_expression_factory,
+        array_expression_factory, key_value_ident_factory, lit_null_factory,
+        object_expression_factory, prop_or_spread_expr_factory, prop_or_spread_expression_factory,
         prop_or_spread_string_factory,
       },
     },
@@ -37,7 +37,7 @@ mod stylex_create {
         string_to_expression(key),
         value
           .iter()
-          .map(|(key, value)| key_value_factory(key, string_to_expression(value)))
+          .map(|(key, value)| key_value_ident_factory(key, string_to_expression(value)))
           .collect(),
       );
     }
@@ -58,7 +58,7 @@ mod stylex_create {
         value
           .iter()
           .map(|(key, value)| {
-            key_value_factory(
+            key_value_ident_factory(
               key,
               object_expression_factory(
                 value
@@ -103,7 +103,7 @@ mod stylex_create {
         value
           .iter()
           .map(|(key, value)| {
-            key_value_factory(
+            key_value_ident_factory(
               key,
               object_expression_factory(
                 value
@@ -194,7 +194,7 @@ mod stylex_create {
               })
               .collect::<Vec<Option<ExprOrSpread>>>();
 
-            key_value_factory(key, array_expression_factory(elems))
+            key_value_ident_factory(key, array_expression_factory(elems))
           })
           .collect(),
       );
@@ -1132,7 +1132,7 @@ mod stylex_create {
 
     let def = object.get_mut(&string_to_expression("default")).unwrap();
 
-    def.push(key_value_factory(
+    def.push(key_value_ident_factory(
       "backgroundColor",
       string_to_expression("red"),
     ));

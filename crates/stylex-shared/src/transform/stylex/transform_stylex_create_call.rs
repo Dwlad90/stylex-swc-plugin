@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{BinExpr, ParenExpr},
+    ast::{BinExpr, KeyValueProp, ParenExpr},
     utils::drop_span,
   },
 };
@@ -19,7 +19,7 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::messages::non_static_value,
+  constants::{common::COMPILED_KEY, messages::non_static_value},
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
   transformers::stylex_position_try::get_position_try_fn,
@@ -341,137 +341,115 @@ where
                   }
 
                   if let Some(value) = value.as_mut_object() {
-                    value.props = value
-                      .props
-                      .iter_mut()
-                      .map(|prop| {
-                        if let PropOrSpread::Prop(prop) = prop {
-                          if let Some(obj_prop) = prop.as_mut_key_value() {
-                            let prop_key = match &obj_prop.key {
-                              PropName::Ident(ident) => Some(ident.sym.to_string()),
-                              PropName::Str(strng) => Some(strng.value.to_string()),
-                              _ => None,
-                            };
+                    let mut conditional_obj = vec![];
 
-                            if let Some(prop_key) = prop_key {
-                              let dynamic_match = dynamic_styles
-                                .iter()
-                                .filter(|dynamic_style| dynamic_style.key == prop_key)
-                                .cloned()
-                                .collect::<Vec<DynamicStyle>>();
+                    for prop in value.props.iter_mut() {
+                      if let PropOrSpread::Prop(prop) = prop {
+                        if let Some(obj_prop) = prop.as_mut_key_value() {
+                          let prop_key = match &obj_prop.key {
+                            PropName::Ident(ident) => Some(ident.sym.to_string()),
+                            PropName::Str(strng) => Some(strng.value.to_string()),
+                            _ => None,
+                          };
 
-                              if !dynamic_match.is_empty() {
-                                let value = &obj_prop.value;
-
-                                if let Expr::Lit(lit) = value.as_ref() {
-                                  let class_names_string =
-                                    lit_to_string(lit).expect("Lit cannot be stringified");
-
-                                  let class_list =
-                                    class_names_string.split(' ').collect::<Vec<&str>>();
-
-                                  if class_list.len() == 1 {
-                                    let cls = class_list.first().unwrap();
-
-                                    let expr = dynamic_match
-                                      .iter()
-                                      .find(|dynamic_style| {
-                                        orig_class_paths.get(&cls.to_string())
-                                          == Some(&dynamic_style.path)
-                                      })
-                                      .map(|dynamic_style| {
-                                        let expression = &dynamic_style.expression;
-
-                                        expression.clone()
-                                      });
-
-                                    if let Some(expr) = expr {
-                                      obj_prop.value = Box::new(Expr::Cond(CondExpr {
-                                        span: DUMMY_SP,
-                                        test: Box::new(Expr::Bin(BinExpr {
-                                          span: DUMMY_SP,
-                                          op: BinaryOp::EqEq,
-                                          left: Box::new(expr.clone()),
-                                          right: Box::new(null_to_expression()),
-                                        })),
-                                        cons: Box::new(null_to_expression()),
-                                        alt: value.clone(),
-                                      }));
-                                    }
-                                  } else if class_list.iter().any(|cls| {
-                                    dynamic_match.iter().any(|dynamic_style| {
-                                      orig_class_paths.get(&cls.to_string())
-                                        == Some(&dynamic_style.path)
-                                    })
-                                  }) {
-                                    let expr_array: Vec<Expr> = class_list
-                                      .iter()
-                                      .enumerate()
-                                      .map(|(index, cls)| {
-                                        let expr = dynamic_match
-                                          .iter()
-                                          .find(|dynamic_style| {
-                                            orig_class_paths.get(&cls.to_string())
-                                              == Some(&dynamic_style.path)
-                                          })
-                                          .map(|dynamic_style| dynamic_style.expression.clone());
-
-                                        let suffix = if index == class_list.len() - 1 {
-                                          ""
-                                        } else {
-                                          " "
-                                        };
-
-                                        match expr {
-                                          Some(expr) => Expr::Cond(CondExpr {
-                                            span: DUMMY_SP,
-                                            test: Box::new(Expr::Bin(BinExpr {
-                                              span: DUMMY_SP,
-                                              op: BinaryOp::EqEq,
-                                              left: Box::new(expr.clone()),
-                                              right: Box::new(null_to_expression()),
-                                            })),
-                                            cons: Box::new(
-                                              string_to_expression(Default::default()),
-                                            ),
-                                            alt: Box::new(string_to_expression(
-                                              format!("{}{}", cls, suffix).as_str(),
-                                            )),
-                                          }),
-                                          _ => string_to_expression(
-                                            format!("{}{}", cls, suffix).as_str(),
-                                          ),
-                                        }
-                                      })
-                                      .collect();
-
-                                    let (first, rest) =
-                                      expr_array.split_first().expect("Expression array is empty");
-
-                                    let reduced_expr =
-                                      rest.iter().fold(first.clone(), |acc, curr| {
-                                        Expr::Bin(BinExpr {
-                                          span: DUMMY_SP,
-                                          op: BinaryOp::Add,
-                                          left: Box::new(acc),
-                                          right: Box::new(curr.clone()),
-                                        })
-                                      });
-                                    obj_prop.value = Box::new(reduced_expr);
-                                  }
-                                }
-                              }
+                          if let Some(prop_key) = prop_key {
+                            if prop_key == COMPILED_KEY {
+                              conditional_obj.push(PropOrSpread::Prop(Box::new(Prop::from(
+                                obj_prop.to_owned(),
+                              ))));
+                              continue;
                             }
 
-                            PropOrSpread::Prop(Box::new(Prop::from(obj_prop.to_owned())))
+                            let class_list = obj_prop
+                              .value
+                              .as_lit()
+                              .and_then(lit_to_string)
+                              .map(|s| {
+                                s.split_whitespace()
+                                  .map(str::to_owned)
+                                  .collect::<Vec<String>>()
+                              })
+                              .unwrap_or_default();
+
+                            if !class_list.is_empty() {
+                              let mut expr_list = vec![];
+
+                              for cls in &class_list {
+                                let expr = dynamic_styles
+                                  .iter()
+                                  .find(|dynamic_style| {
+                                    orig_class_paths.get(cls) == Some(&dynamic_style.path)
+                                  })
+                                  .map(|dynamic_style| dynamic_style.expression.clone());
+
+                                if let Some(expr) = expr {
+                                  expr_list.push(Expr::Cond(CondExpr {
+                                    span: DUMMY_SP,
+                                    test: Box::new(Expr::Bin(BinExpr {
+                                      span: DUMMY_SP,
+                                      op: BinaryOp::NotEq,
+                                      left: Box::new(expr.clone()),
+                                      right: Box::new(null_to_expression()),
+                                    })),
+                                    cons: Box::new(string_to_expression(cls)),
+                                    alt: Box::new(expr),
+                                  }));
+                                } else {
+                                  expr_list.push(string_to_expression(cls));
+                                }
+                              }
+
+                              let joined = if expr_list.is_empty() {
+                                string_to_expression("")
+                              } else {
+                                expr_list
+                                  .into_iter()
+                                  .reduce(|acc, curr| {
+                                    Expr::Bin(BinExpr {
+                                      span: DUMMY_SP,
+                                      op: BinaryOp::Add,
+                                      left: Box::new(acc),
+                                      right: Box::new(curr),
+                                    })
+                                  })
+                                  .unwrap()
+                              };
+
+                              conditional_obj.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
+                                KeyValueProp {
+                                  key: obj_prop.key.clone(),
+                                  value: Box::new(joined),
+                                },
+                              ))));
+                            }
                           } else {
-                            PropOrSpread::Prop(prop.to_owned())
+                            conditional_obj.push(PropOrSpread::Prop(Box::new(Prop::from(
+                              obj_prop.to_owned(),
+                            ))));
                           }
                         } else {
-                          prop.to_owned()
+                          let expr = Expr::from(call.clone());
+
+                          build_code_frame_error_and_panic(
+                            &expr,
+                            &expr,
+                            "Unsupported prop type encountered in stylex.create. Only object properties are allowed.",
+                            &mut self.state,
+                          );
                         }
-                      })
-                      .collect::<Vec<PropOrSpread>>()
+                      } else {
+                        let expr = Expr::from(call.clone());
+
+                        build_code_frame_error_and_panic(
+                          &expr,
+                          &expr,
+                          "Unsupported prop type encountered in stylex.create. Only object properties are allowed.",
+                          &mut self.state,
+                        );
+                      }
+                    }
+
+                    value.props = conditional_obj;
                   }
 
                   let value = Expr::from(ArrowExpr {

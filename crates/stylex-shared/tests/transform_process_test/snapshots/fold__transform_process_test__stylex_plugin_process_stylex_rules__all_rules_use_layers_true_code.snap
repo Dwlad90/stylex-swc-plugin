@@ -38,7 +38,7 @@ export const styles = {
     },
     dynamic: (color)=>[
             {
-                "color-kMwMTN": "color-xfx01vb",
+                "color-kMwMTN": color != null ? "color-xfx01vb" : color,
                 $$css: true
             },
             {

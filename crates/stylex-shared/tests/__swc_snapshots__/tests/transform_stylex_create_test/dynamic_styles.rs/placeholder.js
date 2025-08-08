@@ -6,7 +6,7 @@ _inject2('@property --163tekb { syntax: "*"; }', 0);
 export const styles = {
     foo: (color)=>[
             {
-                k8Qsv1: "xwdnmik",
+                k8Qsv1: color != null ? "xwdnmik" : color,
                 $$css: true
             },
             {

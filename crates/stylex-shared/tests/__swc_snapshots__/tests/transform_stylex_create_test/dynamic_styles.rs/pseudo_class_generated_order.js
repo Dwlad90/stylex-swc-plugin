@@ -11,7 +11,7 @@ _inject2('@property --8tbbve { syntax: "*"; }', 0);
 export const styles = {
     root: (hover, active, focus)=>[
             {
-                kMwMTN: "x74ai9j x19c4yy1 x10peeyq x126ychx",
+                kMwMTN: (hover != null ? "x74ai9j" : hover) + (active != null ? "x19c4yy1" : active) + (focus != null ? "x10peeyq" : focus) + "x126ychx",
                 $$css: true
             },
             {

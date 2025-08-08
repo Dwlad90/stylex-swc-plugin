@@ -78,7 +78,7 @@ pub(crate) fn prop_or_spread_expr_factory(key: &str, values: Vec<PropOrSpread>) 
   prop_or_spread_expression_factory(key, Expr::Object(object))
 }
 
-pub fn key_value_factory(key: &str, value: Expr) -> KeyValueProp {
+pub fn key_value_ident_factory(key: &str, value: Expr) -> KeyValueProp {
   KeyValueProp {
     key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
     value: Box::new(value),

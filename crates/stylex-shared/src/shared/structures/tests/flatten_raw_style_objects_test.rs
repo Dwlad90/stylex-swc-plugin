@@ -16,7 +16,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     utils::{
       ast::{
         convertors::string_to_expression,
-        factories::{create_array, key_value_factory},
+        factories::{create_array, key_value_ident_factory},
       },
       core::flatten_raw_style_object::flatten_raw_style_object,
     },
@@ -63,8 +63,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_create_pre_rule_objects_for_simple_style_values() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("color", string_to_expression("red")),
-        key_value_factory("marginStart", string_to_expression("10")),
+        key_value_ident_factory("color", string_to_expression("red")),
+        key_value_ident_factory("marginStart", string_to_expression("10")),
       ],
       &mut vec![],
       &mut EvaluationState::new(),
@@ -93,7 +93,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_gap_values() {
     let result = flatten_raw_style_object(
-      &[key_value_factory("gap", string_to_expression("10"))],
+      &[key_value_ident_factory("gap", string_to_expression("10"))],
       &mut vec![],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -119,7 +119,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_contain_intrinsic_size_values() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "containIntrinsicSize",
         string_to_expression("10"),
       )],
@@ -148,7 +148,10 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_gap_with_space_separated_values() {
     let result = flatten_raw_style_object(
-      &[key_value_factory("gap", string_to_expression("10px 20px"))],
+      &[key_value_ident_factory(
+        "gap",
+        string_to_expression("10px 20px"),
+      )],
       &mut vec![],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -177,7 +180,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let h = "containIntrinsicHeight";
 
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "containIntrinsicSize",
         string_to_expression("10px 20px"),
       )],
@@ -203,7 +206,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let h = "containIntrinsicHeight";
 
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "containIntrinsicSize",
         string_to_expression("auto 10px 20px"),
       )],
@@ -229,7 +232,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let h = "containIntrinsicHeight";
 
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "containIntrinsicSize",
         string_to_expression("auto 10px auto 20px"),
       )],
@@ -252,7 +255,10 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_shorthands() {
     let result = flatten_raw_style_object(
-      &[key_value_factory("margin", string_to_expression("10"))],
+      &[key_value_ident_factory(
+        "margin",
+        string_to_expression("10"),
+      )],
       &mut vec![],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -287,8 +293,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_simple_shorthands_extended() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("margin", string_to_expression("10")),
-        key_value_factory("marginBottom", string_to_expression("20")),
+        key_value_ident_factory("margin", string_to_expression("10")),
+        key_value_ident_factory("marginBottom", string_to_expression("20")),
       ],
       &mut vec![],
       &mut EvaluationState::new(),
@@ -329,8 +335,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_shorthands_with_space_separated_values() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("margin", string_to_expression("10px 20px")),
-        key_value_factory("borderColor", string_to_expression("red")),
+        key_value_ident_factory("margin", string_to_expression("10px 20px")),
+        key_value_ident_factory("borderColor", string_to_expression("red")),
       ],
       &mut vec![],
       &mut EvaluationState::new(),
@@ -382,7 +388,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_shorthands_with_fallbacks() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "margin",
         Expr::from(create_array(&[
           string_to_expression("10vh 20px"),
@@ -431,7 +437,7 @@ mod nested_objects {
       }
     },
     utils::{
-      ast::{convertors::string_to_expression, factories::{key_value_factory, object_expression_factory, prop_or_spread_string_factory}, }, core::flatten_raw_style_object::flatten_raw_style_object,
+      ast::{convertors::string_to_expression, factories::{key_value_ident_factory, object_expression_factory, prop_or_spread_string_factory}, }, core::flatten_raw_style_object::flatten_raw_style_object,
     },
   };
 
@@ -439,9 +445,9 @@ mod nested_objects {
   fn legacy_pseudo_classes() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory("color", string_to_expression("blue")),
-        key_value_factory("marginStart", string_to_expression("0")),
-        key_value_factory(
+        key_value_ident_factory("color", string_to_expression("blue")),
+        key_value_ident_factory("marginStart", string_to_expression("0")),
+        key_value_ident_factory(
           ":hover",
           object_expression_factory(vec![
             prop_or_spread_string_factory("color", "red"),
@@ -490,14 +496,14 @@ mod nested_objects {
   fn modern_pseudo_classes() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory(
+        key_value_ident_factory(
           "color",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "blue"),
             prop_or_spread_string_factory(":hover", "red"),
           ]),
         ),
-        key_value_factory(
+        key_value_ident_factory(
           "marginStart",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "0"),
@@ -548,14 +554,14 @@ mod nested_objects {
   fn modern_pseudo_classes_with_shorthands() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory(
+        key_value_ident_factory(
           "color",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "blue"),
             prop_or_spread_string_factory(":hover", "red"),
           ]),
         ),
-        key_value_factory(
+        key_value_ident_factory(
           "margin",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "0"),
@@ -620,14 +626,14 @@ mod nested_objects {
   fn modern_pseudo_classes_with_complex_shorthands() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory(
+        key_value_ident_factory(
           "color",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "blue"),
             prop_or_spread_string_factory(":hover", "red"),
           ]),
         ),
-        key_value_factory(
+        key_value_ident_factory(
           "margin",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
@@ -700,7 +706,7 @@ mod nested_objects {
   fn modern_pseudo_and_at_rules() {
     let result = flatten_raw_style_object(
       &[
-        key_value_factory(
+        key_value_ident_factory(
           "color",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "blue"),
@@ -708,7 +714,7 @@ mod nested_objects {
             prop_or_spread_string_factory("@media (min-width: 300px)", "green"),
           ]),
         ),
-        key_value_factory(
+        key_value_ident_factory(
           "marginStart",
           object_expression_factory(vec![
             prop_or_spread_string_factory("default", "0"),
@@ -767,14 +773,14 @@ mod multiple_levels_of_nesting {
       }
     },
     utils::{
-       ast::factories::{key_value_factory, object_expression_factory, prop_or_spread_array_string_factory, prop_or_spread_expr_factory, prop_or_spread_string_factory}, core::flatten_raw_style_object::flatten_raw_style_object
+       ast::factories::{key_value_ident_factory, object_expression_factory, prop_or_spread_array_string_factory, prop_or_spread_expr_factory, prop_or_spread_string_factory}, core::flatten_raw_style_object::flatten_raw_style_object
     },
   };
 
   #[test]
   fn fallback_styles_within_nested_objects() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "margin",
         object_expression_factory(vec![
           prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
@@ -845,7 +851,7 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_within_a_media_query_legacy_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "@media (min-width: 300px)",
         object_expression_factory(vec![prop_or_spread_expr_factory(
           ":hover",
@@ -877,7 +883,7 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_with_a_pseudo_within_a_media_query_legacy_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "@media (min-width: 300px)",
         object_expression_factory(vec![prop_or_spread_expr_factory(
           ":hover",
@@ -924,7 +930,7 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_within_a_media_query_modern_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "color",
         object_expression_factory(vec![
           prop_or_spread_string_factory("default", "blue"),
@@ -962,7 +968,7 @@ mod multiple_levels_of_nesting {
   #[test]
   fn extra_deep_pseudo_within_a_media_query_modern_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_factory(
+      &[key_value_ident_factory(
         "color",
         object_expression_factory(vec![
           prop_or_spread_string_factory("default", "blue"),

@@ -1059,8 +1059,12 @@ fn _evaluate(
     }
     Expr::Bin(bin) => binary_expr_to_num(bin, state, traversal_state, fns)
       .or_else(|num_error| {
-        binary_expr_to_string(bin, state, traversal_state, fns)
-          .map_err(|str_error| format!("{} and {}", num_error, str_error))
+        binary_expr_to_string(bin, state, traversal_state, fns).or_else::<String, _>(|str_error| {
+          debug!("Binary expression to string error: {}", str_error);
+          debug!("Binary expression to number error: {}", num_error);
+
+          Ok(BinaryExprType::Null)
+        })
       })
       .map(|result| match result {
         BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(number_to_expression(num))),
@@ -1069,7 +1073,7 @@ fn _evaluate(
         }
         BinaryExprType::Null => None,
       })
-      .unwrap_or_else(|error| panic!("{}", error)),
+      .unwrap_or_else(|error: _| panic!("{}", error)),
     Expr::Call(call) => {
       let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
       let mut func: Option<Box<FunctionConfig>> = None;

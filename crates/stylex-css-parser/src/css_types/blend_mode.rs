@@ -35,7 +35,7 @@ impl BlendMode {
     pub fn all_values() -> &'static [&'static str] {
         &[
             "normal",
-            "multiply", 
+            "multiply",
             "screen",
             "overlay",
             "darken",
@@ -152,7 +152,7 @@ mod tests {
         assert_eq!(BlendMode::from_str("saturation"), Some(BlendMode::Saturation));
         assert_eq!(BlendMode::from_str("color"), Some(BlendMode::Color));
         assert_eq!(BlendMode::from_str("luminosity"), Some(BlendMode::Luminosity));
-        
+
         // Invalid values
         assert_eq!(BlendMode::from_str("invalid"), None);
         assert_eq!(BlendMode::from_str("NORMAL"), None);
@@ -193,7 +193,7 @@ mod tests {
         assert!(BlendMode::is_valid_blend_mode("multiply"));
         assert!(BlendMode::is_valid_blend_mode("color-dodge"));
         assert!(BlendMode::is_valid_blend_mode("luminosity"));
-        
+
         // Invalid
         assert!(!BlendMode::is_valid_blend_mode("invalid"));
         assert!(!BlendMode::is_valid_blend_mode("NORMAL"));
@@ -204,7 +204,7 @@ mod tests {
     fn test_blend_mode_all_values() {
         let values = BlendMode::all_values();
         assert_eq!(values.len(), 16);
-        
+
         // Test that all values can be parsed
         for value_str in values {
             assert!(BlendMode::from_str(value_str).is_some());
@@ -265,12 +265,12 @@ mod tests {
             BlendMode::Darken, BlendMode::Lighten, BlendMode::ColorDodge, BlendMode::ColorBurn,
             BlendMode::HardLight, BlendMode::SoftLight, BlendMode::Difference, BlendMode::Exclusion
         ];
-        
+
         // Test non-separable blend modes
         let non_separable = &[
             BlendMode::Hue, BlendMode::Saturation, BlendMode::Color, BlendMode::Luminosity
         ];
-        
+
         // Verify all modes are accounted for
         assert_eq!(separable.len() + non_separable.len(), 16);
     }

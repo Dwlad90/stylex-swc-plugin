@@ -7,7 +7,7 @@ Mirrors: packages/style-value-parser/src/css-types/position.js
 */
 
 use crate::{
-    token_parser::TokenParser, 
+    token_parser::TokenParser,
     token_types::SimpleToken,
     css_types::LengthPercentage
 };
@@ -177,8 +177,8 @@ impl Position {
         TokenParser::one_of(vec![
             // Keyword only
             Self::horizontal_keyword_parser().map(Horizontal::Keyword, Some("keyword_only")),
-            
-            // Length-percentage only  
+
+            // Length-percentage only
             crate::css_types::length_percentage_parser().map(Horizontal::LengthPercentage, Some("length_percentage")),
         ])
     }
@@ -189,7 +189,7 @@ impl Position {
         TokenParser::one_of(vec![
             // Keyword only
             Self::vertical_keyword_parser().map(Vertical::Keyword, Some("keyword_only")),
-            
+
             // Length-percentage only
             crate::css_types::length_percentage_parser().map(Vertical::LengthPercentage, Some("length_percentage")),
         ])
@@ -203,14 +203,14 @@ impl Position {
         // - Keyword with offset
         // - Multiple length-percentage values
         // - Order-independent parsing
-        
+
         TokenParser::one_of(vec![
             // Horizontal only
             Self::horizontal_parser().map(|h| Position::new(Some(h), None), Some("horizontal_only")),
-            
+
             // Vertical only
             Self::vertical_parser().map(|v| Position::new(None, Some(v)), Some("vertical_only")),
-            
+
             // Both horizontal and vertical
             Self::horizontal_parser()
                 .flat_map(|h| {
@@ -224,12 +224,12 @@ impl Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let horizontal_str = self.horizontal.as_ref().map(|h| h.to_string());
         let vertical_str = self.vertical.as_ref().map(|v| v.to_string());
-        
+
         let parts: Vec<String> = [horizontal_str, vertical_str]
             .into_iter()
             .filter_map(|s| s)
             .collect();
-            
+
         write!(f, "{}", parts.join(" "))
     }
 }
@@ -273,12 +273,12 @@ mod tests {
     fn test_horizontal_display() {
         let keyword = Horizontal::Keyword(HorizontalKeyword::Left);
         assert_eq!(keyword.to_string(), "left");
-        
+
         let length_percent = Horizontal::LengthPercentage(LengthPercentage::Percentage(Percentage::new(50.0)));
         assert_eq!(length_percent.to_string(), "50%");
-        
+
         let keyword_with_offset = Horizontal::KeywordWithOffset(
-            HorizontalKeyword::Left, 
+            HorizontalKeyword::Left,
             LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(keyword_with_offset.to_string(), "left 10px");
@@ -288,12 +288,12 @@ mod tests {
     fn test_vertical_display() {
         let keyword = Vertical::Keyword(VerticalKeyword::Top);
         assert_eq!(keyword.to_string(), "top");
-        
+
         let length_percent = Vertical::LengthPercentage(LengthPercentage::Percentage(Percentage::new(25.0)));
         assert_eq!(length_percent.to_string(), "25%");
-        
+
         let keyword_with_offset = Vertical::KeywordWithOffset(
-            VerticalKeyword::Bottom, 
+            VerticalKeyword::Bottom,
             LengthPercentage::Length(Length::new(5.0, "em".to_string()))
         );
         assert_eq!(keyword_with_offset.to_string(), "bottom 5em");
@@ -305,7 +305,7 @@ mod tests {
             Some(Horizontal::Keyword(HorizontalKeyword::Center)),
             Some(Vertical::Keyword(VerticalKeyword::Top))
         );
-        
+
         assert!(pos.horizontal.is_some());
         assert!(pos.vertical.is_some());
     }
@@ -317,13 +317,13 @@ mod tests {
             Some(Vertical::Keyword(VerticalKeyword::Top))
         );
         assert_eq!(pos1.to_string(), "left top");
-        
+
         let pos2 = Position::new(
             Some(Horizontal::Keyword(HorizontalKeyword::Center)),
             None
         );
         assert_eq!(pos2.to_string(), "center");
-        
+
         let pos3 = Position::new(
             None,
             Some(Vertical::Keyword(VerticalKeyword::Bottom))
@@ -345,17 +345,17 @@ mod tests {
             Some(Horizontal::Keyword(HorizontalKeyword::Left)),
             Some(Vertical::Keyword(VerticalKeyword::Top))
         );
-        
+
         let pos2 = Position::new(
             Some(Horizontal::Keyword(HorizontalKeyword::Left)),
             Some(Vertical::Keyword(VerticalKeyword::Top))
         );
-        
+
         let pos3 = Position::new(
             Some(Horizontal::Keyword(HorizontalKeyword::Right)),
             Some(Vertical::Keyword(VerticalKeyword::Top))
         );
-        
+
         assert_eq!(pos1, pos2);
         assert_ne!(pos1, pos3);
     }
@@ -366,7 +366,7 @@ mod tests {
             Some(Horizontal::LengthPercentage(LengthPercentage::Percentage(Percentage::new(50.0)))),
             Some(Vertical::LengthPercentage(LengthPercentage::Length(Length::new(100.0, "px".to_string()))))
         );
-        
+
         assert_eq!(pos.to_string(), "50% 100px");
     }
 
@@ -375,10 +375,10 @@ mod tests {
         // Test that center can be both horizontal and vertical
         let h_center = HorizontalKeyword::Center;
         let v_center = VerticalKeyword::Center;
-        
+
         assert_eq!(h_center.as_str(), "center");
         assert_eq!(v_center.as_str(), "center");
-        
+
         // Different enum types but same string representation
         assert_eq!(h_center.to_string(), v_center.to_string());
     }
@@ -389,7 +389,7 @@ mod tests {
         assert_eq!(HorizontalKeyword::Left.as_str(), "left");
         assert_eq!(HorizontalKeyword::Center.as_str(), "center");
         assert_eq!(HorizontalKeyword::Right.as_str(), "right");
-        
+
         // Test all vertical keywords
         assert_eq!(VerticalKeyword::Top.as_str(), "top");
         assert_eq!(VerticalKeyword::Center.as_str(), "center");
@@ -404,13 +404,13 @@ mod tests {
             Some(Vertical::Keyword(VerticalKeyword::Center))
         );
         assert_eq!(center_center.to_string(), "center center");
-        
+
         let top_left = Position::new(
             Some(Horizontal::Keyword(HorizontalKeyword::Left)),
             Some(Vertical::Keyword(VerticalKeyword::Top))
         );
         assert_eq!(top_left.to_string(), "left top");
-        
+
         let bottom_right = Position::new(
             Some(Horizontal::Keyword(HorizontalKeyword::Right)),
             Some(Vertical::Keyword(VerticalKeyword::Bottom))

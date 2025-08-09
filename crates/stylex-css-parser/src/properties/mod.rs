@@ -1,15 +1,17 @@
 /*!
-Property-specific CSS parsers.
+CSS property parsers.
 
-This module contains parsers for complex CSS properties that require specialized parsing logic,
-mirroring the JavaScript properties directory.
+This module contains parsers for specific CSS properties that require complex parsing logic.
+Each property has its own module with specialized parsing for that property's syntax.
+
+Mirrors: packages/style-value-parser/src/properties/
 */
 
-pub mod transform;
-pub mod box_shadow;
 pub mod border_radius;
+pub mod box_shadow;
+pub mod transform;
 
-// Re-export main types
-pub use transform::Transform;
-pub use box_shadow::{BoxShadow, BoxShadowList};
+// Re-export commonly used property types
 pub use border_radius::{BorderRadiusIndividual, BorderRadiusShorthand};
+pub use box_shadow::{BoxShadow, BoxShadowList};
+pub use transform::Transform;

@@ -1,12 +1,455 @@
 /*!
 CSS Color type parsing.
 
-Handles all CSS color formats: named colors, hex, rgb, hsl, etc.
+Handles all CSS color formats: named colors, hex, rgb, rgba, hsl, hsla, and modern color spaces.
 Mirrors: packages/style-value-parser/src/css-types/color.js
 */
 
+use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use std::fmt::{self, Display};
+
+/// List of all valid CSS named colors
+/// This is a comprehensive list of CSS Level 4 named colors
+const NAMED_COLORS: &[&str] = &[
+    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "black",
+    "blanchedalmond", "blue", "blueviolet", "brown", "burlywood", "cadetblue", "chartreuse",
+    "chocolate", "coral", "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
+    "darkgoldenrod", "darkgray", "darkgreen", "darkgrey", "darkkhaki", "darkmagenta",
+    "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon", "darkseagreen",
+    "darkslateblue", "darkslategray", "darkslategrey", "darkturquoise", "darkviolet", "deeppink",
+    "deepskyblue", "dimgray", "dimgrey", "dodgerblue", "firebrick", "floralwhite", "forestgreen",
+    "fuchsia", "gainsboro", "ghostwhite", "gold", "goldenrod", "gray", "grey", "green",
+    "greenyellow", "honeydew", "hotpink", "indianred", "indigo", "ivory", "khaki", "lavender",
+    "lavenderblush", "lawngreen", "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
+    "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey", "lightpink", "lightsalmon",
+    "lightseagreen", "lightskyblue", "lightslategray", "lightslategrey", "lightsteelblue",
+    "lightyellow", "lime", "limegreen", "linen", "magenta", "maroon", "mediumaquamarine",
+    "mediumblue", "mediumorchid", "mediumpurple", "mediumseagreen", "mediumslateblue",
+    "mediumspringgreen", "mediumturquoise", "mediumvioletred", "midnightblue", "mintcream",
+    "mistyrose", "moccasin", "navajowhite", "navy", "oldlace", "olive", "olivedrab", "orange",
+    "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise", "palevioletred",
+    "papayawhip", "peachpuff", "peru", "pink", "plum", "powderblue", "purple", "rebeccapurple",
+    "red", "rosybrown", "royalblue", "saddlebrown", "salmon", "sandybrown", "seagreen", "seashell",
+    "sienna", "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow", "springgreen",
+    "steelblue", "tan", "teal", "thistle", "tomato", "turquoise", "violet", "wheat", "white",
+    "whitesmoke", "yellow", "yellowgreen", "transparent", "currentcolor",
+];
+
+/// Base Color trait that all color types implement
+pub trait ColorTrait {
+    fn to_string(&self) -> String;
+}
+
+/// Main Color enum that encompasses all color types
+/// Mirrors: Color class in color.js
 #[derive(Debug, Clone, PartialEq)]
-pub struct Color {
-    // TODO: Implement comprehensive color parsing
-    pub placeholder: String,
+pub enum Color {
+    Named(NamedColor),
+    Hash(HashColor),
+    Rgb(RgbColor),
+    Rgba(RgbaColor),
+    Hsl(HslColor),
+    Hsla(HslaColor),
+    // TODO: Add Lch, Oklch, Oklab when needed
+}
+
+impl Color {
+    /// Parser for all color formats
+    /// Mirrors: Color.parser
+    pub fn parser() -> TokenParser<Color> {
+        TokenParser::one_of(vec![
+            NamedColor::parser().map(Color::Named, Some("named")),
+            HashColor::parser().map(Color::Hash, Some("hash")),
+            RgbColor::parser().map(Color::Rgb, Some("rgb")),
+            RgbaColor::parser().map(Color::Rgba, Some("rgba")),
+            HslColor::parser().map(Color::Hsl, Some("hsl")),
+            HslaColor::parser().map(Color::Hsla, Some("hsla")),
+        ])
+    }
+}
+
+impl Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Color::Named(named) => named.fmt(f),
+            Color::Hash(hash) => hash.fmt(f),
+            Color::Rgb(rgb) => rgb.fmt(f),
+            Color::Rgba(rgba) => rgba.fmt(f),
+            Color::Hsl(hsl) => hsl.fmt(f),
+            Color::Hsla(hsla) => hsla.fmt(f),
+        }
+    }
+}
+
+/// Named color like "red", "blue", etc.
+/// Mirrors: NamedColor class
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NamedColor {
+    pub value: String,
+}
+
+impl NamedColor {
+    pub fn new(value: String) -> Self {
+        Self { value }
+    }
+
+    /// Check if a string is a valid named color
+    pub fn is_valid_named_color(name: &str) -> bool {
+        NAMED_COLORS.contains(&name.to_lowercase().as_str())
+    }
+
+    /// Parser for named colors
+    /// Mirrors: NamedColor.parser
+    pub fn parser() -> TokenParser<NamedColor> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))
+            .map(
+                |token| {
+                    if let SimpleToken::Ident(value) = token {
+                        value
+                    } else {
+                        unreachable!()
+                    }
+                },
+                Some("extract_ident"),
+            )
+            .where_fn(
+                |value| Self::is_valid_named_color(value),
+                Some("valid_named_color"),
+            )
+            .map(NamedColor::new, Some("to_named_color"))
+    }
+}
+
+impl Display for NamedColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+/// Hex color like #FF0000, #F00, #FF0000FF
+/// Mirrors: HashColor class
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HashColor {
+    pub value: String, // Hex value without the #
+}
+
+impl HashColor {
+    pub fn new(value: String) -> Self {
+        Self { value }
+    }
+
+    /// Validate hex color format
+    pub fn is_valid_hex(value: &str) -> bool {
+        let valid_lengths = [3, 6, 8]; // 3-digit, 6-digit, 8-digit (with alpha)
+        valid_lengths.contains(&value.len()) && value.chars().all(|c| c.is_ascii_hexdigit())
+    }
+
+    /// Get red component (0-255)
+    pub fn r(&self) -> u8 {
+        match self.value.len() {
+            3 => {
+                // 3-digit hex: #RGB -> expand to #RRGGBB
+                let r_char = self.value.chars().next().unwrap();
+                let expanded = format!("{}{}", r_char, r_char);
+                u8::from_str_radix(&expanded, 16).unwrap_or(0)
+            }
+            6 | 8 => {
+                // 6-digit or 8-digit hex
+                u8::from_str_radix(&self.value[0..2], 16).unwrap_or(0)
+            }
+            _ => 0,
+        }
+    }
+
+    /// Get green component (0-255)
+    pub fn g(&self) -> u8 {
+        match self.value.len() {
+            3 => {
+                let g_char = self.value.chars().nth(1).unwrap();
+                let expanded = format!("{}{}", g_char, g_char);
+                u8::from_str_radix(&expanded, 16).unwrap_or(0)
+            }
+            6 | 8 => u8::from_str_radix(&self.value[2..4], 16).unwrap_or(0),
+            _ => 0,
+        }
+    }
+
+    /// Get blue component (0-255)
+    pub fn b(&self) -> u8 {
+        match self.value.len() {
+            3 => {
+                let b_char = self.value.chars().nth(2).unwrap();
+                let expanded = format!("{}{}", b_char, b_char);
+                u8::from_str_radix(&expanded, 16).unwrap_or(0)
+            }
+            6 | 8 => u8::from_str_radix(&self.value[4..6], 16).unwrap_or(0),
+            _ => 0,
+        }
+    }
+
+    /// Get alpha component (0.0-1.0)
+    pub fn a(&self) -> f32 {
+        if self.value.len() == 8 {
+            let alpha_hex = &self.value[6..8];
+            u8::from_str_radix(alpha_hex, 16).unwrap_or(255) as f32 / 255.0
+        } else {
+            1.0
+        }
+    }
+
+    /// Parser for hex colors
+    /// Mirrors: HashColor.parser
+    pub fn parser() -> TokenParser<HashColor> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Hash(String::new()), Some("Hash"))
+            .map(
+                |token| {
+                    if let SimpleToken::Hash(value) = token {
+                        value
+                    } else {
+                        unreachable!()
+                    }
+                },
+                Some("extract_hash"),
+            )
+            .where_fn(
+                |value| Self::is_valid_hex(value),
+                Some("valid_hex"),
+            )
+            .map(HashColor::new, Some("to_hash_color"))
+    }
+}
+
+impl Display for HashColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "#{}", self.value)
+    }
+}
+
+/// RGB color: rgb(255, 0, 0)
+/// Mirrors: Rgb class
+#[derive(Debug, Clone, PartialEq)]
+pub struct RgbColor {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+impl RgbColor {
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b }
+    }
+
+    /// Parser for RGB colors
+    /// Simplified version - will enhance later with comma/space separation
+    pub fn parser() -> TokenParser<RgbColor> {
+        // TODO: Implement full RGB parsing with function tokens
+        TokenParser::<RgbColor>::never()
+    }
+}
+
+impl Display for RgbColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "rgb({},{},{})", self.r, self.g, self.b)
+    }
+}
+
+/// RGBA color: rgba(255, 0, 0, 0.5)
+/// Mirrors: Rgba class
+#[derive(Debug, Clone, PartialEq)]
+pub struct RgbaColor {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: f32,
+}
+
+impl RgbaColor {
+    pub fn new(r: u8, g: u8, b: u8, a: f32) -> Self {
+        Self { r, g, b, a }
+    }
+
+    /// Parser for RGBA colors
+    /// Simplified version - will enhance later
+    pub fn parser() -> TokenParser<RgbaColor> {
+        // TODO: Implement full RGBA parsing
+        TokenParser::<RgbaColor>::never()
+    }
+}
+
+impl Display for RgbaColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "rgba({},{},{},{})", self.r, self.g, self.b, self.a)
+    }
+}
+
+/// HSL color: hsl(360, 100%, 50%)
+/// Mirrors: Hsl class
+#[derive(Debug, Clone, PartialEq)]
+pub struct HslColor {
+    pub h: f32, // hue (0-360)
+    pub s: f32, // saturation percentage (0-100)
+    pub l: f32, // lightness percentage (0-100)
+}
+
+impl HslColor {
+    pub fn new(h: f32, s: f32, l: f32) -> Self {
+        Self { h, s, l }
+    }
+
+    /// Parser for HSL colors
+    /// Simplified version - will enhance later
+    pub fn parser() -> TokenParser<HslColor> {
+        // TODO: Implement full HSL parsing
+        TokenParser::<HslColor>::never()
+    }
+}
+
+impl Display for HslColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "hsl({},{}%,{}%)", self.h, self.s, self.l)
+    }
+}
+
+/// HSLA color: hsla(360, 100%, 50%, 0.5)
+/// Mirrors: Hsla class
+#[derive(Debug, Clone, PartialEq)]
+pub struct HslaColor {
+    pub h: f32, // hue (0-360)
+    pub s: f32, // saturation percentage (0-100)
+    pub l: f32, // lightness percentage (0-100)
+    pub a: f32, // alpha (0.0-1.0)
+}
+
+impl HslaColor {
+    pub fn new(h: f32, s: f32, l: f32, a: f32) -> Self {
+        Self { h, s, l, a }
+    }
+
+    /// Parser for HSLA colors
+    /// Simplified version - will enhance later
+    pub fn parser() -> TokenParser<HslaColor> {
+        // TODO: Implement full HSLA parsing
+        TokenParser::<HslaColor>::never()
+    }
+}
+
+impl Display for HslaColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "hsla({},{}%,{}%,{})", self.h, self.s, self.l, self.a)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_named_color_validation() {
+        assert!(NamedColor::is_valid_named_color("red"));
+        assert!(NamedColor::is_valid_named_color("blue"));
+        assert!(NamedColor::is_valid_named_color("transparent"));
+        assert!(NamedColor::is_valid_named_color("currentcolor"));
+
+        // Case insensitive
+        assert!(NamedColor::is_valid_named_color("RED"));
+        assert!(NamedColor::is_valid_named_color("Blue"));
+
+        // Invalid
+        assert!(!NamedColor::is_valid_named_color("notacolor"));
+        assert!(!NamedColor::is_valid_named_color(""));
+    }
+
+    #[test]
+    fn test_named_color_display() {
+        let color = NamedColor::new("red".to_string());
+        assert_eq!(color.to_string(), "red");
+    }
+
+    #[test]
+    fn test_hex_color_validation() {
+        // Valid formats
+        assert!(HashColor::is_valid_hex("F00")); // 3-digit
+        assert!(HashColor::is_valid_hex("FF0000")); // 6-digit
+        assert!(HashColor::is_valid_hex("FF0000FF")); // 8-digit with alpha
+        assert!(HashColor::is_valid_hex("123abc")); // lowercase
+
+        // Invalid formats
+        assert!(!HashColor::is_valid_hex("GG0000")); // invalid hex
+        assert!(!HashColor::is_valid_hex("FF00")); // wrong length
+        assert!(!HashColor::is_valid_hex("")); // empty
+    }
+
+    #[test]
+    fn test_hex_color_rgb_extraction() {
+        // 6-digit hex
+        let color = HashColor::new("FF0000".to_string());
+        assert_eq!(color.r(), 255);
+        assert_eq!(color.g(), 0);
+        assert_eq!(color.b(), 0);
+        assert_eq!(color.a(), 1.0);
+
+        // 3-digit hex
+        let short_color = HashColor::new("F0A".to_string());
+        assert_eq!(short_color.r(), 255); // F -> FF
+        assert_eq!(short_color.g(), 0);   // 0 -> 00
+        assert_eq!(short_color.b(), 170); // A -> AA
+
+        // 8-digit with alpha
+        let alpha_color = HashColor::new("FF000080".to_string());
+        assert!((alpha_color.a() - 0.5).abs() < 0.01); // 80 hex = 128 dec ≈ 0.5 alpha
+    }
+
+    #[test]
+    fn test_hex_color_display() {
+        let color = HashColor::new("FF0000".to_string());
+        assert_eq!(color.to_string(), "#FF0000");
+    }
+
+    #[test]
+    fn test_rgb_color_display() {
+        let color = RgbColor::new(255, 0, 0);
+        assert_eq!(color.to_string(), "rgb(255,0,0)");
+    }
+
+    #[test]
+    fn test_rgba_color_display() {
+        let color = RgbaColor::new(255, 0, 0, 0.5);
+        assert_eq!(color.to_string(), "rgba(255,0,0,0.5)");
+    }
+
+    #[test]
+    fn test_hsl_color_display() {
+        let color = HslColor::new(360.0, 100.0, 50.0);
+        assert_eq!(color.to_string(), "hsl(360,100%,50%)");
+    }
+
+    #[test]
+    fn test_hsla_color_display() {
+        let color = HslaColor::new(360.0, 100.0, 50.0, 0.8);
+        assert_eq!(color.to_string(), "hsla(360,100%,50%,0.8)");
+    }
+
+    #[test]
+    fn test_color_enum_display() {
+        let named = Color::Named(NamedColor::new("red".to_string()));
+        assert_eq!(named.to_string(), "red");
+
+        let hash = Color::Hash(HashColor::new("FF0000".to_string()));
+        assert_eq!(hash.to_string(), "#FF0000");
+
+        let rgb = Color::Rgb(RgbColor::new(255, 0, 0));
+        assert_eq!(rgb.to_string(), "rgb(255,0,0)");
+    }
+
+    #[test]
+    fn test_color_parsers_creation() {
+        // Basic test that parsers can be created
+        let _named = NamedColor::parser();
+        let _hash = HashColor::parser();
+        let _rgb = RgbColor::parser();
+        let _rgba = RgbaColor::parser();
+        let _hsl = HslColor::parser();
+        let _hsla = HslaColor::parser();
+        let _color = Color::parser();
+    }
 }

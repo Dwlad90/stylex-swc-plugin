@@ -45,7 +45,10 @@ pub mod blend_mode;
 pub mod flex;
 
 // Re-export commonly used types
-pub use color::Color;
+pub use common_types::{CssWideKeyword, CssVariable, Number, Percentage, NumberOrPercentage};
+pub use dimension::Dimension;
 pub use length::Length;
-pub use angle::Angle;
-pub use common_types::{Number, Percentage};
+pub use time::Time;
+pub use frequency::Frequency;
+pub use resolution::Resolution;
+pub use color::{Color, NamedColor, HashColor, RgbColor, RgbaColor, HslColor, HslaColor};

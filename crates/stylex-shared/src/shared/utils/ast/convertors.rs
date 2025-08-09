@@ -139,18 +139,10 @@ pub fn binary_expr_to_num(
   let op = binary_expr.op;
   let Some(left) = evaluate_cached(&binary_expr.left, state, traversal_state, fns) else {
     if !state.confident {
-      return Result::Ok(BinaryExprType::Null);
+      return Result::Err(anyhow::anyhow!("Left expression is not a number"));
     }
 
     panic!("Left expression is not a number")
-  };
-
-  let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
-    if !state.confident {
-      return Result::Ok(BinaryExprType::Null);
-    }
-
-    panic!("Right expression is not a number")
   };
 
   let left_num = expr_to_num(
@@ -159,6 +151,20 @@ pub fn binary_expr_to_num(
     traversal_state,
     fns,
   )?;
+
+  let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
+    if !state.confident {
+      if op == BinaryOp::LogicalOr && left_num != 0.0 {
+        state.confident = true;
+
+        return Result::Ok(BinaryExprType::Number(left_num));
+      }
+
+      return Result::Err(anyhow::anyhow!("Right expression is not a number"));
+    }
+
+    panic!("Right expression is not a number")
+  };
 
   let right_num = expr_to_num(
     right.as_expr().expect("Argument not expression!"),
@@ -301,18 +307,10 @@ pub fn binary_expr_to_string(
   let op = binary_expr.op;
   let Some(left) = evaluate_cached(&binary_expr.left, state, traversal_state, fns) else {
     if !state.confident {
-      return Result::Ok(BinaryExprType::Null);
+      return Result::Err(anyhow::anyhow!("Left expression is not a string"));
     }
 
-    panic!("Left expression is not a number")
-  };
-
-  let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
-    if !state.confident {
-      return Result::Ok(BinaryExprType::Null);
-    }
-
-    panic!("Right expression is not a number")
+    panic!("Left expression is not a string")
   };
 
   let left_str = expr_to_str(
@@ -320,6 +318,20 @@ pub fn binary_expr_to_string(
     traversal_state,
     fns,
   );
+
+  let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
+    if !state.confident {
+      if op == BinaryOp::LogicalOr {
+        state.confident = true;
+
+        return Result::Ok(BinaryExprType::String(left_str));
+      }
+
+      return Result::Err(anyhow::anyhow!("Right expression is not a string"));
+    }
+
+    panic!("Right expression is not a string")
+  };
 
   let right_str = expr_to_str(
     right.as_expr().expect("Argument not expression!"),

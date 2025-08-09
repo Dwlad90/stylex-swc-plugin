@@ -380,3 +380,193 @@ test!(
             });
           "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  template_literal_expressions,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (color) => ({
+                backgroundColor: `${color}`,
+                color: `${color}px`,
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  binary_expressions,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (width, height) => ({
+                width: width + 100,
+                height: height * 2,
+                margin: width - 50,
+                padding: height / 2,
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  unary_expressions,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (value) => ({
+                opacity: -value,
+                transform: +value,
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  logical_expressions_safe_left_side,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (color) => ({
+                backgroundColor: color || 'red',
+                color: color || 'black',
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  logical_expressions_safe_right_side,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (color) => ({
+                backgroundColor: 'red' || color,
+                color: 'black' || color,
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  nullish_coalescing_safe_left_side,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (color) => ({
+                backgroundColor: color ?? 'red',
+                color: color ?? 'black',
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  conditional_expressions_safe_branches,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (color, isDark) => ({
+                backgroundColor: isDark ? 'black' : 'white',
+                color: isDark ? color : 'black',
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  conditional_expressions_safe_branches_parenthesized,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (color, isDark) => ({
+                backgroundColor: isDark ? ('black') : 'white',
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  complex_nested_safe_expressions,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (width, height, color) => ({
+                width: (width + 100) || 200,
+                height: (height * 2) ?? 300,
+                backgroundColor: `${color}` || 'red',
+                color: (-color) || 'black',
+              })
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  complex_safe_ternary_expressions,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (isDark, isLarge, isActive, width, height, color) => ({
+                backgroundColor: isDark ? (isLarge ? 'black' : 'gray') : (isActive ? 'blue' : 'white'),
+                color: isDark ? (color || 'white') : (color ?? 'black'),
+                width: isLarge ? (width + 100) : (width - 50),
+                height: isActive ? (height * 2) : (height / 2),
+                margin: isDark ? ((width + height) || 20) : ((width - height) ?? 10),
+                padding: isLarge ? ((width * height) + 50) : ((width / height) - 25),
+                fontSize: isDark ? (isLarge ? (width + 20) : (width - 10)) : (isActive ? (height + 15) : (height - 5)),
+                opacity: isLarge ? (isActive ? 1 : 0.8) : (isDark ? 0.9 : 0.7),
+                transform: isActive ? (isLarge ? 'scale(1.2)' : 'scale(1.1)') : (isDark ? 'rotate(5deg)' : 'rotate(-5deg)'),
+              })
+            });
+          "#
+);

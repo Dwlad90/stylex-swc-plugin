@@ -1,0 +1,41 @@
+[package]
+name = "stylex_css_parser"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CSS parser for StyleX SWC plugin"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+  "css_codegen",
+  "css_visit",
+  "css_parser",
+  "css_ast",
+  "ecma_loader_node",
+] }
+path-clean = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true
+anyhow.workspace = true
+log.workspace = true
+pretty_env_logger.workspace = true
+color-backtrace.workspace = true
+ctor.workspace = true
+env_logger.workspace = true
+rustc-hash.workspace = true
+once_cell.workspace = true
+indexmap.workspace = true
+cssparser = { version = "0.34.0" }

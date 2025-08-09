@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{BinExpr, KeyValueProp, ParenExpr, UnaryOp},
+    ast::{BinExpr, KeyValueProp, Lit, ParenExpr, UnaryOp},
     utils::drop_span,
   },
 };
@@ -25,6 +25,7 @@ use crate::shared::{
   transformers::stylex_position_try::get_position_try_fn,
   utils::{
     ast::convertors::{key_value_to_str, lit_to_string},
+    common::normalize_expr,
     core::{
       add_source_map_data::add_source_map_data,
       dev_class_name::{convert_to_test_styles, inject_dev_class_names},
@@ -382,8 +383,8 @@ where
                                   })
                                   .map(|dynamic_style| dynamic_style.expression.clone());
 
-                                if let Some(expr) = expr.and_then(|e| {
-                                  if is_safe_to_skip_null_check(&e) {
+                                if let Some(expr) = expr.and_then(|mut e| {
+                                  if is_safe_to_skip_null_check(&mut e) {
                                     None
                                   } else {
                                     Some(e)
@@ -567,13 +568,34 @@ fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicSty
   expanded_keys_to_key_paths
 }
 
-fn is_safe_to_skip_null_check(expr: &Expr) -> bool {
+fn is_safe_to_skip_null_check(expr: &mut Expr) -> bool {
+  let expr = normalize_expr(expr);
+
   match expr {
-    Expr::Bin(bin_expr) => matches!(
-      bin_expr.op,
-      BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Exp
-    ),
+    Expr::Tpl(_) => true,
+    Expr::Lit(lit) => matches!(lit, Lit::Str(_) | Lit::Num(_) | Lit::Bool(_)),
+    Expr::Bin(bin_expr) => match bin_expr.op {
+      BinaryOp::Add
+      | BinaryOp::Sub
+      | BinaryOp::Mul
+      | BinaryOp::Div
+      | BinaryOp::Mod
+      | BinaryOp::Exp => true,
+      BinaryOp::NullishCoalescing | BinaryOp::LogicalOr => {
+        is_safe_to_skip_null_check(&mut bin_expr.left)
+          || is_safe_to_skip_null_check(&mut bin_expr.right)
+      }
+      BinaryOp::LogicalAnd => {
+        is_safe_to_skip_null_check(&mut bin_expr.left)
+          && is_safe_to_skip_null_check(&mut bin_expr.right)
+      }
+      _ => false,
+    },
     Expr::Unary(unary_expr) => matches!(unary_expr.op, UnaryOp::Minus | UnaryOp::Plus),
+    Expr::Cond(cond_expr) => {
+      is_safe_to_skip_null_check(&mut cond_expr.cons)
+        && is_safe_to_skip_null_check(&mut cond_expr.alt)
+    }
     _ => false,
   }
 }

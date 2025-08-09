@@ -1,17 +1,11 @@
 /*!
-CSS alpha value type parser.
+CSS Alpha value type parsing.
+
+Handles alpha channel values for colors (0-1 or percentage).
 */
 
-use crate::token_parser::TokenParser;
-
-/// A CSS alpha value (0-1 or percentage)
 #[derive(Debug, Clone, PartialEq)]
 pub struct AlphaValue {
-    pub value: f64,
-}
-
-impl AlphaValue {
-    pub fn parse() -> TokenParser<AlphaValue> {
-        todo!("Implementation pending")
-    }
+    // TODO: Implement
+    pub placeholder: f32,
 }

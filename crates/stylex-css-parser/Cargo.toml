@@ -18,7 +18,7 @@ serde_json.workspace = true
 regex.workspace = true
 anyhow.workspace = true
 cssparser = { version = "0.34.0" }
-thiserror = "1.0"
+thiserror = "1.0.69"
 
 [dev-dependencies]
 proptest = "1.4"

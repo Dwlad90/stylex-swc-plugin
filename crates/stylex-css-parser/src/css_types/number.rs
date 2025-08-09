@@ -1,6 +1,10 @@
 /*!
-CSS number type parser.
+CSS Number type parsing.
+
+Handles pure number values without units.
 */
 
-// Re-export from common_types for now
-pub use super::common_types::Number;
+pub use crate::css_types::common_types::Number;
+
+// Re-export for convenience
+pub use Number as CssNumber;

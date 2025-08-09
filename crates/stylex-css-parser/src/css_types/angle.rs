@@ -1,22 +1,12 @@
 /*!
-CSS angle type parser.
+CSS Angle type parsing.
+
+Handles angle values (deg, rad, grad, turn).
+Mirrors: packages/style-value-parser/src/css-types/angle.js
 */
 
-use crate::token_parser::TokenParser;
-
-/// A CSS angle value
 #[derive(Debug, Clone, PartialEq)]
 pub struct Angle {
-    pub value: f64,
-    pub unit: String,
-}
-
-impl Angle {
-    pub fn new(value: f64, unit: String) -> Self {
-        Self { value, unit }
-    }
-
-    pub fn parse() -> TokenParser<Angle> {
-        todo!("Implementation pending")
-    }
+    // TODO: Implement angle parsing
+    pub placeholder: String,
 }

@@ -1,21 +1,12 @@
 /*!
-CSS color type parser.
+CSS Color type parsing.
+
+Handles all CSS color formats: named colors, hex, rgb, hsl, etc.
+Mirrors: packages/style-value-parser/src/css-types/color.js
 */
 
-use crate::token_parser::TokenParser;
-
-/// A CSS color value
 #[derive(Debug, Clone, PartialEq)]
-pub enum Color {
-    Named(String),
-    Hex(String),
-    Rgb(u8, u8, u8),
-    Rgba(u8, u8, u8, f64),
-    // More color types will be added
-}
-
-impl Color {
-    pub fn parse() -> TokenParser<Color> {
-        todo!("Implementation pending")
-    }
+pub struct Color {
+    // TODO: Implement comprehensive color parsing
+    pub placeholder: String,
 }

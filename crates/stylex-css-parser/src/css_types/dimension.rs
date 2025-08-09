@@ -1,22 +1,24 @@
 /*!
-CSS dimension type parser.
+CSS Dimension type parsing.
+
+Handles dimensional values that can be lengths, times, frequencies, or resolutions.
+Mirrors: packages/style-value-parser/src/css-types/dimension.js
 */
 
 use crate::token_parser::TokenParser;
 
-/// A CSS dimension value (number with unit)
+/// Union type for all dimensional CSS values
 #[derive(Debug, Clone, PartialEq)]
-pub struct Dimension {
-    pub value: f64,
-    pub unit: String,
+pub enum Dimension {
+    // TODO: Add Length, Time, Resolution, Frequency when implemented
+    Placeholder,
 }
 
 impl Dimension {
-    pub fn new(value: f64, unit: String) -> Self {
-        Self { value, unit }
-    }
-
-    pub fn parse() -> TokenParser<Dimension> {
-        todo!("Implementation pending")
+    /// Parser for dimensional values
+    /// Mirrors: dimension in dimension.js
+    pub fn parser() -> TokenParser<Dimension> {
+        // TODO: Implement when Length, Time, Resolution, Frequency are ready
+        TokenParser::<Dimension>::never()
     }
 }

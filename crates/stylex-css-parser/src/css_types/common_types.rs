@@ -1,37 +1,297 @@
 /*!
-Common CSS types used throughout the parser.
+Common CSS types and shared utilities.
+
+This module implements the foundational types used across all CSS value parsing,
+directly mirroring the JavaScript common-types.js file.
 */
 
-use crate::token_parser::TokenParser;
+use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use std::fmt::{self, Display};
 
-/// A CSS number value
-#[derive(Debug, Clone, PartialEq)]
-pub struct Number {
-    pub value: f64,
+/// CSS-wide keywords that can be used with any CSS property
+/// Mirrors: CSSWideKeyword
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CssWideKeyword {
+    Inherit,
+    Initial,
+    Unset,
+    Revert,
 }
 
-impl Number {
-    pub fn new(value: f64) -> Self {
-        Self { value }
-    }
-
-    pub fn parse() -> TokenParser<Number> {
-        todo!("Implementation pending")
+impl Display for CssWideKeyword {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CssWideKeyword::Inherit => write!(f, "inherit"),
+            CssWideKeyword::Initial => write!(f, "initial"),
+            CssWideKeyword::Unset => write!(f, "unset"),
+            CssWideKeyword::Revert => write!(f, "revert"),
+        }
     }
 }
 
-/// A CSS percentage value
+impl CssWideKeyword {
+    /// Parser for CSS-wide keywords
+    /// Mirrors: cssWideKeywords
+    pub fn parser() -> TokenParser<CssWideKeyword> {
+        TokenParser::ident()
+            .map(
+                |token| {
+                    if let SimpleToken::Ident(value) = token {
+                        value
+                    } else {
+                        unreachable!()
+                    }
+                },
+                Some(".value"),
+            )
+            .where_fn(
+                |value| {
+                    matches!(
+                        value.as_str(),
+                        "inherit" | "initial" | "unset" | "revert"
+                    )
+                },
+                Some("css_wide_keyword"),
+            )
+            .map(
+                |value| match value.as_str() {
+                    "inherit" => CssWideKeyword::Inherit,
+                    "initial" => CssWideKeyword::Initial,
+                    "unset" => CssWideKeyword::Unset,
+                    "revert" => CssWideKeyword::Revert,
+                    _ => unreachable!(),
+                },
+                Some("to_keyword"),
+            )
+    }
+
+    /// Parser specifically for 'inherit'
+    /// Mirrors: inherit
+    pub fn inherit_parser() -> TokenParser<CssWideKeyword> {
+        Self::parser().where_fn(
+            |keyword| matches!(keyword, CssWideKeyword::Inherit),
+            Some("inherit"),
+        )
+    }
+
+    /// Parser specifically for 'initial'
+    /// Mirrors: initial
+    pub fn initial_parser() -> TokenParser<CssWideKeyword> {
+        Self::parser().where_fn(
+            |keyword| matches!(keyword, CssWideKeyword::Initial),
+            Some("initial"),
+        )
+    }
+
+    /// Parser specifically for 'unset'
+    /// Mirrors: unset
+    pub fn unset_parser() -> TokenParser<CssWideKeyword> {
+        Self::parser().where_fn(
+            |keyword| matches!(keyword, CssWideKeyword::Unset),
+            Some("unset"),
+        )
+    }
+
+    /// Parser specifically for 'revert'
+    /// Mirrors: revert
+    pub fn revert_parser() -> TokenParser<CssWideKeyword> {
+        Self::parser().where_fn(
+            |keyword| matches!(keyword, CssWideKeyword::Revert),
+            Some("revert"),
+        )
+    }
+}
+
+/// CSS 'auto' keyword
+/// Mirrors: auto
+pub fn auto_parser() -> TokenParser<String> {
+    TokenParser::<String>::string("auto").map(
+        |_| "auto".to_string(),
+        Some("auto_keyword"),
+    )
+}
+
+/// CSS variable reference: var(--name)
+/// Mirrors: CssVariable class
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CssVariable {
+    pub name: String,
+}
+
+impl CssVariable {
+    pub fn new(name: String) -> Self {
+        Self { name }
+    }
+
+    /// Parser for CSS variables: var(--name)
+    /// Mirrors: CssVariable.parse
+    pub fn parser() -> TokenParser<CssVariable> {
+        // This is a simplified implementation
+        // Full implementation would require function token parsing
+        TokenParser::<CssVariable>::never() // TODO: Implement when function parsing is ready
+    }
+}
+
+impl Display for CssVariable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "var({})", self.name)
+    }
+}
+
+/// CSS percentage value
+/// Mirrors: Percentage class
 #[derive(Debug, Clone, PartialEq)]
 pub struct Percentage {
-    pub value: f64,
+    pub value: f32,
 }
 
 impl Percentage {
-    pub fn new(value: f64) -> Self {
+    pub fn new(value: f32) -> Self {
         Self { value }
     }
 
-    pub fn parse() -> TokenParser<Percentage> {
-        todo!("Implementation pending")
+    /// Parser for percentage values
+    /// Mirrors: Percentage.parser
+    pub fn parser() -> TokenParser<Percentage> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+            .map(
+                |token| {
+                    if let SimpleToken::Percentage(value) = token {
+                        Percentage::new(value as f32)
+                    } else {
+                        unreachable!()
+                    }
+                },
+                Some("to_percentage"),
+            )
+    }
+}
+
+impl Display for Percentage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}%", self.value)
+    }
+}
+
+/// CSS number value
+/// Mirrors: Number (implicit from TokenNumber handling)
+#[derive(Debug, Clone, PartialEq)]
+pub struct Number {
+    pub value: f32,
+}
+
+impl Number {
+    pub fn new(value: f32) -> Self {
+        Self { value }
+    }
+
+    /// Parser for number values
+    pub fn parser() -> TokenParser<Number> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .map(
+                |token| {
+                    if let SimpleToken::Number(value) = token {
+                        Number::new(value as f32)
+                    } else {
+                        unreachable!()
+                    }
+                },
+                Some("to_number"),
+            )
+    }
+}
+
+impl Display for Number {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+/// Union type for number or percentage values
+#[derive(Debug, Clone, PartialEq)]
+pub enum NumberOrPercentage {
+    Number(Number),
+    Percentage(Percentage),
+}
+
+impl Display for NumberOrPercentage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NumberOrPercentage::Number(n) => n.fmt(f),
+            NumberOrPercentage::Percentage(p) => p.fmt(f),
+        }
+    }
+}
+
+/// Parser for number or percentage values
+/// Mirrors: numberOrPercentage
+pub fn number_or_percentage_parser() -> TokenParser<NumberOrPercentage> {
+    TokenParser::one_of(vec![
+        Number::parser().map(NumberOrPercentage::Number, Some("number")),
+        Percentage::parser().map(NumberOrPercentage::Percentage, Some("percentage")),
+    ])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_css_wide_keyword_display() {
+        assert_eq!(CssWideKeyword::Inherit.to_string(), "inherit");
+        assert_eq!(CssWideKeyword::Initial.to_string(), "initial");
+        assert_eq!(CssWideKeyword::Unset.to_string(), "unset");
+        assert_eq!(CssWideKeyword::Revert.to_string(), "revert");
+    }
+
+    #[test]
+    fn test_percentage_display() {
+        let p = Percentage::new(50.0);
+        assert_eq!(p.to_string(), "50%");
+    }
+
+    #[test]
+    fn test_number_display() {
+        let n = Number::new(42.5);
+        assert_eq!(n.to_string(), "42.5");
+    }
+
+    #[test]
+    fn test_css_variable_display() {
+        let var = CssVariable::new("--main-color".to_string());
+        assert_eq!(var.to_string(), "var(--main-color)");
+    }
+
+    #[test]
+    fn test_css_wide_keyword_parser() {
+        // Basic test that parser can be created
+        let _parser = CssWideKeyword::parser();
+        let _inherit = CssWideKeyword::inherit_parser();
+        let _initial = CssWideKeyword::initial_parser();
+        let _unset = CssWideKeyword::unset_parser();
+        let _revert = CssWideKeyword::revert_parser();
+    }
+
+    #[test]
+    fn test_number_percentage_parsers() {
+        // Basic test that parsers can be created
+        let _number = Number::parser();
+        let _percentage = Percentage::parser();
+        let _number_or_percentage = number_or_percentage_parser();
+    }
+
+    #[test]
+    fn test_auto_parser() {
+        // Basic test that parser can be created
+        let _parser = auto_parser();
+    }
+
+    #[test]
+    fn test_number_or_percentage_display() {
+        let num = NumberOrPercentage::Number(Number::new(42.0));
+        let pct = NumberOrPercentage::Percentage(Percentage::new(50.0));
+
+        assert_eq!(num.to_string(), "42");
+        assert_eq!(pct.to_string(), "50%");
     }
 }

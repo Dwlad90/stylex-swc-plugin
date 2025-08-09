@@ -40,12 +40,10 @@ pub(crate) fn stylex_create_set(
 
     let mut class_paths_in_namespace: ClassPathsInNamespace = IndexMap::new();
 
-    let mut key_path = vec![];
-
     let mut seen_properties = IndexSet::<String>::new();
 
     let mut flattened_namespace =
-      flatten_raw_style_object(namespace, &mut key_path, state, traversal_state, functions)
+      flatten_raw_style_object(namespace, state, traversal_state, functions)
         .into_iter()
         .rev()
         .fold(VecDeque::new(), |mut arr, curr| {

@@ -1,0 +1,53 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { type CalcConstant } from './calc-constant';
+import { Percentage } from './common-types';
+// import { type Dimension, dimension } from './dimension';
+
+import { TokenParser } from '../core2';
+import type { TokenDimension } from '@csstools/css-tokenizer';
+
+type Addition = {
+  type: '+',
+  left: CalcValue,
+  right: CalcValue,
+};
+type Subtraction = {
+  type: '-',
+  left: CalcValue,
+  right: CalcValue,
+};
+type Multiplication = {
+  type: '*',
+  left: CalcValue,
+  right: CalcValue,
+};
+type Division = {
+  type: '/',
+  left: CalcValue,
+  right: CalcValue,
+};
+
+type CalcValue =
+  | number
+  | TokenDimension[4]
+  | Percentage
+  | CalcConstant
+  | Addition
+  | Subtraction
+  | Multiplication
+  | Division;
+
+declare export class Calc {
+  +value: CalcValue;
+  constructor(value: this['value']): void;
+  toString(): string;
+  static get parser(): TokenParser<Calc>;
+}

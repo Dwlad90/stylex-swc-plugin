@@ -1,0 +1,177 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import type {
+  CSSToken,
+  TokenAtKeyword,
+  TokenBadString,
+  TokenBadURL,
+  TokenCDC,
+  TokenCDO,
+  TokenColon,
+  TokenComma,
+  TokenComment,
+  TokenDelim,
+  TokenDimension,
+  TokenEOF,
+  TokenFunction,
+  TokenHash,
+  TokenIdent,
+  TokenNumber,
+  TokenPercentage,
+  TokenSemicolon,
+  TokenString,
+  TokenURL,
+  TokenWhitespace,
+  TokenOpenParen,
+  TokenCloseParen,
+  TokenOpenSquare,
+  TokenCloseSquare,
+  TokenOpenCurly,
+  TokenCloseCurly,
+  TokenUnicodeRange,
+} from '@csstools/css-tokenizer';
+
+import { TokenList } from './token-types';
+import { TokenType } from '@csstools/css-tokenizer';
+
+type TokenNameToTokenType = {
+  Comment: TokenComment,
+  AtKeyword: TokenAtKeyword,
+  BadString: TokenBadString,
+  BadURL: TokenBadURL,
+  CDC: TokenCDC,
+  CDO: TokenCDO,
+  Colon: TokenColon,
+  Comma: TokenComma,
+  Delim: TokenDelim,
+  Dimension: TokenDimension,
+  EOF: TokenEOF,
+  Function: TokenFunction,
+  Hash: TokenHash,
+  Ident: TokenIdent,
+  Number: TokenNumber,
+  Percentage: TokenPercentage,
+  Semicolon: TokenSemicolon,
+  String: TokenString,
+  URL: TokenURL,
+  Whitespace: TokenWhitespace,
+  OpenParen: TokenOpenParen,
+  CloseParen: TokenCloseParen,
+  OpenSquare: TokenOpenSquare,
+  CloseSquare: TokenCloseSquare,
+  OpenCurly: TokenOpenCurly,
+  CloseCurly: TokenCloseCurly,
+  UnicodeRange: TokenUnicodeRange,
+};
+
+declare export class TokenParser<+T> {
+  +run: (input: TokenList) => T | Error;
+  +label: string;
+  constructor(parser: (input: TokenList) => T | Error, label: string): void;
+  parse(css: string): T | Error;
+  parseToEnd(css: string): T;
+  map<NewT>(f: (value: T) => NewT, label?: string): TokenParser<NewT>;
+  flatMap<U>(f: (value: T) => TokenParser<U>, label?: string): TokenParser<U>;
+  or<U>(parser2: TokenParser<U>): TokenParser<T | U>;
+  surroundedBy(
+    prefix: TokenParser<mixed>,
+    suffix: TokenParser<mixed>,
+  ): TokenParser<T>;
+  skip(skipParser: TokenParser<mixed>): TokenParser<T>;
+  get optional(): TokenParser<void | T>;
+  prefix(prefixParser: TokenParser<mixed>): TokenParser<T>;
+  suffix(suffixParser: TokenParser<mixed>): TokenParser<T>;
+  where<Refined: T = T>(
+    predicate: (value: T) => implies value is Refined,
+    label?: string,
+  ): TokenParser<Refined>;
+  toString(): string;
+  static never<T>(): TokenParser<T>;
+  static always<T>(output: T): TokenParser<T>;
+  static token<TT: CSSToken>(tokenType: TT[0], label: string): TokenParser<TT>;
+  static string<S: string>(str: S): TokenParser<S>;
+  static fn(name: string): TokenParser<string>;
+  static tokens: {
+    [Key in keyof typeof TokenType]: TokenParser<TokenNameToTokenType[Key]>,
+  };
+  static oneOf<T>(
+    ...parsers: $ReadOnlyArray<TokenParser<T> | (() => TokenParser<T>)>
+  ): TokenParser<T>;
+  static sequence<T: ConstrainedTuple<TokenParser<mixed>>>(
+    ...parsers: T
+  ): TokenParserSequence<T>;
+  static setOf<T: ConstrainedTuple<TokenParser<mixed>>>(
+    ...parsers: T
+  ): TokenParserSet<T>;
+  static zeroOrMore<T>(parser: TokenParser<T>): TokenZeroOrMoreParsers<T>;
+  static oneOrMore<T>(parser: TokenParser<T>): TokenOneOrMoreParsers<T>;
+}
+
+declare class TokenZeroOrMoreParsers<+T>
+  extends TokenParser<$ReadOnlyArray<T>>
+{
+  +parser: TokenParser<T>;
+  +separator: ?TokenParser<void>;
+  constructor(parser: TokenParser<T>, separator?: TokenParser<void>): void;
+  separatedBy(separator: TokenParser<mixed>): TokenZeroOrMoreParsers<T>;
+}
+
+declare export class TokenOneOrMoreParsers<+T>
+  extends TokenParser<$ReadOnlyArray<T>>
+{
+  +parser: TokenParser<T>;
+  +separator: ?TokenParser<void>;
+  constructor(parser: TokenParser<T>, separator?: TokenParser<void>): void;
+  separatedBy(separator: TokenParser<mixed>): TokenOneOrMoreParsers<T>;
+}
+
+declare class TokenParserSequence<+T: ConstrainedTuple<TokenParser<mixed>>>
+  extends TokenParser<ValuesFromParserTuple<T>>
+{
+  +parsers: T;
+  +separator: ?TokenParser<void>;
+  constructor(parsers: T, _separator?: TokenParser<mixed>): void;
+  separatedBy(separator: TokenParser<mixed>): TokenParserSequence<T>;
+}
+
+declare class TokenParserSet<+T: ConstrainedTuple<TokenParser<mixed>>>
+  extends TokenParser<ValuesFromParserTuple<T>>
+{
+  +parsers: T;
+  +separator: ?TokenParser<void>;
+  constructor(_parsers: T, separator?: ?TokenParser<void>): void;
+  separatedBy(separator: TokenParser<mixed>): TokenParserSet<T>;
+}
+
+type ConstrainedTuple<+T> =
+  | $ReadOnly<[T]>
+  | $ReadOnly<[T, T]>
+  | $ReadOnly<[T, T, T]>
+  | $ReadOnly<[T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T, T, T, T, T]>;
+
+// prettier-ignore
+export type FromParser<+T: TokenParser<mixed>, Fallback = empty> =
+  | Fallback
+  | T extends TokenParser<infer V> ? V : empty;
+
+type ValuesFromParserTuple<
+  +T: ConstrainedTuple<TokenParser<mixed>>,
+  Fallback = empty,
+> = {
+  [Key in keyof T]: FromParser<T[Key], Fallback>,
+};

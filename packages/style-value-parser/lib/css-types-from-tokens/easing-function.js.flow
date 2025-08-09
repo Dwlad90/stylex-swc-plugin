@@ -1,0 +1,51 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../core2';
+
+declare export class EasingFunction {
+  static get parser(): TokenParser<EasingFunction>;
+}
+
+declare export class LinearEasingFunction extends EasingFunction {
+  +points: $ReadOnlyArray<number>;
+  constructor(points: $ReadOnlyArray<number>): void;
+  toString(): string;
+  static get parser(): TokenParser<LinearEasingFunction>;
+}
+
+declare export class CubicBezierEasingFunction extends EasingFunction {
+  +points: [number, number, number, number];
+  constructor(points: [number, number, number, number]): void;
+  toString(): string;
+  static get parser(): TokenParser<CubicBezierEasingFunction>;
+}
+
+type TCubicBezierKeyword = 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+declare export class CubicBezierKeyword extends EasingFunction {
+  +keyword: TCubicBezierKeyword;
+  constructor(keyword: TCubicBezierKeyword): void;
+  toString(): string;
+  static get parser(): TokenParser<CubicBezierKeyword>;
+}
+
+declare export class StepsEasingFunction extends EasingFunction {
+  +steps: number;
+  +start: 'start' | 'end';
+  constructor(steps: number, start: 'start' | 'end'): void;
+  toString(): string;
+  static get parser(): TokenParser<StepsEasingFunction>;
+}
+
+declare export class StepsKeyword extends EasingFunction {
+  +keyword: 'step-start' | 'step-end';
+  constructor(keyword: 'step-start' | 'step-end'): void;
+  toString(): string;
+  static get parser(): TokenParser<StepsKeyword>;
+}

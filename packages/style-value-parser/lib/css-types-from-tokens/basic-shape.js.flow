@@ -1,0 +1,76 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { Position } from './position';
+
+// import { BorderRadiusShorthand } from '../properties/border-radius';
+import { TokenParser } from '../core2';
+import { type LengthPercentage } from './length-percentage';
+
+declare class BasicShape {
+  toString(): string;
+}
+
+declare export class Inset extends BasicShape {
+  +top: LengthPercentage;
+  +right: LengthPercentage;
+  +bottom: LengthPercentage;
+  +left: LengthPercentage;
+  +round: ?LengthPercentage;
+  constructor(
+    top: LengthPercentage,
+    right: LengthPercentage,
+    bottom: LengthPercentage,
+    left: LengthPercentage,
+    round: ?LengthPercentage,
+  ): void;
+  toString(): string;
+  static get parser(): TokenParser<Inset>;
+}
+
+export type TCircleRadius = LengthPercentage | 'closest-side' | 'farthest-side';
+declare export class Circle extends BasicShape {
+  +radius: TCircleRadius;
+  +position: ?Position;
+  constructor(radius: TCircleRadius, position: ?Position): void;
+  toString(): string;
+  static get parser(): TokenParser<Circle>;
+}
+
+declare export class Ellipse extends BasicShape {
+  +radiusX: TCircleRadius;
+  +radiusY: TCircleRadius;
+  +position: ?Position;
+  constructor(
+    radiusX: TCircleRadius,
+    radiusY: TCircleRadius,
+    position: ?Position,
+  ): void;
+  toString(): string;
+  static get parser(): TokenParser<Ellipse>;
+}
+
+type FillRule = 'nonzero' | 'evenodd';
+type Point = $ReadOnly<[LengthPercentage, LengthPercentage]>;
+
+declare export class Polygon extends BasicShape {
+  +fillRule: ?FillRule;
+  +points: $ReadOnlyArray<Point>;
+  constructor(points: this['points'], fillRule: this['fillRule']): void;
+  toString(): string;
+  static get parser(): TokenParser<Polygon>;
+}
+
+declare export class Path extends BasicShape {
+  +fillRule: ?FillRule;
+  +path: string;
+  constructor(path: this['path'], fillRule: this['fillRule']): void;
+  toString(): string;
+  static get parser(): TokenParser<Path>;
+}

@@ -1,0 +1,62 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+// import {
+//   UNITS_BASED_ON_FONT,
+//   UNITS_BASED_ON_ABSOLUTE_UNITS,
+//   Length,
+// } from '../css-types-from-tokens/length';
+
+import { TokenParser } from '../core2';
+import type { TokenDimension } from '@csstools/css-tokenizer';
+
+// const mediaQueryLengthParser = Length.parser.where(
+//   (length): implies length is Length =>
+//     UNITS_BASED_ON_ABSOLUTE_UNITS.includes(length.unit) ||
+//     UNITS_BASED_ON_FONT.includes(length.unit),
+// );
+
+type Fraction = [number, '/', number];
+type WordRule = 'color' | 'monochrome' | 'grid' | 'color-index';
+type Length = TokenDimension[4];
+
+type MediaRuleValue = Length | string | Fraction;
+
+type MediaKeyword = {
+  type: 'media-keyword',
+  key: 'screen' | 'print' | 'all',
+  not: boolean,
+};
+type MediaWordRule = { type: 'word-rule', keyValue: WordRule };
+type MediaRulePair = {
+  type: 'pair',
+  key: string,
+  value: MediaRuleValue,
+};
+type MediaNotRule = { type: 'not', rule: MediaQueryRule };
+type MediaAndRules = { type: 'and', rules: $ReadOnlyArray<MediaQueryRule> };
+type MediaOrRules = { type: 'or', rules: $ReadOnlyArray<MediaQueryRule> };
+
+type MediaQueryRule =
+  | MediaKeyword
+  | MediaWordRule
+  | MediaRulePair
+  | MediaNotRule
+  | MediaAndRules
+  | MediaOrRules;
+
+declare export const mediaInequalityRuleParser: TokenParser<MediaRulePair>;
+
+declare export class MediaQuery {
+  queries: MediaQueryRule;
+  constructor(queries: this['queries']): void;
+  toString(): string;
+  static normalize(rule: MediaQueryRule): MediaQueryRule;
+  static get parser(): TokenParser<MediaQuery>;
+}

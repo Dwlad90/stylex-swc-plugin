@@ -1,0 +1,107 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../token-parser';
+import { Angle } from './angle';
+import { Percentage } from './common-types';
+
+declare export class Color {
+  static get parser(): TokenParser<Color>;
+}
+
+declare export class NamedColor extends Color {
+  +value: string;
+  constructor(value: string): void;
+  toString(): string;
+  static parser: TokenParser<NamedColor>;
+}
+
+declare export class HashColor extends Color {
+  +value: string;
+  constructor(value: string): void;
+  toString(): string;
+  get r(): number;
+  get g(): number;
+  get b(): number;
+  get a(): number;
+  static get parser(): TokenParser<HashColor>;
+}
+
+declare export class Rgb extends Color {
+  +r: number;
+  +g: number;
+  +b: number;
+  constructor(r: number, g: number, b: number): void;
+  toString(): string;
+  static get parser(): TokenParser<Rgb>;
+}
+
+declare export class Rgba extends Color {
+  +r: number;
+  +g: number;
+  +b: number;
+  +a: number;
+  constructor(r: number, g: number, b: number, a: number): void;
+  toString(): string;
+  static get parser(): TokenParser<Rgba>;
+}
+
+declare export class Hsl extends Color {
+  +h: Angle;
+  +s: Percentage;
+  +l: Percentage;
+  constructor(h: Angle, s: Percentage, l: Percentage): void;
+  toString(): string;
+  static get parser(): TokenParser<Hsl>;
+}
+
+declare export class Hsla extends Color {
+  +h: Angle;
+  +s: Percentage;
+  +l: Percentage;
+  +a: number;
+  constructor(h: Angle, s: Percentage, l: Percentage, a: number): void;
+  toString(): string;
+  static get parser(): TokenParser<Hsla>;
+}
+
+declare export class Lch extends Color {
+  +l: number;
+  +c: number;
+  +h: Angle | number;
+  +alpha: ?number;
+  constructor(
+    l: this['l'],
+    c: this['c'],
+    h: this['h'],
+    alpha?: this['alpha'],
+  ): void;
+  toString(): string;
+  static get parser(): TokenParser<Lch>;
+}
+
+declare export class Oklch extends Color {
+  +l: number;
+  +c: number;
+  +h: Angle;
+  +alpha: ?number;
+  constructor(l: number, c: number, h: Angle, alpha?: ?number): void;
+  toString(): string;
+  static get parser(): TokenParser<Lch>;
+}
+
+declare export class Oklab extends Color {
+  +l: number;
+  +a: number;
+  +b: number;
+  +alpha: ?number;
+  constructor(l: number, a: number, b: number, alpha?: ?number): void;
+  toString(): string;
+  static get parser(): TokenParser<Oklab>;
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@stylexswc/css-parser",
+  "description": "SWC lib for path imports resolving for SWC StyleX plugin",
+  "version": "0.6.6",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "del-cli dist",
+    "format": "run-p format:prettier format:rs format:toml",
+    "format:check": "run-p format:rs:check format:toml:check",
+    "format:prettier": "prettier . -w",
+    "format:rs": "cargo fmt --all",
+    "format:rs:check": "cargo fmt -- --check",
+    "format:toml": "taplo format",
+    "format:toml:check": "taplo format --check",
+    "lint": "eslint . --color",
+    "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "NODE_ENV=test cargo test --lib --bins --tests -- --test-threads=1",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@taplo/cli": "^0.7.0",
+    "npm-run-all2": "^7.0.2",
+    "prettier": "^3.5.3"
+  },
+  "keywords": [
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ],
+  "main": "./dist/stylex_path_resolver.wasm"
+}

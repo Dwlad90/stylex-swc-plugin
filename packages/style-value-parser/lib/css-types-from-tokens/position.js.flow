@@ -1,0 +1,32 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../core2';
+import { type LengthPercentage } from './length-percentage';
+
+export type HorizontalKeyword = 'left' | 'center' | 'right';
+export type VerticalKeyword = 'top' | 'center' | 'bottom';
+
+export type Horizontal =
+  | LengthPercentage
+  | HorizontalKeyword
+  | [HorizontalKeyword, LengthPercentage];
+
+export type Vertical =
+  | LengthPercentage
+  | VerticalKeyword
+  | [VerticalKeyword, LengthPercentage];
+
+declare export class Position {
+  +horizontal: ?Horizontal;
+  +vertical: ?Vertical;
+  constructor(horizontal: ?Horizontal, vertical: ?Vertical): void;
+  toString(): string;
+  static get parser(): TokenParser<Position>;
+}

@@ -1,0 +1,28 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../core2';
+
+declare export const UNITS_BASED_ON_FONT: $FlowFixMe;
+
+declare export const UNITS_BASED_ON_VIEWPORT: $FlowFixMe;
+
+declare export const UNITS_BASED_ON_CONTAINER: $FlowFixMe;
+
+declare export const UNITS_BASED_ON_ABSOLUTE_UNITS: $FlowFixMe;
+declare export class Length {
+  +value: number;
+  +unit: string;
+  constructor(value: number, unit: string): void;
+  toString(): string;
+  static UNITS: $ReadOnlyArray<string>;
+  static get parser(): TokenParser<Length>;
+}
+
+// Additional classes for other units can be added similarly

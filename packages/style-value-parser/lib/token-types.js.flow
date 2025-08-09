@@ -1,0 +1,30 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import type { CSSToken } from '@csstools/css-tokenizer';
+export type TokenIterator = {
+  nextToken: () => CSSToken,
+  endOfFile: () => boolean,
+};
+
+declare export class TokenList {
+  +tokenIterator: TokenIterator;
+  +consumedTokens: Array<CSSToken>;
+  currentIndex: number;
+  isAtEnd: boolean;
+  constructor(input: TokenIterator | string): void;
+  consumeNextToken(): CSSToken | null;
+  peek(): CSSToken | null;
+  get first(): CSSToken | null;
+  setCurrentIndex(newIndex: number): void;
+  rewind(positions: number): void;
+  get isEmpty(): boolean;
+  getAllTokens(): $ReadOnlyArray<CSSToken>;
+  slice(start: number, end: number): Array<CSSToken>;
+}

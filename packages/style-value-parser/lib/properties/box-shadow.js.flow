@@ -1,0 +1,36 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../token-parser';
+import { Length } from '../css-types/length';
+import { Color } from '../css-types/color';
+
+declare export class BoxShadow {
+  +offsetX: Length;
+  +offsetY: Length;
+  +blurRadius: Length;
+  +spreadRadius: Length;
+  +color: Color;
+  +inset: boolean;
+  constructor(
+    offsetX: Length,
+    offsetY: Length,
+    blurRadius: Length,
+    spreadRadius: Length,
+    color: Color,
+    inset: boolean,
+  ): void;
+  static get parse(): TokenParser<BoxShadow>;
+}
+
+declare export class BoxShadowList {
+  +shadows: $ReadOnlyArray<BoxShadow>;
+  constructor(shadows: $ReadOnlyArray<BoxShadow>): void;
+  static get parse(): TokenParser<BoxShadowList>;
+}

@@ -1,0 +1,102 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { SubString } from './base-types';
+
+declare export class Parser<+T> {
+  +run: (input: SubString) => T | Error;
+  constructor(parser: (SubString) => T | Error): void;
+  parse(input: string): T | Error;
+  parseToEnd(input: string): T;
+  map<NewT>(f: (T) => NewT): Parser<NewT>;
+  flatMap<U>(f: (T) => Parser<U>): Parser<U>;
+  or<U>(parser2: Parser<U>): Parser<T | U>;
+  surroundedBy(prefix: Parser<mixed>, suffix: Parser<mixed>): Parser<T>;
+  skip(skipParser: Parser<mixed>): Parser<T>;
+  get optional(): Parser<void | T>;
+  prefix(prefixParser: Parser<mixed>): Parser<T>;
+  static never<T>(): Parser<T>;
+  static always<T>(output: T): Parser<T>;
+  where(predicate: (T) => boolean): Parser<T>;
+  static oneOf<T>(...parsers: $ReadOnlyArray<Parser<T>>): Parser<T>;
+  static sequence<T: ConstrainedTuple<Parser<mixed>>>(
+    ...parsers: T
+  ): ParserSequence<T>;
+  static setOf<T: ConstrainedTuple<Parser<mixed>>>(...parsers: T): ParserSet<T>;
+  static zeroOrMore<T>(parser: Parser<T>): ZeroOrMoreParsers<T>;
+  static oneOrMore<T>(parser: Parser<T>): OneOrMoreParsers<T>;
+  static string<T: string>(str: T): Parser<T>;
+  static get quotedString(): Parser<string>;
+  static regex(regex: RegExp): Parser<string>;
+  static takeWhile(predicate: (string) => boolean): Parser<string>;
+  static get digit(): Parser<string>;
+  static get letter(): Parser<string>;
+  static get natural(): Parser<number>;
+  static get whole(): Parser<number>;
+  static get integer(): Parser<number>;
+  static get float(): Parser<number>;
+  static get space(): Parser<void>;
+  static get whitespace(): Parser<void>;
+}
+
+declare class ZeroOrMoreParsers<+T> extends Parser<$ReadOnlyArray<T>> {
+  +parser: Parser<T>;
+  separator: ?Parser<void>;
+  constructor(parser: Parser<T>): void;
+  separatedBy(separator: Parser<void>): ZeroOrMoreParsers<T>;
+}
+
+declare class OneOrMoreParsers<+T> extends Parser<$ReadOnlyArray<T>> {
+  +parser: Parser<T>;
+  separator: ?Parser<mixed>;
+  constructor(parser: Parser<T>): void;
+  separatedBy(separator: Parser<mixed>): OneOrMoreParsers<T>;
+}
+
+declare export class ParserSequence<+T: ConstrainedTuple<Parser<mixed>>>
+  extends Parser<ValuesFromParserTuple<T>>
+{
+  +parsers: T;
+  constructor(parsers: T): void;
+  separatedBy(separator: Parser<mixed>): ParserSequence<T>;
+}
+
+// Similar to ParserSequence, but the parsers can occur in any order.
+declare class ParserSet<+T: ConstrainedTuple<Parser<mixed>>>
+  extends Parser<ValuesFromParserTuple<T>>
+{
+  +parsers: T;
+  +separator: ?Parser<void>;
+  constructor(parsers: T, separator?: ?Parser<void>): void;
+  separatedBy(separator: Parser<mixed>): ParserSet<T>;
+}
+
+type ConstrainedTuple<+T> =
+  | $ReadOnly<[T]>
+  | $ReadOnly<[T, T]>
+  | $ReadOnly<[T, T, T]>
+  | $ReadOnly<[T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T, T]>
+  | $ReadOnly<[T, T, T, T, T, T, T, T, T, T]>;
+
+// prettier-ignore
+export type FromParser<+T: Parser<mixed>, Fallback = empty> =
+  | Fallback
+  | T extends Parser<infer V> ? V : empty;
+
+type ValuesFromParserTuple<
+  +T: ConstrainedTuple<Parser<mixed>>,
+  Fallback = empty,
+> = {
+  [Key in keyof T]: FromParser<T[Key], Fallback>,
+};

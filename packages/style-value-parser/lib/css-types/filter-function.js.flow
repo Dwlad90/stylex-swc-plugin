@@ -1,0 +1,128 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../token-parser';
+import { Length } from './length';
+// import { Color } from './color';
+import { Angle } from './angle';
+
+declare export class FilterFunction {
+  toString(): string;
+  static get parser(): TokenParser<FilterFunction>;
+}
+
+declare export class BlurFilterFunction extends FilterFunction {
+  +radius: Length;
+  constructor(radius: Length): void;
+  toString(): string;
+  static get parser(): TokenParser<BlurFilterFunction>;
+}
+
+declare export class BrightnessFilterFunction extends FilterFunction {
+  +percentage: number;
+  constructor(percentage: number): void;
+  toString(): string;
+  static get parser(): TokenParser<BrightnessFilterFunction>;
+}
+
+declare export class ContrastFilterFunction extends FilterFunction {
+  +amount: number;
+  constructor(amount: number): void;
+  toString(): string;
+  static get parser(): TokenParser<ContrastFilterFunction>;
+}
+
+// export class DropShadowFilterFunction extends FilterFunction {
+//   +offsetX: Length;
+//   +offsetY: Length;
+//   +blurRadius: Length;
+//   +color: ?Color;
+//   constructor(
+//     offsetX: Length,
+//     offsetY: Length,
+//     blurRadius: Length,
+//     color: ?Color,
+//   ) {
+//     super();
+//     this.offsetX = offsetX;
+//     this.offsetY = offsetY;
+//     this.blurRadius = blurRadius;
+//     this.color = color;
+//   }
+//   toString(): string {
+//     const args = [
+//       this.offsetX.toString(),
+//       this.offsetY.toString(),
+//       this.blurRadius.value !== 0 ? this.blurRadius.toString() : null,
+//       this.color?.toString(),
+//     ]
+//       .filter(Boolean)
+//       .join(' ');
+//     return `drop-shadow(${args})`;
+//   }
+//   static get parser(): TokenParser<DropShadowFilterFunction> {
+//     return TokenParser.sequence(
+//       TokenParser.tokens.Function,
+//       TokenParser.sequence(
+//         Length.parser,
+//         Length.parser,
+//         Length.parser.optional,
+//         Color.parser.optional,
+//       )
+//         .separatedBy(TokenParser.tokens.Whitespace)
+//         .surroundedBy(TokenParser.tokens.Whitespace.optional),
+//       TokenParser.tokens.CloseParen,
+//     ).map(
+//       ([_, [offsetX, offsetY, blurRadius = new Length(0), color], _1]) =>
+//         new DropShadowFilterFunction(offsetX, offsetY, blurRadius, color),
+//     );
+//   }
+// }
+
+declare export class GrayscaleFilterFunction extends FilterFunction {
+  +amount: number;
+  constructor(amount: number): void;
+  toString(): string;
+  static get parser(): TokenParser<GrayscaleFilterFunction>;
+}
+
+declare export class HueRotateFilterFunction extends FilterFunction {
+  +angle: Angle;
+  constructor(angle: Angle): void;
+  toString(): string;
+  static get parser(): TokenParser<HueRotateFilterFunction>;
+}
+
+declare export class InverFilterFunction extends FilterFunction {
+  +amount: number;
+  constructor(amount: number): void;
+  toString(): string;
+  static get parser(): TokenParser<InverFilterFunction>;
+}
+
+declare export class OpacityFilterFunction extends FilterFunction {
+  +amount: number;
+  constructor(amount: number): void;
+  toString(): string;
+  static get parser(): TokenParser<OpacityFilterFunction>;
+}
+
+declare export class SaturateFilterFunction extends FilterFunction {
+  +amount: number;
+  constructor(amount: number): void;
+  toString(): string;
+  static get parser(): TokenParser<SaturateFilterFunction>;
+}
+
+declare export class SepiaFilterFunction extends FilterFunction {
+  +amount: number;
+  constructor(amount: number): void;
+  toString(): string;
+  static get parser(): TokenParser<SepiaFilterFunction>;
+}

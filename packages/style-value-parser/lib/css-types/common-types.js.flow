@@ -1,0 +1,47 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../token-parser';
+// Purposely not exported
+// StyleX will not support this value
+// export const revertLayer: TokenParser<string> = TokenParser.token<TokenIdent>(
+//   TokenType.Ident,
+// )
+//   .where((v) => v[4].value === 'revert-layer')
+//   .map(() => 'revert-layer');
+
+export type CSSWideKeyword = 'inherit' | 'initial' | 'unset' | 'revert';
+
+declare export const cssWideKeywords: TokenParser<CSSWideKeyword>;
+
+declare export const inherit: TokenParser<'inherit'>;
+
+declare export const initial: TokenParser<'initial'>;
+
+declare export const unset: TokenParser<'unset'>;
+
+declare export const revert: TokenParser<'revert'>;
+
+declare export const auto: TokenParser<string>;
+
+declare export class CssVariable {
+  +name: string;
+  constructor(name: string): void;
+  toString(): string;
+  static parse: TokenParser<CssVariable>;
+}
+
+declare export class Percentage {
+  +value: number;
+  constructor(value: number): void;
+  toString(): string;
+  static get parser(): TokenParser<Percentage>;
+}
+
+declare export const numberOrPercentage: TokenParser<number | Percentage>;

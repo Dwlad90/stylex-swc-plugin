@@ -1,0 +1,17 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @flow strict
+ */
+
+import { TokenParser } from '../core2';
+import { Frequency } from './frequency';
+import { Length } from './length';
+import { Resolution } from './resolution';
+import { Time } from './time';
+
+export type Dimension = Length | Time | Resolution | Frequency;
+declare export const dimension: TokenParser<Dimension>;

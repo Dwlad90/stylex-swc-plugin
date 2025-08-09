@@ -13,7 +13,7 @@ use stylex_css_parser::token_types::TokenList;
 
 fn basic_parser_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("BasicParsers");
-    
+
     group.bench_function("always_parser", |b| {
         b.iter(|| {
             let parser = TokenParser::always(black_box(42));
@@ -40,7 +40,7 @@ fn basic_parser_benchmarks(c: &mut Criterion) {
 
 fn combinator_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("Combinators");
-    
+
     group.bench_function("map_transformation", |b| {
         b.iter(|| {
             let parser = TokenParser::always(black_box(5))
@@ -79,7 +79,7 @@ fn combinator_benchmarks(c: &mut Criterion) {
 
 fn sequence_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("Sequences");
-    
+
     group.bench_function("simple_sequence", |b| {
         b.iter(|| {
             let parser = TokenParser::<String>::sequence(vec![
@@ -127,7 +127,7 @@ fn sequence_benchmarks(c: &mut Criterion) {
 
 fn repetition_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("Repetition");
-    
+
     group.bench_function("zero_or_more_empty", |b| {
         b.iter(|| {
             let parser = TokenParser::zero_or_more(TokenParser::<String>::never());
@@ -147,7 +147,7 @@ fn repetition_benchmarks(c: &mut Criterion) {
 
 fn token_list_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("TokenList");
-    
+
     let css_samples = [
         "color: red;",
         "margin: 10px 20px;",
@@ -186,7 +186,7 @@ fn token_list_benchmarks(c: &mut Criterion) {
 
 fn complex_parsing_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("ComplexParsing");
-    
+
     group.bench_function("nested_transformations", |b| {
         b.iter(|| {
             let parser = TokenParser::always(black_box(1))
@@ -214,11 +214,11 @@ fn complex_parsing_benchmarks(c: &mut Criterion) {
             let number_parser = TokenParser::always(black_box(42));
             let string_parser = TokenParser::always("test".to_string());
             let bool_parser = TokenParser::always(true);
-            
+
             let combined = number_parser
                 .flat_map(move |n| string_parser.map(move |s| format!("{}:{}", n, s), None), None)
                 .flat_map(move |s| bool_parser.map(move |b| (s.clone(), b), None), None);
-                
+
             black_box(combined.parse("input"))
         })
     });

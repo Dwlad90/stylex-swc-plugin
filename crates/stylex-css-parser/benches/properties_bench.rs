@@ -12,7 +12,7 @@ use stylex_css_parser::properties::*;
 
 fn border_radius_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("BorderRadius");
-    
+
     let border_radius_inputs = [
         "10px",
         "10px 20px",
@@ -53,7 +53,7 @@ fn border_radius_benchmarks(c: &mut Criterion) {
 
 fn box_shadow_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("BoxShadow");
-    
+
     let box_shadow_inputs = [
         "10px 10px",
         "10px 10px 5px",
@@ -94,7 +94,7 @@ fn box_shadow_benchmarks(c: &mut Criterion) {
 
 fn transform_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("Transform");
-    
+
     let transform_inputs = [
         "translate(10px, 20px)",
         "rotate(45deg)",
@@ -138,7 +138,7 @@ fn transform_benchmarks(c: &mut Criterion) {
 
 fn property_creation_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("PropertyCreation");
-    
+
     group.bench_function("border_radius_individual_create", |b| {
         b.iter(|| {
             use stylex_css_parser::css_types::{Length, LengthPercentage};
@@ -156,7 +156,7 @@ fn property_creation_benchmarks(c: &mut Criterion) {
             let blur = Length::new(5.0, "px".to_string());
             let spread = Length::new(2.0, "px".to_string());
             let color = Color::Named(NamedColor::new("black".to_string()));
-            
+
             black_box(BoxShadow::new(offset_x, offset_y, blur, spread, color, false))
         })
     });
@@ -172,13 +172,13 @@ fn property_creation_benchmarks(c: &mut Criterion) {
 
 fn property_display_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("PropertyDisplay");
-    
+
     group.bench_function("border_radius_display", |b| {
         use stylex_css_parser::css_types::{Length, LengthPercentage};
         let length = Length::new(10.0, "px".to_string());
         let lp = LengthPercentage::Length(length);
         let border_radius = BorderRadiusIndividual::new(lp, None);
-        
+
         b.iter(|| {
             black_box(border_radius.to_string())
         })
@@ -192,7 +192,7 @@ fn property_display_benchmarks(c: &mut Criterion) {
         let spread = Length::new(2.0, "px".to_string());
         let color = Color::Named(NamedColor::new("black".to_string()));
         let box_shadow = BoxShadow::new(offset_x, offset_y, blur, spread, color, false);
-        
+
         b.iter(|| {
             black_box(box_shadow.to_string())
         })
@@ -200,7 +200,7 @@ fn property_display_benchmarks(c: &mut Criterion) {
 
     group.bench_function("transform_display", |b| {
         let transform = Transform::new(vec![]);
-        
+
         b.iter(|| {
             black_box(transform.to_string())
         })
@@ -211,7 +211,7 @@ fn property_display_benchmarks(c: &mut Criterion) {
 
 fn complex_property_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("ComplexProperties");
-    
+
     group.bench_function("complex_border_radius_shorthand", |b| {
         let input = "10px 20px 30px 40px / 50px 60px 70px 80px";
         b.iter(|| {

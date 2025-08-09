@@ -70,6 +70,9 @@ pub mod css_types;
 pub mod properties;
 pub mod at_queries;
 
+#[cfg(test)]
+pub mod tests;
+
 // Re-export main APIs to match JavaScript structure exactly
 // Mirrors: export * as tokenParser from './token-parser';
 pub use token_parser as tokenParser;
@@ -100,7 +103,7 @@ pub enum CssParseError {
 pub type CssResult<T> = std::result::Result<T, CssParseError>;
 
 #[cfg(test)]
-mod tests {
+mod lib_tests {
     use super::*;
 
     #[test]

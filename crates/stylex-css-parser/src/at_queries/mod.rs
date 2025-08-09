@@ -1,13 +1,17 @@
 /*!
-At-rule and media query parsers.
+At-rule parsing functionality.
 
-This module contains parsers for CSS at-rules, particularly media queries,
-mirroring the JavaScript at-queries directory.
+This module contains parsers for CSS at-rules, particularly media queries.
+Includes support for complex media query parsing, validation, and transformation.
+
+Mirrors: packages/style-value-parser/src/at-queries/
 */
 
 pub mod media_query;
 pub mod media_query_transform;
 pub mod messages;
 
-// Re-export main functionality
+// Re-export commonly used types
+pub use media_query::{MediaQuery, validate_media_query, MediaQueryRule};
 pub use media_query_transform::lastMediaQueryWinsTransform;
+pub use messages::MediaQueryErrors;

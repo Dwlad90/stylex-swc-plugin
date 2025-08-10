@@ -247,8 +247,15 @@ impl RgbColor {
             .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
             .map(|v| v as u8, Some("to_u8"));
 
+        let percent_channel = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+            .map(|t| if let SimpleToken::Percentage(v) = t { v } else { 0.0 }, Some("to_f64"))
+            .where_fn(|v| *v >= 0.0 && *v <= 100.0, Some("0..100%"))
+            .map(|v| ((v * 255.0) / 100.0).round() as u8, Some("pct_to_u8"));
+
+        let channel = TokenParser::one_of(vec![number_channel.clone(), percent_channel.clone()]);
+
         // rgb(<n>,<n>,<n>) comma syntax
-        let comma_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![number_channel.clone(), number_channel.clone(), number_channel.clone()]);
+        let comma_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![channel.clone(), channel.clone(), channel.clone()]);
 
         // rgb function start and )
         let fn_rgb: TokenParser<String> = TokenParser::<String>::fn_name("rgb");
@@ -268,8 +275,8 @@ impl RgbColor {
             }, Some("close"))
             .map(|vals| RgbColor::new(vals[0], vals[1], vals[2]), Some("to_rgb"));
 
-        // space separated variant: rgb <n> <n> <n> )
-        let space_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![number_channel.clone(), number_channel.clone(), number_channel.clone()]);
+        // space separated variant: rgb <c> <c> <c> )
+        let space_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![channel.clone(), channel.clone(), channel.clone()]);
         let space_parser = TokenParser::<String>::fn_name("rgb")
             .flat_map(move |_| space_args.clone(), Some("space_args"))
             .flat_map(move |vals| {
@@ -309,6 +316,11 @@ impl RgbaColor {
             .map(|t| if let SimpleToken::Number(v) = t { v } else { 0.0 }, Some("to_f64"))
             .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
             .map(|v| v as u8, Some("to_u8"));
+        let percent_channel = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+            .map(|t| if let SimpleToken::Percentage(v) = t { v } else { 0.0 }, Some("to_f64"))
+            .where_fn(|v| *v >= 0.0 && *v <= 100.0, Some("0..100%"))
+            .map(|v| ((v * 255.0) / 100.0).round() as u8, Some("pct_to_u8"));
+        let channel = TokenParser::one_of(vec![number_channel.clone(), percent_channel.clone()]);
 
         let alpha_number = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
             .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
@@ -316,12 +328,8 @@ impl RgbaColor {
         let fn_rgba: TokenParser<String> = TokenParser::<String>::fn_name("rgba");
         let close_paren = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        // rgba(<n>,<n>,<n>,<a>) simple variant
-        let args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![
-            number_channel.clone(),
-            number_channel.clone(),
-            number_channel.clone(),
-        ]);
+        // rgba(<c>,<c>,<c>,<a>) simple variant (alpha supports percent or number)
+        let args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![channel.clone(), channel.clone(), channel.clone()]);
         // Parse: rgba(<n>,<n>,<n>,<a>)
         let rgba_parser = fn_rgba
             .flat_map(move |_| {
@@ -364,9 +372,31 @@ impl HslColor {
 
     /// Parser for HSL colors
     pub fn parser() -> TokenParser<HslColor> {
-        // Angle can be a dimension with unit or 0 number; for now accept numbers as degrees
-        let angle_number = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
-            .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+        // Angle: deg/rad/turn or bare 0 -> deg
+        let dim_angle = TokenParser::<SimpleToken>::token(
+            SimpleToken::Dimension { value: 0.0, unit: String::new() },
+            Some("Dimension")
+        )
+        .where_fn(|t| {
+            if let SimpleToken::Dimension { unit, .. } = t {
+                matches!(unit.as_str(), "deg" | "rad" | "turn")
+            } else { false }
+        }, Some("angle_unit"))
+        .map(|t| {
+            if let SimpleToken::Dimension { value, unit } = t {
+                match unit.as_str() {
+                    "deg" => value as f32,
+                    "rad" => (value as f32) * 180.0 / std::f32::consts::PI,
+                    _ => (value as f32) * 360.0, // turn
+                }
+            } else { 0.0 }
+        }, Some("to_deg"));
+
+        let zero_angle = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .where_fn(|t| matches!(t, SimpleToken::Number(v) if *v == 0.0), Some("zero"))
+            .map(|_| 0.0_f32, Some("zero_deg"));
+
+        let angle_number = TokenParser::one_of(vec![dim_angle, zero_angle]);
 
         // Percentage is SimpleToken::Percentage(value)
         let percent = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
@@ -413,8 +443,12 @@ impl HslaColor {
         let percent = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
             .map(|t| if let SimpleToken::Percentage(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
 
-        let alpha = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+        // alpha may be number 0-1 or percentage
+        let alpha_num = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
             .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+        let alpha_pct = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+            .map(|t| if let SimpleToken::Percentage(v) = t { (v as f32) / 100.0 } else { 0.0 }, Some("pct_to_alpha"));
+        let alpha = TokenParser::one_of(vec![alpha_num, alpha_pct]);
 
         let fn_hsla: TokenParser<String> = TokenParser::<String>::fn_name("hsla");
         let close_paren = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));

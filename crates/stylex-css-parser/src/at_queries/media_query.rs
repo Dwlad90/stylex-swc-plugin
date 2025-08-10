@@ -38,6 +38,11 @@ impl MediaQuery {
     pub fn to_string(&self) -> String {
         self.query_string.clone()
     }
+
+    /// Check if parentheses are balanced in a media query string
+    pub fn has_balanced_parens(input: &str) -> bool {
+        has_balanced_parens(input)
+    }
 }
 
 impl Display for MediaQuery {

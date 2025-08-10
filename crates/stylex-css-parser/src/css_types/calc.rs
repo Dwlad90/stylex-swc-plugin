@@ -107,6 +107,13 @@ pub enum CalcValue {
     Group(CalcGroup),
 }
 
+/// Helper enum for operator parsing
+#[derive(Debug, Clone, PartialEq)]
+pub enum CalcToken {
+    Value(CalcValue),
+    Operator(BinaryOp),
+}
+
 impl CalcValue {
     /// Parser for basic calc values (numbers, dimensions, percentages, constants)
     /// Mirrors: valueParser in calc.js
@@ -142,6 +149,188 @@ impl CalcValue {
             Percentage::parser().map(CalcValue::Percentage, Some("percentage")),
         ])
     }
+
+    /// Parser for operators (+, -, *, /)
+    pub fn operator_parser() -> TokenParser<BinaryOp> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Unknown(String::new()), Some("Delim"))
+            .map(|token| {
+                if let SimpleToken::Unknown(delim) = token {
+                    delim
+                } else {
+                    String::new()
+                }
+            }, Some("extract_delim"))
+            .where_fn(|delim| {
+                delim == "+" || delim == "-" || delim == "*" || delim == "/"
+            }, Some("valid_operator"))
+            .map(|delim| {
+                BinaryOp::from_str(&delim).unwrap()
+            }, Some("to_binary_op"))
+    }
+
+    /// Expressions parser with proper precedence
+    /// Mirrors: operationsParser in calc.js
+    pub fn expressions_parser() -> TokenParser<CalcValue> {
+        // Forward declaration - we'll implement this recursively
+        Self::expressions_parser_impl()
+    }
+
+    /// Implementation of expressions parser
+    fn expressions_parser_impl() -> TokenParser<CalcValue> {
+        // Parse parenthesized expressions
+        let parenthesized = TokenParser::<SimpleToken>::token(SimpleToken::LeftParen, Some("LeftParen"))
+            .flat_map(|_| {
+                // Skip optional whitespace, parse expression, skip optional whitespace, then close paren
+                Self::expressions_parser()
+                    .flat_map(|expr| {
+                        TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"))
+                            .map(move |_| CalcValue::Group(CalcGroup::new(expr.clone())), Some("to_group"))
+                    }, Some("close_paren"))
+            }, Some("parenthesized"));
+
+        // Primary values (either basic value or parenthesized expression)
+        let primary = TokenParser::one_of(vec![
+            Self::value_parser(),
+            parenthesized,
+        ]);
+
+        // Parse a sequence of values and operators
+        let first_value = primary.clone();
+        let rest_values = TokenParser::zero_or_more(
+            TokenParser::<CalcToken>::sequence(vec![
+                Self::operator_parser().map(CalcToken::Operator, Some("op")),
+                primary.clone().map(CalcToken::Value, Some("val")),
+            ])
+        );
+
+        // Combine first value with remaining values and operators
+        first_value
+            .flat_map(move |first| {
+                let first_clone = first.clone();
+                rest_values.clone().map(move |rest| {
+                    let mut tokens = vec![CalcToken::Value(first_clone.clone())];
+                    for pair in rest {
+                        tokens.extend(pair);
+                    }
+                    Self::parse_with_precedence(tokens)
+                }, Some("combine"))
+            }, Some("parse_sequence"))
+    }
+
+    /// Parse tokens with proper operator precedence
+    /// Implements the precedence algorithm from JavaScript
+    fn parse_with_precedence(tokens: Vec<CalcToken>) -> CalcValue {
+        if tokens.len() == 1 {
+            if let CalcToken::Value(val) = &tokens[0] {
+                return val.clone();
+            }
+        }
+
+        // Convert tokens to values and operators for precedence parsing
+        let mut values_and_ops = Vec::new();
+        for token in tokens {
+            match token {
+                CalcToken::Value(val) => values_and_ops.push(val),
+                CalcToken::Operator(op) => {
+                    // Create a placeholder for operator - we'll handle this in precedence functions
+                    values_and_ops.push(CalcValue::Number(match op {
+                        BinaryOp::Add => -1.0,
+                        BinaryOp::Subtract => -2.0,
+                        BinaryOp::Multiply => -3.0,
+                        BinaryOp::Divide => -4.0,
+                    }));
+                }
+            }
+        }
+
+        Self::split_by_multiplication_or_division(values_and_ops)
+    }
+
+    /// Handle multiplication and division (higher precedence)
+    /// Mirrors: splitByMultiplicationOrDivision in calc.js
+    fn split_by_multiplication_or_division(values_and_ops: Vec<CalcValue>) -> CalcValue {
+        if values_and_ops.len() == 1 {
+            return values_and_ops[0].clone();
+        }
+
+        // Find first multiplication or division operator
+        let mut first_mul_div = None;
+        for (i, value) in values_and_ops.iter().enumerate() {
+            if let CalcValue::Number(n) = value {
+                if *n == -3.0 || *n == -4.0 { // * or /
+                    first_mul_div = Some(i);
+                    break;
+                }
+            }
+        }
+
+        match first_mul_div {
+            None => {
+                // No multiplication or division, handle addition/subtraction
+                Self::compose_add_and_subtraction(values_and_ops)
+            }
+            Some(op_idx) => {
+                // Split around the operator
+                let left_values = values_and_ops[..op_idx].to_vec();
+                let right_values = values_and_ops[op_idx + 1..].to_vec();
+                let op = &values_and_ops[op_idx];
+
+                let left_result = Self::compose_add_and_subtraction(left_values);
+                let right_result = Self::split_by_multiplication_or_division(right_values);
+
+                let binary_op = if let CalcValue::Number(n) = op {
+                    if *n == -3.0 { BinaryOp::Multiply } else { BinaryOp::Divide }
+                } else {
+                    BinaryOp::Multiply // fallback
+                };
+
+                CalcValue::BinaryOp(BinaryOperation::new(binary_op, left_result, right_result))
+            }
+        }
+    }
+
+    /// Handle addition and subtraction (lower precedence)
+    /// Mirrors: composeAddAndSubtraction in calc.js
+    fn compose_add_and_subtraction(values_and_ops: Vec<CalcValue>) -> CalcValue {
+        if values_and_ops.len() == 1 {
+            return values_and_ops[0].clone();
+        }
+
+        // Find first addition or subtraction operator
+        let mut first_add_sub = None;
+        for (i, value) in values_and_ops.iter().enumerate() {
+            if let CalcValue::Number(n) = value {
+                if *n == -1.0 || *n == -2.0 { // + or -
+                    first_add_sub = Some(i);
+                    break;
+                }
+            }
+        }
+
+        match first_add_sub {
+            None => {
+                // No operators, return first value
+                values_and_ops[0].clone()
+            }
+            Some(op_idx) => {
+                // Split around the operator
+                let left_values = values_and_ops[..op_idx].to_vec();
+                let right_values = values_and_ops[op_idx + 1..].to_vec();
+                let op = &values_and_ops[op_idx];
+
+                let left_result = Self::compose_add_and_subtraction(left_values);
+                let right_result = Self::compose_add_and_subtraction(right_values);
+
+                let binary_op = if let CalcValue::Number(n) = op {
+                    if *n == -1.0 { BinaryOp::Add } else { BinaryOp::Subtract }
+                } else {
+                    BinaryOp::Add // fallback
+                };
+
+                CalcValue::BinaryOp(BinaryOperation::new(binary_op, left_result, right_result))
+            }
+        }
+    }
 }
 
 impl Display for CalcValue {
@@ -170,28 +359,11 @@ impl Calc {
         Self { value }
     }
 
-    /// Simplified parser for calc expressions
-    /// This is a basic implementation - the full parser would need to handle:
-    /// - Complex operator precedence
-    /// - Parenthesized expressions
-    /// - Recursive parsing
+    /// Parser for calc expressions with full precedence support
     /// Mirrors: Calc.parser in calc.js
     pub fn parser() -> TokenParser<Calc> {
-        // For now, implement a simplified version that just parses calc(value)
-        // TODO: Implement full expression parsing with precedence and grouping
-
         // Parse calc function start
-        let calc_function = TokenParser::<SimpleToken>::token(
-            SimpleToken::Function("calc".to_string()),
-            Some("Function")
-        )
-        .where_fn(|token| {
-            if let SimpleToken::Function(name) = token {
-                name == "calc"
-            } else {
-                false
-            }
-        }, Some("calc_function"));
+        let calc_function = TokenParser::<String>::fn_name("calc");
 
         // Parse closing parenthesis
         let close_paren = TokenParser::<SimpleToken>::token(
@@ -199,11 +371,17 @@ impl Calc {
             Some("RightParen")
         );
 
-        // Use flat_map to chain the parsers properly
+        // Parse the full expression or simple value
+        let expression_or_value = TokenParser::one_of(vec![
+            CalcValue::expressions_parser(),
+            CalcValue::value_parser(),
+        ]);
+
+        // Combine: calc( expression )
         calc_function
-            .flat_map(|_| CalcValue::value_parser(), Some("parse_value"))
+            .flat_map(move |_| expression_or_value.clone(), Some("parse_expression"))
             .flat_map(move |value| {
-                close_paren.map(move |_| Calc::new(value.clone()), Some("to_calc"))
+                close_paren.clone().map(move |_| Calc::new(value.clone()), Some("to_calc"))
             }, Some("finish_calc"))
     }
 }
@@ -214,32 +392,7 @@ impl Display for Calc {
     }
 }
 
-/// Helper functions for parsing with proper operator precedence
-/// These would be used in the full implementation
 
-/// Compose addition and subtraction operations (lower precedence)
-/// Mirrors: composeAddAndSubtraction function in calc.js
-pub fn compose_add_and_subtraction(values_and_ops: Vec<CalcValue>) -> CalcValue {
-    if values_and_ops.len() == 1 {
-        return values_and_ops[0].clone();
-    }
-
-    // TODO: Implement proper precedence parsing
-    // For now, return the first value as a placeholder
-    values_and_ops[0].clone()
-}
-
-/// Handle multiplication and division operations (higher precedence)
-/// Mirrors: splitByMultiplicationOrDivision function in calc.js
-pub fn split_by_multiplication_or_division(values_and_ops: Vec<CalcValue>) -> CalcValue {
-    if values_and_ops.len() == 1 {
-        return values_and_ops[0].clone();
-    }
-
-    // TODO: Implement proper precedence parsing
-    // For now, return the first value as a placeholder
-    values_and_ops[0].clone()
-}
 
 #[cfg(test)]
 mod tests {

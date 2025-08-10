@@ -13,13 +13,17 @@ while noting TODOs for areas that need more complete implementation.
 use crate::{
     properties::{
         Transform,
-        transform::TransformFunction,
         BoxShadow, BoxShadowList,
         BorderRadiusIndividual, BorderRadiusShorthand,
     },
     css_types::{
         Length, Color, NamedColor, HashColor, RgbaColor, HslaColor,
-        LengthPercentage, Percentage,
+        LengthPercentage, Percentage, Angle,
+        transform_function::{
+            TransformFunction, Matrix, Matrix3d, Perspective, Rotate, RotateXYZ, Rotate3d,
+            Scale, Scale3d, ScaleAxis, Skew, SkewAxis, Translate, Translate3d, TranslateAxis,
+            Axis, SkewAxis2D
+        },
     },
 };
 
@@ -30,118 +34,141 @@ mod transform_tests {
     #[test]
     fn test_transform_function_creation_and_display() {
         // Test basic transform function creation
-        let translate = TransformFunction::new(
-            "translate".to_string(),
-            vec!["50px".to_string(), "100px".to_string()]
-        );
+        let translate = TransformFunction::Translate(Translate::new(
+            LengthPercentage::Length(Length::new(50.0, "px".to_string())),
+            Some(LengthPercentage::Length(Length::new(100.0, "px".to_string())))
+        ));
         assert_eq!(translate.to_string(), "translate(50px, 100px)");
 
-        let rotate = TransformFunction::new(
-            "rotate".to_string(),
-            vec!["45deg".to_string()]
-        );
+        let rotate = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
         assert_eq!(rotate.to_string(), "rotate(45deg)");
 
-        let scale = TransformFunction::new(
-            "scale".to_string(),
-            vec!["1.5".to_string(), "0.8".to_string()]
-        );
+        let scale = TransformFunction::Scale(Scale::new(
+            1.5,
+            Some(0.8)
+        ));
         assert_eq!(scale.to_string(), "scale(1.5, 0.8)");
     }
 
     #[test]
     fn test_transform_matrix_functions() {
         // Test matrix function (simplified - would normally parse actual Matrix struct)
-        let matrix = TransformFunction::new(
-            "matrix".to_string(),
-            vec!["1".to_string(), "0".to_string(), "0".to_string(), "1".to_string(), "0".to_string(), "0".to_string()]
-        );
+        let matrix = TransformFunction::Matrix(Matrix::new(
+            1.0, 0.0, 0.0, 1.0, 0.0, 0.0
+        ));
         assert_eq!(matrix.to_string(), "matrix(1, 0, 0, 1, 0, 0)");
 
-        let matrix3d = TransformFunction::new(
-            "matrix3d".to_string(),
-            vec![
-                "1".to_string(), "0".to_string(), "0".to_string(), "0".to_string(),
-                "0".to_string(), "1".to_string(), "0".to_string(), "0".to_string(),
-                "0".to_string(), "0.5".to_string(), "1.5".to_string(), "0".to_string(),
-                "0".to_string(), "0".to_string(), "0".to_string(), "1".to_string()
-            ]
-        );
-        assert_eq!(matrix3d.function_name, "matrix3d");
-        assert_eq!(matrix3d.args.len(), 16);
+        let matrix3d = TransformFunction::Matrix3d(Matrix3d::new(
+            [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.5, 1.5, 0.0, 0.0, 0.0, 0.0, 1.0]
+        ));
+        // Check the display format
+        assert!(matrix3d.to_string().contains("matrix3d"));
+        if let TransformFunction::Matrix3d(m) = matrix3d {
+            assert_eq!(m.args.len(), 16);
+        }
     }
 
     #[test]
     fn test_transform_rotation_functions() {
         // Test rotation functions (simplified)
-        let rotate = TransformFunction::new("rotate".to_string(), vec!["45deg".to_string()]);
+        let rotate = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
         assert_eq!(rotate.to_string(), "rotate(45deg)");
 
-        let rotate3d = TransformFunction::new(
-            "rotate3d".to_string(),
-            vec!["1".to_string(), "2".to_string(), "3".to_string(), "45deg".to_string()]
-        );
+        let rotate3d = TransformFunction::Rotate3d(Rotate3d::new(
+            1.0, 2.0, 3.0,
+            Angle::new(45.0, "deg".to_string())
+        ));
         assert_eq!(rotate3d.to_string(), "rotate3d(1, 2, 3, 45deg)");
 
-        let rotate_x = TransformFunction::new("rotateX".to_string(), vec!["45deg".to_string()]);
+        let rotate_x = TransformFunction::RotateXYZ(RotateXYZ::new(
+            Angle::new(45.0, "deg".to_string()),
+            Axis::X
+        ));
         assert_eq!(rotate_x.to_string(), "rotateX(45deg)");
 
-        let rotate_y = TransformFunction::new("rotateY".to_string(), vec!["45deg".to_string()]);
+        let rotate_y = TransformFunction::RotateXYZ(RotateXYZ::new(
+            Angle::new(45.0, "deg".to_string()),
+            Axis::Y
+        ));
         assert_eq!(rotate_y.to_string(), "rotateY(45deg)");
 
-        let rotate_z = TransformFunction::new("rotateZ".to_string(), vec!["45deg".to_string()]);
+        let rotate_z = TransformFunction::RotateXYZ(RotateXYZ::new(
+            Angle::new(45.0, "deg".to_string()),
+            Axis::Z
+        ));
         assert_eq!(rotate_z.to_string(), "rotateZ(45deg)");
     }
 
     #[test]
     fn test_transform_scale_functions() {
         // Test scale functions
-        let scale_uniform = TransformFunction::new("scale".to_string(), vec!["2".to_string()]);
+        let scale_uniform = TransformFunction::Scale(Scale::new(2.0, None));
         assert_eq!(scale_uniform.to_string(), "scale(2)");
 
-        let scale_xy = TransformFunction::new("scale".to_string(), vec!["2".to_string(), "3".to_string()]);
+        let scale_xy = TransformFunction::Scale(Scale::new(2.0, Some(3.0)));
         assert_eq!(scale_xy.to_string(), "scale(2, 3)");
 
-        let scale3d = TransformFunction::new(
-            "scale3d".to_string(),
-            vec!["2".to_string(), "3".to_string(), "4".to_string()]
-        );
+        let scale3d = TransformFunction::Scale3d(Scale3d::new(2.0, 3.0, 4.0));
         assert_eq!(scale3d.to_string(), "scale3d(2, 3, 4)");
     }
 
     #[test]
     fn test_transform_translate_functions() {
-        let translate = TransformFunction::new(
-            "translate".to_string(),
-            vec!["50px".to_string(), "100px".to_string()]
-        );
+        let translate = TransformFunction::Translate(Translate::new(
+            LengthPercentage::Length(Length::new(50.0, "px".to_string())),
+            Some(LengthPercentage::Length(Length::new(100.0, "px".to_string())))
+        ));
         assert_eq!(translate.to_string(), "translate(50px, 100px)");
 
-        let translate_x = TransformFunction::new("translateX".to_string(), vec!["50px".to_string()]);
+        let translate_x = TransformFunction::TranslateAxis(TranslateAxis::new(
+            LengthPercentage::Length(Length::new(50.0, "px".to_string())),
+            Axis::X
+        ));
         assert_eq!(translate_x.to_string(), "translateX(50px)");
 
-        let translate_y = TransformFunction::new("translateY".to_string(), vec!["100px".to_string()]);
+        let translate_y = TransformFunction::TranslateAxis(TranslateAxis::new(
+            LengthPercentage::Length(Length::new(100.0, "px".to_string())),
+            Axis::Y
+        ));
         assert_eq!(translate_y.to_string(), "translateY(100px)");
 
-        let translate_z = TransformFunction::new("translateZ".to_string(), vec!["200px".to_string()]);
+        let translate_z = TransformFunction::TranslateAxis(TranslateAxis::new(
+            LengthPercentage::Length(Length::new(200.0, "px".to_string())),
+            Axis::Z
+        ));
         assert_eq!(translate_z.to_string(), "translateZ(200px)");
     }
 
     #[test]
     fn test_transform_skew_functions() {
-        let skew = TransformFunction::new("skew".to_string(), vec!["45deg".to_string()]);
+        let skew = TransformFunction::Skew(Skew::new(
+            Angle::new(45.0, "deg".to_string()),
+            None
+        ));
         assert_eq!(skew.to_string(), "skew(45deg)");
 
-        let skew_x = TransformFunction::new("skewX".to_string(), vec!["20deg".to_string()]);
+        let skew_x = TransformFunction::SkewAxis(SkewAxis::new(
+            Angle::new(20.0, "deg".to_string()),
+            SkewAxis2D::X
+        ));
         assert_eq!(skew_x.to_string(), "skewX(20deg)");
 
-        let skew_y = TransformFunction::new("skewY".to_string(), vec!["15deg".to_string()]);
+        let skew_y = TransformFunction::SkewAxis(SkewAxis::new(
+            Angle::new(15.0, "deg".to_string()),
+            SkewAxis2D::Y
+        ));
         assert_eq!(skew_y.to_string(), "skewY(15deg)");
     }
 
     #[test]
     fn test_transform_single_function() {
-        let func = TransformFunction::new("perspective".to_string(), vec!["100px".to_string()]);
+        let func = TransformFunction::Perspective(Perspective::new(
+            Length::new(100.0, "px".to_string())
+        ));
         let transform = Transform::new(vec![func]);
 
         assert_eq!(transform.value.len(), 1);
@@ -152,9 +179,14 @@ mod transform_tests {
     fn test_transform_multiple_functions() {
         // Test multiple transform functions like in JavaScript tests
         let funcs = vec![
-            TransformFunction::new("translate".to_string(), vec!["50px".to_string(), "100px".to_string()]),
-            TransformFunction::new("rotate".to_string(), vec!["45deg".to_string()]),
-            TransformFunction::new("scale".to_string(), vec!["1.5".to_string()]),
+            TransformFunction::Translate(Translate::new(
+                LengthPercentage::Length(Length::new(50.0, "px".to_string())),
+                Some(LengthPercentage::Length(Length::new(100.0, "px".to_string())))
+            )),
+            TransformFunction::Rotate(Rotate::new(
+                Angle::new(45.0, "deg".to_string())
+            )),
+            TransformFunction::Scale(Scale::new(1.5, None)),
         ];
 
         let transform = Transform::new(funcs);
@@ -168,22 +200,32 @@ mod transform_tests {
 
         // perspective + matrix3d
         let perspective_matrix = Transform::new(vec![
-            TransformFunction::new("perspective".to_string(), vec!["100px".to_string()]),
-            TransformFunction::new("matrix3d".to_string(), vec![
-                "1".to_string(), "0".to_string(), "0".to_string(), "0".to_string(),
-                "0".to_string(), "1".to_string(), "0".to_string(), "0".to_string(),
-                "0".to_string(), "0.5".to_string(), "1.5".to_string(), "0".to_string(),
-                "0".to_string(), "0".to_string(), "0".to_string(), "1".to_string()
-            ]),
+            TransformFunction::Perspective(Perspective::new(
+                Length::new(100.0, "px".to_string())
+            )),
+            TransformFunction::Matrix3d(Matrix3d::new([
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.5, 1.5, 0.0,
+                0.0, 0.0, 0.0, 1.0
+            ])),
         ]);
         assert_eq!(perspective_matrix.value.len(), 2);
 
         // scale + rotate + translate + skew (like in JavaScript test)
         let complex_transform = Transform::new(vec![
-            TransformFunction::new("scale".to_string(), vec!["2".to_string()]),
-            TransformFunction::new("rotate".to_string(), vec!["45deg".to_string()]),
-            TransformFunction::new("translate".to_string(), vec!["100px".to_string()]),
-            TransformFunction::new("skew".to_string(), vec!["45deg".to_string()]),
+            TransformFunction::Scale(Scale::new(2.0, None)),
+            TransformFunction::Rotate(Rotate::new(
+                Angle::new(45.0, "deg".to_string())
+            )),
+            TransformFunction::Translate(Translate::new(
+                LengthPercentage::Length(Length::new(100.0, "px".to_string())),
+                None
+            )),
+            TransformFunction::Skew(Skew::new(
+                Angle::new(45.0, "deg".to_string()),
+                None
+            )),
         ]);
         assert_eq!(complex_transform.value.len(), 4);
         assert_eq!(complex_transform.to_string(), "scale(2) rotate(45deg) translate(100px) skew(45deg)");
@@ -198,9 +240,15 @@ mod transform_tests {
 
     #[test]
     fn test_transform_equality() {
-        let func1 = TransformFunction::new("rotate".to_string(), vec!["45deg".to_string()]);
-        let func2 = TransformFunction::new("rotate".to_string(), vec!["45deg".to_string()]);
-        let func3 = TransformFunction::new("rotate".to_string(), vec!["90deg".to_string()]);
+        let func1 = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
+        let func2 = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
+        let func3 = TransformFunction::Rotate(Rotate::new(
+            Angle::new(90.0, "deg".to_string())
+        ));
 
         let transform1 = Transform::new(vec![func1]);
         let transform2 = Transform::new(vec![func2]);

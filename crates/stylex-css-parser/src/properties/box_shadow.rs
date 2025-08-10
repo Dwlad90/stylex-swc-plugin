@@ -67,70 +67,97 @@ impl BoxShadow {
     /// Parser for box shadow values
     /// Mirrors: BoxShadow.parse in box-shadow.js
     pub fn parser() -> TokenParser<BoxShadow> {
-        // Simplified implementation - full implementation would handle:
-        // - Optional blur and spread radius
-        // - Color in any position
-        // - Inset keyword detection
-        // - Proper error handling for invalid combinations
+        let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
 
-        // For now, implement a basic version with required offset values
-        TokenParser::one_of(vec![
-            // Inset shadow: parse the shadow then check for inset keyword
-            Self::outer_shadow_parser()
-                .flat_map(|shadow| {
-                    Self::inset_keyword_parser()
-                        .map(move |_| {
+        // Parse outer shadow: offsetX offsetY [blurRadius] [spreadRadius] color
+        let outer_shadow = {
+            let offset_x = Length::parser();
+            let offset_y = whitespace.clone().flat_map(|_| Length::parser(), Some("offset_y"));
+            let blur_radius = whitespace.clone().flat_map(|_| Length::parser(), Some("blur_radius")).optional();
+            let spread_radius = whitespace.clone().flat_map(|_| Length::parser(), Some("spread_radius")).optional();
+            let color = whitespace.clone().flat_map(|_| Color::parser(), Some("color"));
+
+            offset_x
+                .flat_map(move |x| {
+                    let x_clone = x.clone();
+                    offset_y.clone().map(move |y| (x_clone.clone(), y), Some("with_y"))
+                }, Some("x_step"))
+                .flat_map(move |(x, y)| {
+                    let x_clone = x.clone();
+                    let y_clone = y.clone();
+                    blur_radius.clone().map(move |blur| (x_clone.clone(), y_clone.clone(), blur), Some("with_blur"))
+                }, Some("blur_step"))
+                .flat_map(move |(x, y, blur)| {
+                    let x_clone = x.clone();
+                    let y_clone = y.clone();
+                    let blur_clone = blur.clone();
+                    spread_radius.clone().map(move |spread| (x_clone.clone(), y_clone.clone(), blur_clone.clone(), spread), Some("with_spread"))
+                }, Some("spread_step"))
+                .flat_map(move |(x, y, blur, spread)| {
+                    let x_clone = x.clone();
+                    let y_clone = y.clone();
+                    let blur_clone = blur.clone();
+                    let spread_clone = spread.clone();
+                    color.clone().map(move |color| {
+                        BoxShadow::new(
+                            x_clone.clone(),
+                            y_clone.clone(),
+                            blur_clone.clone().unwrap_or_else(|| Length::new(0.0, "px".to_string())),
+                            spread_clone.clone().unwrap_or_else(|| Length::new(0.0, "px".to_string())),
+                            color,
+                            false
+                        )
+                    }, Some("create_shadow"))
+                }, Some("color_step"))
+        };
+
+        // Parse inset shadow: (shadow + "inset") OR ("inset" + shadow)
+        let inset_shadow = {
+            let inset_keyword = TokenParser::<SimpleToken>::token(SimpleToken::Ident("inset".to_string()), Some("Ident"))
+                .where_fn(|token| {
+                    if let SimpleToken::Ident(value) = token {
+                        value == "inset"
+                    } else {
+                        false
+                    }
+                }, Some("inset_check"));
+
+            // Try: shadow + inset
+            let whitespace_for_inset = whitespace.clone();
+            let inset_keyword_for_inset = inset_keyword.clone();
+
+            let shadow_then_inset = outer_shadow.clone()
+                .flat_map(move |shadow| {
+                    let shadow_clone = shadow.clone();
+                    let whitespace_clone = whitespace_for_inset.clone();
+                    let inset_clone = inset_keyword_for_inset.clone();
+
+                    whitespace_clone.flat_map(move |_| {
+                        let shadow_for_map = shadow_clone.clone();
+                        inset_clone.map(move |_| {
                             BoxShadow::new(
-                                shadow.offset_x.clone(),
-                                shadow.offset_y.clone(),
-                                shadow.blur_radius.clone(),
-                                shadow.spread_radius.clone(),
-                                shadow.color.clone(),
-                                true, // inset = true
+                                shadow_for_map.offset_x.clone(),
+                                shadow_for_map.offset_y.clone(),
+                                shadow_for_map.blur_radius.clone(),
+                                shadow_for_map.spread_radius.clone(),
+                                shadow_for_map.color.clone(),
+                                true
                             )
-                        }, Some("make_inset"))
-                }, Some("inset_shadow")),
+                        }, Some("to_inset"))
+                    }, Some("add_inset"))
+                }, Some("shadow_inset"));
 
-            // Regular outer shadow
-            Self::outer_shadow_parser(),
+            // For now, just support shadow + inset (most common)
+            shadow_then_inset
+        };
+
+        TokenParser::one_of(vec![
+            inset_shadow,
+            outer_shadow,
         ])
     }
 
-        /// Parser for outer (non-inset) shadow
-    fn outer_shadow_parser() -> TokenParser<BoxShadow> {
-        // Very simplified parser for now - just handle basic cases
-        // TODO: Implement full parsing once TokenParser sequence issues are resolved
 
-        // For now, create a minimal working parser
-        Length::parser()
-            .flat_map(|offset_x| {
-                Length::parser()
-                    .map(move |offset_y| {
-                        // Create a basic shadow with default values
-                        BoxShadow::new(
-                            offset_x.clone(),
-                            offset_y,
-                            Length::new(0.0, "px".to_string()), // Default blur
-                            Length::new(0.0, "px".to_string()), // Default spread
-                            Color::Named(crate::css_types::NamedColor::new("black".to_string())), // Default color
-                            false
-                        )
-                    }, Some("basic_shadow"))
-            }, Some("parse_basic"))
-    }
-
-    /// Parser for 'inset' keyword
-    fn inset_keyword_parser() -> TokenParser<()> {
-        TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))
-            .where_fn(|token| {
-                if let SimpleToken::Ident(value) = token {
-                    value == "inset"
-                } else {
-                    false
-                }
-            }, Some("inset_keyword"))
-            .map(|_| (), Some("to_unit"))
-    }
 }
 
 impl Display for BoxShadow {
@@ -177,10 +204,18 @@ impl BoxShadowList {
     /// Parser for box shadow list (comma-separated shadows)
     /// Mirrors: BoxShadowList.parse in box-shadow.js
     pub fn parser() -> TokenParser<BoxShadowList> {
-        // For now, simplified to single shadow
-        // Full implementation would handle comma-separated list
-        BoxShadow::parser()
-            .map(|shadow| BoxShadowList::new(vec![shadow]), Some("single_shadow_list"))
+        let comma = TokenParser::<SimpleToken>::token(SimpleToken::Comma, Some("Comma"));
+        let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
+
+        // Parse comma with optional surrounding whitespace
+        let comma_separator = comma
+            .surrounded_by(whitespace.clone().optional(), Some(whitespace.optional()));
+
+        // Parse one or more shadows separated by commas
+        TokenParser::one_or_more_separated_by(
+            BoxShadow::parser(),
+            comma_separator
+        ).map(BoxShadowList::new, Some("shadow_list"))
     }
 }
 

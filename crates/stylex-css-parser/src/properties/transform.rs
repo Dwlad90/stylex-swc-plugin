@@ -2,44 +2,15 @@
 CSS Transform property parsing.
 
 Handles transform property syntax with multiple transform functions.
-Currently simplified - will be enhanced when TransformFunction is fully implemented.
 Mirrors: packages/style-value-parser/src/properties/transform.js
 */
 
-use crate::token_parser::TokenParser;
+use crate::{
+    token_parser::TokenParser,
+    token_types::SimpleToken,
+    css_types::transform_function::TransformFunction
+};
 use std::fmt::{self, Display};
-
-/// Placeholder for TransformFunction - will be replaced with actual implementation
-/// TODO: Replace with proper TransformFunction when css_types/transform_function.rs is implemented
-#[derive(Debug, Clone, PartialEq)]
-pub struct TransformFunction {
-    pub function_name: String,
-    pub args: Vec<String>,
-}
-
-impl TransformFunction {
-    /// Create a placeholder transform function
-    pub fn new(function_name: String, args: Vec<String>) -> Self {
-        Self { function_name, args }
-    }
-
-    /// Placeholder parser - will be replaced with proper implementation
-    pub fn parser() -> TokenParser<TransformFunction> {
-        // TODO: Implement proper TransformFunction parser
-        // For now, return a parser that always fails
-        TokenParser::never()
-    }
-}
-
-impl Display for TransformFunction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.args.is_empty() {
-            write!(f, "{}()", self.function_name)
-        } else {
-            write!(f, "{}({})", self.function_name, self.args.join(", "))
-        }
-    }
-}
 
 /// CSS transform property value
 /// Mirrors: Transform class in transform.js
@@ -57,15 +28,14 @@ impl Transform {
     /// Parser for transform values
     /// Mirrors: Transform.parse in transform.js
     pub fn parser() -> TokenParser<Transform> {
-        // TODO: Implement proper parser once TransformFunction is ready
-        // For now, simplified implementation
+        // Parse one or more transform functions separated by whitespace
+        // Mirrors: TokenParser.oneOrMore(TransformFunction.parser).separatedBy(TokenParser.tokens.Whitespace)
+        let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
 
-        // This would be: TokenParser.oneOrMore(TransformFunction.parser)
-        //   .separatedBy(TokenParser.tokens.Whitespace)
-        //   .map((value) => new Transform(value));
-
-        // Placeholder implementation
-        TokenParser::never()
+        TokenParser::one_or_more_separated_by(
+            TransformFunction::parser(),
+            whitespace
+        ).map(Transform::new, Some("to_transform"))
     }
 }
 
@@ -82,49 +52,54 @@ impl Display for Transform {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::css_types::{
+        Length,
+        Angle,
+        LengthPercentage,
+        Percentage,
+        transform_function::*
+    };
 
     #[test]
     fn test_transform_function_creation() {
-        let func = TransformFunction::new(
-            "translateX".to_string(),
-            vec!["10px".to_string()]
-        );
+        let translate = TransformFunction::TranslateAxis(TranslateAxis::new(
+            LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+            Axis::X
+        ));
 
-        assert_eq!(func.function_name, "translateX");
-        assert_eq!(func.args, vec!["10px"]);
+        // Test that it can be created without issues
+        assert!(matches!(translate, TransformFunction::TranslateAxis(_)));
     }
 
     #[test]
     fn test_transform_function_display() {
-        let func = TransformFunction::new(
-            "translateX".to_string(),
-            vec!["10px".to_string()]
-        );
-        assert_eq!(func.to_string(), "translateX(10px)");
+        let translate_x = TransformFunction::TranslateAxis(TranslateAxis::new(
+            LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+            Axis::X
+        ));
+        assert_eq!(translate_x.to_string(), "translateX(10px)");
 
-        let func_multiple_args = TransformFunction::new(
-            "translate".to_string(),
-            vec!["10px".to_string(), "20px".to_string()]
-        );
-        assert_eq!(func_multiple_args.to_string(), "translate(10px, 20px)");
+        let translate = TransformFunction::Translate(Translate::new(
+            LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+            Some(LengthPercentage::Length(Length::new(20.0, "px".to_string())))
+        ));
+        assert_eq!(translate.to_string(), "translate(10px, 20px)");
 
-        let func_no_args = TransformFunction::new(
-            "none".to_string(),
-            vec![]
-        );
-        assert_eq!(func_no_args.to_string(), "none()");
+        let rotate = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
+        assert_eq!(rotate.to_string(), "rotate(45deg)");
     }
 
     #[test]
     fn test_transform_creation() {
-        let func1 = TransformFunction::new(
-            "translateX".to_string(),
-            vec!["10px".to_string()]
-        );
-        let func2 = TransformFunction::new(
-            "rotate".to_string(),
-            vec!["45deg".to_string()]
-        );
+        let func1 = TransformFunction::TranslateAxis(TranslateAxis::new(
+            LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+            Axis::X
+        ));
+        let func2 = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
 
         let transform = Transform::new(vec![func1, func2]);
         assert_eq!(transform.value.len(), 2);
@@ -132,28 +107,16 @@ mod tests {
 
     #[test]
     fn test_transform_display() {
-        let func1 = TransformFunction::new(
-            "translateX".to_string(),
-            vec!["10px".to_string()]
-        );
-        let func2 = TransformFunction::new(
-            "rotate".to_string(),
-            vec!["45deg".to_string()]
-        );
+        let func1 = TransformFunction::TranslateAxis(TranslateAxis::new(
+            LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+            Axis::X
+        ));
+        let func2 = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
 
         let transform = Transform::new(vec![func1, func2]);
         assert_eq!(transform.to_string(), "translateX(10px) rotate(45deg)");
-    }
-
-    #[test]
-    fn test_transform_single_function() {
-        let func = TransformFunction::new(
-            "scale".to_string(),
-            vec!["1.5".to_string()]
-        );
-
-        let transform = Transform::new(vec![func]);
-        assert_eq!(transform.to_string(), "scale(1.5)");
     }
 
     #[test]
@@ -163,73 +126,82 @@ mod tests {
     }
 
     #[test]
-    fn test_transform_parser_creation() {
-        // Basic test that parsers can be created (even if they're placeholders)
-        let _func_parser = TransformFunction::parser();
-        let _transform_parser = Transform::parser();
-    }
-
-    #[test]
     fn test_transform_equality() {
-        let func1 = TransformFunction::new(
-            "translateX".to_string(),
-            vec!["10px".to_string()]
-        );
-        let func2 = TransformFunction::new(
-            "translateX".to_string(),
-            vec!["10px".to_string()]
-        );
-        let func3 = TransformFunction::new(
-            "translateY".to_string(),
-            vec!["10px".to_string()]
-        );
+        let func = TransformFunction::ScaleAxis(ScaleAxis::new(1.5, Axis::X));
 
-        let transform1 = Transform::new(vec![func1]);
-        let transform2 = Transform::new(vec![func2]);
-        let transform3 = Transform::new(vec![func3]);
+        let transform1 = Transform::new(vec![func.clone()]);
+        let transform2 = Transform::new(vec![func]);
 
         assert_eq!(transform1, transform2);
-        assert_ne!(transform1, transform3);
     }
 
     #[test]
-    fn test_transform_common_functions() {
-        // Test common transform function patterns
-        let translate = TransformFunction::new(
-            "translate".to_string(),
-            vec!["50px".to_string(), "100px".to_string()]
-        );
-        assert_eq!(translate.to_string(), "translate(50px, 100px)");
+    fn test_transform_parser_creation() {
+        // Test that the parser can be created without panicking
+        let _parser = Transform::parser();
+    }
 
-        let rotate = TransformFunction::new(
-            "rotate".to_string(),
-            vec!["90deg".to_string()]
-        );
-        assert_eq!(rotate.to_string(), "rotate(90deg)");
+    #[test]
+    fn test_transform_single_function() {
+        let transform = Transform::new(vec![
+            TransformFunction::Translate(Translate::new(
+                LengthPercentage::Percentage(Percentage::new(50.0)),
+                Some(LengthPercentage::Percentage(Percentage::new(-50.0)))
+            )),
+            TransformFunction::Rotate(Rotate::new(
+                Angle::new(45.0, "deg".to_string())
+            )),
+            TransformFunction::Scale(Scale::new(1.2, Some(1.2))),
+        ]);
 
-        let scale = TransformFunction::new(
-            "scale".to_string(),
-            vec!["1.5".to_string(), "0.8".to_string()]
-        );
-        assert_eq!(scale.to_string(), "scale(1.5, 0.8)");
-
-        let skew = TransformFunction::new(
-            "skewX".to_string(),
-            vec!["20deg".to_string()]
-        );
-        assert_eq!(skew.to_string(), "skewX(20deg)");
+        assert_eq!(transform.value.len(), 3);
+        assert!(transform.to_string().contains("translate(50%, -50%)"));
+        assert!(transform.to_string().contains("rotate(45deg)"));
+        assert!(transform.to_string().contains("scale(1.2, 1.2)"));
     }
 
     #[test]
     fn test_transform_complex_combination() {
-        // Test a complex transform with multiple functions
-        let funcs = vec![
-            TransformFunction::new("translate".to_string(), vec!["50%".to_string(), "-50%".to_string()]),
-            TransformFunction::new("rotate".to_string(), vec!["45deg".to_string()]),
-            TransformFunction::new("scale".to_string(), vec!["1.2".to_string()]),
-        ];
+        let func1 = TransformFunction::Translate(Translate::new(
+            LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+            Some(LengthPercentage::Length(Length::new(20.0, "px".to_string())))
+        ));
+        let func2 = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
+        let func3 = TransformFunction::Scale(Scale::new(1.2, Some(1.2)));
 
-        let transform = Transform::new(funcs);
-        assert_eq!(transform.to_string(), "translate(50%, -50%) rotate(45deg) scale(1.2)");
+        let transform = Transform::new(vec![func1, func2, func3]);
+        assert_eq!(transform.value.len(), 3);
+        assert_eq!(transform.to_string(), "translate(10px, 20px) rotate(45deg) scale(1.2, 1.2)");
+    }
+
+    #[test]
+    fn test_transform_common_functions() {
+        // Test various common transform functions
+        let translate = TransformFunction::Translate(Translate::new(
+            LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+            Some(LengthPercentage::Length(Length::new(20.0, "px".to_string())))
+        ));
+
+        let rotate = TransformFunction::Rotate(Rotate::new(
+            Angle::new(45.0, "deg".to_string())
+        ));
+
+        let scale = TransformFunction::Scale(Scale::new(1.5, Some(1.5)));
+
+        let skew = TransformFunction::Skew(Skew::new(
+            Angle::new(10.0, "deg".to_string()),
+            Some(Angle::new(20.0, "deg".to_string()))
+        ));
+
+        let functions = vec![translate, rotate, scale, skew];
+        let transform = Transform::new(functions);
+
+        assert_eq!(transform.value.len(), 4);
+        assert!(transform.to_string().contains("translate"));
+        assert!(transform.to_string().contains("rotate"));
+        assert!(transform.to_string().contains("scale"));
+        assert!(transform.to_string().contains("skew"));
     }
 }

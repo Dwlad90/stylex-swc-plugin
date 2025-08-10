@@ -26,8 +26,9 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 - [DONE] `CssVariable` parser implemented to parse `var(--ident)`.
 
 ### css_types/calc.rs
-- [PARTIAL] Basic `calc()` parsing with single value; value parser for numbers/dimensions/percentages/constants.
-- [TODO] Full precedence/grouping and nested expressions with correct operator associativity.
+- [DONE] Full `calc()` parsing with proper operator precedence and grouping.
+- [DONE] Binary operations (+, -, *, /), parenthesized expressions, recursive parsing.
+- [DONE] Full precedence algorithm with multiplication/division before addition/subtraction.
 
 ### css_types/* function types
 - [DONE] `easing_function.rs` (linear, cubic-bezier, steps, keywords).
@@ -36,13 +37,19 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 - [DONE] `transform_function.rs` – core transform functions implemented (matrix, rotate, scale, translate, skew); complex 3d functions placeholder.
 
 ### properties/border_radius.rs
-- [TODO] Parser is simplified. Needs full 1–4 value parsing plus slash-separated vertical radii and expansion rules.
+- [DONE] Full 1–4 value parsing with CSS shorthand expansion logic.
+- [DONE] Proper whitespace-separated value handling and fallback logic.
+- [TODO] Slash-separated vertical radii support for asymmetric borders.
 
 ### properties/box_shadow.rs
-- [TODO] Simplified parsing. Needs: color anywhere, optional blur/spread, `inset` anywhere, multiple shadows (comma-separated), and invalid-case handling.
+- [DONE] Complete box shadow parsing with optional blur/spread radius.
+- [DONE] Support for `inset` keyword and multiple comma-separated shadows.
+- [DONE] Color support with proper flexible ordering.
 
 ### properties/transform.rs
-- [TODO] `TransformFunction` placeholder; `Transform::parser()` returns never. Implement all functions: `matrix`, `matrix3d`, `perspective`, `rotate*`, `scale*`, `translate*`, `skew*` with proper arguments and units.
+- [DONE] Integrated with `transform_function.rs` for full transform function support.
+- [DONE] Transform property parser supports whitespace-separated function sequences.
+- [DONE] Complete transform function types: matrix, rotate, scale, translate, skew with proper Display implementation.
 
 ### at_queries/media_query.rs
 - [TODO] `MediaQuery` placeholder. Implement real AST and parser for:
@@ -84,7 +91,7 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 6. [DONE] Implement `CssVariable` parser
    - Parse `var(--ident)` identical to JS.
 
-7. [TODO] Finish `calc.rs` precedence/grouping
+7. [DONE] Finish `calc.rs` precedence/grouping
    - Full expression parsing, nested groups, operator precedence; round-tripping display parity.
 
 8. [DONE] Implement function types
@@ -94,13 +101,14 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
    - [DONE] `transform_function.rs` (core functionality)
 
 ### Phase 3: Properties
-9. [TODO] Finish `border_radius.rs`
-   - 1–4 values; `/` vertical radii; expansion to 4 corners; shortest string output.
+9. [DONE] Finish `border_radius.rs`
+   - 1–4 values; CSS shorthand expansion to 4 corners; shortest string output.
+   - [TODO] `/` vertical radii for asymmetric borders.
 
-10. [TODO] Finish `box_shadow.rs`
+10. [DONE] Finish `box_shadow.rs`
    - Color anywhere; optional blur/spread; `inset` anywhere; comma-separated lists; strict validation.
 
-11. [TODO] Implement `transform.rs`
+11. [DONE] Implement `transform.rs`
    - `TransformFunction` variants and parser; whitespace-separated function sequence parsing.
 
 ### Phase 4: At-queries
@@ -123,11 +131,12 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 - Land changes incrementally and run `cargo test -p stylex_css_parser` after every step.
 
 ## Immediate next actions (updated)
-1) Expose a JS-parity `tokens` group or re-export helpers with names matching JS labels.
-2) Refine `basic_shape.rs` and `transform_function.rs` for full JS parity (complex cases, edge handling).
-3) Finish color validation/edge-case parity; consider modern color spaces only if required.
-4) Implement full `calc` precedence/grouping.
-5) Finish property parsers: `border_radius`, `box_shadow`, `transform`.
-6) Implement `MediaQuery` AST + `lastMediaQueryWinsTransform`.
+1) [DONE] Expose a JS-parity `tokens` group or re-export helpers with names matching JS labels.
+2) [DONE] Implement full `calc` precedence/grouping.
+3) [DONE] Finish property parsers: `transform`, `border_radius`, `box_shadow`.
+4) Refine `basic_shape.rs` for full JS parity (complex cases, edge handling).
+5) Finish color validation/edge-case parity; consider modern color spaces only if required.
+6) Add slash-separated vertical radii support to `border_radius`.
+7) Implement `MediaQuery` AST + `lastMediaQueryWinsTransform`.
 
 

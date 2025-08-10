@@ -8,6 +8,7 @@ Mirrors: packages/style-value-parser/src/properties/border-radius.js
 
 use crate::{
     token_parser::TokenParser,
+    token_types::SimpleToken,
     css_types::{LengthPercentage, length_percentage_parser}
 };
 use std::fmt::{self, Display};
@@ -32,13 +33,19 @@ impl BorderRadiusIndividual {
     /// Parser for individual border radius values
     /// Mirrors: BorderRadiusIndividual.parse in border-radius.js
     pub fn parser() -> TokenParser<BorderRadiusIndividual> {
+        let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
+
         TokenParser::one_of(vec![
-            // Two values: horizontal vertical
+            // Two values: horizontal vertical separated by whitespace
             TokenParser::<LengthPercentage>::sequence(vec![
                 length_percentage_parser(),
                 length_percentage_parser(),
             ])
-            .map(|values| {
+            .separated_by(whitespace.clone())
+            .one_or_more()
+            .map(|sequences| {
+                // Take the first sequence of two values
+                let values = &sequences[0];
                 let horizontal = values[0].clone();
                 let vertical = values[1].clone();
                 BorderRadiusIndividual::new(horizontal, Some(vertical))
@@ -118,19 +125,53 @@ impl BorderRadiusShorthand {
         }
     }
 
-    /// Simplified parser for border radius shorthand
+    /// Parser for border radius shorthand with basic CSS specification support
     /// Mirrors: BorderRadiusShorthand.parse in border-radius.js
     pub fn parser() -> TokenParser<BorderRadiusShorthand> {
-        // Simplified implementation - full implementation would handle:
-        // - Space-separated radii with proper fallback logic
-        // - Asymmetric borders with "/" separator
-        // - Complex parsing of 1-4 values with expansion
+        // For now, implement a simplified version that handles the basic cases
+        // TODO: Implement full "/" separator support and complex parsing
 
-        // For now, just handle single value
-        length_percentage_parser()
-            .map(|lp| {
-                BorderRadiusShorthand::new(lp, None, None, None, None, None, None, None)
-            }, Some("simple_shorthand"))
+        // Parse 1-4 space-separated length/percentage values
+        let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
+
+        let first_value = length_percentage_parser();
+        let remaining_values = TokenParser::<LengthPercentage>::zero_or_more(
+            whitespace.clone().flat_map(|_| length_percentage_parser(), Some("next_value"))
+        );
+
+        first_value
+            .flat_map(move |first| {
+                let first_clone = first.clone();
+                remaining_values.clone().map(move |rest| {
+                    let mut all_values = vec![first_clone.clone()];
+                    all_values.extend(rest);
+
+                    // Apply CSS shorthand expansion logic (up to 4 values)
+                    let values = if all_values.len() > 4 {
+                        all_values[..4].to_vec()
+                    } else {
+                        all_values
+                    };
+
+                    match values.len() {
+                        1 => BorderRadiusShorthand::new(
+                            values[0].clone(), None, None, None, None, None, None, None
+                        ),
+                        2 => BorderRadiusShorthand::new(
+                            values[0].clone(), Some(values[1].clone()), None, None, None, None, None, None
+                        ),
+                        3 => BorderRadiusShorthand::new(
+                            values[0].clone(), Some(values[1].clone()), Some(values[2].clone()), None, None, None, None, None
+                        ),
+                        4 => BorderRadiusShorthand::new(
+                            values[0].clone(), Some(values[1].clone()), Some(values[2].clone()), Some(values[3].clone()), None, None, None, None
+                        ),
+                        _ => BorderRadiusShorthand::new(
+                            values[0].clone(), None, None, None, None, None, None, None
+                        )
+                    }
+                }, Some("expand_values"))
+            }, Some("with_remaining"))
     }
 
     /// Get the shortest possible string representation

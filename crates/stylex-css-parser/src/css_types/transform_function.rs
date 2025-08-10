@@ -14,6 +14,7 @@ use crate::{
         common_types::{NumberOrPercentage, number_or_percentage_parser}
     }
 };
+use std::fmt::{self, Display};
 
 /// A CSS transform function
 #[derive(Debug, Clone, PartialEq)]
@@ -489,5 +490,51 @@ impl TranslateAxis {
             .flat_map(move |(axis, t)| {
                 close.clone().map(move |_| TranslateAxis::new(t.clone(), axis.clone()), Some("to_translateaxis"))
             }, Some("close"))
+    }
+}
+
+impl Display for TransformFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TransformFunction::Matrix(m) => write!(f, "matrix({}, {}, {}, {}, {}, {})",
+                m.a, m.b, m.c, m.d, m.tx, m.ty),
+            TransformFunction::Matrix3d(m) => {
+                let args: Vec<String> = m.args.iter().map(|x| x.to_string()).collect();
+                write!(f, "matrix3d({})", args.join(", "))
+            },
+            TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),
+            TransformFunction::Rotate(r) => write!(f, "rotate({})", r.angle),
+            TransformFunction::RotateXYZ(r) => write!(f, "rotate{}({})",
+                match r.axis { Axis::X => "X", Axis::Y => "Y", Axis::Z => "Z" }, r.angle),
+            TransformFunction::Rotate3d(r) => write!(f, "rotate3d({}, {}, {}, {})",
+                r.x, r.y, r.z, r.angle),
+            TransformFunction::Scale(s) => {
+                match &s.sy {
+                    Some(sy) => write!(f, "scale({}, {})", s.sx, sy),
+                    None => write!(f, "scale({})", s.sx),
+                }
+            },
+            TransformFunction::Scale3d(s) => write!(f, "scale3d({}, {}, {})", s.sx, s.sy, s.sz),
+            TransformFunction::ScaleAxis(s) => write!(f, "scale{}({})",
+                match s.axis { Axis::X => "X", Axis::Y => "Y", Axis::Z => "Z" }, s.s),
+            TransformFunction::Skew(s) => {
+                match &s.ay {
+                    Some(ay) => write!(f, "skew({}, {})", s.ax, ay),
+                    None => write!(f, "skew({})", s.ax),
+                }
+            },
+            TransformFunction::SkewAxis(s) => write!(f, "skew{}({})",
+                match s.axis { SkewAxis2D::X => "X", SkewAxis2D::Y => "Y" }, s.a),
+            TransformFunction::Translate(t) => {
+                match &t.ty {
+                    Some(ty) => write!(f, "translate({}, {})", t.tx, ty),
+                    None => write!(f, "translate({})", t.tx),
+                }
+            },
+            TransformFunction::Translate3d(t) => write!(f, "translate3d({}, {}, {})",
+                t.tx, t.ty, t.tz),
+            TransformFunction::TranslateAxis(t) => write!(f, "translate{}({})",
+                match t.axis { Axis::X => "X", Axis::Y => "Y", Axis::Z => "Z" }, t.t),
+        }
     }
 }

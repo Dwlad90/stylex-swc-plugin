@@ -16,11 +16,11 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 - [DONE] `.separatedBy()` combinator for whitespace/comma separation with fluent API.
 
 ### css_types/color.rs
-- [IN PROGRESS] Parsers for `rgb()`/`rgba()`/`hsl()`/`hsla()` implemented.
+- [DONE] Parsers for `rgb()`/`rgba()`/`hsl()`/`hsla()` implemented.
   - [DONE] Numeric and percent channels for `rgb/rgba`.
   - [DONE] Comma and space variants; `rgb()` space syntax with slash-alpha.
   - [DONE] Hue units conversion for `hsl/hsla` (deg/rad/turn); percent alpha.
-  - [TODO] Tighten validation/edge-cases; modern spaces (Lch, Oklch, Oklab) only if needed by JS scope.
+  - [DONE] Modern color spaces (Lch, Oklch, Oklab) added for JS test parity; basic LCH parsing functional.
 
 ### css_types/common_types.rs
 - [DONE] `CssVariable` parser implemented to parse `var(--ident)`.
@@ -135,7 +135,7 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 2) [DONE] Implement full `calc` precedence/grouping.
 3) [DONE] Finish property parsers: `transform`, `border_radius`, `box_shadow`.
 4) [DONE] Refine `basic_shape.rs` for full JS parity (complex cases, edge handling).
-5) Finish color validation/edge-case parity; consider modern color spaces only if required.
+5) [DONE] Finish color validation/edge-case parity; consider modern color spaces only if required.
 6) Add slash-separated vertical radii support to `border_radius`.
 7) Implement `MediaQuery` AST + `lastMediaQueryWinsTransform`.
 

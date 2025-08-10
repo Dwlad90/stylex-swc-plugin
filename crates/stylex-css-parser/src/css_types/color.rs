@@ -324,6 +324,10 @@ impl RgbaColor {
 
         let alpha_number = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
             .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+        let alpha_percent = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+            .map(|t| if let SimpleToken::Percentage(v) = t { (v as f32)/100.0 } else { 0.0 }, Some("pct_to_alpha"));
+        let alpha_value = TokenParser::one_of(vec![alpha_number.clone(), alpha_percent.clone()]);
+        let alpha_value_for_rgba = alpha_value.clone();
 
         let fn_rgba: TokenParser<String> = TokenParser::<String>::fn_name("rgba");
         let close_paren = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
@@ -338,7 +342,7 @@ impl RgbaColor {
             }, Some("rgb_args"))
             .flat_map(move |rgb_vals| {
                 let rgb_clone = rgb_vals.clone();
-                alpha_number.clone().map(move |a| (rgb_clone.clone(), a), Some("pair_alpha"))
+                alpha_value_for_rgba.clone().map(move |a| (rgb_clone.clone(), a), Some("pair_alpha"))
             }, Some("alpha"))
             .flat_map(move |(rgb_vals, a)| {
                 let cp = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
@@ -346,7 +350,34 @@ impl RgbaColor {
             }, Some("close"))
             .map(|(rgb_vals, a)| RgbaColor::new(rgb_vals[0], rgb_vals[1], rgb_vals[2], a), Some("to_rgba"));
 
-        rgba_parser
+        // Modern rgb space syntax with slash alpha: rgb r g b / a
+        let fn_rgb_space = TokenParser::<String>::fn_name("rgb");
+        let space_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![channel.clone(), channel.clone(), channel.clone()]);
+        let slash = TokenParser::<SimpleToken>::token(SimpleToken::Delim('/'), Some("Slash"));
+        let close_paren2 = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+        let alpha_value_for_rgb_space = alpha_value.clone();
+
+        // Clone alpha_value for second closure branch
+        let alpha_value_clone_for_branch = alpha_value.clone();
+
+        let rgb_slash_alpha = fn_rgb_space
+            .flat_map(move |_| space_args.clone(), Some("space_args"))
+            .flat_map(move |rgb_vals| {
+                let rgb_clone_outer = rgb_vals.clone();
+                let slash_local = slash.clone();
+                let alpha_local = alpha_value_for_rgb_space.clone();
+                slash_local.flat_map(move |_| {
+                    let rgb_clone_inner = rgb_clone_outer.clone();
+                    alpha_local.clone().map(move |a| (rgb_clone_inner.clone(), a), Some("pair"))
+                }, Some("alpha"))
+            }, Some("after_slash"))
+            .flat_map(move |(rgb_vals, a)| {
+                let cp = close_paren2.clone();
+                cp.map(move |_| (rgb_vals.clone(), a), Some(")"))
+            }, Some("close"))
+            .map(|(rgb_vals, a)| RgbaColor::new(rgb_vals[0], rgb_vals[1], rgb_vals[2], a), Some("to_rgba_space"));
+
+        TokenParser::one_of(vec![rgba_parser, rgb_slash_alpha])
     }
 }
 

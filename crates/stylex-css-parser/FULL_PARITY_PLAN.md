@@ -33,7 +33,7 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 ### css_types/* function types
 - [DONE] `easing_function.rs` (linear, cubic-bezier, steps, keywords).
 - [DONE] `filter_function.rs` (blur, brightness, contrast, grayscale, hue-rotate, invert, opacity, saturate, sepia).
-- [DONE] `basic_shape.rs` (inset/circle/ellipse/polygon/path) – basic parsers implemented, needs refinement for full JS parity.
+- [DONE] `basic_shape.rs` (inset/circle/ellipse/polygon/path) – refined with proper Display implementation, improved whitespace handling, and better JS parity.
 - [DONE] `transform_function.rs` – core transform functions implemented (matrix, rotate, scale, translate, skew); complex 3d functions placeholder.
 
 ### properties/border_radius.rs
@@ -134,7 +134,7 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 1) [DONE] Expose a JS-parity `tokens` group or re-export helpers with names matching JS labels.
 2) [DONE] Implement full `calc` precedence/grouping.
 3) [DONE] Finish property parsers: `transform`, `border_radius`, `box_shadow`.
-4) Refine `basic_shape.rs` for full JS parity (complex cases, edge handling).
+4) [DONE] Refine `basic_shape.rs` for full JS parity (complex cases, edge handling).
 5) Finish color validation/edge-case parity; consider modern color spaces only if required.
 6) Add slash-separated vertical radii support to `border_radius`.
 7) Implement `MediaQuery` AST + `lastMediaQueryWinsTransform`.

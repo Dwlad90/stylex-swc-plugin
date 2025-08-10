@@ -108,27 +108,6 @@ pub enum CalcValue {
 }
 
 impl CalcValue {
-    /// Convert calc value to string representation
-    /// Mirrors: calcValueToString function in calc.js
-    pub fn to_string(&self) -> String {
-        match self {
-            CalcValue::Number(n) => n.to_string(),
-            CalcValue::Dimension(d) => d.to_string(),
-            CalcValue::Percentage(p) => p.to_string(),
-            CalcValue::Constant(c) => c.to_string(),
-            CalcValue::BinaryOp(op) => {
-                format!("{} {} {}",
-                    op.left.to_string(),
-                    op.op.as_str(),
-                    op.right.to_string()
-                )
-            },
-            CalcValue::Group(group) => {
-                format!("({})", group.expr.to_string())
-            },
-        }
-    }
-
     /// Parser for basic calc values (numbers, dimensions, percentages, constants)
     /// Mirrors: valueParser in calc.js
     pub fn value_parser() -> TokenParser<CalcValue> {
@@ -167,7 +146,14 @@ impl CalcValue {
 
 impl Display for CalcValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        match self {
+            CalcValue::Number(n) => write!(f, "{}", n),
+            CalcValue::Dimension(d) => write!(f, "{}", d),
+            CalcValue::Percentage(p) => write!(f, "{}", p),
+            CalcValue::Constant(c) => write!(f, "{}", c),
+            CalcValue::BinaryOp(op) => write!(f, "{} {} {}", op.left, op.op.as_str(), op.right),
+            CalcValue::Group(group) => write!(f, "({})", group.expr),
+        }
     }
 }
 
@@ -224,7 +210,7 @@ impl Calc {
 
 impl Display for Calc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "calc({})", self.value.to_string())
+        write!(f, "calc({})", self.value)
     }
 }
 

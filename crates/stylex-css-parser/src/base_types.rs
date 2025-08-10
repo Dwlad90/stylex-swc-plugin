@@ -5,6 +5,8 @@ This module provides fundamental types and utilities used throughout the CSS par
 including string manipulation utilities that mirror the JavaScript implementation.
 */
 
+use std::fmt::{self, Display};
+
 /// A string slice utility that provides efficient substring operations.
 /// This mirrors the JavaScript SubString class functionality exactly.
 #[derive(Debug, Clone)]
@@ -64,7 +66,7 @@ impl SubString {
 
     /// Convert the substring to a String
     /// Mirrors: toString(): string { return this.string.slice(this.startIndex, this.endIndex + 1); }
-    pub fn to_string(&self) -> String {
+    pub fn into_string(&self) -> String {
         if self.start_index > self.end_index {
             return String::new();
         }
@@ -84,6 +86,12 @@ impl SubString {
     /// Mirrors: get isEmpty(): boolean { return this.startIndex > this.endIndex; }
     pub fn is_empty(&self) -> bool {
         self.start_index > self.end_index
+    }
+}
+
+impl Display for SubString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.into_string())
     }
 }
 

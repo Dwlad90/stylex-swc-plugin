@@ -3,7 +3,7 @@ Comprehensive integration tests for at-queries module.
 
 Mirrors the JavaScript test structure from:
 - packages/style-value-parser/src/at-queries/__tests__/validation-media-query-test.js
-- packages/style-value-parser/src/at-queries/__tests__/parse-media-query-test.js  
+- packages/style-value-parser/src/at-queries/__tests__/parse-media-query-test.js
 - packages/style-value-parser/src/at-queries/__tests__/media-query-transform-test.js
 
 These tests focus on the parts of our implementation that are currently working,
@@ -26,7 +26,7 @@ mod media_query_validation_tests {
         // Test error message constants are available
         assert!(!MediaQueryErrors::SYNTAX_ERROR.is_empty());
         assert!(!MediaQueryErrors::UNBALANCED_PARENS.is_empty());
-        
+
         // Verify they're different messages
         assert_ne!(MediaQueryErrors::SYNTAX_ERROR, MediaQueryErrors::UNBALANCED_PARENS);
     }
@@ -35,11 +35,11 @@ mod media_query_validation_tests {
     fn test_validate_media_query_basic_syntax() {
         // Test basic validation functionality
         // Note: Our current validate_media_query is simplified
-        
+
         // Valid queries (should not panic/error)
         let valid_queries = vec![
             "@media screen",
-            "@media print", 
+            "@media print",
             "@media all",
             "@media (min-width: 600px)",
             "@media (max-width: 1200px)",
@@ -60,7 +60,7 @@ mod media_query_validation_tests {
     fn test_syntax_error_cases() {
         // Test cases that should trigger SYNTAX_ERROR
         // These mirror the JavaScript validation tests
-        
+
         let invalid_syntax_cases = vec![
             "@media",
             "@media ",
@@ -132,7 +132,7 @@ mod media_query_validation_tests {
     #[test]
     fn test_has_balanced_parens() {
         // Test our current has_balanced_parens implementation
-        
+
         // Balanced cases
         let balanced_cases = vec![
             "@media screen",
@@ -146,7 +146,7 @@ mod media_query_validation_tests {
             assert!(MediaQuery::has_balanced_parens(case), "Should be balanced: {}", case);
         }
 
-        // Unbalanced cases  
+        // Unbalanced cases
         let unbalanced_cases = vec![
             "@media (min-width: 600px",
             "@media screen and (color",
@@ -176,7 +176,7 @@ mod media_query_parsing_tests {
         // Test toString functionality
         let query = MediaQuery::new("@media (min-width: 600px)".to_string());
         assert_eq!(query.to_string(), "@media (min-width: 600px)");
-        
+
         let complex_query = MediaQuery::new("@media screen and (min-width: 600px) and (max-width: 1200px)".to_string());
         assert_eq!(complex_query.to_string(), "@media screen and (min-width: 600px) and (max-width: 1200px)");
     }
@@ -186,7 +186,7 @@ mod media_query_parsing_tests {
         // Test media type keywords like in JavaScript tests
         let keyword_queries = vec![
             "@media screen",
-            "@media print", 
+            "@media print",
             "@media all",
             "@media only screen",
             "@media not screen",
@@ -197,7 +197,7 @@ mod media_query_parsing_tests {
         for query_str in keyword_queries {
             let query = MediaQuery::new(query_str.to_string());
             assert_eq!(query.to_string(), query_str);
-            
+
             // TODO: When parser is fully implemented, test actual parsing:
             // let parsed = MediaQuery::parser().parse_to_end(query_str);
             // assert!(parsed.is_ok());
@@ -388,7 +388,7 @@ mod media_query_parsing_tests {
         }
     }
 
-    #[test] 
+    #[test]
     fn test_media_query_parser_creation() {
         // Test that parser can be created (even if it's a placeholder)
         let _parser = MediaQuery::parser();
@@ -436,7 +436,7 @@ mod media_query_transform_tests {
         ];
 
         let result = lastMediaQueryWinsTransform(test_queries.clone());
-        
+
         // For now, just verify the function works and returns the expected type
         assert_eq!(result.len(), test_queries.len());
         // TODO: Test actual transformation logic when implemented
@@ -446,7 +446,7 @@ mod media_query_transform_tests {
     fn test_media_query_transform_basic_usage() {
         // Test basic transformation like in JavaScript tests
         // This mirrors the "basic usage: multiple widths" test
-        
+
         let queries = vec![
             MediaQuery::new("@media (max-width: 1440px)".to_string()),
             MediaQuery::new("@media (max-width: 1024px)".to_string()),
@@ -454,14 +454,14 @@ mod media_query_transform_tests {
         ];
 
         let result = lastMediaQueryWinsTransform(queries);
-        
+
         // Basic verification that transformation occurred
         assert_eq!(result.len(), 3);
-        
+
         // TODO: When transform logic is fully implemented, test expected output:
         // Expected transformation should be:
         // - "@media (min-width: 1024.01px) and (max-width: 1440px)"
-        // - "@media (min-width: 768.01px) and (max-width: 1024px)"  
+        // - "@media (min-width: 768.01px) and (max-width: 1024px)"
         // - "@media (max-width: 768px)"
     }
 
@@ -473,7 +473,7 @@ mod media_query_transform_tests {
         ];
 
         let result = lastMediaQueryWinsTransform(single_query.clone());
-        
+
         // Single queries should remain unchanged
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].to_string(), single_query[0].to_string());
@@ -482,12 +482,12 @@ mod media_query_transform_tests {
     #[test]
     fn test_media_query_transform_edge_cases() {
         // Test edge cases
-        
+
         // Empty list
         let empty_queries: Vec<MediaQuery> = vec![];
         let result = lastMediaQueryWinsTransform(empty_queries);
         assert!(result.is_empty());
-        
+
         // Duplicate queries
         let duplicate_queries = vec![
             MediaQuery::new("@media (max-width: 768px)".to_string()),
@@ -509,7 +509,7 @@ mod media_query_transform_tests {
 
         let result = lastMediaQueryWinsTransform(mixed_queries.clone());
         assert_eq!(result.len(), mixed_queries.len());
-        
+
         // TODO: Test that only related queries are transformed together
     }
 }
@@ -521,14 +521,14 @@ mod media_query_rule_tests {
     fn test_media_query_rule_creation() {
         // Test MediaQueryRule enum (currently placeholder)
         // TODO: Implement proper MediaQueryRule variants and test them
-        
+
         // For now, just ensure the enum exists and can be used
         // let rule = MediaQueryRule::Pair { key: "width".to_string(), value: "100px".to_string() };
         // let word_rule = MediaQueryRule::Word { keyword: "color".to_string() };
         // let and_rule = MediaQueryRule::And { rules: vec![] };
         // let or_rule = MediaQueryRule::Or { rules: vec![] };
         // let not_rule = MediaQueryRule::Not { rule: Box::new(rule) };
-        
+
         println!("MediaQueryRule tests will be implemented when the enum is fully defined");
     }
 }
@@ -550,15 +550,15 @@ mod media_query_integration_tests {
             // Step 1: Create MediaQuery
             let query = MediaQuery::new(query_str.to_string());
             assert_eq!(query.to_string(), query_str);
-            
+
             // Step 2: Validate syntax
             assert!(MediaQuery::has_balanced_parens(query_str));
-            
+
             // Step 3: Test in transform
             let queries = vec![query];
             let transformed = lastMediaQueryWinsTransform(queries);
             assert_eq!(transformed.len(), 1);
-            
+
             // TODO: Test full parsing when parser is implemented
             // let parsed = MediaQuery::parser().parse_to_end(query_str);
             // assert!(parsed.is_ok());
@@ -575,21 +575,21 @@ mod media_query_integration_tests {
             "@media (min-width: 992px)",
             "@media (min-width: 1200px)",
             "@media (min-width: 1400px)",
-            
+
             // Mobile-first design
             "@media screen and (max-width: 768px)",
             "@media screen and (min-width: 769px) and (max-width: 1024px)",
             "@media screen and (min-width: 1025px)",
-            
+
             // Device-specific queries
             "@media only screen and (min-device-width: 375px) and (max-device-width: 667px)",
             "@media only screen and (-webkit-min-device-pixel-ratio: 2)",
-            
+
             // Accessibility queries
             "@media (prefers-reduced-motion: reduce)",
             "@media (prefers-color-scheme: dark)",
             "@media (prefers-contrast: high)",
-            
+
             // Print styles
             "@media print",
             "@media print and (min-resolution: 300dpi)",
@@ -599,7 +599,7 @@ mod media_query_integration_tests {
             let query = MediaQuery::new(query_str.to_string());
             assert_eq!(query.to_string(), query_str);
             assert!(MediaQuery::has_balanced_parens(query_str));
-            
+
             // Test that queries can be used in transform
             let queries = vec![query];
             let transformed = lastMediaQueryWinsTransform(queries);
@@ -621,7 +621,7 @@ mod media_query_integration_tests {
             // Our current implementation should handle these gracefully
             let query = MediaQuery::new(case.to_string());
             assert_eq!(query.to_string(), case);
-            
+
             // Balanced parens check should work even for invalid queries
             let _balanced = MediaQuery::has_balanced_parens(case);
             // No assertion needed - just ensure it doesn't panic

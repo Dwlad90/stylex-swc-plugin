@@ -12,11 +12,15 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 ### token_parser.rs
 - [DONE] `fn(name)` helper implemented (`TokenParser::fn_name`).
 - [PARTIAL] Common token helpers added (ident, colon, semicolon, comma, parens/brackets/braces, whitespace, number, percentage, dimension, string, hash, at-keyword). A full "tokens" bag struct is not exposed yet.
-- [TODO] `setOf` / `TokenParserSet` order-insensitive combinator.
+- [DONE] `setOf` / `TokenParserSet` order-insensitive combinator.
+- [DONE] `.separatedBy()` combinator for whitespace/comma separation with fluent API.
 
 ### css_types/color.rs
-- [IN PROGRESS] Parsers for `rgb()`/`rgba()`/`hsl()`/`hsla()` implemented to a working baseline (numeric channels, comma and space variants).
-- [TODO] Percent channels, slash alpha, hue units conversion; validation parity; optional modern spaces (Lch, Oklch, Oklab) only if in JS scope.
+- [IN PROGRESS] Parsers for `rgb()`/`rgba()`/`hsl()`/`hsla()` implemented.
+  - [DONE] Numeric and percent channels for `rgb/rgba`.
+  - [DONE] Comma and space variants; `rgb()` space syntax with slash-alpha.
+  - [DONE] Hue units conversion for `hsl/hsla` (deg/rad/turn); percent alpha.
+  - [TODO] Tighten validation/edge-cases; modern spaces (Lch, Oklch, Oklab) only if needed by JS scope.
 
 ### css_types/common_types.rs
 - [DONE] `CssVariable` parser implemented to parse `var(--ident)`.
@@ -26,7 +30,10 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 - [TODO] Full precedence/grouping and nested expressions with correct operator associativity.
 
 ### css_types/* function types
-- [TODO] Implement `transform_function.rs`, `filter_function.rs`, `easing_function.rs`, `basic_shape.rs` per JS.
+- [DONE] `easing_function.rs` (linear, cubic-bezier, steps, keywords).
+- [DONE] `filter_function.rs` (blur, brightness, contrast, grayscale, hue-rotate, invert, opacity, saturate, sepia).
+- [DONE] `basic_shape.rs` (inset/circle/ellipse/polygon/path) – basic parsers implemented, needs refinement for full JS parity.
+- [DONE] `transform_function.rs` – core transform functions implemented (matrix, rotate, scale, translate, skew); complex 3d functions placeholder.
 
 ### properties/border_radius.rs
 - [TODO] Parser is simplified. Needs full 1–4 value parsing plus slash-separated vertical radii and expansion rules.
@@ -63,16 +70,15 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 2. [DONE] Finalize TokenList parity
    - [DONE] Implemented `peek`, `consume_next_token`, `slice`, `set_current_index`, `rewind`.
 
-3. [PARTIAL] Add `TokenParser::fn(name)` and tokens bag
+3. [DONE] Add `TokenParser::fn(name)` and core combinators
    - [DONE] Implemented `fn_name` for matching function tokens.
+   - [DONE] Implemented `.separatedBy()` combinator with fluent API.
+   - [DONE] Implemented `setOf` / order-insensitive combinator.
    - [PARTIAL] Added token helper constructors; expose a consolidated "tokens" group later if needed for JS name parity.
-
-4. [TODO] Implement `setOf` / `TokenParserSet`
-   - Order-insensitive selection with optional separator handling as in JS.
 
 ### Phase 2: Core CSS types
 5. [IN PROGRESS] Complete color parsers
-   - `rgb()`/`rgba()`/`hsl()`/`hsla()` basics implemented; add percent channels, slash alpha, hue units, and validation.
+   - `rgb()`/`rgba()`/`hsl()`/`hsla()` implemented with numeric/percent channels, space/comma variants, slash alpha, and hue units. Remaining: validation parity and any JS-specific edge-cases.
    - Acceptance: JS color tests mirrored and pass.
 
 6. [DONE] Implement `CssVariable` parser
@@ -81,8 +87,11 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 7. [TODO] Finish `calc.rs` precedence/grouping
    - Full expression parsing, nested groups, operator precedence; round-tripping display parity.
 
-8. [TODO] Implement function types
-   - `transform_function.rs`, `filter_function.rs`, `easing_function.rs`, `basic_shape.rs` per JS files and tests.
+8. [DONE] Implement function types
+   - [DONE] `easing_function.rs`
+   - [DONE] `filter_function.rs`
+   - [DONE] `basic_shape.rs` (core functionality)
+   - [DONE] `transform_function.rs` (core functionality)
 
 ### Phase 3: Properties
 9. [TODO] Finish `border_radius.rs`
@@ -115,11 +124,10 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 
 ## Immediate next actions (updated)
 1) Expose a JS-parity `tokens` group or re-export helpers with names matching JS labels.
-2) Implement `setOf` / order-insensitive combinator.
-3) Finish color parser parity: percent channels, slash alpha, hue units, validation.
+2) Refine `basic_shape.rs` and `transform_function.rs` for full JS parity (complex cases, edge handling).
+3) Finish color validation/edge-case parity; consider modern color spaces only if required.
 4) Implement full `calc` precedence/grouping.
-5) Implement function types: `transform_function`, `filter_function`, `easing_function`, `basic_shape`.
-6) Finish property parsers: `border_radius`, `box_shadow`, `transform`.
-7) Implement `MediaQuery` AST + `lastMediaQueryWinsTransform`.
+5) Finish property parsers: `border_radius`, `box_shadow`, `transform`.
+6) Implement `MediaQuery` AST + `lastMediaQueryWinsTransform`.
 
 

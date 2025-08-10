@@ -302,6 +302,39 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
     pub fn label(&self) -> &str {
         &self.label
     }
+
+    /// Create a separated parser using this parser and a separator
+    /// Used for implementing .separatedBy() method style API
+    /// Mirrors JavaScript: parser.separatedBy(separator)
+    pub fn separated_by<S>(&self, separator: TokenParser<S>) -> SeparatedParser<T, S>
+    where
+        S: Clone + Debug + 'static,
+    {
+        SeparatedParser {
+            parser: self.clone(),
+            separator,
+        }
+    }
+}
+
+/// A parser that represents a main parser separated by a separator parser
+/// This allows for fluent API like: parser.separatedBy(comma).one_or_more()
+#[derive(Clone)]
+pub struct SeparatedParser<T: Clone + Debug + 'static, S: Clone + Debug + 'static> {
+    parser: TokenParser<T>,
+    separator: TokenParser<S>,
+}
+
+impl<T: Clone + Debug + 'static, S: Clone + Debug + 'static> SeparatedParser<T, S> {
+    /// Parse one or more occurrences with separator
+    pub fn one_or_more(self) -> TokenParser<Vec<T>> {
+        TokenParser::one_or_more_separated_by(self.parser, self.separator)
+    }
+
+    /// Parse zero or more occurrences with separator
+    pub fn zero_or_more(self) -> TokenParser<Vec<T>> {
+        TokenParser::zero_or_more_separated_by(self.parser, self.separator)
+    }
 }
 
 /// Static constructor methods for TokenParser
@@ -388,6 +421,78 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
         )
     }
 
+    /// Parse a set of parsers in any order (order-insensitive)
+    /// Mirrors: static setOf<T>(...parsers): TokenParserSet<T>
+    pub fn set_of<U: Clone + Debug + 'static>(parsers: Vec<TokenParser<U>>) -> TokenParser<Vec<U>> {
+        TokenParser::new(
+            move |tokens| {
+                let start_index = tokens.current_index;
+                let mut results = vec![None; parsers.len()];
+                let mut used_indices = std::collections::HashSet::new();
+                let mut errors = Vec::new();
+
+                // Try to match each position in order, but parsers can match in any order
+                for position in 0..parsers.len() {
+                    let mut found = false;
+                    let mut position_errors = Vec::new();
+
+                    // Try each unused parser
+                    for (parser_index, parser) in parsers.iter().enumerate() {
+                        if used_indices.contains(&parser_index) {
+                            continue;
+                        }
+
+                        let before_attempt = tokens.current_index;
+                        match (parser.parse_fn)(tokens) {
+                            Ok(Some(value)) => {
+                                results[parser_index] = Some(value);
+                                used_indices.insert(parser_index);
+                                found = true;
+                                break;
+                            }
+                            Ok(None) => {
+                                tokens.set_current_index(before_attempt);
+                                position_errors.push(format!("Parser {} returned None", parser_index));
+                            }
+                            Err(e) => {
+                                tokens.set_current_index(before_attempt);
+                                position_errors.push(format!("Parser {}: {}", parser_index, e));
+                            }
+                        }
+                    }
+
+                    if !found {
+                        errors.extend(position_errors);
+                        tokens.set_current_index(start_index);
+                        return Err(CssParseError::ParseError {
+                            message: format!("SetOf failed at position {}: {}", position, errors.join("; ")),
+                        });
+                    }
+                }
+
+                // Convert Option<T> to T, ensuring all parsers matched
+                let final_results: Result<Vec<U>, String> = results
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, opt)| {
+                        opt.ok_or_else(|| format!("Parser {} did not match", i))
+                    })
+                    .collect();
+
+                match final_results {
+                    Ok(values) => Ok(Some(values)),
+                    Err(err) => {
+                        tokens.set_current_index(start_index);
+                        Err(CssParseError::ParseError {
+                            message: format!("SetOf incomplete: {}", err),
+                        })
+                    }
+                }
+            },
+            "setOf",
+        )
+    }
+
     /// Parse zero or more occurrences
     /// Mirrors: static zeroOrMore<T>(parser: TokenParser<T>): TokenZeroOrMoreParsers<T>
     pub fn zero_or_more(parser: TokenParser<T>) -> TokenParser<Vec<T>> {
@@ -452,6 +557,120 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                 Ok(Some(results))
             },
             &format!("OneOrMore<{}>", parser.label),
+        )
+    }
+
+    /// Parse one or more occurrences separated by a separator
+    /// Mirrors: TokenOneOrMoreParsers.separatedBy(separator)
+    pub fn one_or_more_separated_by<S>(
+        parser: TokenParser<T>,
+        separator: TokenParser<S>
+    ) -> TokenParser<Vec<T>>
+    where
+        S: Clone + Debug + 'static
+    {
+        TokenParser::new(
+            move |tokens| {
+                let mut results = Vec::new();
+                let start_index = tokens.current_index;
+
+                // Must match at least once
+                match (parser.parse_fn)(tokens) {
+                    Ok(Some(value)) => results.push(value),
+                    Ok(None) => {
+                        tokens.set_current_index(start_index);
+                        return Err(CssParseError::ParseError {
+                            message: "OneOrMore requires at least one match".to_string(),
+                        });
+                    }
+                    Err(e) => {
+                        tokens.set_current_index(start_index);
+                        return Err(e);
+                    }
+                }
+
+                // Try to match additional occurrences with separators
+                loop {
+                    let separator_index = tokens.current_index;
+
+                    // Try to parse separator
+                    match (separator.parse_fn)(tokens) {
+                        Ok(Some(_)) => {
+                            // Separator found, try to parse next value
+                            match (parser.parse_fn)(tokens) {
+                                Ok(Some(value)) => results.push(value),
+                                Ok(None) | Err(_) => {
+                                    // Failed to parse value after separator, rewind to before separator
+                                    tokens.set_current_index(separator_index);
+                                    break;
+                                }
+                            }
+                        }
+                        Ok(None) | Err(_) => {
+                            // No separator found, we're done
+                            tokens.set_current_index(separator_index);
+                            break;
+                        }
+                    }
+                }
+
+                Ok(Some(results))
+            },
+            &format!("OneOrMoreSeparatedBy<{}, {}>", parser.label, separator.label),
+        )
+    }
+
+    /// Parse zero or more occurrences separated by a separator
+    /// Mirrors: TokenZeroOrMoreParsers.separatedBy(separator)
+    pub fn zero_or_more_separated_by<S>(
+        parser: TokenParser<T>,
+        separator: TokenParser<S>
+    ) -> TokenParser<Vec<T>>
+    where
+        S: Clone + Debug + 'static
+    {
+        TokenParser::new(
+            move |tokens| {
+                let mut results = Vec::new();
+                let current_index = tokens.current_index;
+
+                // Try to match first occurrence
+                match (parser.parse_fn)(tokens) {
+                    Ok(Some(value)) => results.push(value),
+                    Ok(None) | Err(_) => {
+                        tokens.set_current_index(current_index);
+                        return Ok(Some(results)); // Empty list is valid for zero or more
+                    }
+                }
+
+                // Try to match additional occurrences with separators
+                loop {
+                    let separator_index = tokens.current_index;
+
+                    // Try to parse separator
+                    match (separator.parse_fn)(tokens) {
+                        Ok(Some(_)) => {
+                            // Separator found, try to parse next value
+                            match (parser.parse_fn)(tokens) {
+                                Ok(Some(value)) => results.push(value),
+                                Ok(None) | Err(_) => {
+                                    // Failed to parse value after separator, rewind to before separator
+                                    tokens.set_current_index(separator_index);
+                                    break;
+                                }
+                            }
+                        }
+                        Ok(None) | Err(_) => {
+                            // No separator found, we're done
+                            tokens.set_current_index(separator_index);
+                            break;
+                        }
+                    }
+                }
+
+                Ok(Some(results))
+            },
+            &format!("ZeroOrMoreSeparatedBy<{}, {}>", parser.label, separator.label),
         )
     }
 
@@ -537,7 +756,85 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
 }
 
 /// Common token parsers for basic CSS tokens
+/// JavaScript-compatible tokens API
+/// Mirrors: TokenParser.tokens.* static properties
+pub struct Tokens {
+    /// Parse whitespace token
+    /// Mirrors: TokenParser.tokens.Whitespace
+    pub whitespace: TokenParser<SimpleToken>,
+
+    /// Parse comma token
+    /// Mirrors: TokenParser.tokens.Comma
+    pub comma: TokenParser<SimpleToken>,
+
+    /// Parse left parenthesis token
+    /// Mirrors: TokenParser.tokens.OpenParen
+    pub open_paren: TokenParser<SimpleToken>,
+
+    /// Parse right parenthesis token
+    /// Mirrors: TokenParser.tokens.CloseParen
+    pub close_paren: TokenParser<SimpleToken>,
+
+    /// Parse number token
+    /// Mirrors: TokenParser.tokens.Number
+    pub number: TokenParser<SimpleToken>,
+
+    /// Parse percentage token
+    /// Mirrors: TokenParser.tokens.Percentage
+    pub percentage: TokenParser<SimpleToken>,
+
+    /// Parse dimension token
+    /// Mirrors: TokenParser.tokens.Dimension
+    pub dimension: TokenParser<SimpleToken>,
+
+    /// Parse string token
+    /// Mirrors: TokenParser.tokens.String
+    pub string: TokenParser<SimpleToken>,
+
+    /// Parse identifier token
+    /// Mirrors: TokenParser.tokens.Ident
+    pub ident: TokenParser<SimpleToken>,
+
+    /// Parse function token
+    /// Mirrors: TokenParser.tokens.Function
+    pub function: TokenParser<SimpleToken>,
+
+    /// Parse hash token
+    /// Mirrors: TokenParser.tokens.Hash
+    pub hash: TokenParser<SimpleToken>,
+
+    /// Parse delimiter token
+    /// Mirrors: TokenParser.tokens.Delim
+    pub delim: TokenParser<SimpleToken>,
+}
+
+impl Tokens {
+    /// Create a new tokens instance
+    pub fn new() -> Self {
+        Self {
+            whitespace: TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace")),
+            comma: TokenParser::<SimpleToken>::token(SimpleToken::Comma, Some("Comma")),
+            open_paren: TokenParser::<SimpleToken>::token(SimpleToken::LeftParen, Some("OpenParen")),
+            close_paren: TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("CloseParen")),
+            number: TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number")),
+            percentage: TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage")),
+            dimension: TokenParser::<SimpleToken>::token(SimpleToken::Dimension { value: 0.0, unit: String::new() }, Some("Dimension")),
+            string: TokenParser::<SimpleToken>::token(SimpleToken::String(String::new()), Some("String")),
+            ident: TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident")),
+            function: TokenParser::<SimpleToken>::token(SimpleToken::Function(String::new()), Some("Function")),
+            hash: TokenParser::<SimpleToken>::token(SimpleToken::Hash(String::new()), Some("Hash")),
+            delim: TokenParser::<SimpleToken>::token(SimpleToken::Unknown(String::new()), Some("Delim")),
+        }
+    }
+}
+
 impl TokenParser<SimpleToken> {
+    /// Access to tokens API for JavaScript compatibility
+    /// Mirrors: TokenParser.tokens
+    pub fn tokens() -> Tokens {
+        Tokens::new()
+    }
+
     /// Parse an identifier token
     pub fn ident() -> TokenParser<SimpleToken> {
         TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))

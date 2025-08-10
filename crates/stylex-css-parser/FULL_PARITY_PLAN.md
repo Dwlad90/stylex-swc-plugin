@@ -39,7 +39,7 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 ### properties/border_radius.rs
 - [DONE] Full 1–4 value parsing with CSS shorthand expansion logic.
 - [DONE] Proper whitespace-separated value handling and fallback logic.
-- [TODO] Slash-separated vertical radii support for asymmetric borders.
+- [DONE] Slash-separated vertical radii support for asymmetric borders (`horizontal-radii / vertical-radii`).
 
 ### properties/box_shadow.rs
 - [DONE] Complete box shadow parsing with optional blur/spread radius.
@@ -136,7 +136,7 @@ This document inventories all unfinished areas in the Rust rewrite and defines a
 3) [DONE] Finish property parsers: `transform`, `border_radius`, `box_shadow`.
 4) [DONE] Refine `basic_shape.rs` for full JS parity (complex cases, edge handling).
 5) [DONE] Finish color validation/edge-case parity; consider modern color spaces only if required.
-6) Add slash-separated vertical radii support to `border_radius`.
+6) [DONE] Add slash-separated vertical radii support to `border_radius`.
 7) Implement `MediaQuery` AST + `lastMediaQueryWinsTransform`.
 
 

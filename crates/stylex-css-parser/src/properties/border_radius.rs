@@ -128,50 +128,83 @@ impl BorderRadiusShorthand {
     /// Parser for border radius shorthand with basic CSS specification support
     /// Mirrors: BorderRadiusShorthand.parse in border-radius.js
     pub fn parser() -> TokenParser<BorderRadiusShorthand> {
-        // For now, implement a simplified version that handles the basic cases
-        // TODO: Implement full "/" separator support and complex parsing
+        // Implement full border-radius syntax with slash separator support
+        // Syntax: horizontal-radii [ / vertical-radii ]?
 
-        // Parse 1-4 space-separated length/percentage values
         let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
+        let slash = TokenParser::<SimpleToken>::token(SimpleToken::Delim('/'), Some("Slash"));
 
-        let first_value = length_percentage_parser();
-        let remaining_values = TokenParser::<LengthPercentage>::zero_or_more(
-            whitespace.clone().flat_map(|_| length_percentage_parser(), Some("next_value"))
-        );
+        // Helper to parse 1-4 space-separated length/percentage values
+        let space_separated_radii = {
+            let first_value = length_percentage_parser();
+            let remaining_values = TokenParser::<LengthPercentage>::zero_or_more(
+                whitespace.clone().flat_map(|_| length_percentage_parser(), Some("next_value"))
+            );
 
-        first_value
-            .flat_map(move |first| {
+            first_value.flat_map(move |first| {
                 let first_clone = first.clone();
                 remaining_values.clone().map(move |rest| {
                     let mut all_values = vec![first_clone.clone()];
                     all_values.extend(rest);
 
-                    // Apply CSS shorthand expansion logic (up to 4 values)
+                    // Limit to 4 values and apply CSS shorthand expansion
                     let values = if all_values.len() > 4 {
                         all_values[..4].to_vec()
                     } else {
                         all_values
                     };
 
+                    // Apply CSS shorthand rules
                     match values.len() {
-                        1 => BorderRadiusShorthand::new(
-                            values[0].clone(), None, None, None, None, None, None, None
-                        ),
-                        2 => BorderRadiusShorthand::new(
-                            values[0].clone(), Some(values[1].clone()), None, None, None, None, None, None
-                        ),
-                        3 => BorderRadiusShorthand::new(
-                            values[0].clone(), Some(values[1].clone()), Some(values[2].clone()), None, None, None, None, None
-                        ),
-                        4 => BorderRadiusShorthand::new(
-                            values[0].clone(), Some(values[1].clone()), Some(values[2].clone()), Some(values[3].clone()), None, None, None, None
-                        ),
-                        _ => BorderRadiusShorthand::new(
-                            values[0].clone(), None, None, None, None, None, None, None
-                        )
+                        1 => [values[0].clone(), values[0].clone(), values[0].clone(), values[0].clone()],
+                        2 => [values[0].clone(), values[1].clone(), values[0].clone(), values[1].clone()],
+                        3 => [values[0].clone(), values[1].clone(), values[2].clone(), values[1].clone()],
+                        4 => [values[0].clone(), values[1].clone(), values[2].clone(), values[3].clone()],
+                        _ => [values[0].clone(), values[0].clone(), values[0].clone(), values[0].clone()],
                     }
-                }, Some("expand_values"))
-            }, Some("with_remaining"))
+                }, Some("expand_radii"))
+            }, Some("space_separated"))
+        };
+
+        // Parse optional " / vertical-radii" part
+        let slash_vertical = {
+            let whitespace_before_slash = whitespace.clone().optional();
+            let whitespace_after_slash = whitespace.clone().optional();
+            let slash_clone = slash.clone();
+            let radii_clone = space_separated_radii.clone();
+
+            whitespace_before_slash
+                .flat_map(move |_| slash_clone.clone(), Some("slash"))
+                .flat_map(move |_| whitespace_after_slash.clone(), Some("ws_after_slash"))
+                .flat_map(move |_| radii_clone.clone(), Some("vertical_radii"))
+                .optional()
+        };
+
+        // Main parser: horizontal-radii [/ vertical-radii]?
+        space_separated_radii.clone()
+            .flat_map(move |horizontal_radii| {
+                let h_radii = horizontal_radii.clone();
+                slash_vertical.clone().map(move |vertical_opt| {
+                    let [h_tl, h_tr, h_br, h_bl] = h_radii.clone();
+
+                    match vertical_opt {
+                        Some(vertical_radii) => {
+                            let [v_tl, v_tr, v_br, v_bl] = vertical_radii;
+                            BorderRadiusShorthand::new(
+                                h_tl, Some(h_tr), Some(h_br), Some(h_bl),
+                                Some(v_tl), Some(v_tr), Some(v_br), Some(v_bl)
+                            )
+                        },
+                        None => {
+                            // Only horizontal radii provided, vertical defaults to horizontal
+                            BorderRadiusShorthand::new(
+                                h_tl, Some(h_tr), Some(h_br), Some(h_bl),
+                                None, None, None, None
+                            )
+                        }
+                    }
+                }, Some("with_vertical"))
+            }, Some("main_parser"))
     }
 
     /// Get the shortest possible string representation
@@ -380,5 +413,49 @@ mod tests {
 
         let mixed = BorderRadiusIndividual::new(pixels, Some(percentage));
         assert_eq!(mixed.to_string(), "5px 25%");
+    }
+
+    #[test]
+    fn test_border_radius_shorthand_slash_separated() {
+        // Test asymmetric border radius: 10px 20px / 5px 15px
+        let h_tl = LengthPercentage::Length(Length::new(10.0, "px".to_string()));
+        let h_tr = LengthPercentage::Length(Length::new(20.0, "px".to_string()));
+        let v_tl = LengthPercentage::Length(Length::new(5.0, "px".to_string()));
+        let v_tr = LengthPercentage::Length(Length::new(15.0, "px".to_string()));
+
+        let radius = BorderRadiusShorthand::new(
+            h_tl, Some(h_tr), None, None,
+            Some(v_tl), Some(v_tr), None, None
+        );
+
+        // Should output the slash-separated format when horizontal and vertical differ
+        let result = radius.to_string();
+        assert!(result.contains("/"));
+        assert!(result.contains("10px"));
+        assert!(result.contains("20px"));
+        assert!(result.contains("5px"));
+        assert!(result.contains("15px"));
+    }
+
+    #[test]
+    fn test_border_radius_shorthand_no_slash_when_same() {
+        // Test when horizontal and vertical radii are the same, no slash should appear
+        let value = LengthPercentage::Length(Length::new(10.0, "px".to_string()));
+
+        let radius = BorderRadiusShorthand::new(
+            value.clone(), None, None, None,
+            Some(value.clone()), None, None, None
+        );
+
+        let result = radius.to_string();
+        assert!(!result.contains("/"));
+        assert_eq!(result, "10px");
+    }
+
+    #[test]
+    fn test_border_radius_parser_creation() {
+        // Test that both parsers can be created without issues
+        let _individual = BorderRadiusIndividual::parser();
+        let _shorthand = BorderRadiusShorthand::parser();
     }
 }

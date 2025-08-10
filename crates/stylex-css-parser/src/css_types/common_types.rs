@@ -126,9 +126,25 @@ impl CssVariable {
     /// Parser for CSS variables: var(--name)
     /// Mirrors: CssVariable.parse
     pub fn parser() -> TokenParser<CssVariable> {
-        // This is a simplified implementation
-        // Full implementation would require function token parsing
-        TokenParser::<CssVariable>::never() // TODO: Implement when function parsing is ready
+        // var(
+        let fn_var = crate::token_parser::TokenParser::<String>::fn_name("var");
+
+        // --ident
+        let dashed_ident = crate::token_parser::TokenParser::<crate::token_types::SimpleToken>
+            ::token(crate::token_types::SimpleToken::Ident(String::new()), Some("Ident"))
+            .map(|tok| {
+                if let crate::token_types::SimpleToken::Ident(s) = tok { s } else { String::new() }
+            }, Some(".value"))
+            .where_fn(|s| s.starts_with("--"), Some("starts_with_--"));
+
+        // )
+        let close_paren = crate::token_parser::TokenParser::<crate::token_types::SimpleToken>
+            ::token(crate::token_types::SimpleToken::RightParen, Some("RightParen"));
+
+        fn_var
+            .flat_map(move |_| dashed_ident.clone(), Some("name"))
+            .flat_map(move |name| close_paren.map(move |_| name.clone(), Some(")")), Some("close"))
+            .map(CssVariable::new, Some("to_css_variable"))
     }
 }
 

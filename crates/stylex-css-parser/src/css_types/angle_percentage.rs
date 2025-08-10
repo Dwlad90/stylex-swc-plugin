@@ -92,8 +92,8 @@ mod tests {
         let percentage = AnglePercentage::Percentage(Percentage::new(25.0));
         assert_eq!(percentage.to_string(), "25%");
 
-        let rad_angle = AnglePercentage::Angle(Angle::new(3.14159, "rad".to_string()));
-        assert_eq!(rad_angle.to_string(), "3.14159rad");
+        let rad_angle = AnglePercentage::Angle(Angle::new(std::f32::consts::PI, "rad".to_string()));
+        assert_eq!(rad_angle.to_string(), format!("{}rad", std::f32::consts::PI));
 
         let zero_angle = AnglePercentage::Angle(Angle::new(0.0, "deg".to_string()));
         assert_eq!(zero_angle.to_string(), "0deg");

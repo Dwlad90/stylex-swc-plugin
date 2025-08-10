@@ -587,6 +587,46 @@ impl TokenParser<SimpleToken> {
     pub fn right_brace() -> TokenParser<SimpleToken> {
         TokenParser::<SimpleToken>::token(SimpleToken::RightBrace, Some("RightBrace"))
     }
+
+    /// Parse a whitespace token
+    pub fn whitespace() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"))
+    }
+
+    /// Parse a function token (any function name)
+    pub fn function_any() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Function(String::new()), Some("Function"))
+    }
+
+    /// Parse a number token
+    pub fn number() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+    }
+
+    /// Parse a percentage token
+    pub fn percentage() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+    }
+
+    /// Parse a dimension token
+    pub fn dimension() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Dimension { value: 0.0, unit: String::new() }, Some("Dimension"))
+    }
+
+    /// Parse a string token
+    pub fn string_token() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::String(String::new()), Some("String"))
+    }
+
+    /// Parse a hash token
+    pub fn hash() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::Hash(String::new()), Some("Hash"))
+    }
+
+    /// Parse an at-keyword token
+    pub fn at_keyword() -> TokenParser<SimpleToken> {
+        TokenParser::<SimpleToken>::token(SimpleToken::AtKeyword(String::new()), Some("AtKeyword"))
+    }
 }
 
 #[cfg(test)]

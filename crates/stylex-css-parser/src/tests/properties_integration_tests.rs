@@ -21,7 +21,7 @@ use crate::{
         LengthPercentage, Percentage, Angle,
         transform_function::{
             TransformFunction, Matrix, Matrix3d, Perspective, Rotate, RotateXYZ, Rotate3d,
-            Scale, Scale3d, ScaleAxis, Skew, SkewAxis, Translate, Translate3d, TranslateAxis,
+            Scale, Scale3d, Skew, SkewAxis, Translate, TranslateAxis,
             Axis, SkewAxis2D
         },
     },

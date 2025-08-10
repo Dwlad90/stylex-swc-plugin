@@ -8,29 +8,68 @@ Mirrors: packages/style-value-parser/src/at-queries/media-query-transform.js
 */
 
 use std::collections::HashMap;
-use super::media_query::MediaQuery;
+use super::media_query::{MediaQuery, MediaQueryRule};
 
 /// Transform styles object using "last media query wins" logic
 /// Mirrors: lastMediaQueryWinsTransform in media-query-transform.js
-pub fn lastMediaQueryWinsTransform(_queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
-    // TODO: Implement the full transformation logic
-    // For now, simplified implementation
+#[allow(non_snake_case)]
+pub fn lastMediaQueryWinsTransform(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
+    // For now, implement a simplified version that ensures basic functionality
+    // The full logic will be enhanced to match JavaScript exactly
 
-    // The JavaScript implementation does:
-    // 1. Traverse the styles object using DFS
-    // 2. Find media query keys (starting with "@media ")
-    // 3. Create negation rules for earlier media queries
-    // 4. Combine current query with negations of later queries
-    // 5. Update the keys with the transformed queries
+    if queries.is_empty() {
+        return queries;
+    }
 
-    // This is a complex transformation involving:
-    // - Object traversal
-    // - Media query parsing
-    // - Logical combinations (AND/OR/NOT)
-    // - Query normalization
+    // Basic implementation: just return the queries for now
+    // TODO: Implement full DFS processing and query combination logic
+    queries
+}
 
-    // Placeholder implementation - return input unchanged
-    _queries
+/// Combine a media query with negations of other queries
+/// Mirrors: combineMediaQueryWithNegations in media-query-transform.js
+pub fn combine_media_query_with_negations(
+    current: MediaQuery,
+    negations: Vec<MediaQuery>,
+) -> MediaQuery {
+    if negations.is_empty() {
+        return current;
+    }
+
+    // Convert negations to NOT rules
+    let negation_rules: Vec<MediaQueryRule> = negations
+        .into_iter()
+        .map(|mq| MediaQueryRule::Not {
+            rule: Box::new(mq.queries),
+        })
+        .collect();
+
+    // Combine current query with negations using AND
+    let combined_rules = match current.queries {
+        MediaQueryRule::Or { rules } => {
+            // If current is OR, wrap each rule with AND negations
+            let combined_or_rules: Vec<MediaQueryRule> = rules
+                .into_iter()
+                .map(|rule| {
+                    let mut and_rules = vec![rule];
+                    and_rules.extend(negation_rules.clone());
+                    MediaQueryRule::And { rules: and_rules }
+                })
+                .collect();
+
+            MediaQueryRule::Or {
+                rules: combined_or_rules,
+            }
+        }
+        _ => {
+            // For other rules, create AND with negations
+            let mut and_rules = vec![current.queries];
+            and_rules.extend(negation_rules);
+            MediaQueryRule::And { rules: and_rules }
+        }
+    };
+
+    MediaQuery::new_from_rule(combined_rules)
 }
 
 /// Process styles object recursively (placeholder)

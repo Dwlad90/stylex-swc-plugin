@@ -168,7 +168,7 @@ mod media_query_parsing_tests {
     fn test_media_query_creation() {
         // Test basic MediaQuery creation
         let query = MediaQuery::new("@media screen".to_string());
-        assert_eq!(query.query_string, "@media screen");
+        assert_eq!(query.to_string(), "@media screen");
     }
 
     #[test]

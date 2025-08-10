@@ -22,6 +22,7 @@ pub enum Dimension {
 
 impl Dimension {
     /// Check if a unit belongs to any dimension type
+    #[allow(dead_code)]
     fn is_valid_dimension_unit(unit: &str) -> bool {
         Length::is_valid_unit(unit)
             || Time::is_valid_unit(unit)

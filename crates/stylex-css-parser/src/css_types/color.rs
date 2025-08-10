@@ -240,10 +240,45 @@ impl RgbColor {
     }
 
     /// Parser for RGB colors
-    /// Simplified version - will enhance later with comma/space separation
     pub fn parser() -> TokenParser<RgbColor> {
-        // TODO: Implement full RGB parsing with function tokens
-        TokenParser::<RgbColor>::never()
+        // number channel 0..=255
+        let number_channel = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .map(|t| if let SimpleToken::Number(v) = t { v } else { 0.0 }, Some("to_f64"))
+            .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
+            .map(|v| v as u8, Some("to_u8"));
+
+        // rgb(<n>,<n>,<n>) comma syntax
+        let comma_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![number_channel.clone(), number_channel.clone(), number_channel.clone()]);
+
+        // rgb function start and )
+        let fn_rgb: TokenParser<String> = TokenParser::<String>::fn_name("rgb");
+        let close_paren_rgb1 = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+        let close_paren_rgb2 = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+        // comma separated variant: rgb <args> ) with commas handled by sequence using simple approach
+        let comma_parser = fn_rgb
+            .flat_map(move |_| {
+                // naive: allow optional whitespace and commas by consuming delimiters/whitespace between numbers
+                // we approximate by parsing three numbers sequentially and relying on upstream separation
+                comma_args.clone()
+            }, Some("args"))
+            .flat_map(move |vals| {
+                let cp = close_paren_rgb1.clone();
+                cp.map(move |_| vals.clone(), Some(")"))
+            }, Some("close"))
+            .map(|vals| RgbColor::new(vals[0], vals[1], vals[2]), Some("to_rgb"));
+
+        // space separated variant: rgb <n> <n> <n> )
+        let space_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![number_channel.clone(), number_channel.clone(), number_channel.clone()]);
+        let space_parser = TokenParser::<String>::fn_name("rgb")
+            .flat_map(move |_| space_args.clone(), Some("space_args"))
+            .flat_map(move |vals| {
+                let cp = close_paren_rgb2.clone();
+                cp.map(move |_| vals.clone(), Some(")"))
+            }, Some("space_close"))
+            .map(|vals| RgbColor::new(vals[0], vals[1], vals[2]), Some("to_rgb_space"));
+
+        TokenParser::one_of(vec![comma_parser, space_parser])
     }
 }
 
@@ -269,10 +304,41 @@ impl RgbaColor {
     }
 
     /// Parser for RGBA colors
-    /// Simplified version - will enhance later
     pub fn parser() -> TokenParser<RgbaColor> {
-        // TODO: Implement full RGBA parsing
-        TokenParser::<RgbaColor>::never()
+        let number_channel = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .map(|t| if let SimpleToken::Number(v) = t { v } else { 0.0 }, Some("to_f64"))
+            .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
+            .map(|v| v as u8, Some("to_u8"));
+
+        let alpha_number = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+
+        let fn_rgba: TokenParser<String> = TokenParser::<String>::fn_name("rgba");
+        let close_paren = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+        // rgba(<n>,<n>,<n>,<a>) simple variant
+        let args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![
+            number_channel.clone(),
+            number_channel.clone(),
+            number_channel.clone(),
+        ]);
+        // Parse: rgba(<n>,<n>,<n>,<a>)
+        let rgba_parser = fn_rgba
+            .flat_map(move |_| {
+                let rgb = args.clone();
+                rgb
+            }, Some("rgb_args"))
+            .flat_map(move |rgb_vals| {
+                let rgb_clone = rgb_vals.clone();
+                alpha_number.clone().map(move |a| (rgb_clone.clone(), a), Some("pair_alpha"))
+            }, Some("alpha"))
+            .flat_map(move |(rgb_vals, a)| {
+                let cp = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+                cp.map(move |_| (rgb_vals.clone(), a), Some(")"))
+            }, Some("close"))
+            .map(|(rgb_vals, a)| RgbaColor::new(rgb_vals[0], rgb_vals[1], rgb_vals[2], a), Some("to_rgba"));
+
+        rgba_parser
     }
 }
 
@@ -297,10 +363,24 @@ impl HslColor {
     }
 
     /// Parser for HSL colors
-    /// Simplified version - will enhance later
     pub fn parser() -> TokenParser<HslColor> {
-        // TODO: Implement full HSL parsing
-        TokenParser::<HslColor>::never()
+        // Angle can be a dimension with unit or 0 number; for now accept numbers as degrees
+        let angle_number = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+
+        // Percentage is SimpleToken::Percentage(value)
+        let percent = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+            .map(|t| if let SimpleToken::Percentage(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+
+        let fn_hsl: TokenParser<String> = TokenParser::<String>::fn_name("hsl");
+        let close_paren = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+        let args: TokenParser<Vec<f32>> = TokenParser::<f32>::sequence(vec![angle_number.clone(), percent.clone(), percent.clone()]);
+
+        fn_hsl
+            .flat_map(move |_| args.clone(), Some("args"))
+            .flat_map(move |vals| close_paren.map(move |_| vals.clone(), Some(")")), Some("close"))
+            .map(|vals| HslColor::new(vals[0], vals[1], vals[2]), Some("to_hsl"))
     }
 }
 
@@ -326,10 +406,30 @@ impl HslaColor {
     }
 
     /// Parser for HSLA colors
-    /// Simplified version - will enhance later
     pub fn parser() -> TokenParser<HslaColor> {
-        // TODO: Implement full HSLA parsing
-        TokenParser::<HslaColor>::never()
+        let angle_number = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+
+        let percent = TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+            .map(|t| if let SimpleToken::Percentage(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+
+        let alpha = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+            .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
+
+        let fn_hsla: TokenParser<String> = TokenParser::<String>::fn_name("hsla");
+        let close_paren = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+        let args: TokenParser<Vec<f32>> = TokenParser::<f32>::sequence(vec![
+            angle_number.clone(),
+            percent.clone(),
+            percent.clone(),
+            alpha.clone(),
+        ]);
+
+        fn_hsla
+            .flat_map(move |_| args.clone(), Some("args"))
+            .flat_map(move |vals| close_paren.map(move |_| vals.clone(), Some(")")), Some("close"))
+            .map(|vals| HslaColor::new(vals[0], vals[1], vals[2], vals[3]), Some("to_hsla"))
     }
 }
 

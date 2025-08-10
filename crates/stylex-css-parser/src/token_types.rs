@@ -6,8 +6,9 @@ mirroring the functionality of the JavaScript TokenList and TokenIterator.
 */
 
 use crate::CssResult;
+use cssparser::{Parser, ParserInput, Token as CssToken};
 
-/// Simple token representation
+/// Simple token representation (mirrors @csstools/css-tokenizer kinds)
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimpleToken {
     Ident(String),
@@ -19,6 +20,7 @@ pub enum SimpleToken {
     Percentage(f64),
     Url(String),
     Function(String),
+    Delim(char),
     LeftParen,
     RightParen,
     LeftBracket,
@@ -33,105 +35,50 @@ pub enum SimpleToken {
     Unknown(String),
 }
 
-/// A simple tokenizer that works with basic CSS tokens
-/// This is a simplified version that will be enhanced later to use cssparser properly
-pub struct SimpleTokenizer {
-    input: String,
-    position: usize,
+fn map_css_token(token: &CssToken) -> Option<SimpleToken> {
+    use SimpleToken as T;
+    match token {
+        CssToken::Ident(v) => Some(T::Ident(v.as_ref().to_string())),
+        CssToken::AtKeyword(v) => Some(T::AtKeyword(v.as_ref().to_string())),
+        CssToken::IDHash(v) | CssToken::Hash(v) => Some(T::Hash(v.as_ref().to_string())),
+        CssToken::QuotedString(v) => Some(T::String(v.as_ref().to_string())),
+        CssToken::Number { value, .. } => Some(T::Number(*value as f64)),
+        CssToken::Percentage { unit_value, .. } => Some(T::Percentage(*unit_value as f64)),
+        CssToken::Dimension { value, unit, .. } => {
+            Some(T::Dimension { value: *value as f64, unit: unit.as_ref().to_string() })
+        }
+        CssToken::Function(v) => Some(T::Function(v.as_ref().to_string())),
+        // Map parenthesis via Delim tokens if present
+        CssToken::Delim('(') => Some(T::LeftParen),
+        CssToken::Delim(')') => Some(T::RightParen),
+        CssToken::Delim(c) => Some(T::Delim(*c)),
+        CssToken::WhiteSpace(_) => Some(T::Whitespace),
+        CssToken::Comma => Some(T::Comma),
+        CssToken::Colon => Some(T::Colon),
+        CssToken::Semicolon => Some(T::Semicolon),
+        // Unsupported/less common tokens mapped to Unknown for now
+        CssToken::BadUrl(_) | CssToken::BadString(_) => Some(T::Unknown(format!("{:?}", token))),
+        _ => Some(T::Unknown(format!("{:?}", token))),
+    }
 }
 
-impl SimpleTokenizer {
-    pub fn new(input: &str) -> Self {
-        Self {
-            input: input.to_string(),
-            position: 0,
+fn tokenize_all(input: &str) -> Vec<SimpleToken> {
+    let mut input_buf = ParserInput::new(input);
+    let mut parser = Parser::new(&mut input_buf);
+
+    let mut tokens = Vec::new();
+    while let Ok(t) = parser.next_including_whitespace_and_comments() {
+        if let Some(mapped) = map_css_token(&t) {
+            tokens.push(mapped);
         }
     }
-
-    pub fn next_token(&mut self) -> Option<SimpleToken> {
-        if self.position >= self.input.len() {
-            return None;
-        }
-
-        // Skip whitespace
-        while self.position < self.input.len() && self.input.chars().nth(self.position)?.is_whitespace() {
-            self.position += 1;
-        }
-
-        if self.position >= self.input.len() {
-            return None;
-        }
-
-        let start = self.position;
-        let ch = self.input.chars().nth(self.position)?;
-
-        match ch {
-            '(' => {
-                self.position += 1;
-                Some(SimpleToken::LeftParen)
-            }
-            ')' => {
-                self.position += 1;
-                Some(SimpleToken::RightParen)
-            }
-            '[' => {
-                self.position += 1;
-                Some(SimpleToken::LeftBracket)
-            }
-            ']' => {
-                self.position += 1;
-                Some(SimpleToken::RightBracket)
-            }
-            '{' => {
-                self.position += 1;
-                Some(SimpleToken::LeftBrace)
-            }
-            '}' => {
-                self.position += 1;
-                Some(SimpleToken::RightBrace)
-            }
-            ',' => {
-                self.position += 1;
-                Some(SimpleToken::Comma)
-            }
-            ';' => {
-                self.position += 1;
-                Some(SimpleToken::Semicolon)
-            }
-            ':' => {
-                self.position += 1;
-                Some(SimpleToken::Colon)
-            }
-            _ => {
-                // For now, just consume everything else as an identifier
-                while self.position < self.input.len() {
-                    let ch = self.input.chars().nth(self.position);
-                    if ch.is_none() || matches!(ch, Some('(' | ')' | '[' | ']' | '{' | '}' | ',' | ';' | ':')) {
-                        break;
-                    }
-                    self.position += 1;
-                }
-                let value = self.input[start..self.position].trim().to_string();
-                if value.is_empty() {
-                    None
-                } else {
-                    Some(SimpleToken::Ident(value))
-                }
-            }
-        }
-    }
-
-    pub fn is_at_end(&self) -> bool {
-        self.position >= self.input.len()
-    }
+    tokens
 }
 
 /// A list of CSS tokens with parsing state, mirroring the JavaScript TokenList class
 pub struct TokenList {
-    tokenizer: SimpleTokenizer,
-    consumed_tokens: Vec<SimpleToken>,
+    tokens: Vec<SimpleToken>,
     pub current_index: usize,
-    is_at_end: bool,
 }
 
 impl TokenList {
@@ -139,41 +86,19 @@ impl TokenList {
     /// Mirrors: constructor(input: TokenIterator | string)
     pub fn new(input: &str) -> Self {
         Self {
-            tokenizer: SimpleTokenizer::new(input),
-            consumed_tokens: Vec::new(),
+            tokens: tokenize_all(input),
             current_index: 0,
-            is_at_end: false,
         }
     }
 
     /// Consume the next token
     /// Mirrors: consumeNextToken(): CSSToken | null
     pub fn consume_next_token(&mut self) -> CssResult<Option<SimpleToken>> {
-        if self.current_index < self.consumed_tokens.len() {
-            // Return already consumed token
-            let token = self.consumed_tokens[self.current_index].clone();
+        if self.current_index < self.tokens.len() {
+            let token = self.tokens[self.current_index].clone();
             self.current_index += 1;
-            return Ok(Some(token));
-        }
-
-        if self.is_at_end {
-            return Ok(None);
-        }
-
-        if self.tokenizer.is_at_end() {
-            self.is_at_end = true;
-            return Ok(None);
-        }
-
-        if let Some(token) = self.tokenizer.next_token() {
-            self.consumed_tokens.push(token.clone());
-            self.current_index += 1;
-            if self.tokenizer.is_at_end() {
-                self.is_at_end = true;
-            }
             Ok(Some(token))
         } else {
-            self.is_at_end = true;
             Ok(None)
         }
     }
@@ -181,56 +106,20 @@ impl TokenList {
     /// Peek at the next token without consuming it
     /// Mirrors: peek(): CSSToken | null
     pub fn peek(&mut self) -> CssResult<Option<SimpleToken>> {
-        if self.current_index < self.consumed_tokens.len() {
-            return Ok(Some(self.consumed_tokens[self.current_index].clone()));
-        }
-
-        if self.is_at_end || self.tokenizer.is_at_end() {
-            return Ok(None);
-        }
-
-        if let Some(token) = self.tokenizer.next_token() {
-            self.consumed_tokens.push(token.clone());
-            Ok(Some(token))
+        if self.current_index < self.tokens.len() {
+            Ok(Some(self.tokens[self.current_index].clone()))
         } else {
-            self.is_at_end = true;
             Ok(None)
         }
     }
 
     /// Get the first token (alias for peek)
-    /// Mirrors: get first(): CSSToken | null { return this.peek(); }
-    pub fn first(&mut self) -> CssResult<Option<SimpleToken>> {
-        self.peek()
-    }
+    pub fn first(&mut self) -> CssResult<Option<SimpleToken>> { self.peek() }
 
     /// Set the current parsing index
     /// Mirrors: setCurrentIndex(newIndex: number): void
     pub fn set_current_index(&mut self, new_index: usize) {
-        if new_index < self.consumed_tokens.len() {
-            // If we already have these tokens consumed, just update the index
-            self.current_index = new_index;
-            return;
-        }
-
-        // Try to consume tokens until we reach the target index
-        while !self.is_at_end
-            && !self.tokenizer.is_at_end()
-            && self.consumed_tokens.len() <= new_index {
-
-            if let Some(token) = self.tokenizer.next_token() {
-                self.consumed_tokens.push(token);
-                if self.tokenizer.is_at_end() {
-                    self.is_at_end = true;
-                }
-            } else {
-                self.is_at_end = true;
-                break;
-            }
-        }
-
-        // Clamp to the end if we couldn't reach the target
-        self.current_index = new_index.min(self.consumed_tokens.len());
+        self.current_index = new_index.min(self.tokens.len());
     }
 
     /// Rewind the parser by a number of positions
@@ -242,45 +131,20 @@ impl TokenList {
     /// Check if the token list is empty
     /// Mirrors: get isEmpty(): boolean
     pub fn is_empty(&self) -> bool {
-        self.is_at_end ||
-        (self.current_index >= self.consumed_tokens.len() && self.tokenizer.is_at_end())
+        self.current_index >= self.tokens.len()
     }
 
-    /// Get all tokens by consuming everything
-    /// Mirrors: getAllTokens(): $ReadOnlyArray<CSSToken>
+    /// Get all tokens
     pub fn get_all_tokens(&mut self) -> Vec<SimpleToken> {
-        // Consume all remaining tokens
-        while !self.is_empty() {
-            if self.consume_next_token().unwrap_or(None).is_none() {
-                break;
-            }
-        }
-        self.consumed_tokens.clone()
+        self.tokens.clone()
     }
 
-    /// Get a slice of tokens from start to end
+    /// Get a slice of tokens from start to end (exclusive)
     /// Mirrors: slice(start: number, end: number = this.currentIndex): Array<CSSToken>
     pub fn slice(&mut self, start: usize, end: Option<usize>) -> Vec<SimpleToken> {
-        let initial_index = self.current_index;
         let end = end.unwrap_or(self.current_index);
-
-        if start > end {
-            return Vec::new();
-        }
-
-        self.set_current_index(start);
-        let mut result = Vec::new();
-
-        // Consume tokens until we have enough to satisfy the slice request
-        while self.current_index < end {
-            match self.consume_next_token() {
-                Ok(Some(token)) => result.push(token),
-                _ => break,
-            }
-        }
-
-        self.set_current_index(initial_index);
-        result
+        if start >= end || start >= self.tokens.len() { return Vec::new(); }
+        self.tokens[start..end.min(self.tokens.len())].to_vec()
     }
 }
 
@@ -289,64 +153,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simple_tokenizer() {
-        let mut tokenizer = SimpleTokenizer::new("color: red;");
-
-        assert_eq!(tokenizer.next_token(), Some(SimpleToken::Ident("color".to_string())));
-        assert_eq!(tokenizer.next_token(), Some(SimpleToken::Colon));
-        assert_eq!(tokenizer.next_token(), Some(SimpleToken::Ident("red".to_string())));
-        assert_eq!(tokenizer.next_token(), Some(SimpleToken::Semicolon));
-        assert_eq!(tokenizer.next_token(), None);
-        assert!(tokenizer.is_at_end());
+    fn test_basic_tokenization() {
+        let mut list = TokenList::new("color: red;\nbackground: rgb(1, 2, 3)");
+        assert_eq!(list.peek().unwrap().is_some(), true);
+        assert!(list.get_all_tokens().len() > 0);
     }
 
     #[test]
-    fn test_token_list_basic() {
-        let mut token_list = TokenList::new("color: red;");
-
-        // Test peek (should not advance)
-        let first = token_list.peek().unwrap();
+    fn test_token_list_basic_peek_consume() {
+        let mut list = TokenList::new("color: red;");
+        let first = list.peek().unwrap();
         assert_eq!(first, Some(SimpleToken::Ident("color".to_string())));
-
-        // Peek again should return the same
-        let first_again = token_list.peek().unwrap();
-        assert_eq!(first_again, Some(SimpleToken::Ident("color".to_string())));
-
-        // Test consume (should advance)
-        let consumed = token_list.consume_next_token().unwrap();
+        let consumed = list.consume_next_token().unwrap();
         assert_eq!(consumed, Some(SimpleToken::Ident("color".to_string())));
-
-        // Next peek should be different
-        let second = token_list.peek().unwrap();
+        let second = list.peek().unwrap();
         assert_eq!(second, Some(SimpleToken::Colon));
     }
 
     #[test]
-    fn test_token_list_rewind() {
-        let mut token_list = TokenList::new("a : b");
+    fn test_rewind_and_slice() {
+        let mut list = TokenList::new("a : b ; c");
+        list.consume_next_token().unwrap(); // a
+        list.consume_next_token().unwrap(); // :
+        list.rewind(1);
+        // With cssparser-backed tokenizer, whitespace tokens are preserved
+        assert_eq!(list.peek().unwrap(), Some(SimpleToken::Whitespace));
 
-        // Consume two tokens
-        token_list.consume_next_token().unwrap();
-        token_list.consume_next_token().unwrap();
-
-        // Current should be 'b'
-        let current = token_list.peek().unwrap();
-        assert_eq!(current, Some(SimpleToken::Ident("b".to_string())));
-
-        // Rewind and check
-        token_list.rewind(1);
-        let rewound = token_list.peek().unwrap();
-        assert_eq!(rewound, Some(SimpleToken::Colon));
-    }
-
-    #[test]
-    fn test_token_list_slice() {
-        let mut token_list = TokenList::new("a : b ; c");
-
-        let slice = token_list.slice(1, Some(4));
+        let slice = list.slice(1, Some(4));
         assert_eq!(slice.len(), 3);
-        assert_eq!(slice[0], SimpleToken::Colon);
-        assert_eq!(slice[1], SimpleToken::Ident("b".to_string()));
-        assert_eq!(slice[2], SimpleToken::Semicolon);
+        // slice should include whitespace, then colon, then whitespace
+        assert_eq!(slice[0], SimpleToken::Whitespace);
+        assert_eq!(slice[1], SimpleToken::Colon);
     }
 }

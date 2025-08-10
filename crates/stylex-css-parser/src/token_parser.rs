@@ -514,6 +514,26 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                 Some(&format!("=== {}", expected)),
             )
     }
+
+    /// Parse a specific function name token (mirrors TokenParser.fn(name))
+    pub fn fn_name(name: &str) -> TokenParser<String> {
+        let name_owned = name.to_string();
+        TokenParser::<SimpleToken>::token(SimpleToken::Function(String::new()), Some("Function"))
+            .map(
+                |token| {
+                    if let SimpleToken::Function(value) = token {
+                        value
+                    } else {
+                        unreachable!()
+                    }
+                },
+                Some(".value"),
+            )
+            .where_fn(
+                move |value| value == &name_owned,
+                Some(&format!("=== {}", name)),
+            )
+    }
 }
 
 /// Common token parsers for basic CSS tokens

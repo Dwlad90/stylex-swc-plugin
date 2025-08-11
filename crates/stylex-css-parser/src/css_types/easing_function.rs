@@ -12,6 +12,7 @@ pub enum EasingFunction {
     CubicBezier(f64, f64, f64, f64),
     Steps(u32, StepsStart),
     Keyword(CubicBezierKeyword),
+    StepsKeyword(StepsKeywordType), // Added: mirrors StepsKeyword class from JS
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,6 +29,14 @@ pub enum CubicBezierKeyword {
     EaseInOut,
 }
 
+/// CSS steps keywords: 'step-start' | 'step-end'
+/// Mirrors: StepsKeyword class from easing-function.js
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StepsKeywordType {
+    StepStart,  // 'step-start'
+    StepEnd,    // 'step-end'
+}
+
 impl EasingFunction {
     pub fn parse() -> TokenParser<EasingFunction> {
         TokenParser::one_of(vec![
@@ -35,6 +44,7 @@ impl EasingFunction {
             Self::cubic_bezier_keyword_parser(),
             Self::cubic_bezier_parser(),
             Self::steps_parser(),
+            Self::steps_keyword_parser(), // Added: mirrors StepsKeyword.parser from JS
         ])
     }
 
@@ -134,5 +144,16 @@ impl EasingFunction {
                 let pos = if s == "start" { StepsStart::Start } else { StepsStart::End };
                 EasingFunction::Steps(n, pos)
             }, Some("to_steps"))
+    }
+
+    /// Parser for steps keywords: 'step-start' | 'step-end'
+    /// Mirrors: StepsKeyword.parser from easing-function.js
+    fn steps_keyword_parser() -> TokenParser<EasingFunction> {
+        TokenParser::one_of(vec![
+            TokenParser::<SimpleToken>::string("step-start")
+                .map(|_| EasingFunction::StepsKeyword(StepsKeywordType::StepStart), Some("step_start")),
+            TokenParser::<SimpleToken>::string("step-end")
+                .map(|_| EasingFunction::StepsKeyword(StepsKeywordType::StepEnd), Some("step_end")),
+        ])
     }
 }

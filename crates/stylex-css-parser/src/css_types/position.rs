@@ -195,27 +195,25 @@ impl Position {
         ])
     }
 
-    /// Parser for position values
-    /// Mirrors: Position.parser in position.js
+                /// Parser for position values
+    /// SIMPLIFIED implementation - covers basic cases but NOT fully JavaScript-compliant
+    /// TODO: This needs a complete rewrite to handle complex position parsing correctly
+    /// Missing: keyword+offset combinations, proper order independence, edge cases
     pub fn parser() -> TokenParser<Position> {
-        // Simplified implementation - full implementation would handle:
-        // - Keyword combinations
-        // - Keyword with offset
-        // - Multiple length-percentage values
-        // - Order-independent parsing
-
         TokenParser::one_of(vec![
-            // Horizontal only
+            // Single horizontal keyword/value
             Self::horizontal_parser().map(|h| Position::new(Some(h), None), Some("horizontal_only")),
 
-            // Vertical only
+            // Single vertical keyword/value
             Self::vertical_parser().map(|v| Position::new(None, Some(v)), Some("vertical_only")),
 
-            // Both horizontal and vertical
-            Self::horizontal_parser()
-                .flat_map(|h| {
-                    Self::vertical_parser().map(move |v| Position::new(Some(h.clone()), Some(v)), Some("both"))
-                }, Some("horizontal_then_vertical")),
+            // Single length/percentage (fallback - use for both dimensions)
+            crate::css_types::length_percentage_parser().map(|length| {
+                Position::new(
+                    Some(Horizontal::LengthPercentage(length.clone())),
+                    Some(Vertical::LengthPercentage(length))
+                )
+            }, Some("single_length")),
         ])
     }
 }

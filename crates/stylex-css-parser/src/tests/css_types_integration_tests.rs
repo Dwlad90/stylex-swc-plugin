@@ -84,17 +84,17 @@ mod color_tests {
         // expect(Color.parser.parse('rgb(255, 0, 0)')).toEqual(new Rgb(255, 0, 0));
 
         // For now, test RGB color creation
-        let red = RgbColor::new(255, 0, 0);
+        let red = Rgb::new(255, 0, 0);
         assert_eq!(red.r, 255);
         assert_eq!(red.g, 0);
         assert_eq!(red.b, 0);
 
-        let green = RgbColor::new(0, 255, 0);
+        let green = Rgb::new(0, 255, 0);
         assert_eq!(green.r, 0);
         assert_eq!(green.g, 255);
         assert_eq!(green.b, 0);
 
-        let blue = RgbColor::new(0, 0, 255);
+        let blue = Rgb::new(0, 0, 255);
         assert_eq!(blue.r, 0);
         assert_eq!(blue.g, 0);
         assert_eq!(blue.b, 255);
@@ -106,13 +106,13 @@ mod color_tests {
         // TODO: Test actual parsing:
         // expect(Color.parser.parse('rgba(255, 0, 0, 0.5)')).toEqual(new Rgba(255, 0, 0, 0.5));
 
-        let red_alpha = RgbaColor::new(255, 0, 0, 0.5);
+        let red_alpha = Rgba::new(255, 0, 0, 0.5);
         assert_eq!(red_alpha.r, 255);
         assert_eq!(red_alpha.g, 0);
         assert_eq!(red_alpha.b, 0);
         assert_eq!(red_alpha.a, 0.5);
 
-        let green_alpha = RgbaColor::new(0, 255, 0, 0.8);
+        let green_alpha = Rgba::new(0, 255, 0, 0.8);
         assert_eq!(green_alpha.a, 0.8);
     }
 
@@ -121,10 +121,10 @@ mod color_tests {
         // Test that all Color enum variants can be created
         let named = Color::Named(NamedColor::new("red".to_string()));
         let hash = Color::Hash(HashColor::new("ff0000".to_string()));
-        let rgb = Color::Rgb(RgbColor::new(255, 0, 0));
-        let rgba = Color::Rgba(RgbaColor::new(255, 0, 0, 1.0));
-        let hsl = Color::Hsl(HslColor::new(0.0, 100.0, 50.0));
-        let hsla = Color::Hsla(HslaColor::new(0.0, 100.0, 50.0, 1.0));
+        let rgb = Color::Rgb(Rgb::new(255, 0, 0));
+        let rgba = Color::Rgba(Rgba::new(255, 0, 0, 1.0));
+        let hsl = Color::Hsl(Hsl::new(0.0, 100.0, 50.0));
+        let hsla = Color::Hsla(Hsla::new(0.0, 100.0, 50.0, 1.0));
 
         // Test Display implementation
         assert!(!named.to_string().is_empty());

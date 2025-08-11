@@ -51,7 +51,7 @@ pub use length::Length;
 pub use time::Time;
 pub use frequency::Frequency;
 pub use resolution::Resolution;
-pub use color::{Color, NamedColor, HashColor, RgbColor, RgbaColor, HslColor, HslaColor};
+pub use color::{Color, NamedColor, HashColor, Rgb, Rgba, Hsl, Hsla, Lch, Oklch, Oklab};
 pub use angle::Angle;
 pub use alpha_value::AlphaValue;
 pub use length_percentage::{LengthPercentage, length_percentage_parser};

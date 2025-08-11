@@ -8,7 +8,7 @@ including all color formats, parsing edge cases, and error handling.
 */
 
 use crate::css_types::{
-    Color, NamedColor, HashColor, RgbColor, RgbaColor, HslColor, HslaColor,
+    Color, NamedColor, HashColor, Rgb, Rgba, Hsl, Hsla,
     Angle
 };
 
@@ -108,31 +108,31 @@ mod color_tests {
     #[test]
     fn test_parses_rgb_values() {
         // Test rgb(255, 0, 0) - red
-        let red = RgbColor::new(255, 0, 0);
+        let red = Rgb::new(255, 0, 0);
         assert_eq!(red.r, 255);
         assert_eq!(red.g, 0);
         assert_eq!(red.b, 0);
         assert_eq!(red.to_string(), "rgb(255,0,0)");
 
         // Test rgb(0, 255, 0) - green
-        let green = RgbColor::new(0, 255, 0);
+        let green = Rgb::new(0, 255, 0);
         assert_eq!(green.r, 0);
         assert_eq!(green.g, 255);
         assert_eq!(green.b, 0);
         assert_eq!(green.to_string(), "rgb(0,255,0)");
 
         // Test rgb(0, 0, 255) - blue
-        let blue = RgbColor::new(0, 0, 255);
+        let blue = Rgb::new(0, 0, 255);
         assert_eq!(blue.r, 0);
         assert_eq!(blue.g, 0);
         assert_eq!(blue.b, 255);
         assert_eq!(blue.to_string(), "rgb(0,0,255)");
 
         // Test edge cases
-        let black = RgbColor::new(0, 0, 0);
+        let black = Rgb::new(0, 0, 0);
         assert_eq!(black.to_string(), "rgb(0,0,0)");
 
-        let white = RgbColor::new(255, 255, 255);
+        let white = Rgb::new(255, 255, 255);
         assert_eq!(white.to_string(), "rgb(255,255,255)");
 
         // Test Color enum wrapping
@@ -153,20 +153,20 @@ mod color_tests {
         // Testing the structural equivalence here since parser integration is ongoing
 
         // rgb(255 0 0) should be equivalent to rgb(255, 0, 0)
-        let comma_red = RgbColor::new(255, 0, 0);
-        let space_red = RgbColor::new(255, 0, 0); // Same structure
+        let comma_red = Rgb::new(255, 0, 0);
+        let space_red = Rgb::new(255, 0, 0); // Same structure
         assert_eq!(comma_red.r, space_red.r);
         assert_eq!(comma_red.g, space_red.g);
         assert_eq!(comma_red.b, space_red.b);
 
         // rgb(0 255 0) should be equivalent to rgb(0, 255, 0)
-        let comma_green = RgbColor::new(0, 255, 0);
-        let space_green = RgbColor::new(0, 255, 0);
+        let comma_green = Rgb::new(0, 255, 0);
+        let space_green = Rgb::new(0, 255, 0);
         assert_eq!(comma_green.to_string(), space_green.to_string());
 
         // rgb(0 0 255) should be equivalent to rgb(0, 0, 255)
-        let comma_blue = RgbColor::new(0, 0, 255);
-        let space_blue = RgbColor::new(0, 0, 255);
+        let comma_blue = Rgb::new(0, 0, 255);
+        let space_blue = Rgb::new(0, 0, 255);
         assert_eq!(comma_blue.to_string(), space_blue.to_string());
     }
 
@@ -174,7 +174,7 @@ mod color_tests {
     #[test]
     fn test_parses_rgba_values() {
         // Test rgba(255, 0, 0, 0.5) - semi-transparent red
-        let rgba_red = RgbaColor::new(255, 0, 0, 0.5);
+        let rgba_red = Rgba::new(255, 0, 0, 0.5);
         assert_eq!(rgba_red.r, 255);
         assert_eq!(rgba_red.g, 0);
         assert_eq!(rgba_red.b, 0);
@@ -182,7 +182,7 @@ mod color_tests {
         assert_eq!(rgba_red.to_string(), "rgba(255,0,0,0.5)");
 
         // Test rgba(0, 255, 0, 0.5) - semi-transparent green
-        let rgba_green = RgbaColor::new(0, 255, 0, 0.5);
+        let rgba_green = Rgba::new(0, 255, 0, 0.5);
         assert_eq!(rgba_green.r, 0);
         assert_eq!(rgba_green.g, 255);
         assert_eq!(rgba_green.b, 0);
@@ -190,7 +190,7 @@ mod color_tests {
         assert_eq!(rgba_green.to_string(), "rgba(0,255,0,0.5)");
 
         // Test rgba(0, 0, 255, 0.5) - semi-transparent blue
-        let rgba_blue = RgbaColor::new(0, 0, 255, 0.5);
+        let rgba_blue = Rgba::new(0, 0, 255, 0.5);
         assert_eq!(rgba_blue.r, 0);
         assert_eq!(rgba_blue.g, 0);
         assert_eq!(rgba_blue.b, 255);
@@ -198,11 +198,11 @@ mod color_tests {
         assert_eq!(rgba_blue.to_string(), "rgba(0,0,255,0.5)");
 
         // Test fully opaque
-        let rgba_opaque = RgbaColor::new(128, 128, 128, 1.0);
+        let rgba_opaque = Rgba::new(128, 128, 128, 1.0);
         assert_eq!(rgba_opaque.a, 1.0);
 
         // Test fully transparent
-        let rgba_transparent = RgbaColor::new(255, 255, 255, 0.0);
+        let rgba_transparent = Rgba::new(255, 255, 255, 0.0);
         assert_eq!(rgba_transparent.a, 0.0);
 
         // Test Color enum wrapping
@@ -222,27 +222,27 @@ mod color_tests {
     fn test_parses_space_separated_rgba_values() {
         // Test rgb(255 0 0 / 0.5) - space-separated with slash alpha
         // Should be equivalent to rgba(255, 0, 0, 0.5)
-        let slash_red = RgbaColor::new(255, 0, 0, 0.5);
+        let slash_red = Rgba::new(255, 0, 0, 0.5);
         assert_eq!(slash_red.to_string(), "rgba(255,0,0,0.5)");
 
         // Test rgb(0 255 0 / 0.5)
-        let slash_green = RgbaColor::new(0, 255, 0, 0.5);
+        let slash_green = Rgba::new(0, 255, 0, 0.5);
         assert_eq!(slash_green.to_string(), "rgba(0,255,0,0.5)");
 
         // Test rgb(0 0 255 / 0.5)
-        let slash_blue = RgbaColor::new(0, 0, 255, 0.5);
+        let slash_blue = Rgba::new(0, 0, 255, 0.5);
         assert_eq!(slash_blue.to_string(), "rgba(0,0,255,0.5)");
 
         // Test rgb(255 0 0 / 50%) - percentage alpha should convert to 0.5
-        let percent_alpha = RgbaColor::new(255, 0, 0, 0.5); // 50% = 0.5
+        let percent_alpha = Rgba::new(255, 0, 0, 0.5); // 50% = 0.5
         assert_eq!(percent_alpha.a, 0.5);
 
         // Test rgb(0 255 0 / 50%)
-        let percent_green = RgbaColor::new(0, 255, 0, 0.5);
+        let percent_green = Rgba::new(0, 255, 0, 0.5);
         assert_eq!(percent_green.a, 0.5);
 
         // Test rgb(0 0 255 / 50%)
-        let percent_blue = RgbaColor::new(0, 0, 255, 0.5);
+        let percent_blue = Rgba::new(0, 0, 255, 0.5);
         assert_eq!(percent_blue.a, 0.5);
     }
 
@@ -250,21 +250,21 @@ mod color_tests {
     #[test]
     fn test_parses_hsl_values() {
         // Test hsl(0, 100%, 50%) - red
-        let hsl_red = HslColor::new(0.0, 100.0, 50.0);
+        let hsl_red = Hsl::new(0.0, 100.0, 50.0);
         assert_eq!(hsl_red.h, 0.0);
         assert_eq!(hsl_red.s, 100.0);
         assert_eq!(hsl_red.l, 50.0);
         assert_eq!(hsl_red.to_string(), "hsl(0,100%,50%)");
 
         // Test hsl(120, 100%, 50%) - green
-        let hsl_green = HslColor::new(120.0, 100.0, 50.0);
+        let hsl_green = Hsl::new(120.0, 100.0, 50.0);
         assert_eq!(hsl_green.h, 120.0);
         assert_eq!(hsl_green.s, 100.0);
         assert_eq!(hsl_green.l, 50.0);
         assert_eq!(hsl_green.to_string(), "hsl(120,100%,50%)");
 
         // Test hsl(240, 100%, 50%) - blue
-        let hsl_blue = HslColor::new(240.0, 100.0, 50.0);
+        let hsl_blue = Hsl::new(240.0, 100.0, 50.0);
         assert_eq!(hsl_blue.h, 240.0);
         assert_eq!(hsl_blue.s, 100.0);
         assert_eq!(hsl_blue.l, 50.0);
@@ -285,7 +285,7 @@ mod color_tests {
     #[test]
     fn test_parses_hsla_values() {
         // Test hsla(0, 100%, 50%, 0.5) - semi-transparent red
-        let hsla_red = HslaColor::new(0.0, 100.0, 50.0, 0.5);
+        let hsla_red = Hsla::new(0.0, 100.0, 50.0, 0.5);
         assert_eq!(hsla_red.h, 0.0);
         assert_eq!(hsla_red.s, 100.0);
         assert_eq!(hsla_red.l, 50.0);
@@ -293,7 +293,7 @@ mod color_tests {
         assert_eq!(hsla_red.to_string(), "hsla(0,100%,50%,0.5)");
 
         // Test hsla(120, 100%, 50%, 0.8) - semi-transparent green
-        let hsla_green = HslaColor::new(120.0, 100.0, 50.0, 0.8);
+        let hsla_green = Hsla::new(120.0, 100.0, 50.0, 0.8);
         assert_eq!(hsla_green.h, 120.0);
         assert_eq!(hsla_green.s, 100.0);
         assert_eq!(hsla_green.l, 50.0);
@@ -345,7 +345,7 @@ mod color_tests {
         assert!(HashColor::is_valid_hex("abc123"));   // Lowercase
 
         // Test RGB value bounds (should be 0-255)
-        let valid_rgb = RgbColor::new(0, 128, 255);
+        let valid_rgb = Rgb::new(0, 128, 255);
         assert_eq!(valid_rgb.r, 0);
         assert_eq!(valid_rgb.g, 128);
         assert_eq!(valid_rgb.b, 255);
@@ -354,13 +354,13 @@ mod color_tests {
         // For now, the constructor accepts any u8 values which are inherently bounded
 
         // Test RGBA alpha bounds (should be 0.0-1.0)
-        let valid_alpha_1 = RgbaColor::new(255, 0, 0, 0.0);
+        let valid_alpha_1 = Rgba::new(255, 0, 0, 0.0);
         assert_eq!(valid_alpha_1.a, 0.0);
 
-        let valid_alpha_2 = RgbaColor::new(255, 0, 0, 1.0);
+        let valid_alpha_2 = Rgba::new(255, 0, 0, 1.0);
         assert_eq!(valid_alpha_2.a, 1.0);
 
-        let valid_alpha_3 = RgbaColor::new(255, 0, 0, 0.5);
+        let valid_alpha_3 = Rgba::new(255, 0, 0, 0.5);
         assert_eq!(valid_alpha_3.a, 0.5);
 
         // Alpha values outside 0-1 range would be handled by parser validation
@@ -372,10 +372,10 @@ mod color_tests {
         // Test that all color variants can be created and accessed
         let named = Color::Named(NamedColor::new("red".to_string()));
         let hash = Color::Hash(HashColor::new("ff0000".to_string()));
-        let rgb = Color::Rgb(RgbColor::new(255, 0, 0));
-        let rgba = Color::Rgba(RgbaColor::new(255, 0, 0, 0.5));
-        let hsl = Color::Hsl(HslColor::new(0.0, 100.0, 50.0));
-        let hsla = Color::Hsla(HslaColor::new(0.0, 100.0, 50.0, 0.5));
+        let rgb = Color::Rgb(Rgb::new(255, 0, 0));
+        let rgba = Color::Rgba(Rgba::new(255, 0, 0, 0.5));
+        let hsl = Color::Hsl(Hsl::new(0.0, 100.0, 50.0));
+        let hsla = Color::Hsla(Hsla::new(0.0, 100.0, 50.0, 0.5));
 
         // Test pattern matching works for all variants
         match named {
@@ -414,13 +414,13 @@ mod color_tests {
     fn test_color_parser_integration() {
         // Test that parser methods exist and can be called
         let _hash_parser = HashColor::parser();
-        let _rgb_parser = RgbColor::parser();
+        let _rgb_parser = Rgb::parser();
 
         // TODO: Add actual parsing tests when parser integration is complete
         // For now, this validates that the parser methods exist and compile
 
         // When parser integration is complete, these tests should work:
         // assert_eq!(HashColor::parser().parse("#ff0000").unwrap(), HashColor::new("ff0000".to_string()));
-        // assert_eq!(RgbColor::parser().parse("rgb(255,0,0)").unwrap(), RgbColor::new(255, 0, 0));
+        // assert_eq!(Rgb::parser().parse("rgb(255,0,0)").unwrap(), Rgb::new(255, 0, 0));
     }
 }

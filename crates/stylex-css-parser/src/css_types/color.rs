@@ -50,13 +50,13 @@ pub trait ColorTrait {
 pub enum Color {
     Named(NamedColor),
     Hash(HashColor),
-    Rgb(RgbColor),
-    Rgba(RgbaColor),
-    Hsl(HslColor),
-    Hsla(HslaColor),
-    Lch(LchColor),
-    Oklch(OklchColor),
-    Oklab(OklabColor),
+    Rgb(Rgb),
+    Rgba(Rgba),
+    Hsl(Hsl),
+    Hsla(Hsla),
+    Lch(Lch),
+    Oklch(Oklch),
+    Oklab(Oklab),
 }
 
 impl Color {
@@ -66,13 +66,13 @@ impl Color {
         TokenParser::one_of(vec![
             NamedColor::parser().map(Color::Named, Some("named")),
             HashColor::parser().map(Color::Hash, Some("hash")),
-            RgbColor::parser().map(Color::Rgb, Some("rgb")),
-            RgbaColor::parser().map(Color::Rgba, Some("rgba")),
-            HslColor::parser().map(Color::Hsl, Some("hsl")),
-            HslaColor::parser().map(Color::Hsla, Some("hsla")),
-            LchColor::parser().map(Color::Lch, Some("lch")),
-            OklchColor::parser().map(Color::Oklch, Some("oklch")),
-            OklabColor::parser().map(Color::Oklab, Some("oklab")),
+            Rgb::parser().map(Color::Rgb, Some("rgb")),
+            Rgba::parser().map(Color::Rgba, Some("rgba")),
+            Hsl::parser().map(Color::Hsl, Some("hsl")),
+            Hsla::parser().map(Color::Hsla, Some("hsla")),
+            Lch::parser().map(Color::Lch, Some("lch")),
+            Oklch::parser().map(Color::Oklch, Some("oklch")),
+            Oklab::parser().map(Color::Oklab, Some("oklab")),
         ])
     }
 }
@@ -240,19 +240,19 @@ impl Display for HashColor {
 /// RGB color: rgb(255, 0, 0)
 /// Mirrors: Rgb class
 #[derive(Debug, Clone, PartialEq)]
-pub struct RgbColor {
+pub struct Rgb {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl RgbColor {
+impl Rgb {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
 
     /// Parser for RGB colors
-    pub fn parser() -> TokenParser<RgbColor> {
+    pub fn parser() -> TokenParser<Rgb> {
         // number channel 0..=255
         let number_channel = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
             .map(|t| if let SimpleToken::Number(v) = t { v } else { 0.0 }, Some("to_f64"))
@@ -285,7 +285,7 @@ impl RgbColor {
                 let cp = close_paren_rgb1.clone();
                 cp.map(move |_| vals.clone(), Some(")"))
             }, Some("close"))
-            .map(|vals| RgbColor::new(vals[0], vals[1], vals[2]), Some("to_rgb"));
+            .map(|vals| Rgb::new(vals[0], vals[1], vals[2]), Some("to_rgb"));
 
         // space separated variant: rgb <c> <c> <c> )
         let space_args: TokenParser<Vec<u8>> = TokenParser::<u8>::sequence(vec![channel.clone(), channel.clone(), channel.clone()]);
@@ -295,13 +295,13 @@ impl RgbColor {
                 let cp = close_paren_rgb2.clone();
                 cp.map(move |_| vals.clone(), Some(")"))
             }, Some("space_close"))
-            .map(|vals| RgbColor::new(vals[0], vals[1], vals[2]), Some("to_rgb_space"));
+            .map(|vals| Rgb::new(vals[0], vals[1], vals[2]), Some("to_rgb_space"));
 
         TokenParser::one_of(vec![comma_parser, space_parser])
     }
 }
 
-impl Display for RgbColor {
+impl Display for Rgb {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "rgb({},{},{})", self.r, self.g, self.b)
     }
@@ -310,20 +310,20 @@ impl Display for RgbColor {
 /// RGBA color: rgba(255, 0, 0, 0.5)
 /// Mirrors: Rgba class
 #[derive(Debug, Clone, PartialEq)]
-pub struct RgbaColor {
+pub struct Rgba {
     pub r: u8,
     pub g: u8,
     pub b: u8,
     pub a: f32,
 }
 
-impl RgbaColor {
+impl Rgba {
     pub fn new(r: u8, g: u8, b: u8, a: f32) -> Self {
         Self { r, g, b, a }
     }
 
     /// Parser for RGBA colors
-    pub fn parser() -> TokenParser<RgbaColor> {
+    pub fn parser() -> TokenParser<Rgba> {
         let number_channel = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
             .map(|t| if let SimpleToken::Number(v) = t { v } else { 0.0 }, Some("to_f64"))
             .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
@@ -359,7 +359,7 @@ impl RgbaColor {
                 let cp = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
                 cp.map(move |_| (rgb_vals.clone(), a), Some(")"))
             }, Some("close"))
-            .map(|(rgb_vals, a)| RgbaColor::new(rgb_vals[0], rgb_vals[1], rgb_vals[2], a), Some("to_rgba"));
+            .map(|(rgb_vals, a)| Rgba::new(rgb_vals[0], rgb_vals[1], rgb_vals[2], a), Some("to_rgba"));
 
         // Modern rgb space syntax with slash alpha: rgb r g b / a
         let fn_rgb_space = TokenParser::<String>::fn_name("rgb");
@@ -383,13 +383,13 @@ impl RgbaColor {
                 let cp = close_paren2.clone();
                 cp.map(move |_| (rgb_vals.clone(), a), Some(")"))
             }, Some("close"))
-            .map(|(rgb_vals, a)| RgbaColor::new(rgb_vals[0], rgb_vals[1], rgb_vals[2], a), Some("to_rgba_space"));
+            .map(|(rgb_vals, a)| Rgba::new(rgb_vals[0], rgb_vals[1], rgb_vals[2], a), Some("to_rgba_space"));
 
         TokenParser::one_of(vec![rgba_parser, rgb_slash_alpha])
     }
 }
 
-impl Display for RgbaColor {
+impl Display for Rgba {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "rgba({},{},{},{})", self.r, self.g, self.b, self.a)
     }
@@ -398,19 +398,19 @@ impl Display for RgbaColor {
 /// HSL color: hsl(360, 100%, 50%)
 /// Mirrors: Hsl class
 #[derive(Debug, Clone, PartialEq)]
-pub struct HslColor {
+pub struct Hsl {
     pub h: f32, // hue (0-360)
     pub s: f32, // saturation percentage (0-100)
     pub l: f32, // lightness percentage (0-100)
 }
 
-impl HslColor {
+impl Hsl {
     pub fn new(h: f32, s: f32, l: f32) -> Self {
         Self { h, s, l }
     }
 
     /// Parser for HSL colors
-    pub fn parser() -> TokenParser<HslColor> {
+    pub fn parser() -> TokenParser<Hsl> {
         // Angle: deg/rad/turn or bare 0 -> deg
         let dim_angle = TokenParser::<SimpleToken>::token(
             SimpleToken::Dimension { value: 0.0, unit: String::new() },
@@ -449,11 +449,11 @@ impl HslColor {
         fn_hsl
             .flat_map(move |_| args.clone(), Some("args"))
             .flat_map(move |vals| close_paren.map(move |_| vals.clone(), Some(")")), Some("close"))
-            .map(|vals| HslColor::new(vals[0], vals[1], vals[2]), Some("to_hsl"))
+            .map(|vals| Hsl::new(vals[0], vals[1], vals[2]), Some("to_hsl"))
     }
 }
 
-impl Display for HslColor {
+impl Display for Hsl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "hsl({},{}%,{}%)", self.h, self.s, self.l)
     }
@@ -462,20 +462,20 @@ impl Display for HslColor {
 /// HSLA color: hsla(360, 100%, 50%, 0.5)
 /// Mirrors: Hsla class
 #[derive(Debug, Clone, PartialEq)]
-pub struct HslaColor {
+pub struct Hsla {
     pub h: f32, // hue (0-360)
     pub s: f32, // saturation percentage (0-100)
     pub l: f32, // lightness percentage (0-100)
     pub a: f32, // alpha (0.0-1.0)
 }
 
-impl HslaColor {
+impl Hsla {
     pub fn new(h: f32, s: f32, l: f32, a: f32) -> Self {
         Self { h, s, l, a }
     }
 
     /// Parser for HSLA colors
-    pub fn parser() -> TokenParser<HslaColor> {
+    pub fn parser() -> TokenParser<Hsla> {
         let angle_number = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
             .map(|t| if let SimpleToken::Number(v) = t { v as f32 } else { 0.0 }, Some("to_f32"));
 
@@ -502,11 +502,11 @@ impl HslaColor {
         fn_hsla
             .flat_map(move |_| args.clone(), Some("args"))
             .flat_map(move |vals| close_paren.map(move |_| vals.clone(), Some(")")), Some("close"))
-            .map(|vals| HslaColor::new(vals[0], vals[1], vals[2], vals[3]), Some("to_hsla"))
+            .map(|vals| Hsla::new(vals[0], vals[1], vals[2], vals[3]), Some("to_hsla"))
     }
 }
 
-impl Display for HslaColor {
+impl Display for Hsla {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "hsla({},{}%,{}%,{})", self.h, self.s, self.l, self.a)
     }
@@ -515,21 +515,21 @@ impl Display for HslaColor {
 /// LCH color: lch(50% 100 270deg)
 /// Mirrors: Lch class
 #[derive(Debug, Clone, PartialEq)]
-pub struct LchColor {
+pub struct Lch {
     pub l: f32,    // lightness (0-100)
     pub c: f32,    // chroma (0-150)
     pub h: Angle,  // hue angle
     pub alpha: Option<f32>, // alpha (0-1)
 }
 
-impl LchColor {
+impl Lch {
     pub fn new(l: f32, c: f32, h: Angle, alpha: Option<f32>) -> Self {
         Self { l, c, h, alpha }
     }
 
     /// Parser for LCH colors (simplified implementation)
     /// Mirrors: Lch.parser
-    pub fn parser() -> TokenParser<LchColor> {
+    pub fn parser() -> TokenParser<Lch> {
         // For now, implement a basic version that handles the test case: lch(50% 100 270deg)
         let fn_lch = TokenParser::<String>::fn_name("lch");
         let close_paren = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
@@ -558,12 +558,12 @@ impl LchColor {
                 hue.clone().map(move |h| (l_clone, c_clone, h), Some("lch_triple"))
             }, Some("c_step"))
             .flat_map(move |(l, c, h)| {
-                close_paren.clone().map(move |_| LchColor::new(l, c, h.clone(), None), Some("to_lch"))
+                close_paren.clone().map(move |_| Lch::new(l, c, h.clone(), None), Some("to_lch"))
             }, Some("close"))
     }
 }
 
-impl Display for LchColor {
+impl Display for Lch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.alpha {
             Some(alpha) => write!(f, "lch({} {} {} / {})", self.l, self.c, self.h, alpha),
@@ -575,28 +575,28 @@ impl Display for LchColor {
 /// OKLCH color: oklch(0.5 0.1 270deg)
 /// Mirrors: Oklch class
 #[derive(Debug, Clone, PartialEq)]
-pub struct OklchColor {
+pub struct Oklch {
     pub l: f32,    // lightness (0-1)
     pub c: f32,    // chroma (0-0.4)
     pub h: Angle,  // hue angle
     pub alpha: Option<f32>, // alpha (0-1)
 }
 
-impl OklchColor {
+impl Oklch {
     pub fn new(l: f32, c: f32, h: Angle, alpha: Option<f32>) -> Self {
         Self { l, c, h, alpha }
     }
 
     /// Parser for OKLCH colors (simplified implementation)
     /// Mirrors: Oklch.parser
-    pub fn parser() -> TokenParser<OklchColor> {
+    pub fn parser() -> TokenParser<Oklch> {
         // For now, return a never parser as a placeholder
         // TODO: Implement full OKLCH parsing when needed
         TokenParser::never()
     }
 }
 
-impl Display for OklchColor {
+impl Display for Oklch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.alpha {
             Some(alpha) => write!(f, "oklch({} {} {} / {})", self.l, self.c, self.h, alpha),
@@ -608,28 +608,28 @@ impl Display for OklchColor {
 /// OKLAB color: oklab(0.5 0.1 0.1)
 /// Mirrors: Oklab class
 #[derive(Debug, Clone, PartialEq)]
-pub struct OklabColor {
+pub struct Oklab {
     pub l: f32,    // lightness (0-1)
     pub a: f32,    // green-red (-0.4 to 0.4)
     pub b: f32,    // blue-yellow (-0.4 to 0.4)
     pub alpha: Option<f32>, // alpha (0-1)
 }
 
-impl OklabColor {
+impl Oklab {
     pub fn new(l: f32, a: f32, b: f32, alpha: Option<f32>) -> Self {
         Self { l, a, b, alpha }
     }
 
     /// Parser for OKLAB colors (simplified implementation)
     /// Mirrors: Oklab.parser
-    pub fn parser() -> TokenParser<OklabColor> {
+    pub fn parser() -> TokenParser<Oklab> {
         // For now, return a never parser as a placeholder
         // TODO: Implement full OKLAB parsing when needed
         TokenParser::never()
     }
 }
 
-impl Display for OklabColor {
+impl Display for Oklab {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.alpha {
             Some(alpha) => write!(f, "oklab({} {} {} / {})", self.l, self.a, self.b, alpha),
@@ -706,25 +706,25 @@ mod tests {
 
     #[test]
     fn test_rgb_color_display() {
-        let color = RgbColor::new(255, 0, 0);
+        let color = Rgb::new(255, 0, 0);
         assert_eq!(color.to_string(), "rgb(255,0,0)");
     }
 
     #[test]
     fn test_rgba_color_display() {
-        let color = RgbaColor::new(255, 0, 0, 0.5);
+        let color = Rgba::new(255, 0, 0, 0.5);
         assert_eq!(color.to_string(), "rgba(255,0,0,0.5)");
     }
 
     #[test]
     fn test_hsl_color_display() {
-        let color = HslColor::new(360.0, 100.0, 50.0);
+        let color = Hsl::new(360.0, 100.0, 50.0);
         assert_eq!(color.to_string(), "hsl(360,100%,50%)");
     }
 
     #[test]
     fn test_hsla_color_display() {
-        let color = HslaColor::new(360.0, 100.0, 50.0, 0.8);
+        let color = Hsla::new(360.0, 100.0, 50.0, 0.8);
         assert_eq!(color.to_string(), "hsla(360,100%,50%,0.8)");
     }
 
@@ -736,7 +736,7 @@ mod tests {
         let hash = Color::Hash(HashColor::new("FF0000".to_string()));
         assert_eq!(hash.to_string(), "#FF0000");
 
-        let rgb = Color::Rgb(RgbColor::new(255, 0, 0));
+        let rgb = Color::Rgb(Rgb::new(255, 0, 0));
         assert_eq!(rgb.to_string(), "rgb(255,0,0)");
     }
 
@@ -745,40 +745,40 @@ mod tests {
         // Basic test that parsers can be created
         let _named = NamedColor::parser();
         let _hash = HashColor::parser();
-        let _rgb = RgbColor::parser();
-        let _rgba = RgbaColor::parser();
-        let _hsl = HslColor::parser();
-        let _hsla = HslaColor::parser();
-        let _lch = LchColor::parser();
-        let _oklch = OklchColor::parser();
-        let _oklab = OklabColor::parser();
+        let _rgb = Rgb::parser();
+        let _rgba = Rgba::parser();
+        let _hsl = Hsl::parser();
+        let _hsla = Hsla::parser();
+        let _lch = Lch::parser();
+        let _oklch = Oklch::parser();
+        let _oklab = Oklab::parser();
         let _color = Color::parser();
     }
 
     #[test]
     fn test_lch_color_display() {
-        let color = LchColor::new(50.0, 100.0, Angle::new(270.0, "deg".to_string()), None);
+        let color = Lch::new(50.0, 100.0, Angle::new(270.0, "deg".to_string()), None);
         assert_eq!(color.to_string(), "lch(50 100 270deg)");
 
-        let color_with_alpha = LchColor::new(50.0, 100.0, Angle::new(270.0, "deg".to_string()), Some(0.8));
+        let color_with_alpha = Lch::new(50.0, 100.0, Angle::new(270.0, "deg".to_string()), Some(0.8));
         assert_eq!(color_with_alpha.to_string(), "lch(50 100 270deg / 0.8)");
     }
 
     #[test]
     fn test_oklch_color_display() {
-        let color = OklchColor::new(0.5, 0.1, Angle::new(270.0, "deg".to_string()), None);
+        let color = Oklch::new(0.5, 0.1, Angle::new(270.0, "deg".to_string()), None);
         assert_eq!(color.to_string(), "oklch(0.5 0.1 270deg)");
 
-        let color_with_alpha = OklchColor::new(0.5, 0.1, Angle::new(270.0, "deg".to_string()), Some(0.8));
+        let color_with_alpha = Oklch::new(0.5, 0.1, Angle::new(270.0, "deg".to_string()), Some(0.8));
         assert_eq!(color_with_alpha.to_string(), "oklch(0.5 0.1 270deg / 0.8)");
     }
 
     #[test]
     fn test_oklab_color_display() {
-        let color = OklabColor::new(0.5, 0.1, 0.1, None);
+        let color = Oklab::new(0.5, 0.1, 0.1, None);
         assert_eq!(color.to_string(), "oklab(0.5 0.1 0.1)");
 
-        let color_with_alpha = OklabColor::new(0.5, 0.1, 0.1, Some(0.8));
+        let color_with_alpha = Oklab::new(0.5, 0.1, 0.1, Some(0.8));
         assert_eq!(color_with_alpha.to_string(), "oklab(0.5 0.1 0.1 / 0.8)");
     }
 }

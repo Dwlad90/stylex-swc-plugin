@@ -17,7 +17,7 @@ use crate::{
         BorderRadiusIndividual, BorderRadiusShorthand,
     },
     css_types::{
-        Length, Color, NamedColor, HashColor, RgbaColor, HslaColor,
+        Length, Color, NamedColor, HashColor, Rgba, Hsla,
         LengthPercentage, Percentage, Angle,
         transform_function::{
             TransformFunction, Matrix, Matrix3d, Perspective, Rotate, RotateXYZ, Rotate3d,
@@ -345,7 +345,7 @@ mod box_shadow_tests {
             Length::new(0.5, "em".to_string()),
             Length::new(2.0, "vw".to_string()),
             Length::new(1.0, "vh".to_string()),
-            Color::Rgba(RgbaColor::new(0, 0, 0, 0.5)),
+            Color::Rgba(Rgba::new(0, 0, 0, 0.5)),
             false,
         );
 
@@ -363,7 +363,7 @@ mod box_shadow_tests {
             Length::new(5.0, "px".to_string()),
             Length::new(0.0, "px".to_string()),
             Length::new(0.0, "px".to_string()),
-            Color::Rgba(RgbaColor::new(255, 0, 0, 0.5)),
+            Color::Rgba(Rgba::new(255, 0, 0, 0.5)),
             false,
         );
 
@@ -385,7 +385,7 @@ mod box_shadow_tests {
             Length::new(5.0, "px".to_string()),
             Length::new(0.0, "px".to_string()),
             Length::new(0.0, "px".to_string()),
-            Color::Hsla(HslaColor::new(0.0, 100.0, 50.0, 0.5)),
+            Color::Hsla(Hsla::new(0.0, 100.0, 50.0, 0.5)),
             false,
         );
 

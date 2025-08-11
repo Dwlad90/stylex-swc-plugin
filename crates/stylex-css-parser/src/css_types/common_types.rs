@@ -33,7 +33,7 @@ impl CssWideKeyword {
     /// Parser for CSS-wide keywords
     /// Mirrors: cssWideKeywords
     pub fn parser() -> TokenParser<CssWideKeyword> {
-        TokenParser::ident()
+        TokenParser::<SimpleToken>::ident()
             .map(
                 |token| {
                     if let SimpleToken::Ident(value) = token {

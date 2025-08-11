@@ -122,7 +122,7 @@ mod tests {
         assert!(result.is_ok());
 
         // Should return empty vector for no matches
-        if let Ok(Some(values)) = result {
+        if let Ok(values) = result {
             assert_eq!(values.len(), 0);
         }
     }
@@ -138,7 +138,7 @@ mod tests {
         assert!(result.is_ok());
 
         // Should return empty vector since never parser never matches
-        if let Ok(Some(values)) = result {
+        if let Ok(values) = result {
             assert_eq!(values.len(), 0);
         }
     }
@@ -191,7 +191,7 @@ mod tests {
         let result = outer_parser.parse("test");
         assert!(result.is_ok());
 
-        if let Ok(Some(value)) = result {
+        if let Ok(value) = result {
             assert_eq!(value, "outer(middle(inner))");
         }
     }
@@ -248,7 +248,7 @@ mod tests {
         let result = chained.parse("anything");
         assert!(result.is_ok());
 
-        if let Ok(Some(value)) = result {
+        if let Ok(value) = result {
             assert_eq!(value, 10);
         }
     }

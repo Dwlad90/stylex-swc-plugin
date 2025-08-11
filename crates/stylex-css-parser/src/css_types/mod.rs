@@ -59,7 +59,7 @@ pub use angle_percentage::{AnglePercentage, angle_percentage_parser};
 pub use custom_ident::CustomIdentifier;
 pub use dashed_ident::DashedIdentifier;
 pub use calc_constant::CalcConstant;
-pub use calc::{Calc, CalcValue, CalcDimension, BinaryOp, BinaryOperation, CalcGroup};
+pub use calc::{Calc, CalcValue, CalcDimension, Addition, Subtraction, Multiplication, Division, Group, calc_value_to_string};
 pub use blend_mode::BlendMode;
 pub use flex::Flex;
 pub use position::{Position, Horizontal, Vertical, HorizontalKeyword, VerticalKeyword};

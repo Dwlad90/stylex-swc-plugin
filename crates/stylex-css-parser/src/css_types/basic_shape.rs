@@ -271,8 +271,10 @@ impl Display for BasicShape {
                     None => String::new(),
                 };
 
-                // Optimize output by checking for equal values (mirrors JS logic)
-                if top == right && right == bottom && bottom == left {
+                // Optimize output by checking for equal values (mirrors JS logic exactly)
+                // JavaScript logic: top === right && right === bottom && bottom === left && left === round
+                if top == right && right == bottom && bottom == left &&
+                   (round.is_none() || round.as_ref() == Some(left)) {
                     write!(f, "inset({}{})", top, round_str)
                 } else if top == bottom && left == right {
                     write!(f, "inset({} {}{})", top, right, round_str)

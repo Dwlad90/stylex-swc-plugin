@@ -239,20 +239,25 @@ mod calc_tests {
     }
 
     #[test]
-    fn test_binary_operations() {
-        use crate::css_types::BinaryOp;
+    fn test_calc_operations() {
+        // Test that the new operation types work correctly
+        use crate::css_types::{Addition, Subtraction, Multiplication, Division, CalcValue};
 
-        let add = BinaryOp::Add;
-        assert_eq!(add.as_str(), "+");
+        let add = Addition::new(CalcValue::Number(1.0), CalcValue::Number(2.0));
+        let add_value = CalcValue::Addition(add);
+        assert_eq!(add_value.to_string(), "1 + 2");
 
-        let subtract = BinaryOp::Subtract;
-        assert_eq!(subtract.as_str(), "-");
+        let subtract = Subtraction::new(CalcValue::Number(5.0), CalcValue::Number(3.0));
+        let sub_value = CalcValue::Subtraction(subtract);
+        assert_eq!(sub_value.to_string(), "5 - 3");
 
-        let multiply = BinaryOp::Multiply;
-        assert_eq!(multiply.as_str(), "*");
+        let multiply = Multiplication::new(CalcValue::Number(4.0), CalcValue::Number(2.0));
+        let mul_value = CalcValue::Multiplication(multiply);
+        assert_eq!(mul_value.to_string(), "4 * 2");
 
-        let divide = BinaryOp::Divide;
-        assert_eq!(divide.as_str(), "/");
+        let divide = Division::new(CalcValue::Number(8.0), CalcValue::Number(2.0));
+        let div_value = CalcValue::Division(divide);
+        assert_eq!(div_value.to_string(), "8 / 2");
     }
 }
 

@@ -53,6 +53,7 @@ base62.workspace = true
 md5.workspace = true
 
 stylex_path_resolver = { path = "../stylex-path-resolver" }
+stylex_css_parser = { path = "../stylex-css-parser" }
 
 
 [dev-dependencies]

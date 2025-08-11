@@ -69,7 +69,7 @@ pub(crate) fn ident_factory(name: &str) -> Ident {
 
 // NOTE: Tests only using this function
 #[allow(dead_code)]
-pub(crate) fn prop_or_spread_expr_factory(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
+pub fn prop_or_spread_expr_factory(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
   let object = ObjectLit {
     span: DUMMY_SP,
     props: values,

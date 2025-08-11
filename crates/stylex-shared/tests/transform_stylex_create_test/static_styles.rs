@@ -7,7 +7,7 @@ use stylex_shared::{
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
+  transforms::testing::test,
 };
 
 test!(
@@ -540,48 +540,44 @@ test!(
           "#
 );
 
-#[test]
-#[ignore]
-fn args_func_var_value() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-    r#"
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  args_func_var_value,
+  r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
               root: {
                 color: stylex.firstThatWorks('color-mix(in srgb, currentColor 20%, transparent)', 'var(--color)', 'red'),
               }
             });
-          "#,
-    r#""#,
-  )
-}
+          "#
+);
 
-#[test]
-#[ignore]
-fn args_func_var_value_value() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
-    r#"
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  args_func_var_value_value,
+  r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
               root: {
                 color: stylex.firstThatWorks('color-mix(in srgb, currentColor 20%, transparent)', 'var(--color)', 'red', 'green'),
               }
             });
-          "#,
-    r#""#,
-  )
+          "#
+);
+
+#[test]
+#[ignore]
+fn stylex_types_functions_todo() {
+  // Placeholder for describe.skip('function value: stylex.types.*()') in JS tests.
 }
 
 test!(

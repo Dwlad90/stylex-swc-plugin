@@ -6,7 +6,7 @@ use crate::css_types::position::Position;
  * Functionally equivalent to JavaScript basic-shape.js implementation.
  * Covers all shape types with essential functionality while working with Rust paradigms.
  */
-use crate::token_parser::TokenParser;
+use crate::token_parser::{TokenParser, tokens};
 use crate::token_types::SimpleToken;
 use std::fmt;
 
@@ -192,60 +192,65 @@ impl BasicShape {
       )
   }
 
-  /// Simple circle parser - covers essential functionality
+  /// Full circle parser - mirrors JavaScript Circle.parser exactly
+  /// Supports: circle(radius) and circle(radius at position)
   fn circle_parser() -> TokenParser<BasicShape> {
     TokenParser::<String>::fn_name("circle")
-      .flat_map(|_| Self::radius_parser(), Some("fn_to_radius"))
-      .flat_map(
-        |radius| {
-          let r_val = radius.clone();
-          TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("close")).map(
-            move |_| {
-              BasicShape::Circle {
-                radius: r_val.clone(),
-                position: None, // Simplified - no position parsing for now
-              }
-            },
-            Some("to_circle"),
-          )
-        },
-        Some("radius_to_close"),
-      )
+      .skip(tokens::whitespace().optional())
+      .flat_map(|_| Self::radius_parser(), Some("radius"))
+      .flat_map(|radius| {
+        // Parse optional position: "at Position"
+        let position_parser = tokens::whitespace()
+          .flat_map(|_| TokenParser::<String>::string("at"), Some("at_keyword"))
+          .skip(tokens::whitespace())
+          .flat_map(|_| Position::parser(), Some("position_value"))
+          .optional();
+
+        let radius_clone = radius.clone();
+        position_parser.map(move |position| (radius_clone.clone(), position), Some("radius_position"))
+      }, Some("with_position"))
+      .skip(tokens::whitespace().optional())
+      .skip(tokens::close_paren())
+      .map(|(radius, position)| {
+        BasicShape::Circle {
+          radius,
+          position,
+        }
+      }, Some("to_circle"))
   }
 
-  /// Simple ellipse parser - covers essential functionality
+  /// Full ellipse parser - mirrors JavaScript Ellipse.parser exactly
+  /// Supports: ellipse(radiusX radiusY) and ellipse(radiusX radiusY at position)
   fn ellipse_parser() -> TokenParser<BasicShape> {
     TokenParser::<String>::fn_name("ellipse")
-      .flat_map(|_| Self::radius_parser(), Some("fn_to_radius_x"))
-      .flat_map(
-        |radius_x| {
-          let rx = radius_x.clone();
-          TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("ws")).flat_map(
-            move |_| {
-              let rx_val = rx.clone();
-              Self::radius_parser().flat_map(
-                move |radius_y| {
-                  let rx_final = rx_val.clone();
-                  let ry_final = radius_y.clone();
-                  TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("close")).map(
-                    move |_| {
-                      BasicShape::Ellipse {
-                        radius_x: rx_final.clone(),
-                        radius_y: ry_final.clone(),
-                        position: None, // Simplified - no position parsing for now
-                      }
-                    },
-                    Some("to_ellipse"),
-                  )
-                },
-                Some("radius_y"),
-              )
-            },
-            Some("ws_to_radius_y"),
-          )
-        },
-        Some("radius_x_to_ws"),
-      )
+      .skip(tokens::whitespace().optional())
+      .flat_map(|_| Self::radius_parser(), Some("radius_x"))
+      .skip(tokens::whitespace())
+      .flat_map(|radius_x| {
+        let rx = radius_x.clone();
+        Self::radius_parser().map(move |radius_y| (rx.clone(), radius_y), Some("radius_y"))
+      }, Some("with_radius_y"))
+      .flat_map(|(radius_x, radius_y)| {
+        // Parse optional position: "at Position"
+        let position_parser = tokens::whitespace()
+          .flat_map(|_| TokenParser::<String>::string("at"), Some("at_keyword"))
+          .skip(tokens::whitespace())
+          .flat_map(|_| Position::parser(), Some("position_value"))
+          .optional();
+
+        let rx = radius_x.clone();
+        let ry = radius_y.clone();
+        position_parser.map(move |position| (rx.clone(), ry.clone(), position), Some("radii_position"))
+      }, Some("with_position"))
+      .skip(tokens::whitespace().optional())
+      .skip(tokens::close_paren())
+      .map(|(radius_x, radius_y, position)| {
+        BasicShape::Ellipse {
+          radius_x,
+          radius_y,
+          position,
+        }
+      }, Some("to_ellipse"))
   }
 
   /// Simple polygon parser - covers essential functionality
@@ -326,7 +331,8 @@ impl BasicShape {
 
   /// Main parser for all basic shapes - comprehensive coverage
   /// Implements all JavaScript shape parsers functionally
-  pub fn parser() -> TokenParser<BasicShape> {
+  /// Mirrors: JavaScript BasicShape parsing logic exactly
+  pub fn parse() -> TokenParser<BasicShape> {
     TokenParser::one_of(vec![
       Self::inset_parser(),
       Self::circle_parser(),
@@ -339,7 +345,7 @@ impl BasicShape {
 
 /// Export function matching JavaScript API
 pub fn basic_shape_parser() -> TokenParser<BasicShape> {
-  BasicShape::parser()
+  BasicShape::parse()
 }
 
 #[cfg(test)]

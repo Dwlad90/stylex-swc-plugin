@@ -72,13 +72,13 @@ pub enum StepsKeywordType {
 
 impl EasingFunction {
   /// Static parser method - mirrors JavaScript EasingFunction.parser exactly
-  pub fn parser() -> TokenParser<EasingFunction> {
+  pub fn parse() -> TokenParser<EasingFunction> {
         TokenParser::one_of(vec![
-      LinearEasingFunction::parser().map(EasingFunction::Linear, Some("linear")),
-      CubicBezierEasingFunction::parser().map(EasingFunction::CubicBezier, Some("cubic_bezier")),
-      CubicBezierKeyword::parser().map(EasingFunction::CubicBezierKeyword, Some("cubic_bezier_keyword")),
-      StepsEasingFunction::parser().map(EasingFunction::Steps, Some("steps")),
-      StepsKeyword::parser().map(EasingFunction::StepsKeyword, Some("steps_keyword")),
+      LinearEasingFunction::parse().map(EasingFunction::Linear, Some("linear")),
+      CubicBezierEasingFunction::parse().map(EasingFunction::CubicBezier, Some("cubic_bezier")),
+      CubicBezierKeyword::parse().map(EasingFunction::CubicBezierKeyword, Some("cubic_bezier_keyword")),
+      StepsEasingFunction::parse().map(EasingFunction::Steps, Some("steps")),
+      StepsKeyword::parse().map(EasingFunction::StepsKeyword, Some("steps_keyword")),
     ])
   }
 }
@@ -89,9 +89,40 @@ impl LinearEasingFunction {
   }
 
   /// Mirrors JavaScript LinearEasingFunction.parser exactly
-  pub fn parser() -> TokenParser<LinearEasingFunction> {
-    // Complex implementation requires advanced parser combinator features
-    TokenParser::never() // TODO: Implement when separated_by is available
+  pub fn parse() -> TokenParser<LinearEasingFunction> {
+    use crate::token_parser::tokens;
+
+    // Mirrors: TokenParser.oneOrMore(TokenParser.tokens.Number.map((v) => v[4].value))
+    //   .separatedBy(TokenParser.tokens.Comma)
+    //   .separatedBy(TokenParser.tokens.Whitespace.optional)
+    let number_parser = tokens::number().map(
+      |token| {
+        if let SimpleToken::Number(value) = token {
+          value
+        } else {
+          0.0
+        }
+      },
+      Some("extract_number")
+    );
+
+    let points_parser = number_parser
+      .separated_by(tokens::comma())
+      .one_or_more();
+
+    // Mirrors: TokenParser.sequence(Function.where('linear'), pointsParser, CloseParen)
+    let linear_fn = TokenParser::<String>::fn_name("linear");
+    let close_paren = tokens::close_paren();
+
+    linear_fn
+      .skip(tokens::whitespace().optional())
+      .flat_map({
+        let points_parser = points_parser.clone();
+        move |_| points_parser.clone()
+      }, Some("parse_points"))
+      .skip(tokens::whitespace().optional())
+      .skip(close_paren)
+      .map(LinearEasingFunction::new, Some("to_linear"))
   }
 }
 
@@ -101,9 +132,46 @@ impl CubicBezierEasingFunction {
   }
 
   /// Mirrors JavaScript CubicBezierEasingFunction.parser exactly
-  pub fn parser() -> TokenParser<CubicBezierEasingFunction> {
-    // Complex implementation requires advanced parser combinator features
-    TokenParser::never() // TODO: Implement when separated_by is available
+  pub fn parse() -> TokenParser<CubicBezierEasingFunction> {
+    use crate::token_parser::tokens;
+
+    // Extract number from token
+    let number_parser = tokens::number().map(
+      |token| {
+        if let SimpleToken::Number(value) = token {
+          value
+        } else {
+          0.0
+        }
+      },
+      Some("extract_number")
+    );
+
+        // Simplified approach: parse 4 numbers separated by commas
+    let cubic_bezier_fn = TokenParser::<String>::fn_name("cubic-bezier");
+    let close_paren = tokens::close_paren();
+
+    // Parse exactly 4 numbers separated by commas
+    let four_numbers = number_parser
+      .separated_by(tokens::comma())
+      .one_or_more()
+      .map(|numbers| {
+        if numbers.len() == 4 {
+          [numbers[0], numbers[1], numbers[2], numbers[3]]
+        } else {
+          [0.0, 0.0, 0.0, 0.0] // Error case, should not happen
+        }
+      }, Some("to_array"));
+
+    cubic_bezier_fn
+      .skip(tokens::whitespace().optional())
+      .flat_map({
+        let four_numbers = four_numbers.clone();
+        move |_| four_numbers.clone()
+      }, Some("parse_four_numbers"))
+      .skip(tokens::whitespace().optional())
+      .skip(close_paren)
+      .map(CubicBezierEasingFunction::new, Some("to_cubic_bezier"))
   }
 }
 
@@ -113,7 +181,7 @@ impl CubicBezierKeyword {
   }
 
   /// Mirrors JavaScript CubicBezierKeyword.parser exactly
-  pub fn parser() -> TokenParser<CubicBezierKeyword> {
+  pub fn parse() -> TokenParser<CubicBezierKeyword> {
     TokenParser::<SimpleToken>::ident()
       .where_fn(|token| {
         if let SimpleToken::Ident(value) = token {
@@ -145,9 +213,71 @@ impl StepsEasingFunction {
   }
 
   /// Mirrors JavaScript StepsEasingFunction.parser exactly
-  pub fn parser() -> TokenParser<StepsEasingFunction> {
-    // Complex implementation requires advanced parser combinator features
-    TokenParser::never() // TODO: Implement when separated_by is available
+  pub fn parse() -> TokenParser<StepsEasingFunction> {
+    use crate::token_parser::tokens;
+
+    // Extract number from token
+    let number_parser = tokens::number().map(
+      |token| {
+        if let SimpleToken::Number(value) = token {
+          value as u32
+        } else {
+          0
+        }
+      },
+      Some("extract_number")
+    );
+
+    // Extract step type (start | end)
+    let step_type_parser = tokens::ident().where_fn(
+      |token| {
+        if let SimpleToken::Ident(value) = token {
+          matches!(value.as_str(), "start" | "end")
+        } else {
+          false
+        }
+      },
+      Some("step_type")
+    ).map(
+      |token| {
+        if let SimpleToken::Ident(value) = token {
+          match value.as_str() {
+            "start" => StepsStartType::Start,
+            "end" => StepsStartType::End,
+            _ => unreachable!()
+          }
+        } else {
+          unreachable!()
+        }
+      },
+      Some("to_step_type")
+    );
+
+        // Simplified approach: parse steps number and step type
+    let steps_fn = TokenParser::<String>::fn_name("steps");
+    let close_paren = tokens::close_paren();
+    let comma_ws = tokens::comma().skip(tokens::whitespace().optional()).prefix(tokens::whitespace().optional());
+
+    steps_fn
+      .skip(tokens::whitespace().optional())
+      .flat_map({
+        let number_parser = number_parser.clone();
+        move |_| number_parser.clone()
+      }, Some("parse_steps"))
+      .flat_map({
+        let step_type_parser = step_type_parser.clone();
+        move |steps| {
+          comma_ws.clone()
+            .flat_map({
+              let step_type_parser = step_type_parser.clone();
+              move |_| step_type_parser.clone()
+            }, Some("parse_step_type"))
+            .map(move |step_type| (steps, step_type), Some("steps_and_type"))
+        }
+      }, Some("with_type"))
+      .skip(tokens::whitespace().optional())
+      .skip(close_paren)
+      .map(|(steps, start)| StepsEasingFunction::new(steps, start), Some("to_steps"))
   }
 }
 
@@ -157,7 +287,7 @@ impl StepsKeyword {
   }
 
   /// Mirrors JavaScript StepsKeyword.parser exactly
-  pub fn parser() -> TokenParser<StepsKeyword> {
+  pub fn parse() -> TokenParser<StepsKeyword> {
     TokenParser::<SimpleToken>::ident()
       .where_fn(|token| {
         if let SimpleToken::Ident(value) = token {

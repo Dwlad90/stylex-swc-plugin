@@ -31,7 +31,7 @@ impl Transform {
     // Mirrors: TokenParser.oneOrMore(TransformFunction.parser).separatedBy(TokenParser.tokens.Whitespace)
     let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
 
-    TokenParser::one_or_more_separated_by(TransformFunction::parser(), whitespace)
+    TokenParser::one_or_more_separated_by(TransformFunction::parse(), whitespace)
       .map(Transform::new, Some("to_transform"))
   }
 }

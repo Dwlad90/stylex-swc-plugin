@@ -5,7 +5,7 @@ Handles dimensional values that can be lengths, times, frequencies, or resolutio
 Mirrors: packages/style-value-parser/src/css-types/dimension.js
 */
 
-use crate::{token_parser::{TokenParser, Tokens}, token_types::SimpleToken};
+use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
 use super::{frequency::Frequency, length::Length, resolution::Resolution, time::Time};
@@ -49,8 +49,10 @@ impl Dimension {
   /// Parser for dimensional values
   /// Mirrors: dimension in dimension.js exactly
   /// JavaScript: TokenParser.tokens.Dimension.map((token) => { const { unit, value } = token[4]; ... }).where((val) => val != null);
-  pub fn parser() -> TokenParser<Dimension> {
-    Tokens::dimension()
+  pub fn parse() -> TokenParser<Dimension> {
+    use crate::token_parser::tokens;
+
+    tokens::dimension()
       .map(
         |token| {
           if let SimpleToken::Dimension { value, unit } = token {
@@ -64,6 +66,12 @@ impl Dimension {
       .where_fn(|opt| opt.is_some(), Some("valid_dimension"))
       .map(|opt| opt.unwrap(), Some("unwrap_dimension"))
   }
+}
+
+/// Static dimension parser that mirrors the JavaScript export
+/// Mirrors: export const dimension: TokenParser<Dimension> = ... in dimension.js
+pub fn dimension() -> TokenParser<Dimension> {
+  Dimension::parse()
 }
 
 impl Display for Dimension {
@@ -147,7 +155,7 @@ mod tests {
   #[test]
   fn test_dimension_parser_creation() {
     // Basic test that parser can be created
-    let _parser = Dimension::parser();
+    let _parser = Dimension::parse();
   }
 
   #[test]

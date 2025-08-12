@@ -58,7 +58,7 @@ pub use color::{Color, HashColor, Hsl, Hsla, Lch, NamedColor, Oklab, Oklch, Rgb,
 pub use common_types::{CssVariable, CssWideKeyword, Number, NumberOrPercentage, Percentage};
 pub use custom_ident::CustomIdentifier;
 pub use dashed_ident::DashedIdentifier;
-pub use dimension::Dimension;
+pub use dimension::{dimension, Dimension};
 pub use flex::Flex;
 pub use frequency::Frequency;
 pub use length::Length;

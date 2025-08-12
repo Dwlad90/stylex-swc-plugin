@@ -153,29 +153,7 @@ pub enum SkewAxis2D {
   Y,
 }
 
-impl TransformFunction {
-  pub fn parser() -> TokenParser<TransformFunction> {
-    TokenParser::one_of(vec![
-      Matrix::parser().map(|m| TransformFunction::Matrix(m), Some("matrix")),
-      Matrix3d::parser().map(|m| TransformFunction::Matrix3d(m), Some("matrix3d")),
-      Perspective::parser().map(|p| TransformFunction::Perspective(p), Some("perspective")),
-      Rotate::parser().map(|r| TransformFunction::Rotate(r), Some("rotate")),
-      RotateXYZ::parser().map(|r| TransformFunction::RotateXYZ(r), Some("rotatexyz")),
-      Rotate3d::parser().map(|r| TransformFunction::Rotate3d(r), Some("rotate3d")),
-      Scale::parser().map(|s| TransformFunction::Scale(s), Some("scale")),
-      Scale3d::parser().map(|s| TransformFunction::Scale3d(s), Some("scale3d")),
-      ScaleAxis::parser().map(|s| TransformFunction::ScaleAxis(s), Some("scaleaxis")),
-      Skew::parser().map(|s| TransformFunction::Skew(s), Some("skew")),
-      SkewAxis::parser().map(|s| TransformFunction::SkewAxis(s), Some("skewaxis")),
-      Translate3d::parser().map(|t| TransformFunction::Translate3d(t), Some("translate3d")),
-      Translate::parser().map(|t| TransformFunction::Translate(t), Some("translate")),
-      TranslateAxis::parser().map(
-        |t| TransformFunction::TranslateAxis(t),
-        Some("translateaxis"),
-      ),
-    ])
-  }
-}
+
 
 // Helper to convert NumberOrPercentage to f64 (percentage becomes 0-1 range)
 fn number_or_percentage_to_f64(n: NumberOrPercentage) -> f64 {
@@ -204,7 +182,7 @@ impl Matrix {
     Self { a, b, c, d, tx, ty }
   }
 
-  pub fn parser() -> TokenParser<Matrix> {
+  pub fn parse() -> TokenParser<Matrix> {
     let fn_name = TokenParser::<String>::fn_name("matrix");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -276,7 +254,7 @@ impl Matrix3d {
     Self { args }
   }
 
-  pub fn parser() -> TokenParser<Matrix3d> {
+  pub fn parse() -> TokenParser<Matrix3d> {
     let fn_name = TokenParser::<String>::fn_name("matrix3d");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -331,7 +309,7 @@ impl Perspective {
     Self { length }
   }
 
-  pub fn parser() -> TokenParser<Perspective> {
+  pub fn parse() -> TokenParser<Perspective> {
     let fn_name = TokenParser::<String>::fn_name("perspective");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -354,7 +332,7 @@ impl Rotate {
     Self { angle }
   }
 
-  pub fn parser() -> TokenParser<Rotate> {
+  pub fn parse() -> TokenParser<Rotate> {
     let fn_name = TokenParser::<String>::fn_name("rotate");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -376,7 +354,7 @@ impl RotateXYZ {
     Self { angle, axis }
   }
 
-  pub fn parser() -> TokenParser<RotateXYZ> {
+  pub fn parse() -> TokenParser<RotateXYZ> {
     let rotate_x = TokenParser::<String>::fn_name("rotateX").map(|_| Axis::X, Some("x_axis"));
     let rotate_y = TokenParser::<String>::fn_name("rotateY").map(|_| Axis::Y, Some("y_axis"));
     let rotate_z = TokenParser::<String>::fn_name("rotateZ").map(|_| Axis::Z, Some("z_axis"));
@@ -409,7 +387,7 @@ impl Rotate3d {
     Self { x, y, z, angle }
   }
 
-  pub fn parser() -> TokenParser<Rotate3d> {
+  pub fn parse() -> TokenParser<Rotate3d> {
     let fn_name = TokenParser::<String>::fn_name("rotate3d");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -441,7 +419,7 @@ impl Scale {
     Self { sx, sy }
   }
 
-  pub fn parser() -> TokenParser<Scale> {
+  pub fn parse() -> TokenParser<Scale> {
     let fn_name = TokenParser::<String>::fn_name("scale");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -477,7 +455,7 @@ impl Scale3d {
     Self { sx, sy, sz }
   }
 
-  pub fn parser() -> TokenParser<Scale3d> {
+  pub fn parse() -> TokenParser<Scale3d> {
     let fn_name = TokenParser::<String>::fn_name("scale3d");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -506,7 +484,7 @@ impl ScaleAxis {
     Self { s, axis }
   }
 
-  pub fn parser() -> TokenParser<ScaleAxis> {
+  pub fn parse() -> TokenParser<ScaleAxis> {
     let scale_x = TokenParser::<String>::fn_name("scaleX").map(|_| Axis::X, Some("x_axis"));
     let scale_y = TokenParser::<String>::fn_name("scaleY").map(|_| Axis::Y, Some("y_axis"));
     let scale_z = TokenParser::<String>::fn_name("scaleZ").map(|_| Axis::Z, Some("z_axis"));
@@ -540,7 +518,7 @@ impl Skew {
     Self { ax, ay }
   }
 
-  pub fn parser() -> TokenParser<Skew> {
+  pub fn parse() -> TokenParser<Skew> {
     let fn_name = TokenParser::<String>::fn_name("skew");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -574,7 +552,7 @@ impl SkewAxis {
     Self { a, axis }
   }
 
-  pub fn parser() -> TokenParser<SkewAxis> {
+  pub fn parse() -> TokenParser<SkewAxis> {
     let skew_x = TokenParser::<String>::fn_name("skewX").map(|_| SkewAxis2D::X, Some("x_axis"));
     let skew_y = TokenParser::<String>::fn_name("skewY").map(|_| SkewAxis2D::Y, Some("y_axis"));
 
@@ -606,7 +584,7 @@ impl Translate {
     Self { tx, ty }
   }
 
-  pub fn parser() -> TokenParser<Translate> {
+  pub fn parse() -> TokenParser<Translate> {
     let fn_name = TokenParser::<String>::fn_name("translate");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -640,7 +618,7 @@ impl Translate3d {
     Self { tx, ty, tz }
   }
 
-  pub fn parser() -> TokenParser<Translate3d> {
+  pub fn parse() -> TokenParser<Translate3d> {
     let fn_name = TokenParser::<String>::fn_name("translate3d");
     let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
@@ -666,7 +644,7 @@ impl TranslateAxis {
     Self { t, axis }
   }
 
-  pub fn parser() -> TokenParser<TranslateAxis> {
+  pub fn parse() -> TokenParser<TranslateAxis> {
     let translate_x = TokenParser::<String>::fn_name("translateX").map(|_| Axis::X, Some("x_axis"));
     let translate_y = TokenParser::<String>::fn_name("translateY").map(|_| Axis::Y, Some("y_axis"));
     let translate_z = TokenParser::<String>::fn_name("translateZ").map(|_| Axis::Z, Some("z_axis"));
@@ -691,6 +669,29 @@ impl TranslateAxis {
         },
         Some("close"),
       )
+  }
+}
+
+impl TransformFunction {
+  /// Parser for all transform functions
+  /// Mirrors: TransformFunction.parser in transform-function.js exactly
+  pub fn parse() -> TokenParser<TransformFunction> {
+    TokenParser::one_of(vec![
+      Matrix::parse().map(TransformFunction::Matrix, Some("matrix")),
+      Matrix3d::parse().map(TransformFunction::Matrix3d, Some("matrix3d")),
+      Perspective::parse().map(TransformFunction::Perspective, Some("perspective")),
+      Rotate::parse().map(TransformFunction::Rotate, Some("rotate")),
+      RotateXYZ::parse().map(TransformFunction::RotateXYZ, Some("rotate_xyz")),
+      Rotate3d::parse().map(TransformFunction::Rotate3d, Some("rotate3d")),
+      Scale::parse().map(TransformFunction::Scale, Some("scale")),
+      Scale3d::parse().map(TransformFunction::Scale3d, Some("scale3d")),
+      ScaleAxis::parse().map(TransformFunction::ScaleAxis, Some("scale_axis")),
+      Skew::parse().map(TransformFunction::Skew, Some("skew")),
+      SkewAxis::parse().map(TransformFunction::SkewAxis, Some("skew_axis")),
+      Translate3d::parse().map(TransformFunction::Translate3d, Some("translate3d")),
+      Translate::parse().map(TransformFunction::Translate, Some("translate")),
+      TranslateAxis::parse().map(TransformFunction::TranslateAxis, Some("translate_axis")),
+    ])
   }
 }
 

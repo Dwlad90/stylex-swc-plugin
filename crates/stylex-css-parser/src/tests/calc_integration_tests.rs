@@ -19,7 +19,7 @@ mod calc_tests {
   // Mirrors: calc-test.js - "parses simple numeric values"
   #[test]
   fn test_parses_simple_numeric_values() {
-    let parser = Calc::parser();
+    let parser = Calc::parse();
 
     // Test calc(10)
     if let Ok(calc) = parser.parse("calc(10)") {

@@ -26,7 +26,7 @@ use stylex_css_parser::css_types::{Color, Length, Calc};
 // Parse CSS values
 let color = Color::parser(); // CSS color parser
 let length = Length::parser(); // CSS length parser
-let calc = Calc::parser(); // CSS calc() expression parser
+let calc = Calc::parse(); // CSS calc() expression parser
 
 // Property parsers
 let transform = properties::Transform::parser();
@@ -136,7 +136,7 @@ mod lib_tests {
     // Test css_types module access
     let _color = css_types::Color::parser();
     let _length = css_types::Length::parser();
-    let _calc = css_types::Calc::parser();
+    let _calc = css_types::Calc::parse();
   }
 
   #[test]
@@ -150,7 +150,7 @@ mod lib_tests {
     let _transform_fn = lastMediaQueryWinsTransform;
     let _color_parser = Color::parser();
     let _length_parser = Length::parser();
-    let _calc_parser = Calc::parser();
+    let _calc_parser = Calc::parse();
   }
 
   #[test]
@@ -208,7 +208,7 @@ mod lib_tests {
     // Parse CSS values
     let _color = Color::parser(); // CSS color parser
     let _length = Length::parser(); // CSS length parser
-    let _calc = Calc::parser(); // CSS calc() expression parser
+    let _calc = Calc::parse(); // CSS calc() expression parser
 
     // Property parsers
     let _transform = properties::Transform::parse();

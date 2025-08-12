@@ -50,10 +50,10 @@ pub struct StepsKeyword {
 /// CubicBezierKeyword type - matches JavaScript TCubicBezierKeyword
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CubicBezierKeywordType {
-  Ease,
-  EaseIn,
-  EaseOut,
-  EaseInOut,
+    Ease,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
 }
 
 /// Steps start type - matches JavaScript 'start' | 'end'
@@ -73,7 +73,7 @@ pub enum StepsKeywordType {
 impl EasingFunction {
   /// Static parser method - mirrors JavaScript EasingFunction.parser exactly
   pub fn parser() -> TokenParser<EasingFunction> {
-    TokenParser::one_of(vec![
+        TokenParser::one_of(vec![
       LinearEasingFunction::parser().map(EasingFunction::Linear, Some("linear")),
       CubicBezierEasingFunction::parser().map(EasingFunction::CubicBezier, Some("cubic_bezier")),
       CubicBezierKeyword::parser().map(EasingFunction::CubicBezierKeyword, Some("cubic_bezier_keyword")),
@@ -90,8 +90,8 @@ impl LinearEasingFunction {
 
   /// Mirrors JavaScript LinearEasingFunction.parser exactly
   pub fn parser() -> TokenParser<LinearEasingFunction> {
-    // Simple implementation using existing patterns
-    TokenParser::never() // TODO: Implement complex linear function parsing
+    // Complex implementation requires advanced parser combinator features
+    TokenParser::never() // TODO: Implement when separated_by is available
   }
 }
 
@@ -102,8 +102,8 @@ impl CubicBezierEasingFunction {
 
   /// Mirrors JavaScript CubicBezierEasingFunction.parser exactly
   pub fn parser() -> TokenParser<CubicBezierEasingFunction> {
-    // Simple implementation using existing patterns
-    TokenParser::never() // TODO: Implement complex cubic bezier parsing
+    // Complex implementation requires advanced parser combinator features
+    TokenParser::never() // TODO: Implement when separated_by is available
   }
 }
 
@@ -146,8 +146,8 @@ impl StepsEasingFunction {
 
   /// Mirrors JavaScript StepsEasingFunction.parser exactly
   pub fn parser() -> TokenParser<StepsEasingFunction> {
-    // Simple implementation using existing patterns
-    TokenParser::never() // TODO: Implement complex steps function parsing
+    // Complex implementation requires advanced parser combinator features
+    TokenParser::never() // TODO: Implement when separated_by is available
   }
 }
 
@@ -186,7 +186,7 @@ impl Display for EasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       EasingFunction::Linear(linear) => linear.fmt(f),
-      EasingFunction::CubicBezier(cubic) => cubic.fmt(f),
+      EasingFunction::CubicBezier(cubic_bezier) => cubic_bezier.fmt(f),
       EasingFunction::CubicBezierKeyword(keyword) => keyword.fmt(f),
       EasingFunction::Steps(steps) => steps.fmt(f),
       EasingFunction::StepsKeyword(keyword) => keyword.fmt(f),
@@ -196,24 +196,30 @@ impl Display for EasingFunction {
 
 impl Display for LinearEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "linear({})", self.points.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
+    let points_str = self.points.iter()
+      .map(|p| p.to_string())
+      .collect::<Vec<_>>()
+      .join(", ");
+    write!(f, "linear({})", points_str)
   }
 }
 
 impl Display for CubicBezierEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "cubic-bezier({})", self.points.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
+    write!(f, "cubic-bezier({}, {}, {}, {})",
+           self.points[0], self.points[1], self.points[2], self.points[3])
   }
 }
 
 impl Display for CubicBezierKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self.keyword {
-      CubicBezierKeywordType::Ease => write!(f, "ease"),
-      CubicBezierKeywordType::EaseIn => write!(f, "ease-in"),
-      CubicBezierKeywordType::EaseOut => write!(f, "ease-out"),
-      CubicBezierKeywordType::EaseInOut => write!(f, "ease-in-out"),
-    }
+    let keyword_str = match self.keyword {
+      CubicBezierKeywordType::Ease => "ease",
+      CubicBezierKeywordType::EaseIn => "ease-in",
+      CubicBezierKeywordType::EaseOut => "ease-out",
+      CubicBezierKeywordType::EaseInOut => "ease-in-out",
+    };
+    write!(f, "{}", keyword_str)
   }
 }
 
@@ -229,9 +235,10 @@ impl Display for StepsEasingFunction {
 
 impl Display for StepsKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self.keyword {
-      StepsKeywordType::StepStart => write!(f, "step-start"),
-      StepsKeywordType::StepEnd => write!(f, "step-end"),
-    }
+    let keyword_str = match self.keyword {
+      StepsKeywordType::StepStart => "step-start",
+      StepsKeywordType::StepEnd => "step-end",
+    };
+    write!(f, "{}", keyword_str)
   }
 }

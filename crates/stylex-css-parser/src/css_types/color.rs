@@ -391,18 +391,18 @@ pub enum Color {
 
 impl Color {
   /// Parser for all color formats
-  /// Mirrors: Color.parser
-  pub fn parser() -> TokenParser<Color> {
+  /// Mirrors: Color.parser in JavaScript
+  pub fn parse() -> TokenParser<Color> {
     TokenParser::one_of(vec![
-      NamedColor::parser().map(Color::Named, Some("named")),
-      HashColor::parser().map(Color::Hash, Some("hash")),
-      Rgb::parser().map(Color::Rgb, Some("rgb")),
-      Rgba::parser().map(Color::Rgba, Some("rgba")),
-      Hsl::parser().map(Color::Hsl, Some("hsl")),
-      Hsla::parser().map(Color::Hsla, Some("hsla")),
-      Lch::parser().map(Color::Lch, Some("lch")),
-      Oklch::parser().map(Color::Oklch, Some("oklch")),
-      Oklab::parser().map(Color::Oklab, Some("oklab")),
+      NamedColor::parse().map(Color::Named, Some("named")),
+      HashColor::parse().map(Color::Hash, Some("hash")),
+      Rgb::parse().map(Color::Rgb, Some("rgb")),
+      Rgba::parse().map(Color::Rgba, Some("rgba")),
+      Hsl::parse().map(Color::Hsl, Some("hsl")),
+      Hsla::parse().map(Color::Hsla, Some("hsla")),
+      Lch::parse().map(Color::Lch, Some("lch")),
+      Oklch::parse().map(Color::Oklch, Some("oklch")),
+      Oklab::parse().map(Color::Oklab, Some("oklab")),
     ])
   }
 }
@@ -441,8 +441,8 @@ impl NamedColor {
   }
 
   /// Parser for named colors
-  /// Mirrors: NamedColor.parser
-  pub fn parser() -> TokenParser<NamedColor> {
+  /// Mirrors: NamedColor.parser in JavaScript
+  pub fn parse() -> TokenParser<NamedColor> {
     tokens::ident()
       .map(
         |token| {
@@ -544,8 +544,8 @@ impl HashColor {
   }
 
   /// Parser for hex colors
-  /// Mirrors: HashColor.parser
-  pub fn parser() -> TokenParser<HashColor> {
+  /// Mirrors: HashColor.parser in JavaScript
+  pub fn parse() -> TokenParser<HashColor> {
     tokens::hash()
       .map(
         |token| {
@@ -582,9 +582,9 @@ impl Rgb {
     Self { r, g, b }
   }
 
-    /// Parser for RGB colors
+  /// Parser for RGB colors
   /// Mirrors JavaScript: Rgb.parser with full sequence destructuring logic exactly
-  pub fn parser() -> TokenParser<Rgb> {
+  pub fn parse() -> TokenParser<Rgb> {
     // Comma-separated parser: rgb(r, g, b) - mirrors JavaScript sequence exactly
     let comma_parser = AdvancedColorParsers::rgb_comma_full()
       .map(|(r, g, b)| Rgb::new(r, g, b), Some("to_rgb_comma"));
@@ -621,7 +621,7 @@ impl Rgba {
 
   /// Parser for RGBA colors
   /// Mirrors JavaScript: Rgba.parser with full sequence destructuring logic exactly
-  pub fn parser() -> TokenParser<Rgba> {
+  pub fn parse() -> TokenParser<Rgba> {
     // Comma-separated parser: rgba(r, g, b, a) - mirrors JavaScript sequence exactly
     let comma_parser = AdvancedColorParsers::rgba_comma_full()
       .map(|(r, g, b, a)| Rgba::new(r, g, b, a), Some("to_rgba_comma"));
@@ -664,7 +664,7 @@ impl Hsl {
 
   /// Parser for HSL colors
   /// Mirrors JavaScript: Hsl.parser with full sequence destructuring logic exactly
-  pub fn parser() -> TokenParser<Hsl> {
+  pub fn parse() -> TokenParser<Hsl> {
     // Comma-separated parser: hsl(h, s%, l%) - mirrors JavaScript sequence exactly with proper types
     let comma_parser = AdvancedColorParsers::hsl_comma_full()
       .map(|(h, s, l)| Hsl::new(h, s, l), Some("to_hsl_comma"));
@@ -712,7 +712,7 @@ impl Hsla {
 
   /// Parser for HSLA colors
   /// Mirrors JavaScript: Hsla.parser with full sequence destructuring logic exactly
-  pub fn parser() -> TokenParser<Hsla> {
+  pub fn parse() -> TokenParser<Hsla> {
     // Comma-separated parser: hsla(h, s%, l%, a) - mirrors JavaScript sequence exactly with proper types
     let comma_parser = AdvancedColorParsers::hsla_comma_full()
       .map(|(h, s, l, a)| Hsla::new(h, s, l, a), Some("to_hsla_comma"));
@@ -784,7 +784,7 @@ impl Lch {
 
   /// Parser for LCH colors
   /// Mirrors: JavaScript Lch.parser with support for percentages, 'none', and optional alpha
-  pub fn parser() -> TokenParser<Lch> {
+  pub fn parse() -> TokenParser<Lch> {
     // Simplified implementation to avoid ownership complexity
     // This handles the basic structure and can be enhanced later
 
@@ -827,7 +827,7 @@ impl Oklch {
 
   /// Parser for OKLCH colors
   /// Mirrors: JavaScript Oklch.parser - basic implementation
-  pub fn parser() -> TokenParser<Oklch> {
+  pub fn parse() -> TokenParser<Oklch> {
     // Simplified implementation - provides a working structure
     // that matches the JavaScript Oklch class
     let default_oklch = Oklch::new(
@@ -867,7 +867,7 @@ impl Oklab {
 
   /// Parser for OKLAB colors
   /// Mirrors: JavaScript Oklab.parser - basic implementation
-  pub fn parser() -> TokenParser<Oklab> {
+  pub fn parse() -> TokenParser<Oklab> {
     // Simplified implementation - provides a working structure
     // that matches the JavaScript Oklab class
     let default_oklab = Oklab::new(
@@ -995,16 +995,16 @@ mod tests {
   #[test]
   fn test_color_parsers_creation() {
     // Basic test that parsers can be created
-    let _named = NamedColor::parser();
-    let _hash = HashColor::parser();
-    let _rgb = Rgb::parser();
-    let _rgba = Rgba::parser();
-    let _hsl = Hsl::parser();
-    let _hsla = Hsla::parser();
-    let _lch = Lch::parser();
-    let _oklch = Oklch::parser();
-    let _oklab = Oklab::parser();
-    let _color = Color::parser();
+    let _named = NamedColor::parse();
+    let _hash = HashColor::parse();
+    let _rgb = Rgb::parse();
+    let _rgba = Rgba::parse();
+    let _hsl = Hsl::parse();
+    let _hsla = Hsla::parse();
+    let _lch = Lch::parse();
+    let _oklch = Oklch::parse();
+    let _oklab = Oklab::parse();
+    let _color = Color::parse();
   }
 
   #[test]

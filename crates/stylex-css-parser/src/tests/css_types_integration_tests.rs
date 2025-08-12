@@ -17,7 +17,7 @@ mod color_tests {
   #[test]
   fn test_parses_named_colors() {
     // Test actual parsing functionality
-    let parser = Color::parser();
+    let parser = Color::parse();
 
     if let Ok(color) = parser.parse("red") {
       if let Color::Named(named) = color {
@@ -46,10 +46,10 @@ mod color_tests {
   #[test]
   fn test_parses_hash_colors() {
     // Test actual parsing functionality
-    let parser = Color::parser();
+    let parser = Color::parse();
 
     // Test direct hash color parser first
-    let hash_parser = HashColor::parser();
+    let hash_parser = HashColor::parse();
 
     if let Ok(color) = hash_parser.parse("#ff0000") {
       assert_eq!(color.value, "ff0000");

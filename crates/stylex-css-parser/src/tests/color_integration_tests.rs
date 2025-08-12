@@ -412,8 +412,8 @@ use super::*;
   #[test]
   fn test_color_parser_integration() {
     // Test that parser methods exist and can be called
-    let _hash_parser = HashColor::parser();
-    let _rgb_parser = Rgb::parser();
+    let _hash_parser = HashColor::parse();
+    let _rgb_parser = Rgb::parse();
 
     // TODO: Add actual parsing tests when parser integration is complete
     // For now, this validates that the parser methods exist and compile

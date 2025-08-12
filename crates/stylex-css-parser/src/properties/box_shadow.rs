@@ -85,7 +85,7 @@ impl BoxShadow {
         .optional();
       let color = whitespace
         .clone()
-        .flat_map(|_| Color::parser(), Some("color"));
+        .flat_map(|_| Color::parse(), Some("color"));
 
       offset_x
         .flat_map(

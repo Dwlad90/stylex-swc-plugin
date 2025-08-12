@@ -70,6 +70,10 @@ pub mod properties;
 pub mod token_parser;
 pub mod token_types;
 
+// Enhanced architecture for JavaScript-equivalent parsing
+pub mod css_value;
+pub mod flex_parser;
+
 #[cfg(test)]
 pub mod tests;
 
@@ -134,7 +138,7 @@ mod lib_tests {
     let _transformed = lastMediaQueryWinsTransform(styles);
 
     // Test css_types module access
-    let _color = css_types::Color::parser();
+    let _color = css_types::Color::parse();
     let _length = css_types::Length::parser();
     let _calc = css_types::Calc::parse();
   }
@@ -148,7 +152,7 @@ mod lib_tests {
     // Test that imports work and types are accessible
     let _transform = properties::Transform::new(vec![]);
     let _transform_fn = lastMediaQueryWinsTransform;
-    let _color_parser = Color::parser();
+    let _color_parser = Color::parse();
     let _length_parser = Length::parser();
     let _calc_parser = Calc::parse();
   }
@@ -170,7 +174,7 @@ mod lib_tests {
     let _substring = base_types::SubString::new("test");
     let _token_list = token_types::TokenList::new("test");
     let _token_parser = token_parser::TokenParser::<()>::never();
-    let _color = css_types::Color::parser();
+    let _color = css_types::Color::parse();
     let _transform = properties::Transform::new(vec![]);
     let _media_query = at_queries::MediaQuery::new("@media screen".to_string());
   }
@@ -206,7 +210,7 @@ mod lib_tests {
     use crate::{lastMediaQueryWinsTransform, properties};
 
     // Parse CSS values
-    let _color = Color::parser(); // CSS color parser
+    let _color = Color::parse(); // CSS color parser
     let _length = Length::parser(); // CSS length parser
     let _calc = Calc::parse(); // CSS calc() expression parser
 

@@ -1,4 +1,6 @@
-use stylex_css_parser_dep::{base_types::SubString, css_types::easing_function::parse_easing_function};
+use stylex_css_parser_dep::{
+  base_types::SubString, css_types::easing_function::parse_easing_function,
+};
 
 #[cfg(test)]
 mod tests {

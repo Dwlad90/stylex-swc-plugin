@@ -4,537 +4,668 @@ Mirrors: packages/style-value-parser/src/css-types/transform-function.js
 */
 
 use crate::{
-    token_parser::TokenParser,
-    token_types::SimpleToken,
-    css_types::{
-        length::Length,
-        angle::Angle,
-        length_percentage::LengthPercentage,
-        length_percentage_parser,
-        common_types::{NumberOrPercentage, number_or_percentage_parser}
-    }
+  css_types::{
+    angle::Angle,
+    common_types::{number_or_percentage_parser, NumberOrPercentage},
+    length::Length,
+    length_percentage::LengthPercentage,
+    length_percentage_parser,
+  },
+  token_parser::TokenParser,
+  token_types::SimpleToken,
 };
 use std::fmt::{self, Display};
 
 /// A CSS transform function
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransformFunction {
-    Matrix(Matrix),
-    Matrix3d(Matrix3d),
-    Perspective(Perspective),
-    Rotate(Rotate),
-    RotateXYZ(RotateXYZ),
-    Rotate3d(Rotate3d),
-    Scale(Scale),
-    Scale3d(Scale3d),
-    ScaleAxis(ScaleAxis),
-    Skew(Skew),
-    SkewAxis(SkewAxis),
-    Translate3d(Translate3d),
-    Translate(Translate),
-    TranslateAxis(TranslateAxis),
+  Matrix(Matrix),
+  Matrix3d(Matrix3d),
+  Perspective(Perspective),
+  Rotate(Rotate),
+  RotateXYZ(RotateXYZ),
+  Rotate3d(Rotate3d),
+  Scale(Scale),
+  Scale3d(Scale3d),
+  ScaleAxis(ScaleAxis),
+  Skew(Skew),
+  SkewAxis(SkewAxis),
+  Translate3d(Translate3d),
+  Translate(Translate),
+  TranslateAxis(TranslateAxis),
 }
 
 /// Matrix transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Matrix {
-    pub a: f64,
-    pub b: f64,
-    pub c: f64,
-    pub d: f64,
-    pub tx: f64,
-    pub ty: f64,
+  pub a: f64,
+  pub b: f64,
+  pub c: f64,
+  pub d: f64,
+  pub tx: f64,
+  pub ty: f64,
 }
 
 /// Matrix3d transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Matrix3d {
-    pub args: [f64; 16],
+  pub args: [f64; 16],
 }
 
 /// Perspective transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Perspective {
-    pub length: Length,
+  pub length: Length,
 }
 
 /// Rotate transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rotate {
-    pub angle: Angle,
+  pub angle: Angle,
 }
 
 /// RotateXYZ transform function (rotateX, rotateY, rotateZ)
 #[derive(Debug, Clone, PartialEq)]
 pub struct RotateXYZ {
-    pub angle: Angle,
-    pub axis: Axis,
+  pub angle: Angle,
+  pub axis: Axis,
 }
 
 /// Rotate3d transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rotate3d {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    pub angle: Angle,
+  pub x: f64,
+  pub y: f64,
+  pub z: f64,
+  pub angle: Angle,
 }
 
 /// Scale transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scale {
-    pub sx: f64,
-    pub sy: Option<f64>,
+  pub sx: f64,
+  pub sy: Option<f64>,
 }
 
 /// Scale3d transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scale3d {
-    pub sx: f64,
-    pub sy: f64,
-    pub sz: f64,
+  pub sx: f64,
+  pub sy: f64,
+  pub sz: f64,
 }
 
 /// ScaleAxis transform function (scaleX, scaleY, scaleZ)
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScaleAxis {
-    pub s: f64,
-    pub axis: Axis,
+  pub s: f64,
+  pub axis: Axis,
 }
 
 /// Skew transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Skew {
-    pub ax: Angle,
-    pub ay: Option<Angle>,
+  pub ax: Angle,
+  pub ay: Option<Angle>,
 }
 
 /// SkewAxis transform function (skewX, skewY)
 #[derive(Debug, Clone, PartialEq)]
 pub struct SkewAxis {
-    pub a: Angle,
-    pub axis: SkewAxis2D,
+  pub a: Angle,
+  pub axis: SkewAxis2D,
 }
 
 /// Translate transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Translate {
-    pub tx: LengthPercentage,
-    pub ty: Option<LengthPercentage>,
+  pub tx: LengthPercentage,
+  pub ty: Option<LengthPercentage>,
 }
 
 /// Translate3d transform function
 #[derive(Debug, Clone, PartialEq)]
 pub struct Translate3d {
-    pub tx: LengthPercentage,
-    pub ty: LengthPercentage,
-    pub tz: Length,
+  pub tx: LengthPercentage,
+  pub ty: LengthPercentage,
+  pub tz: Length,
 }
 
 /// TranslateAxis transform function (translateX, translateY, translateZ)
 #[derive(Debug, Clone, PartialEq)]
 pub struct TranslateAxis {
-    pub t: LengthPercentage,
-    pub axis: Axis,
+  pub t: LengthPercentage,
+  pub axis: Axis,
 }
 
 /// 3D axis enum
 #[derive(Debug, Clone, PartialEq)]
 pub enum Axis {
-    X,
-    Y,
-    Z,
+  X,
+  Y,
+  Z,
 }
 
 /// 2D axis enum for skew functions
 #[derive(Debug, Clone, PartialEq)]
 pub enum SkewAxis2D {
-    X,
-    Y,
+  X,
+  Y,
 }
 
 impl TransformFunction {
-    pub fn parser() -> TokenParser<TransformFunction> {
-        TokenParser::one_of(vec![
-            Matrix::parser().map(|m| TransformFunction::Matrix(m), Some("matrix")),
-            Matrix3d::parser().map(|m| TransformFunction::Matrix3d(m), Some("matrix3d")),
-            Perspective::parser().map(|p| TransformFunction::Perspective(p), Some("perspective")),
-            Rotate::parser().map(|r| TransformFunction::Rotate(r), Some("rotate")),
-            RotateXYZ::parser().map(|r| TransformFunction::RotateXYZ(r), Some("rotatexyz")),
-            Rotate3d::parser().map(|r| TransformFunction::Rotate3d(r), Some("rotate3d")),
-            Scale::parser().map(|s| TransformFunction::Scale(s), Some("scale")),
-            Scale3d::parser().map(|s| TransformFunction::Scale3d(s), Some("scale3d")),
-            ScaleAxis::parser().map(|s| TransformFunction::ScaleAxis(s), Some("scaleaxis")),
-            Skew::parser().map(|s| TransformFunction::Skew(s), Some("skew")),
-            SkewAxis::parser().map(|s| TransformFunction::SkewAxis(s), Some("skewaxis")),
-            Translate3d::parser().map(|t| TransformFunction::Translate3d(t), Some("translate3d")),
-            Translate::parser().map(|t| TransformFunction::Translate(t), Some("translate")),
-            TranslateAxis::parser().map(|t| TransformFunction::TranslateAxis(t), Some("translateaxis")),
-        ])
-    }
+  pub fn parser() -> TokenParser<TransformFunction> {
+    TokenParser::one_of(vec![
+      Matrix::parser().map(|m| TransformFunction::Matrix(m), Some("matrix")),
+      Matrix3d::parser().map(|m| TransformFunction::Matrix3d(m), Some("matrix3d")),
+      Perspective::parser().map(|p| TransformFunction::Perspective(p), Some("perspective")),
+      Rotate::parser().map(|r| TransformFunction::Rotate(r), Some("rotate")),
+      RotateXYZ::parser().map(|r| TransformFunction::RotateXYZ(r), Some("rotatexyz")),
+      Rotate3d::parser().map(|r| TransformFunction::Rotate3d(r), Some("rotate3d")),
+      Scale::parser().map(|s| TransformFunction::Scale(s), Some("scale")),
+      Scale3d::parser().map(|s| TransformFunction::Scale3d(s), Some("scale3d")),
+      ScaleAxis::parser().map(|s| TransformFunction::ScaleAxis(s), Some("scaleaxis")),
+      Skew::parser().map(|s| TransformFunction::Skew(s), Some("skew")),
+      SkewAxis::parser().map(|s| TransformFunction::SkewAxis(s), Some("skewaxis")),
+      Translate3d::parser().map(|t| TransformFunction::Translate3d(t), Some("translate3d")),
+      Translate::parser().map(|t| TransformFunction::Translate(t), Some("translate")),
+      TranslateAxis::parser().map(
+        |t| TransformFunction::TranslateAxis(t),
+        Some("translateaxis"),
+      ),
+    ])
+  }
 }
 
 // Helper to convert NumberOrPercentage to f64 (percentage becomes 0-1 range)
 fn number_or_percentage_to_f64(n: NumberOrPercentage) -> f64 {
-    match n {
-        NumberOrPercentage::Number(n) => n.value.into(),
-        NumberOrPercentage::Percentage(p) => (p.value / 100.0).into(),
-    }
+  match n {
+    NumberOrPercentage::Number(n) => n.value.into(),
+    NumberOrPercentage::Percentage(p) => (p.value / 100.0).into(),
+  }
 }
 
 // Helper function to create a number parser
 fn number_parser() -> TokenParser<f64> {
-    TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
-        .map(|t| if let SimpleToken::Number(v) = t { v } else { 0.0 }, Some("to_f64"))
+  TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number")).map(
+    |t| {
+      if let SimpleToken::Number(v) = t {
+        v
+      } else {
+        0.0
+      }
+    },
+    Some("to_f64"),
+  )
 }
 
 impl Matrix {
-    pub fn new(a: f64, b: f64, c: f64, d: f64, tx: f64, ty: f64) -> Self {
-        Self { a, b, c, d, tx, ty }
-    }
+  pub fn new(a: f64, b: f64, c: f64, d: f64, tx: f64, ty: f64) -> Self {
+    Self { a, b, c, d, tx, ty }
+  }
 
-    pub fn parser() -> TokenParser<Matrix> {
-        let fn_name = TokenParser::<String>::fn_name("matrix");
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+  pub fn parser() -> TokenParser<Matrix> {
+    let fn_name = TokenParser::<String>::fn_name("matrix");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        // Parse 6 numbers separated by optional whitespace and commas
-        fn_name
-            .flat_map(move |_| number_parser(), Some("a"))
-            .flat_map(move |a| {
-                let a_clone = a;
-                number_parser().map(move |b| (a_clone, b), Some("b"))
-            }, Some("with_b"))
-            .flat_map(move |(a, b)| {
-                let a_clone = a;
-                let b_clone = b;
-                number_parser().map(move |c| (a_clone, b_clone, c), Some("c"))
-            }, Some("with_c"))
-            .flat_map(move |(a, b, c)| {
-                let a_clone = a;
-                let b_clone = b;
-                let c_clone = c;
-                number_parser().map(move |d| (a_clone, b_clone, c_clone, d), Some("d"))
-            }, Some("with_d"))
-            .flat_map(move |(a, b, c, d)| {
-                let a_clone = a;
-                let b_clone = b;
-                let c_clone = c;
-                let d_clone = d;
-                number_parser().map(move |tx| (a_clone, b_clone, c_clone, d_clone, tx), Some("tx"))
-            }, Some("with_tx"))
-            .flat_map(move |(a, b, c, d, tx)| {
-                let a_clone = a;
-                let b_clone = b;
-                let c_clone = c;
-                let d_clone = d;
-                let tx_clone = tx;
-                number_parser().map(move |ty| (a_clone, b_clone, c_clone, d_clone, tx_clone, ty), Some("ty"))
-            }, Some("with_ty"))
-            .flat_map(move |(a, b, c, d, tx, ty)| {
-                close.map(move |_| Matrix::new(a, b, c, d, tx, ty), Some("to_matrix"))
-            }, Some("close"))
-    }
+    // Parse 6 numbers separated by optional whitespace and commas
+    fn_name
+      .flat_map(move |_| number_parser(), Some("a"))
+      .flat_map(
+        move |a| {
+          let a_clone = a;
+          number_parser().map(move |b| (a_clone, b), Some("b"))
+        },
+        Some("with_b"),
+      )
+      .flat_map(
+        move |(a, b)| {
+          let a_clone = a;
+          let b_clone = b;
+          number_parser().map(move |c| (a_clone, b_clone, c), Some("c"))
+        },
+        Some("with_c"),
+      )
+      .flat_map(
+        move |(a, b, c)| {
+          let a_clone = a;
+          let b_clone = b;
+          let c_clone = c;
+          number_parser().map(move |d| (a_clone, b_clone, c_clone, d), Some("d"))
+        },
+        Some("with_d"),
+      )
+      .flat_map(
+        move |(a, b, c, d)| {
+          let a_clone = a;
+          let b_clone = b;
+          let c_clone = c;
+          let d_clone = d;
+          number_parser().map(
+            move |tx| (a_clone, b_clone, c_clone, d_clone, tx),
+            Some("tx"),
+          )
+        },
+        Some("with_tx"),
+      )
+      .flat_map(
+        move |(a, b, c, d, tx)| {
+          let a_clone = a;
+          let b_clone = b;
+          let c_clone = c;
+          let d_clone = d;
+          let tx_clone = tx;
+          number_parser().map(
+            move |ty| (a_clone, b_clone, c_clone, d_clone, tx_clone, ty),
+            Some("ty"),
+          )
+        },
+        Some("with_ty"),
+      )
+      .flat_map(
+        move |(a, b, c, d, tx, ty)| {
+          close.map(move |_| Matrix::new(a, b, c, d, tx, ty), Some("to_matrix"))
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Matrix3d {
-    pub fn new(args: [f64; 16]) -> Self {
-        Self { args }
-    }
+  pub fn new(args: [f64; 16]) -> Self {
+    Self { args }
+  }
 
-    pub fn parser() -> TokenParser<Matrix3d> {
-        // For now, return a never parser as matrix3d is complex
-        TokenParser::never()
-    }
+  pub fn parser() -> TokenParser<Matrix3d> {
+    // For now, return a never parser as matrix3d is complex
+    TokenParser::never()
+  }
 }
 
 impl Perspective {
-    pub fn new(length: Length) -> Self {
-        Self { length }
-    }
+  pub fn new(length: Length) -> Self {
+    Self { length }
+  }
 
-    pub fn parser() -> TokenParser<Perspective> {
-        let fn_name = TokenParser::<String>::fn_name("perspective");
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+  pub fn parser() -> TokenParser<Perspective> {
+    let fn_name = TokenParser::<String>::fn_name("perspective");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        fn_name
-            .flat_map(move |_| Length::parser(), Some("length"))
-            .flat_map(move |length| {
-                close.clone().map(move |_| Perspective::new(length.clone()), Some("to_perspective"))
-            }, Some("close"))
-    }
+    fn_name
+      .flat_map(move |_| Length::parser(), Some("length"))
+      .flat_map(
+        move |length| {
+          close.clone().map(
+            move |_| Perspective::new(length.clone()),
+            Some("to_perspective"),
+          )
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Rotate {
-    pub fn new(angle: Angle) -> Self {
-        Self { angle }
-    }
+  pub fn new(angle: Angle) -> Self {
+    Self { angle }
+  }
 
-    pub fn parser() -> TokenParser<Rotate> {
-        let fn_name = TokenParser::<String>::fn_name("rotate");
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+  pub fn parser() -> TokenParser<Rotate> {
+    let fn_name = TokenParser::<String>::fn_name("rotate");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        fn_name
-            .flat_map(move |_| Angle::parser(), Some("angle"))
-            .flat_map(move |angle| {
-                close.clone().map(move |_| Rotate::new(angle.clone()), Some("to_rotate"))
-            }, Some("close"))
-    }
+    fn_name
+      .flat_map(move |_| Angle::parser(), Some("angle"))
+      .flat_map(
+        move |angle| {
+          close
+            .clone()
+            .map(move |_| Rotate::new(angle.clone()), Some("to_rotate"))
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl RotateXYZ {
-    pub fn new(angle: Angle, axis: Axis) -> Self {
-        Self { angle, axis }
-    }
+  pub fn new(angle: Angle, axis: Axis) -> Self {
+    Self { angle, axis }
+  }
 
-    pub fn parser() -> TokenParser<RotateXYZ> {
-        let rotate_x = TokenParser::<String>::fn_name("rotateX")
-            .map(|_| Axis::X, Some("x_axis"));
-        let rotate_y = TokenParser::<String>::fn_name("rotateY")
-            .map(|_| Axis::Y, Some("y_axis"));
-        let rotate_z = TokenParser::<String>::fn_name("rotateZ")
-            .map(|_| Axis::Z, Some("z_axis"));
+  pub fn parser() -> TokenParser<RotateXYZ> {
+    let rotate_x = TokenParser::<String>::fn_name("rotateX").map(|_| Axis::X, Some("x_axis"));
+    let rotate_y = TokenParser::<String>::fn_name("rotateY").map(|_| Axis::Y, Some("y_axis"));
+    let rotate_z = TokenParser::<String>::fn_name("rotateZ").map(|_| Axis::Z, Some("z_axis"));
 
-        let axis_parser = TokenParser::one_of(vec![rotate_x, rotate_y, rotate_z]);
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+    let axis_parser = TokenParser::one_of(vec![rotate_x, rotate_y, rotate_z]);
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        axis_parser
-            .flat_map(move |axis| {
-                let axis_clone = axis.clone();
-                Angle::parser().map(move |angle| (axis_clone.clone(), angle), Some("with_angle"))
-            }, Some("angle"))
-            .flat_map(move |(axis, angle)| {
-                close.clone().map(move |_| RotateXYZ::new(angle.clone(), axis.clone()), Some("to_rotatexyz"))
-            }, Some("close"))
-    }
+    axis_parser
+      .flat_map(
+        move |axis| {
+          let axis_clone = axis.clone();
+          Angle::parser().map(move |angle| (axis_clone.clone(), angle), Some("with_angle"))
+        },
+        Some("angle"),
+      )
+      .flat_map(
+        move |(axis, angle)| {
+          close.clone().map(
+            move |_| RotateXYZ::new(angle.clone(), axis.clone()),
+            Some("to_rotatexyz"),
+          )
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Rotate3d {
-    pub fn new(x: f64, y: f64, z: f64, angle: Angle) -> Self {
-        Self { x, y, z, angle }
-    }
+  pub fn new(x: f64, y: f64, z: f64, angle: Angle) -> Self {
+    Self { x, y, z, angle }
+  }
 
-    pub fn parser() -> TokenParser<Rotate3d> {
-        // For now, return a never parser as rotate3d is complex
-        TokenParser::never()
-    }
+  pub fn parser() -> TokenParser<Rotate3d> {
+    // For now, return a never parser as rotate3d is complex
+    TokenParser::never()
+  }
 }
 
 impl Scale {
-    pub fn new(sx: f64, sy: Option<f64>) -> Self {
-        Self { sx, sy }
-    }
+  pub fn new(sx: f64, sy: Option<f64>) -> Self {
+    Self { sx, sy }
+  }
 
-    pub fn parser() -> TokenParser<Scale> {
-        let fn_name = TokenParser::<String>::fn_name("scale");
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+  pub fn parser() -> TokenParser<Scale> {
+    let fn_name = TokenParser::<String>::fn_name("scale");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        let num_or_pct = number_or_percentage_parser();
-        let second_val = num_or_pct.clone().optional();
+    let num_or_pct = number_or_percentage_parser();
+    let second_val = num_or_pct.clone().optional();
 
-        fn_name
-            .flat_map(move |_| num_or_pct.clone(), Some("sx"))
-            .flat_map(move |sx| {
-                let sx_clone = sx.clone();
-                second_val.clone().map(move |sy_opt| (sx_clone.clone(), sy_opt), Some("sy"))
-            }, Some("with_sy"))
-            .flat_map(move |(sx, sy_opt)| {
-                let sx_f64 = number_or_percentage_to_f64(sx);
-                let sy_f64 = sy_opt.map(number_or_percentage_to_f64);
-                close.clone().map(move |_| Scale::new(sx_f64, sy_f64), Some("to_scale"))
-            }, Some("close"))
-    }
+    fn_name
+      .flat_map(move |_| num_or_pct.clone(), Some("sx"))
+      .flat_map(
+        move |sx| {
+          let sx_clone = sx.clone();
+          second_val
+            .clone()
+            .map(move |sy_opt| (sx_clone.clone(), sy_opt), Some("sy"))
+        },
+        Some("with_sy"),
+      )
+      .flat_map(
+        move |(sx, sy_opt)| {
+          let sx_f64 = number_or_percentage_to_f64(sx);
+          let sy_f64 = sy_opt.map(number_or_percentage_to_f64);
+          close
+            .clone()
+            .map(move |_| Scale::new(sx_f64, sy_f64), Some("to_scale"))
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Scale3d {
-    pub fn new(sx: f64, sy: f64, sz: f64) -> Self {
-        Self { sx, sy, sz }
-    }
+  pub fn new(sx: f64, sy: f64, sz: f64) -> Self {
+    Self { sx, sy, sz }
+  }
 
-    pub fn parser() -> TokenParser<Scale3d> {
-        // For now, return a never parser as scale3d is complex
-        TokenParser::never()
-    }
+  pub fn parser() -> TokenParser<Scale3d> {
+    // For now, return a never parser as scale3d is complex
+    TokenParser::never()
+  }
 }
 
 impl ScaleAxis {
-    pub fn new(s: f64, axis: Axis) -> Self {
-        Self { s, axis }
-    }
+  pub fn new(s: f64, axis: Axis) -> Self {
+    Self { s, axis }
+  }
 
-    pub fn parser() -> TokenParser<ScaleAxis> {
-        let scale_x = TokenParser::<String>::fn_name("scaleX")
-            .map(|_| Axis::X, Some("x_axis"));
-        let scale_y = TokenParser::<String>::fn_name("scaleY")
-            .map(|_| Axis::Y, Some("y_axis"));
-        let scale_z = TokenParser::<String>::fn_name("scaleZ")
-            .map(|_| Axis::Z, Some("z_axis"));
+  pub fn parser() -> TokenParser<ScaleAxis> {
+    let scale_x = TokenParser::<String>::fn_name("scaleX").map(|_| Axis::X, Some("x_axis"));
+    let scale_y = TokenParser::<String>::fn_name("scaleY").map(|_| Axis::Y, Some("y_axis"));
+    let scale_z = TokenParser::<String>::fn_name("scaleZ").map(|_| Axis::Z, Some("z_axis"));
 
-        let axis_parser = TokenParser::one_of(vec![scale_x, scale_y, scale_z]);
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+    let axis_parser = TokenParser::one_of(vec![scale_x, scale_y, scale_z]);
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        axis_parser
-            .flat_map(move |axis| {
-                let axis_clone = axis.clone();
-                number_or_percentage_parser().map(move |s| (axis_clone.clone(), s), Some("with_scale"))
-            }, Some("scale"))
-            .flat_map(move |(axis, s)| {
-                let s_f64 = number_or_percentage_to_f64(s);
-                close.clone().map(move |_| ScaleAxis::new(s_f64, axis.clone()), Some("to_scaleaxis"))
-            }, Some("close"))
-    }
+    axis_parser
+      .flat_map(
+        move |axis| {
+          let axis_clone = axis.clone();
+          number_or_percentage_parser().map(move |s| (axis_clone.clone(), s), Some("with_scale"))
+        },
+        Some("scale"),
+      )
+      .flat_map(
+        move |(axis, s)| {
+          let s_f64 = number_or_percentage_to_f64(s);
+          close.clone().map(
+            move |_| ScaleAxis::new(s_f64, axis.clone()),
+            Some("to_scaleaxis"),
+          )
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Skew {
-    pub fn new(ax: Angle, ay: Option<Angle>) -> Self {
-        Self { ax, ay }
-    }
+  pub fn new(ax: Angle, ay: Option<Angle>) -> Self {
+    Self { ax, ay }
+  }
 
-    pub fn parser() -> TokenParser<Skew> {
-        let fn_name = TokenParser::<String>::fn_name("skew");
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+  pub fn parser() -> TokenParser<Skew> {
+    let fn_name = TokenParser::<String>::fn_name("skew");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        let second_angle = Angle::parser().optional();
+    let second_angle = Angle::parser().optional();
 
-        fn_name
-            .flat_map(move |_| Angle::parser(), Some("ax"))
-            .flat_map(move |ax| {
-                let ax_clone = ax.clone();
-                second_angle.clone().map(move |ay_opt| (ax_clone.clone(), ay_opt), Some("ay"))
-            }, Some("with_ay"))
-            .flat_map(move |(ax, ay_opt)| {
-                close.clone().map(move |_| Skew::new(ax.clone(), ay_opt.clone()), Some("to_skew"))
-            }, Some("close"))
-    }
+    fn_name
+      .flat_map(move |_| Angle::parser(), Some("ax"))
+      .flat_map(
+        move |ax| {
+          let ax_clone = ax.clone();
+          second_angle
+            .clone()
+            .map(move |ay_opt| (ax_clone.clone(), ay_opt), Some("ay"))
+        },
+        Some("with_ay"),
+      )
+      .flat_map(
+        move |(ax, ay_opt)| {
+          close.clone().map(
+            move |_| Skew::new(ax.clone(), ay_opt.clone()),
+            Some("to_skew"),
+          )
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl SkewAxis {
-    pub fn new(a: Angle, axis: SkewAxis2D) -> Self {
-        Self { a, axis }
-    }
+  pub fn new(a: Angle, axis: SkewAxis2D) -> Self {
+    Self { a, axis }
+  }
 
-    pub fn parser() -> TokenParser<SkewAxis> {
-        let skew_x = TokenParser::<String>::fn_name("skewX")
-            .map(|_| SkewAxis2D::X, Some("x_axis"));
-        let skew_y = TokenParser::<String>::fn_name("skewY")
-            .map(|_| SkewAxis2D::Y, Some("y_axis"));
+  pub fn parser() -> TokenParser<SkewAxis> {
+    let skew_x = TokenParser::<String>::fn_name("skewX").map(|_| SkewAxis2D::X, Some("x_axis"));
+    let skew_y = TokenParser::<String>::fn_name("skewY").map(|_| SkewAxis2D::Y, Some("y_axis"));
 
-        let axis_parser = TokenParser::one_of(vec![skew_x, skew_y]);
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+    let axis_parser = TokenParser::one_of(vec![skew_x, skew_y]);
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        axis_parser
-            .flat_map(move |axis| {
-                let axis_clone = axis.clone();
-                Angle::parser().map(move |a| (axis_clone.clone(), a), Some("with_angle"))
-            }, Some("angle"))
-            .flat_map(move |(axis, a)| {
-                close.clone().map(move |_| SkewAxis::new(a.clone(), axis.clone()), Some("to_skewaxis"))
-            }, Some("close"))
-    }
+    axis_parser
+      .flat_map(
+        move |axis| {
+          let axis_clone = axis.clone();
+          Angle::parser().map(move |a| (axis_clone.clone(), a), Some("with_angle"))
+        },
+        Some("angle"),
+      )
+      .flat_map(
+        move |(axis, a)| {
+          close.clone().map(
+            move |_| SkewAxis::new(a.clone(), axis.clone()),
+            Some("to_skewaxis"),
+          )
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Translate {
-    pub fn new(tx: LengthPercentage, ty: Option<LengthPercentage>) -> Self {
-        Self { tx, ty }
-    }
+  pub fn new(tx: LengthPercentage, ty: Option<LengthPercentage>) -> Self {
+    Self { tx, ty }
+  }
 
-    pub fn parser() -> TokenParser<Translate> {
-        let fn_name = TokenParser::<String>::fn_name("translate");
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+  pub fn parser() -> TokenParser<Translate> {
+    let fn_name = TokenParser::<String>::fn_name("translate");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        let second_val = length_percentage_parser().optional();
+    let second_val = length_percentage_parser().optional();
 
-        fn_name
-            .flat_map(move |_| length_percentage_parser(), Some("tx"))
-            .flat_map(move |tx| {
-                let tx_clone = tx.clone();
-                second_val.clone().map(move |ty_opt| (tx_clone.clone(), ty_opt), Some("ty"))
-            }, Some("with_ty"))
-            .flat_map(move |(tx, ty_opt)| {
-                close.clone().map(move |_| Translate::new(tx.clone(), ty_opt.clone()), Some("to_translate"))
-            }, Some("close"))
-    }
+    fn_name
+      .flat_map(move |_| length_percentage_parser(), Some("tx"))
+      .flat_map(
+        move |tx| {
+          let tx_clone = tx.clone();
+          second_val
+            .clone()
+            .map(move |ty_opt| (tx_clone.clone(), ty_opt), Some("ty"))
+        },
+        Some("with_ty"),
+      )
+      .flat_map(
+        move |(tx, ty_opt)| {
+          close.clone().map(
+            move |_| Translate::new(tx.clone(), ty_opt.clone()),
+            Some("to_translate"),
+          )
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Translate3d {
-    pub fn new(tx: LengthPercentage, ty: LengthPercentage, tz: Length) -> Self {
-        Self { tx, ty, tz }
-    }
+  pub fn new(tx: LengthPercentage, ty: LengthPercentage, tz: Length) -> Self {
+    Self { tx, ty, tz }
+  }
 
-    pub fn parser() -> TokenParser<Translate3d> {
-        // For now, return a never parser as translate3d is complex
-        TokenParser::never()
-    }
+  pub fn parser() -> TokenParser<Translate3d> {
+    // For now, return a never parser as translate3d is complex
+    TokenParser::never()
+  }
 }
 
 impl TranslateAxis {
-    pub fn new(t: LengthPercentage, axis: Axis) -> Self {
-        Self { t, axis }
-    }
+  pub fn new(t: LengthPercentage, axis: Axis) -> Self {
+    Self { t, axis }
+  }
 
-    pub fn parser() -> TokenParser<TranslateAxis> {
-        let translate_x = TokenParser::<String>::fn_name("translateX")
-            .map(|_| Axis::X, Some("x_axis"));
-        let translate_y = TokenParser::<String>::fn_name("translateY")
-            .map(|_| Axis::Y, Some("y_axis"));
-        let translate_z = TokenParser::<String>::fn_name("translateZ")
-            .map(|_| Axis::Z, Some("z_axis"));
+  pub fn parser() -> TokenParser<TranslateAxis> {
+    let translate_x = TokenParser::<String>::fn_name("translateX").map(|_| Axis::X, Some("x_axis"));
+    let translate_y = TokenParser::<String>::fn_name("translateY").map(|_| Axis::Y, Some("y_axis"));
+    let translate_z = TokenParser::<String>::fn_name("translateZ").map(|_| Axis::Z, Some("z_axis"));
 
-        let axis_parser = TokenParser::one_of(vec![translate_x, translate_y, translate_z]);
-        let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+    let axis_parser = TokenParser::one_of(vec![translate_x, translate_y, translate_z]);
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
 
-        axis_parser
-            .flat_map(move |axis| {
-                let axis_clone = axis.clone();
-                length_percentage_parser().map(move |t| (axis_clone.clone(), t), Some("with_translate"))
-            }, Some("translate"))
-            .flat_map(move |(axis, t)| {
-                close.clone().map(move |_| TranslateAxis::new(t.clone(), axis.clone()), Some("to_translateaxis"))
-            }, Some("close"))
-    }
+    axis_parser
+      .flat_map(
+        move |axis| {
+          let axis_clone = axis.clone();
+          length_percentage_parser().map(move |t| (axis_clone.clone(), t), Some("with_translate"))
+        },
+        Some("translate"),
+      )
+      .flat_map(
+        move |(axis, t)| {
+          close.clone().map(
+            move |_| TranslateAxis::new(t.clone(), axis.clone()),
+            Some("to_translateaxis"),
+          )
+        },
+        Some("close"),
+      )
+  }
 }
 
 impl Display for TransformFunction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            TransformFunction::Matrix(m) => write!(f, "matrix({}, {}, {}, {}, {}, {})",
-                m.a, m.b, m.c, m.d, m.tx, m.ty),
-            TransformFunction::Matrix3d(m) => {
-                let args: Vec<String> = m.args.iter().map(|x| x.to_string()).collect();
-                write!(f, "matrix3d({})", args.join(", "))
-            },
-            TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),
-            TransformFunction::Rotate(r) => write!(f, "rotate({})", r.angle),
-            TransformFunction::RotateXYZ(r) => write!(f, "rotate{}({})",
-                match r.axis { Axis::X => "X", Axis::Y => "Y", Axis::Z => "Z" }, r.angle),
-            TransformFunction::Rotate3d(r) => write!(f, "rotate3d({}, {}, {}, {})",
-                r.x, r.y, r.z, r.angle),
-            TransformFunction::Scale(s) => {
-                match &s.sy {
-                    Some(sy) => write!(f, "scale({}, {})", s.sx, sy),
-                    None => write!(f, "scale({})", s.sx),
-                }
-            },
-            TransformFunction::Scale3d(s) => write!(f, "scale3d({}, {}, {})", s.sx, s.sy, s.sz),
-            TransformFunction::ScaleAxis(s) => write!(f, "scale{}({})",
-                match s.axis { Axis::X => "X", Axis::Y => "Y", Axis::Z => "Z" }, s.s),
-            TransformFunction::Skew(s) => {
-                match &s.ay {
-                    Some(ay) => write!(f, "skew({}, {})", s.ax, ay),
-                    None => write!(f, "skew({})", s.ax),
-                }
-            },
-            TransformFunction::SkewAxis(s) => write!(f, "skew{}({})",
-                match s.axis { SkewAxis2D::X => "X", SkewAxis2D::Y => "Y" }, s.a),
-            TransformFunction::Translate(t) => {
-                match &t.ty {
-                    Some(ty) => write!(f, "translate({}, {})", t.tx, ty),
-                    None => write!(f, "translate({})", t.tx),
-                }
-            },
-            TransformFunction::Translate3d(t) => write!(f, "translate3d({}, {}, {})",
-                t.tx, t.ty, t.tz),
-            TransformFunction::TranslateAxis(t) => write!(f, "translate{}({})",
-                match t.axis { Axis::X => "X", Axis::Y => "Y", Axis::Z => "Z" }, t.t),
-        }
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      TransformFunction::Matrix(m) => write!(
+        f,
+        "matrix({}, {}, {}, {}, {}, {})",
+        m.a, m.b, m.c, m.d, m.tx, m.ty
+      ),
+      TransformFunction::Matrix3d(m) => {
+        let args: Vec<String> = m.args.iter().map(|x| x.to_string()).collect();
+        write!(f, "matrix3d({})", args.join(", "))
+      }
+      TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),
+      TransformFunction::Rotate(r) => write!(f, "rotate({})", r.angle),
+      TransformFunction::RotateXYZ(r) => write!(
+        f,
+        "rotate{}({})",
+        match r.axis {
+          Axis::X => "X",
+          Axis::Y => "Y",
+          Axis::Z => "Z",
+        },
+        r.angle
+      ),
+      TransformFunction::Rotate3d(r) => {
+        write!(f, "rotate3d({}, {}, {}, {})", r.x, r.y, r.z, r.angle)
+      }
+      TransformFunction::Scale(s) => match &s.sy {
+        Some(sy) => write!(f, "scale({}, {})", s.sx, sy),
+        None => write!(f, "scale({})", s.sx),
+      },
+      TransformFunction::Scale3d(s) => write!(f, "scale3d({}, {}, {})", s.sx, s.sy, s.sz),
+      TransformFunction::ScaleAxis(s) => write!(
+        f,
+        "scale{}({})",
+        match s.axis {
+          Axis::X => "X",
+          Axis::Y => "Y",
+          Axis::Z => "Z",
+        },
+        s.s
+      ),
+      TransformFunction::Skew(s) => match &s.ay {
+        Some(ay) => write!(f, "skew({}, {})", s.ax, ay),
+        None => write!(f, "skew({})", s.ax),
+      },
+      TransformFunction::SkewAxis(s) => write!(
+        f,
+        "skew{}({})",
+        match s.axis {
+          SkewAxis2D::X => "X",
+          SkewAxis2D::Y => "Y",
+        },
+        s.a
+      ),
+      TransformFunction::Translate(t) => match &t.ty {
+        Some(ty) => write!(f, "translate({}, {})", t.tx, ty),
+        None => write!(f, "translate({})", t.tx),
+      },
+      TransformFunction::Translate3d(t) => write!(f, "translate3d({}, {}, {})", t.tx, t.ty, t.tz),
+      TransformFunction::TranslateAxis(t) => write!(
+        f,
+        "translate{}({})",
+        match t.axis {
+          Axis::X => "X",
+          Axis::Y => "Y",
+          Axis::Z => "Z",
+        },
+        t.t
+      ),
     }
+  }
 }

@@ -12,6 +12,6 @@ pub mod media_query_transform;
 pub mod messages;
 
 // Re-export commonly used types
-pub use media_query::{MediaQuery, validate_media_query, MediaQueryRule};
+pub use media_query::{validate_media_query, MediaQuery, MediaQueryRule};
 pub use media_query_transform::lastMediaQueryWinsTransform;
 pub use messages::MediaQueryErrors;

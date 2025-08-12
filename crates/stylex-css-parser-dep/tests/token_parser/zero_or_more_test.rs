@@ -76,7 +76,9 @@ mod zero_or_more {
   }
 
   #[test]
-  #[should_panic(expected = r#""Expected end of input, got Ident(\"for\") instead\nConsumed tokens: [Some(Ident(\"foo\")), Some(Ident(\"foo\")), Some(Ident(\"foo\"))]"#)]
+  #[should_panic(
+    expected = r#""Expected end of input, got Ident(\"for\") instead\nConsumed tokens: [Some(Ident(\"foo\")), Some(Ident(\"foo\")), Some(Ident(\"foo\"))]"#
+  )]
   fn fails_to_parse_a_different_string() {
     let string_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident);
     let whitespace_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Whitespace);

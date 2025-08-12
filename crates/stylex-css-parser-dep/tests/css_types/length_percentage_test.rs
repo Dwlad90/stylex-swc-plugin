@@ -1,6 +1,6 @@
 use stylex_css_parser_dep::base_types::SubString;
-use stylex_css_parser_dep::css_types::length::{Length, Px, Rem};
 use stylex_css_parser_dep::css_types::common_types::Percentage;
+use stylex_css_parser_dep::css_types::length::{Length, Px, Rem};
 use stylex_css_parser_dep::css_types::length_percentage::length_percentage;
 
 #[test]

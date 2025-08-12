@@ -1,7 +1,5 @@
 use stylex_css_parser_dep::base_types::SubString;
-use stylex_css_parser_dep::css_types::position::{
-  Horizontal, Position, Vertical,
-};
+use stylex_css_parser_dep::css_types::position::{Horizontal, Position, Vertical};
 
 /**
  * Test CSS Type: <position>

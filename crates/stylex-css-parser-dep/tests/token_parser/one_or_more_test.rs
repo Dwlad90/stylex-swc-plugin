@@ -57,9 +57,7 @@ mod one_or_more {
   }
 
   #[test]
-  #[should_panic(
-    expected = r#"Expected OneOrMore<Ident.map().flatMap()> but got Never"#
-  )]
+  #[should_panic(expected = r#"Expected OneOrMore<Ident.map().flatMap()> but got Never"#)]
   fn fails_to_parse_a_different_string() {
     let string_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Ident);
     let whitespace_parser = TokenParser::<Token<'static>>::get_token_parser(TokenType::Whitespace);

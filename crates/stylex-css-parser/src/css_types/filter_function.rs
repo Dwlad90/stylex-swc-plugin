@@ -1,154 +1,451 @@
 /*!
 CSS filter function parser.
-Mirrors: packages/style-value-parser/src/css-types/filter-function.js
+Mirrors: packages/style-value-parser/src/css-types/filter-function.js exactly
 */
 
 use crate::{
-  css_types::common_types::number_or_percentage_parser,
-  css_types::{Length, NumberOrPercentage},
-  token_parser::TokenParser,
+  css_types::{common_types::{number_or_percentage_parser, NumberOrPercentage}, Angle, Length},
+  token_parser::{TokenParser, Tokens},
   token_types::SimpleToken,
 };
+use std::fmt::{self, Display};
 
-/// A CSS filter function
+/// Base FilterFunction class - mirrors JavaScript FilterFunction class exactly
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterFunction {
-  Blur(Length),
-  Brightness(f32),
-  Contrast(f32),
-  Grayscale(f32),
-  HueRotate(super::angle::Angle),
-  Invert(f32),
-  Opacity(f32),
-  Saturate(f32),
-  Sepia(f32),
+  Blur(BlurFilterFunction),
+  Brightness(BrightnessFilterFunction),
+  Contrast(ContrastFilterFunction),
+  Grayscale(GrayscaleFilterFunction),
+  HueRotate(HueRotateFilterFunction),
+  Invert(InvertFilterFunction),
+  Opacity(OpacityFilterFunction),
+  Saturate(SaturateFilterFunction),
+  Sepia(SepiaFilterFunction),
+}
+
+/// BlurFilterFunction class - mirrors JavaScript BlurFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlurFilterFunction {
+  pub radius: Length,
+}
+
+/// BrightnessFilterFunction class - mirrors JavaScript BrightnessFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct BrightnessFilterFunction {
+  pub percentage: f64,
+}
+
+/// ContrastFilterFunction class - mirrors JavaScript ContrastFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct ContrastFilterFunction {
+  pub amount: f64,
+}
+
+/// GrayscaleFilterFunction class - mirrors JavaScript GrayscaleFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct GrayscaleFilterFunction {
+  pub amount: f64,
+}
+
+/// HueRotateFilterFunction class - mirrors JavaScript HueRotateFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct HueRotateFilterFunction {
+  pub angle: Angle,
+}
+
+/// InvertFilterFunction class - mirrors JavaScript InvertFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct InvertFilterFunction {
+  pub amount: f64,
+}
+
+/// OpacityFilterFunction class - mirrors JavaScript OpacityFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct OpacityFilterFunction {
+  pub amount: f64,
+}
+
+/// SaturateFilterFunction class - mirrors JavaScript SaturateFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct SaturateFilterFunction {
+  pub amount: f64,
+}
+
+/// SepiaFilterFunction class - mirrors JavaScript SepiaFilterFunction exactly
+#[derive(Debug, Clone, PartialEq)]
+pub struct SepiaFilterFunction {
+  pub amount: f64,
 }
 
 impl FilterFunction {
-  pub fn parse() -> TokenParser<FilterFunction> {
+  /// Static parser method - mirrors JavaScript FilterFunction.parser exactly
+  pub fn parser() -> TokenParser<FilterFunction> {
     TokenParser::one_of(vec![
-      Self::blur_parser(),
-      Self::brightness_parser(),
-      Self::contrast_parser(),
-      Self::grayscale_parser(),
-      Self::hue_rotate_parser(),
-      Self::invert_parser(),
-      Self::opacity_parser(),
-      Self::saturate_parser(),
-      Self::sepia_parser(),
+      BlurFilterFunction::parser().map(FilterFunction::Blur, Some("blur")),
+      BrightnessFilterFunction::parser().map(FilterFunction::Brightness, Some("brightness")),
+      ContrastFilterFunction::parser().map(FilterFunction::Contrast, Some("contrast")),
+      GrayscaleFilterFunction::parser().map(FilterFunction::Grayscale, Some("grayscale")),
+      HueRotateFilterFunction::parser().map(FilterFunction::HueRotate, Some("hue_rotate")),
+      InvertFilterFunction::parser().map(FilterFunction::Invert, Some("invert")),
+      OpacityFilterFunction::parser().map(FilterFunction::Opacity, Some("opacity")),
+      SaturateFilterFunction::parser().map(FilterFunction::Saturate, Some("saturate")),
+      SepiaFilterFunction::parser().map(FilterFunction::Sepia, Some("sepia")),
     ])
   }
+}
 
-  fn fn_name(name: &str) -> TokenParser<String> {
-    TokenParser::<String>::fn_name(name)
+impl BlurFilterFunction {
+  pub fn new(radius: Length) -> Self {
+    Self { radius }
   }
 
-  fn number_or_percentage_to_number() -> TokenParser<f32> {
-    number_or_percentage_parser().map(
+  /// Mirrors JavaScript BlurFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<BlurFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "blur"
+        } else {
+          false
+        }
+      }, Some("blur_function"));
+
+    function_token
+      .flat_map(|_| Length::parser(), Some("radius"))
+      .flat_map(|radius| {
+        Tokens::close_paren().map(move |_| BlurFilterFunction::new(radius.clone()), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl BrightnessFilterFunction {
+  pub fn new(percentage: f64) -> Self {
+    Self { percentage }
+  }
+
+  /// Mirrors JavaScript BrightnessFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<BrightnessFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "brightness"
+        } else {
+          false
+        }
+      }, Some("brightness_function"));
+
+    let number_or_percentage_to_number = number_or_percentage_parser().map(
       |v| match v {
-        NumberOrPercentage::Number(n) => n.value,
-        NumberOrPercentage::Percentage(p) => p.value / 100.0,
+        NumberOrPercentage::Number(n) => n.value as f64,
+        NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
       },
       Some("to_number"),
-    )
+    );
+
+    function_token
+      .flat_map(move |_| number_or_percentage_to_number.clone(), Some("percentage"))
+      .flat_map(|percentage| {
+        Tokens::close_paren().map(move |_| BrightnessFilterFunction::new(percentage), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl ContrastFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
   }
 
-  fn blur_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("blur")
-      .flat_map(|_| Length::parser(), Some("len"))
-      .flat_map(
-        move |len| close.clone().map(move |_| len.clone(), Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Blur, Some("to_blur"))
+  /// Mirrors JavaScript ContrastFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<ContrastFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "contrast"
+        } else {
+          false
+        }
+      }, Some("contrast_function"));
+
+    let number_or_percentage_to_number = number_or_percentage_parser().map(
+      |v| match v {
+        NumberOrPercentage::Number(n) => n.value as f64,
+        NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+      },
+      Some("to_number"),
+    );
+
+    function_token
+      .flat_map(move |_| {
+        number_or_percentage_to_number.clone()
+      }, Some("amount"))
+      .flat_map(|amount| {
+        Tokens::close_paren().map(move |_| ContrastFilterFunction::new(amount), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl GrayscaleFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
   }
 
-  fn brightness_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("brightness")
-      .flat_map(|_| Self::number_or_percentage_to_number(), Some("val"))
-      .flat_map(
-        move |v| close.clone().map(move |_| v, Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Brightness, Some("to_brightness"))
+  /// Mirrors JavaScript GrayscaleFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<GrayscaleFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "grayscale"
+        } else {
+          false
+        }
+      }, Some("grayscale_function"));
+
+    let number_or_percentage_to_number = number_or_percentage_parser().map(
+      |v| match v {
+        NumberOrPercentage::Number(n) => n.value as f64,
+        NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+      },
+      Some("to_number"),
+    );
+
+    function_token
+      .flat_map(move |_| {
+        number_or_percentage_to_number.clone()
+      }, Some("amount"))
+      .flat_map(|amount| {
+        Tokens::close_paren().map(move |_| GrayscaleFilterFunction::new(amount), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl HueRotateFilterFunction {
+  pub fn new(angle: Angle) -> Self {
+    Self { angle }
   }
 
-  fn contrast_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("contrast")
-      .flat_map(|_| Self::number_or_percentage_to_number(), Some("val"))
-      .flat_map(
-        move |v| close.clone().map(move |_| v, Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Contrast, Some("to_contrast"))
+  /// Mirrors JavaScript HueRotateFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<HueRotateFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "hue-rotate"
+        } else {
+          false
+        }
+      }, Some("hue_rotate_function"));
+
+    function_token
+      .flat_map(|_| Angle::parser(), Some("angle"))
+      .flat_map(|angle| {
+        Tokens::close_paren().map(move |_| HueRotateFilterFunction::new(angle.clone()), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl InvertFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
   }
 
-  fn grayscale_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("grayscale")
-      .flat_map(|_| Self::number_or_percentage_to_number(), Some("val"))
-      .flat_map(
-        move |v| close.clone().map(move |_| v, Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Grayscale, Some("to_grayscale"))
+  /// Mirrors JavaScript InvertFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<InvertFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "invert"
+        } else {
+          false
+        }
+      }, Some("invert_function"));
+
+    let number_or_percentage_to_number = number_or_percentage_parser().map(
+      |v| match v {
+        NumberOrPercentage::Number(n) => n.value as f64,
+        NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+      },
+      Some("to_number"),
+    );
+
+    function_token
+      .flat_map(move |_| {
+        number_or_percentage_to_number.clone()
+      }, Some("amount"))
+      .flat_map(|amount| {
+        Tokens::close_paren().map(move |_| InvertFilterFunction::new(amount), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl OpacityFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
   }
 
-  fn hue_rotate_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("hue-rotate")
-      .flat_map(|_| super::angle::Angle::parser(), Some("angle"))
-      .flat_map(
-        move |a| close.clone().map(move |_| a.clone(), Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::HueRotate, Some("to_hue_rotate"))
+  /// Mirrors JavaScript OpacityFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<OpacityFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "opacity"
+        } else {
+          false
+        }
+      }, Some("opacity_function"));
+
+    let number_or_percentage_to_number = number_or_percentage_parser().map(
+      |v| match v {
+        NumberOrPercentage::Number(n) => n.value as f64,
+        NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+      },
+      Some("to_number"),
+    );
+
+    function_token
+      .flat_map(move |_| {
+        number_or_percentage_to_number.clone()
+      }, Some("amount"))
+      .flat_map(|amount| {
+        Tokens::close_paren().map(move |_| OpacityFilterFunction::new(amount), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl SaturateFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
   }
 
-  fn invert_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("invert")
-      .flat_map(|_| Self::number_or_percentage_to_number(), Some("val"))
-      .flat_map(
-        move |v| close.clone().map(move |_| v, Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Invert, Some("to_invert"))
+  /// Mirrors JavaScript SaturateFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<SaturateFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "saturate"
+        } else {
+          false
+        }
+      }, Some("saturate_function"));
+
+    let number_or_percentage_to_number = number_or_percentage_parser().map(
+      |v| match v {
+        NumberOrPercentage::Number(n) => n.value as f64,
+        NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+      },
+      Some("to_number"),
+    );
+
+    function_token
+      .flat_map(move |_| {
+        number_or_percentage_to_number.clone()
+      }, Some("amount"))
+      .flat_map(|amount| {
+        Tokens::close_paren().map(move |_| SaturateFilterFunction::new(amount), Some("close"))
+      }, Some("close"))
+  }
+}
+
+impl SepiaFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
   }
 
-  fn opacity_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("opacity")
-      .flat_map(|_| Self::number_or_percentage_to_number(), Some("val"))
-      .flat_map(
-        move |v| close.clone().map(move |_| v, Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Opacity, Some("to_opacity"))
-  }
+  /// Mirrors JavaScript SepiaFilterFunction.parser exactly
+  pub fn parser() -> TokenParser<SepiaFilterFunction> {
+    let function_token = Tokens::function()
+      .where_fn(|token| {
+        if let SimpleToken::Function(name) = token {
+          name == "sepia"
+        } else {
+          false
+        }
+      }, Some("sepia_function"));
 
-  fn saturate_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("saturate")
-      .flat_map(|_| Self::number_or_percentage_to_number(), Some("val"))
-      .flat_map(
-        move |v| close.clone().map(move |_| v, Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Saturate, Some("to_saturate"))
-  }
+    let number_or_percentage_to_number = number_or_percentage_parser().map(
+      |v| match v {
+        NumberOrPercentage::Number(n) => n.value as f64,
+        NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+      },
+      Some("to_number"),
+    );
 
-  fn sepia_parser() -> TokenParser<FilterFunction> {
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
-    Self::fn_name("sepia")
-      .flat_map(|_| Self::number_or_percentage_to_number(), Some("val"))
-      .flat_map(
-        move |v| close.clone().map(move |_| v, Some(")")),
-        Some("close"),
-      )
-      .map(FilterFunction::Sepia, Some("to_sepia"))
+    function_token
+      .flat_map(move |_| {
+        number_or_percentage_to_number.clone()
+      }, Some("amount"))
+      .flat_map(|amount| {
+        Tokens::close_paren().map(move |_| SepiaFilterFunction::new(amount), Some("close"))
+      }, Some("close"))
+  }
+}
+
+// Display implementations to match JavaScript toString() methods
+impl Display for FilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      FilterFunction::Blur(blur) => blur.fmt(f),
+      FilterFunction::Brightness(brightness) => brightness.fmt(f),
+      FilterFunction::Contrast(contrast) => contrast.fmt(f),
+      FilterFunction::Grayscale(grayscale) => grayscale.fmt(f),
+      FilterFunction::HueRotate(hue_rotate) => hue_rotate.fmt(f),
+      FilterFunction::Invert(invert) => invert.fmt(f),
+      FilterFunction::Opacity(opacity) => opacity.fmt(f),
+      FilterFunction::Saturate(saturate) => saturate.fmt(f),
+      FilterFunction::Sepia(sepia) => sepia.fmt(f),
+    }
+  }
+}
+
+impl Display for BlurFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "blur({})", self.radius)
+  }
+}
+
+impl Display for BrightnessFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "brightness({})", self.percentage)
+  }
+}
+
+impl Display for ContrastFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "contrast({})", self.amount)
+  }
+}
+
+impl Display for GrayscaleFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "grayscale({})", self.amount)
+  }
+}
+
+impl Display for HueRotateFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "hue-rotate({})", self.angle)
+  }
+}
+
+impl Display for InvertFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "invert({})", self.amount)
+  }
+}
+
+impl Display for OpacityFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "opacity({})", self.amount)
+  }
+}
+
+impl Display for SaturateFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "saturate({})", self.amount)
+  }
+}
+
+impl Display for SepiaFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "sepia({})", self.amount)
   }
 }

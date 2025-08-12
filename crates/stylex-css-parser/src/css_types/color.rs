@@ -7,8 +7,8 @@ Mirrors: packages/style-value-parser/src/css-types/color.js
 
 use crate::{
   css_types::{Angle, Percentage},
-  token_parser::{TokenParser, tokens},
-  token_types::SimpleToken,
+  token_parser::{tokens, TokenParser},
+  token_types::SimpleToken, CssParseError,
 };
 use std::fmt::{self, Display};
 
@@ -468,7 +468,7 @@ impl HashColor {
     valid_lengths.contains(&value.len()) && value.chars().all(|c| c.is_ascii_hexdigit())
   }
 
-    /// Get red component (0-255)
+  /// Get red component (0-255)
   /// IMPORTANT: Implements CORRECT CSS behavior for 3-digit hex expansion
   /// (The JavaScript implementation has a bug, but tests expect correct behavior)
   pub fn r(&self) -> u8 {
@@ -765,20 +765,135 @@ impl Lch {
   }
 
   /// Parser for LCH colors
-  /// Mirrors: JavaScript Lch.parser with support for percentages, 'none', and optional alpha
+  /// ENHANCED: Complete JavaScript Lch.parser logic with full support for:
+  /// - Lightness: percentages, numbers (0+), 'none' keyword
+  /// - Chroma: percentages (100% -> 150), numbers (0+)
+  /// - Hue: angles or numbers
+  /// - Alpha: optional with slash syntax
   pub fn parse() -> TokenParser<Lch> {
-    // Simplified implementation to avoid ownership complexity
-    // This handles the basic structure and can be enhanced later
+    TokenParser::new(move |input| {
+      // Parse 'lch(' function start
+      match input.consume_next_token()? {
+        Some(SimpleToken::Function(fn_name)) if fn_name == "lch" => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected lch() function".to_string() }),
+      }
 
-    // Create a working parser that handles: lch(l c h) or lch(l c h / a)
-    let default_lch = Lch::new_with_angle(
-      50.0, // lightness
-      100.0, // chroma
-      Angle::new(270.0, "deg".to_string()), // hue
-      None // no alpha
-    );
+      // Parse lightness (l): percentage | number (>=0) | 'none'
+      let l = Self::parse_lch_lightness(input)?;
 
-    TokenParser::always(default_lch)
+      // Parse whitespace
+      match input.consume_next_token()? {
+        Some(SimpleToken::Whitespace) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected whitespace after lightness".to_string() }),
+      }
+
+      // Parse chroma (c): percentage (100% -> 150) | number (>=0)
+      let c = Self::parse_lch_chroma(input)?;
+
+      // Parse whitespace
+      match input.consume_next_token()? {
+        Some(SimpleToken::Whitespace) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected whitespace after chroma".to_string() }),
+      }
+
+      // Parse hue (h): angle | number
+      let h = Self::parse_lch_hue(input)?;
+
+      // Parse optional alpha: / <alpha-value>
+      let alpha = Self::parse_optional_alpha(input)?;
+
+      // Parse closing paren
+      match input.consume_next_token()? {
+        Some(SimpleToken::RightParen) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected ) after lch values".to_string() }),
+      }
+
+      Ok(Lch::new(l, c, h, alpha))
+    }, "lch_parser")
+  }
+
+  /// Parse LCH lightness: percentage | number (>=0) | 'none'
+  /// Mirrors: JavaScript `l: TokenParser<number>`
+  fn parse_lch_lightness(input: &mut crate::token_types::TokenList) -> Result<f32, CssParseError> {
+    match input.consume_next_token()? {
+      Some(SimpleToken::Percentage(p)) => Ok(p as f32), // Percentage maps directly to value
+      Some(SimpleToken::Number(n)) if n >= 0.0 => Ok(n as f32),
+      Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
+      _ => Err(CssParseError::ParseError {
+        message: "Expected lightness: percentage, non-negative number, or 'none'".to_string()
+      }),
+    }
+  }
+
+  /// Parse LCH chroma: percentage (100% -> 150) | number (>=0)
+  /// Mirrors: JavaScript `c: TokenParser<number>` with percentage scaling
+  fn parse_lch_chroma(input: &mut crate::token_types::TokenList) -> Result<f32, CssParseError> {
+    match input.consume_next_token()? {
+      Some(SimpleToken::Percentage(p)) => {
+        // JavaScript: Percentage.parser.map((p) => (150 * p.value) / 100)
+        Ok((150.0 * p as f32) / 100.0)
+      },
+      Some(SimpleToken::Number(n)) if n >= 0.0 => Ok(n as f32),
+      _ => Err(CssParseError::ParseError {
+        message: "Expected chroma: percentage or non-negative number".to_string()
+      }),
+    }
+  }
+
+  /// Parse LCH hue: angle | number
+  /// Mirrors: JavaScript `h: TokenParser<Angle | number>`
+  fn parse_lch_hue(input: &mut crate::token_types::TokenList) -> Result<LchHue, CssParseError> {
+    match input.consume_next_token()? {
+      Some(SimpleToken::Dimension { value, unit }) => {
+        // Try to parse as angle
+        if Angle::is_valid_unit(&unit) {
+          Ok(LchHue::from_angle(Angle::new(value as f32, unit)))
+        } else {
+          Err(CssParseError::ParseError {
+            message: format!("Invalid angle unit: {}", unit)
+          })
+        }
+      },
+      Some(SimpleToken::Number(n)) => Ok(LchHue::from_number(n as f32)),
+      _ => Err(CssParseError::ParseError {
+        message: "Expected hue: angle or number".to_string()
+      }),
+    }
+  }
+
+  /// Parse optional alpha: / <alpha-value>
+  /// Mirrors: JavaScript `a.suffix(TokenParser.tokens.Whitespace.optional).optional`
+  fn parse_optional_alpha(input: &mut crate::token_types::TokenList) -> Result<Option<f32>, CssParseError> {
+    // Check if there's a slash for alpha
+    let checkpoint = input.current_index;
+
+    // Skip optional whitespace
+    if let Ok(Some(SimpleToken::Whitespace)) = input.peek() {
+      input.consume_next_token()?;
+    }
+
+    match input.peek()? {
+      Some(SimpleToken::Delim('/')) => {
+        input.consume_next_token()?; // consume '/'
+
+        // Skip optional whitespace after slash
+        if let Ok(Some(SimpleToken::Whitespace)) = input.peek() {
+          input.consume_next_token()?;
+        }
+
+        // Parse alpha value using enhanced alpha parser
+        let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
+        match alpha_parser.run.as_ref()(input) {
+          Ok(alpha) => Ok(Some(alpha)),
+          Err(e) => Err(e),
+        }
+      },
+      _ => {
+        // No alpha, rewind to checkpoint
+        input.set_current_index(checkpoint);
+        Ok(None)
+      }
+    }
   }
 }
 
@@ -808,18 +923,121 @@ impl Oklch {
   }
 
   /// Parser for OKLCH colors
-  /// Mirrors: JavaScript Oklch.parser - basic implementation
+  /// ENHANCED: Complete JavaScript Oklch.parser logic with full support for:
+  /// - Lightness/Chroma: numbers, 'none' keyword (maps to 0)
+  /// - Hue: angles or numbers (numbers * 360 -> angle conversion)
+  /// - Alpha: optional with slash syntax
   pub fn parse() -> TokenParser<Oklch> {
-    // Simplified implementation - provides a working structure
-    // that matches the JavaScript Oklch class
-    let default_oklch = Oklch::new(
-      0.5, // lightness (0-1)
-      0.1, // chroma (0-0.4)
-      Angle::new(270.0, "deg".to_string()), // hue
-      None // no alpha
-    );
+    TokenParser::new(move |input| {
+      // Parse 'oklch(' function start
+      match input.consume_next_token()? {
+        Some(SimpleToken::Function(fn_name)) if fn_name == "oklch" => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected oklch() function".to_string() }),
+      }
 
-    TokenParser::always(default_oklch)
+      // Parse lightness (l): number | 'none'
+      let l = Self::parse_oklch_lc_value(input)?;
+
+      // Parse whitespace
+      match input.consume_next_token()? {
+        Some(SimpleToken::Whitespace) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected whitespace after lightness".to_string() }),
+      }
+
+      // Parse chroma (c): number | 'none'
+      let c = Self::parse_oklch_lc_value(input)?;
+
+      // Parse whitespace
+      match input.consume_next_token()? {
+        Some(SimpleToken::Whitespace) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected whitespace after chroma".to_string() }),
+      }
+
+      // Parse hue (h): angle | number (number * 360 -> angle)
+      let h = Self::parse_oklch_hue(input)?;
+
+      // Parse optional alpha: / <alpha-value>
+      let alpha = Self::parse_optional_alpha(input)?;
+
+      // Parse closing paren
+      match input.consume_next_token()? {
+        Some(SimpleToken::RightParen) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected ) after oklch values".to_string() }),
+      }
+
+      Ok(Oklch::new(l, c, h, alpha))
+    }, "oklch_parser")
+  }
+
+  /// Parse OKLCH lightness/chroma value: number | 'none'
+  /// Mirrors: JavaScript `lc: TokenParser<number>` (used for both l and c)
+  fn parse_oklch_lc_value(input: &mut crate::token_types::TokenList) -> Result<f32, CssParseError> {
+    match input.consume_next_token()? {
+      Some(SimpleToken::Number(n)) => Ok(n as f32),
+      Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
+      _ => Err(CssParseError::ParseError {
+        message: "Expected number or 'none'".to_string()
+      }),
+    }
+  }
+
+  /// Parse OKLCH hue: angle | number (number * 360 -> angle conversion)
+  /// Mirrors: JavaScript `h: TokenParser<Angle>` with number conversion
+  fn parse_oklch_hue(input: &mut crate::token_types::TokenList) -> Result<Angle, CssParseError> {
+    match input.consume_next_token()? {
+      Some(SimpleToken::Dimension { value, unit }) => {
+        // Try to parse as angle
+        if Angle::is_valid_unit(&unit) {
+          Ok(Angle::new(value as f32, unit))
+        } else {
+          Err(CssParseError::ParseError {
+            message: format!("Invalid angle unit: {}", unit)
+          })
+        }
+      },
+      Some(SimpleToken::Number(n)) => {
+        // JavaScript: lc.map((num: number) => new Angle(num * 360, 'deg'))
+        Ok(Angle::new((n as f32) * 360.0, "deg".to_string()))
+      },
+      _ => Err(CssParseError::ParseError {
+        message: "Expected hue: angle or number".to_string()
+      }),
+    }
+  }
+
+  /// Parse optional alpha: / <alpha-value>
+  /// Mirrors: JavaScript `a.suffix(TokenParser.tokens.Whitespace.optional).optional`
+  fn parse_optional_alpha(input: &mut crate::token_types::TokenList) -> Result<Option<f32>, CssParseError> {
+    // Check if there's a slash for alpha
+    let checkpoint = input.current_index;
+
+    // Skip optional whitespace
+    if let Ok(Some(SimpleToken::Whitespace)) = input.peek() {
+      input.consume_next_token()?;
+    }
+
+    match input.peek()? {
+      Some(SimpleToken::Delim('/')) => {
+        input.consume_next_token()?; // consume '/'
+
+        // Skip optional whitespace after slash
+        if let Ok(Some(SimpleToken::Whitespace)) = input.peek() {
+          input.consume_next_token()?;
+        }
+
+        // Parse alpha value using enhanced alpha parser
+        let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
+        match alpha_parser.run.as_ref()(input) {
+          Ok(alpha) => Ok(Some(alpha)),
+          Err(e) => Err(e),
+        }
+      },
+      _ => {
+        // No alpha, rewind to checkpoint
+        input.set_current_index(checkpoint);
+        Ok(None)
+      }
+    }
   }
 }
 
@@ -848,18 +1066,96 @@ impl Oklab {
   }
 
   /// Parser for OKLAB colors
-  /// Mirrors: JavaScript Oklab.parser - basic implementation
+  /// ENHANCED: Complete JavaScript Oklab.parser logic with full support for:
+  /// - L/A/B values: numbers, 'none' keyword (maps to 0)
+  /// - Alpha: optional with slash syntax
   pub fn parse() -> TokenParser<Oklab> {
-    // Simplified implementation - provides a working structure
-    // that matches the JavaScript Oklab class
-    let default_oklab = Oklab::new(
-      0.5, // lightness (0-1)
-      0.1, // a component (green-red)
-      0.1, // b component (blue-yellow)
-      None // no alpha
-    );
+    TokenParser::new(move |input| {
+      // Parse 'oklab(' function start
+      match input.consume_next_token()? {
+        Some(SimpleToken::Function(fn_name)) if fn_name == "oklab" => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected oklab() function".to_string() }),
+      }
 
-    TokenParser::always(default_oklab)
+      // Parse lightness (l): number | 'none'
+      let l = Self::parse_oklab_lab_value(input)?;
+
+      // Parse whitespace
+      match input.consume_next_token()? {
+        Some(SimpleToken::Whitespace) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected whitespace after lightness".to_string() }),
+      }
+
+      // Parse a component (green-red): number | 'none'
+      let a = Self::parse_oklab_lab_value(input)?;
+
+      // Parse whitespace
+      match input.consume_next_token()? {
+        Some(SimpleToken::Whitespace) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected whitespace after a component".to_string() }),
+      }
+
+      // Parse b component (blue-yellow): number | 'none'
+      let b = Self::parse_oklab_lab_value(input)?;
+
+      // Parse optional alpha: / <alpha-value>
+      let alpha = Self::parse_optional_alpha(input)?;
+
+      // Parse closing paren
+      match input.consume_next_token()? {
+        Some(SimpleToken::RightParen) => {},
+        _ => return Err(CssParseError::ParseError { message: "Expected ) after oklab values".to_string() }),
+      }
+
+      Ok(Oklab::new(l, a, b, alpha))
+    }, "oklab_parser")
+  }
+
+  /// Parse OKLAB l/a/b value: number | 'none'
+  /// Mirrors: JavaScript `lab: TokenParser<number>` (used for l, a, and b)
+  fn parse_oklab_lab_value(input: &mut crate::token_types::TokenList) -> Result<f32, CssParseError> {
+    match input.consume_next_token()? {
+      Some(SimpleToken::Number(n)) => Ok(n as f32),
+      Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
+      _ => Err(CssParseError::ParseError {
+        message: "Expected number or 'none'".to_string()
+      }),
+    }
+  }
+
+  /// Parse optional alpha: / <alpha-value>
+  /// Mirrors: JavaScript `a.suffix(TokenParser.tokens.Whitespace.optional).optional`
+  fn parse_optional_alpha(input: &mut crate::token_types::TokenList) -> Result<Option<f32>, CssParseError> {
+    // Check if there's a slash for alpha
+    let checkpoint = input.current_index;
+
+    // Skip optional whitespace
+    if let Ok(Some(SimpleToken::Whitespace)) = input.peek() {
+      input.consume_next_token()?;
+    }
+
+    match input.peek()? {
+      Some(SimpleToken::Delim('/')) => {
+        input.consume_next_token()?; // consume '/'
+
+        // Skip optional whitespace after slash
+        if let Ok(Some(SimpleToken::Whitespace)) = input.peek() {
+          input.consume_next_token()?;
+        }
+
+        // Parse alpha value using enhanced alpha parser
+        let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
+        match alpha_parser.run.as_ref()(input) {
+          Ok(alpha) => Ok(Some(alpha)),
+          Err(e) => Err(e),
+        }
+      },
+      _ => {
+        // No alpha, rewind to checkpoint
+        input.set_current_index(checkpoint);
+        Ok(None)
+      }
+    }
   }
 }
 

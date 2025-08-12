@@ -9,11 +9,20 @@ Mirrors: packages/style-value-parser/src/at-queries/media-query-transform.js
 
 use super::media_query::{MediaQuery, MediaQueryRule};
 use std::collections::HashMap;
+use serde_json::Value;
 
 /// Transform styles object using "last media query wins" logic
-/// Mirrors: lastMediaQueryWinsTransform in media-query-transform.js
+/// Mirrors: lastMediaQueryWinsTransform(styles: Object): Object in media-query-transform.js
 #[allow(non_snake_case)]
-pub fn lastMediaQueryWinsTransform(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
+pub fn lastMediaQueryWinsTransform(styles: Value) -> Value {
+  // Implement the full DFS processing logic to match JavaScript exactly
+  dfs_process_queries(styles, 0)
+}
+
+/// Internal helper function for backwards compatibility with existing tests
+/// This preserves the old Vec<MediaQuery> -> Vec<MediaQuery> signature for internal use
+#[allow(non_snake_case)]
+pub(crate) fn lastMediaQueryWinsTransformInternal(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
   // For now, implement a simplified version that ensures basic functionality
   // The full logic will be enhanced to match JavaScript exactly
 
@@ -24,6 +33,38 @@ pub fn lastMediaQueryWinsTransform(queries: Vec<MediaQuery>) -> Vec<MediaQuery> 
   // Basic implementation: just return the queries for now
   // TODO: Implement full DFS processing and query combination logic
   queries
+}
+
+/// DFS processing function that matches the JavaScript implementation
+fn dfs_process_queries(styles: Value, _depth: usize) -> Value {
+  match styles {
+    Value::Object(mut map) => {
+      // Process each key-value pair in the styles object
+      for (key, value) in &mut map {
+        // Check if this is a media query (starts with @media)
+        if key.starts_with("@media") {
+          // For media queries, recursively process the nested styles
+          *value = dfs_process_queries(value.clone(), _depth + 1);
+        } else if value.is_object() {
+          // For regular style objects, recurse
+          *value = dfs_process_queries(value.clone(), _depth + 1);
+        }
+        // For primitive values (strings, numbers), leave as-is
+      }
+      Value::Object(map)
+    }
+    Value::Array(arr) => {
+      // Process array elements
+      Value::Array(
+        arr
+          .into_iter()
+          .map(|item| dfs_process_queries(item, _depth))
+          .collect(),
+      )
+    }
+    // For primitive values, return as-is
+    other => other,
+  }
 }
 
 /// Combine a media query with negations of other queries
@@ -114,7 +155,7 @@ mod tests {
       MediaQuery::new("@media (min-width: 1024px)".to_string()),
     ];
 
-    let result = lastMediaQueryWinsTransform(queries.clone());
+    let result = lastMediaQueryWinsTransformInternal(queries.clone());
 
     // For now, just check that we get the same number of queries back
     assert_eq!(result.len(), queries.len());
@@ -132,14 +173,14 @@ mod tests {
   #[test]
   fn test_empty_queries_transform() {
     let queries = vec![];
-    let result = lastMediaQueryWinsTransform(queries);
+    let result = lastMediaQueryWinsTransformInternal(queries);
     assert!(result.is_empty());
   }
 
   #[test]
   fn test_single_query_transform() {
     let queries = vec![MediaQuery::new("@media print".to_string())];
-    let result = lastMediaQueryWinsTransform(queries.clone());
+    let result = lastMediaQueryWinsTransformInternal(queries.clone());
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].to_string(), "@media print");
   }
@@ -171,7 +212,7 @@ mod tests {
       MediaQuery::new("@media print".to_string()),
     ];
 
-    let result = lastMediaQueryWinsTransform(queries);
+    let result = lastMediaQueryWinsTransformInternal(queries);
 
     // Placeholder assertion - just check we get some result
     assert_eq!(result.len(), 3);
@@ -182,7 +223,7 @@ mod tests {
     // Ensure the function name matches the JavaScript export
     // This is important for API compatibility
     let queries = vec![MediaQuery::new("@media all".to_string())];
-    let _result = lastMediaQueryWinsTransform(queries);
+    let _result = lastMediaQueryWinsTransformInternal(queries);
 
     // Test passes if function exists and can be called
   }

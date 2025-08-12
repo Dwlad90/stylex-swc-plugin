@@ -5,7 +5,7 @@ Handles all CSS color formats: named colors, hex, rgb, rgba, hsl, hsla, and mode
 Mirrors: packages/style-value-parser/src/css-types/color.js
 */
 
-use crate::{css_types::Angle, token_parser::TokenParser, token_types::SimpleToken};
+use crate::{css_types::Angle, token_parser::{TokenParser, tokens}, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
 /// List of all valid CSS named colors
@@ -237,7 +237,7 @@ impl NamedColor {
   /// Parser for named colors
   /// Mirrors: NamedColor.parser
   pub fn parser() -> TokenParser<NamedColor> {
-    TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))
+    tokens::ident()
       .map(
         |token| {
           if let SimpleToken::Ident(value) = token {
@@ -336,7 +336,7 @@ impl HashColor {
   /// Parser for hex colors
   /// Mirrors: HashColor.parser
   pub fn parser() -> TokenParser<HashColor> {
-    TokenParser::<SimpleToken>::token(SimpleToken::Hash(String::new()), Some("Hash"))
+    tokens::hash()
       .map(
         |token| {
           if let SimpleToken::Hash(value) = token {

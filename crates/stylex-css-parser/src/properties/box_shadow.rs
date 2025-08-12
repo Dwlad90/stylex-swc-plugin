@@ -66,7 +66,7 @@ impl BoxShadow {
 
   /// Parser for box shadow values
   /// Mirrors: BoxShadow.parse in box-shadow.js
-  pub fn parser() -> TokenParser<BoxShadow> {
+  pub fn parse() -> TokenParser<BoxShadow> {
     let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
 
     // Parse outer shadow: offsetX offsetY [blurRadius] [spreadRadius] color
@@ -244,7 +244,7 @@ impl BoxShadowList {
 
   /// Parser for box shadow list (comma-separated shadows)
   /// Mirrors: BoxShadowList.parse in box-shadow.js
-  pub fn parser() -> TokenParser<BoxShadowList> {
+  pub fn parse() -> TokenParser<BoxShadowList> {
     let comma = TokenParser::<SimpleToken>::token(SimpleToken::Comma, Some("Comma"));
     let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
 
@@ -253,7 +253,7 @@ impl BoxShadowList {
       comma.surrounded_by(whitespace.clone().optional(), Some(whitespace.optional()));
 
     // Parse one or more shadows separated by commas
-    TokenParser::one_or_more_separated_by(BoxShadow::parser(), comma_separator)
+    TokenParser::one_or_more_separated_by(BoxShadow::parse(), comma_separator)
       .map(BoxShadowList::new, Some("shadow_list"))
   }
 }
@@ -426,8 +426,8 @@ mod tests {
   #[test]
   fn test_box_shadow_parser_creation() {
     // Basic test that parsers can be created
-    let _shadow_parser = BoxShadow::parser();
-    let _list_parser = BoxShadowList::parser();
+    let _shadow_parser = BoxShadow::parse();
+    let _list_parser = BoxShadowList::parse();
   }
 
   #[test]

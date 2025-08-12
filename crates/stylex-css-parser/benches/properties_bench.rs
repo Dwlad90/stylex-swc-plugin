@@ -33,7 +33,7 @@ fn border_radius_benchmarks(c: &mut Criterion) {
       input,
       |b, input| {
         b.iter(|| {
-          let parser = BorderRadiusIndividual::parser();
+          let parser = BorderRadiusIndividual::parse();
           black_box(parser.parse(black_box(input)))
         })
       },
@@ -44,7 +44,7 @@ fn border_radius_benchmarks(c: &mut Criterion) {
       input,
       |b, input| {
         b.iter(|| {
-          let parser = BorderRadiusShorthand::parser();
+          let parser = BorderRadiusShorthand::parse();
           black_box(parser.parse(black_box(input)))
         })
       },
@@ -74,7 +74,7 @@ fn box_shadow_benchmarks(c: &mut Criterion) {
       input,
       |b, input| {
         b.iter(|| {
-          let parser = BoxShadow::parser();
+          let parser = BoxShadow::parse();
           black_box(parser.parse(black_box(input)))
         })
       },
@@ -85,7 +85,7 @@ fn box_shadow_benchmarks(c: &mut Criterion) {
       input,
       |b, input| {
         b.iter(|| {
-          let parser = BoxShadowList::parser();
+          let parser = BoxShadowList::parse();
           black_box(parser.parse(black_box(input)))
         })
       },
@@ -129,7 +129,7 @@ fn transform_benchmarks(c: &mut Criterion) {
       input,
       |b, input| {
         b.iter(|| {
-          let parser = Transform::parser();
+          let parser = Transform::parse();
           black_box(parser.parse(black_box(input)))
         })
       },
@@ -212,7 +212,7 @@ fn complex_property_benchmarks(c: &mut Criterion) {
   group.bench_function("complex_border_radius_shorthand", |b| {
     let input = "10px 20px 30px 40px / 50px 60px 70px 80px";
     b.iter(|| {
-      let parser = BorderRadiusShorthand::parser();
+      let parser = BorderRadiusShorthand::parse();
       black_box(parser.parse(black_box(input)))
     })
   });
@@ -221,7 +221,7 @@ fn complex_property_benchmarks(c: &mut Criterion) {
     let input =
       "0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)";
     b.iter(|| {
-      let parser = BoxShadowList::parser();
+      let parser = BoxShadowList::parse();
       black_box(parser.parse(black_box(input)))
     })
   });
@@ -229,7 +229,7 @@ fn complex_property_benchmarks(c: &mut Criterion) {
   group.bench_function("complex_transform_chain", |b| {
         let input = "translate3d(10px, 20px, 30px) rotateX(45deg) rotateY(30deg) rotateZ(60deg) scale3d(1.2, 0.8, 1.5)";
         b.iter(|| {
-            let parser = Transform::parser();
+            let parser = Transform::parse();
             black_box(parser.parse(black_box(input)))
         })
     });

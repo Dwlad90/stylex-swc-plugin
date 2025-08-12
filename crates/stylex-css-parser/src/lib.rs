@@ -130,8 +130,8 @@ mod lib_tests {
     );
 
     // Test lastMediaQueryWinsTransform function access
-    let queries = vec![];
-    let _transformed = lastMediaQueryWinsTransform(queries);
+    let styles = serde_json::json!({});
+    let _transformed = lastMediaQueryWinsTransform(styles);
 
     // Test css_types module access
     let _color = css_types::Color::parser();
@@ -211,12 +211,12 @@ mod lib_tests {
     let _calc = Calc::parser(); // CSS calc() expression parser
 
     // Property parsers
-    let _transform = properties::Transform::parser();
-    let _box_shadow = properties::BoxShadow::parser();
-    let _border_radius = properties::BorderRadiusShorthand::parser();
+    let _transform = properties::Transform::parse();
+    let _box_shadow = properties::BoxShadow::parse();
+    let _border_radius = properties::BorderRadiusShorthand::parse();
 
     // Media query transformation
-    let queries = vec![/* MediaQuery instances */];
-    let _transformed = lastMediaQueryWinsTransform(queries);
+    let styles = serde_json::json!({});
+    let _transformed = lastMediaQueryWinsTransform(styles);
   }
 }

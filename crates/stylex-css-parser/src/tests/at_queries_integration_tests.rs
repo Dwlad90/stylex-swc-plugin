@@ -11,7 +11,7 @@ while noting TODOs for areas that need more complete implementation.
 */
 
 use crate::at_queries::{
-  lastMediaQueryWinsTransform, validate_media_query, MediaQuery, MediaQueryErrors,
+  media_query_transform::lastMediaQueryWinsTransformInternal, validate_media_query, MediaQuery, MediaQueryErrors,
 };
 
 #[cfg(test)]
@@ -445,7 +445,7 @@ mod media_query_transform_tests {
       MediaQuery::new("@media (max-width: 1024px)".to_string()),
     ];
 
-    let result = lastMediaQueryWinsTransform(test_queries.clone());
+    let result = lastMediaQueryWinsTransformInternal(test_queries.clone());
 
     // For now, just verify the function works and returns the expected type
     assert_eq!(result.len(), test_queries.len());
@@ -463,7 +463,7 @@ mod media_query_transform_tests {
       MediaQuery::new("@media (max-width: 768px)".to_string()),
     ];
 
-    let result = lastMediaQueryWinsTransform(queries);
+    let result = lastMediaQueryWinsTransformInternal(queries);
 
     // Basic verification that transformation occurred
     assert_eq!(result.len(), 3);
@@ -480,7 +480,7 @@ mod media_query_transform_tests {
     // Test that single queries are not modified
     let single_query = vec![MediaQuery::new("@media (max-width: 1440px)".to_string())];
 
-    let result = lastMediaQueryWinsTransform(single_query.clone());
+    let result = lastMediaQueryWinsTransformInternal(single_query.clone());
 
     // Single queries should remain unchanged
     assert_eq!(result.len(), 1);
@@ -493,7 +493,7 @@ mod media_query_transform_tests {
 
     // Empty list
     let empty_queries: Vec<MediaQuery> = vec![];
-    let result = lastMediaQueryWinsTransform(empty_queries);
+    let result = lastMediaQueryWinsTransformInternal(empty_queries);
     assert!(result.is_empty());
 
     // Duplicate queries
@@ -501,7 +501,7 @@ mod media_query_transform_tests {
       MediaQuery::new("@media (max-width: 768px)".to_string()),
       MediaQuery::new("@media (max-width: 768px)".to_string()),
     ];
-    let result = lastMediaQueryWinsTransform(duplicate_queries.clone());
+    let result = lastMediaQueryWinsTransformInternal(duplicate_queries.clone());
     assert_eq!(result.len(), duplicate_queries.len());
   }
 
@@ -515,7 +515,7 @@ mod media_query_transform_tests {
       MediaQuery::new("@media (prefers-color-scheme: dark)".to_string()),
     ];
 
-    let result = lastMediaQueryWinsTransform(mixed_queries.clone());
+    let result = lastMediaQueryWinsTransformInternal(mixed_queries.clone());
     assert_eq!(result.len(), mixed_queries.len());
 
     // TODO: Test that only related queries are transformed together
@@ -564,7 +564,7 @@ mod media_query_integration_tests {
 
       // Step 3: Test in transform
       let queries = vec![query];
-      let transformed = lastMediaQueryWinsTransform(queries);
+      let transformed = lastMediaQueryWinsTransformInternal(queries);
       assert_eq!(transformed.len(), 1);
 
       // TODO: Test full parsing when parser is implemented
@@ -606,7 +606,7 @@ mod media_query_integration_tests {
 
       // Test that queries can be used in transform
       let queries = vec![query];
-      let transformed = lastMediaQueryWinsTransform(queries);
+      let transformed = lastMediaQueryWinsTransformInternal(queries);
       assert_eq!(transformed.len(), 1);
     }
   }

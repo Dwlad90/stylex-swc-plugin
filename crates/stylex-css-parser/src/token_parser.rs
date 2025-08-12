@@ -21,6 +21,113 @@ use crate::{
 use std::fmt::Debug;
 use std::rc::Rc;
 
+/// Token parser module that mirrors JavaScript TokenParser.tokens
+/// Provides: TokenParser.tokens.Ident, TokenParser.tokens.Whitespace.optional, etc.
+pub mod tokens {
+  use super::*;
+
+  /// Get Ident token parser - mirrors TokenParser.tokens.Ident
+  pub fn ident() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))
+  }
+
+  /// Get Whitespace token parser - mirrors TokenParser.tokens.Whitespace
+  pub fn whitespace() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"))
+  }
+
+  /// Get Comma token parser - mirrors TokenParser.tokens.Comma
+  pub fn comma() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Comma, Some("Comma"))
+  }
+
+  /// Get Colon token parser - mirrors TokenParser.tokens.Colon
+  pub fn colon() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Colon, Some("Colon"))
+  }
+
+  /// Get Semicolon token parser - mirrors TokenParser.tokens.Semicolon
+  pub fn semicolon() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Semicolon, Some("Semicolon"))
+  }
+
+  /// Get Number token parser - mirrors TokenParser.tokens.Number
+  pub fn number() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+  }
+
+  /// Get Percentage token parser - mirrors TokenParser.tokens.Percentage
+  pub fn percentage() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+  }
+
+  /// Get Dimension token parser - mirrors TokenParser.tokens.Dimension
+  pub fn dimension() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(
+      SimpleToken::Dimension {
+        value: 0.0,
+        unit: String::new(),
+      },
+      Some("Dimension"),
+    )
+  }
+
+  /// Get Function token parser - mirrors TokenParser.tokens.Function
+  pub fn function() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Function(String::new()), Some("Function"))
+  }
+
+  /// Get String token parser - mirrors TokenParser.tokens.String
+  pub fn string() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::String(String::new()), Some("String"))
+  }
+
+  /// Get Hash token parser - mirrors TokenParser.tokens.Hash
+  pub fn hash() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Hash(String::new()), Some("Hash"))
+  }
+
+  /// Get URL token parser - mirrors TokenParser.tokens.URL
+  pub fn url() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Url(String::new()), Some("URL"))
+  }
+
+  /// Get LeftParen token parser - mirrors TokenParser.tokens.OpenParen
+  pub fn open_paren() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::LeftParen, Some("OpenParen"))
+  }
+
+  /// Get RightParen token parser - mirrors TokenParser.tokens.CloseParen
+  pub fn close_paren() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("CloseParen"))
+  }
+
+  /// Get LeftBracket token parser - mirrors TokenParser.tokens.OpenSquare
+  pub fn open_square() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::LeftBracket, Some("OpenSquare"))
+  }
+
+  /// Get RightBracket token parser - mirrors TokenParser.tokens.CloseSquare
+  pub fn close_square() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::RightBracket, Some("CloseSquare"))
+  }
+
+  /// Get LeftBrace token parser - mirrors TokenParser.tokens.OpenCurly
+  pub fn open_curly() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::LeftBrace, Some("OpenCurly"))
+  }
+
+  /// Get RightBrace token parser - mirrors TokenParser.tokens.CloseCurly
+  pub fn close_curly() -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::RightBrace, Some("CloseCurly"))
+  }
+
+  /// Get Delim token parser - mirrors TokenParser.tokens.Delim
+  pub fn delim(ch: char) -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Delim(ch), Some("Delim"))
+  }
+}
+
 /// Union type for `or` operations, mirroring JavaScript's `T | U`
 #[derive(Clone, Debug, PartialEq)]
 pub enum Either<T, U> {

@@ -32,7 +32,7 @@ impl BorderRadiusIndividual {
 
   /// Parser for individual border radius values
   /// Mirrors: BorderRadiusIndividual.parse in border-radius.js
-  pub fn parser() -> TokenParser<BorderRadiusIndividual> {
+  pub fn parse() -> TokenParser<BorderRadiusIndividual> {
     let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
 
     TokenParser::one_of(vec![
@@ -137,7 +137,7 @@ impl BorderRadiusShorthand {
 
   /// Parser for border radius shorthand with basic CSS specification support
   /// Mirrors: BorderRadiusShorthand.parse in border-radius.js
-  pub fn parser() -> TokenParser<BorderRadiusShorthand> {
+  pub fn parse() -> TokenParser<BorderRadiusShorthand> {
     // Implement full border-radius syntax with slash separator support
     // Syntax: horizontal-radii [ / vertical-radii ]?
 
@@ -426,13 +426,13 @@ mod tests {
   #[test]
   fn test_border_radius_individual_parser_creation() {
     // Basic test that parser can be created
-    let _parser = BorderRadiusIndividual::parser();
+    let _parser = BorderRadiusIndividual::parse();
   }
 
   #[test]
   fn test_border_radius_shorthand_parser_creation() {
     // Basic test that parser can be created
-    let _parser = BorderRadiusShorthand::parser();
+    let _parser = BorderRadiusShorthand::parse();
   }
 
   #[test]
@@ -542,7 +542,7 @@ mod tests {
   #[test]
   fn test_border_radius_parser_creation() {
     // Test that both parsers can be created without issues
-    let _individual = BorderRadiusIndividual::parser();
-    let _shorthand = BorderRadiusShorthand::parser();
+    let _individual = BorderRadiusIndividual::parse();
+    let _shorthand = BorderRadiusShorthand::parse();
   }
 }

@@ -26,7 +26,7 @@ impl Transform {
 
   /// Parser for transform values
   /// Mirrors: Transform.parse in transform.js
-  pub fn parser() -> TokenParser<Transform> {
+  pub fn parse() -> TokenParser<Transform> {
     // Parse one or more transform functions separated by whitespace
     // Mirrors: TokenParser.oneOrMore(TransformFunction.parser).separatedBy(TokenParser.tokens.Whitespace)
     let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
@@ -123,7 +123,7 @@ mod tests {
   #[test]
   fn test_transform_parser_creation() {
     // Test that the parser can be created without panicking
-    let _parser = Transform::parser();
+    let _parser = Transform::parse();
   }
 
   #[test]

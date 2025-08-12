@@ -5,7 +5,7 @@ This module implements the foundational types used across all CSS value parsing,
 directly mirroring the JavaScript common-types.js file.
 */
 
-use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use crate::{token_parser::{TokenParser, tokens}, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
 /// CSS-wide keywords that can be used with any CSS property
@@ -33,7 +33,7 @@ impl CssWideKeyword {
   /// Parser for CSS-wide keywords
   /// Mirrors: cssWideKeywords
   pub fn parser() -> TokenParser<CssWideKeyword> {
-    TokenParser::<SimpleToken>::ident()
+    tokens::ident()
       .map(
         |token| {
           if let SimpleToken::Ident(value) = token {
@@ -175,7 +175,7 @@ impl Percentage {
   /// Parser for percentage values
   /// Mirrors: Percentage.parser
   pub fn parser() -> TokenParser<Percentage> {
-    TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage")).map(
+    tokens::percentage().map(
       |token| {
         if let SimpleToken::Percentage(value) = token {
           Percentage::new(value as f32)
@@ -208,7 +208,7 @@ impl Number {
 
   /// Parser for number values
   pub fn parser() -> TokenParser<Number> {
-    TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number")).map(
+    tokens::number().map(
       |token| {
         if let SimpleToken::Number(value) = token {
           Number::new(value as f32)

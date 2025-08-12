@@ -5,7 +5,7 @@ Handles dimensional values that can be lengths, times, frequencies, or resolutio
 Mirrors: packages/style-value-parser/src/css-types/dimension.js
 */
 
-use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use crate::{token_parser::{TokenParser, Tokens}, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
 use super::{frequency::Frequency, length::Length, resolution::Resolution, time::Time};
@@ -47,27 +47,22 @@ impl Dimension {
   }
 
   /// Parser for dimensional values
-  /// Mirrors: dimension in dimension.js
+  /// Mirrors: dimension in dimension.js exactly
+  /// JavaScript: TokenParser.tokens.Dimension.map((token) => { const { unit, value } = token[4]; ... }).where((val) => val != null);
   pub fn parser() -> TokenParser<Dimension> {
-    TokenParser::<SimpleToken>::token(
-      SimpleToken::Dimension {
-        value: 0.0,
-        unit: String::new(),
-      },
-      Some("Dimension"),
-    )
-    .map(
-      |token| {
-        if let SimpleToken::Dimension { value, unit } = token {
-          Self::from_value_and_unit(value as f32, unit)
-        } else {
-          None
-        }
-      },
-      Some("extract_dimension"),
-    )
-    .where_fn(|opt| opt.is_some(), Some("valid_dimension"))
-    .map(|opt| opt.unwrap(), Some("unwrap_dimension"))
+    Tokens::dimension()
+      .map(
+        |token| {
+          if let SimpleToken::Dimension { value, unit } = token {
+            Self::from_value_and_unit(value as f32, unit)
+          } else {
+            None
+          }
+        },
+        Some("extract_dimension"),
+      )
+      .where_fn(|opt| opt.is_some(), Some("valid_dimension"))
+      .map(|opt| opt.unwrap(), Some("unwrap_dimension"))
   }
 }
 

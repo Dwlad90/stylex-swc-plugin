@@ -277,8 +277,52 @@ impl Matrix3d {
   }
 
   pub fn parser() -> TokenParser<Matrix3d> {
-    // For now, return a never parser as matrix3d is complex
-    TokenParser::never()
+    let fn_name = TokenParser::<String>::fn_name("matrix3d");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+    // Parse 16 numbers for matrix3d
+
+    fn_name
+      .flat_map(|_| {
+        // Parse all 16 numbers in sequence
+        let first = number_parser();
+        first.flat_map(|n1| {
+          number_parser().flat_map(move |n2| {
+            number_parser().flat_map(move |n3| {
+              number_parser().flat_map(move |n4| {
+                number_parser().flat_map(move |n5| {
+                  number_parser().flat_map(move |n6| {
+                    number_parser().flat_map(move |n7| {
+                      number_parser().flat_map(move |n8| {
+                        number_parser().flat_map(move |n9| {
+                          number_parser().flat_map(move |n10| {
+                            number_parser().flat_map(move |n11| {
+                              number_parser().flat_map(move |n12| {
+                                number_parser().flat_map(move |n13| {
+                                  number_parser().flat_map(move |n14| {
+                                    number_parser().flat_map(move |n15| {
+                                      number_parser().map(move |n16| {
+                                        [n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16]
+                                      }, Some("collect_16"))
+                                    }, Some("n16"))
+                                  }, Some("n15"))
+                                }, Some("n14"))
+                              }, Some("n13"))
+                            }, Some("n12"))
+                          }, Some("n11"))
+                        }, Some("n10"))
+                      }, Some("n9"))
+                    }, Some("n8"))
+                  }, Some("n7"))
+                }, Some("n6"))
+              }, Some("n5"))
+            }, Some("n4"))
+          }, Some("n3"))
+        }, Some("n2"))
+      }, Some("all_numbers"))
+      .flat_map(move |args| {
+        close.map(move |_| Matrix3d::new(args), Some("to_matrix3d"))
+      }, Some("close"))
   }
 }
 
@@ -366,8 +410,29 @@ impl Rotate3d {
   }
 
   pub fn parser() -> TokenParser<Rotate3d> {
-    // For now, return a never parser as rotate3d is complex
-    TokenParser::never()
+    let fn_name = TokenParser::<String>::fn_name("rotate3d");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+    fn_name
+      .flat_map(|_| number_parser(), Some("x"))
+      .flat_map(|x| {
+        let x_clone = x;
+        number_parser().map(move |y| (x_clone, y), Some("y"))
+      }, Some("with_y"))
+      .flat_map(|(x, y)| {
+        let x_clone = x;
+        let y_clone = y;
+        number_parser().map(move |z| (x_clone, y_clone, z), Some("z"))
+      }, Some("with_z"))
+      .flat_map(|(x, y, z)| {
+        let x_clone = x;
+        let y_clone = y;
+        let z_clone = z;
+        Angle::parser().map(move |angle| (x_clone, y_clone, z_clone, angle), Some("angle"))
+      }, Some("with_angle"))
+      .flat_map(move |(x, y, z, angle)| {
+        close.map(move |_| Rotate3d::new(x, y, z, angle.clone()), Some("to_rotate3d"))
+      }, Some("close"))
   }
 }
 
@@ -413,8 +478,26 @@ impl Scale3d {
   }
 
   pub fn parser() -> TokenParser<Scale3d> {
-    // For now, return a never parser as scale3d is complex
-    TokenParser::never()
+    let fn_name = TokenParser::<String>::fn_name("scale3d");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+    fn_name
+      .flat_map(|_| number_or_percentage_parser(), Some("sx"))
+      .flat_map(|sx| {
+        let sx_clone = sx.clone();
+        number_or_percentage_parser().map(move |sy| (sx_clone.clone(), sy), Some("sy"))
+      }, Some("with_sy"))
+      .flat_map(|(sx, sy)| {
+        let sx_clone = sx.clone();
+        let sy_clone = sy.clone();
+        number_or_percentage_parser().map(move |sz| (sx_clone.clone(), sy_clone.clone(), sz), Some("sz"))
+      }, Some("with_sz"))
+      .flat_map(move |(sx, sy, sz)| {
+        let sx_f64 = number_or_percentage_to_f64(sx);
+        let sy_f64 = number_or_percentage_to_f64(sy);
+        let sz_f64 = number_or_percentage_to_f64(sz);
+        close.map(move |_| Scale3d::new(sx_f64, sy_f64, sz_f64), Some("to_scale3d"))
+      }, Some("close"))
   }
 }
 
@@ -558,8 +641,23 @@ impl Translate3d {
   }
 
   pub fn parser() -> TokenParser<Translate3d> {
-    // For now, return a never parser as translate3d is complex
-    TokenParser::never()
+    let fn_name = TokenParser::<String>::fn_name("translate3d");
+    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+
+    fn_name
+      .flat_map(|_| length_percentage_parser(), Some("tx"))
+      .flat_map(|tx| {
+        let tx_clone = tx.clone();
+        length_percentage_parser().map(move |ty| (tx_clone.clone(), ty), Some("ty"))
+      }, Some("with_ty"))
+      .flat_map(|(tx, ty)| {
+        let tx_clone = tx.clone();
+        let ty_clone = ty.clone();
+        Length::parser().map(move |tz| (tx_clone.clone(), ty_clone.clone(), tz), Some("tz"))
+      }, Some("with_tz"))
+      .flat_map(move |(tx, ty, tz)| {
+        close.map(move |_| Translate3d::new(tx.clone(), ty.clone(), tz.clone()), Some("to_translate3d"))
+      }, Some("close"))
   }
 }
 
@@ -621,7 +719,13 @@ impl Display for TransformFunction {
         r.angle
       ),
       TransformFunction::Rotate3d(r) => {
-        write!(f, "rotate3d({}, {}, {}, {})", r.x, r.y, r.z, r.angle)
+        // Mirror JavaScript optimization logic exactly
+        match (r.x, r.y, r.z) {
+          (x, y, z) if x == 1.0 && y == 0.0 && z == 0.0 => write!(f, "rotateX({})", r.angle),
+          (x, y, z) if x == 0.0 && y == 1.0 && z == 0.0 => write!(f, "rotateY({})", r.angle),
+          (x, y, z) if x == 0.0 && y == 0.0 && z == 1.0 => write!(f, "rotateZ({})", r.angle),
+          _ => write!(f, "rotate3d({}, {}, {}, {})", r.x, r.y, r.z, r.angle),
+        }
       }
       TransformFunction::Scale(s) => match &s.sy {
         Some(sy) => write!(f, "scale({}, {})", s.sx, sy),

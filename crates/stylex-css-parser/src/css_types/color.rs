@@ -28,29 +28,11 @@ fn rgb_number_parser() -> TokenParser<u8> {
 }
 
 /// Alpha As Number - mirrors JavaScript alphaAsNumber
-/// Converts AlphaValue to raw number for parsing
+/// Uses enhanced AlphaValue parser with full JavaScript logic
 fn alpha_as_number() -> TokenParser<f32> {
-  // For now, implement basic alpha parsing
-  // TODO: Use AlphaValue.parser.map(alpha => alpha.value) when AlphaValue is enhanced
-  let alpha_number = tokens::number()
-    .map(|token| {
-      if let SimpleToken::Number(v) = token {
-        v as f32
-      } else {
-        0.0
-      }
-    }, Some("alpha_number"));
-
-  let alpha_percent = tokens::percentage()
-    .map(|token| {
-      if let SimpleToken::Percentage(v) = token {
-        (v as f32) / 100.0
-      } else {
-        0.0
-      }
-    }, Some("alpha_percent"));
-
-  TokenParser::one_of(vec![alpha_number, alpha_percent])
+  // ENHANCED: Complete JavaScript AlphaValue.parser logic
+  // Supports numbers, percentages, keywords (transparent), and CSS variables
+  crate::css_types::alpha_value::alpha_as_number()
 }
 
 /// Slash Parser - mirrors JavaScript slashParser

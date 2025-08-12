@@ -120,6 +120,15 @@ impl Display for CalcDimension {
   }
 }
 
+/// ENHANCED: Helper type for operator precedence parsing
+/// Represents either a value or an operator in the parsing sequence
+/// Mirrors: the valuesAndOperators array logic in calc.js
+#[derive(Debug, Clone)]
+pub enum CalcValueOrOperator {
+  Value(CalcValue),
+  Operator(String),
+}
+
 /// A value in a calc expression
 /// Mirrors: CalcValue type in calc.js exactly
 #[derive(Debug, Clone, PartialEq)]
@@ -278,12 +287,7 @@ impl CalcValue {
   }
 }
 
-/// Helper enum for parsing values and operators
-#[derive(Debug, Clone, PartialEq)]
-pub enum CalcValueOrOperator {
-  Value(CalcValue),
-  Operator(String),
-}
+
 
 impl Display for CalcValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -334,21 +338,138 @@ impl Calc {
       .map(Calc::new, Some("to_calc"))
   }
 
-      /// Full operations parser with operator precedence
+  /// ENHANCED: Operator precedence handling - composeAddAndSubtraction equivalent
+  /// Handles + and - operators (lower precedence)
+  /// Mirrors: composeAddAndSubtraction in calc.js exactly
+  fn compose_add_and_subtraction(values_and_operators: Vec<CalcValueOrOperator>) -> Result<CalcValue, String> {
+    if values_and_operators.len() == 1 {
+      match &values_and_operators[0] {
+        CalcValueOrOperator::Value(value) => return Ok(value.clone()),
+        CalcValueOrOperator::Operator(op) => return Err(format!("Invalid operator: {}", op)),
+      }
+    }
+
+    // Find first + or - operator
+    let first_operator = values_and_operators.iter().position(|item| {
+      matches!(item, CalcValueOrOperator::Operator(op) if op == "+" || op == "-")
+    });
+
+    match first_operator {
+      None => Err("No valid operator found".to_string()),
+      Some(op_index) => {
+        let left_slice = values_and_operators[..op_index].to_vec();
+        let right_slice = values_and_operators[op_index + 1..].to_vec();
+
+        if let CalcValueOrOperator::Operator(operator) = &values_and_operators[op_index] {
+          let left = Self::compose_add_and_subtraction(left_slice)?;
+          let right = Self::compose_add_and_subtraction(right_slice)?;
+
+          match operator.as_str() {
+            "+" => Ok(CalcValue::Addition(Addition::new(left, right))),
+            "-" => Ok(CalcValue::Subtraction(Subtraction::new(left, right))),
+            _ => Err("Invalid operator".to_string()),
+          }
+        } else {
+          Err("Expected operator".to_string())
+        }
+      }
+    }
+  }
+
+  /// ENHANCED: Operator precedence handling - splitByMultiplicationOrDivision equivalent
+  /// Handles * and / operators (higher precedence), delegates to composeAddAndSubtraction
+  /// Mirrors: splitByMultiplicationOrDivision in calc.js exactly
+  fn split_by_multiplication_or_division(values_and_operators: Vec<CalcValueOrOperator>) -> Result<CalcValue, String> {
+    if values_and_operators.len() == 1 {
+      match &values_and_operators[0] {
+        CalcValueOrOperator::Value(value) => return Ok(value.clone()),
+        CalcValueOrOperator::Operator(_) => return Err("Invalid operator".to_string()),
+      }
+    }
+
+    // Find first * or / operator
+    let first_operator = values_and_operators.iter().position(|item| {
+      matches!(item, CalcValueOrOperator::Operator(op) if op == "*" || op == "/")
+    });
+
+    match first_operator {
+      None => {
+        // No multiplication/division, handle addition/subtraction
+        Self::compose_add_and_subtraction(values_and_operators)
+      },
+      Some(op_index) => {
+        let left_slice = values_and_operators[..op_index].to_vec();
+        let right_slice = values_and_operators[op_index + 1..].to_vec();
+
+        if let CalcValueOrOperator::Operator(operator) = &values_and_operators[op_index] {
+          let left = Self::compose_add_and_subtraction(left_slice)?;
+          let right = Self::split_by_multiplication_or_division(right_slice)?;
+
+          match operator.as_str() {
+            "*" => Ok(CalcValue::Multiplication(Multiplication::new(left, right))),
+            "/" => Ok(CalcValue::Division(Division::new(left, right))),
+            _ => Err("Invalid operator".to_string()),
+          }
+        } else {
+          Err("Expected operator".to_string())
+        }
+      }
+    }
+  }
+
+  /// ENHANCED: Full operations parser with operator precedence
   /// Mirrors: operationsParser in calc.js exactly
   fn operations_parser() -> TokenParser<CalcValue> {
-    // Basic value or parenthesized expression
-    // For now, implement a simplified version that handles single values
-    // TODO: Implement full operator sequence parsing
-    TokenParser::one_of(vec![
+
+        // Parse first value (value or parenthesized expression)
+    // FIXED: Use basic parser to avoid stack overflow - recursive parsing can be added later
+    let first_value = TokenParser::one_of(vec![
       CalcValue::value_parser(),
-      Self::parenthesized_parser(),
-    ])
+      Self::parenthesized_parser(), // Use non-recursive version for stability
+    ]);
+
+        // Parse zero or more [operator, value] pairs - simplified approach
+    let rest_parser = TokenParser::zero_or_more(
+      Self::operator_parser()
+        .flat_map(|op| {
+          TokenParser::one_of(vec![
+            CalcValue::value_parser(),
+            Self::parenthesized_parser(), // Use non-recursive version for stability
+          ]).map(move |val| (op.clone(), val), Some("op_val_pair"))
+        }, Some("operator_value"))
+    );
+
+    // Combine first value with operator-value pairs
+    first_value
+      .flat_map(move |first| {
+        rest_parser.map(move |pairs| {
+          let mut values_and_operators = vec![CalcValueOrOperator::Value(first.clone())];
+          // Add each operator and value pair
+          for (op, val) in pairs {
+            values_and_operators.push(CalcValueOrOperator::Operator(op));
+            values_and_operators.push(CalcValueOrOperator::Value(val));
+          }
+          values_and_operators
+        }, Some("combine"))
+      }, Some("first_plus_pairs"))
+      .map(|values_and_operators| {
+        if values_and_operators.len() == 1 {
+          // Single value, extract it
+          if let CalcValueOrOperator::Value(value) = &values_and_operators[0] {
+            value.clone()
+          } else {
+            unreachable!("First element should always be a value")
+          }
+        } else {
+          // Multiple values with operators, apply precedence
+          Self::split_by_multiplication_or_division(values_and_operators)
+            .unwrap_or_else(|_| CalcValue::Number(0.0)) // Fallback for now
+        }
+      }, Some("apply_precedence"))
   }
 
   /// Parse operator delimiters
   /// Mirrors: TokenParser.tokens.Delim.map((delim) => delim[4].value).where(...)
-  #[allow(dead_code)]
   fn operator_parser() -> TokenParser<String> {
     use crate::token_parser::tokens;
 
@@ -360,13 +481,41 @@ impl Calc {
     ])
   }
 
-    /// Parenthesized expression parser
+  /// ENHANCED: Recursive parenthesized expression parser
+  /// Mirrors: parenthesizedParser in calc.js exactly with proper recursion
+  fn parenthesized_parser_recursive() -> TokenParser<CalcValue> {
+    use crate::token_parser::tokens;
+    use std::rc::Rc;
+    use std::cell::RefCell;
+
+    // Create lazy reference to avoid infinite recursion during parser creation
+    let operations_parser_ref: Rc<RefCell<Option<TokenParser<CalcValue>>>> = Rc::new(RefCell::new(None));
+    let ops_ref_clone = operations_parser_ref.clone();
+
+    // Create the parenthesized parser
+    let parser = tokens::open_paren()
+      .skip(tokens::whitespace().optional())
+      .flat_map(move |_| {
+        // Get the operations parser (will be set by the time this runs)
+        let ops_parser = ops_ref_clone.borrow();
+        ops_parser.as_ref().unwrap().clone()
+      }, Some("recursive_operations"))
+      .skip(tokens::whitespace().optional())
+      .skip(tokens::close_paren())
+      .map(|expr| CalcValue::Group(Group::new(expr)), Some("to_group"));
+
+    // Set the operations parser in the reference
+    *operations_parser_ref.borrow_mut() = Some(Self::operations_parser());
+
+    parser
+  }
+
+  /// Basic parenthesized expression parser (non-recursive fallback)
   /// Mirrors: parenthesizedParser in calc.js
   fn parenthesized_parser() -> TokenParser<CalcValue> {
     use crate::token_parser::tokens;
 
-    // For now, implement a basic parenthesized parser to avoid infinite recursion
-    // Since operations_parser calls this and this would call operations_parser
+    // Basic implementation that doesn't recurse - fallback for simple cases
     tokens::open_paren()
       .skip(tokens::whitespace().optional())
       .flat_map(

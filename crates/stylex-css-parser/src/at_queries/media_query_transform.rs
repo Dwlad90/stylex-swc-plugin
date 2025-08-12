@@ -21,8 +21,7 @@ pub fn lastMediaQueryWinsTransform(styles: Value) -> Value {
 
 /// Internal helper function for backwards compatibility with existing tests
 /// This preserves the old Vec<MediaQuery> -> Vec<MediaQuery> signature for internal use
-#[allow(non_snake_case)]
-pub(crate) fn lastMediaQueryWinsTransformInternal(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
+pub(crate) fn last_media_query_wins_transform_internal(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
   // For now, implement a simplified version that ensures basic functionality
   // The full logic will be enhanced to match JavaScript exactly
 
@@ -155,7 +154,7 @@ mod tests {
       MediaQuery::new("@media (min-width: 1024px)".to_string()),
     ];
 
-    let result = lastMediaQueryWinsTransformInternal(queries.clone());
+    let result = last_media_query_wins_transform_internal(queries.clone());
 
     // For now, just check that we get the same number of queries back
     assert_eq!(result.len(), queries.len());
@@ -173,14 +172,14 @@ mod tests {
   #[test]
   fn test_empty_queries_transform() {
     let queries = vec![];
-    let result = lastMediaQueryWinsTransformInternal(queries);
+    let result = last_media_query_wins_transform_internal(queries);
     assert!(result.is_empty());
   }
 
   #[test]
   fn test_single_query_transform() {
     let queries = vec![MediaQuery::new("@media print".to_string())];
-    let result = lastMediaQueryWinsTransformInternal(queries.clone());
+    let result = last_media_query_wins_transform_internal(queries.clone());
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].to_string(), "@media print");
   }
@@ -212,7 +211,7 @@ mod tests {
       MediaQuery::new("@media print".to_string()),
     ];
 
-    let result = lastMediaQueryWinsTransformInternal(queries);
+    let result = last_media_query_wins_transform_internal(queries);
 
     // Placeholder assertion - just check we get some result
     assert_eq!(result.len(), 3);
@@ -223,7 +222,7 @@ mod tests {
     // Ensure the function name matches the JavaScript export
     // This is important for API compatibility
     let queries = vec![MediaQuery::new("@media all".to_string())];
-    let _result = lastMediaQueryWinsTransformInternal(queries);
+    let _result = last_media_query_wins_transform_internal(queries);
 
     // Test passes if function exists and can be called
   }

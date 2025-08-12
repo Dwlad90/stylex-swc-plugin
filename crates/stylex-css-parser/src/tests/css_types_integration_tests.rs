@@ -46,7 +46,7 @@ mod color_tests {
   #[test]
   fn test_parses_hash_colors() {
     // Test actual parsing functionality
-    let parser = Color::parse();
+    let _parser = Color::parse();
 
     // Test direct hash color parser first
     let hash_parser = HashColor::parse();

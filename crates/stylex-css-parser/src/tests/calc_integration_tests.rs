@@ -157,7 +157,7 @@ mod calc_tests {
     );
     let calc_mixed = Calc::new(CalcValue::Subtraction(mixed_sub));
 
-    if let CalcValue::Subtraction(op) = calc_mixed.value {
+    if let CalcValue::Subtraction(_op) = calc_mixed.value {
       // Subtraction structure verified by successful pattern match
     }
   }
@@ -186,7 +186,7 @@ mod calc_tests {
     );
     let calc_mixed = Calc::new(CalcValue::Multiplication(mixed_mul));
 
-    if let CalcValue::Multiplication(op) = calc_mixed.value {
+    if let CalcValue::Multiplication(_op) = calc_mixed.value {
       // Multiplication structure verified by successful pattern match
     }
   }
@@ -215,7 +215,7 @@ mod calc_tests {
     );
     let calc_mixed = Calc::new(CalcValue::Division(mixed_div));
 
-    if let CalcValue::Division(op) = calc_mixed.value {
+    if let CalcValue::Division(_op) = calc_mixed.value {
       // Division structure verified by successful pattern match
     }
   }
@@ -232,7 +232,7 @@ mod calc_tests {
     if let CalcValue::Multiplication(op) = calc_nested.value {
       // Multiplication structure verified by successful pattern match
       if let CalcValue::Group(g) = *op.left {
-        if let CalcValue::Addition(inner_op) = *g.expr {
+        if let CalcValue::Addition(_inner_op) = *g.expr {
           // Addition structure verified by successful pattern match
         }
       }
@@ -265,7 +265,7 @@ mod calc_tests {
 
     let calc_complex = Calc::new(CalcValue::Addition(add_op));
 
-    if let CalcValue::Addition(op) = calc_complex.value {
+    if let CalcValue::Addition(_op) = calc_complex.value {
       // Addition structure verified by successful pattern match
       // The structure validates that precedence was handled correctly
     }

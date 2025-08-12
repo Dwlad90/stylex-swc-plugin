@@ -35,14 +35,7 @@ fn alpha_as_number() -> TokenParser<f32> {
   crate::css_types::alpha_value::alpha_as_number()
 }
 
-/// Slash Parser - mirrors JavaScript slashParser
-/// Parses '/' surrounded by optional whitespace
-fn slash_parser() -> TokenParser<()> {
-  tokens::delim('/')
-    .map(|_| (), Some("slash"))
-    .prefix(tokens::whitespace().optional())
-    .suffix(tokens::whitespace().optional())
-}
+
 
 /// Function name parser helper
 fn function_parser(name: &'static str) -> TokenParser<()> {
@@ -609,6 +602,7 @@ impl Rgba {
       .map(|(r, g, b, a)| Rgba::new(r, g, b, a), Some("to_rgba_comma"));
 
     // For now, return the comma parser (space/slash parser can be added later)
+    // Basic implementation
     // This achieves full JavaScript compatibility with exact sequence parsing
     comma_parser
   }
@@ -652,6 +646,7 @@ impl Hsl {
       .map(|(h, s, l)| Hsl::new(h, s, l), Some("to_hsl_comma"));
 
     // For now, return the comma parser (space parser can be added later)
+    // Basic implementation
     // This achieves full JavaScript compatibility with proper Angle and Percentage types
     comma_parser
   }
@@ -700,6 +695,7 @@ impl Hsla {
       .map(|(h, s, l, a)| Hsla::new(h, s, l, a), Some("to_hsla_comma"));
 
     // For now, return the comma parser (space/slash parser can be added later)
+    // Basic implementation
     // This achieves full JavaScript compatibility with proper Angle and Percentage types
     comma_parser
   }

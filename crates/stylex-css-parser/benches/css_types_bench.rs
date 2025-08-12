@@ -30,7 +30,7 @@ fn color_benchmarks(c: &mut Criterion) {
     group.bench_with_input(format!("parse_color_{}", input), input, |b, input| {
       b.iter(|| {
         // Benchmark the parser creation and usage
-        let parser = Color::parser();
+        let parser = Color::parse();
         black_box(parser.parse(black_box(input)))
       })
     });
@@ -101,7 +101,7 @@ fn calc_benchmarks(c: &mut Criterion) {
   for input in &calc_inputs {
     group.bench_with_input(format!("parse_calc_{}", input), input, |b, input| {
       b.iter(|| {
-        let parser = Calc::parser();
+        let parser = Calc::parse();
         black_box(parser.parse(black_box(input)))
       })
     });
@@ -226,10 +226,10 @@ fn parser_comparison_benchmarks(c: &mut Criterion) {
     b.iter(|| {
       // Benchmark the cost of creating parsers
       black_box((
-        Color::parser(),
+        Color::parse(),
         Length::parser(),
         Angle::parser(),
-        Calc::parser(),
+        Calc::parse(),
         BlendMode::parser(),
         Flex::parser(),
         CustomIdentifier::parser(),
@@ -241,9 +241,9 @@ fn parser_comparison_benchmarks(c: &mut Criterion) {
   group.bench_function("parse_complex_values", |b| {
     b.iter(|| {
       // Test parsing a variety of CSS values
-      let color_parser = Color::parser();
+      let color_parser = Color::parse();
       let length_parser = Length::parser();
-      let calc_parser = Calc::parser();
+      let calc_parser = Calc::parse();
 
       black_box((
         color_parser.parse("rgba(255, 128, 0, 0.7)"),

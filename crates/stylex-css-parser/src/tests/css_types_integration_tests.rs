@@ -123,8 +123,8 @@ mod color_tests {
     let hash = Color::Hash(HashColor::new("ff0000".to_string()));
     let rgb = Color::Rgb(Rgb::new(255, 0, 0));
     let rgba = Color::Rgba(Rgba::new(255, 0, 0, 1.0));
-    let hsl = Color::Hsl(Hsl::new(0.0, 100.0, 50.0));
-    let hsla = Color::Hsla(Hsla::new(0.0, 100.0, 50.0, 1.0));
+    let hsl = Color::Hsl(Hsl::from_primitives(0.0, 100.0, 50.0));
+    let hsla = Color::Hsla(Hsla::from_primitives(0.0, 100.0, 50.0, 1.0));
 
     // Test Display implementation
     assert!(!named.to_string().is_empty());

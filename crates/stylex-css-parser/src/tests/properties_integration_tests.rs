@@ -361,14 +361,14 @@ mod box_shadow_tests {
       Length::new(5.0, "px".to_string()),
       Length::new(0.0, "px".to_string()),
       Length::new(0.0, "px".to_string()),
-      Color::Hsla(Hsla::new(0.0, 100.0, 50.0, 0.5)),
+      Color::Hsla(Hsla::from_primitives(0.0, 100.0, 50.0, 0.5)),
       false,
     );
 
     if let Color::Hsla(hsla) = &shadow.color {
-      assert_eq!(hsla.h, 0.0);
-      assert_eq!(hsla.s, 100.0);
-      assert_eq!(hsla.l, 50.0);
+      assert_eq!(hsla.h, Angle::new(0.0, "deg".to_string()));
+      assert_eq!(hsla.s, Percentage::new(100.0));
+      assert_eq!(hsla.l, Percentage::new(50.0));
       assert_eq!(hsla.a, 0.5);
     } else {
       panic!("Expected Hsla color");

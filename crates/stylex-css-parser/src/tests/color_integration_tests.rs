@@ -11,7 +11,9 @@ use crate::css_types::{Angle, Color, HashColor, Hsl, Hsla, NamedColor, Rgb, Rgba
 
 #[cfg(test)]
 mod color_tests {
-  use super::*;
+  use crate::css_types::Percentage;
+
+use super::*;
 
   // Mirrors: color-test.js - "parses named colors"
   #[test]
@@ -247,32 +249,32 @@ mod color_tests {
   #[test]
   fn test_parses_hsl_values() {
     // Test hsl(0, 100%, 50%) - red
-    let hsl_red = Hsl::new(0.0, 100.0, 50.0);
-    assert_eq!(hsl_red.h, 0.0);
-    assert_eq!(hsl_red.s, 100.0);
-    assert_eq!(hsl_red.l, 50.0);
+    let hsl_red = Hsl::from_primitives(0.0, 100.0, 50.0);
+    assert_eq!(hsl_red.h, Angle::new(0.0, "deg".to_string()));
+    assert_eq!(hsl_red.s, Percentage::new(100.0));
+    assert_eq!(hsl_red.l, Percentage::new(50.0));
     assert_eq!(hsl_red.to_string(), "hsl(0,100%,50%)");
 
     // Test hsl(120, 100%, 50%) - green
-    let hsl_green = Hsl::new(120.0, 100.0, 50.0);
-    assert_eq!(hsl_green.h, 120.0);
-    assert_eq!(hsl_green.s, 100.0);
-    assert_eq!(hsl_green.l, 50.0);
+    let hsl_green = Hsl::from_primitives(120.0, 100.0, 50.0);
+    assert_eq!(hsl_green.h, Angle::new(120.0, "deg".to_string()));
+    assert_eq!(hsl_green.s, Percentage::new(100.0));
+    assert_eq!(hsl_green.l, Percentage::new(50.0));
     assert_eq!(hsl_green.to_string(), "hsl(120,100%,50%)");
 
     // Test hsl(240, 100%, 50%) - blue
-    let hsl_blue = Hsl::new(240.0, 100.0, 50.0);
-    assert_eq!(hsl_blue.h, 240.0);
-    assert_eq!(hsl_blue.s, 100.0);
-    assert_eq!(hsl_blue.l, 50.0);
+    let hsl_blue = Hsl::from_primitives(240.0, 100.0, 50.0);
+    assert_eq!(hsl_blue.h, Angle::new(240.0, "deg".to_string()));
+    assert_eq!(hsl_blue.s, Percentage::new(100.0));
+    assert_eq!(hsl_blue.l, Percentage::new(50.0));
     assert_eq!(hsl_blue.to_string(), "hsl(240,100%,50%)");
 
     // Test Color enum wrapping
     let color_hsl = Color::Hsl(hsl_red);
     if let Color::Hsl(hsl) = color_hsl {
-      assert_eq!(hsl.h, 0.0);
-      assert_eq!(hsl.s, 100.0);
-      assert_eq!(hsl.l, 50.0);
+      assert_eq!(hsl.h, Angle::new(0.0, "deg".to_string()));
+      assert_eq!(hsl.s, Percentage::new(100.0));
+      assert_eq!(hsl.l, Percentage::new(50.0));
     } else {
       panic!("Expected HSL color");
     }
@@ -282,27 +284,27 @@ mod color_tests {
   #[test]
   fn test_parses_hsla_values() {
     // Test hsla(0, 100%, 50%, 0.5) - semi-transparent red
-    let hsla_red = Hsla::new(0.0, 100.0, 50.0, 0.5);
-    assert_eq!(hsla_red.h, 0.0);
-    assert_eq!(hsla_red.s, 100.0);
-    assert_eq!(hsla_red.l, 50.0);
+    let hsla_red = Hsla::from_primitives(0.0, 100.0, 50.0, 0.5);
+    assert_eq!(hsla_red.h, Angle::new(0.0, "deg".to_string()));
+    assert_eq!(hsla_red.s, Percentage::new(100.0));
+    assert_eq!(hsla_red.l, Percentage::new(50.0));
     assert_eq!(hsla_red.a, 0.5);
     assert_eq!(hsla_red.to_string(), "hsla(0,100%,50%,0.5)");
 
     // Test hsla(120, 100%, 50%, 0.8) - semi-transparent green
-    let hsla_green = Hsla::new(120.0, 100.0, 50.0, 0.8);
-    assert_eq!(hsla_green.h, 120.0);
-    assert_eq!(hsla_green.s, 100.0);
-    assert_eq!(hsla_green.l, 50.0);
+    let hsla_green = Hsla::from_primitives(120.0, 100.0, 50.0, 0.8);
+    assert_eq!(hsla_green.h, Angle::new(120.0, "deg".to_string()));
+    assert_eq!(hsla_green.s, Percentage::new(100.0));
+    assert_eq!(hsla_green.l, Percentage::new(50.0));
     assert_eq!(hsla_green.a, 0.8);
     assert_eq!(hsla_green.to_string(), "hsla(120,100%,50%,0.8)");
 
     // Test Color enum wrapping
     let color_hsla = Color::Hsla(hsla_red);
     if let Color::Hsla(hsla) = color_hsla {
-      assert_eq!(hsla.h, 0.0);
-      assert_eq!(hsla.s, 100.0);
-      assert_eq!(hsla.l, 50.0);
+      assert_eq!(hsla.h, Angle::new(0.0, "deg".to_string()));
+      assert_eq!(hsla.s, Percentage::new(100.0));
+      assert_eq!(hsla.l, Percentage::new(50.0));
       assert_eq!(hsla.a, 0.5);
     } else {
       panic!("Expected HSLA color");
@@ -371,8 +373,8 @@ mod color_tests {
     let hash = Color::Hash(HashColor::new("ff0000".to_string()));
     let rgb = Color::Rgb(Rgb::new(255, 0, 0));
     let rgba = Color::Rgba(Rgba::new(255, 0, 0, 0.5));
-    let hsl = Color::Hsl(Hsl::new(0.0, 100.0, 50.0));
-    let hsla = Color::Hsla(Hsla::new(0.0, 100.0, 50.0, 0.5));
+    let hsl = Color::Hsl(Hsl::from_primitives(0.0, 100.0, 50.0));
+    let hsla = Color::Hsla(Hsla::from_primitives(0.0, 100.0, 50.0, 0.5));
 
     // Test pattern matching works for all variants
     match named {
@@ -396,7 +398,7 @@ mod color_tests {
     }
 
     match hsl {
-      Color::Hsl(h) => assert_eq!(h.h, 0.0),
+      Color::Hsl(h) => assert_eq!(h.h, Angle::new(0.0, "deg".to_string())),
       _ => panic!("Expected HSL color"),
     }
 

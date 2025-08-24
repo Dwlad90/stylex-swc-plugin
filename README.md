@@ -1,90 +1,116 @@
 # StyleX in Rust &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE) [![npm version](https://img.shields.io/npm/v/@stylexswc/rs-compiler.svg?style=flat)](https://www.npmjs.com/package/@stylexswc/rs-compiler) ![GitHub tag check runs](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/0.10.5?label=Release%20status) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Dwlad90/stylex-swc-plugin/pr-validation.yml?branch=develop&label=Project%20Health)
 
-This is a monorepo for an unofficial [`napi-rs`](https://napi.rs/) compiler and
-an [SWC](https://swc.rs/) plugin for
-[StyleX](https://github.com/facebook/stylex). Using SWC allows us to completely
-ditch Babel and make StyleX faster.
+> **Community-driven, high-performance StyleX compiler and tooling ecosystem built with Rust**
 
-**Key Benefits:**
+> [!IMPORTANT]
+> This is a **community-written** implementation of StyleX tooling. Built with love by the open source community, it aims to provide a high-performance alternative to the official StyleX tooling while not being affiliated with or officially supported by Meta/Facebook.
 
-- Faster build times by leveraging NAPI-RS/SWC instead of Babel.
-- Seamless integration with Next.js SWC Compiler.
-- Almost 100% compatibility with official StyleX tests.
+A comprehensive monorepo providing a community-built [`napi-rs`](https://napi.rs/) compiler, [SWC](https://swc.rs/) plugin, and complete CSS parser for [StyleX](https://github.com/facebook/stylex). Built from the ground up in Rust for maximum performance and developer experience.
 
-This is specifically useful for Next.js projets as it allows us to use
-[SWC Next.js Compiler](https://nextjs.org/docs/architecture/nextjs-compiler).
+## 🚀 Why StyleX + Rust?
 
-## Project Structure
+- **⚡ Blazing Fast**: Significantly faster build times by leveraging NAPI-RS/SWC instead of Babel
+- **🔧 Performance-First Alternative**: Built from the ground up in Rust for maximum speed and efficiency
+- **📦 Complete Ecosystem**: Community-built toolkit covering compilation to CSS parsing
+- **🌐 Universal Integration**: Works seamlessly with Next.js, Webpack, Vite, Rollup, and more
+- **🛡️ Type Safe**: Full Rust implementation with comprehensive error handling
+- **🤝 Community Driven**: Open source with active community contributions and support
 
-This project is organized into several packages:
+Perfect for developers who want blazing-fast StyleX compilation and are excited about Rust-powered tooling!
 
-**Core:**
+## 📦 Quick Start
 
-- [`rs-compiler`](./crates/stylex-rs-compiler) - Rust-based
-  [`napi-rs`](https://napi.rs/) compiler for transforming StyleX code.
+```bash
+# For Next.js projects
+npm install --save-dev @stylexswc/nextjs-plugin
 
-**Integration:**
+# For other build tools
+npm install --save-dev @stylexswc/unplugin
+```
 
-- [`nextjs-plugin`](./packages/nextjs-plugin) - A wrapper for
-  [`Next.JS configuration`](https://nextjs.org/docs/app/api-reference/next-config-js)
-  that integrates the StyleX [napi-rs](https://napi.rs/) compiler into the
-  Webpack processing pipeline.
+### Next.js Setup
+```javascript
+// next.config.js
+const stylexPlugin = require('@stylexswc/nextjs-plugin');
 
-- [`webpack-plugin`](./packages/webpack-plugin) - A `Webpack pluign` that
-  integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+module.exports = stylexPlugin({
+  rsOptions: {
+    dev: process.env.NODE_ENV !== 'production',
+  },
+})();
+```
 
-- [`rollup-plugin`](./packages/rollup-plugin) - A `Rollup plugin` that
-  integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+## 📁 Project Architecture
 
-- [`unplugin`](./packages/unplugin) - Plugin collection for various build tools
-  that integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+This monorepo is organized into specialized packages for maximum modularity and reusability:
 
-  Supported build tools and libraries:
+### 🔥 Core Engines
 
-  - Farm
-  - Rollup
-  - Rsbuild
-  - Rspack
-  - Solid
-  - Vite
-  - Vue
-  - Webpack
+- **[`rs-compiler`](./crates/stylex-rs-compiler)** - High-performance NAPI-RS compiler for StyleX transformation
+- **[`css-parser`](./crates/stylex-css-parser)** - Comprehensive CSS value parser with extensive test coverage, supporting colors, lengths, calc expressions, transforms, and media queries
+- **[`shared`](./crates/stylex-shared)** - Shared utilities and configurations for SWC transformations
 
-- [`postcss-plugin`](./packages/postcss-plugin) - A `PostCSS plugin` that
-  integrates the StyleX [napi-rs](https://napi.rs/) compiler.
+### 🔌 Framework Integrations
 
-- [`jest`](./packages/jest) - Jest transformer that integrates the StyleX
-  [napi-rs](https://napi.rs/) compiler.
+- **[`nextjs-plugin`](./packages/nextjs-plugin)** - Next.js configuration wrapper with seamless SWC integration
+- **[`unplugin`](./packages/unplugin)** - Universal plugin supporting Vite, Webpack, Rollup, Rspack, and 8+ build tools
+- **[`jest`](./packages/jest)** - Jest transformer for StyleX testing workflows
+- **[`postcss-plugin`](./packages/postcss-plugin)** - PostCSS integration for existing CSS pipelines
 
-**Utilities:**
+### ⚙️ Developer Tools
 
-- [`stylex-shared`](./crates/stylex-shared) - Shared Rust codebase for the
-  StyleX RS compiler and SWC plugin.
+- **[`path-resolver`](./crates/stylex-path-resolver)** - Advanced path resolution with partial `package.json` exports support
+- **[`test-parser`](./crates/stylex-test-parser)** - Jest test parser for maintaining compatibility with official StyleX
+- **[`design-system`](./packages/design-system)** - Internal design system for consistent workspace examples
 
-- [`path-resolver`](./crates/stylex-path-resolver) - Path handling and resolving
-  utilities for the StyleX NAPI-RS/SWC plugin.
+### 🏗️ Development Infrastructure
 
-- [`test-parser`](./crates/stylex-test-parser) - Parser for
-  [StyleX](https://github.com/facebook/stylex) repo Jest tests that helps to
-  understand last changes and keeps the project up to date
+- **[`eslint-config`](./packages/eslint-config)** - Shared ESLint configuration
+- **[`typescript-config`](./packages/typescript-config)** - TypeScript configuration presets
+- **[`playwright`](./packages/playwright)** - Visual regression testing setup
 
-**Internal Configurations:**
+## 🎯 Build Tool Ecosystem
 
-- [`eslint-config`](./packages/eslint-config) - Internal
-  [ESLint](https://eslint.org/) configuration
+| Tool | Package | Experience |
+|------|---------|------------|
+| Next.js | `@stylexswc/nextjs-plugin` | 🚀 Native SWC Integration |
+| Vite | `@stylexswc/unplugin` | ⚡ Lightning Fast HMR |
+| Webpack | `@stylexswc/unplugin` | 🔧 Seamless Integration |
+| Rollup | `@stylexswc/unplugin` | 📦 Optimized Bundling |
+| Jest | `@stylexswc/jest` | 🧪 Reliable Testing |
+| PostCSS | `@stylexswc/postcss-plugin` | 🎨 CSS Pipeline Ready |
+| Rspack | `@stylexswc/unplugin` | 🚀 Rust-Powered Speed |
+| Farm, Rsbuild, Solid | `@stylexswc/unplugin` | 🌟 Modern Build Experience |
 
-- [`typescript-config`](./packages/typescript-config) - Internal
-  [Typescript](https://www.typescriptlang.org/docs/handbook/tsconfig-json.htm)
-  configuration
+## 🔧 Development
 
-**Other packages:**
+```bash
+# Clone the repository
+git clone https://github.com/Dwlad90/stylex-swc-plugin.git
 
-- [`design-system`](./packages/design-system) - Design system for the StyleX
-  project, intended solely for internal use with in-workspace examples to
-  support consistent UI experimentation and prototyping.
+# Install dependencies
+pnpm install
 
-- [`playwright`](./packages/playwright) - Playwright integration for StyleX
-  visual regression testing.
+# Build all packages
+pnpm build
+
+# Run tests
+pnpm test
+```
+
+## 📖 Documentation
+
+- [StyleX Documentation](https://stylexjs.com)
+- [SWC Documentation](https://swc.rs)
+- [NAPI-RS Documentation](https://napi.rs)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines and submit pull requests to the `develop` branch.
+
+## 📄 License
+
+MIT Licensed. See [LICENSE](./LICENSE) for details.
 
 ## Development
 

@@ -1,0 +1,91 @@
+/*!
+CSS Length Percentage Tests
+
+Test CSS length-percentage type that accepts both lengths and percentages.
+*/
+
+#[cfg(test)]
+mod test_css_type_length_percentage {
+  use crate::css_types::length_percentage::{length_percentage_parser, LengthPercentage};
+
+  #[test]
+  fn parses_length_values() {
+    let result = length_percentage_parser().parse_to_end("10px").unwrap();
+    match result {
+      LengthPercentage::Length(length) => {
+        assert_eq!(length.value, 10.0);
+        assert_eq!(length.unit, "px");
+      }
+      _ => panic!("Expected length"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("5em").unwrap();
+    match result {
+      LengthPercentage::Length(length) => {
+        assert_eq!(length.value, 5.0);
+        assert_eq!(length.unit, "em");
+      }
+      _ => panic!("Expected length"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("2rem").unwrap();
+    match result {
+      LengthPercentage::Length(length) => {
+        assert_eq!(length.value, 2.0);
+        assert_eq!(length.unit, "rem");
+      }
+      _ => panic!("Expected length"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("1in").unwrap();
+    match result {
+      LengthPercentage::Length(length) => {
+        assert_eq!(length.value, 1.0);
+        assert_eq!(length.unit, "in");
+      }
+      _ => panic!("Expected length"),
+    }
+  }
+
+  #[test]
+  fn parses_percentage_values() {
+    let result = length_percentage_parser().parse_to_end("50%").unwrap();
+    match result {
+      LengthPercentage::Percentage(percentage) => {
+        assert_eq!(percentage.value, 50.0);
+      }
+      _ => panic!("Expected percentage"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("100%").unwrap();
+    match result {
+      LengthPercentage::Percentage(percentage) => {
+        assert_eq!(percentage.value, 100.0);
+      }
+      _ => panic!("Expected percentage"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("0%").unwrap();
+    match result {
+      LengthPercentage::Percentage(percentage) => {
+        assert_eq!(percentage.value, 0.0);
+      }
+      _ => panic!("Expected percentage"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("25%").unwrap();
+    match result {
+      LengthPercentage::Percentage(percentage) => {
+        assert_eq!(percentage.value, 25.0);
+      }
+      _ => panic!("Expected percentage"),
+    }
+  }
+
+  #[test]
+  fn rejects_invalid_length_percentage_values() {
+    assert!(length_percentage_parser().parse_to_end("abc").is_err());
+    assert!(length_percentage_parser().parse_to_end("50").is_err());
+    assert!(length_percentage_parser().parse_to_end("10abc").is_err());
+  }
+}

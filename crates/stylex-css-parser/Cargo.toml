@@ -3,7 +3,7 @@ name = "stylex_css_parser"
 version = "0.6.6"
 edition = "2021"
 rust-version = "1.84.1"
-description = "CSS parser for StyleX SWC plugin"
+description = "CSS value parser"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 
@@ -13,23 +13,17 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-serde.workspace = true
+serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-swc_core = { workspace = true, features = ["common", "ecma_loader_node"] }
-path-clean = { workspace = true }
 regex.workspace = true
 anyhow.workspace = true
-log.workspace = true
-pretty_env_logger.workspace = true
-color-backtrace.workspace = true
-ctor.workspace = true
-env_logger.workspace = true
-rustc-hash.workspace = true
-once_cell.workspace = true
-indexmap.workspace = true
 cssparser = { version = "0.34.0" }
-lazy_static.workspace = true
-rust_decimal.workspace = true
+thiserror = "1.0.69"
+log.workspace = true
 
-package-json = "0.4.0"
-pathdiff = { version = "0.2.3" }
+[dev-dependencies]
+proptest = "1.4"
+
+[dev-dependencies.criterion]
+version = "0.5"
+features = ["html_reports"]

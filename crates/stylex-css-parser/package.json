@@ -24,7 +24,7 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "NODE_ENV=test cargo test --lib --bins --tests -- --test-threads=1",
+    "test": "NODE_ENV=test cargo test --lib --bins --tests",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
   "config": {
@@ -34,8 +34,8 @@
   },
   "devDependencies": {
     "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^7.0.2",
-    "prettier": "^3.5.3"
+    "npm-run-all2": "^8.0.4",
+    "prettier": "^3.6.2"
   },
   "keywords": [
     "stylex",

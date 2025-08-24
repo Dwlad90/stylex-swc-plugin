@@ -1,9 +1,14 @@
-use std::str::FromStr;
+/*!
+CSS Blend Mode type parsing.
 
-use anyhow::bail;
+Handles blend mode values for properties like mix-blend-mode and background-blend-mode.
+*/
 
-use crate::parser::Parser;
-#[derive(Clone, Debug, PartialEq)]
+use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use std::fmt::{self, Display};
+
+/// CSS blend mode values
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlendMode {
   Normal,
   Multiply,
@@ -24,8 +29,53 @@ pub enum BlendMode {
 }
 
 impl BlendMode {
-  // Helper method to convert BlendMode to string representation
-  fn as_str(&self) -> &'static str {
+  /// All valid blend mode values
+  pub fn all_values() -> &'static [&'static str] {
+    &[
+      "normal",
+      "multiply",
+      "screen",
+      "overlay",
+      "darken",
+      "lighten",
+      "color-dodge",
+      "color-burn",
+      "hard-light",
+      "soft-light",
+      "difference",
+      "exclusion",
+      "hue",
+      "saturation",
+      "color",
+      "luminosity",
+    ]
+  }
+
+  /// Convert from string representation
+  pub fn from_str(s: &str) -> Option<BlendMode> {
+    match s {
+      "normal" => Some(BlendMode::Normal),
+      "multiply" => Some(BlendMode::Multiply),
+      "screen" => Some(BlendMode::Screen),
+      "overlay" => Some(BlendMode::Overlay),
+      "darken" => Some(BlendMode::Darken),
+      "lighten" => Some(BlendMode::Lighten),
+      "color-dodge" => Some(BlendMode::ColorDodge),
+      "color-burn" => Some(BlendMode::ColorBurn),
+      "hard-light" => Some(BlendMode::HardLight),
+      "soft-light" => Some(BlendMode::SoftLight),
+      "difference" => Some(BlendMode::Difference),
+      "exclusion" => Some(BlendMode::Exclusion),
+      "hue" => Some(BlendMode::Hue),
+      "saturation" => Some(BlendMode::Saturation),
+      "color" => Some(BlendMode::Color),
+      "luminosity" => Some(BlendMode::Luminosity),
+      _ => None,
+    }
+  }
+
+  /// Convert to string representation
+  pub fn as_str(&self) -> &'static str {
     match self {
       BlendMode::Normal => "normal",
       BlendMode::Multiply => "multiply",
@@ -45,93 +95,219 @@ impl BlendMode {
       BlendMode::Luminosity => "luminosity",
     }
   }
-}
 
-impl std::fmt::Display for BlendMode {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.write_str(self.as_str())
+  /// Check if a string is a valid blend mode
+  pub fn is_valid_blend_mode(s: &str) -> bool {
+    Self::all_values().contains(&s)
+  }
+
+  /// Parser for blend mode values
+  pub fn parser() -> TokenParser<BlendMode> {
+    use crate::token_parser::tokens;
+
+    tokens::ident()
+      .map(
+        |token| {
+          if let SimpleToken::Ident(value) = token {
+            value
+          } else {
+            unreachable!()
+          }
+        },
+        Some("extract_ident_value"),
+      )
+      .where_fn(
+        |value: &String| Self::is_valid_blend_mode(value),
+        Some("valid_blend_mode"),
+      )
+      .map(
+        |value| Self::from_str(&value).unwrap(),
+        Some("to_blend_mode"),
+      )
   }
 }
 
-impl From<BlendMode> for String {
-  fn from(blend_mode: BlendMode) -> Self {
-    blend_mode.as_str().to_string()
+impl Display for BlendMode {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.as_str())
   }
 }
 
-impl FromStr for BlendMode {
-  type Err = anyhow::Error;
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
-    match s {
-      "normal" => Ok(BlendMode::Normal),
-      "multiply" => Ok(BlendMode::Multiply),
-      "screen" => Ok(BlendMode::Screen),
-      "overlay" => Ok(BlendMode::Overlay),
-      "darken" => Ok(BlendMode::Darken),
-      "lighten" => Ok(BlendMode::Lighten),
-      "color-dodge" => Ok(BlendMode::ColorDodge),
-      "color-burn" => Ok(BlendMode::ColorBurn),
-      "hard-light" => Ok(BlendMode::HardLight),
-      "soft-light" => Ok(BlendMode::SoftLight),
-      "difference" => Ok(BlendMode::Difference),
-      "exclusion" => Ok(BlendMode::Exclusion),
-      "hue" => Ok(BlendMode::Hue),
-      "saturation" => Ok(BlendMode::Saturation),
-      "color" => Ok(BlendMode::Color),
-      "luminosity" => Ok(BlendMode::Luminosity),
-      _ => bail!("Invalid blend mode: {}", s),
+  #[test]
+  fn test_blend_mode_from_str() {
+    assert_eq!(BlendMode::from_str("normal"), Some(BlendMode::Normal));
+    assert_eq!(BlendMode::from_str("multiply"), Some(BlendMode::Multiply));
+    assert_eq!(BlendMode::from_str("screen"), Some(BlendMode::Screen));
+    assert_eq!(BlendMode::from_str("overlay"), Some(BlendMode::Overlay));
+    assert_eq!(BlendMode::from_str("darken"), Some(BlendMode::Darken));
+    assert_eq!(BlendMode::from_str("lighten"), Some(BlendMode::Lighten));
+    assert_eq!(
+      BlendMode::from_str("color-dodge"),
+      Some(BlendMode::ColorDodge)
+    );
+    assert_eq!(
+      BlendMode::from_str("color-burn"),
+      Some(BlendMode::ColorBurn)
+    );
+    assert_eq!(
+      BlendMode::from_str("hard-light"),
+      Some(BlendMode::HardLight)
+    );
+    assert_eq!(
+      BlendMode::from_str("soft-light"),
+      Some(BlendMode::SoftLight)
+    );
+    assert_eq!(
+      BlendMode::from_str("difference"),
+      Some(BlendMode::Difference)
+    );
+    assert_eq!(BlendMode::from_str("exclusion"), Some(BlendMode::Exclusion));
+    assert_eq!(BlendMode::from_str("hue"), Some(BlendMode::Hue));
+    assert_eq!(
+      BlendMode::from_str("saturation"),
+      Some(BlendMode::Saturation)
+    );
+    assert_eq!(BlendMode::from_str("color"), Some(BlendMode::Color));
+    assert_eq!(
+      BlendMode::from_str("luminosity"),
+      Some(BlendMode::Luminosity)
+    );
+
+    // Invalid values
+    assert_eq!(BlendMode::from_str("invalid"), None);
+    assert_eq!(BlendMode::from_str("NORMAL"), None);
+    assert_eq!(BlendMode::from_str(""), None);
+  }
+
+  #[test]
+  fn test_blend_mode_as_str() {
+    assert_eq!(BlendMode::Normal.as_str(), "normal");
+    assert_eq!(BlendMode::Multiply.as_str(), "multiply");
+    assert_eq!(BlendMode::Screen.as_str(), "screen");
+    assert_eq!(BlendMode::Overlay.as_str(), "overlay");
+    assert_eq!(BlendMode::Darken.as_str(), "darken");
+    assert_eq!(BlendMode::Lighten.as_str(), "lighten");
+    assert_eq!(BlendMode::ColorDodge.as_str(), "color-dodge");
+    assert_eq!(BlendMode::ColorBurn.as_str(), "color-burn");
+    assert_eq!(BlendMode::HardLight.as_str(), "hard-light");
+    assert_eq!(BlendMode::SoftLight.as_str(), "soft-light");
+    assert_eq!(BlendMode::Difference.as_str(), "difference");
+    assert_eq!(BlendMode::Exclusion.as_str(), "exclusion");
+    assert_eq!(BlendMode::Hue.as_str(), "hue");
+    assert_eq!(BlendMode::Saturation.as_str(), "saturation");
+    assert_eq!(BlendMode::Color.as_str(), "color");
+    assert_eq!(BlendMode::Luminosity.as_str(), "luminosity");
+  }
+
+  #[test]
+  fn test_blend_mode_display() {
+    assert_eq!(BlendMode::Normal.to_string(), "normal");
+    assert_eq!(BlendMode::ColorDodge.to_string(), "color-dodge");
+    assert_eq!(BlendMode::HardLight.to_string(), "hard-light");
+    assert_eq!(BlendMode::Luminosity.to_string(), "luminosity");
+  }
+
+  #[test]
+  fn test_blend_mode_is_valid() {
+    assert!(BlendMode::is_valid_blend_mode("normal"));
+    assert!(BlendMode::is_valid_blend_mode("multiply"));
+    assert!(BlendMode::is_valid_blend_mode("color-dodge"));
+    assert!(BlendMode::is_valid_blend_mode("luminosity"));
+
+    // Invalid
+    assert!(!BlendMode::is_valid_blend_mode("invalid"));
+    assert!(!BlendMode::is_valid_blend_mode("NORMAL"));
+    assert!(!BlendMode::is_valid_blend_mode(""));
+  }
+
+  #[test]
+  fn test_blend_mode_all_values() {
+    let values = BlendMode::all_values();
+    assert_eq!(values.len(), 16);
+
+    // Test that all values can be parsed
+    for value_str in values {
+      assert!(BlendMode::from_str(value_str).is_some());
     }
   }
-}
 
-impl From<String> for BlendMode {
-  fn from(s: String) -> Self {
-    s.parse()
-      .unwrap_or_else(|_| panic!("Invalid blend mode: {}", s))
+  #[test]
+  fn test_blend_mode_parser_creation() {
+    // Basic test that parser can be created
+    let _parser = BlendMode::parser();
+  }
+
+  #[test]
+  fn test_blend_mode_equality() {
+    let normal1 = BlendMode::Normal;
+    let normal2 = BlendMode::Normal;
+    let multiply = BlendMode::Multiply;
+
+    assert_eq!(normal1, normal2);
+    assert_ne!(normal1, multiply);
+  }
+
+  #[test]
+  fn test_blend_mode_round_trip() {
+    // Test that from_str and as_str are consistent
+    for value_str in BlendMode::all_values() {
+      let blend_mode = BlendMode::from_str(value_str).unwrap();
+      assert_eq!(blend_mode.as_str(), *value_str);
+    }
+  }
+
+  #[test]
+  fn test_blend_mode_coverage() {
+    // Test that we have all the blend modes from CSS spec
+    assert!(BlendMode::all_values().contains(&"normal"));
+    assert!(BlendMode::all_values().contains(&"multiply"));
+    assert!(BlendMode::all_values().contains(&"screen"));
+    assert!(BlendMode::all_values().contains(&"overlay"));
+    assert!(BlendMode::all_values().contains(&"darken"));
+    assert!(BlendMode::all_values().contains(&"lighten"));
+    assert!(BlendMode::all_values().contains(&"color-dodge"));
+    assert!(BlendMode::all_values().contains(&"color-burn"));
+    assert!(BlendMode::all_values().contains(&"hard-light"));
+    assert!(BlendMode::all_values().contains(&"soft-light"));
+    assert!(BlendMode::all_values().contains(&"difference"));
+    assert!(BlendMode::all_values().contains(&"exclusion"));
+    assert!(BlendMode::all_values().contains(&"hue"));
+    assert!(BlendMode::all_values().contains(&"saturation"));
+    assert!(BlendMode::all_values().contains(&"color"));
+    assert!(BlendMode::all_values().contains(&"luminosity"));
+  }
+
+  #[test]
+  fn test_blend_mode_compositing_groups() {
+    // Test separable blend modes
+    let separable = &[
+      BlendMode::Normal,
+      BlendMode::Multiply,
+      BlendMode::Screen,
+      BlendMode::Overlay,
+      BlendMode::Darken,
+      BlendMode::Lighten,
+      BlendMode::ColorDodge,
+      BlendMode::ColorBurn,
+      BlendMode::HardLight,
+      BlendMode::SoftLight,
+      BlendMode::Difference,
+      BlendMode::Exclusion,
+    ];
+
+    // Test non-separable blend modes
+    let non_separable = &[
+      BlendMode::Hue,
+      BlendMode::Saturation,
+      BlendMode::Color,
+      BlendMode::Luminosity,
+    ];
+
+    // Verify all modes are accounted for
+    assert_eq!(separable.len() + non_separable.len(), 16);
   }
 }
-
-impl BlendMode {
-  pub fn parse<'a>() -> Parser<'a, BlendMode> {
-    Parser::one_of(vec![
-      Parser::<'a, BlendMode>::string("normal").map(|_| BlendMode::Normal),
-      Parser::<'a, BlendMode>::string("multiply").map(|_| BlendMode::Multiply),
-      Parser::<'a, BlendMode>::string("screen").map(|_| BlendMode::Screen),
-      Parser::<'a, BlendMode>::string("overlay").map(|_| BlendMode::Overlay),
-      Parser::<'a, BlendMode>::string("darken").map(|_| BlendMode::Darken),
-      Parser::<'a, BlendMode>::string("lighten").map(|_| BlendMode::Lighten),
-      Parser::<'a, BlendMode>::string("color-dodge").map(|_| BlendMode::ColorDodge),
-      Parser::<'a, BlendMode>::string("color-burn").map(|_| BlendMode::ColorBurn),
-      Parser::<'a, BlendMode>::string("hard-light").map(|_| BlendMode::HardLight),
-      Parser::<'a, BlendMode>::string("soft-light").map(|_| BlendMode::SoftLight),
-      Parser::<'a, BlendMode>::string("difference").map(|_| BlendMode::Difference),
-      Parser::<'a, BlendMode>::string("exclusion").map(|_| BlendMode::Exclusion),
-      Parser::<'a, BlendMode>::string("hue").map(|_| BlendMode::Hue),
-      Parser::<'a, BlendMode>::string("saturation").map(|_| BlendMode::Saturation),
-      Parser::<'a, BlendMode>::string("color").map(|_| BlendMode::Color),
-      Parser::<'a, BlendMode>::string("luminosity").map(|_| BlendMode::Luminosity),
-    ])
-  }
-}
-
-// pub fn blend_mode<'a>() -> Parser<'a, String> {
-//   Parser::one_of(vec![
-//     Parser::<'a, String>::string("normal"),
-//     Parser::<'a, String>::string("multiply"),
-//     Parser::<'a, String>::string("screen"),
-//     Parser::<'a, String>::string("overlay"),
-//     Parser::<'a, String>::string("darken"),
-//     Parser::<'a, String>::string("lighten"),
-//     Parser::<'a, String>::string("color-dodge"),
-//     Parser::<'a, String>::string("color-burn"),
-//     Parser::<'a, String>::string("hard-light"),
-//     Parser::<'a, String>::string("soft-light"),
-//     Parser::<'a, String>::string("difference"),
-//     Parser::<'a, String>::string("exclusion"),
-//     Parser::<'a, String>::string("hue"),
-//     Parser::<'a, String>::string("saturation"),
-//     Parser::<'a, String>::string("color"),
-//     Parser::<'a, String>::string("luminosity"),
-//   ])
-// }

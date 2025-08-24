@@ -4,15 +4,6 @@ Next.js plugin for an unofficial
 [`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 compiler that includes the StyleX SWC code transformation under the hood.
 
-## Breaking Changes in v0.5.0
-
-> [!IMPORTANT]
-> The plugin API has been updated since version
-> [0.5.0](https://www.npmjs.com/package/@stylexswc/swc-plugin/v/0.5.0). If
-> you're upgrading from an earlier version, please note that the configuration
-> options have changed. See the [Plugin Options](#plugin-options) section for
-> the updated API.
-
 ## Overview
 
 This package combines two solutions to enhance your Next.js development

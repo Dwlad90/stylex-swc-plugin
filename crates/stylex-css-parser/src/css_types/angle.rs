@@ -1,381 +1,172 @@
-use anyhow::bail;
+/*!
+CSS Angle type parsing.
 
-use std::convert::TryFrom;
-use std::{
-  fmt::{Display, Formatter, Result as FmtResult},
-  str::FromStr,
-};
+Handles angle values with 'deg' (degrees), 'grad' (gradians), 'rad' (radians), and 'turn' (turns) units.
+*/
 
-use crate::parser::Parser;
+use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use std::fmt::{self, Display};
 
-#[derive(Debug, Clone, PartialEq, Default)]
-pub enum AngleUnit {
-  Deg,
-  Grad,
-  Rad,
-  Turn,
-  #[default]
-  Default,
-}
+/// Valid angle units
+pub const ANGLE_UNITS: &[&str] = &["deg", "grad", "rad", "turn"];
 
-impl AngleUnit {
-  fn as_str(&self) -> &'static str {
-    match self {
-      AngleUnit::Deg => "deg",
-      AngleUnit::Grad => "grad",
-      AngleUnit::Rad => "rad",
-      AngleUnit::Turn => "turn",
-      AngleUnit::Default => "",
-    }
-  }
-}
-
-impl Display for AngleUnit {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    f.write_str(self.as_str())
-  }
-}
-
-impl FromStr for AngleUnit {
-  type Err = anyhow::Error;
-
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
-    match s {
-      "deg" => Ok(AngleUnit::Deg),
-      "grad" => Ok(AngleUnit::Grad),
-      "rad" => Ok(AngleUnit::Rad),
-      "turn" => Ok(AngleUnit::Turn),
-      "" => Ok(AngleUnit::Default),
-      _ => bail!("Invalid angle unit: {}", s),
-    }
-  }
-}
-
-impl From<AngleUnit> for String {
-  fn from(unit: AngleUnit) -> Self {
-    unit.as_str().to_string()
-  }
-}
-
-impl TryFrom<String> for AngleUnit {
-  type Error = anyhow::Error;
-
-  fn try_from(value: String) -> Result<Self, Self::Error> {
-    value.parse()
-  }
-}
-
+/// CSS Angle value with unit
 #[derive(Debug, Clone, PartialEq)]
 pub struct Angle {
   pub value: f32,
-  pub unit: AngleUnit,
+  pub unit: String, // "deg", "grad", "rad", or "turn"
 }
 
 impl Angle {
-  pub fn new(value: f32, unit: Option<String>) -> Self {
-    Angle {
-      value,
-      unit: match unit {
-        Some(u) => AngleUnit::try_from(u).unwrap_or_default(),
-        None => AngleUnit::default(),
-      },
-    }
+  /// Create a new Angle value
+  pub fn new(value: f32, unit: String) -> Self {
+    Self { value, unit }
   }
 
-  /// Create a parser that recognizes any valid angle
-  pub fn parse<'a>() -> Parser<'a, Angle> {
-    Parser::one_of(vec![
-      Deg::parse(),
-      Grad::parse(),
-      Rad::parse(),
-      Turn::parse(),
-      Parser::<String>::string("0").map(|_| Angle::new(0.0, None)),
-    ])
+  /// All valid angle units
+  pub fn units() -> &'static [&'static str] {
+    ANGLE_UNITS
+  }
+
+  /// Check if a unit is a valid angle unit
+  pub fn is_valid_unit(unit: &str) -> bool {
+    ANGLE_UNITS.contains(&unit)
+  }
+
+  /// Parser for CSS angle values
+  pub fn parser() -> TokenParser<Angle> {
+    // Parser for dimension tokens with valid angle units
+    let dimension_parser = TokenParser::<SimpleToken>::token(
+      SimpleToken::Dimension {
+        value: 0.0,
+        unit: String::new(),
+      },
+      Some("Dimension"),
+    )
+    .where_fn(
+      |token| {
+        if let SimpleToken::Dimension { unit, .. } = token {
+          Self::is_valid_unit(unit)
+        } else {
+          false
+        }
+      },
+      Some("valid_angle_unit"),
+    )
+    .map(
+      |token| {
+        if let SimpleToken::Dimension { value, unit } = token {
+          Angle::new(value as f32, unit)
+        } else {
+          unreachable!()
+        }
+      },
+      Some("to_angle"),
+    );
+
+    // Parser for zero without unit (special case for angles - defaults to 'deg')
+    let zero_parser = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+      .where_fn(
+        |token| {
+          if let SimpleToken::Number(value) = token {
+            *value == 0.0
+          } else {
+            false
+          }
+        },
+        Some("zero_value"),
+      )
+      .map(|_| Angle::new(0.0, "deg".to_string()), Some("zero_angle"));
+
+    // Combine both parsers
+    TokenParser::one_of(vec![dimension_parser, zero_parser])
   }
 }
 
 impl Display for Angle {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}{}", self.value, self.unit)
   }
 }
 
-impl From<Angle> for String {
-  fn from(val: Angle) -> Self {
-    val.to_string()
-  }
-}
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-impl From<String> for Angle {
-  fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(&s);
-    Angle::parse()
-      .run(&mut input)
-      .expect("Failed to parse angle")
-  }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Deg {
-  pub value: f32,
-  pub unit: AngleUnit,
-}
-
-impl Deg {
-  pub fn new(value: f32) -> Self {
-    Deg {
-      value,
-      unit: AngleUnit::Deg,
-    }
+  #[test]
+  fn test_angle_creation() {
+    let angle = Angle::new(45.0, "deg".to_string());
+    assert_eq!(angle.value, 45.0);
+    assert_eq!(angle.unit, "deg");
   }
 
-  pub fn parse<'a>() -> Parser<'a, Angle> {
-    Parser::<f32>::float()
-      .skip(Parser::<String>::string("deg"))
-      .map(|deg| {
-        let deg = Deg::new(deg.expect("Expected float value"));
+  #[test]
+  fn test_angle_display() {
+    let degrees = Angle::new(45.0, "deg".to_string());
+    assert_eq!(degrees.to_string(), "45deg");
 
-        Angle {
-          value: deg.value,
-          unit: deg.unit,
-        }
-      })
-  }
-}
+    let radians = Angle::new(1.57, "rad".to_string());
+    assert_eq!(radians.to_string(), "1.57rad");
 
-impl Display for Deg {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(f, "{}{}", self.value, self.unit)
-  }
-}
+    let gradians = Angle::new(100.0, "grad".to_string());
+    assert_eq!(gradians.to_string(), "100grad");
 
-impl From<Deg> for String {
-  fn from(val: Deg) -> Self {
-    val.to_string()
-  }
-}
+    let turns = Angle::new(0.25, "turn".to_string());
+    assert_eq!(turns.to_string(), "0.25turn");
 
-impl From<Deg> for Angle {
-  fn from(deg: Deg) -> Self {
-    Angle {
-      value: deg.value,
-      unit: deg.unit,
-    }
-  }
-}
-
-impl From<Angle> for Deg {
-  fn from(angle: Angle) -> Self {
-    Deg {
-      value: angle.value,
-      unit: angle.unit,
-    }
-  }
-}
-
-impl From<String> for Deg {
-  fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(&s);
-    Angle::parse()
-      .run(&mut input)
-      .expect("Failed to parse angle")
-      .into()
-  }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Grad {
-  pub value: f32,
-  pub unit: AngleUnit,
-}
-
-impl Grad {
-  pub fn new(value: f32) -> Self {
-    Grad {
-      value,
-      unit: AngleUnit::Grad,
-    }
+    // Zero without unit
+    let zero_angle = Angle::new(0.0, "deg".to_string());
+    assert_eq!(zero_angle.to_string(), "0deg");
   }
 
-  pub fn parse<'a>() -> Parser<'a, Angle> {
-    Parser::<f32>::float()
-      .skip(Parser::<String>::string("grad"))
-      .map(|v| {
-        let grad = Grad::new(v.expect("Expected float value"));
-        Angle {
-          value: grad.value,
-          unit: grad.unit,
-        }
-      })
-  }
-}
+  #[test]
+  fn test_valid_angle_units() {
+    assert!(Angle::is_valid_unit("deg"));
+    assert!(Angle::is_valid_unit("grad"));
+    assert!(Angle::is_valid_unit("rad"));
+    assert!(Angle::is_valid_unit("turn"));
 
-impl Display for Grad {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(f, "{}{}", self.value, self.unit)
-  }
-}
-
-impl From<Grad> for String {
-  fn from(val: Grad) -> Self {
-    val.to_string()
-  }
-}
-
-impl From<Angle> for Grad {
-  fn from(angle: Angle) -> Self {
-    Grad {
-      value: angle.value,
-      unit: angle.unit,
-    }
-  }
-}
-
-impl From<String> for Grad {
-  fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(&s);
-    Angle::parse()
-      .run(&mut input)
-      .expect("Failed to parse angle")
-      .into()
-  }
-}
-impl From<Grad> for Angle {
-  fn from(grad: Grad) -> Self {
-    Angle {
-      value: grad.value,
-      unit: grad.unit,
-    }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Rad {
-  pub value: f32,
-  pub unit: AngleUnit,
-}
-
-impl Rad {
-  pub fn new(value: f32) -> Self {
-    Rad {
-      value,
-      unit: AngleUnit::Rad,
-    }
+    // Invalid units
+    assert!(!Angle::is_valid_unit("px"));
+    assert!(!Angle::is_valid_unit("s"));
+    assert!(!Angle::is_valid_unit("Hz"));
+    assert!(!Angle::is_valid_unit("invalid"));
   }
 
-  pub fn parse<'a>() -> Parser<'a, Angle> {
-    Parser::<f32>::float()
-      .skip(Parser::<String>::string("rad"))
-      .map(|v| {
-        let rad = Rad::new(v.expect("Expected float value"));
-
-        Angle {
-          value: rad.value,
-          unit: rad.unit,
-        }
-      })
-  }
-}
-
-impl Display for Rad {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(f, "{}{}", self.value, self.unit)
-  }
-}
-
-impl From<Rad> for String {
-  fn from(val: Rad) -> Self {
-    val.to_string()
-  }
-}
-
-impl From<Angle> for Rad {
-  fn from(angle: Angle) -> Self {
-    Rad {
-      value: angle.value,
-      unit: angle.unit,
-    }
-  }
-}
-impl From<String> for Rad {
-  fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(&s);
-    Angle::parse()
-      .run(&mut input)
-      .expect("Failed to parse angle")
-      .into()
-  }
-}
-impl From<Rad> for Angle {
-  fn from(rad: Rad) -> Self {
-    Angle {
-      value: rad.value,
-      unit: rad.unit,
-    }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Turn {
-  pub value: f32,
-  pub unit: AngleUnit,
-}
-
-impl Turn {
-  pub fn new(value: f32) -> Self {
-    Turn {
-      value,
-      unit: AngleUnit::Turn,
-    }
+  #[test]
+  fn test_angle_units_constant() {
+    let units = Angle::units();
+    assert_eq!(units.len(), 4);
+    assert!(units.contains(&"deg"));
+    assert!(units.contains(&"grad"));
+    assert!(units.contains(&"rad"));
+    assert!(units.contains(&"turn"));
   }
 
-  pub fn parse<'a>() -> Parser<'a, Angle> {
-    Parser::<f32>::float()
-      .skip(Parser::<String>::string("turn"))
-      .map(|v| {
-        let turn = Turn::new(v.expect("Expected float value"));
-        Angle {
-          value: turn.value,
-          unit: turn.unit,
-        }
-      })
+  #[test]
+  fn test_angle_parser_creation() {
+    // Basic test that parser can be created
+    let _parser = Angle::parser();
   }
-}
 
-impl Display for Turn {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    write!(f, "{}{}", self.value, self.unit)
-  }
-}
+  #[test]
+  fn test_angle_equality() {
+    let angle1 = Angle::new(45.0, "deg".to_string());
+    let angle2 = Angle::new(45.0, "deg".to_string());
+    let angle3 = Angle::new(90.0, "deg".to_string());
+    let angle4 = Angle::new(45.0, "rad".to_string());
 
-impl From<Turn> for String {
-  fn from(val: Turn) -> Self {
-    val.to_string()
+    assert_eq!(angle1, angle2);
+    assert_ne!(angle1, angle3);
+    assert_ne!(angle1, angle4);
   }
-}
 
-impl From<Angle> for Turn {
-  fn from(angle: Angle) -> Self {
-    Turn {
-      value: angle.value,
-      unit: angle.unit,
-    }
-  }
-}
-impl From<String> for Turn {
-  fn from(s: String) -> Self {
-    let mut input = crate::base_types::SubString::new(&s);
-    Angle::parse()
-      .run(&mut input)
-      .expect("Failed to parse angle")
-      .into()
-  }
-}
-impl From<Turn> for Angle {
-  fn from(turn: Turn) -> Self {
-    Angle {
-      value: turn.value,
-      unit: turn.unit,
-    }
+  #[test]
+  fn test_angle_units_coverage() {
+    // Test all standard CSS angle units are included
+    assert!(Angle::is_valid_unit("deg")); // degrees (most common)
+    assert!(Angle::is_valid_unit("grad")); // gradians
+    assert!(Angle::is_valid_unit("rad")); // radians
+    assert!(Angle::is_valid_unit("turn")); // full turns
   }
 }

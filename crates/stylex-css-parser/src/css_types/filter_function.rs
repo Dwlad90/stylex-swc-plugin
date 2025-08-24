@@ -1,23 +1,90 @@
-use crate::css_types::{angle::Angle, color::Color, length::Length};
-use crate::parser::Parser;
-use std::fmt;
+/*!
+CSS filter function parser.
+*/
 
-use super::common_types::Percentage;
+use crate::{
+  css_types::{
+    common_types::{number_or_percentage_parser, NumberOrPercentage},
+    Angle, Length,
+  },
+  token_parser::TokenParser,
+  token_types::SimpleToken,
+  CssParseError,
+};
+use std::fmt::{self, Display};
 
-pub trait FilterFunction: fmt::Debug + fmt::Display {
-  fn clone_box(&self) -> Box<dyn FilterFunction>;
+#[derive(Debug, Clone, PartialEq)]
+pub enum FilterFunction {
+  Blur(BlurFilterFunction),
+  Brightness(BrightnessFilterFunction),
+  Contrast(ContrastFilterFunction),
+  Grayscale(GrayscaleFilterFunction),
+  HueRotate(HueRotateFilterFunction),
+  Invert(InvertFilterFunction),
+  Opacity(OpacityFilterFunction),
+  Saturate(SaturateFilterFunction),
+  Sepia(SepiaFilterFunction),
 }
 
-// Add a blanket implementation for all types that implement FilterFunction + Clone
-impl<T: 'static + Clone + fmt::Debug + fmt::Display> FilterFunction for T {
-  fn clone_box(&self) -> Box<dyn FilterFunction> {
-    Box::new(self.clone())
-  }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlurFilterFunction {
-  radius: Length,
+  pub radius: Length,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BrightnessFilterFunction {
+  pub percentage: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ContrastFilterFunction {
+  pub amount: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GrayscaleFilterFunction {
+  pub amount: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HueRotateFilterFunction {
+  pub angle: Angle,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct InvertFilterFunction {
+  pub amount: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct OpacityFilterFunction {
+  pub amount: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SaturateFilterFunction {
+  pub amount: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SepiaFilterFunction {
+  pub amount: f64,
+}
+
+impl FilterFunction {
+  pub fn parser() -> TokenParser<FilterFunction> {
+    TokenParser::one_of(vec![
+      BlurFilterFunction::parse().map(FilterFunction::Blur, Some("blur")),
+      BrightnessFilterFunction::parse().map(FilterFunction::Brightness, Some("brightness")),
+      ContrastFilterFunction::parse().map(FilterFunction::Contrast, Some("contrast")),
+      GrayscaleFilterFunction::parse().map(FilterFunction::Grayscale, Some("grayscale")),
+      HueRotateFilterFunction::parse().map(FilterFunction::HueRotate, Some("hue_rotate")),
+      InvertFilterFunction::parse().map(FilterFunction::Invert, Some("invert")),
+      OpacityFilterFunction::parse().map(FilterFunction::Opacity, Some("opacity")),
+      SaturateFilterFunction::parse().map(FilterFunction::Saturate, Some("saturate")),
+      SepiaFilterFunction::parse().map(FilterFunction::Sepia, Some("sepia")),
+    ])
+  }
 }
 
 impl BlurFilterFunction {
@@ -25,232 +92,243 @@ impl BlurFilterFunction {
     Self { radius }
   }
 
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, Length, String, ()>(
-      Some(Parser::<'a, String>::string("blur(")),
-      Some(Length::parse().surrounded_by(Parser::<'a, String>::whitespace().optional(), None)),
-      Some(Parser::<'a, String>::string(")")),
-      None,
+  pub fn parse() -> TokenParser<BlurFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'blur(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "blur" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected blur() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected blur() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse radius (Length)
+        let radius = (Length::parser().run)(tokens)?;
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(BlurFilterFunction::new(radius))
+      },
+      "blur_parser",
     )
-    .to_parser()
-    .map(|values| {
-      let (_, radius, _, _) = values.expect("Expected values to be present");
-      BlurFilterFunction::new(radius.unwrap())
-    })
   }
-}
-
-impl fmt::Display for BlurFilterFunction {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "blur({})", self.radius)
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct BrightnessFilterFunction {
-  percentage: f32,
 }
 
 impl BrightnessFilterFunction {
-  pub fn new(percentage: f32) -> Self {
+  pub fn new(percentage: f64) -> Self {
     Self { percentage }
   }
 
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, f32, String, ()>(
-      Some(Parser::<'a, String>::string("brightness(")),
-      Some(
-        Parser::one_of(vec![
-          Percentage::parse().map(|p| p.unwrap().value / 100.0),
-          Parser::<'a, f32>::float().where_fn(|n| *n >= 0.0),
-        ])
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
+  pub fn parse() -> TokenParser<BrightnessFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'brightness(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "brightness" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected brightness() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected brightness() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse number or percentage and convert to f64
+        let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
+        let value = match number_or_percentage {
+          NumberOrPercentage::Number(n) => n.value as f64,
+          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+        };
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(BrightnessFilterFunction::new(value))
+      },
+      "brightness_parser",
     )
-    .to_parser()
-    .map(|values| {
-      let (_, percentage, _, _) = values.expect("Expected values to be present");
-      BrightnessFilterFunction::new(percentage.unwrap())
-    })
   }
-}
-
-impl fmt::Display for BrightnessFilterFunction {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "brightness({})", self.percentage)
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct ContrastFilterFunction {
-  amount: f32,
 }
 
 impl ContrastFilterFunction {
-  pub fn new(amount: f32) -> Self {
+  pub fn new(amount: f64) -> Self {
     Self { amount }
   }
 
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, f32, String, ()>(
-      Some(Parser::<'a, String>::string("contrast(")),
-      Some(
-        Parser::one_of(vec![
-          Percentage::parse().map(|p| p.unwrap().value / 100.0),
-          Parser::<'a, f32>::float().where_fn(|n| *n >= 0.0),
-        ])
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
-    )
-    .to_parser()
-    .map(|values| {
-      let (_, amount, _, _) = values.expect("Expected values to be present");
-      ContrastFilterFunction::new(amount.unwrap())
-    })
-  }
-}
-
-impl fmt::Display for ContrastFilterFunction {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "contrast({})", self.amount)
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct DropShadowFilterFunction {
-  offset_x: Length,
-  offset_y: Length,
-  blur_radius: Length,
-  color: Option<Color>,
-}
-
-impl DropShadowFilterFunction {
-  pub fn new(
-    offset_x: Length,
-    offset_y: Length,
-    blur_radius: Length,
-    color: Option<Color>,
-  ) -> Self {
-    Self {
-      offset_x,
-      offset_y,
-      blur_radius,
-      color,
-    }
-  }
-
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<
-      String,
-      (Length, Length, Option<Length>, Option<Color>),
-      String,
-      (),
-    >(
-      Some(Parser::<'a, String>::string("drop-shadow(")),
-      Some(
-        Parser::<'a, ()>::sequence::<Length, Length, Length, Color>(
-          Some(Length::parse()),
-          Some(Length::parse()),
-          Some(Length::parse().optional()),
-          Some(Color::parse().optional()),
-        )
-        .to_parser()
-        .separated_by(Parser::<'a, ()>::whitespace())
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None)
-        .map(|values| {
-          let values = values.unwrap();
-          if values.len() != 1 {
-            panic!("Expected exactly one sequence of values");
+  pub fn parse() -> TokenParser<ContrastFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'contrast(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "contrast" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected contrast() function, got {:?}", token),
+            })
           }
-          let (offset_x, offset_y, blur_radius, color) = &values[0];
-          (
-            offset_x.clone().unwrap(),
-            offset_y.clone().unwrap(),
-            blur_radius.clone(),
-            color.clone(),
-          )
-        }),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected contrast() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse number or percentage and convert to f64
+        let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
+        let value = match number_or_percentage {
+          NumberOrPercentage::Number(n) => n.value as f64,
+          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+        };
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(ContrastFilterFunction::new(value))
+      },
+      "contrast_parser",
     )
-    .to_parser()
-    .map(|values| {
-      let (_, params, _, _) = values.expect("Expected values to be present");
-      let (offset_x, offset_y, blur_radius, color) = params.unwrap();
-      DropShadowFilterFunction::new(
-        offset_x,
-        offset_y,
-        blur_radius.unwrap_or_else(|| Length::new(0.0, Some("px".to_string()))),
-        color,
-      )
-    })
   }
-}
-
-impl fmt::Display for DropShadowFilterFunction {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let mut parts = Vec::new();
-
-    parts.push(self.offset_x.to_string());
-    parts.push(self.offset_y.to_string());
-
-    if self.blur_radius.value != 0.0 {
-      parts.push(self.blur_radius.to_string());
-    }
-
-    if let Some(color) = &self.color {
-      parts.push(color.to_string());
-    }
-
-    write!(f, "drop-shadow({})", parts.join(" "))
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct GrayscaleFilterFunction {
-  amount: f32,
 }
 
 impl GrayscaleFilterFunction {
-  pub fn new(amount: f32) -> Self {
+  pub fn new(amount: f64) -> Self {
     Self { amount }
   }
 
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, f32, String, ()>(
-      Some(Parser::<'a, String>::string("grayscale(")),
-      Some(
-        Parser::one_of(vec![
-          Percentage::parse().map(|p| p.unwrap().value / 100.0),
-          Parser::<'a, f32>::float().where_fn(|n| *n >= 0.0),
-        ])
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
+  pub fn parse() -> TokenParser<GrayscaleFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'grayscale(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "grayscale" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected grayscale() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected grayscale() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse number or percentage and convert to f64
+        let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
+        let value = match number_or_percentage {
+          NumberOrPercentage::Number(n) => n.value as f64,
+          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+        };
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(GrayscaleFilterFunction::new(value))
+      },
+      "grayscale_parser",
     )
-    .to_parser()
-    .map(|values| {
-      let (_, amount, _, _) = values.expect("Expected values to be present");
-      GrayscaleFilterFunction::new(amount.unwrap())
-    })
   }
-}
-
-impl fmt::Display for GrayscaleFilterFunction {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "grayscale({})", self.amount)
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct HueRotateFilterFunction {
-  angle: Angle,
 }
 
 impl HueRotateFilterFunction {
@@ -258,208 +336,373 @@ impl HueRotateFilterFunction {
     Self { angle }
   }
 
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, Angle, String, ()>(
-      Some(Parser::<'a, String>::string("hue-rotate(")),
-      Some(Angle::parse()),
-      Some(Parser::<'a, String>::string(")")),
-      None,
+  pub fn parse() -> TokenParser<HueRotateFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'hue-rotate(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "hue-rotate" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected hue-rotate() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected hue-rotate() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse angle
+        let angle = (Angle::parser().run)(tokens)?;
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(HueRotateFilterFunction::new(angle))
+      },
+      "hue_rotate_parser",
     )
-    .to_parser()
-    .map(|values| {
-      let (_, angle, _, _) = values.expect("Expected values to be present");
-      HueRotateFilterFunction::new(angle.unwrap())
-    })
   }
 }
 
-impl fmt::Display for HueRotateFilterFunction {
+impl InvertFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
+  }
+
+  pub fn parse() -> TokenParser<InvertFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'invert(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "invert" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected invert() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected invert() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse number or percentage and convert to f64
+        let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
+        let value = match number_or_percentage {
+          NumberOrPercentage::Number(n) => n.value as f64,
+          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+        };
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(InvertFilterFunction::new(value))
+      },
+      "invert_parser",
+    )
+  }
+}
+
+impl OpacityFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
+  }
+
+  pub fn parse() -> TokenParser<OpacityFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'opacity(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "opacity" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected opacity() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected opacity() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse number or percentage and convert to f64
+        let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
+        let value = match number_or_percentage {
+          NumberOrPercentage::Number(n) => n.value as f64,
+          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+        };
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(OpacityFilterFunction::new(value))
+      },
+      "opacity_parser",
+    )
+  }
+}
+
+impl SaturateFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
+  }
+
+  pub fn parse() -> TokenParser<SaturateFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'saturate(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "saturate" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected saturate() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected saturate() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse number or percentage and convert to f64
+        let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
+        let value = match number_or_percentage {
+          NumberOrPercentage::Number(n) => n.value as f64,
+          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+        };
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(SaturateFilterFunction::new(value))
+      },
+      "saturate_parser",
+    )
+  }
+}
+
+impl SepiaFilterFunction {
+  pub fn new(amount: f64) -> Self {
+    Self { amount }
+  }
+
+  pub fn parse() -> TokenParser<SepiaFilterFunction> {
+    TokenParser::new(
+      |tokens| {
+        // Parse 'sepia(' function start
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::Function(fn_name)) if fn_name == "sepia" => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected sepia() function, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected sepia() function but reached end of input".to_string(),
+            })
+          }
+        }
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse number or percentage and convert to f64
+        let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
+        let value = match number_or_percentage {
+          NumberOrPercentage::Number(n) => n.value as f64,
+          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+        };
+
+        // Skip optional whitespace
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
+        // Parse closing paren
+        match tokens.consume_next_token()? {
+          Some(SimpleToken::RightParen) => {}
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected closing paren, got {:?}", token),
+            })
+          }
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing paren but reached end of input".to_string(),
+            })
+          }
+        }
+
+        Ok(SepiaFilterFunction::new(value))
+      },
+      "sepia_parser",
+    )
+  }
+}
+
+impl Display for FilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      FilterFunction::Blur(blur) => blur.fmt(f),
+      FilterFunction::Brightness(brightness) => brightness.fmt(f),
+      FilterFunction::Contrast(contrast) => contrast.fmt(f),
+      FilterFunction::Grayscale(grayscale) => grayscale.fmt(f),
+      FilterFunction::HueRotate(hue_rotate) => hue_rotate.fmt(f),
+      FilterFunction::Invert(invert) => invert.fmt(f),
+      FilterFunction::Opacity(opacity) => opacity.fmt(f),
+      FilterFunction::Saturate(saturate) => saturate.fmt(f),
+      FilterFunction::Sepia(sepia) => sepia.fmt(f),
+    }
+  }
+}
+
+impl Display for BlurFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "blur({})", self.radius)
+  }
+}
+
+impl Display for BrightnessFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "brightness({})", self.percentage)
+  }
+}
+
+impl Display for ContrastFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "contrast({})", self.amount)
+  }
+}
+
+impl Display for GrayscaleFilterFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "grayscale({})", self.amount)
+  }
+}
+
+impl Display for HueRotateFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "hue-rotate({})", self.angle)
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct InvertFilterFunction {
-  amount: f32,
-}
-
-impl InvertFilterFunction {
-  pub fn new(amount: f32) -> Self {
-    Self { amount }
-  }
-
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, f32, String, ()>(
-      Some(Parser::<'a, String>::string("invert(")),
-      Some(
-        Parser::one_of(vec![
-          Percentage::parse().map(|p| p.unwrap().value / 100.0),
-          Parser::<'a, f32>::float().where_fn(|n| *n >= 0.0),
-        ])
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
-    )
-    .to_parser()
-    .map(|values| {
-      let (_, amount, _, _) = values.expect("Expected values to be present");
-      InvertFilterFunction::new(amount.unwrap())
-    })
-  }
-}
-
-impl fmt::Display for InvertFilterFunction {
+impl Display for InvertFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "invert({})", self.amount)
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct OpacityFilterFunction {
-  amount: f32,
-}
-
-impl OpacityFilterFunction {
-  pub fn new(amount: f32) -> Self {
-    Self { amount }
-  }
-
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, f32, String, ()>(
-      Some(Parser::<'a, String>::string("opacity(")),
-      Some(
-        Parser::one_of(vec![
-          Percentage::parse().map(|p| p.unwrap().value / 100.0),
-          Parser::<'a, f32>::float().where_fn(|n| *n >= 0.0),
-        ])
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
-    )
-    .to_parser()
-    .map(|values| {
-      let (_, amount, _, _) = values.expect("Expected values to be present");
-      OpacityFilterFunction::new(amount.unwrap())
-    })
-  }
-}
-
-impl fmt::Display for OpacityFilterFunction {
+impl Display for OpacityFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "opacity({})", self.amount)
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct SaturateFilterFunction {
-  amount: f32,
-}
-
-impl SaturateFilterFunction {
-  pub fn new(amount: f32) -> Self {
-    Self { amount }
-  }
-
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, f32, String, ()>(
-      Some(Parser::<'a, String>::string("saturate(")),
-      Some(
-        Parser::one_of(vec![
-          Percentage::parse().map(|p| p.unwrap().value / 100.0),
-          Parser::<'a, f32>::float().where_fn(|n| *n >= 0.0),
-        ])
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
-    )
-    .to_parser()
-    .map(|values| {
-      let (_, amount, _, _) = values.expect("Expected values to be present");
-      SaturateFilterFunction::new(amount.unwrap())
-    })
-  }
-}
-
-impl fmt::Display for SaturateFilterFunction {
+impl Display for SaturateFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "saturate({})", self.amount)
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct SepiaFilterFunction {
-  amount: f32,
-}
-
-impl SepiaFilterFunction {
-  pub fn new(amount: f32) -> Self {
-    Self { amount }
-  }
-
-  pub fn parse<'a>() -> Parser<'a, Self> {
-    Parser::<'a, String>::sequence::<String, f32, String, ()>(
-      Some(Parser::<'a, String>::string("sepia(")),
-      Some(
-        Parser::one_of(vec![
-          Percentage::parse().map(|p| p.unwrap().value / 100.0),
-          Parser::<'a, f32>::float().where_fn(|n| *n >= 0.0),
-        ])
-        .surrounded_by(Parser::<'a, String>::whitespace().optional(), None),
-      ),
-      Some(Parser::<'a, String>::string(")")),
-      None,
-    )
-    .to_parser()
-    .map(|values| {
-      let (_, amount, _, _) = values.expect("Expected values to be present");
-      SepiaFilterFunction::new(amount.unwrap())
-    })
-  }
-}
-
-impl fmt::Display for SepiaFilterFunction {
+impl Display for SepiaFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "sepia({})", self.amount)
   }
-}
-
-// Define a wrapper for Box<dyn FilterFunction> that implements Clone
-#[derive(Debug)]
-pub struct BoxedFilterFunction(Box<dyn FilterFunction>);
-
-impl Clone for BoxedFilterFunction {
-  fn clone(&self) -> Self {
-    Self(self.0.clone_box())
-  }
-}
-
-impl fmt::Display for BoxedFilterFunction {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    self.0.fmt(f)
-  }
-}
-
-impl BoxedFilterFunction {
-  pub fn new(function: Box<dyn FilterFunction>) -> Self {
-    Self(function)
-  }
-}
-
-pub fn parse_filter_function<'a>() -> Parser<'a, BoxedFilterFunction> {
-  Parser::one_of(vec![
-    BlurFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    BrightnessFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    ContrastFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    DropShadowFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    GrayscaleFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    HueRotateFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    InvertFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    OpacityFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    SaturateFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-    SepiaFilterFunction::parse().map(|f| BoxedFilterFunction::new(Box::new(f.unwrap()))),
-  ])
 }

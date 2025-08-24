@@ -797,11 +797,11 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0
       npm-run-all2:
-        specifier: ^7.0.2
-        version: 7.0.2
+        specifier: ^8.0.4
+        version: 8.0.4
       prettier:
-        specifier: ^3.5.3
-        version: 3.5.3
+        specifier: ^3.6.2
+        version: 3.6.2
 
   crates/stylex-path-resolver:
     devDependencies:
@@ -845,7 +845,7 @@ importers:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.46.2)
       benchmark:
-        specifier: ^2.1.2
+        specifier: ^2.1.4
         version: 2.1.4
       chalk:
         specifier: ^5.4.1

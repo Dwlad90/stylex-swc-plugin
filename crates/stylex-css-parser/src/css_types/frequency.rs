@@ -1,73 +1,133 @@
-use crate::parser::Parser;
-use std::fmt;
+/*!
+CSS Frequency type parsing.
 
-use super::number::number;
+Handles frequency values with 'Hz' (hertz) and 'KHz' (kilohertz) units.
+*/
 
+use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use std::fmt::{self, Display};
+
+/// Valid frequency units
+pub const FREQUENCY_UNITS: &[&str] = &["Hz", "KHz"];
+
+/// CSS Frequency value with unit
 #[derive(Debug, Clone, PartialEq)]
 pub struct Frequency {
   pub value: f32,
-  pub unit: FrequencyUnit,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum FrequencyUnit {
-  Hz,
-  KHz,
+  pub unit: String, // "Hz" or "KHz"
 }
 
 impl Frequency {
-  pub fn new(value: f32, unit: FrequencyUnit) -> Self {
+  /// Create a new Frequency value
+  pub fn new(value: f32, unit: String) -> Self {
     Self { value, unit }
   }
 
-  pub fn parse<'a>() -> Parser<'a, Frequency> {
-    Parser::<'a, f32>::sequence::<f32, String, (), ()>(
-      Some(number()),
-      Some(Parser::one_of(vec![
-        Parser::<String>::string("Hz"),
-        Parser::<String>::string("KHz"),
-      ])),
-      None,
-      None,
+  /// All valid frequency units
+  pub fn units() -> &'static [&'static str] {
+    FREQUENCY_UNITS
+  }
+
+  /// Check if a unit is a valid frequency unit
+  pub fn is_valid_unit(unit: &str) -> bool {
+    FREQUENCY_UNITS.contains(&unit)
+  }
+
+  /// Parser for CSS frequency values
+  pub fn parser() -> TokenParser<Frequency> {
+    TokenParser::<SimpleToken>::token(
+      SimpleToken::Dimension {
+        value: 0.0,
+        unit: String::new(),
+      },
+      Some("Dimension"),
     )
-    .to_parser()
-    .map(|values| {
-      let (value_opt, unit_opt, _, _) = values.expect("Frequency parsing failed");
-      let value = value_opt.expect("Expected a number value");
-      let unit_str = unit_opt.expect("Expected a unit");
-
-      let unit = unit_str.into();
-
-      Frequency::new(value, unit)
-    })
+    .map(
+      |token| {
+        if let SimpleToken::Dimension { value, unit } = token {
+          if Self::is_valid_unit(&unit) {
+            Some((value as f32, unit))
+          } else {
+            None
+          }
+        } else {
+          None
+        }
+      },
+      Some("extract_frequency_dimension"),
+    )
+    .where_fn(|opt| opt.is_some(), Some("valid_frequency"))
+    .map(
+      |opt| {
+        let (value, unit) = opt.unwrap();
+        Frequency::new(value, unit)
+      },
+      Some("to_frequency"),
+    )
   }
 }
 
-impl fmt::Display for Frequency {
+impl Display for Frequency {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    // Always use the shortest representation
-    match self.unit {
-      FrequencyUnit::KHz => write!(f, "{}s", self.value / 1000.0),
-      FrequencyUnit::Hz => write!(f, "{}{}", self.value, self.unit),
+    if self.unit == "Hz" {
+      write!(f, "{}KHz", self.value / 1000.0)
+    } else {
+      write!(f, "{}{}", self.value, self.unit)
     }
   }
 }
 
-impl fmt::Display for FrequencyUnit {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      FrequencyUnit::Hz => write!(f, "Hz"),
-      FrequencyUnit::KHz => write!(f, "KHz"),
-    }
-  }
-}
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-impl From<String> for FrequencyUnit {
-  fn from(unit_str: String) -> Self {
-    match unit_str.as_str() {
-      "Hz" => FrequencyUnit::Hz,
-      "KHz" => FrequencyUnit::KHz,
-      _ => panic!("Invalid frequency unit"),
-    }
+  #[test]
+  fn test_frequency_creation() {
+    let freq = Frequency::new(440.0, "Hz".to_string());
+    assert_eq!(freq.value, 440.0);
+    assert_eq!(freq.unit, "Hz");
+  }
+
+  #[test]
+  fn test_frequency_display() {
+    let hertz = Frequency::new(440.0, "Hz".to_string());
+    assert_eq!(hertz.to_string(), "0.44KHz");
+
+    let kilohertz = Frequency::new(2.4, "KHz".to_string());
+    assert_eq!(kilohertz.to_string(), "2.4KHz");
+
+    let full_kilohertz = Frequency::new(1000.0, "Hz".to_string());
+    assert_eq!(full_kilohertz.to_string(), "1KHz");
+
+    let two_kilohertz = Frequency::new(2000.0, "Hz".to_string());
+    assert_eq!(two_kilohertz.to_string(), "2KHz");
+
+    let partial = Frequency::new(1500.0, "Hz".to_string());
+    assert_eq!(partial.to_string(), "1.5KHz");
+  }
+
+  #[test]
+  fn test_valid_frequency_units() {
+    assert!(Frequency::is_valid_unit("Hz"));
+    assert!(Frequency::is_valid_unit("KHz"));
+
+    // Invalid units
+    assert!(!Frequency::is_valid_unit("px"));
+    assert!(!Frequency::is_valid_unit("s"));
+    assert!(!Frequency::is_valid_unit("deg"));
+  }
+
+  #[test]
+  fn test_frequency_units_constant() {
+    let units = Frequency::units();
+    assert_eq!(units.len(), 2);
+    assert!(units.contains(&"Hz"));
+    assert!(units.contains(&"KHz"));
+  }
+
+  #[test]
+  fn test_frequency_parser_creation() {
+    // Basic test that parser can be created
+    let _parser = Frequency::parser();
   }
 }

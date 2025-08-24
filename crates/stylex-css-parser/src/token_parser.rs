@@ -18,7 +18,7 @@ use crate::{
   token_types::{SimpleToken, TokenList},
   CssParseError,
 };
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::rc::Rc;
 
 /// Provides: TokenParser.tokens.Ident, TokenParser.tokens.Whitespace.optional, etc.
@@ -168,9 +168,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
         Err(CssParseError::ParseError {
           message: format!(
             "Expected {} but got {}\nConsumed tokens: {:?}",
-            self.to_string(),
-            error,
-            consumed_tokens
+            self.label, error, consumed_tokens
           ),
         })
       }
@@ -396,11 +394,6 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
       parser: self.clone(),
       separator,
     }
-  }
-
-  /// Get string representation of this parser
-  pub fn to_string(&self) -> String {
-    self.label.clone()
   }
 
   /// Get the label of this parser
@@ -858,6 +851,12 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
       },
       &label,
     )
+  }
+}
+
+impl<T: Clone + Debug> Display for TokenParser<T> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}", self.label)
   }
 }
 

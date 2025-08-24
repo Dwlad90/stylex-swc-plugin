@@ -2486,7 +2486,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_parser"
-version = "0.6.6"
+version = "0.10.5"
 dependencies = [
  "anyhow",
  "criterion",

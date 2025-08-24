@@ -52,7 +52,7 @@ impl BlendMode {
   }
 
   /// Convert from string representation
-  pub fn from_str(s: &str) -> Option<BlendMode> {
+  pub fn parse(s: &str) -> Option<BlendMode> {
     match s {
       "normal" => Some(BlendMode::Normal),
       "multiply" => Some(BlendMode::Multiply),
@@ -120,10 +120,7 @@ impl BlendMode {
         |value: &String| Self::is_valid_blend_mode(value),
         Some("valid_blend_mode"),
       )
-      .map(
-        |value| Self::from_str(&value).unwrap(),
-        Some("to_blend_mode"),
-      )
+      .map(|value| Self::parse(&value).unwrap(), Some("to_blend_mode"))
   }
 }
 
@@ -139,48 +136,27 @@ mod tests {
 
   #[test]
   fn test_blend_mode_from_str() {
-    assert_eq!(BlendMode::from_str("normal"), Some(BlendMode::Normal));
-    assert_eq!(BlendMode::from_str("multiply"), Some(BlendMode::Multiply));
-    assert_eq!(BlendMode::from_str("screen"), Some(BlendMode::Screen));
-    assert_eq!(BlendMode::from_str("overlay"), Some(BlendMode::Overlay));
-    assert_eq!(BlendMode::from_str("darken"), Some(BlendMode::Darken));
-    assert_eq!(BlendMode::from_str("lighten"), Some(BlendMode::Lighten));
-    assert_eq!(
-      BlendMode::from_str("color-dodge"),
-      Some(BlendMode::ColorDodge)
-    );
-    assert_eq!(
-      BlendMode::from_str("color-burn"),
-      Some(BlendMode::ColorBurn)
-    );
-    assert_eq!(
-      BlendMode::from_str("hard-light"),
-      Some(BlendMode::HardLight)
-    );
-    assert_eq!(
-      BlendMode::from_str("soft-light"),
-      Some(BlendMode::SoftLight)
-    );
-    assert_eq!(
-      BlendMode::from_str("difference"),
-      Some(BlendMode::Difference)
-    );
-    assert_eq!(BlendMode::from_str("exclusion"), Some(BlendMode::Exclusion));
-    assert_eq!(BlendMode::from_str("hue"), Some(BlendMode::Hue));
-    assert_eq!(
-      BlendMode::from_str("saturation"),
-      Some(BlendMode::Saturation)
-    );
-    assert_eq!(BlendMode::from_str("color"), Some(BlendMode::Color));
-    assert_eq!(
-      BlendMode::from_str("luminosity"),
-      Some(BlendMode::Luminosity)
-    );
+    assert_eq!(BlendMode::parse("normal"), Some(BlendMode::Normal));
+    assert_eq!(BlendMode::parse("multiply"), Some(BlendMode::Multiply));
+    assert_eq!(BlendMode::parse("screen"), Some(BlendMode::Screen));
+    assert_eq!(BlendMode::parse("overlay"), Some(BlendMode::Overlay));
+    assert_eq!(BlendMode::parse("darken"), Some(BlendMode::Darken));
+    assert_eq!(BlendMode::parse("lighten"), Some(BlendMode::Lighten));
+    assert_eq!(BlendMode::parse("color-dodge"), Some(BlendMode::ColorDodge));
+    assert_eq!(BlendMode::parse("color-burn"), Some(BlendMode::ColorBurn));
+    assert_eq!(BlendMode::parse("hard-light"), Some(BlendMode::HardLight));
+    assert_eq!(BlendMode::parse("soft-light"), Some(BlendMode::SoftLight));
+    assert_eq!(BlendMode::parse("difference"), Some(BlendMode::Difference));
+    assert_eq!(BlendMode::parse("exclusion"), Some(BlendMode::Exclusion));
+    assert_eq!(BlendMode::parse("hue"), Some(BlendMode::Hue));
+    assert_eq!(BlendMode::parse("saturation"), Some(BlendMode::Saturation));
+    assert_eq!(BlendMode::parse("color"), Some(BlendMode::Color));
+    assert_eq!(BlendMode::parse("luminosity"), Some(BlendMode::Luminosity));
 
     // Invalid values
-    assert_eq!(BlendMode::from_str("invalid"), None);
-    assert_eq!(BlendMode::from_str("NORMAL"), None);
-    assert_eq!(BlendMode::from_str(""), None);
+    assert_eq!(BlendMode::parse("invalid"), None);
+    assert_eq!(BlendMode::parse("NORMAL"), None);
+    assert_eq!(BlendMode::parse(""), None);
   }
 
   #[test]
@@ -231,7 +207,7 @@ mod tests {
 
     // Test that all values can be parsed
     for value_str in values {
-      assert!(BlendMode::from_str(value_str).is_some());
+      assert!(BlendMode::parse(value_str).is_some());
     }
   }
 
@@ -253,9 +229,9 @@ mod tests {
 
   #[test]
   fn test_blend_mode_round_trip() {
-    // Test that from_str and as_str are consistent
+    // Test that parse and as_str are consistent
     for value_str in BlendMode::all_values() {
-      let blend_mode = BlendMode::from_str(value_str).unwrap();
+      let blend_mode = BlendMode::parse(value_str).unwrap();
       assert_eq!(blend_mode.as_str(), *value_str);
     }
   }

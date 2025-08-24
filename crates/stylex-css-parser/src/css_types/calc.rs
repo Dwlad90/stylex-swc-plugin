@@ -166,7 +166,7 @@ impl CalcValue {
       }
       SimpleToken::Ident(name) => {
         // Try to parse as calc constant (pi, e, infinity, -infinity, NaN)
-        match CalcConstant::from_str(&name) {
+        match CalcConstant::parse(&name) {
           Some(constant) => Ok(CalcValue::Constant(constant)),
           None => Err(CssParseError::ParseError {
             message: format!("Unknown calc constant: {}", name),

@@ -1,8 +1,8 @@
 [package]
 name = "stylex_css_parser"
-version = "0.6.6"
+version = "0.10.5"
 edition = "2021"
-rust-version = "1.84.1"
+rust-version = "1.86.0"
 description = "CSS value parser"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"

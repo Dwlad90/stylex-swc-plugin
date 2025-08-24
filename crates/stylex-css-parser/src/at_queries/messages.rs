@@ -14,12 +14,6 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_error_messages_exist() {
-    assert!(!MediaQueryErrors::SYNTAX_ERROR.is_empty());
-    assert!(!MediaQueryErrors::UNBALANCED_PARENS.is_empty());
-  }
-
-  #[test]
   fn test_error_message_content() {
     assert!(MediaQueryErrors::SYNTAX_ERROR.contains("syntax"));
     assert!(MediaQueryErrors::UNBALANCED_PARENS.contains("parentheses"));

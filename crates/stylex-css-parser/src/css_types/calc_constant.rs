@@ -24,7 +24,7 @@ impl CalcConstant {
   }
 
   /// Convert from string representation
-  pub fn from_str(s: &str) -> Option<CalcConstant> {
+  pub fn parse(s: &str) -> Option<CalcConstant> {
     match s {
       "pi" => Some(CalcConstant::Pi),
       "e" => Some(CalcConstant::E),
@@ -80,22 +80,22 @@ mod tests {
 
   #[test]
   fn test_calc_constant_from_str() {
-    assert_eq!(CalcConstant::from_str("pi"), Some(CalcConstant::Pi));
-    assert_eq!(CalcConstant::from_str("e"), Some(CalcConstant::E));
+    assert_eq!(CalcConstant::parse("pi"), Some(CalcConstant::Pi));
+    assert_eq!(CalcConstant::parse("e"), Some(CalcConstant::E));
     assert_eq!(
-      CalcConstant::from_str("infinity"),
+      CalcConstant::parse("infinity"),
       Some(CalcConstant::Infinity)
     );
     assert_eq!(
-      CalcConstant::from_str("-infinity"),
+      CalcConstant::parse("-infinity"),
       Some(CalcConstant::NegativeInfinity)
     );
-    assert_eq!(CalcConstant::from_str("NaN"), Some(CalcConstant::NaN));
+    assert_eq!(CalcConstant::parse("NaN"), Some(CalcConstant::NaN));
 
     // Invalid constants
-    assert_eq!(CalcConstant::from_str("invalid"), None);
-    assert_eq!(CalcConstant::from_str("PI"), None); // Case sensitive
-    assert_eq!(CalcConstant::from_str(""), None);
+    assert_eq!(CalcConstant::parse("invalid"), None);
+    assert_eq!(CalcConstant::parse("PI"), None); // Case sensitive
+    assert_eq!(CalcConstant::parse(""), None);
   }
 
   #[test]
@@ -159,9 +159,9 @@ mod tests {
 
   #[test]
   fn test_calc_constant_round_trip() {
-    // Test that from_str and as_str are consistent
+    // Test that parse and as_str are consistent
     for constant_str in CalcConstant::all_constants() {
-      let constant = CalcConstant::from_str(constant_str).unwrap();
+      let constant = CalcConstant::parse(constant_str).unwrap();
       assert_eq!(constant.as_str(), *constant_str);
     }
   }

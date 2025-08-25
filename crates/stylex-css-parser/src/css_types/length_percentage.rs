@@ -5,7 +5,7 @@ Handles values that can be either length or percentage values.
 */
 
 use crate::{
-  css_types::{Length, Percentage},
+  css_types::{calc::Calc, Length, Percentage},
   token_parser::TokenParser,
 };
 use std::fmt::{self, Display};
@@ -15,12 +15,14 @@ use std::fmt::{self, Display};
 pub enum LengthPercentage {
   Length(Length),
   Percentage(Percentage),
+  Calc(Calc),
 }
 
 impl LengthPercentage {
   /// Parser for length or percentage values
   pub fn parser() -> TokenParser<LengthPercentage> {
     TokenParser::one_of(vec![
+      Calc::parser().map(LengthPercentage::Calc, Some("calc")),
       Percentage::parser().map(LengthPercentage::Percentage, Some("percentage")),
       Length::parser().map(LengthPercentage::Length, Some("length")),
     ])
@@ -34,6 +36,11 @@ impl LengthPercentage {
   /// Check if this is a percentage value
   pub fn is_percentage(&self) -> bool {
     matches!(self, LengthPercentage::Percentage(_))
+  }
+
+  /// Check if this is a calc value
+  pub fn is_calc(&self) -> bool {
+    matches!(self, LengthPercentage::Calc(_))
   }
 
   /// Get the length value if this is a length, None otherwise
@@ -51,6 +58,14 @@ impl LengthPercentage {
       _ => None,
     }
   }
+
+  /// Get the calc value if this is a calc, None otherwise
+  pub fn as_calc(&self) -> Option<&Calc> {
+    match self {
+      LengthPercentage::Calc(calc) => Some(calc),
+      _ => None,
+    }
+  }
 }
 
 impl Display for LengthPercentage {
@@ -58,6 +73,7 @@ impl Display for LengthPercentage {
     match self {
       LengthPercentage::Length(length) => length.fmt(f),
       LengthPercentage::Percentage(percentage) => percentage.fmt(f),
+      LengthPercentage::Calc(calc) => calc.fmt(f),
     }
   }
 }

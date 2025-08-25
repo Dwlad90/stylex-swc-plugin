@@ -270,24 +270,48 @@ impl BoxShadowList {
     let comma = TokenParser::<SimpleToken>::token(SimpleToken::Comma, Some("Comma"));
     let whitespace = TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("Whitespace"));
 
+    // Parse "none" keyword
+    let none_parser = TokenParser::<SimpleToken>::token(
+      SimpleToken::Ident("none".to_string()),
+      Some("none_ident"),
+    )
+    .where_fn(
+      |token| {
+        if let SimpleToken::Ident(value) = token {
+          value == "none"
+        } else {
+          false
+        }
+      },
+      Some("none_check"),
+    )
+    .map(|_| BoxShadowList::new(Vec::new()), Some("empty_shadow_list"));
+
     // Parse comma with optional surrounding whitespace
     let comma_separator =
       comma.surrounded_by(whitespace.clone().optional(), Some(whitespace.optional()));
 
     // Parse one or more shadows separated by commas
-    TokenParser::one_or_more_separated_by(BoxShadow::parser(), comma_separator)
-      .map(BoxShadowList::new, Some("shadow_list"))
+    let shadow_list_parser = TokenParser::one_or_more_separated_by(BoxShadow::parser(), comma_separator)
+      .map(BoxShadowList::new, Some("shadow_list"));
+
+    // Try "none" first, then shadow list
+    TokenParser::one_of(vec![none_parser, shadow_list_parser])
   }
 }
 
 impl Display for BoxShadowList {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let shadow_strings: Vec<String> = self
-      .shadows
-      .iter()
-      .map(|shadow| shadow.to_string())
-      .collect();
-    write!(f, "{}", shadow_strings.join(", "))
+    if self.shadows.is_empty() {
+      write!(f, "none")
+    } else {
+      let shadow_strings: Vec<String> = self
+        .shadows
+        .iter()
+        .map(|shadow| shadow.to_string())
+        .collect();
+      write!(f, "{}", shadow_strings.join(", "))
+    }
   }
 }
 

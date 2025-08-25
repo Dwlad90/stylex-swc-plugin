@@ -82,15 +82,15 @@ mod test_css_property_border_dir_dir_radius {
     assert_eq!(result.to_string(), "1rem 0.0005px");
   }
 
-  // #[test]
+  #[test]
+  fn valid_border_dir_dir_radius_calc_expressions() {
+      let radius = BorderRadiusIndividual::parser().parse_to_end("calc(10px + 5%)").unwrap();
 
-  // fn valid_border_dir_dir_radius_calc_expressions() {
-  //     let radius = BorderRadiusIndividual::parser().parse_to_end("calc(10px + 5%)").unwrap();
-  //
-  //     // Should parse calc expression successfully
-  //     assert!(!radius.to_string().is_empty());
-  //     assert!(radius.to_string().contains("calc"));
-  // }
+      // Should parse calc expression successfully
+      assert!(!radius.to_string().is_empty());
+      assert!(radius.to_string().contains("calc"));
+      assert_eq!(radius.to_string(), "calc(10px + 5%)");
+  }
 
   #[test]
   fn invalid_border_dir_dir_radius() {
@@ -117,22 +117,22 @@ mod test_css_property_border_dir_dir_radius {
       .is_err());
   }
 
-  // #[test]
-  // fn border_radius_individual_various_units() {
-  //     let test_cases = vec![
-  //         ("10px", "10px"),
-  //         ("1em", "1em"),
-  //         ("2rem", "2rem"),
-  //         ("5%", "5%"),
-  //         ("0", "0"),
-  //         ("0px", "0px"),
-  //     ];
-  //
-  //     for (input, expected) in test_cases {
-  //         let radius = BorderRadiusIndividual::parser().parse_to_end(input).unwrap();
-  //         assert_eq!(radius.to_string(), expected, "Failed for input: {}", input);
-  //     }
-  // }
+  #[test]
+  fn border_radius_individual_various_units() {
+      let test_cases = vec![
+          ("10px", "10px"),
+          ("1em", "1em"),
+          ("2rem", "2rem"),
+          ("5%", "5%"),
+          ("0", "0"),
+          ("0px", "0px"),
+      ];
+
+      for (input, expected) in test_cases {
+          let radius = BorderRadiusIndividual::parser().parse_to_end(input).unwrap();
+          assert_eq!(radius.to_string(), expected, "Failed for input: {}", input);
+      }
+  }
 }
 
 #[cfg(test)]

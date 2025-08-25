@@ -83,6 +83,36 @@ mod test_css_type_length_percentage {
   }
 
   #[test]
+  fn parses_calc_expressions() {
+    let result = length_percentage_parser().parse_to_end("calc(10px + 5%)").unwrap();
+    match result {
+      LengthPercentage::Calc(calc) => {
+        assert_eq!(calc.to_string(), "calc(10px + 5%)");
+      }
+      _ => panic!("Expected calc expression"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("calc(100% - 20px)").unwrap();
+    match result {
+      LengthPercentage::Calc(calc) => {
+        assert_eq!(calc.to_string(), "calc(100% - 20px)");
+      }
+      _ => panic!("Expected calc expression"),
+    }
+
+    let result = length_percentage_parser().parse_to_end("calc(50px * 2)").unwrap();
+    match result {
+      LengthPercentage::Calc(calc) => {
+        assert!(!calc.to_string().is_empty());
+        assert!(calc.to_string().starts_with("calc("));
+        assert!(calc.to_string().ends_with(")"));
+        assert_eq!(calc.to_string(), "calc(50px * 2)");
+      }
+      _ => panic!("Expected calc expression"),
+    }
+  }
+
+  #[test]
   fn rejects_invalid_length_percentage_values() {
     assert!(length_percentage_parser().parse_to_end("abc").is_err());
     assert!(length_percentage_parser().parse_to_end("50").is_err());

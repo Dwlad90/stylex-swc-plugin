@@ -386,119 +386,166 @@ mod test_css_property_box_shadow {
   }
 }
 
-/*
-NOTE: Entire module is Rust-specific extension - commented out
-
 #[cfg(test)]
 mod test_css_property_box_shadow_list {
-    use super::*;
+  use super::*;
 
+  #[test]
+  fn box_shadow_list_single() {
+    let shadow_list = BoxShadowList::parser().parse_to_end("5px 5px red").unwrap();
 
-    // #[test]
-    // fn box_shadow_list_single() {
-        let shadow_list = BoxShadowList::parser().parse_to_end("5px 5px red").unwrap();
+    assert_eq!(shadow_list.shadows.len(), 1);
 
-        assert_eq!(shadow_list.shadows.len(), 1);
+    let shadow = &shadow_list.shadows[0];
+    assert_eq!(shadow.offset_x.value, 5.0);
+    assert_eq!(shadow.offset_y.value, 5.0);
 
-        let shadow = &shadow_list.shadows[0];
-        assert_eq!(shadow.offset_x.value, 5.0);
-        assert_eq!(shadow.offset_y.value, 5.0);
+    assert_eq!(shadow_list.to_string(), "5px 5px red");
+  }
 
-        assert_eq!(shadow_list.to_string(), "5px 5px red");
+  #[test]
+  fn box_shadow_list_multiple() {
+    let shadow_list = BoxShadowList::parser()
+      .parse_to_end("5px 5px red, inset 2px 2px blue")
+      .unwrap();
+
+    assert_eq!(shadow_list.shadows.len(), 2);
+
+    // First shadow
+    let first = &shadow_list.shadows[0];
+    assert!(!first.inset);
+    assert_eq!(first.offset_x.value, 5.0);
+    assert_eq!(first.offset_y.value, 5.0);
+
+    // Second shadow
+    let second = &shadow_list.shadows[1];
+    assert!(second.inset);
+    assert_eq!(second.offset_x.value, 2.0);
+    assert_eq!(second.offset_y.value, 2.0);
+
+    assert_eq!(shadow_list.to_string(), "5px 5px red, inset 2px 2px blue");
+  }
+
+  #[test]
+  fn box_shadow_list_complex() {
+    let input = "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24), inset 0 0 0 1px #e0e0e0";
+    let shadow_list = BoxShadowList::parser().parse_to_end(input).unwrap();
+
+    assert_eq!(shadow_list.shadows.len(), 3);
+
+    // Verify each shadow parsed correctly
+    assert!(!shadow_list.shadows[0].inset);
+    assert!(!shadow_list.shadows[1].inset);
+    assert!(shadow_list.shadows[2].inset);
+
+    // Verify round-trip parsing
+    let reparsed = BoxShadowList::parser()
+      .parse_to_end(&shadow_list.to_string())
+      .unwrap();
+    assert_eq!(shadow_list.shadows.len(), reparsed.shadows.len());
+  }
+
+  #[test]
+
+  fn box_shadow_none() {
+    let shadow_list = BoxShadowList::parser().parse_to_end("none").unwrap();
+    assert!(shadow_list.shadows.is_empty());
+    assert_eq!(shadow_list.to_string(), "none");
+  }
+
+  #[test]
+  fn box_shadow_list_whitespace_handling() {
+    let whitespace_cases = vec![
+      "5px 5px red,inset 2px 2px blue",          // No space after comma
+      "5px 5px red , inset 2px 2px blue",        // Space before comma
+      "5px  5px  red  ,  inset  2px  2px  blue", // Extra spaces
+    ];
+
+    for input in whitespace_cases {
+      let shadow_list = BoxShadowList::parser().parse_to_end(input).unwrap();
+      assert_eq!(shadow_list.shadows.len(), 2, "Should parse: {}", input);
+    }
+  }
+
+  #[test]
+  fn box_shadow_list_edge_cases() {
+    // Single shadow that looks like it could be multiple
+    let single_complex = BoxShadowList::parser()
+      .parse_to_end("inset 0 0 0 1px rgba(0,0,0,0.1)")
+      .unwrap();
+    assert_eq!(single_complex.shadows.len(), 1);
+    assert!(single_complex.shadows[0].inset);
+
+    // Multiple shadows with different complexities
+    let mixed = BoxShadowList::parser()
+      .parse_to_end("2px 2px red, 0 0 5px 2px blue, inset 1px 1px black")
+      .unwrap();
+    assert_eq!(mixed.shadows.len(), 3);
+  }
+
+  #[test]
+  fn box_shadow_none_comprehensive() {
+    // Test "none" keyword parsing and formatting
+    let shadow_list = BoxShadowList::parser().parse_to_end("none").unwrap();
+    assert!(shadow_list.shadows.is_empty());
+    assert_eq!(shadow_list.to_string(), "none");
+
+    // Test that empty shadow list displays as "none"
+    let empty_list = BoxShadowList::new(vec![]);
+    assert_eq!(empty_list.to_string(), "none");
+
+    // Test round-trip parsing
+    let reparsed = BoxShadowList::parser()
+      .parse_to_end(&shadow_list.to_string())
+      .unwrap();
+    assert!(reparsed.shadows.is_empty());
+    assert_eq!(reparsed.to_string(), "none");
+  }
+
+  #[test]
+  fn box_shadow_none_edge_cases() {
+    // Test "none" with surrounding whitespace
+    let whitespace_cases = vec![
+      " none",   // Leading whitespace
+      "none ",   // Trailing whitespace
+      " none ",  // Both leading and trailing
+    ];
+
+    for input in whitespace_cases {
+      let result = BoxShadowList::parser().parse_to_end(input);
+      // These should fail because we don't handle whitespace around "none" currently
+      // This is consistent with how CSS parsers typically work
+      assert!(result.is_err(), "Should fail for: '{}'", input);
     }
 
+    // Test invalid cases that might be mistaken for "none"
+    let invalid_none_cases = vec![
+      "None",      // Wrong case
+      "NONE",      // Wrong case
+      "none,",     // Trailing comma
+      "none, 5px 5px red", // "none" shouldn't be mixed with other shadows
+      "5px 5px red, none", // "none" shouldn't be mixed with other shadows
+    ];
 
-    // #[test]
-    // fn box_shadow_list_multiple() {
-        let shadow_list = BoxShadowList::parser().parse_to_end("5px 5px red, inset 2px 2px blue").unwrap();
-
-        assert_eq!(shadow_list.shadows.len(), 2);
-
-        // First shadow
-        let first = &shadow_list.shadows[0];
-        assert!(!first.inset);
-        assert_eq!(first.offset_x.value, 5.0);
-        assert_eq!(first.offset_y.value, 5.0);
-
-        // Second shadow
-        let second = &shadow_list.shadows[1];
-        assert!(second.inset);
-        assert_eq!(second.offset_x.value, 2.0);
-        assert_eq!(second.offset_y.value, 2.0);
-
-        assert_eq!(shadow_list.to_string(), "5px 5px red, inset 2px 2px blue");
+    for invalid_input in invalid_none_cases {
+      let result = BoxShadowList::parser().parse_to_end(invalid_input);
+      assert!(result.is_err(), "Should fail for: '{}'", invalid_input);
     }
+  }
 
+  #[test]
+  fn invalid_box_shadow_list() {
+    let invalid_cases = vec![
+      "",                     // Empty string
+      "5px",                  // Incomplete
+      "5px 5px red,",         // Trailing comma
+      "5px 5px red, invalid", // Invalid second shadow
+      "invalid, 5px 5px red", // Invalid first shadow
+    ];
 
-    // #[test]
-    // fn box_shadow_list_complex() {
-        let input = "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24), inset 0 0 0 1px #e0e0e0";
-        let shadow_list = BoxShadowList::parser().parse_to_end(input).unwrap();
-
-        assert_eq!(shadow_list.shadows.len(), 3);
-
-        // Verify each shadow parsed correctly
-        assert!(!shadow_list.shadows[0].inset);
-        assert!(!shadow_list.shadows[1].inset);
-        assert!(shadow_list.shadows[2].inset);
-
-        // Verify round-trip parsing
-        let reparsed = BoxShadowList::parser().parse_to_end(&shadow_list.to_string()).unwrap();
-        assert_eq!(shadow_list.shadows.len(), reparsed.shadows.len());
+    for invalid_input in invalid_cases {
+      let result = BoxShadowList::parser().parse_to_end(invalid_input);
+      assert!(result.is_err(), "Should fail for: {}", invalid_input);
     }
-
-
-    // #[test]
-
-    // fn box_shadow_none() {
-        let shadow_list = BoxShadowList::parser().parse_to_end("none").unwrap();
-        assert!(shadow_list.shadows.is_empty());
-        assert_eq!(shadow_list.to_string(), "none");
-    }
-
-
-    // #[test]
-    // fn box_shadow_list_whitespace_handling() {
-        let whitespace_cases = vec![
-            "5px 5px red,inset 2px 2px blue",           // No space after comma
-            "5px 5px red , inset 2px 2px blue",        // Space before comma
-            "5px  5px  red  ,  inset  2px  2px  blue", // Extra spaces
-        ];
-
-        for input in whitespace_cases {
-            let shadow_list = BoxShadowList::parser().parse_to_end(input).unwrap();
-            assert_eq!(shadow_list.shadows.len(), 2, "Should parse: {}", input);
-        }
-    }
-
-
-    // #[test]
-    // fn box_shadow_list_edge_cases() {
-        // Single shadow that looks like it could be multiple
-        let single_complex = BoxShadowList::parser().parse_to_end("inset 0 0 0 1px rgba(0,0,0,0.1)").unwrap();
-        assert_eq!(single_complex.shadows.len(), 1);
-        assert!(single_complex.shadows[0].inset);
-
-        // Multiple shadows with different complexities
-        let mixed = BoxShadowList::parser().parse_to_end("2px 2px red, 0 0 5px 2px blue, inset 1px 1px black").unwrap();
-        assert_eq!(mixed.shadows.len(), 3);
-    }
-
-
-    // #[test]
-    // fn invalid_box_shadow_list() {
-        let invalid_cases = vec![
-            "",                      // Empty string
-            "5px",                   // Incomplete
-            "5px 5px red,",          // Trailing comma
-            "5px 5px red, invalid",  // Invalid second shadow
-            "invalid, 5px 5px red",  // Invalid first shadow
-        ];
-
-        for invalid_input in invalid_cases {
-            let result = BoxShadowList::parser().parse_to_end(invalid_input);
-            assert!(result.is_err(), "Should fail for: {}", invalid_input);
-        }
-    }
+  }
 }
-*/

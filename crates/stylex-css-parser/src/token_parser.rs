@@ -509,7 +509,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
     )
   }
 
-  /// Parse a sequence of parsers
+  /// Parse a sequence of parsers (without separators)
   pub fn sequence<U: Clone + Debug + 'static>(parsers: Vec<TokenParser<U>>) -> TokenParser<Vec<U>> {
     TokenParser::new(
       move |tokens| {
@@ -532,73 +532,108 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
     )
   }
 
-  /// Parse a set of parsers in any order (order-insensitive)
-  pub fn set_of<U: Clone + Debug + 'static>(parsers: Vec<TokenParser<U>>) -> TokenParser<Vec<U>> {
+  /// Parse a sequence of parsers with separator support (returns builder)
+  pub fn sequence_with_separators<U: Clone + Debug + 'static>(parsers: Vec<TokenParser<U>>) -> SequenceParsers<U> {
+    SequenceParsers::new(parsers)
+  }
+
+  /// Enhanced sequence parser that can handle mixed optional/required parsers with separators
+  /// This method takes a vector of Either<parser, optional_parser> to distinguish behavior
+  pub fn flexible_sequence_separated_by<U: Clone + Debug + 'static, S: Clone + Debug + 'static>(
+    parsers: Vec<Either<TokenParser<U>, TokenParser<Option<U>>>>,
+    separator: TokenParser<S>,
+  ) -> TokenParser<Vec<Option<U>>> {
     TokenParser::new(
       move |tokens| {
-        let start_index = tokens.current_index;
-        let mut results = vec![None; parsers.len()];
-        let mut used_indices = std::collections::HashSet::new();
-        let mut errors = Vec::new();
+        let current_index = tokens.current_index;
+        let mut results = Vec::new();
 
-        // Try to match each position in order, but parsers can match in any order
-        for position in 0..parsers.len() {
-          let mut found = false;
-          let mut position_errors = Vec::new();
+        for (i, parser_either) in parsers.iter().enumerate() {
+          // For parsers after the first one, try separator first
+          if i > 0 {
+            let separator_index = tokens.current_index;
+            let separator_consumed = (separator.run)(tokens).is_ok();
 
-          // Try each unused parser
-          for (parser_index, parser) in parsers.iter().enumerate() {
-            if used_indices.contains(&parser_index) {
-              continue;
-            }
+            match parser_either {
+              Either::Left(required_parser) => {
+                // Required parser - must have separator if not first
+                if !separator_consumed && i > 0 {
+                  tokens.set_current_index(current_index);
+                  return Err(CssParseError::ParseError {
+                    message: format!("Expected separator before required parser {}", i),
+                  });
+                }
 
-            let before_attempt = tokens.current_index;
-            match (parser.run)(tokens) {
-              Ok(value) => {
-                results[parser_index] = Some(value);
-                used_indices.insert(parser_index);
-                found = true;
-                break;
+                match (required_parser.run)(tokens) {
+                  Ok(value) => results.push(Some(value)),
+                  Err(e) => {
+                    tokens.set_current_index(current_index);
+                    return Err(e);
+                  }
+                }
               }
-              Err(e) => {
-                tokens.set_current_index(before_attempt);
-                position_errors.push(format!("Parser {}: {}", parser_index, e));
+              Either::Right(optional_parser) => {
+                // Optional parser - separator consumption depends on success
+                match (optional_parser.run)(tokens) {
+                  Ok(Some(value)) => {
+                    // Optional parser succeeded - we needed the separator
+                    if !separator_consumed && i > 0 {
+                      tokens.set_current_index(current_index);
+                      return Err(CssParseError::ParseError {
+                        message: format!("Expected separator before optional parser {} that matched", i),
+                      });
+                    }
+                    results.push(Some(value));
+                  }
+                  Ok(None) => {
+                    // Optional parser returned None - rewind separator if consumed
+                    if separator_consumed {
+                      tokens.set_current_index(separator_index);
+                    }
+                    results.push(None);
+                  }
+                  Err(_) => {
+                    // Optional parser failed - rewind separator if consumed
+                    if separator_consumed {
+                      tokens.set_current_index(separator_index);
+                    }
+                    results.push(None);
+                  }
+                }
               }
             }
-          }
-
-          if !found {
-            errors.extend(position_errors);
-            tokens.set_current_index(start_index);
-            return Err(CssParseError::ParseError {
-              message: format!(
-                "SetOf failed at position {}: {}",
-                position,
-                errors.join("; ")
-              ),
-            });
+          } else {
+            // First parser - no separator
+            match parser_either {
+              Either::Left(required_parser) => {
+                match (required_parser.run)(tokens) {
+                  Ok(value) => results.push(Some(value)),
+                  Err(e) => {
+                    tokens.set_current_index(current_index);
+                    return Err(e);
+                  }
+                }
+              }
+              Either::Right(optional_parser) => {
+                match (optional_parser.run)(tokens) {
+                  Ok(option_value) => results.push(option_value),
+                  Err(_) => results.push(None),
+                }
+              }
+            }
           }
         }
 
-        // Convert Option<T> to T, ensuring all parsers matched
-        let final_results: Result<Vec<U>, String> = results
-          .into_iter()
-          .enumerate()
-          .map(|(i, opt)| opt.ok_or_else(|| format!("Parser {} did not match", i)))
-          .collect();
-
-        match final_results {
-          Ok(values) => Ok(values),
-          Err(err) => {
-            tokens.set_current_index(start_index);
-            Err(CssParseError::ParseError {
-              message: format!("SetOf incomplete: {}", err),
-            })
-          }
-        }
+        Ok(results)
       },
-      "setOf",
+      "flexibleSequenceSeparatedBy",
     )
+  }
+
+  /// Parse a set of parsers in any order (order-insensitive)
+  /// Returns a SetOfParsers builder that can be chained with .separated_by()
+  pub fn set_of<U: Clone + Debug + 'static>(parsers: Vec<TokenParser<U>>) -> SetOfParsers<U> {
+    SetOfParsers::new(parsers)
   }
 
   /// Parse zero or more occurrences
@@ -992,6 +1027,285 @@ pub struct TokenOneOrMoreParsers<T: Clone + Debug> {
   separator: Option<TokenParser<()>>,
 }
 
+#[derive(Clone)]
+pub struct SetOfParsers<T: Clone + Debug> {
+  parsers: Vec<TokenParser<T>>,
+}
+
+impl<T: Clone + Debug + 'static> SetOfParsers<T> {
+  pub fn new(parsers: Vec<TokenParser<T>>) -> Self {
+    Self { parsers }
+  }
+
+  /// Add a separator parser
+  pub fn separated_by<S: Clone + Debug + 'static>(
+    self,
+    separator: TokenParser<S>,
+  ) -> TokenParser<Vec<T>> {
+    let parsers = self.parsers;
+    TokenParser::new(
+      move |tokens| {
+        let start_index = tokens.current_index;
+        let mut results = vec![None; parsers.len()];
+        let mut used_indices = std::collections::HashSet::new();
+        let mut errors = Vec::new();
+
+        // Try to match each position in order, but parsers can match in any order
+        for position in 0..parsers.len() {
+          let mut found = false;
+          let mut position_errors = Vec::new();
+
+          // Handle separator between elements (but not before first element)
+          if position > 0 {
+            match (separator.run)(tokens) {
+              Ok(_) => {
+                // Separator consumed, continue
+              }
+              Err(e) => {
+                // No separator found - this is an error for setOf with separators
+                tokens.set_current_index(start_index);
+                return Err(CssParseError::ParseError {
+                  message: format!("SetOf: Expected separator before position {}: {}", position, e),
+                });
+              }
+            }
+          }
+
+          // Try each unused parser
+          for (parser_index, parser) in parsers.iter().enumerate() {
+            if used_indices.contains(&parser_index) {
+              continue;
+            }
+
+            let before_attempt = tokens.current_index;
+            match (parser.run)(tokens) {
+              Ok(value) => {
+                results[parser_index] = Some(value);
+                used_indices.insert(parser_index);
+                found = true;
+                break;
+              }
+              Err(e) => {
+                tokens.set_current_index(before_attempt);
+                position_errors.push(format!("Parser {}: {}", parser_index, e));
+              }
+            }
+          }
+
+          if !found {
+            errors.extend(position_errors);
+            tokens.set_current_index(start_index);
+            return Err(CssParseError::ParseError {
+              message: format!(
+                "SetOf failed at position {}: {}",
+                position,
+                errors.join("; ")
+              ),
+            });
+          }
+        }
+
+        // Convert Option<T> to T, ensuring all parsers matched
+        let final_results: Result<Vec<T>, String> = results
+          .into_iter()
+          .enumerate()
+          .map(|(i, opt)| opt.ok_or_else(|| format!("Parser {} did not match", i)))
+          .collect();
+
+        match final_results {
+          Ok(values) => Ok(values),
+          Err(err) => {
+            tokens.set_current_index(start_index);
+            Err(CssParseError::ParseError {
+              message: format!("SetOf incomplete: {}", err),
+            })
+          }
+        }
+      },
+      "setOfSeparatedBy",
+    )
+  }
+
+  /// Convert to a regular TokenParser without separators
+  pub fn as_token_parser(self) -> TokenParser<Vec<T>> {
+    let parsers = self.parsers;
+    TokenParser::new(
+      move |tokens| {
+        let start_index = tokens.current_index;
+        let mut results = vec![None; parsers.len()];
+        let mut used_indices = std::collections::HashSet::new();
+        let mut errors = Vec::new();
+
+        // Try to match each position in order, but parsers can match in any order
+        for position in 0..parsers.len() {
+          let mut found = false;
+          let mut position_errors = Vec::new();
+
+          // Try each unused parser
+          for (parser_index, parser) in parsers.iter().enumerate() {
+            if used_indices.contains(&parser_index) {
+              continue;
+            }
+
+            let before_attempt = tokens.current_index;
+            match (parser.run)(tokens) {
+              Ok(value) => {
+                results[parser_index] = Some(value);
+                used_indices.insert(parser_index);
+                found = true;
+                break;
+              }
+              Err(e) => {
+                tokens.set_current_index(before_attempt);
+                position_errors.push(format!("Parser {}: {}", parser_index, e));
+              }
+            }
+          }
+
+          if !found {
+            errors.extend(position_errors);
+            tokens.set_current_index(start_index);
+            return Err(CssParseError::ParseError {
+              message: format!(
+                "SetOf failed at position {}: {}",
+                position,
+                errors.join("; ")
+              ),
+            });
+          }
+        }
+
+        // Convert Option<T> to T, ensuring all parsers matched
+        let final_results: Result<Vec<T>, String> = results
+          .into_iter()
+          .enumerate()
+          .map(|(i, opt)| opt.ok_or_else(|| format!("Parser {} did not match", i)))
+          .collect();
+
+        match final_results {
+          Ok(values) => Ok(values),
+          Err(err) => {
+            tokens.set_current_index(start_index);
+            Err(CssParseError::ParseError {
+              message: format!("SetOf incomplete: {}", err),
+            })
+          }
+        }
+      },
+      "setOf",
+    )
+  }
+}
+
+#[derive(Clone)]
+pub struct SequenceParsers<T: Clone + Debug> {
+  parsers: Vec<TokenParser<T>>,
+}
+
+impl<T: Clone + Debug + 'static> SequenceParsers<T> {
+  pub fn new(parsers: Vec<TokenParser<T>>) -> Self {
+    Self { parsers }
+  }
+
+  /// Parse a sequence without separators (consecutive parsing)
+  pub fn as_token_parser(self) -> TokenParser<Vec<T>> {
+    let parsers = self.parsers;
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+        let mut results = Vec::new();
+
+        for parser in &parsers {
+          match (parser.run)(tokens) {
+            Ok(value) => results.push(value),
+            Err(e) => {
+              tokens.set_current_index(current_index);
+              return Err(e);
+            }
+          }
+        }
+
+        Ok(results)
+      },
+      "sequence",
+    )
+  }
+
+  /// Parse a sequence with separators (like whitespace between elements)
+  /// Enhanced to handle optional parsers intelligently - when an optional parser
+  /// doesn't match, the separator is not consumed and parsing continues
+  pub fn separated_by<S: Clone + Debug + 'static>(
+    self,
+    separator: TokenParser<S>,
+  ) -> TokenParser<Vec<T>> {
+    let parsers = self.parsers;
+    TokenParser::new(
+      move |tokens| {
+        let current_index = tokens.current_index;
+        let mut results = Vec::new();
+
+        for (i, parser) in parsers.iter().enumerate() {
+          // For parsers after the first one, handle separator logic
+          if i > 0 {
+            let separator_index = tokens.current_index;
+
+            // Try to consume separator
+            let separator_consumed = (separator.run)(tokens).is_ok();
+
+            // Try to parse the element
+            match (parser.run)(tokens) {
+              Ok(value) => {
+                results.push(value);
+                // Success - continue to next parser
+              }
+              Err(_) => {
+                // Parser failed - check if this might be an optional parser scenario
+                if separator_consumed {
+                  // We consumed separator but parser failed
+                  // Rewind to before separator and try again
+                  tokens.set_current_index(separator_index);
+                  match (parser.run)(tokens) {
+                    Ok(value) => {
+                      results.push(value);
+                      // Continue - this handles cases where separator was optional
+                    }
+                    Err(e) => {
+                      // Both attempts failed - this is a real error
+                      tokens.set_current_index(current_index);
+                      return Err(e);
+                    }
+                  }
+                } else {
+                  // No separator and parser failed - this is an error
+                  tokens.set_current_index(current_index);
+                  return Err(CssParseError::ParseError {
+                    message: format!(
+                      "SequenceSeparatedBy: Parser {} failed and no separator found",
+                      i
+                    ),
+                  });
+                }
+              }
+            }
+          } else {
+            // First parser - no separator needed
+            match (parser.run)(tokens) {
+              Ok(value) => results.push(value),
+              Err(e) => {
+                tokens.set_current_index(current_index);
+                return Err(e);
+              }
+            }
+          }
+        }
+
+        Ok(results)
+      },
+      "sequenceSeparatedBy",
+    )
+  }
+}
+
 impl<T: Clone + Debug + 'static> TokenOneOrMoreParsers<T> {
   pub fn new(parser: TokenParser<T>, separator: Option<TokenParser<()>>) -> Self {
     Self { parser, separator }
@@ -1143,8 +1457,8 @@ impl Tokens {
   }
 
   /// Parse a delimiter token
-  pub fn delim() -> TokenParser<SimpleToken> {
-    TokenParser::<SimpleToken>::token(SimpleToken::Delim(' '), Some("Delim"))
+  pub fn delim(ch: char) -> TokenParser<SimpleToken> {
+    TokenParser::<SimpleToken>::token(SimpleToken::Delim(ch), Some("Delim"))
   }
 
   /// Parse a whitespace token
@@ -1161,6 +1475,33 @@ impl Tokens {
 impl<T: Clone + Debug + 'static> TokenParser<T> {
   pub fn tokens() -> Tokens {
     Tokens
+  }
+
+  /// Create a helper for mixed sequence parsing - common pattern for JavaScript compatibility
+  /// Usage: TokenParser::mixed_sequence([Left(foo), Right(bar.optional()), Left(baz)]).separated_by(whitespace)
+  pub fn mixed_sequence<U: Clone + Debug + 'static>(
+    parsers: Vec<Either<TokenParser<U>, TokenParser<Option<U>>>>
+  ) -> MixedSequenceBuilder<U> {
+    MixedSequenceBuilder::new(parsers)
+  }
+}
+
+/// Builder for mixed sequences that can handle optional parsers intelligently
+pub struct MixedSequenceBuilder<T: Clone + Debug + 'static> {
+  parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>
+}
+
+impl<T: Clone + Debug + 'static> MixedSequenceBuilder<T> {
+  pub fn new(parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>) -> Self {
+    Self { parsers }
+  }
+
+  /// Parse with separators, handling optional parsers intelligently
+  pub fn separated_by<S: Clone + Debug + 'static>(
+    self,
+    separator: TokenParser<S>
+  ) -> TokenParser<Vec<Option<T>>> {
+    TokenParser::<Vec<Option<T>>>::flexible_sequence_separated_by(self.parsers, separator)
   }
 }
 

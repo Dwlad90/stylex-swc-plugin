@@ -42,7 +42,7 @@ mod test_css_type_calc {
   fn parses_percentage_values() {
     let calc1 = Calc::parser().parse_to_end("calc(50%)").unwrap();
     match &calc1.value {
-      CalcValue::Percentage(ref percent) => {
+      CalcValue::Percentage(percent) => {
         assert_eq!(percent.value, 50.0);
       }
       _ => panic!("Expected Percentage value"),
@@ -51,7 +51,7 @@ mod test_css_type_calc {
 
     let calc2 = Calc::parser().parse_to_end("calc(100%)").unwrap();
     match &calc2.value {
-      CalcValue::Percentage(ref percent) => {
+      CalcValue::Percentage(percent) => {
         assert_eq!(percent.value, 100.0);
       }
       _ => panic!("Expected Percentage value"),
@@ -60,7 +60,7 @@ mod test_css_type_calc {
 
     let calc3 = Calc::parser().parse_to_end("calc(-25%)").unwrap();
     match &calc3.value {
-      CalcValue::Percentage(ref percent) => {
+      CalcValue::Percentage(percent) => {
         assert_eq!(percent.value, -25.0);
       }
       _ => panic!("Expected Percentage value"),
@@ -72,7 +72,7 @@ mod test_css_type_calc {
   fn parses_dimension_values() {
     let calc1 = Calc::parser().parse_to_end("calc(20px)").unwrap();
     match &calc1.value {
-      CalcValue::Dimension(ref dim) => {
+      CalcValue::Dimension(dim) => {
         assert_eq!(dim.value, 20.0);
         assert_eq!(dim.unit, "px");
       }
@@ -82,7 +82,7 @@ mod test_css_type_calc {
 
     let calc2 = Calc::parser().parse_to_end("calc(2em)").unwrap();
     match &calc2.value {
-      CalcValue::Dimension(ref dim) => {
+      CalcValue::Dimension(dim) => {
         assert_eq!(dim.value, 2.0);
         assert_eq!(dim.unit, "em");
       }
@@ -92,7 +92,7 @@ mod test_css_type_calc {
 
     let calc3 = Calc::parser().parse_to_end("calc(1.5rem)").unwrap();
     match &calc3.value {
-      CalcValue::Dimension(ref dim) => {
+      CalcValue::Dimension(dim) => {
         assert_eq!(dim.value, 1.5);
         assert_eq!(dim.unit, "rem");
       }
@@ -107,10 +107,10 @@ mod test_css_type_calc {
 
     // Should parse as an addition operation
     match &calc.value {
-      CalcValue::Addition(ref addition) => {
+      CalcValue::Addition(addition) => {
         // Verify left operand
         match addition.left.as_ref() {
-          CalcValue::Dimension(ref dim) => {
+          CalcValue::Dimension(dim) => {
             assert_eq!(dim.value, 10.0);
             assert_eq!(dim.unit, "px");
           }
@@ -119,7 +119,7 @@ mod test_css_type_calc {
 
         // Verify right operand
         match addition.right.as_ref() {
-          CalcValue::Dimension(ref dim) => {
+          CalcValue::Dimension(dim) => {
             assert_eq!(dim.value, 5.0);
             assert_eq!(dim.unit, "px");
           }
@@ -138,10 +138,10 @@ mod test_css_type_calc {
 
     // Should parse as a subtraction operation
     match &calc.value {
-      CalcValue::Subtraction(ref subtraction) => {
+      CalcValue::Subtraction(subtraction) => {
         // Verify left operand (percentage)
         match subtraction.left.as_ref() {
-          CalcValue::Percentage(ref percentage) => {
+          CalcValue::Percentage(percentage) => {
             assert_eq!(percentage.value, 100.0);
           }
           _ => panic!("Expected Percentage for left operand"),
@@ -149,7 +149,7 @@ mod test_css_type_calc {
 
         // Verify right operand (length)
         match subtraction.right.as_ref() {
-          CalcValue::Dimension(ref dim) => {
+          CalcValue::Dimension(dim) => {
             assert_eq!(dim.value, 20.0);
             assert_eq!(dim.unit, "px");
           }
@@ -168,10 +168,10 @@ mod test_css_type_calc {
 
     // Should parse as a multiplication operation
     match &calc.value {
-      CalcValue::Multiplication(ref multiplication) => {
+      CalcValue::Multiplication(multiplication) => {
         // Verify left operand
         match multiplication.left.as_ref() {
-          CalcValue::Dimension(ref dim) => {
+          CalcValue::Dimension(dim) => {
             assert_eq!(dim.value, 10.0);
             assert_eq!(dim.unit, "px");
           }
@@ -198,10 +198,10 @@ mod test_css_type_calc {
 
     // Should parse as a division operation
     match &calc.value {
-      CalcValue::Division(ref division) => {
+      CalcValue::Division(division) => {
         // Verify left operand
         match division.left.as_ref() {
-          CalcValue::Dimension(ref dim) => {
+          CalcValue::Dimension(dim) => {
             assert_eq!(dim.value, 100.0);
             assert_eq!(dim.unit, "px");
           }

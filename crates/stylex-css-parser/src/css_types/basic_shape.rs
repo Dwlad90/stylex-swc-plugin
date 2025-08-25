@@ -158,37 +158,37 @@ impl BasicShape {
         }
 
         // Parse optional right value, or default to top
-        let right = if let Ok(right_val) = (length_percentage_parser().run)(tokens) {
+        let right = match (length_percentage_parser().run)(tokens) { Ok(right_val) => {
           // Skip optional whitespace after right
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
             tokens.consume_next_token()?;
           }
           right_val
-        } else {
+        } _ => {
           top.clone()
-        };
+        }};
 
         // Parse optional bottom value, or default to top
-        let bottom = if let Ok(bottom_val) = (length_percentage_parser().run)(tokens) {
+        let bottom = match (length_percentage_parser().run)(tokens) { Ok(bottom_val) => {
           // Skip optional whitespace after bottom
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
             tokens.consume_next_token()?;
           }
           bottom_val
-        } else {
+        } _ => {
           top.clone()
-        };
+        }};
 
         // Parse optional left value, or default to right
-        let left = if let Ok(left_val) = (length_percentage_parser().run)(tokens) {
+        let left = match (length_percentage_parser().run)(tokens) { Ok(left_val) => {
           // Skip optional whitespace after left
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
             tokens.consume_next_token()?;
           }
           left_val
-        } else {
+        } _ => {
           right.clone()
-        };
+        }};
 
         // Handle optional "round" parameter
         // Skip whitespace before checking for round keyword

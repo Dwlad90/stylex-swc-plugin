@@ -15,8 +15,8 @@ This implementation provides a complete parsing API with:
 */
 
 use crate::{
-  token_types::{SimpleToken, TokenList},
   CssParseError,
+  token_types::{SimpleToken, TokenList},
 };
 use std::fmt::{Debug, Display};
 use std::rc::Rc;
@@ -432,8 +432,12 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
         Err(CssParseError::ParseError {
           message: format!(
             "{}\n📍 Context: Failed at position {} in '{}'\n🔍 Next tokens: {:?}\n📋 Remaining: '{}'",
-            error, tokens.current_index, css, context_tokens, remaining_css.chars().take(20).collect::<String>()
-          )
+            error,
+            tokens.current_index,
+            css,
+            context_tokens,
+            remaining_css.chars().take(20).collect::<String>()
+          ),
         })
       }
       Ok(value) => Ok(value),
@@ -533,7 +537,9 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   }
 
   /// Parse a sequence of parsers with separator support (returns builder)
-  pub fn sequence_with_separators<U: Clone + Debug + 'static>(parsers: Vec<TokenParser<U>>) -> SequenceParsers<U> {
+  pub fn sequence_with_separators<U: Clone + Debug + 'static>(
+    parsers: Vec<TokenParser<U>>,
+  ) -> SequenceParsers<U> {
     SequenceParsers::new(parsers)
   }
 
@@ -580,7 +586,10 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                     if !separator_consumed && i > 0 {
                       tokens.set_current_index(current_index);
                       return Err(CssParseError::ParseError {
-                        message: format!("Expected separator before optional parser {} that matched", i),
+                        message: format!(
+                          "Expected separator before optional parser {} that matched",
+                          i
+                        ),
                       });
                     }
                     results.push(Some(value));
@@ -605,21 +614,17 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           } else {
             // First parser - no separator
             match parser_either {
-              Either::Left(required_parser) => {
-                match (required_parser.run)(tokens) {
-                  Ok(value) => results.push(Some(value)),
-                  Err(e) => {
-                    tokens.set_current_index(current_index);
-                    return Err(e);
-                  }
+              Either::Left(required_parser) => match (required_parser.run)(tokens) {
+                Ok(value) => results.push(Some(value)),
+                Err(e) => {
+                  tokens.set_current_index(current_index);
+                  return Err(e);
                 }
-              }
-              Either::Right(optional_parser) => {
-                match (optional_parser.run)(tokens) {
-                  Ok(option_value) => results.push(option_value),
-                  Err(_) => results.push(None),
-                }
-              }
+              },
+              Either::Right(optional_parser) => match (optional_parser.run)(tokens) {
+                Ok(option_value) => results.push(option_value),
+                Err(_) => results.push(None),
+              },
             }
           }
         }
@@ -1065,7 +1070,10 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
                 // No separator found - this is an error for setOf with separators
                 tokens.set_current_index(start_index);
                 return Err(CssParseError::ParseError {
-                  message: format!("SetOf: Expected separator before position {}: {}", position, e),
+                  message: format!(
+                    "SetOf: Expected separator before position {}: {}",
+                    position, e
+                  ),
                 });
               }
             }
@@ -1480,7 +1488,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   /// Create a helper for mixed sequence parsing - common pattern for JavaScript compatibility
   /// Usage: TokenParser::mixed_sequence([Left(foo), Right(bar.optional()), Left(baz)]).separated_by(whitespace)
   pub fn mixed_sequence<U: Clone + Debug + 'static>(
-    parsers: Vec<Either<TokenParser<U>, TokenParser<Option<U>>>>
+    parsers: Vec<Either<TokenParser<U>, TokenParser<Option<U>>>>,
   ) -> MixedSequenceBuilder<U> {
     MixedSequenceBuilder::new(parsers)
   }
@@ -1488,7 +1496,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
 
 /// Builder for mixed sequences that can handle optional parsers intelligently
 pub struct MixedSequenceBuilder<T: Clone + Debug + 'static> {
-  parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>
+  parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>,
 }
 
 impl<T: Clone + Debug + 'static> MixedSequenceBuilder<T> {
@@ -1499,7 +1507,7 @@ impl<T: Clone + Debug + 'static> MixedSequenceBuilder<T> {
   /// Parse with separators, handling optional parsers intelligently
   pub fn separated_by<S: Clone + Debug + 'static>(
     self,
-    separator: TokenParser<S>
+    separator: TokenParser<S>,
   ) -> TokenParser<Vec<Option<T>>> {
     TokenParser::<Vec<Option<T>>>::flexible_sequence_separated_by(self.parsers, separator)
   }

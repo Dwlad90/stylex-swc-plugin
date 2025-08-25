@@ -137,9 +137,11 @@ mod test_css_type_position {
   fn parses_keyword_with_offset() {
     assert!(Position::parser().parse_to_end("left 20% top 30%").is_ok());
 
-    assert!(Position::parser()
-      .parse_to_end("right 10px bottom 15px")
-      .is_ok());
+    assert!(
+      Position::parser()
+        .parse_to_end("right 10px bottom 15px")
+        .is_ok()
+    );
   }
 
   #[test]

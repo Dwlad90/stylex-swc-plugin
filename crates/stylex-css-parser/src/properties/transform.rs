@@ -37,7 +37,7 @@ impl Display for Transform {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::css_types::{transform_function::*, Angle, Length, LengthPercentage, Percentage};
+  use crate::css_types::{Angle, Length, LengthPercentage, Percentage, transform_function::*};
 
   #[test]
   fn test_transform_function_creation() {

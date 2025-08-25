@@ -6,7 +6,7 @@ Supports both horizontal and vertical radius values with proper fallback logic.
 */
 
 use crate::{
-  css_types::{length_percentage_parser, LengthPercentage},
+  css_types::{LengthPercentage, length_percentage_parser},
   token_parser::TokenParser,
   token_types::SimpleToken,
 };

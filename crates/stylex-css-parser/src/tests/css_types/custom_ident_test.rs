@@ -42,19 +42,25 @@ mod test_css_type_custom_ident {
     assert!(CustomIdentifier::parser().parse_to_end("hidden").is_err());
     assert!(CustomIdentifier::parser().parse_to_end("visible").is_err());
     assert!(CustomIdentifier::parser().parse_to_end("revert").is_err());
-    assert!(CustomIdentifier::parser()
-      .parse_to_end("revert-layer")
-      .is_err());
+    assert!(
+      CustomIdentifier::parser()
+        .parse_to_end("revert-layer")
+        .is_err()
+    );
   }
 
   #[test]
   fn rejects_invalid_identifiers() {
-    assert!(CustomIdentifier::parser()
-      .parse_to_end("123invalid")
-      .is_err());
+    assert!(
+      CustomIdentifier::parser()
+        .parse_to_end("123invalid")
+        .is_err()
+    );
     assert!(CustomIdentifier::parser().parse_to_end("invalid!").is_err());
-    assert!(CustomIdentifier::parser()
-      .parse_to_end("invalid space")
-      .is_err());
+    assert!(
+      CustomIdentifier::parser()
+        .parse_to_end("invalid space")
+        .is_err()
+    );
   }
 }

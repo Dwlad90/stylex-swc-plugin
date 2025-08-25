@@ -84,54 +84,70 @@ mod test_css_property_border_dir_dir_radius {
 
   #[test]
   fn valid_border_dir_dir_radius_calc_expressions() {
-      let radius = BorderRadiusIndividual::parser().parse_to_end("calc(10px + 5%)").unwrap();
+    let radius = BorderRadiusIndividual::parser()
+      .parse_to_end("calc(10px + 5%)")
+      .unwrap();
 
-      // Should parse calc expression successfully
-      assert!(!radius.to_string().is_empty());
-      assert!(radius.to_string().contains("calc"));
-      assert_eq!(radius.to_string(), "calc(10px + 5%)");
+    // Should parse calc expression successfully
+    assert!(!radius.to_string().is_empty());
+    assert!(radius.to_string().contains("calc"));
+    assert_eq!(radius.to_string(), "calc(10px + 5%)");
   }
 
   #[test]
   fn invalid_border_dir_dir_radius() {
     // Test: Invalid: border-<dir>-<dir>-radius
 
-    assert!(BorderRadiusIndividual::parser()
-      .parse_to_end("skchdj")
-      .is_err());
-    assert!(BorderRadiusIndividual::parser()
-      .parse_to_end("red")
-      .is_err());
+    assert!(
+      BorderRadiusIndividual::parser()
+        .parse_to_end("skchdj")
+        .is_err()
+    );
+    assert!(
+      BorderRadiusIndividual::parser()
+        .parse_to_end("red")
+        .is_err()
+    );
     assert!(BorderRadiusIndividual::parser().parse_to_end("10").is_err());
-    assert!(BorderRadiusIndividual::parser()
-      .parse_to_end("1.0 2.0")
-      .is_err());
-    assert!(BorderRadiusIndividual::parser()
-      .parse_to_end("0.5")
-      .is_err());
-    assert!(BorderRadiusIndividual::parser()
-      .parse_to_end("1.5")
-      .is_err());
-    assert!(BorderRadiusIndividual::parser()
-      .parse_to_end("1.5 20")
-      .is_err());
+    assert!(
+      BorderRadiusIndividual::parser()
+        .parse_to_end("1.0 2.0")
+        .is_err()
+    );
+    assert!(
+      BorderRadiusIndividual::parser()
+        .parse_to_end("0.5")
+        .is_err()
+    );
+    assert!(
+      BorderRadiusIndividual::parser()
+        .parse_to_end("1.5")
+        .is_err()
+    );
+    assert!(
+      BorderRadiusIndividual::parser()
+        .parse_to_end("1.5 20")
+        .is_err()
+    );
   }
 
   #[test]
   fn border_radius_individual_various_units() {
-      let test_cases = vec![
-          ("10px", "10px"),
-          ("1em", "1em"),
-          ("2rem", "2rem"),
-          ("5%", "5%"),
-          ("0", "0"),
-          ("0px", "0px"),
-      ];
+    let test_cases = vec![
+      ("10px", "10px"),
+      ("1em", "1em"),
+      ("2rem", "2rem"),
+      ("5%", "5%"),
+      ("0", "0"),
+      ("0px", "0px"),
+    ];
 
-      for (input, expected) in test_cases {
-          let radius = BorderRadiusIndividual::parser().parse_to_end(input).unwrap();
-          assert_eq!(radius.to_string(), expected, "Failed for input: {}", input);
-      }
+    for (input, expected) in test_cases {
+      let radius = BorderRadiusIndividual::parser()
+        .parse_to_end(input)
+        .unwrap();
+      assert_eq!(radius.to_string(), expected, "Failed for input: {}", input);
+    }
   }
 }
 
@@ -384,8 +400,8 @@ mod test_css_property_border_radius_shorthand {
   }
 
   #[test]
-  fn valid_border_radius_length_percentage_length_percentage_slash_length_percentage_length_percentage(
-  ) {
+  fn valid_border_radius_length_percentage_length_percentage_slash_length_percentage_length_percentage()
+   {
     // Test: Valid: border-radius: <length-percentage> <length-percentage> / <length-percentage> <length-percentage>
 
     // Test '10px 20px / 30px 40px' -> new BorderRadiusShorthand(new Length(10, 'px'), new Length(20, 'px'), new Length(10, 'px'), new Length(20, 'px'), new Length(30, 'px'), new Length(40, 'px'))
@@ -428,8 +444,8 @@ mod test_css_property_border_radius_shorthand {
   }
 
   #[test]
-  fn valid_border_radius_length_percentage_length_percentage_length_percentage_slash_length_percentage_length_percentage_length_percentage(
-  ) {
+  fn valid_border_radius_length_percentage_length_percentage_length_percentage_slash_length_percentage_length_percentage_length_percentage()
+   {
     // Test: Valid: border-radius: <length-percentage> <length-percentage> <length-percentage> / <length-percentage> <length-percentage> <length-percentage>
 
     // Test '10px 20px 30px / 40px 50px 60px' -> new BorderRadiusShorthand(new Length(10, 'px'), new Length(20, 'px'), new Length(30, 'px'), new Length(20, 'px'), new Length(40, 'px'), new Length(50, 'px'), new Length(60, 'px'))

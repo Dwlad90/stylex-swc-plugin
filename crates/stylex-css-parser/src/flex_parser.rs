@@ -17,10 +17,10 @@ Key features:
 */
 
 use crate::{
+  CssParseError,
   css_value::CssValue,
   token_parser::TokenParser,
   token_types::{SimpleToken, TokenList},
-  CssParseError,
 };
 use std::fmt::Debug;
 
@@ -133,7 +133,7 @@ impl FlexCombinators {
           _ => {
             return Err(CssParseError::ParseError {
               message: format!("Expected function {}", name),
-            })
+            });
           }
         }
 

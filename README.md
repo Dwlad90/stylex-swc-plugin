@@ -104,14 +104,6 @@ pnpm test
 - [SWC Documentation](https://swc.rs)
 - [NAPI-RS Documentation](https://napi.rs)
 
-## 🤝 Contributing
-
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to the `develop` branch.
-
-## 📄 License
-
-MIT Licensed. See [LICENSE](./LICENSE) for details.
-
 ## Development
 
 This project includes a comprehensive Makefile that provides convenient
@@ -266,3 +258,11 @@ pnpm format:check
 # Typecheck code
 pnpm typecheck
 ```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines and submit pull requests to the `develop` branch.
+
+## 📄 License
+
+MIT Licensed. See [LICENSE](./LICENSE) for details.

@@ -46,12 +46,12 @@ pub mod flex;
 
 pub use alpha_value::AlphaValue;
 pub use angle::Angle;
-pub use angle_percentage::{angle_percentage_parser, AnglePercentage};
+pub use angle_percentage::{AnglePercentage, angle_percentage_parser};
 pub use basic_shape::{BasicShape, CircleRadius};
 pub use blend_mode::BlendMode;
 pub use calc::{
-  calc_value_to_string, Addition, Calc, CalcDimension, CalcValue, Division, Group, Multiplication,
-  Subtraction,
+  Addition, Calc, CalcDimension, CalcValue, Division, Group, Multiplication, Subtraction,
+  calc_value_to_string,
 };
 pub use calc_constant::CalcConstant;
 pub use color::{Color, HashColor, Hsl, Hsla, Lch, NamedColor, Oklab, Oklch, Rgb, Rgba};
@@ -71,7 +71,7 @@ pub use filter_function::{
 pub use flex::Flex;
 pub use frequency::Frequency;
 pub use length::Length;
-pub use length_percentage::{length_percentage_parser, LengthPercentage};
+pub use length_percentage::{LengthPercentage, length_percentage_parser};
 pub use position::{Horizontal, HorizontalKeyword, Position, Vertical, VerticalKeyword};
 pub use resolution::Resolution;
 pub use time::Time;

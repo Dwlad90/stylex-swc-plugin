@@ -2,7 +2,7 @@
 Validation media query tests.
 */
 
-use crate::at_queries::{validate_media_query, MediaQueryErrors};
+use crate::at_queries::{MediaQueryErrors, validate_media_query};
 
 #[cfg(test)]
 mod media_query_parser_with_simplified_errors {

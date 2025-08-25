@@ -47,25 +47,35 @@ mod test_css_type_transform_function {
     #[test]
     fn invalid_uses() {
       // Not enough values
-      assert!(TransformFunction::parse()
-        .parse_to_end("matrix(1, 0, 0, 1, 0)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("matrix(1, 0, 0, 1, 0)")
+          .is_err()
+      );
       // Too many values
-      assert!(TransformFunction::parse()
-        .parse_to_end("matrix(1, 0, 0, 1, 0, 0, 0)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("matrix(1, 0, 0, 1, 0, 0, 0)")
+          .is_err()
+      );
       // Non-numeric values
-      assert!(TransformFunction::parse()
-        .parse_to_end("matrix(1, 0, 0, 1, 0, foo)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("matrix(1, 0, 0, 1, 0, foo)")
+          .is_err()
+      );
       // wrong type of values
-      assert!(TransformFunction::parse()
-        .parse_to_end("matrix(1px, 0, 0, 1, 0, 0)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("matrix(1px, 0, 0, 1, 0, 0)")
+          .is_err()
+      );
       // wrong separator
-      assert!(TransformFunction::parse()
-        .parse_to_end("matrix(1 0 0 1 0 0)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("matrix(1 0 0 1 0 0)")
+          .is_err()
+      );
     }
   }
 
@@ -85,9 +95,11 @@ mod test_css_type_transform_function {
     #[test]
     #[ignore] // Matrix3d not yet fully implemented
     fn invalid_uses() {
-      assert!(TransformFunction::parse()
-        .parse_to_end("matrix3d()")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("matrix3d()")
+          .is_err()
+      );
     }
   }
 
@@ -123,19 +135,27 @@ mod test_css_type_transform_function {
     #[test]
     fn invalid_uses() {
       // Non-numeric values
-      assert!(TransformFunction::parse()
-        .parse_to_end("perspective(foo)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("perspective(foo)")
+          .is_err()
+      );
       // wrong type of values
-      assert!(TransformFunction::parse()
-        .parse_to_end("perspective(1)")
-        .is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("perspective(1%)")
-        .is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("perspective(1deg)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("perspective(1)")
+          .is_err()
+      );
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("perspective(1%)")
+          .is_err()
+      );
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("perspective(1deg)")
+          .is_err()
+      );
     }
   }
 
@@ -241,19 +261,27 @@ mod test_css_type_transform_function {
     #[test]
     fn invalid_uses() {
       // Non-numeric values
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotate(foo)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotate(foo)")
+          .is_err()
+      );
       // wrong type of values
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotate(1)")
-        .is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotate(1%)")
-        .is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotate(1px)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotate(1)")
+          .is_err()
+      );
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotate(1%)")
+          .is_err()
+      );
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotate(1px)")
+          .is_err()
+      );
     }
   }
 
@@ -273,9 +301,11 @@ mod test_css_type_transform_function {
     #[test]
     #[ignore] // Rotate3d not yet fully implemented
     fn invalid_uses() {
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotate3d()")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotate3d()")
+          .is_err()
+      );
     }
   }
 
@@ -303,15 +333,21 @@ mod test_css_type_transform_function {
 
     #[test]
     fn invalid_uses() {
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotateX()")
-        .is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotateY(90)")
-        .is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("rotateZ(90px)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotateX()")
+          .is_err()
+      );
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotateY(90)")
+          .is_err()
+      );
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("rotateZ(90px)")
+          .is_err()
+      );
     }
   }
 
@@ -338,9 +374,11 @@ mod test_css_type_transform_function {
     #[test]
     fn invalid_uses() {
       assert!(TransformFunction::parse().parse_to_end("scale()").is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("scale(1, 2, 3)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("scale(1, 2, 3)")
+          .is_err()
+      );
     }
   }
 
@@ -368,12 +406,16 @@ mod test_css_type_transform_function {
 
     #[test]
     fn invalid_uses() {
-      assert!(TransformFunction::parse()
-        .parse_to_end("translate()")
-        .is_err());
-      assert!(TransformFunction::parse()
-        .parse_to_end("translate(10)")
-        .is_err());
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("translate()")
+          .is_err()
+      );
+      assert!(
+        TransformFunction::parse()
+          .parse_to_end("translate(10)")
+          .is_err()
+      );
     }
   }
 }

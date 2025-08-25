@@ -7,7 +7,7 @@ Tests parsing of dimensional values (length, time, frequency, resolution).
 
 #[cfg(test)]
 mod test_css_type_dimension {
-  use crate::css_types::dimension::{dimension, Dimension};
+  use crate::css_types::dimension::{Dimension, dimension};
   use crate::css_types::{
     frequency::Frequency, length::Length, resolution::Resolution, time::Time,
   };

@@ -5,10 +5,10 @@ Implements complete calc() expression parsing with operator precedence.
 */
 
 use crate::{
+  CssParseError,
   css_types::{calc_constant::CalcConstant, common_types::Percentage},
   token_parser::TokenParser,
   token_types::{SimpleToken, TokenList},
-  CssParseError,
 };
 use std::fmt::{self, Display};
 
@@ -267,7 +267,7 @@ impl CalcValue {
         CalcValueOrOperator::Operator(_) => {
           return Err(CssParseError::ParseError {
             message: "Invalid operator".to_string(),
-          })
+          });
         }
       }
     }
@@ -316,7 +316,7 @@ impl CalcValue {
         CalcValueOrOperator::Operator(op) => {
           return Err(CssParseError::ParseError {
             message: format!("Invalid operator: {}", op),
-          })
+          });
         }
       }
     }

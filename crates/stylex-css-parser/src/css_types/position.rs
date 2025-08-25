@@ -1,4 +1,4 @@
-use crate::css_types::length_percentage::{length_percentage_parser, LengthPercentage};
+use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
 /**
  * CSS Position Type Parser
  *

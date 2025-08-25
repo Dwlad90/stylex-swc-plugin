@@ -7,7 +7,7 @@ and compare with simple parsing approaches.
 Provides benchmarks for token parsing functionality and performance.
 */
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use stylex_css_parser::token_parser::TokenParser;
 use stylex_css_parser::token_types::TokenList;
 

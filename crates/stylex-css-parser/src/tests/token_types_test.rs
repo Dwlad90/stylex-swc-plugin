@@ -90,8 +90,8 @@ mod test_token_types {
     let mut token_list = TokenList::new("hello world");
 
     let slice = token_list.slice(0, None); // Should use all tokens
-                                           // Note: slice may be empty if no tokens were consumed yet
-                                           // Let's just verify the slice operation works without panicking
+    // Note: slice may be empty if no tokens were consumed yet
+    // Let's just verify the slice operation works without panicking
     let _ = slice; // Use the slice to avoid unused variable warning
   }
 

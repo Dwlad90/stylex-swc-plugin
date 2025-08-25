@@ -6,7 +6,7 @@ providing essential shared utilities for CSS processing.
 */
 
 use crate::{
-  token_parser::{tokens, TokenParser},
+  token_parser::{TokenParser, tokens},
   token_types::SimpleToken,
 };
 use std::fmt::{self, Display};

@@ -3,16 +3,16 @@ CSS transform function parser.
 */
 
 use crate::{
+  CssParseError,
   css_types::{
     angle::Angle,
-    common_types::{number_or_percentage_parser, NumberOrPercentage},
+    common_types::{NumberOrPercentage, number_or_percentage_parser},
     length::Length,
     length_percentage::LengthPercentage,
     length_percentage_parser,
   },
   token_parser::TokenParser,
   token_types::SimpleToken,
-  CssParseError,
 };
 use std::fmt::{self, Display};
 
@@ -296,7 +296,7 @@ impl Matrix3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected 'matrix3d' function".to_string(),
-            })
+            });
           }
         }
 
@@ -316,7 +316,7 @@ impl Matrix3d {
             _ => {
               return Err(CssParseError::ParseError {
                 message: format!("Expected number at position {}", i + 1),
-              })
+              });
             }
           }
 
@@ -332,7 +332,7 @@ impl Matrix3d {
               _ => {
                 return Err(CssParseError::ParseError {
                   message: format!("Expected comma after value {}", i + 1),
-                })
+                });
               }
             }
           }
@@ -349,7 +349,7 @@ impl Matrix3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ')' after matrix3d values".to_string(),
-            })
+            });
           }
         }
 
@@ -456,7 +456,7 @@ impl Rotate3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected 'rotate3d' function".to_string(),
-            })
+            });
           }
         }
 
@@ -479,7 +479,7 @@ impl Rotate3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after x value".to_string(),
-            })
+            });
           }
         }
 
@@ -502,7 +502,7 @@ impl Rotate3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after y value".to_string(),
-            })
+            });
           }
         }
 
@@ -525,7 +525,7 @@ impl Rotate3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after z value".to_string(),
-            })
+            });
           }
         }
 
@@ -548,7 +548,7 @@ impl Rotate3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ')' after rotate3d values".to_string(),
-            })
+            });
           }
         }
 
@@ -661,7 +661,7 @@ impl Scale3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected 'scale3d' function".to_string(),
-            })
+            });
           }
         }
 
@@ -684,7 +684,7 @@ impl Scale3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after sx value".to_string(),
-            })
+            });
           }
         }
 
@@ -707,7 +707,7 @@ impl Scale3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after sy value".to_string(),
-            })
+            });
           }
         }
 
@@ -730,7 +730,7 @@ impl Scale3d {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ')' after scale3d values".to_string(),
-            })
+            });
           }
         }
 

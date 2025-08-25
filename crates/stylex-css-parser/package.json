@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/css-parser",
-  "description": "SWC lib for path imports resolving for SWC StyleX plugin",
-  "version": "0.6.6",
+  "description": "CSS value parser",
+  "version": "0.10.5",
   "private": true,
   "sideEffects": false,
   "files": [

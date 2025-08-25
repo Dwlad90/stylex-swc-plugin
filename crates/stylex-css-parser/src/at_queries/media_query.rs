@@ -5,10 +5,10 @@ Complete CSS implementation.
 */
 
 use crate::{
-  css_types::{calc::Calc, Length},
-  token_parser::{tokens, TokenParser},
-  token_types::SimpleToken,
   CssParseError,
+  css_types::{Length, calc::Calc},
+  token_parser::{TokenParser, tokens},
+  token_types::SimpleToken,
 };
 use std::fmt::{self, Display};
 

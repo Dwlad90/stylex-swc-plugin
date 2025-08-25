@@ -9,6 +9,6 @@ pub mod media_query;
 pub mod media_query_transform;
 pub mod messages;
 
-pub use media_query::{validate_media_query, MediaQuery, MediaQueryRule};
+pub use media_query::{MediaQuery, MediaQueryRule, validate_media_query};
 pub use media_query_transform::lastMediaQueryWinsTransform;
 pub use messages::MediaQueryErrors;

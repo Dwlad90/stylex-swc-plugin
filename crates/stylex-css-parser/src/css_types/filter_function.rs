@@ -3,13 +3,13 @@ CSS filter function parser.
 */
 
 use crate::{
+  CssParseError,
   css_types::{
-    common_types::{number_or_percentage_parser, NumberOrPercentage},
     Angle, Length,
+    common_types::{NumberOrPercentage, number_or_percentage_parser},
   },
   token_parser::TokenParser,
   token_types::SimpleToken,
-  CssParseError,
 };
 use std::fmt::{self, Display};
 
@@ -101,12 +101,12 @@ impl BlurFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected blur() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected blur() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -129,12 +129,12 @@ impl BlurFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -159,12 +159,12 @@ impl BrightnessFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected brightness() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected brightness() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -191,12 +191,12 @@ impl BrightnessFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -221,12 +221,12 @@ impl ContrastFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected contrast() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected contrast() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -253,12 +253,12 @@ impl ContrastFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -283,12 +283,12 @@ impl GrayscaleFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected grayscale() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected grayscale() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -315,12 +315,12 @@ impl GrayscaleFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -345,12 +345,12 @@ impl HueRotateFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected hue-rotate() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected hue-rotate() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -373,12 +373,12 @@ impl HueRotateFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -403,12 +403,12 @@ impl InvertFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected invert() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected invert() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -435,12 +435,12 @@ impl InvertFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -465,12 +465,12 @@ impl OpacityFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected opacity() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected opacity() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -497,12 +497,12 @@ impl OpacityFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -527,12 +527,12 @@ impl SaturateFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected saturate() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected saturate() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -559,12 +559,12 @@ impl SaturateFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -589,12 +589,12 @@ impl SepiaFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected sepia() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected sepia() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -621,12 +621,12 @@ impl SepiaFilterFunction {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 

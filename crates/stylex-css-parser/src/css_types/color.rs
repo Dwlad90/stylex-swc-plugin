@@ -5,10 +5,10 @@ Handles all CSS color formats: named colors, hex, rgb, rgba, hsl, hsla, and mode
 */
 
 use crate::{
-  css_types::{Angle, Percentage},
-  token_parser::{tokens, TokenParser},
-  token_types::{SimpleToken, TokenList},
   CssParseError,
+  css_types::{Angle, Percentage},
+  token_parser::{TokenParser, tokens},
+  token_types::{SimpleToken, TokenList},
 };
 
 use std::fmt::{self, Display};
@@ -2002,7 +2002,7 @@ impl Oklch {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected oklch() function".to_string(),
-            })
+            });
           }
         }
 
@@ -2015,7 +2015,7 @@ impl Oklch {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after lightness".to_string(),
-            })
+            });
           }
         }
 
@@ -2028,7 +2028,7 @@ impl Oklch {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after chroma".to_string(),
-            })
+            });
           }
         }
 
@@ -2044,7 +2044,7 @@ impl Oklch {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ) after oklch values".to_string(),
-            })
+            });
           }
         }
 
@@ -2157,7 +2157,7 @@ impl Oklab {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected oklab() function".to_string(),
-            })
+            });
           }
         }
 
@@ -2170,7 +2170,7 @@ impl Oklab {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after lightness".to_string(),
-            })
+            });
           }
         }
 
@@ -2183,7 +2183,7 @@ impl Oklab {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after a component".to_string(),
-            })
+            });
           }
         }
 
@@ -2199,7 +2199,7 @@ impl Oklab {
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ) after oklab values".to_string(),
-            })
+            });
           }
         }
 

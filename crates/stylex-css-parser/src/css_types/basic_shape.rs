@@ -1,4 +1,5 @@
-use crate::css_types::length_percentage::{length_percentage_parser, LengthPercentage};
+use crate::CssParseError;
+use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
 use crate::css_types::position::Position;
 /**
  * CSS Basic Shape Type Parsers
@@ -8,7 +9,6 @@ use crate::css_types::position::Position;
  */
 use crate::token_parser::TokenParser;
 use crate::token_types::{SimpleToken, TokenList};
-use crate::CssParseError;
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -140,12 +140,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected inset() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected inset() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -158,37 +158,40 @@ impl BasicShape {
         }
 
         // Parse optional right value, or default to top
-        let right = match (length_percentage_parser().run)(tokens) { Ok(right_val) => {
-          // Skip optional whitespace after right
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+        let right = match (length_percentage_parser().run)(tokens) {
+          Ok(right_val) => {
+            // Skip optional whitespace after right
+            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+              tokens.consume_next_token()?;
+            }
+            right_val
           }
-          right_val
-        } _ => {
-          top.clone()
-        }};
+          _ => top.clone(),
+        };
 
         // Parse optional bottom value, or default to top
-        let bottom = match (length_percentage_parser().run)(tokens) { Ok(bottom_val) => {
-          // Skip optional whitespace after bottom
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+        let bottom = match (length_percentage_parser().run)(tokens) {
+          Ok(bottom_val) => {
+            // Skip optional whitespace after bottom
+            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+              tokens.consume_next_token()?;
+            }
+            bottom_val
           }
-          bottom_val
-        } _ => {
-          top.clone()
-        }};
+          _ => top.clone(),
+        };
 
         // Parse optional left value, or default to right
-        let left = match (length_percentage_parser().run)(tokens) { Ok(left_val) => {
-          // Skip optional whitespace after left
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+        let left = match (length_percentage_parser().run)(tokens) {
+          Ok(left_val) => {
+            // Skip optional whitespace after left
+            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+              tokens.consume_next_token()?;
+            }
+            left_val
           }
-          left_val
-        } _ => {
-          right.clone()
-        }};
+          _ => right.clone(),
+        };
 
         // Handle optional "round" parameter
         // Skip whitespace before checking for round keyword
@@ -222,12 +225,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -252,12 +255,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected circle() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected circle() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -298,12 +301,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -322,12 +325,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected ellipse() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected ellipse() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -380,12 +383,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -408,12 +411,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected polygon() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected polygon() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -512,12 +515,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -542,12 +545,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected path() function, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected path() function but reached end of input".to_string(),
-            })
+            });
           }
         }
 
@@ -594,12 +597,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected string literal for path, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected path string but reached end of input".to_string(),
-            })
+            });
           }
         };
 
@@ -614,12 +617,12 @@ impl BasicShape {
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
-            })
+            });
           }
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
-            })
+            });
           }
         }
 

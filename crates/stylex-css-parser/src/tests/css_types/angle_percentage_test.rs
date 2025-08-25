@@ -6,7 +6,7 @@ Test CSS angle-percentage type that accepts both angles and percentages.
 
 #[cfg(test)]
 mod test_css_type_angle_percentage {
-  use crate::css_types::angle_percentage::{angle_percentage_parser, AnglePercentage};
+  use crate::css_types::angle_percentage::{AnglePercentage, angle_percentage_parser};
 
   #[test]
   fn parses_angle_values() {

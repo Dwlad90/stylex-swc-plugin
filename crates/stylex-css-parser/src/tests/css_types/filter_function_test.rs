@@ -83,13 +83,17 @@ mod filter_function_parse {
   #[test]
   #[ignore]
   fn rejects_invalid_filter_functions() {
-    assert!(FilterFunction::parser()
-      .parse_to_end("invalid-filter(50%)")
-      .is_err());
+    assert!(
+      FilterFunction::parser()
+        .parse_to_end("invalid-filter(50%)")
+        .is_err()
+    );
     assert!(FilterFunction::parser().parse_to_end("blur()").is_err());
-    assert!(FilterFunction::parser()
-      .parse_to_end("brightness(-50%)")
-      .is_err());
+    assert!(
+      FilterFunction::parser()
+        .parse_to_end("brightness(-50%)")
+        .is_err()
+    );
     assert!(FilterFunction::parser().parse_to_end("").is_err());
   }
 }

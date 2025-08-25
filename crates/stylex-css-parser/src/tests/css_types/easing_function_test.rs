@@ -74,18 +74,26 @@ mod test_css_type_easing_function {
 
   #[test]
   fn fails_to_parse_invalid_css_easing_function_types_strings() {
-    assert!(EasingFunction::parse()
-      .parse_to_end("linear(1 2 3)")
-      .is_err()); // Missing commas
-    assert!(EasingFunction::parse()
-      .parse_to_end("cubic-bezier(1, 2, 3)")
-      .is_err()); // Wrong number of params
-    assert!(EasingFunction::parse()
-      .parse_to_end("cubic-bezier(1, 2, 3, 4, 5)")
-      .is_err()); // Too many params
-    assert!(EasingFunction::parse()
-      .parse_to_end("cubic-bezier(1 .25 1 .25)")
-      .is_err()); // Missing commas
+    assert!(
+      EasingFunction::parse()
+        .parse_to_end("linear(1 2 3)")
+        .is_err()
+    ); // Missing commas
+    assert!(
+      EasingFunction::parse()
+        .parse_to_end("cubic-bezier(1, 2, 3)")
+        .is_err()
+    ); // Wrong number of params
+    assert!(
+      EasingFunction::parse()
+        .parse_to_end("cubic-bezier(1, 2, 3, 4, 5)")
+        .is_err()
+    ); // Too many params
+    assert!(
+      EasingFunction::parse()
+        .parse_to_end("cubic-bezier(1 .25 1 .25)")
+        .is_err()
+    ); // Missing commas
     assert!(EasingFunction::parse().parse_to_end("out-ease").is_err()); // Invalid keyword
     assert!(EasingFunction::parse().parse_to_end("linear()").is_err()); // Empty params
     assert!(EasingFunction::parse().parse_to_end("steps(1, 2)").is_err()); // Invalid second parameter

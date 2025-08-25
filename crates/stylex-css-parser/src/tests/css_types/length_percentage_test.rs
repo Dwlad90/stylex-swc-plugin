@@ -6,7 +6,7 @@ Test CSS length-percentage type that accepts both lengths and percentages.
 
 #[cfg(test)]
 mod test_css_type_length_percentage {
-  use crate::css_types::length_percentage::{length_percentage_parser, LengthPercentage};
+  use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
 
   #[test]
   fn parses_length_values() {
@@ -84,7 +84,9 @@ mod test_css_type_length_percentage {
 
   #[test]
   fn parses_calc_expressions() {
-    let result = length_percentage_parser().parse_to_end("calc(10px + 5%)").unwrap();
+    let result = length_percentage_parser()
+      .parse_to_end("calc(10px + 5%)")
+      .unwrap();
     match result {
       LengthPercentage::Calc(calc) => {
         assert_eq!(calc.to_string(), "calc(10px + 5%)");
@@ -92,7 +94,9 @@ mod test_css_type_length_percentage {
       _ => panic!("Expected calc expression"),
     }
 
-    let result = length_percentage_parser().parse_to_end("calc(100% - 20px)").unwrap();
+    let result = length_percentage_parser()
+      .parse_to_end("calc(100% - 20px)")
+      .unwrap();
     match result {
       LengthPercentage::Calc(calc) => {
         assert_eq!(calc.to_string(), "calc(100% - 20px)");
@@ -100,7 +104,9 @@ mod test_css_type_length_percentage {
       _ => panic!("Expected calc expression"),
     }
 
-    let result = length_percentage_parser().parse_to_end("calc(50px * 2)").unwrap();
+    let result = length_percentage_parser()
+      .parse_to_end("calc(50px * 2)")
+      .unwrap();
     match result {
       LengthPercentage::Calc(calc) => {
         assert!(!calc.to_string().is_empty());

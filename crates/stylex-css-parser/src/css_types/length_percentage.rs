@@ -5,7 +5,7 @@ Handles values that can be either length or percentage values.
 */
 
 use crate::{
-  css_types::{calc::Calc, Length, Percentage},
+  css_types::{Length, Percentage, calc::Calc},
   token_parser::TokenParser,
 };
 use std::fmt::{self, Display};

@@ -190,9 +190,11 @@ mod test_css_type_basic_shape {
     #[test]
     fn should_not_parse_invalid_insets() {
       assert!(BasicShape::parse().parse_to_end("inset(invalid)").is_err());
-      assert!(BasicShape::parse()
-        .parse_to_end("inset(10px, invalid)")
-        .is_err());
+      assert!(
+        BasicShape::parse()
+          .parse_to_end("inset(10px, invalid)")
+          .is_err()
+      );
     }
   }
 
@@ -259,9 +261,11 @@ mod test_css_type_basic_shape {
     #[test]
     fn should_not_parse_invalid_circles() {
       assert!(BasicShape::parse().parse_to_end("circle(invalid)").is_err());
-      assert!(BasicShape::parse()
-        .parse_to_end("circle(10px, invalid)")
-        .is_err());
+      assert!(
+        BasicShape::parse()
+          .parse_to_end("circle(10px, invalid)")
+          .is_err()
+      );
     }
   }
 
@@ -348,12 +352,16 @@ mod test_css_type_basic_shape {
 
     #[test]
     fn should_not_parse_invalid_ellipses() {
-      assert!(BasicShape::parse()
-        .parse_to_end("ellipse(invalid)")
-        .is_err());
-      assert!(BasicShape::parse()
-        .parse_to_end("ellipse(10px, invalid)")
-        .is_err());
+      assert!(
+        BasicShape::parse()
+          .parse_to_end("ellipse(invalid)")
+          .is_err()
+      );
+      assert!(
+        BasicShape::parse()
+          .parse_to_end("ellipse(10px, invalid)")
+          .is_err()
+      );
     }
   }
 
@@ -403,12 +411,16 @@ mod test_css_type_basic_shape {
 
     #[test]
     fn should_not_parse_invalid_polygons() {
-      assert!(BasicShape::parse()
-        .parse_to_end("polygon(invalid)")
-        .is_err());
-      assert!(BasicShape::parse()
-        .parse_to_end("polygon(0% 0%, invalid)")
-        .is_err());
+      assert!(
+        BasicShape::parse()
+          .parse_to_end("polygon(invalid)")
+          .is_err()
+      );
+      assert!(
+        BasicShape::parse()
+          .parse_to_end("polygon(0% 0%, invalid)")
+          .is_err()
+      );
     }
   }
 

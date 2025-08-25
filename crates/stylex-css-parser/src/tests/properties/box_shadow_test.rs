@@ -506,9 +506,9 @@ mod test_css_property_box_shadow_list {
   fn box_shadow_none_edge_cases() {
     // Test "none" with surrounding whitespace
     let whitespace_cases = vec![
-      " none",   // Leading whitespace
-      "none ",   // Trailing whitespace
-      " none ",  // Both leading and trailing
+      " none",  // Leading whitespace
+      "none ",  // Trailing whitespace
+      " none ", // Both leading and trailing
     ];
 
     for input in whitespace_cases {
@@ -520,9 +520,9 @@ mod test_css_property_box_shadow_list {
 
     // Test invalid cases that might be mistaken for "none"
     let invalid_none_cases = vec![
-      "None",      // Wrong case
-      "NONE",      // Wrong case
-      "none,",     // Trailing comma
+      "None",              // Wrong case
+      "NONE",              // Wrong case
+      "none,",             // Trailing comma
       "none, 5px 5px red", // "none" shouldn't be mixed with other shadows
       "5px 5px red, none", // "none" shouldn't be mixed with other shadows
     ];

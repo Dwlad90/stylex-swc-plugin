@@ -5,7 +5,7 @@ TokenParser core functionality tests.
 These tests verify the core parser combinator functionality with comprehensive coverage.
 */
 
-use crate::token_parser::{tokens, TokenParser};
+use crate::token_parser::{TokenParser, tokens};
 use crate::token_types::SimpleToken;
 
 #[cfg(test)]

@@ -712,7 +712,7 @@ impl Rgb {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "rgb" {
+          if name.to_lowercase() != "rgb" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'rgb' function, got '{}'", name),
             });
@@ -721,6 +721,11 @@ impl Rgb {
           return Err(CssParseError::ParseError {
             message: format!("Expected Function token, got {:?}", function_token),
           });
+        }
+
+        // Skip optional whitespace before first value
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
         }
 
         // Parse r value
@@ -737,6 +742,11 @@ impl Rgb {
 
         // Parse b value
         let b = Self::parse_rgb_number_token(tokens)?;
+
+        // Skip optional whitespace before closing paren
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
 
         // Expect closing paren
         let close_token = tokens
@@ -769,7 +779,7 @@ impl Rgb {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "rgb" {
+          if name.to_lowercase() != "rgb" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'rgb' function, got '{}'", name),
             });
@@ -885,7 +895,7 @@ impl Rgb {
 
 impl Display for Rgb {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "rgb({},{},{})", self.r, self.g, self.b)
+    write!(f, "rgb({}, {}, {})", self.r, self.g, self.b)
   }
 }
 
@@ -919,7 +929,7 @@ impl Rgba {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "rgba" {
+          if name.to_lowercase() != "rgba" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'rgba' function, got '{}'", name),
             });
@@ -928,6 +938,11 @@ impl Rgba {
           return Err(CssParseError::ParseError {
             message: format!("Expected Function token, got {:?}", function_token),
           });
+        }
+
+        // Skip optional whitespace before first value
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
         }
 
         // Parse r value
@@ -951,6 +966,11 @@ impl Rgba {
         // Parse alpha value
         let a = Self::parse_alpha_value_token(tokens)?;
 
+        // Skip optional whitespace before closing paren
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
+
         // Expect closing paren
         let close_token = tokens
           .consume_next_token()?
@@ -970,21 +990,21 @@ impl Rgba {
     )
   }
 
-  /// Parse space-separated RGBA with slash: rgb(255 0 0 / 0.5)
+  /// Parse space-separated RGBA with slash: rgb(255 0 0 / 0.5) or rgba(255 0 0 / 0.5)
   fn space_slash_parser() -> TokenParser<Rgba> {
     TokenParser::new(
       |tokens| {
-        // Expect Function("rgb") - note: uses rgb, not rgba!
+        // Expect Function("rgb" or "rgba")
         let function_token = tokens
           .consume_next_token()?
           .ok_or(CssParseError::ParseError {
-            message: "Expected RGB function".to_string(),
+            message: "Expected RGB/RGBA function".to_string(),
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "rgb" {
+          if name.to_lowercase() != "rgb" && name.to_lowercase() != "rgba" {
             return Err(CssParseError::ParseError {
-              message: format!("Expected 'rgb' function, got '{}'", name),
+              message: format!("Expected 'rgb' or 'rgba' function, got '{}'", name),
             });
           }
         } else {
@@ -1164,7 +1184,7 @@ impl Rgba {
 
 impl Display for Rgba {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "rgba({},{},{},{})", self.r, self.g, self.b, self.a)
+    write!(f, "rgba({}, {}, {}, {})", self.r, self.g, self.b, self.a)
   }
 }
 
@@ -1207,7 +1227,7 @@ impl Hsl {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "hsl" {
+          if name.to_lowercase() != "hsl" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'hsl' function, got '{}'", name),
             });
@@ -1216,6 +1236,11 @@ impl Hsl {
           return Err(CssParseError::ParseError {
             message: format!("Expected Function token, got {:?}", function_token),
           });
+        }
+
+        // Skip optional whitespace before first value
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
         }
 
         // Parse hue value (angle or number)
@@ -1232,6 +1257,11 @@ impl Hsl {
 
         // Parse lightness percentage
         let l = Self::parse_hsl_percentage_token(tokens)?;
+
+        // Skip optional whitespace before closing paren
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
+        }
 
         // Expect closing paren
         let close_token = tokens
@@ -1264,7 +1294,7 @@ impl Hsl {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "hsl" {
+          if name.to_lowercase() != "hsl" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'hsl' function, got '{}'", name),
             });
@@ -1408,8 +1438,7 @@ impl Hsl {
 
 impl Display for Hsl {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let h_value = self.h.value; // Extract the numeric value without unit
-    write!(f, "hsl({},{},{})", h_value, self.s, self.l)
+    write!(f, "hsl({}, {}, {})", self.h, self.s, self.l)
   }
 }
 
@@ -1454,7 +1483,7 @@ impl Hsla {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "hsla" {
+          if name.to_lowercase() != "hsla" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'hsla' function, got '{}'", name),
             });
@@ -1517,7 +1546,7 @@ impl Hsla {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "hsl" {
+          if name.to_lowercase() != "hsl" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'hsl' function, got '{}'", name),
             });
@@ -1726,8 +1755,7 @@ impl Hsla {
 
 impl Display for Hsla {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let h_value = self.h.value; // Extract the numeric value without unit
-    write!(f, "hsla({},{},{},{})", h_value, self.s, self.l, self.a)
+    write!(f, "hsla({}, {}, {}, {})", self.h, self.s, self.l, self.a)
   }
 }
 
@@ -1790,7 +1818,7 @@ impl Lch {
           })?;
 
         if let SimpleToken::Function(name) = function_token {
-          if name != "lch" {
+          if name.to_lowercase() != "lch" {
             return Err(CssParseError::ParseError {
               message: format!("Expected 'lch' function, got '{}'", name),
             });
@@ -1998,7 +2026,7 @@ impl Oklch {
       move |input| {
         // Parse 'oklch(' function start
         match input.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "oklch" => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklch" => {}
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected oklch() function".to_string(),
@@ -2065,7 +2093,7 @@ impl Oklch {
     }
   }
 
-  /// Parse OKLCH hue: angle | number (number * 360 -> angle conversion)
+  /// Parse OKLCH hue: angle | number (interpreted as degrees) | 'none'
   fn parse_oklch_hue(input: &mut crate::token_types::TokenList) -> Result<Angle, CssParseError> {
     match input.consume_next_token()? {
       Some(SimpleToken::Dimension { value, unit }) => {
@@ -2078,9 +2106,12 @@ impl Oklch {
           })
         }
       }
-      Some(SimpleToken::Number(n)) => Ok(Angle::new((n as f32) * 360.0, "deg".to_string())),
+      Some(SimpleToken::Number(n)) => Ok(Angle::new(n as f32, "deg".to_string())),
+      Some(SimpleToken::Ident(keyword)) if keyword == "none" => {
+        Ok(Angle::new(0.0, "deg".to_string()))
+      }
       _ => Err(CssParseError::ParseError {
-        message: "Expected hue: angle or number".to_string(),
+        message: "Expected hue: angle, number, or 'none'".to_string(),
       }),
     }
   }
@@ -2153,7 +2184,7 @@ impl Oklab {
       move |input| {
         // Parse 'oklab(' function start
         match input.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "oklab" => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklab" => {}
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected oklab() function".to_string(),
@@ -2337,25 +2368,25 @@ mod tests {
   #[test]
   fn test_rgb_color_display() {
     let color = Rgb::new(255, 0, 0);
-    assert_eq!(color.to_string(), "rgb(255,0,0)");
+    assert_eq!(color.to_string(), "rgb(255, 0, 0)");
   }
 
   #[test]
   fn test_rgba_color_display() {
     let color = Rgba::new(255, 0, 0, 0.5);
-    assert_eq!(color.to_string(), "rgba(255,0,0,0.5)");
+    assert_eq!(color.to_string(), "rgba(255, 0, 0, 0.5)");
   }
 
   #[test]
   fn test_hsl_color_display() {
     let color = Hsl::from_primitives(360.0, 100.0, 50.0);
-    assert_eq!(color.to_string(), "hsl(360,100%,50%)");
+    assert_eq!(color.to_string(), "hsl(360deg, 100%, 50%)");
   }
 
   #[test]
   fn test_hsla_color_display() {
     let color = Hsla::from_primitives(360.0, 100.0, 50.0, 0.8);
-    assert_eq!(color.to_string(), "hsla(360,100%,50%,0.8)");
+    assert_eq!(color.to_string(), "hsla(360deg, 100%, 50%, 0.8)");
   }
 
   #[test]
@@ -2367,7 +2398,7 @@ mod tests {
     assert_eq!(hash.to_string(), "#FF0000");
 
     let rgb = Color::Rgb(Rgb::new(255, 0, 0));
-    assert_eq!(rgb.to_string(), "rgb(255,0,0)");
+    assert_eq!(rgb.to_string(), "rgb(255, 0, 0)");
   }
 
   #[test]

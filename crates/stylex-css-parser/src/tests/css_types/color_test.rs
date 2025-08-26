@@ -83,7 +83,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Rgb"),
     }
-    assert_eq!(color1.to_string(), "rgb(255,0,0)");
+    assert_eq!(color1.to_string(), "rgb(255, 0, 0)");
 
     let color2 = Color::parse().parse_to_end("rgb(0, 255, 0)").unwrap();
     match color2 {
@@ -94,7 +94,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Rgb"),
     }
-    assert_eq!(color2.to_string(), "rgb(0,255,0)");
+    assert_eq!(color2.to_string(), "rgb(0, 255, 0)");
 
     let color3 = Color::parse().parse_to_end("rgb(128, 128, 128)").unwrap();
     match color3 {
@@ -105,7 +105,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Rgb"),
     }
-    assert_eq!(color3.to_string(), "rgb(128,128,128)");
+    assert_eq!(color3.to_string(), "rgb(128, 128, 128)");
   }
 
   #[test]
@@ -120,7 +120,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Rgba"),
     }
-    assert_eq!(color1.to_string(), "rgba(255,0,0,0.5)");
+    assert_eq!(color1.to_string(), "rgba(255, 0, 0, 0.5)");
 
     let color2 = Color::parse()
       .parse_to_end("rgba(0, 128, 255, 1.0)")
@@ -134,7 +134,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Rgba"),
     }
-    assert_eq!(color2.to_string(), "rgba(0,128,255,1)");
+    assert_eq!(color2.to_string(), "rgba(0, 128, 255, 1)");
 
     let color3 = Color::parse()
       .parse_to_end("rgba(255, 255, 255, 0)")
@@ -148,7 +148,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Rgba"),
     }
-    assert_eq!(color3.to_string(), "rgba(255,255,255,0)");
+    assert_eq!(color3.to_string(), "rgba(255, 255, 255, 0)");
   }
 
   #[test]
@@ -185,7 +185,6 @@ mod test_css_type_color {
   }
 
   #[test]
-  #[ignore] // Space-separated RGBA with slash notation not yet implemented
   fn parses_space_separated_rgba_values() {
     let color1 = Color::parse().parse_to_end("rgba(255 0 0 / 0.5)").unwrap();
     match color1 {
@@ -232,7 +231,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Hsl"),
     }
-    assert_eq!(color1.to_string(), "hsl(120,100%,50%)");
+    assert_eq!(color1.to_string(), "hsl(120deg, 100%, 50%)");
 
     let color2 = Color::parse().parse_to_end("hsl(0, 100%, 50%)").unwrap();
     match color2 {
@@ -243,7 +242,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Hsl"),
     }
-    assert_eq!(color2.to_string(), "hsl(0,100%,50%)");
+    assert_eq!(color2.to_string(), "hsl(0deg, 100%, 50%)");
 
     let color3 = Color::parse().parse_to_end("hsl(240, 100%, 50%)").unwrap();
     match color3 {
@@ -254,7 +253,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Hsl"),
     }
-    assert_eq!(color3.to_string(), "hsl(240,100%,50%)");
+    assert_eq!(color3.to_string(), "hsl(240deg, 100%, 50%)");
   }
 
   #[test]
@@ -271,7 +270,7 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Hsla"),
     }
-    assert_eq!(color1.to_string(), "hsla(240,100%,50%,0.8)");
+    assert_eq!(color1.to_string(), "hsla(240deg, 100%, 50%, 0.8)");
 
     let color2 = Color::parse()
       .parse_to_end("hsla(120, 50%, 75%, 0.3)")
@@ -285,16 +284,21 @@ mod test_css_type_color {
       }
       _ => panic!("Expected Hsla"),
     }
-    assert_eq!(color2.to_string(), "hsla(120,50%,75%,0.3)");
+    assert_eq!(color2.to_string(), "hsla(120deg, 50%, 75%, 0.3)");
   }
 
   #[test]
   fn parses_lch_colors() {
     let color = Color::parse().parse_to_end("lch(50% 30 180)").unwrap();
     match color {
-      Color::Lch(ref _lch) => {
-        // Note: actual LCH field structure may vary
-        // Will be implemented when LCH is fully ready
+      Color::Lch(ref lch) => {
+        assert_eq!(lch.l, 50.0);
+        assert_eq!(lch.c, 30.0);
+        match &lch.h {
+          crate::css_types::color::LchHue::Number(h) => assert_eq!(*h, 180.0),
+          _ => panic!("Expected number hue for lch(50% 30 180)"),
+        }
+        assert_eq!(lch.alpha, None);
       }
       _ => panic!("Expected Lch"),
     }
@@ -305,26 +309,110 @@ mod test_css_type_color {
   fn parses_oklch_colors() {
     let color = Color::parse().parse_to_end("oklch(0.7 0.15 180)").unwrap();
     match color {
-      Color::Oklch(ref _oklch) => {
-        // Note: actual OKLCH field structure may vary
-        // Will be implemented when OKLCH is fully ready
+      Color::Oklch(ref oklch) => {
+        assert_eq!(oklch.l, 0.7);
+        assert_eq!(oklch.c, 0.15);
+        // Number 180 is interpreted as 180deg directly (CSS spec compliant)
+        assert_eq!(oklch.h.value, 180.0);
+        assert_eq!(oklch.h.unit, "deg");
+        assert_eq!(oklch.alpha, None);
       }
       _ => panic!("Expected Oklch"),
     }
-    assert_eq!(color.to_string(), "oklch(0.7 0.15 64800deg)");
+    assert_eq!(color.to_string(), "oklch(0.7 0.15 180deg)");
   }
 
   #[test]
   fn parses_oklab_colors() {
     let color = Color::parse().parse_to_end("oklab(0.7 -0.15 0.1)").unwrap();
     match color {
-      Color::Oklab(ref _oklab) => {
-        // Note: actual OKLAB field structure may vary
-        // Will be implemented when OKLAB is fully ready
+      Color::Oklab(ref oklab) => {
+        assert_eq!(oklab.l, 0.7);
+        assert_eq!(oklab.a, -0.15);
+        assert_eq!(oklab.b, 0.1);
+        assert_eq!(oklab.alpha, None);
       }
       _ => panic!("Expected Oklab"),
     }
     assert_eq!(color.to_string(), "oklab(0.7 -0.15 0.1)");
+  }
+
+  #[test]
+  fn parses_modern_color_spaces_with_alpha() {
+    // LCH with alpha
+    let lch_alpha = Color::parse()
+      .parse_to_end("lch(50% 30 180deg / 0.8)")
+      .unwrap();
+    match lch_alpha {
+      Color::Lch(ref lch) => {
+        assert_eq!(lch.l, 50.0);
+        assert_eq!(lch.c, 30.0);
+        match &lch.h {
+          crate::css_types::color::LchHue::Angle(angle) => {
+            assert_eq!(angle.value, 180.0);
+            assert_eq!(angle.unit, "deg");
+          }
+          _ => panic!("Expected angle hue"),
+        }
+        assert_eq!(lch.alpha, Some(0.8));
+      }
+      _ => panic!("Expected Lch"),
+    }
+
+    // OKLCH with alpha
+    let oklch_alpha = Color::parse()
+      .parse_to_end("oklch(0.7 0.15 180deg / 0.5)")
+      .unwrap();
+    match oklch_alpha {
+      Color::Oklch(ref oklch) => {
+        assert_eq!(oklch.l, 0.7);
+        assert_eq!(oklch.c, 0.15);
+        assert_eq!(oklch.h.value, 180.0);
+        assert_eq!(oklch.alpha, Some(0.5));
+      }
+      _ => panic!("Expected Oklch"),
+    }
+
+    // OKLAB with alpha
+    let oklab_alpha = Color::parse()
+      .parse_to_end("oklab(0.7 -0.15 0.1 / 0.9)")
+      .unwrap();
+    match oklab_alpha {
+      Color::Oklab(ref oklab) => {
+        assert_eq!(oklab.l, 0.7);
+        assert_eq!(oklab.a, -0.15);
+        assert_eq!(oklab.b, 0.1);
+        assert_eq!(oklab.alpha, Some(0.9));
+      }
+      _ => panic!("Expected Oklab"),
+    }
+  }
+
+  #[test]
+  fn parses_modern_color_spaces_with_none_values() {
+    // OKLCH with 'none' values
+    let oklch_none = Color::parse()
+      .parse_to_end("oklch(none 0.15 none)")
+      .unwrap();
+    match oklch_none {
+      Color::Oklch(ref oklch) => {
+        assert_eq!(oklch.l, 0.0); // 'none' maps to 0
+        assert_eq!(oklch.c, 0.15);
+        assert_eq!(oklch.h.value, 0.0); // 'none' * 360 = 0
+      }
+      _ => panic!("Expected Oklch"),
+    }
+
+    // OKLAB with 'none' values
+    let oklab_none = Color::parse().parse_to_end("oklab(0.5 none none)").unwrap();
+    match oklab_none {
+      Color::Oklab(ref oklab) => {
+        assert_eq!(oklab.l, 0.5);
+        assert_eq!(oklab.a, 0.0); // 'none' maps to 0
+        assert_eq!(oklab.b, 0.0); // 'none' maps to 0
+      }
+      _ => panic!("Expected Oklab"),
+    }
   }
 
   #[test]
@@ -391,7 +479,6 @@ mod test_css_type_color {
   }
 
   #[test]
-  #[ignore] // Case insensitive parsing not yet implemented
   fn case_insensitive_parsing() {
     let test_cases = vec![
       ("RED", "red"),
@@ -411,7 +498,6 @@ mod test_css_type_color {
   }
 
   #[test]
-  #[ignore] // Whitespace handling in color parsing needs improvements
   fn whitespace_handling() {
     let test_cases = vec![
       "rgb(255,0,0)",            // No spaces
@@ -454,5 +540,33 @@ mod test_css_type_color {
     assert!(Color::parse().parse_to_end("invalid").is_err());
     assert!(Color::parse().parse_to_end("#gggggg").is_err());
     assert!(Color::parse().parse_to_end("rgb(256, 0, 0)").is_err());
+  }
+
+  #[test]
+  fn oklch_hue_number_interpretation() {
+    // Test that numbers in OKLCH hue are interpreted as degrees directly
+    let test_cases = vec![
+      ("oklch(0.5 0.1 0)", 0.0),
+      ("oklch(0.5 0.1 90)", 90.0),
+      ("oklch(0.5 0.1 180)", 180.0),
+      ("oklch(0.5 0.1 270)", 270.0),
+      ("oklch(0.5 0.1 360)", 360.0),
+      ("oklch(0.5 0.1 0.5)", 0.5), // Fractional degrees
+    ];
+
+    for (input, expected_degrees) in test_cases {
+      let color = Color::parse().parse_to_end(input).unwrap();
+      match color {
+        Color::Oklch(ref oklch) => {
+          assert_eq!(
+            oklch.h.value, expected_degrees,
+            "Failed for input: {}, expected {} degrees, got {} degrees",
+            input, expected_degrees, oklch.h.value
+          );
+          assert_eq!(oklch.h.unit, "deg");
+        }
+        _ => panic!("Expected Oklch for input: {}", input),
+      }
+    }
   }
 }

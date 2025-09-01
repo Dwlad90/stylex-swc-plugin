@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
 use swc_core::ecma::{
   ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},
   utils::quote_str,
@@ -42,6 +43,20 @@ fn normalize_key_path(key_path: Vec<String>, key: &str, property: String) -> Vec
 }
 
 pub(crate) fn flatten_raw_style_object(
+  style: &[KeyValueProp],
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> IndexMap<String, PreRules> {
+  let processed_style = if traversal_state.options.enable_last_media_query_wins {
+    last_media_query_wins_transform(style)
+  } else {
+    style.to_vec()
+  };
+  flatten_raw_style_object_logic(&processed_style, &mut vec![], state, traversal_state, fns)
+}
+
+pub(crate) fn flatten_raw_style_object_logic(
   style: &[KeyValueProp],
   key_path: &mut Vec<String>,
   state: &mut EvaluationState,
@@ -193,8 +208,13 @@ pub(crate) fn flatten_raw_style_object(
             let mut property_cloned = property.clone();
             property_cloned.value = Box::new(var_decl_expr.clone());
 
-            let inner_flattened =
-              flatten_raw_style_object(&[property_cloned], key_path, state, traversal_state, fns);
+            let inner_flattened = flatten_raw_style_object_logic(
+              &[property_cloned],
+              key_path,
+              state,
+              traversal_state,
+              fns,
+            );
 
             flattened.extend(inner_flattened);
           }
@@ -210,7 +230,7 @@ pub(crate) fn flatten_raw_style_object(
         property_cloned.value = Box::new(number_to_expression(result));
 
         let inner_flattened =
-          flatten_raw_style_object(&[property_cloned], key_path, state, traversal_state, fns);
+          flatten_raw_style_object_logic(&[property_cloned], key_path, state, traversal_state, fns);
 
         flattened.extend(inner_flattened)
       }
@@ -241,7 +261,7 @@ pub(crate) fn flatten_raw_style_object(
                   vec![key.clone(), condition.clone()]
                 };
 
-                let pairs = flatten_raw_style_object(
+                let pairs = flatten_raw_style_object_logic(
                   &[inner_key_value],
                   &mut key_path,
                   state,
@@ -283,7 +303,7 @@ pub(crate) fn flatten_raw_style_object(
           let mut key_path = key_path.clone();
           key_path.push(key.clone());
 
-          let pairs = flatten_raw_style_object(
+          let pairs = flatten_raw_style_object_logic(
             &inner_key_value.into_iter().collect::<Vec<KeyValueProp>>(),
             &mut key_path,
             state,

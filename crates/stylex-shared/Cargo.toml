@@ -30,7 +30,7 @@ swc_config.workspace = true
 swc_ecma_parser = { workspace = true, features = ["verify"] }
 swc_compiler_base = { workspace = true, features = ["node"] }
 lazy_static.workspace = true
-serde_json.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
 regex.workspace = true
 indexmap.workspace = true
 derive_more.workspace = true
@@ -53,6 +53,7 @@ base62.workspace = true
 md5.workspace = true
 
 stylex_path_resolver = { path = "../stylex-path-resolver" }
+stylex_css_parser = { path = "../stylex-css-parser" }
 
 
 [dev-dependencies]

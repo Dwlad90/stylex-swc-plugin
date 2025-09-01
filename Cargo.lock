@@ -2530,6 +2530,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "stylex_css_parser",
  "stylex_path_resolver",
  "swc_compiler_base",
  "swc_config",

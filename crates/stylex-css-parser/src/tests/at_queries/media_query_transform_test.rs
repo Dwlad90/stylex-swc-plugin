@@ -691,9 +691,220 @@ mod media_query_transformer {
     );
   }
 
-  /// Test: mixed min/max width with ranges
+  /// Test: mixed min/max width with disjoint ranges
   #[test]
-  fn mixed_min_max_width_with_ranges() {
+  fn mixed_min_max_width_with_disjoint_ranges() {
+    let original_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (max-width: 1440px) and (min-width: 900px)": "1 / 4",
+          "@media (max-width: 800px) and (min-width: 600px)": "1 / 3"
+        }
+      }
+    });
+
+    let expected_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (min-width: 900px) and (max-width: 1440px)": "1 / 4",
+          "@media (min-width: 600px) and (max-width: 800px)": "1 / 3"
+        }
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj.into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap(),
+      "Mixed width disjoint ranges should not be modified"
+    );
+  }
+
+  /// Test: mixed min/max width with many disjoint ranges
+  #[test]
+  fn mixed_min_max_width_with_many_disjoint_ranges() {
+    let original_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (max-width: 1440px) and (min-width: 900px)": "1 / 4",
+          "@media (max-width: 800px) and (min-width: 600px)": "1 / 3",
+          "@media (max-width: 500px)": "1 / 1"
+        }
+      }
+    });
+
+    let expected_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (min-width: 900px) and (max-width: 1440px)": "1 / 4",
+          "@media (min-width: 600px) and (max-width: 800px)": "1 / 3",
+          "@media (max-width: 500px)": "1 / 1"
+        }
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj.into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap(),
+      "Mixed width many disjoint ranges should not be modified"
+    );
+  }
+
+  /// Test: mixed min/max width with mixed ranges
+  #[test]
+  fn mixed_min_max_width_with_mixed_ranges() {
+    let original_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (max-width: 1440px) and (min-width: 900px)": "1 / 4",
+          "@media (max-width: 1100px) and (min-width: 1000px)": "1 / 3",
+          "@media (max-width: 500px) and (min-width: 400px)": "1 / 1"
+        }
+      }
+    });
+
+    let expected_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (min-width: 900px) and (max-width: 999.99px) or (min-width: 1100.01px) and (max-width: 1440px)": "1 / 4",
+          "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3",
+          "@media (min-width: 400px) and (max-width: 500px)": "1 / 1"
+        }
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj.into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap(),
+      "Mixed width ranges with intersections should use OR logic"
+    );
+  }
+
+  /// Test: mixed min/max width with intersecting ranges
+  #[test]
+  fn mixed_min_max_width_with_intersecting_ranges() {
+    let original_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (max-width: 1440px) and (min-width: 900px)": "1 / 4",
+          "@media (max-width: 1100px) and (min-width: 1000px)": "1 / 3"
+        }
+      }
+    });
+
+    let expected_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (min-width: 900px) and (max-width: 999.99px) or (min-width: 1100.01px) and (max-width: 1440px)": "1 / 4",
+          "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3"
+        }
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj.into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap(),
+      "Mixed width intersecting ranges should split with OR logic"
+    );
+  }
+
+  /// Test: mixed min/max width with many intersecting ranges
+  #[test]
+  fn mixed_min_max_width_with_many_intersecting_ranges() {
+    let original_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (max-width: 1440px) and (min-width: 900px)": "1 / 4",
+          "@media (max-width: 1100px) and (min-width: 1000px)": "1 / 3",
+          "@media (max-width: 1050px) and (min-width: 1010px)": "1 / -1"
+        }
+      }
+    });
+
+    let expected_styles = json!({
+      "foo": {
+        "gridColumn": {
+          "default": "1 / 2",
+          "@media (min-width: 900px) and (max-width: 999.99px) or (min-width: 1100.01px) and (max-width: 1440px)": "1 / 4",
+          "@media (min-width: 1000px) and (max-width: 1009.99px) or (min-width: 1050.01px) and (max-width: 1100px)": "1 / 3",
+          "@media (min-width: 1010px) and (max-width: 1050px)": "1 / -1"
+        }
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj.into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap(),
+      "Mixed width many intersecting ranges should split with complex OR logic"
+    );
+  }
+
+  /// Test: mixed min/max width with overlapping ranges
+  #[test]
+  fn mixed_min_max_width_with_overlapping_ranges() {
     let original_styles = json!({
       "foo": {
         "gridColumn": {
@@ -708,7 +919,7 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media (min-width: 900px) and (max-width: 1440px) and (not ((min-width: 600px) and (max-width: 1040px)))": "1 / 4",
+          "@media (min-width: 1040.01px) and (max-width: 1440px)": "1 / 4",
           "@media (min-width: 600px) and (max-width: 1040px)": "1 / 3"
         }
       }
@@ -728,7 +939,7 @@ mod media_query_transformer {
     assert_eq!(
       serde_json::to_string(&result_json).unwrap(),
       serde_json::to_string(&expected_styles).unwrap(),
-      "Mixed width ranges should use complex negation logic"
+      "Mixed width overlapping ranges should split at boundaries"
     );
   }
 

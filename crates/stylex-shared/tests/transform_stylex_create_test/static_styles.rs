@@ -820,7 +820,7 @@ test!(
   }),
   |tr| {
     let mut options = StyleXOptionsParams {
-      enable_last_media_query_wins: Some(true),
+      enable_media_query_order: Some(true),
       ..Default::default()
     };
     StyleXTransform::new_test_with_pass(

@@ -48,7 +48,7 @@ pub(crate) fn flatten_raw_style_object(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> IndexMap<String, PreRules> {
-  let processed_style = if traversal_state.options.enable_last_media_query_wins {
+  let processed_style = if traversal_state.options.enable_media_query_order {
     last_media_query_wins_transform(style)
   } else {
     style.to_vec()

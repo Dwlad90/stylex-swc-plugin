@@ -222,7 +222,7 @@ impl MediaOrRules {
 impl Display for MediaOrRules {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let rule_strings: Vec<String> = self.rules.iter().map(|rule| rule.to_string()).collect();
-    write!(f, "{}", rule_strings.join(", "))
+    write!(f, "{}", rule_strings.join(" or "))
   }
 }
 
@@ -313,14 +313,8 @@ impl MediaQuery {
 /// Add Display implementation for MediaQueryRule
 impl Display for MediaQueryRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      MediaQueryRule::MediaKeyword(keyword) => write!(f, "{}", keyword),
-      MediaQueryRule::WordRule(word) => write!(f, "{}", word),
-      MediaQueryRule::Pair(pair) => write!(f, "{}", pair),
-      MediaQueryRule::Not(not_rule) => write!(f, "{}", not_rule),
-      MediaQueryRule::And(and_rules) => write!(f, "{}", and_rules),
-      MediaQueryRule::Or(or_rules) => write!(f, "{}", or_rules),
-    }
+    // Use the format_queries logic instead of the individual Display implementations
+    write!(f, "{}", MediaQuery::format_queries(self, false))
   }
 }
 
@@ -387,39 +381,16 @@ impl MediaQuery {
         rule_strings.join(" and ")
       }
       MediaQueryRule::Or(or_rules) => {
-        let valid_rules: Vec<&MediaQueryRule> = or_rules
+        let rule_strings: Vec<String> = or_rules
           .rules
           .iter()
-          .filter(|r| !matches!(r, MediaQueryRule::Or(or) if or.rules.is_empty()))
-          .collect();
-
-        if valid_rules.is_empty() {
-          return "not all".to_string();
-        }
-
-        if valid_rules.len() == 1 {
-          return MediaQuery::format_queries(valid_rules[0], is_top_level);
-        }
-
-        let formatted_rules: Vec<String> = valid_rules
-          .iter()
-          .map(|rule| match rule {
-            MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
-              let rule_string = MediaQuery::format_queries(rule, false);
-              if !is_top_level {
-                format!("({})", rule_string)
-              } else {
-                rule_string
-              }
-            }
-            _ => MediaQuery::format_queries(rule, false),
-          })
+          .map(|rule| MediaQuery::format_queries(rule, false))
           .collect();
 
         if is_top_level {
-          formatted_rules.join(", ")
+          rule_strings.join(", ")
         } else {
-          formatted_rules.join(" or ")
+          rule_strings.join(" or ")
         }
       }
     }
@@ -502,9 +473,20 @@ fn is_numeric_length(val: &MediaRuleValue) -> bool {
 
 fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   match merge_intervals_for_and(rules.clone()) {
-    Ok(merged) => merged,
+    Ok(merged) => {
+      if merged.is_empty() {
+        // Contradiction detected - return "not all" rule
+        vec![MediaQueryRule::MediaKeyword(MediaKeyword::new(
+          "all".to_string(),
+          true,
+          false,
+        ))]
+      } else {
+        merged
+      }
+    },
     Err(_) => {
-      // Contradiction detected - return a single "not all" rule
+      // Fallback case - shouldn't happen with new implementation
       vec![MediaQueryRule::MediaKeyword(MediaKeyword::new(
         "all".to_string(),
         true,
@@ -517,6 +499,66 @@ fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> 
 fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryRule>, String> {
   const EPSILON: f32 = 0.01;
   let dimensions = ["width", "height"];
+
+  // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
+  for rule in &rules {
+    if let MediaQueryRule::Not(not_rule) = rule {
+      if let MediaQueryRule::And(and_rules) = not_rule.rule.as_ref() {
+        if and_rules.rules.len() == 2 {
+          let left = &and_rules.rules[0];
+          let right = &and_rules.rules[1];
+
+          // Create left branch: all rules except current, plus (not left)
+          let mut left_branch_rules: Vec<MediaQueryRule> = rules
+            .iter()
+            .filter(|r| !std::ptr::eq(*r, rule))
+            .cloned()
+            .collect();
+          left_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(left.clone())));
+
+          // Create right branch: all rules except current, plus (not right)
+          let mut right_branch_rules: Vec<MediaQueryRule> = rules
+            .iter()
+            .filter(|r| !std::ptr::eq(*r, rule))
+            .cloned()
+            .collect();
+          right_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(right.clone())));
+
+          // Recursively process each branch
+          let left_branch = merge_intervals_for_and(left_branch_rules);
+          let right_branch = merge_intervals_for_and(right_branch_rules);
+
+          let mut or_rules = Vec::new();
+
+          // Add left branch if not empty
+          if let Ok(left_result) = left_branch {
+            if !left_result.is_empty() {
+              if left_result.len() == 1 {
+                or_rules.push(left_result.into_iter().next().unwrap());
+              } else {
+                or_rules.push(MediaQueryRule::And(MediaAndRules::new(left_result)));
+              }
+            }
+          }
+
+          // Add right branch if not empty
+          if let Ok(right_result) = right_branch {
+            if !right_result.is_empty() {
+              if right_result.len() == 1 {
+                or_rules.push(right_result.into_iter().next().unwrap());
+              } else {
+                or_rules.push(MediaQueryRule::And(MediaAndRules::new(right_result)));
+              }
+            }
+          }
+
+          if !or_rules.is_empty() {
+            return Ok(vec![MediaQueryRule::Or(MediaOrRules::new(or_rules))]);
+          }
+        }
+      }
+    }
+  }
 
   // Track intervals for each dimension: [min, max]
   let mut width_intervals: Vec<(f32, f32)> = Vec::new();
@@ -664,7 +706,7 @@ fn merge_dimension_intervals(
 
   // Check for contradictions
   if min_bound > max_bound {
-    return Err(format!("Contradictory constraints for {}", dimension));
+    return Ok(Vec::new()); // Return empty vector for contradictions
   }
 
   let mut result = Vec::new();

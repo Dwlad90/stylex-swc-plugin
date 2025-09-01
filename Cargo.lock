@@ -2319,6 +2319,7 @@ version = "1.0.142"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "030fedb782600dcbd6f02d479bf0d817ac3bb40d644745b769d6a96bc3afc5a7"
 dependencies = [
+ "indexmap",
  "itoa",
  "memchr",
  "ryu",
@@ -2469,11 +2470,13 @@ dependencies = [
  "anyhow",
  "criterion",
  "cssparser 0.34.0",
+ "indexmap",
  "log",
  "proptest",
  "regex",
  "serde",
  "serde_json",
+ "swc_core",
  "thiserror 1.0.69",
 ]
 

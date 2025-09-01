@@ -1,7 +1,7 @@
 /*!
 Media query parsing and representation.
 
-Complete CSS implementation.
+Core functionality for parsing and representing CSS media queries.
 */
 
 use crate::{
@@ -15,13 +15,14 @@ use std::fmt::{self, Display};
 /// Fraction type for media query values like (aspect-ratio: 16/9)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Fraction {
-  pub numerator: f32,
-  pub denominator: f32,
+  pub numerator: i32,
+  pub denominator: i32,
 }
 
 impl Display for Fraction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}/{}", self.numerator, self.denominator)
+    // Format with spaces for consistent output
+    write!(f, "{} / {}", self.numerator, self.denominator)
   }
 }
 
@@ -65,12 +66,24 @@ impl Display for MediaRuleValue {
   }
 }
 
-/// Media keyword types (screen, print, all)
+/// Media keyword for CSS media queries
 #[derive(Debug, Clone, PartialEq)]
 pub struct MediaKeyword {
-  pub key: String, // 'screen', 'print', 'all'
+  pub r#type: String, // Always "media-keyword"
+  pub key: String,    // 'screen' | 'print' | 'all'
   pub not: bool,
-  pub only: Option<bool>,
+  pub only: bool, // Boolean field for CSS media queries
+}
+
+impl MediaKeyword {
+  pub fn new(key: String, not: bool, only: bool) -> Self {
+    Self {
+      r#type: "media-keyword".to_string(),
+      key,
+      not,
+      only,
+    }
+  }
 }
 
 impl Display for MediaKeyword {
@@ -81,117 +94,334 @@ impl Display for MediaKeyword {
       parts.push("not".to_string());
     }
 
-    if let Some(true) = self.only {
+    if self.only {
       parts.push("only".to_string());
     }
 
     parts.push(self.key.clone());
-
     write!(f, "{}", parts.join(" "))
   }
 }
 
-/// Complete MediaQuery rule system
+/// Media word rule for CSS media queries
 #[derive(Debug, Clone, PartialEq)]
-pub enum MediaQueryRule {
-  /// Media type keywords (screen, print, all)
-  MediaKeyword(MediaKeyword),
-  /// Word rules like (color), (monochrome)
-  WordRule(WordRule),
-  /// Pair rules like (max-width: 768px)
-  Pair { key: String, value: MediaRuleValue },
-  /// NOT combinator
-  Not { rule: Box<MediaQueryRule> },
-  /// AND combinator (multiple rules that must all match)
-  And { rules: Vec<MediaQueryRule> },
-  /// OR combinator (multiple rules where any can match)
-  Or { rules: Vec<MediaQueryRule> },
+pub struct MediaWordRule {
+  pub r#type: String,    // Always "word-rule"
+  pub key_value: String, // The word rule value
 }
 
-impl Display for MediaQueryRule {
+impl MediaWordRule {
+  pub fn new(key_value: String) -> Self {
+    Self {
+      r#type: "word-rule".to_string(),
+      key_value,
+    }
+  }
+}
+
+impl Display for MediaWordRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      MediaQueryRule::MediaKeyword(keyword) => write!(f, "{}", keyword),
-      MediaQueryRule::WordRule(word) => write!(f, "({})", word),
-      MediaQueryRule::Pair { key, value } => write!(f, "({}: {})", key, value),
-      MediaQueryRule::Not { rule } => write!(f, "not {}", rule),
-      MediaQueryRule::And { rules } => {
-        let rule_strings: Vec<String> = rules.iter().map(|r| r.to_string()).collect();
-        write!(f, "{}", rule_strings.join(" and "))
+    write!(f, "({})", self.key_value)
+  }
+}
+
+/// Media rule pair for CSS media queries
+#[derive(Debug, Clone, PartialEq)]
+pub struct MediaRulePair {
+  #[allow(dead_code)]
+  pub r#type: String, // Always "pair"
+  pub key: String,           // Property name
+  pub value: MediaRuleValue, // Property value
+}
+
+impl MediaRulePair {
+  pub fn new(key: String, value: MediaRuleValue) -> Self {
+    Self {
+      r#type: "pair".to_string(),
+      key,
+      value,
+    }
+  }
+}
+
+impl Display for MediaRulePair {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "({}: {})", self.key, self.value)
+  }
+}
+
+/// Media NOT rule for CSS media queries
+#[derive(Debug, Clone, PartialEq)]
+pub struct MediaNotRule {
+  #[allow(dead_code)]
+  pub r#type: String, // Always "not"
+  pub rule: Box<MediaQueryRule>, // Nested rule
+}
+
+impl MediaNotRule {
+  pub fn new(rule: MediaQueryRule) -> Self {
+    Self {
+      r#type: "not".to_string(),
+      rule: Box::new(rule),
+    }
+  }
+}
+
+impl Display for MediaNotRule {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self.rule.as_ref() {
+      MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
+        write!(f, "(not ({}))", self.rule)
       }
-      MediaQueryRule::Or { rules } => {
-        let rule_strings: Vec<String> = rules.iter().map(|r| r.to_string()).collect();
-        write!(f, "{}", rule_strings.join(", "))
+      _ => {
+        write!(f, "(not {})", self.rule)
       }
     }
   }
 }
 
-/// Complete MediaQuery structure
+/// Media AND rules for CSS media queries
+#[derive(Debug, Clone, PartialEq)]
+pub struct MediaAndRules {
+  pub r#type: String,             // Always "and"
+  pub rules: Vec<MediaQueryRule>, // Array of rules
+}
+
+impl MediaAndRules {
+  pub fn new(rules: Vec<MediaQueryRule>) -> Self {
+    Self {
+      r#type: "and".to_string(),
+      rules,
+    }
+  }
+}
+
+impl Display for MediaAndRules {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let rule_strings: Vec<String> = self.rules.iter().map(|rule| rule.to_string()).collect();
+    write!(f, "{}", rule_strings.join(" and "))
+  }
+}
+
+/// Media OR rules for CSS media queries
+#[derive(Debug, Clone, PartialEq)]
+pub struct MediaOrRules {
+  pub r#type: String,             // Always "or"
+  pub rules: Vec<MediaQueryRule>, // Array of rules
+}
+
+impl MediaOrRules {
+  pub fn new(rules: Vec<MediaQueryRule>) -> Self {
+    Self {
+      r#type: "or".to_string(),
+      rules,
+    }
+  }
+}
+
+impl Display for MediaOrRules {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let rule_strings: Vec<String> = self.rules.iter().map(|rule| rule.to_string()).collect();
+    write!(f, "{}", rule_strings.join(", "))
+  }
+}
+
+/// All media query rules for CSS media queries
+#[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
+pub enum MediaQueryRule {
+  MediaKeyword(MediaKeyword),
+  WordRule(MediaWordRule),
+  Pair(MediaRulePair),
+  Not(MediaNotRule),
+  And(MediaAndRules),
+  Or(MediaOrRules),
+}
+
+/// Main MediaQuery struct for CSS media queries
 #[derive(Debug, Clone, PartialEq)]
 pub struct MediaQuery {
   pub queries: MediaQueryRule,
 }
 
 impl MediaQuery {
-  pub fn new_from_rule(queries: MediaQueryRule) -> Self {
+  pub fn new(queries: MediaQueryRule) -> Self {
     Self {
       queries: Self::normalize(queries),
     }
   }
 
-  /// Create a MediaQuery from a string (for backwards compatibility)
-  pub fn new(query_string: String) -> Self {
-    // Handles common patterns: "@media screen", "@media (min-width: 768px)", etc.
-    let media_part = if query_string.starts_with("@media ") {
-      query_string
-        .strip_prefix("@media ")
-        .unwrap_or(&query_string)
-        .to_string()
-    } else {
-      query_string.clone()
-    };
-
-    Self {
-      queries: MediaQueryRule::MediaKeyword(MediaKeyword {
-        key: media_part,
-        not: false,
-        only: None,
-      }),
-    }
+  pub fn new_from_rule(rule: MediaQueryRule) -> Self {
+    Self::new(rule)
   }
 
-  /// Get the original query string for compatibility
-  pub fn original_string(&self) -> String {
-    match &self.queries {
-      MediaQueryRule::MediaKeyword(keyword) => {
-        if keyword.key.is_empty() {
-          String::new()
-        } else if keyword.key.starts_with("@media") {
-          keyword.key.clone()
-        } else {
-          format!("@media {}", keyword.key)
+  pub fn normalize(rule: MediaQueryRule) -> MediaQueryRule {
+    match rule {
+      MediaQueryRule::And(ref and_rules) => {
+        let mut flattened: Vec<MediaQueryRule> = Vec::new();
+        for r in &and_rules.rules {
+          let norm = Self::normalize(r.clone());
+          match norm {
+            MediaQueryRule::And(inner_and) => {
+              flattened.extend(inner_and.rules);
+            }
+            _ => {
+              flattened.push(norm);
+            }
+          }
         }
+
+        if flattened.is_empty() {
+          return MediaQueryRule::MediaKeyword(MediaKeyword::new("all".to_string(), true, false));
+        }
+
+        let merged = merge_and_simplify_ranges(flattened);
+        MediaQueryRule::And(MediaAndRules::new(merged))
       }
-      _ => format!("@media {}", self.queries),
+      MediaQueryRule::Or(ref or_rules) => {
+        let normalized_rules: Vec<MediaQueryRule> = or_rules
+          .rules
+          .iter()
+          .map(|r| Self::normalize(r.clone()))
+          .collect();
+        MediaQueryRule::Or(MediaOrRules::new(normalized_rules))
+      }
+      MediaQueryRule::Not(ref not_rule) => {
+        let normalized_operand = Self::normalize(not_rule.rule.as_ref().clone());
+
+        match normalized_operand {
+          MediaQueryRule::MediaKeyword(ref keyword) if keyword.key == "all" && keyword.not => {
+            return MediaQueryRule::MediaKeyword(MediaKeyword::new(
+              "all".to_string(),
+              false,
+              false,
+            ));
+          }
+          MediaQueryRule::Not(inner_not) => {
+            return Self::normalize(inner_not.rule.as_ref().clone());
+          }
+          _ => {}
+        }
+
+        MediaQueryRule::Not(MediaNotRule::new(normalized_operand))
+      }
+      _ => rule,
+    }
+  }
+}
+
+/// Add Display implementation for MediaQueryRule
+impl Display for MediaQueryRule {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      MediaQueryRule::MediaKeyword(keyword) => write!(f, "{}", keyword),
+      MediaQueryRule::WordRule(word) => write!(f, "{}", word),
+      MediaQueryRule::Pair(pair) => write!(f, "{}", pair),
+      MediaQueryRule::Not(not_rule) => write!(f, "{}", not_rule),
+      MediaQueryRule::And(and_rules) => write!(f, "{}", and_rules),
+      MediaQueryRule::Or(or_rules) => write!(f, "{}", or_rules),
     }
   }
 }
 
 impl Display for MediaQuery {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match &self.queries {
+    write!(
+      f,
+      "@media {}",
+      MediaQuery::format_queries(&self.queries, true)
+    )
+  }
+}
+
+impl MediaQuery {
+  fn format_queries(queries: &MediaQueryRule, is_top_level: bool) -> String {
+    match queries {
       MediaQueryRule::MediaKeyword(keyword) => {
-        if keyword.key.is_empty() {
-          write!(f, "")
-        } else if keyword.key.starts_with("@media") || keyword.key == "not a media query" {
-          // Handle raw strings that are already complete or invalid
-          write!(f, "{}", keyword.key)
+        let prefix = if keyword.not {
+          "not "
+        } else if keyword.only {
+          "only "
         } else {
-          write!(f, "@media {}", keyword) // Use MediaKeyword's Display impl
+          ""
+        };
+        format!("{}{}", prefix, keyword.key)
+      }
+      MediaQueryRule::WordRule(word_rule) => {
+        format!("({})", word_rule.key_value)
+      }
+      MediaQueryRule::Pair(pair) => match &pair.value {
+        MediaRuleValue::Fraction(frac) => {
+          format!("({}: {} / {})", pair.key, frac.numerator, frac.denominator)
+        }
+        MediaRuleValue::Length(len) => {
+          format!("({}: {})", pair.key, len)
+        }
+        MediaRuleValue::String(s) => {
+          format!("({}: {})", pair.key, s)
+        }
+        MediaRuleValue::Number(n) => {
+          format!("({}: {})", pair.key, n)
+        }
+      },
+      MediaQueryRule::Not(not_rule) => match not_rule.rule.as_ref() {
+        MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
+          format!(
+            "(not ({}))",
+            MediaQuery::format_queries(not_rule.rule.as_ref(), false)
+          )
+        }
+        _ => {
+          format!(
+            "(not {})",
+            MediaQuery::format_queries(not_rule.rule.as_ref(), false)
+          )
+        }
+      },
+      MediaQueryRule::And(and_rules) => {
+        let rule_strings: Vec<String> = and_rules
+          .rules
+          .iter()
+          .map(|rule| MediaQuery::format_queries(rule, false))
+          .collect();
+        rule_strings.join(" and ")
+      }
+      MediaQueryRule::Or(or_rules) => {
+        let valid_rules: Vec<&MediaQueryRule> = or_rules
+          .rules
+          .iter()
+          .filter(|r| !matches!(r, MediaQueryRule::Or(or) if or.rules.is_empty()))
+          .collect();
+
+        if valid_rules.is_empty() {
+          return "not all".to_string();
+        }
+
+        if valid_rules.len() == 1 {
+          return MediaQuery::format_queries(valid_rules[0], is_top_level);
+        }
+
+        let formatted_rules: Vec<String> = valid_rules
+          .iter()
+          .map(|rule| match rule {
+            MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
+              let rule_string = MediaQuery::format_queries(rule, false);
+              if !is_top_level {
+                format!("({})", rule_string)
+              } else {
+                rule_string
+              }
+            }
+            _ => MediaQuery::format_queries(rule, false),
+          })
+          .collect();
+
+        if is_top_level {
+          formatted_rules.join(", ")
+        } else {
+          formatted_rules.join(" or ")
         }
       }
-      _ => write!(f, "@media {}", self.queries),
     }
   }
 }
@@ -234,64 +464,6 @@ impl MediaQuery {
   pub fn has_balanced_parens(input: &str) -> bool {
     has_balanced_parens(input)
   }
-
-  /// Handles NOT count normalization, interval merging, and recursive normalization
-  pub fn normalize(rule: MediaQueryRule) -> MediaQueryRule {
-    match rule {
-      MediaQueryRule::And { rules } => {
-        // Flatten nested AND rules and normalize each recursively
-        let mut flattened = Vec::new();
-        for r in rules {
-          let normalized = Self::normalize(r);
-          if let MediaQueryRule::And {
-            rules: nested_rules,
-          } = normalized
-          {
-            flattened.extend(nested_rules);
-          } else {
-            flattened.push(normalized);
-          }
-        }
-
-        // Apply interval merging for numeric constraints
-        let merged = merge_and_simplify_ranges(flattened);
-
-        if merged.len() == 1 {
-          merged.into_iter().next().unwrap()
-        } else {
-          MediaQueryRule::And { rules: merged }
-        }
-      }
-
-      MediaQueryRule::Or { rules } => MediaQueryRule::Or {
-        rules: rules.into_iter().map(Self::normalize).collect(),
-      },
-
-      MediaQueryRule::Not { rule } => {
-        let mut count = 1;
-        let mut current = rule.as_ref();
-
-        while let MediaQueryRule::Not { rule: inner } = current {
-          count += 1;
-          current = inner.as_ref();
-        }
-
-        let normalized_operand = Self::normalize(current.clone());
-
-        // Even number of NOTs cancel out, odd number becomes single NOT
-        if count % 2 == 0 {
-          normalized_operand
-        } else {
-          MediaQueryRule::Not {
-            rule: Box::new(normalized_operand),
-          }
-        }
-      }
-
-      // For other rule types, return as-is
-      _ => rule,
-    }
-  }
 }
 
 /// Validate media query string
@@ -331,7 +503,14 @@ fn is_numeric_length(val: &MediaRuleValue) -> bool {
 fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   match merge_intervals_for_and(rules.clone()) {
     Ok(merged) => merged,
-    Err(_) => rules, // Return original rules if merging fails
+    Err(_) => {
+      // Contradiction detected - return a single "not all" rule
+      vec![MediaQueryRule::MediaKeyword(MediaKeyword::new(
+        "all".to_string(),
+        true,
+        false,
+      ))]
+    }
   }
 }
 
@@ -343,20 +522,23 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
   let mut width_intervals: Vec<(f32, f32)> = Vec::new();
   let mut height_intervals: Vec<(f32, f32)> = Vec::new();
   let mut other_rules: Vec<MediaQueryRule> = Vec::new();
+  let mut width_indices: Vec<usize> = Vec::new();
+  let mut height_indices: Vec<usize> = Vec::new();
+  let mut other_indices: Vec<usize> = Vec::new();
 
-  for rule in rules {
+  for (i, rule) in rules.iter().enumerate() {
     let mut handled = false;
 
     for dim in &dimensions {
       match &rule {
         // Handle min-width/min-height/max-width/max-height pairs
-        MediaQueryRule::Pair { key, value }
-          if (key == &format!("min-{}", dim) || key == &format!("max-{}", dim))
-            && is_numeric_length(value) =>
+        MediaQueryRule::Pair(pair)
+          if (pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim))
+            && is_numeric_length(&pair.value) =>
         {
-          if let MediaRuleValue::Length(length) = value {
+          if let MediaRuleValue::Length(length) = &pair.value {
             let val = length.value;
-            let interval = if key.starts_with("min-") {
+            let interval = if pair.key.starts_with("min-") {
               (val, f32::INFINITY)
             } else {
               (f32::NEG_INFINITY, val)
@@ -364,8 +546,10 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
 
             if *dim == "width" {
               width_intervals.push(interval);
+              width_indices.push(i);
             } else {
               height_intervals.push(interval);
+              height_indices.push(i);
             }
             handled = true;
             break;
@@ -373,15 +557,15 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
         }
 
         // Handle NOT rules with min/max constraints
-        MediaQueryRule::Not { rule: inner } => {
-          if let MediaQueryRule::Pair { key, value } = inner.as_ref() {
-            if (key == &format!("min-{}", dim) || key == &format!("max-{}", dim))
-              && is_numeric_length(value)
+        MediaQueryRule::Not(not_rule) => {
+          if let MediaQueryRule::Pair(pair) = not_rule.rule.as_ref() {
+            if (pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim))
+              && is_numeric_length(&pair.value)
             {
-              if let MediaRuleValue::Length(length) = value {
+              if let MediaRuleValue::Length(length) = &pair.value {
                 let val = length.value;
                 // NOT min-width becomes max-width with adjusted value, and vice versa
-                let interval = if key.starts_with("min-") {
+                let interval = if pair.key.starts_with("min-") {
                   (f32::NEG_INFINITY, val - EPSILON)
                 } else {
                   (val + EPSILON, f32::INFINITY)
@@ -389,8 +573,10 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
 
                 if *dim == "width" {
                   width_intervals.push(interval);
+                  width_indices.push(i);
                 } else {
                   height_intervals.push(interval);
+                  height_indices.push(i);
                 }
                 handled = true;
                 break;
@@ -404,18 +590,56 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
     }
 
     if !handled {
-      other_rules.push(rule);
+      other_rules.push(rule.clone());
+      other_indices.push(i);
     }
+  }
+
+  // Check if any merging is actually needed
+  let width_merge_needed = width_intervals.len() > 1;
+  let height_merge_needed = height_intervals.len() > 1;
+
+  // If no merging is needed, preserve original order
+  if !width_merge_needed && !height_merge_needed {
+    return Ok(rules);
   }
 
   // Merge intervals for each dimension
   let merged_width = merge_dimension_intervals(width_intervals, "width")?;
   let merged_height = merge_dimension_intervals(height_intervals, "height")?;
 
-  // Combine all rules
-  let mut result = other_rules;
-  result.extend(merged_width);
-  result.extend(merged_height);
+  // Create a vector to hold all rules with their original indices
+  let mut all_rules_with_indices: Vec<(usize, MediaQueryRule)> = Vec::new();
+
+  // Add other rules with their indices
+  for (i, rule) in other_rules.into_iter().enumerate() {
+    all_rules_with_indices.push((other_indices[i], rule));
+  }
+
+  // Add merged width rules (use the first width index as representative)
+  if !merged_width.is_empty() && !width_indices.is_empty() {
+    let first_width_index = *width_indices.iter().min().unwrap();
+    for rule in merged_width {
+      all_rules_with_indices.push((first_width_index, rule));
+    }
+  }
+
+  // Add merged height rules (use the first height index as representative)
+  if !merged_height.is_empty() && !height_indices.is_empty() {
+    let first_height_index = *height_indices.iter().min().unwrap();
+    for rule in merged_height {
+      all_rules_with_indices.push((first_height_index, rule));
+    }
+  }
+
+  // Sort by original indices to preserve order
+  all_rules_with_indices.sort_by_key(|(index, _)| *index);
+
+  // Extract just the rules
+  let result: Vec<MediaQueryRule> = all_rules_with_indices
+    .into_iter()
+    .map(|(_, rule)| rule)
+    .collect();
 
   Ok(result)
 }
@@ -447,18 +671,18 @@ fn merge_dimension_intervals(
 
   // Generate min constraint if needed
   if min_bound != f32::NEG_INFINITY && min_bound.is_finite() {
-    result.push(MediaQueryRule::Pair {
-      key: format!("min-{}", dimension),
-      value: MediaRuleValue::Length(Length::new(min_bound, "px".to_string())),
-    });
+    result.push(MediaQueryRule::Pair(MediaRulePair::new(
+      format!("min-{}", dimension),
+      MediaRuleValue::Length(Length::new(min_bound, "px".to_string())),
+    )));
   }
 
   // Generate max constraint if needed
   if max_bound != f32::INFINITY && max_bound.is_finite() {
-    result.push(MediaQueryRule::Pair {
-      key: format!("max-{}", dimension),
-      value: MediaRuleValue::Length(Length::new(max_bound, "px".to_string())),
-    });
+    result.push(MediaQueryRule::Pair(MediaRulePair::new(
+      format!("max-{}", dimension),
+      MediaRuleValue::Length(Length::new(max_bound, "px".to_string())),
+    )));
   }
 
   Ok(result)
@@ -488,7 +712,7 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
       let mut not_value = false;
-      let mut only_value = None;
+      let mut only_value = false; // Default to false instead of None
 
       // Try to parse optional "not" at the beginning
       if let Ok(Some(SimpleToken::Ident(val))) = tokens.peek() {
@@ -507,7 +731,7 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
       if let Ok(Some(SimpleToken::Ident(val))) = tokens.peek() {
         if val == "only" {
           tokens.consume_next_token()?; // consume "only"
-          only_value = Some(true);
+          only_value = true;
 
           // Consume whitespace after "only"
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -519,11 +743,9 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
       // Parse the media type (required)
       let media_type = (basic_media_type_parser().run)(tokens)?;
 
-      Ok(MediaQueryRule::MediaKeyword(MediaKeyword {
-        key: media_type,
-        not: not_value,
-        only: only_value,
-      }))
+      Ok(MediaQueryRule::MediaKeyword(MediaKeyword::new(
+        media_type, not_value, only_value,
+      )))
     },
     "media_keyword_parser",
   )
@@ -559,16 +781,7 @@ fn media_word_rule_parser() -> TokenParser<MediaQueryRule> {
       )),
     )
     .map(
-      |keyword| {
-        let word_rule = match keyword.as_str() {
-          "color" => WordRule::Color,
-          "monochrome" => WordRule::Monochrome,
-          "grid" => WordRule::Grid,
-          "color-index" => WordRule::ColorIndex,
-          _ => WordRule::Color,
-        };
-        MediaQueryRule::WordRule(word_rule)
-      },
+      |keyword| MediaQueryRule::WordRule(MediaWordRule::new(keyword)),
       Some("create_word_rule"),
     )
 }
@@ -605,7 +818,7 @@ fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
       |tokens| {
         // Parse first number
         let first_num = if let Ok(Some(SimpleToken::Number(value))) = tokens.consume_next_token() {
-          value as f32
+          value as i32
         } else {
           return Err(CssParseError::ParseError {
             message: "Expected first number in fraction".to_string(),
@@ -637,7 +850,7 @@ fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
 
         // Parse second number
         let second_num = if let Ok(Some(SimpleToken::Number(value))) = tokens.consume_next_token() {
-          value as f32
+          value as i32
         } else {
           return Err(CssParseError::ParseError {
             message: "Expected second number in fraction".to_string(),
@@ -730,7 +943,7 @@ fn simple_pair_parser(value_parser: TokenParser<MediaRuleValue>) -> TokenParser<
         });
       }
 
-      Ok(MediaQueryRule::Pair { key, value })
+      Ok(MediaQueryRule::Pair(MediaRulePair::new(key, value)))
     },
     "simple_pair_parser",
   )
@@ -877,10 +1090,10 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
         format!("max-{}", key)
       };
 
-      Ok(MediaQueryRule::Pair {
-        key: final_key,
-        value: MediaRuleValue::Length(dimension),
-      })
+      Ok(MediaQueryRule::Pair(MediaRulePair::new(
+        final_key,
+        MediaRuleValue::Length(dimension),
+      )))
     },
     "media_inequality_rule_parser",
   )
@@ -1022,10 +1235,10 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
         format!("min-{}", key)
       };
 
-      Ok(MediaQueryRule::Pair {
-        key: final_key,
-        value: adjusted_dimension,
-      })
+      Ok(MediaQueryRule::Pair(MediaRulePair::new(
+        final_key,
+        adjusted_dimension,
+      )))
     },
     "media_inequality_rule_parser_reversed",
   )
@@ -1204,21 +1417,71 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Return an AND rule with min and max constraints
+      // For (A op1 width op2 B), we need to determine min and max constraints
       let min_key = format!("min-{}", key);
       let max_key = format!("max-{}", key);
 
-      Ok(MediaQueryRule::And {
-        rules: vec![
-          MediaQueryRule::Pair {
-            key: min_key,
-            value: lower_dimension,
-          },
-          MediaQueryRule::Pair {
-            key: max_key,
-            value: upper_dimension,
-          },
-        ],
-      })
+      // Adjust values with epsilon only for strict inequalities
+      const EPSILON: f32 = 0.01;
+
+      // Determine which dimension is min vs max based on the operators
+      // For (A op1 width op2 B), we need to map to min/max constraints
+
+      let (min_value, max_value) = if !_eq1 && !_eq2 {
+        // Both operators are strict
+        if _op1 == '>' {
+          (upper_dimension, lower_dimension) // (A > width > B): min = B, max = A
+        } else {
+          (lower_dimension, upper_dimension) // (A < width < B): min = A, max = B
+        }
+      } else if !_eq1 {
+        // op1 is strict, op2 is inclusive
+        if _op1 == '>' {
+          (upper_dimension, lower_dimension) // (A > width >= B): min = B, max = A
+        } else {
+          (lower_dimension, upper_dimension) // (A < width >= B): min = A, max = B
+        }
+      } else if !_eq2 {
+        // op1 is inclusive, op2 is strict
+        if _op2 == '>' {
+          (upper_dimension, lower_dimension) // (A >= width > B): min = B, max = A
+        } else {
+          (lower_dimension, upper_dimension) // (A >= width < B): min = A, max = B
+        }
+      } else {
+        // Both operators are inclusive - determine assignment based on operator type
+        if _op1 == '>' && _eq1 {
+          // Reverse inclusive: (A >= width >= B)
+          (upper_dimension, lower_dimension) // min = B, max = A
+        } else if _op1 == '<' && _eq1 {
+          // Forward inclusive: (A <= width <= B)
+          (lower_dimension, upper_dimension) // min = A, max = B
+        } else {
+          // Fallback
+          (lower_dimension, upper_dimension)
+        }
+      };
+      let mut min_value = min_value;
+      let mut max_value = max_value;
+
+      // Apply epsilon based on whether operators are strict or inclusive
+      if let MediaRuleValue::Length(ref mut length) = min_value {
+        // For min_value: if either operator is strict and would create a greater-than constraint, add epsilon
+        if (_op1 == '<' && !_eq1) || (_op2 == '>' && !_eq2) {
+          length.value += EPSILON; // width > min_value → min-width: min_value + epsilon
+        }
+      }
+      if let MediaRuleValue::Length(ref mut length) = max_value {
+        // For max_value: if either operator is strict and would create a less-than constraint, subtract epsilon
+        if (_op1 == '>' && !_eq1) || (_op2 == '<' && !_eq2) {
+          length.value -= EPSILON; // width < max_value → max-width: max_value - epsilon
+        }
+      }
+
+      Ok(MediaQueryRule::And(MediaAndRules::new(vec![
+        MediaQueryRule::Pair(MediaRulePair::new(min_key, min_value)),
+        MediaQueryRule::Pair(MediaRulePair::new(max_key, max_value)),
+      ])))
     },
     "double_inequality_rule_parser",
   )
@@ -1260,9 +1523,7 @@ fn leading_not_parser() -> TokenParser<MediaQueryRule> {
 
       // Parse the rule that follows "not" using normal rule parser
       let inner_rule = (normal_rule_parser().run)(tokens)?;
-      Ok(MediaQueryRule::Not {
-        rule: Box::new(inner_rule),
-      })
+      Ok(MediaQueryRule::Not(MediaNotRule::new(inner_rule)))
     },
     "leading_not_parser",
   )
@@ -1306,9 +1567,7 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
             // Expect closing parenthesis
             if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
               tokens.consume_next_token()?; // consume ')'
-              Ok(MediaQueryRule::Not {
-                rule: Box::new(inner_rule),
-              })
+              Ok(MediaQueryRule::Not(MediaNotRule::new(inner_rule)))
             } else {
               Err(CssParseError::ParseError {
                 message: "Expected closing parenthesis after parenthesized NOT expression"
@@ -1398,7 +1657,7 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
       if rules.len() == 1 {
         Ok(rules.into_iter().next().unwrap())
       } else {
-        Ok(MediaQueryRule::Or { rules })
+        Ok(MediaQueryRule::Or(MediaOrRules::new(rules)))
       }
     },
     "or_combinator_parser",
@@ -1453,7 +1712,7 @@ fn and_combinator_parser() -> TokenParser<MediaQueryRule> {
       if rules.len() == 1 {
         Ok(rules.into_iter().next().unwrap())
       } else {
-        Ok(MediaQueryRule::And { rules })
+        Ok(MediaQueryRule::And(MediaAndRules::new(rules)))
       }
     },
     "and_combinator_parser",
@@ -1463,18 +1722,19 @@ fn and_combinator_parser() -> TokenParser<MediaQueryRule> {
 /// Normal rule parser that combines all rule types
 fn normal_rule_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::one_of(vec![
-    // Leading not parser must come first to handle "not" at the beginning
-    leading_not_parser(),
+    // Media keyword parser must come first to handle "not screen", "only print" etc.
+    // as MediaKeyword rules, not as separate NOT rules
+    media_keyword_parser(),
     // Parenthesized NOT parser for "(not ...)" patterns
     parenthesized_not_parser(),
+    // Leading not parser for cases where NOT is not part of media keywords
+    leading_not_parser(),
     // Parenthesized expressions parser for complex nested cases
     parenthesized_expression_parser(),
     // Double inequality parser: (500px <= width <= 1000px)
     double_inequality_rule_parser(),
     // Combined inequality parser: (width <= 1250px) and (1250px >= width)
     combined_inequality_parser(),
-    // Media keyword parser for screen, print, all with optional not/only
-    media_keyword_parser(),
     // Word rule parser for (color), (monochrome), (grid), (color-index)
     media_word_rule_parser(),
     // Pair parser for (key: value) patterns like (min-width: 768px)
@@ -1553,13 +1813,15 @@ mod tests {
 
   #[test]
   fn test_media_query_creation() {
-    let query = MediaQuery::new("@media screen".to_string());
+    let query = MediaQuery::parser().parse_to_end("@media screen").unwrap();
     assert_eq!(query.to_string(), "@media screen");
   }
 
   #[test]
   fn test_media_query_display() {
-    let query = MediaQuery::new("@media (min-width: 768px)".to_string());
+    let query = MediaQuery::parser()
+      .parse_to_end("@media (min-width: 768px)")
+      .unwrap();
     assert_eq!(format!("{}", query), "@media (min-width: 768px)");
   }
 
@@ -1601,9 +1863,9 @@ mod tests {
 
   #[test]
   fn test_media_query_equality() {
-    let query1 = MediaQuery::new("@media screen".to_string());
-    let query2 = MediaQuery::new("@media screen".to_string());
-    let query3 = MediaQuery::new("@media print".to_string());
+    let query1 = MediaQuery::parser().parse_to_end("@media screen").unwrap();
+    let query2 = MediaQuery::parser().parse_to_end("@media screen").unwrap();
+    let query3 = MediaQuery::parser().parse_to_end("@media print").unwrap();
 
     assert_eq!(query1, query2);
     assert_ne!(query1, query3);
@@ -1611,7 +1873,9 @@ mod tests {
 
   #[test]
   fn test_media_query_clone() {
-    let query = MediaQuery::new("@media (orientation: landscape)".to_string());
+    let query = MediaQuery::parser()
+      .parse_to_end("@media (orientation: landscape)")
+      .unwrap();
     let cloned = query.clone();
 
     assert_eq!(query, cloned);
@@ -1688,12 +1952,12 @@ mod tests {
 
     // Should be normalized to single NOT
     match &parsed.queries {
-      MediaQueryRule::Not { rule } => match rule.as_ref() {
-        MediaQueryRule::Pair { key, .. } => {
-          assert_eq!(key, "min-width");
+      MediaQueryRule::Not(not_rule) => match &not_rule.rule.as_ref() {
+        MediaQueryRule::Pair(pair) => {
+          assert_eq!(pair.key, "min-width");
           println!("✅ Triple NOT correctly normalized to single NOT");
         }
-        _ => panic!("Expected Pair rule inside NOT, got: {:?}", rule),
+        _ => panic!("Expected Pair rule inside NOT, got: {:?}", not_rule.rule),
       },
       _ => panic!("Expected NOT rule at top level, got: {:?}", parsed.queries),
     }
@@ -1706,8 +1970,8 @@ mod tests {
 
     // Should be normalized to no NOT (just the pair)
     match &parsed_quad.queries {
-      MediaQueryRule::Pair { key, .. } => {
-        assert_eq!(key, "max-width");
+      MediaQueryRule::Pair(pair) => {
+        assert_eq!(pair.key, "max-width");
         println!("✅ Quadruple NOT correctly canceled out");
       }
       _ => panic!(
@@ -1722,18 +1986,20 @@ mod tests {
     println!("Complex output: {}", parsed_complex);
 
     match &parsed_complex.queries {
-      MediaQueryRule::And { rules } => {
+      MediaQueryRule::And(and_rules) => {
         println!(
           "✅ Complex NOT-AND expression normalized to AND with {} rules",
-          rules.len()
+          and_rules.rules.len()
         );
         // Verify it contains both min and max constraints
-        let has_min = rules
+        let has_min = and_rules
+          .rules
           .iter()
-          .any(|r| matches!(r, MediaQueryRule::Pair { key, .. } if key.starts_with("min-")));
-        let has_max = rules
+          .any(|r| matches!(r, MediaQueryRule::Pair(pair) if pair.key.starts_with("min-")));
+        let has_max = and_rules
+          .rules
           .iter()
-          .any(|r| matches!(r, MediaQueryRule::Pair { key, .. } if key.starts_with("max-")));
+          .any(|r| matches!(r, MediaQueryRule::Pair(pair) if pair.key.starts_with("max-")));
         assert!(
           has_min && has_max,
           "Should contain both min and max constraints"

@@ -1485,7 +1485,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
     Tokens
   }
 
-  /// Create a helper for mixed sequence parsing - common pattern for JavaScript compatibility
+  /// Create a helper for mixed sequence parsing
   /// Usage: TokenParser::mixed_sequence([Left(foo), Right(bar.optional()), Left(baz)]).separated_by(whitespace)
   pub fn mixed_sequence<U: Clone + Debug + 'static>(
     parsers: Vec<Either<TokenParser<U>, TokenParser<Option<U>>>>,

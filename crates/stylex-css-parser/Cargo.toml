@@ -14,12 +14,24 @@ doctest = false
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+  "css_codegen",
+  "css_visit",
+  "css_parser",
+  "css_ast",
+] }
 regex.workspace = true
 anyhow.workspace = true
 cssparser = { version = "0.34.0" }
 thiserror = "1.0.69"
 log.workspace = true
+indexmap.workspace = true
 
 [dev-dependencies]
 proptest = "1.4"

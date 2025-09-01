@@ -18,7 +18,7 @@ and type safety.
 ## Usage Examples
 
 ```rust
-use stylex_css_parser::{tokenParser, properties, lastMediaQueryWinsTransform};
+use stylex_css_parser::{tokenParser, properties, last_media_query_wins_transform};
 use stylex_css_parser::css_types::{Color, Length, Calc};
 
 // Parse CSS values
@@ -33,7 +33,7 @@ let border_radius = properties::BorderRadiusShorthand::parser();
 
 // Media query transformation
 let queries = vec![/* MediaQuery instances */];
-let transformed = lastMediaQueryWinsTransform(queries);
+let transformed = last_media_query_wins_transform(queries);
 ```
 
 ## Module Organization
@@ -60,7 +60,7 @@ pub mod flex_parser;
 #[cfg(test)]
 pub mod tests;
 
-pub use at_queries::lastMediaQueryWinsTransform;
+pub use at_queries::last_media_query_wins_transform;
 pub use token_parser as tokenParser;
 
 pub use css_value::CssValue;
@@ -109,9 +109,9 @@ mod lib_tests {
       None,
     );
 
-    // Test lastMediaQueryWinsTransform function access
-    let styles = serde_json::json!({});
-    let _transformed = lastMediaQueryWinsTransform(styles);
+    // Test last_media_query_wins_transform function access
+    let styles = vec![];
+    let _transformed = last_media_query_wins_transform(&styles);
 
     // Test css_types module access
     let _color = css_types::Color::parse();
@@ -122,10 +122,10 @@ mod lib_tests {
   #[test]
   fn test_standard_imports() {
     use crate::css_types::{Calc, Color, Length};
-    use crate::{lastMediaQueryWinsTransform, properties};
+    use crate::{last_media_query_wins_transform, properties};
 
     let _transform = properties::Transform::new(vec![]);
-    let _transform_fn = lastMediaQueryWinsTransform;
+    let _transform_fn = last_media_query_wins_transform;
     let _color_parser = Color::parse();
     let _length_parser = Length::parser();
     let _calc_parser = Calc::parse();
@@ -150,7 +150,7 @@ mod lib_tests {
     let _token_parser = token_parser::TokenParser::<()>::never();
     let _color = css_types::Color::parse();
     let _transform = properties::Transform::new(vec![]);
-    let _media_query = at_queries::MediaQuery::new("@media screen".to_string());
+    let _media_query = at_queries::MediaQuery::parser().parse_to_end("@media screen").unwrap();
   }
 
   #[test]
@@ -181,7 +181,7 @@ mod lib_tests {
   fn test_readme_example_compatibility() {
     // Test examples from the README/documentation work
     use crate::css_types::{Calc, Color, Length};
-    use crate::{lastMediaQueryWinsTransform, properties};
+    use crate::{last_media_query_wins_transform, properties};
 
     // Parse CSS values
     let _color = Color::parse(); // CSS color parser
@@ -194,7 +194,7 @@ mod lib_tests {
     let _border_radius = properties::BorderRadiusShorthand::parser();
 
     // Media query transformation
-    let styles = serde_json::json!({});
-    let _transformed = lastMediaQueryWinsTransform(styles);
+    let styles = vec![];
+    let _transformed = last_media_query_wins_transform(&styles);
   }
 }

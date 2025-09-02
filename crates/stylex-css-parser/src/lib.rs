@@ -150,7 +150,9 @@ mod lib_tests {
     let _token_parser = token_parser::TokenParser::<()>::never();
     let _color = css_types::Color::parse();
     let _transform = properties::Transform::new(vec![]);
-    let _media_query = at_queries::MediaQuery::parser().parse_to_end("@media screen").unwrap();
+    let _media_query = at_queries::MediaQuery::parser()
+      .parse_to_end("@media screen")
+      .unwrap();
   }
 
   #[test]

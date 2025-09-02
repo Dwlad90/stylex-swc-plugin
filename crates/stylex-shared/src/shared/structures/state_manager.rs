@@ -27,6 +27,7 @@ use swc_core::{
 
 use crate::shared::{
   constants::common::DEFAULT_INJECT_PATH,
+  structures::uid_generator::CounterMode,
   utils::ast::factories::{
     expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
   },
@@ -119,6 +120,7 @@ pub struct StateManager {
   pub metadata: IndexMap<String, IndexSet<MetaData>>,
   pub(crate) styles_to_inject: IndexMap<u64, Vec<ModuleItem>>,
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
+  pub(crate) hoisted_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
   pub(crate) other_injected_css_rules: IndexMap<String, Rc<InjectableStyleKind>>,
@@ -181,6 +183,7 @@ impl StateManager {
       styles_to_inject: IndexMap::new(),
       prepend_include_module_items: vec![],
       prepend_import_module_items: vec![],
+      hoisted_module_items: vec![],
 
       other_injected_css_rules: IndexMap::new(),
 
@@ -451,6 +454,15 @@ impl StateManager {
     })
   }
 
+  pub(crate) fn find_call_declaration(&self, call: &CallExpr) -> Option<&VarDeclarator> {
+    self.declarations.iter().find(|decl| {
+      decl
+        .init
+        .as_ref()
+        .is_some_and(|expr| matches!(**expr, Expr::Call(ref c) if c.eq_ignore_span(call)))
+    })
+  }
+
   pub(crate) fn register_styles(
     &mut self,
     call: &CallExpr,
@@ -494,7 +506,7 @@ impl StateManager {
       return self.inject_import_inserted.as_ref().unwrap().1.clone();
     }
 
-    let mut uid_generator = UidGenerator::new("inject");
+    let mut uid_generator = UidGenerator::new("inject", CounterMode::Local);
 
     let runtime_injection = self
       .options
@@ -511,7 +523,7 @@ impl StateManager {
         let var_ident = match &runtime_injection {
           RuntimeInjectionState::Regular(_) => uid_generator.generate_ident(),
           RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
-            uid_generator = UidGenerator::new(r#as);
+            uid_generator = UidGenerator::new(r#as, CounterMode::Local);
             uid_generator.generate_ident()
           }
         };

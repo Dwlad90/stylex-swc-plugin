@@ -50,9 +50,35 @@ where
         module_items.fold_children_with(self)
       }
       TransformationCycle::TransformEnter
-      | TransformationCycle::TransformExit
       | TransformationCycle::PreCleaning
       | TransformationCycle::Recounting => module_items.fold_children_with(self),
+      TransformationCycle::TransformExit => {
+        if self.state.hoisted_module_items.is_empty() {
+          return module_items.fold_children_with(self);
+        }
+
+        let import_end = module_items
+          .iter()
+          .enumerate()
+          .skip(1)
+          .find(|(_, item)| !matches!(item, ModuleItem::ModuleDecl(ModuleDecl::Import(_))))
+          .map(|(idx, _)| idx)
+          .unwrap_or(0);
+
+        let mut module_items = module_items;
+
+        let total_capacity = module_items.len() + self.state.hoisted_module_items.len();
+
+        let mut result_module_items = Vec::with_capacity(total_capacity);
+
+        result_module_items.extend(module_items.drain(..import_end));
+
+        result_module_items.extend(self.state.hoisted_module_items.iter().cloned());
+
+        result_module_items.extend(module_items);
+
+        result_module_items.fold_children_with(self)
+      }
       TransformationCycle::InjectStyles => {
         let mut result_module_items: Vec<ModuleItem> =
           self.state.prepend_include_module_items.clone();

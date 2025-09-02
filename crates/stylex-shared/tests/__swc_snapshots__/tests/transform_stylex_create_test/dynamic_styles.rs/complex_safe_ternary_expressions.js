@@ -1,18 +1,19 @@
 import * as stylex from '@stylexjs/stylex';
+const _temp = {
+    kWkggS: "xr5ldyu",
+    kMwMTN: "xfx01vb",
+    kzqmXN: "x1bl4301",
+    kZKoxP: "x1f5funs",
+    kogj98: "x1cpkpif",
+    kmVPX3: "x6rcfto",
+    kGuDYH: "x6zurak",
+    kSiTet: "xa0d40w",
+    k3aq6I: "x1uosm7l",
+    $$css: true
+};
 export const styles = {
     root: (isDark, isLarge, isActive, width, height, color)=>[
-            {
-                kWkggS: "xr5ldyu",
-                kMwMTN: "xfx01vb",
-                kzqmXN: "x1bl4301",
-                kZKoxP: "x1f5funs",
-                kogj98: "x1cpkpif",
-                kmVPX3: "x6rcfto",
-                kGuDYH: "x6zurak",
-                kSiTet: "xa0d40w",
-                k3aq6I: "x1uosm7l",
-                $$css: true
-            },
+            _temp,
             {
                 "--backgroundColor": (isDark ? isLarge ? 'black' : 'gray' : isActive ? 'blue' : 'white') != null ? isDark ? isLarge ? 'black' : 'gray' : isActive ? 'blue' : 'white' : undefined,
                 "--color": (isDark ? color || 'white' : color ?? 'black') != null ? isDark ? color || 'white' : color ?? 'black' : undefined,

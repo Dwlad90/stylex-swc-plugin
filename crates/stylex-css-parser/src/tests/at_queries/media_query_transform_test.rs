@@ -3,12 +3,14 @@
 
 use crate::at_queries::{
   media_query::MediaQuery,
-  media_query_transform::{last_media_query_wins_transform_internal, last_media_query_wins_transform},
+  media_query_transform::{
+    last_media_query_wins_transform, last_media_query_wins_transform_internal,
+  },
 };
-use swc_core::ecma::ast::{KeyValueProp, PropName, Expr, ObjectLit, PropOrSpread, Prop, Str};
-use swc_core::common::DUMMY_SP;
+use serde_json::{Value, json};
 use swc_core::atoms::Atom;
-use serde_json::{json, Value};
+use swc_core::common::DUMMY_SP;
+use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str};
 
 // Helper functions
 
@@ -51,7 +53,7 @@ fn json_to_expr(value: Value) -> Expr {
         span: DUMMY_SP,
         props,
       })
-    },
+    }
     _ => Expr::Lit(swc_core::ecma::ast::Lit::Str(Str {
       span: DUMMY_SP,
       value: Atom::from(value.to_string()),
@@ -101,7 +103,7 @@ fn expr_to_json(expr: &Expr) -> Value {
         }
       }
       Value::Object(result)
-    },
+    }
     _ => Value::String(format!("{:?}", expr)),
   }
 }
@@ -132,7 +134,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -176,7 +179,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -223,7 +227,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -278,7 +283,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -319,7 +325,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -358,7 +365,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -401,7 +409,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -444,7 +453,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -481,7 +491,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -518,7 +529,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -553,7 +565,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -588,7 +601,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -631,7 +645,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -674,7 +689,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -715,7 +731,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -758,7 +775,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -801,7 +819,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -842,7 +861,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -885,7 +905,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -926,7 +947,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -964,7 +986,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -1002,7 +1025,8 @@ mod media_query_transformer {
     });
 
     let input_props = if let Value::Object(obj) = original_styles {
-      obj.into_iter()
+      obj
+        .into_iter()
         .map(|(k, v)| create_key_value_prop(&k, v))
         .collect::<Vec<_>>()
     } else {
@@ -1026,9 +1050,15 @@ mod media_query_transformer {
   #[test]
   fn internal_basic_usage_multiple_widths() {
     let queries = vec![
-      MediaQuery::parser().parse_to_end("@media (max-width: 1440px)").unwrap(),
-      MediaQuery::parser().parse_to_end("@media (max-width: 1024px)").unwrap(),
-      MediaQuery::parser().parse_to_end("@media (max-width: 768px)").unwrap(),
+      MediaQuery::parser()
+        .parse_to_end("@media (max-width: 1440px)")
+        .unwrap(),
+      MediaQuery::parser()
+        .parse_to_end("@media (max-width: 1024px)")
+        .unwrap(),
+      MediaQuery::parser()
+        .parse_to_end("@media (max-width: 768px)")
+        .unwrap(),
     ];
 
     let result = last_media_query_wins_transform_internal(queries);
@@ -1040,7 +1070,9 @@ mod media_query_transformer {
   #[test]
   fn internal_does_not_modify_single_queries() {
     let queries = vec![
-      MediaQuery::parser().parse_to_end("@media (max-width: 1440px)").unwrap(),
+      MediaQuery::parser()
+        .parse_to_end("@media (max-width: 1440px)")
+        .unwrap(),
     ];
 
     let result = last_media_query_wins_transform_internal(queries);

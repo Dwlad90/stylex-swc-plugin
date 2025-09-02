@@ -66,7 +66,9 @@ mod style_value_parser_at_queries {
 
       #[test]
       fn media_only_screen() {
-        let parsed = MediaQuery::parser().parse_to_end("@media only screen").unwrap();
+        let parsed = MediaQuery::parser()
+          .parse_to_end("@media only screen")
+          .unwrap();
 
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
@@ -83,7 +85,9 @@ mod style_value_parser_at_queries {
 
       #[test]
       fn media_only_print_and_color() {
-        let parsed = MediaQuery::parser().parse_to_end("@media only print and (color)").unwrap();
+        let parsed = MediaQuery::parser()
+          .parse_to_end("@media only print and (color)")
+          .unwrap();
 
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
@@ -118,7 +122,9 @@ mod style_value_parser_at_queries {
 
       #[test]
       fn media_not_screen() {
-        let parsed = MediaQuery::parser().parse_to_end("@media not screen").unwrap();
+        let parsed = MediaQuery::parser()
+          .parse_to_end("@media not screen")
+          .unwrap();
 
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
@@ -135,7 +141,9 @@ mod style_value_parser_at_queries {
 
       #[test]
       fn media_not_all_and_monochrome() {
-        let parsed = MediaQuery::parser().parse_to_end("@media not all and (monochrome)").unwrap();
+        let parsed = MediaQuery::parser()
+          .parse_to_end("@media not all and (monochrome)")
+          .unwrap();
 
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
@@ -329,8 +337,6 @@ mod style_value_parser_at_queries {
         assert_eq!(parsed.to_string(), "@media (scripting: enabled)");
       }
 
-
-
       #[test]
       fn media_hover_hover() {
         let input = "@media (hover: hover)";
@@ -482,7 +488,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Pair rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (prefers-reduced-motion: reduce)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (prefers-reduced-motion: reduce)"
+        );
       }
 
       #[test]
@@ -548,7 +557,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Pair rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (prefers-reduced-transparency: reduce)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (prefers-reduced-transparency: reduce)"
+        );
       }
 
       #[test]
@@ -592,7 +604,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Pair rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (max-height: calc(100vh - 50px))");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (max-height: calc(100vh - 50px))"
+        );
       }
 
       #[test]
@@ -992,7 +1007,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Pair rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (prefers-reduced-motion: no-preference)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (prefers-reduced-motion: no-preference)"
+        );
       }
 
       #[test]
@@ -1014,7 +1032,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Pair rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (prefers-contrast: no-preference)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (prefers-contrast: no-preference)"
+        );
       }
 
       #[test]
@@ -1058,12 +1079,11 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Pair rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (prefers-reduced-transparency: no-preference)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (prefers-reduced-transparency: no-preference)"
+        );
       }
-
-
-
-
     }
 
     #[cfg(test)]
@@ -1133,8 +1153,6 @@ mod style_value_parser_at_queries {
 
         assert_eq!(parsed.to_string(), "@media (color-index)");
       }
-
-
     }
 
     #[cfg(test)]
@@ -1258,7 +1276,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-height: 600px) and (orientation: landscape)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-height: 600px) and (orientation: landscape)"
+        );
       }
 
       #[test]
@@ -1299,7 +1320,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media screen and (device-aspect-ratio: 16 / 9)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media screen and (device-aspect-ratio: 16 / 9)"
+        );
       }
 
       #[test]
@@ -1345,7 +1369,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-aspect-ratio: 3 / 2) and (max-aspect-ratio: 16 / 9)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-aspect-ratio: 3 / 2) and (max-aspect-ratio: 16 / 9)"
+        );
       }
 
       #[test]
@@ -1391,7 +1418,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-resolution: 300dpi) and (max-resolution: 600dpi)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-resolution: 300dpi) and (max-resolution: 600dpi)"
+        );
       }
 
       #[test]
@@ -1437,7 +1467,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 768px) and (max-width: 991px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 768px) and (max-width: 991px)"
+        );
       }
 
       #[test]
@@ -1482,7 +1515,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 1200px) and (orientation: landscape)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 1200px) and (orientation: landscape)"
+        );
       }
 
       #[test]
@@ -1542,7 +1578,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 992px) and (max-width: 1199px) and (pointer: fine)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 992px) and (max-width: 1199px) and (pointer: fine)"
+        );
       }
 
       #[test]
@@ -1602,7 +1641,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 576px) and (max-width: 767px) and (hover: none)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 576px) and (max-width: 767px) and (hover: none)"
+        );
       }
 
       #[test]
@@ -1646,7 +1688,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (orientation: landscape) and (pointer: fine)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (orientation: landscape) and (pointer: fine)"
+        );
       }
 
       #[test]
@@ -1690,7 +1735,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (prefers-reduced-motion: reduce) and (update: slow)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (prefers-reduced-motion: reduce) and (update: slow)"
+        );
       }
 
       #[test]
@@ -1734,7 +1782,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (orientation: landscape) and (update: fast)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (orientation: landscape) and (update: fast)"
+        );
       }
     }
 
@@ -1783,7 +1834,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Or rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (orientation: portrait), (orientation: landscape)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (orientation: portrait), (orientation: landscape)"
+        );
       }
 
       #[test]
@@ -1829,7 +1883,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Or rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 500px), (max-width: 600px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 500px), (max-width: 600px)"
+        );
       }
 
       #[test]
@@ -1943,7 +2000,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Or rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 576px), (orientation: portrait) and (max-width: 767px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 576px), (orientation: portrait) and (max-width: 767px)"
+        );
       }
 
       #[test]
@@ -2011,12 +2071,16 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Or rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 768px) and (max-width: 991px), (orientation: landscape)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 768px) and (max-width: 991px), (orientation: landscape)"
+        );
       }
 
       #[test]
       fn media_min_width_992px_and_max_width_1199px_or_pointer_fine_and_hover_hover() {
-        let input = "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover)";
+        let input =
+          "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
         match &parsed.queries {
@@ -2101,9 +2165,12 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected Or rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover)"
+        );
       }
-      }
+    }
 
     #[cfg(test)]
     mod not_combinator {
@@ -2124,8 +2191,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 400.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -2191,8 +2258,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 600.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -2202,22 +2269,24 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not all and (monochrome) and (min-width: 600px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media not all and (monochrome) and (min-width: 600px)"
+        );
       }
 
       #[test]
-      fn media_max_width_1440px_and_not_max_width_1024px_and_not_max_width_768px_and_not_max_width_458px() {
+      fn media_max_width_1440px_and_not_max_width_1024px_and_not_max_width_768px_and_not_max_width_458px()
+       {
         let input = "@media (max-width: 1440px) and (not (max-width: 1024px)) and (not (max-width: 768px)) and (not (max-width: 458px))";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-
-
 
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
             assert_eq!(and_rules.r#type, "and");
             assert_eq!(and_rules.rules.len(), 2);
 
-                        match &and_rules.rules[0] {
+            match &and_rules.rules[0] {
               crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
                 assert_eq!(pair.r#type, "pair");
                 assert_eq!(pair.key, "min-width");
@@ -2250,7 +2319,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 1024.01px) and (max-width: 1440px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 1024.01px) and (max-width: 1440px)"
+        );
       }
     }
 
@@ -2270,8 +2342,8 @@ mod style_value_parser_at_queries {
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                 assert_eq!(length.value, 400.01);
-                    assert_eq!(length.unit, "px");
-                  }
+                assert_eq!(length.unit, "px");
+              }
               _ => panic!("Expected Length value"),
             }
           }
@@ -2292,12 +2364,12 @@ mod style_value_parser_at_queries {
             assert_eq!(pair.key, "min-width");
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 400.0);
-                    assert_eq!(length.unit, "px");
-                  }
-              _ => panic!("Expected Length value"),
-                }
+                assert_eq!(length.value, 400.0);
+                assert_eq!(length.unit, "px");
               }
+              _ => panic!("Expected Length value"),
+            }
+          }
           _ => panic!("Expected Pair rule"),
         }
 
@@ -2316,8 +2388,8 @@ mod style_value_parser_at_queries {
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                 assert_eq!(length.value, 400.01);
-                        assert_eq!(length.unit, "px");
-                      }
+                assert_eq!(length.unit, "px");
+              }
               _ => panic!("Expected Length value"),
             }
           }
@@ -2339,8 +2411,8 @@ mod style_value_parser_at_queries {
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                 assert_eq!(length.value, 400.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                assert_eq!(length.unit, "px");
+              }
               _ => panic!("Expected Length value"),
             }
           }
@@ -2367,8 +2439,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 400.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -2382,8 +2454,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 700.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -2393,10 +2465,11 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 400px) and (max-width: 700px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 400px) and (max-width: 700px)"
+        );
       }
-
-
 
       #[test]
       fn media_width_less_than_400px() {
@@ -2479,8 +2552,8 @@ mod style_value_parser_at_queries {
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                 assert_eq!(length.value, 400.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                assert_eq!(length.unit, "px");
+              }
               _ => panic!("Expected Length value"),
             }
           }
@@ -2502,8 +2575,8 @@ mod style_value_parser_at_queries {
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                 assert_eq!(length.value, 999.99);
-                        assert_eq!(length.unit, "px");
-                      }
+                assert_eq!(length.unit, "px");
+              }
               _ => panic!("Expected Length value"),
             }
           }
@@ -2626,8 +2699,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 400.01);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -2641,8 +2714,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 699.99);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -2652,15 +2725,16 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 400.01px) and (max-width: 699.99px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 400.01px) and (max-width: 699.99px)"
+        );
       }
 
       #[test]
       fn media_px_1000_greater_than_width_greater_than_700px() {
         let input = "@media (1000px > width > 700px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-
-
 
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
@@ -2700,15 +2774,16 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 700.01px) and (max-width: 999.99px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 700.01px) and (max-width: 999.99px)"
+        );
       }
 
       #[test]
       fn media_px_1000_greater_than_or_equal_width_greater_than_or_equal_700px() {
         let input = "@media (1000px >= width >= 700px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-
-
 
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
@@ -2748,7 +2823,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 700px) and (max-width: 1000px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 700px) and (max-width: 1000px)"
+        );
       }
 
       #[test]
@@ -2819,7 +2897,7 @@ mod style_value_parser_at_queries {
         let input = "@media (max-width: 200px) and (not (max-width: 300px))";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-                // This creates a logical contradiction: width ≤ 200px AND width > 300px
+        // This creates a logical contradiction: width ≤ 200px AND width > 300px
         // The result should be an impossible constraint (not all)
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
@@ -2919,7 +2997,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 100px) and (max-width: 500px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 100px) and (max-width: 500px)"
+        );
       }
 
       #[test]
@@ -2966,7 +3047,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 200.01px) and (max-width: 500px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 200.01px) and (max-width: 500px)"
+        );
       }
 
       #[test]
@@ -3012,7 +3096,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 100px) and (orientation: landscape)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 100px) and (orientation: landscape)"
+        );
       }
 
       #[test]
@@ -3047,18 +3134,21 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 500.0);
-                assert_eq!(length.unit, "px");
-              }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
-            }
-          }
+                }
+              }
               _ => panic!("Expected Pair rule"),
             }
           }
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: calc(100px + 2em)) and (max-width: 500px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: calc(100px + 2em)) and (max-width: 500px)"
+        );
       }
 
       #[test]
@@ -3104,7 +3194,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-aspect-ratio: 3 / 2) and (max-aspect-ratio: 16 / 9)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-aspect-ratio: 3 / 2) and (max-aspect-ratio: 16 / 9)"
+        );
       }
 
       #[test]
@@ -3150,7 +3243,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-resolution: 300dpi) and (max-resolution: 600dpi)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-resolution: 300dpi) and (max-resolution: 600dpi)"
+        );
       }
 
       #[test]
@@ -3169,9 +3265,9 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-width");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 768.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.value, 768.0);
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3184,9 +3280,9 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-width");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 991.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.value, 991.0);
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3196,7 +3292,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 768px) and (max-width: 991px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 768px) and (max-width: 991px)"
+        );
       }
 
       #[test]
@@ -3216,8 +3315,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 1200.0);
-                assert_eq!(length.unit, "px");
-              }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3230,8 +3329,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "orientation");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
-                        assert_eq!(s, "landscape");
-                      }
+                    assert_eq!(s, "landscape");
+                  }
                   _ => panic!("Expected String value"),
                 }
               }
@@ -3241,7 +3340,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 1200px) and (orientation: landscape)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 1200px) and (orientation: landscape)"
+        );
       }
 
       #[test]
@@ -3260,9 +3362,9 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-width");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 992.0);
-                assert_eq!(length.unit, "px");
-              }
+                    assert_eq!(length.value, 992.0);
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3275,9 +3377,9 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-width");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 1199.0);
-                        assert_eq!(length.unit, "px");
-                      }
+                    assert_eq!(length.value, 1199.0);
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3290,8 +3392,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "pointer");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
-                        assert_eq!(s, "fine");
-                      }
+                    assert_eq!(s, "fine");
+                  }
                   _ => panic!("Expected String value"),
                 }
               }
@@ -3301,7 +3403,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 992px) and (max-width: 1199px) and (pointer: fine)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 992px) and (max-width: 1199px) and (pointer: fine)"
+        );
       }
 
       #[test]
@@ -3320,9 +3425,9 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-width");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 576.0);
-                assert_eq!(length.unit, "px");
-              }
+                    assert_eq!(length.value, 576.0);
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3335,7 +3440,7 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-width");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 767.0);
+                    assert_eq!(length.value, 767.0);
                     assert_eq!(length.unit, "px");
                   }
                   _ => panic!("Expected Length value"),
@@ -3350,8 +3455,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "hover");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
-                        assert_eq!(s, "none");
-                      }
+                    assert_eq!(s, "none");
+                  }
                   _ => panic!("Expected String value"),
                 }
               }
@@ -3361,7 +3466,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 576px) and (max-width: 767px) and (hover: none)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 576px) and (max-width: 767px) and (hover: none)"
+        );
       }
 
       #[test]
@@ -3380,8 +3488,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "orientation");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
-                        assert_eq!(s, "landscape");
-                      }
+                    assert_eq!(s, "landscape");
+                  }
                   _ => panic!("Expected String value"),
                 }
               }
@@ -3394,8 +3502,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "pointer");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
-                        assert_eq!(s, "fine");
-                      }
+                    assert_eq!(s, "fine");
+                  }
                   _ => panic!("Expected String value"),
                 }
               }
@@ -3405,7 +3513,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (orientation: landscape) and (pointer: fine)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (orientation: landscape) and (pointer: fine)"
+        );
       }
 
       #[test]
@@ -3449,7 +3560,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (prefers-reduced-motion: reduce) and (update: slow)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (prefers-reduced-motion: reduce) and (update: slow)"
+        );
       }
 
       #[test]
@@ -3493,13 +3607,16 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (orientation: landscape) and (update: fast)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (orientation: landscape) and (update: fast)"
+        );
       }
     }
   }
 
   #[cfg(test)]
-    mod normalize {
+  mod normalize {
     use super::*;
 
     #[cfg(test)]
@@ -3508,7 +3625,8 @@ mod style_value_parser_at_queries {
 
       #[test]
       fn media_flattens_nested_and_rules() {
-        let input = "@media (min-width: 400px) and ((max-width: 700px) and (orientation: landscape))";
+        let input =
+          "@media (min-width: 400px) and ((max-width: 700px) and (orientation: landscape))";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
         match &parsed.queries {
@@ -3522,9 +3640,9 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-width");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                assert_eq!(length.value, 400.0);
-                assert_eq!(length.unit, "px");
-              }
+                    assert_eq!(length.value, 400.0);
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3538,8 +3656,8 @@ mod style_value_parser_at_queries {
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Length(length) => {
                     assert_eq!(length.value, 700.0);
-                assert_eq!(length.unit, "px");
-              }
+                    assert_eq!(length.unit, "px");
+                  }
                   _ => panic!("Expected Length value"),
                 }
               }
@@ -3563,7 +3681,10 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 400px) and (max-width: 700px) and (orientation: landscape)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 400px) and (max-width: 700px) and (orientation: landscape)"
+        );
       }
     }
 
@@ -3601,65 +3722,65 @@ mod style_value_parser_at_queries {
     use super::*;
 
     #[test]
-      fn media_min_width_100px_and_not_max_width_200px() {
-        let input = "@media (min-width: 100px) and (not (max-width: 200px))";
-        let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
+    fn media_min_width_100px_and_not_max_width_200px() {
+      let input = "@media (min-width: 100px) and (not (max-width: 200px))";
+      let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 1);
+      match &parsed.queries {
+        crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
+          assert_eq!(and_rules.r#type, "and");
+          assert_eq!(and_rules.rules.len(), 1);
 
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "min-width");
-                match &pair.value {
-                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 200.01);
-                    assert_eq!(length.unit, "px");
-                  }
-                  _ => panic!("Expected Length value"),
+          match &and_rules.rules[0] {
+            crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
+              assert_eq!(pair.r#type, "pair");
+              assert_eq!(pair.key, "min-width");
+              match &pair.value {
+                crate::at_queries::media_query::MediaRuleValue::Length(length) => {
+                  assert_eq!(length.value, 200.01);
+                  assert_eq!(length.unit, "px");
                 }
+                _ => panic!("Expected Length value"),
               }
-              _ => panic!("Expected Pair rule inside And"),
             }
+            _ => panic!("Expected Pair rule inside And"),
           }
-          _ => panic!("Expected And rule"),
         }
+        _ => panic!("Expected And rule"),
+      }
 
       assert_eq!(parsed.to_string(), "@media (min-width: 200.01px)");
     }
 
     #[test]
-      fn media_min_width_100px_and_min_width_200px() {
-        let input = "@media (min-width: 100px) and (min-width: 200px)";
-        let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
+    fn media_min_width_100px_and_min_width_200px() {
+      let input = "@media (min-width: 100px) and (min-width: 200px)";
+      let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 1);
+      match &parsed.queries {
+        crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
+          assert_eq!(and_rules.r#type, "and");
+          assert_eq!(and_rules.rules.len(), 1);
 
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "min-width");
-                match &pair.value {
-                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 200.0);
-                    assert_eq!(length.unit, "px");
-                  }
-                  _ => panic!("Expected Length value"),
+          match &and_rules.rules[0] {
+            crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
+              assert_eq!(pair.r#type, "pair");
+              assert_eq!(pair.key, "min-width");
+              match &pair.value {
+                crate::at_queries::media_query::MediaRuleValue::Length(length) => {
+                  assert_eq!(length.value, 200.0);
+                  assert_eq!(length.unit, "px");
                 }
+                _ => panic!("Expected Length value"),
               }
-              _ => panic!("Expected Pair rule inside And"),
             }
+            _ => panic!("Expected Pair rule inside And"),
           }
-          _ => panic!("Expected And rule"),
         }
+        _ => panic!("Expected And rule"),
+      }
 
-        assert_eq!(parsed.to_string(), "@media (min-width: 200px)");
+      assert_eq!(parsed.to_string(), "@media (min-width: 200px)");
     }
   }
 
@@ -3686,7 +3807,10 @@ mod style_value_parser_at_queries {
         _ => panic!("Expected Pair rule"),
       }
 
-      assert_eq!(parsed.to_string(), "@media (-webkit-min-device-pixel-ratio: 2)");
+      assert_eq!(
+        parsed.to_string(),
+        "@media (-webkit-min-device-pixel-ratio: 2)"
+      );
     }
 
     #[test]
@@ -3775,7 +3899,10 @@ mod style_value_parser_at_queries {
         _ => panic!("Expected Pair rule"),
       }
 
-      assert_eq!(parsed.to_string(), "@media (-webkit-max-device-pixel-ratio: 1.5)");
+      assert_eq!(
+        parsed.to_string(),
+        "@media (-webkit-max-device-pixel-ratio: 1.5)"
+      );
     }
 
     #[test]
@@ -3982,5 +4109,3 @@ mod style_value_parser_at_queries {
 
 // Helper functions are not needed for these specific parsing tests
 // The tests focus on direct parsing and structural validation
-
-

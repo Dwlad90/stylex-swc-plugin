@@ -52,6 +52,64 @@ test!(
     ..Default::default()
   }),
   |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  nested_referenced_style_object,
+  r#"
+          import * as stylex from '@stylexjs/stylex';
+          function fooBar() {
+            const styles = stylex.create({
+              root: {
+                backgroundColor: 'red',
+                color: 'blue',
+              }
+            });
+            console.log(styles);
+          }
+        "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  multiple_nested_referenced_style_object,
+  r#"
+          import * as stylex from '@stylexjs/stylex';
+          function fooBar() {
+            const styles = stylex.create({
+              root: {
+                backgroundColor: 'red',
+                color: 'blue',
+              }
+            });
+            const styles2 = stylex.create({
+              root: {
+                backgroundColor: 'blue',
+                color: 'green',
+              }
+            });
+            console.log(styles);
+            console.log(styles2);
+          }
+          export const otherFunction = () => {
+            const styles3 = stylex.create({
+              root: {
+                backgroundColor: 'green',
+                color: 'red',
+              }
+            });
+            console.log(styles3);
+          }
+        "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   style_object_multiple,
   r#"
           import * as stylex from '@stylexjs/stylex';

@@ -1,6 +1,11 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
+const _temp = {
+    kWkggS: "xrkmrrc",
+    keoZOQ: "x17zef60",
+    $$css: true
+};
 _inject2(".xrkmrrc{background-color:red}", 3000);
 _inject2(".x1555q52{margin-inline-end:var(--14mfytm)}", 3000);
 _inject2(".x1bi16m7:hover{margin-inline-end:var(--yepcm9)}", 3130);
@@ -14,12 +19,11 @@ _inject2('@property --yepcm9 { syntax: "*"; }', 0);
 _inject2('@property --marginTop { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     default: (margin)=>[
+            _temp,
             {
-                kWkggS: "xrkmrrc",
                 k71WvV: (margin != null ? "x1555q52" : margin) + "x1bi16m7",
                 k1K539: (margin != null ? "x1hvr6ea" : margin) + "x3skgmg",
                 keTefX: (margin != null ? "x1feukp3" : margin) + "xgzim5p",
-                keoZOQ: "x17zef60",
                 $$css: true
             },
             {

@@ -5,7 +5,10 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{BinExpr, KeyValueProp, Lit, ParenExpr, UnaryOp},
+    ast::{
+      BinExpr, Bool, Decl, KeyValueProp, Lit, ModuleItem, ParenExpr, Stmt, UnaryOp, VarDecl,
+      VarDeclKind, VarDeclarator,
+    },
     utils::drop_span,
   },
 };
@@ -20,11 +23,19 @@ use swc_core::{
 
 use crate::shared::{
   constants::{common::COMPILED_KEY, messages::non_static_value},
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  structures::injectable_style::InjectableStyle,
+  enums::data_structures::{
+    injectable_style::InjectableStyleKind, top_level_expression::TopLevelExpression,
+  },
+  structures::{
+    injectable_style::InjectableStyle,
+    uid_generator::{CounterMode, UidGenerator},
+  },
   transformers::stylex_position_try::get_position_try_fn,
   utils::{
-    ast::convertors::{key_value_to_str, lit_to_string},
+    ast::{
+      convertors::{key_value_to_str, lit_to_string},
+      factories::binding_ident_factory,
+    },
     common::normalize_expr,
     core::{
       add_source_map_data::add_source_map_data,
@@ -83,6 +94,15 @@ where
 
     let result = if is_create_call {
       validate_stylex_create(call, &mut self.state);
+
+      let is_program_level = self
+        .state
+        .find_top_level_expr(
+          call,
+          |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
+          None,
+        )
+        .is_some();
 
       let mut first_arg = call.args.first()?.expr.clone();
 
@@ -281,8 +301,11 @@ where
         }
       }
 
-      let mut result_ast =
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
+      let mut result_ast = path_replace_hoisted(
+        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles)),
+        is_program_level,
+        &mut self.state,
+      );
 
       if let Some(fns) = evaluated_arg.fns {
         if let Some(object) = result_ast.as_object() {
@@ -342,7 +365,13 @@ where
                   }
 
                   if let Some(value) = value.as_mut_object() {
-                    let mut conditional_obj = vec![];
+                    let mut css_tag_value:Box<Expr> = Box::new(Expr::Lit(Lit::Bool(Bool {
+                      span: DUMMY_SP,
+                      value: true,
+                    })));
+
+                    let mut static_props = vec![];
+                    let mut conditional_props = vec![];
 
                     for prop in value.props.iter_mut() {
                       if let PropOrSpread::Prop(prop) = prop {
@@ -355,9 +384,7 @@ where
 
                           if let Some(prop_key) = prop_key {
                             if prop_key == COMPILED_KEY {
-                              conditional_obj.push(PropOrSpread::Prop(Box::new(Prop::from(
-                                obj_prop.to_owned(),
-                              ))));
+                              css_tag_value = obj_prop.value.clone();
                               continue;
                             }
 
@@ -373,6 +400,7 @@ where
                               .unwrap_or_default();
 
                             if !class_list.is_empty() {
+                              let mut is_static = true;
                               let mut expr_list = vec![];
 
                               for cls in &class_list {
@@ -390,6 +418,7 @@ where
                                     Some(e)
                                   }
                                 }) {
+                                  is_static = false;
                                   expr_list.push(Expr::Cond(CondExpr {
                                     span: DUMMY_SP,
                                     test: Box::new(Expr::Bin(BinExpr {
@@ -422,17 +451,27 @@ where
                                   .unwrap()
                               };
 
-                              conditional_obj.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
-                                KeyValueProp {
-                                  key: obj_prop.key.clone(),
-                                  value: Box::new(joined),
-                                },
-                              ))));
+                              if is_static {
+                                static_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
+                                  KeyValueProp {
+                                    key: obj_prop.key.clone(),
+                                    value: Box::new(joined),
+                                  },
+                                ))));
+                              } else {
+                                conditional_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
+                                  KeyValueProp {
+                                    key: obj_prop.key.clone(),
+                                    value: Box::new(joined),
+                                  },
+                                ))));
+                              }
                             }
                           } else {
-                            conditional_obj.push(PropOrSpread::Prop(Box::new(Prop::from(
-                              obj_prop.to_owned(),
-                            ))));
+                            static_props.push(PropOrSpread::Prop(Box::new(Prop::from(
+                                obj_prop.to_owned(),
+                              ))));
+                              continue;
                           }
                         } else {
                           let expr = Expr::from(call.clone());
@@ -456,42 +495,79 @@ where
                       }
                     }
 
-                    value.props = conditional_obj;
+                    let mut static_obj = None;
+                    let mut conditional_obj = None;
+
+                    if !static_props.is_empty(){
+                      static_props.push(prop_or_spread_expression_factory(
+                        COMPILED_KEY,
+                        *css_tag_value.clone(),
+                      ));
+
+                      static_obj = Some(object_expression_factory(static_props));
+                    }
+
+                    if !conditional_props.is_empty(){
+                      conditional_props.push(prop_or_spread_expression_factory(
+                        COMPILED_KEY,
+                        *css_tag_value.clone(),
+                      ));
+
+                      conditional_obj = Some(object_expression_factory(conditional_props.clone()));
+                    }
+
+                    let mut final_fn_value = object_expression_factory(
+                      inline_styles
+                        .iter()
+                        .map(|(key, val)| {
+                          prop_or_spread_expression_factory(
+                            key.as_str(),
+                            val.expression.clone(),
+                          )
+                        })
+                        .collect(),
+                    );
+
+                    if static_obj.is_some() || conditional_obj.is_some() {
+                      let mut array_elements = Vec::new();
+
+                      if let Some(static_obj) = static_obj {
+                        array_elements.push(Some(ExprOrSpread {
+                          spread: None,
+                          expr: Box::new(hoist_expression(static_obj, &mut self.state)),
+                        }));
+                      }
+
+                      if let Some(conditional_obj) = conditional_obj {
+                        array_elements.push(Some(ExprOrSpread {
+                          spread: None,
+                          expr: Box::new(conditional_obj),
+                        }));
+                      }
+
+                      array_elements.push(Some(ExprOrSpread {
+                        spread: None,
+                        expr: Box::new(final_fn_value),
+                      }));
+
+                      final_fn_value = array_expression_factory(array_elements);
+                    }
+
+                    value.props = conditional_props;
+
+                    let value = Expr::from(ArrowExpr {
+                      span: DUMMY_SP,
+                      params: params.iter().map(|arg| Pat::Ident(arg.clone())).collect(),
+                      body: Box::new(BlockStmtOrExpr::from(Box::new(final_fn_value))),
+                      is_async: false,
+                      is_generator: false,
+                      type_params: None,
+                      return_type: None,
+                      ctxt: SyntaxContext::empty(),
+                    });
+
+                    prop = Some(prop_or_spread_expression_factory(orig_key.as_str(), value));
                   }
-
-                  let value = Expr::from(ArrowExpr {
-                    span: DUMMY_SP,
-                    params: params.iter().map(|arg| Pat::Ident(arg.clone())).collect(),
-                    body: Box::new(BlockStmtOrExpr::from(Box::new(array_expression_factory(
-                      vec![
-                        Some(ExprOrSpread {
-                          spread: None,
-                          expr: Box::new(*value.clone()),
-                        }),
-                        Some(ExprOrSpread {
-                          spread: None,
-                          expr: Box::new(object_expression_factory(
-                            inline_styles
-                              .iter()
-                              .map(|(key, value)| {
-                                prop_or_spread_expression_factory(
-                                  key.as_str(),
-                                  value.expression.clone(),
-                                )
-                              })
-                              .collect(),
-                          )),
-                        }),
-                      ],
-                    )))),
-                    is_async: false,
-                    is_generator: false,
-                    type_params: None,
-                    return_type: None,
-                    ctxt: SyntaxContext::empty(),
-                  });
-
-                  prop = Some(prop_or_spread_expression_factory(orig_key.as_str(), value));
                 }
               }
 
@@ -501,7 +577,11 @@ where
             })
             .collect::<Vec<PropOrSpread>>();
 
-          result_ast = object_expression_factory(props);
+          result_ast = path_replace_hoisted(
+            object_expression_factory(props),
+            is_program_level,
+            &mut self.state,
+          );
         }
       };
 
@@ -598,4 +678,70 @@ fn is_safe_to_skip_null_check(expr: &mut Expr) -> bool {
     }
     _ => false,
   }
+}
+
+/// Hoists an expression to the program level by creating a const variable declaration.
+/// This is the Rust equivalent of the JavaScript `hoistExpression` function.
+///
+/// # Arguments
+/// * `ast_expression` - The expression to hoist
+/// * `state` - The state manager to add the hoisted declaration to
+///
+/// # Returns
+/// An identifier referencing the hoisted variable
+pub(crate) fn hoist_expression(
+  ast_expression: Expr,
+  state: &mut crate::shared::structures::state_manager::StateManager,
+) -> Expr {
+  let uid_generator = UidGenerator::new("temp", CounterMode::ThreadLocal);
+  let hoisted_ident = uid_generator.generate_ident();
+
+  let var_decl = VarDecl {
+    span: DUMMY_SP,
+    kind: VarDeclKind::Const,
+    declare: false,
+    decls: vec![VarDeclarator {
+      span: DUMMY_SP,
+      name: Pat::Ident(binding_ident_factory(hoisted_ident.clone())),
+      init: Some(Box::new(ast_expression)),
+      definite: false,
+    }],
+    ctxt: swc_core::common::SyntaxContext::empty(),
+  };
+
+  let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
+  state.hoisted_module_items.push(module_item);
+
+  Expr::Ident(hoisted_ident)
+}
+
+pub(crate) fn path_replace_hoisted(
+  ast_expression: Expr,
+  is_program_level: bool,
+  state: &mut crate::shared::structures::state_manager::StateManager,
+) -> Expr {
+  if is_program_level {
+    return ast_expression;
+  }
+
+  let uid_generator = UidGenerator::new("styles", CounterMode::ThreadLocal);
+  let name_ident = uid_generator.generate_ident();
+
+  let var_decl = VarDecl {
+    span: DUMMY_SP,
+    kind: VarDeclKind::Const,
+    declare: false,
+    decls: vec![VarDeclarator {
+      span: DUMMY_SP,
+      name: Pat::Ident(binding_ident_factory(name_ident.clone())),
+      init: Some(Box::new(ast_expression)),
+      definite: false,
+    }],
+    ctxt: swc_core::common::SyntaxContext::empty(),
+  };
+
+  let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
+  state.hoisted_module_items.push(module_item);
+
+  Expr::Ident(name_ident)
 }

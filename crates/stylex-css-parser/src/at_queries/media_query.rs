@@ -277,7 +277,9 @@ impl MediaQuery {
 
         let merged = merge_and_simplify_ranges(flattened);
         if merged.is_empty() {
-          return MediaQueryRule::And(MediaAndRules::new(vec![MediaQueryRule::MediaKeyword(MediaKeyword::new("all".to_string(), true, false))]));
+          return MediaQueryRule::And(MediaAndRules::new(vec![MediaQueryRule::MediaKeyword(
+            MediaKeyword::new("all".to_string(), true, false),
+          )]));
         }
         MediaQueryRule::And(MediaAndRules::new(merged))
       }
@@ -412,18 +414,16 @@ impl MediaQuery {
 
         let formatted_rules: Vec<String> = valid_rules
           .iter()
-          .map(|rule| {
-            match rule {
-              MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
-                let rule_string = MediaQuery::format_queries(rule, false);
-                if !is_top_level {
-                  format!("({})", rule_string)
-                } else {
-                  rule_string
-                }
+          .map(|rule| match rule {
+            MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
+              let rule_string = MediaQuery::format_queries(rule, false);
+              if !is_top_level {
+                format!("({})", rule_string)
+              } else {
+                rule_string
               }
-              _ => MediaQuery::format_queries(rule, false)
             }
+            _ => MediaQuery::format_queries(rule, false),
           })
           .collect();
 
@@ -520,7 +520,7 @@ fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> 
       } else {
         merged
       }
-    },
+    }
     Err(_) => rules, // Return original rules on error
   }
 }

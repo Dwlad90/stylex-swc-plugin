@@ -29,32 +29,6 @@ fn invalid_use_not_bound() {
 }
 
 #[test]
-#[should_panic(expected = "create() calls must be bound to a bare variable.")]
-fn invalid_use_not_called_at_top_level() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
-    },
-    r#"
-          import * as stylex from '@stylexjs/stylex';
-          if (bar) {
-            const styles = stylex.create({});
-          }
-       "#,
-    r#""#,
-  )
-}
-
-#[test]
 #[should_panic(expected = "create() should have 1 argument.")]
 fn invalid_argument_none() {
   test_transform(

@@ -7,6 +7,10 @@ import * as stylex from '@stylexjs/stylex';
 import { spacing, text, globalTokens as $ } from './globalTokens.stylex';
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { useState } from 'react';
+const _temp = {
+    fontSize: "fontSize-x6zurak",
+    $$css: "input.stylex.js:41"
+};
 export default function Counter() {
     const [count, setCount] = useState(0);
     return <div {...{
@@ -67,10 +71,7 @@ _inject2(".fontSize-x1bb9vi5{font-size:var(--h3-xbf52ah)}", 3000);
 _inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     size: (size)=>[
-            {
-                fontSize: "fontSize-x6zurak",
-                $$css: "input.stylex.js:41"
-            },
+            _temp,
             {
                 "--fontSize": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(8 * size + 'px')
             }

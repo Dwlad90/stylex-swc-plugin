@@ -37,18 +37,21 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
     return;
   }
 
-  match state.find_top_level_expr(
-    call,
-    |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
-    None,
-  ) {
-    Some(_) => {}
-    None => build_code_frame_error_and_panic(
+  if state.find_call_declaration(call).is_none()
+    && state
+      .find_top_level_expr(
+        call,
+        |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
+        None,
+      )
+      .is_none()
+  {
+    build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &Expr::Call(call.clone()),
       &unbound_call_value("create"),
       state,
-    ),
+    );
   }
 
   if call.args.len() != 1 {

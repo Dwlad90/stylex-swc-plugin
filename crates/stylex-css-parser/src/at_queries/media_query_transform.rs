@@ -10,11 +10,13 @@ This implementation provides media query transformation:
 3. Use pure AST manipulation, not range-based logic
 */
 
-use super::media_query::{MediaQuery, MediaQueryRule, MediaNotRule, MediaAndRules, MediaOrRules};
+use super::media_query::{
+  MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, MediaRuleValue,
+};
+use std::collections::HashMap;
+use swc_core::atoms::Atom;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str};
-use swc_core::atoms::Atom;
-use std::collections::HashMap;
 
 /// Helper function to extract key as string from KeyValueProp
 fn key_value_to_str(key_value: &KeyValueProp) -> String {
@@ -27,14 +29,12 @@ fn key_value_to_str(key_value: &KeyValueProp) -> String {
 
 /// Main entry point - equivalent to lastMediaQueryWinsTransform in JS
 pub fn last_media_query_wins_transform(styles: &[KeyValueProp]) -> Vec<KeyValueProp> {
-    dfs_process_queries_with_depth(styles, 0)
+  dfs_process_queries_with_depth(styles, 0)
 }
 
 /// Internal helper function for backwards compatibility with existing tests
 /// This preserves the old Vec<MediaQuery> -> Vec<MediaQuery> signature for internal use
-pub fn last_media_query_wins_transform_internal(
-  queries: Vec<MediaQuery>,
-) -> Vec<MediaQuery> {
+pub fn last_media_query_wins_transform_internal(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
   // For now, just return the queries unchanged since the main tests are using KeyValueProp
   // The real transformation happens in last_media_query_wins_transform with KeyValueProp input
   queries
@@ -111,7 +111,8 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   }
 
   // Collect all media query keys
-  let media_keys: Vec<String> = result.iter()
+  let media_keys: Vec<String> = result
+    .iter()
     .filter_map(|kv| {
       let key = key_value_to_str(kv);
       if key.starts_with("@media ") {
@@ -124,6 +125,11 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
 
   if media_keys.len() <= 1 {
     return result;
+  }
+
+  // Check if all media queries are disjoint ranges - if so, just normalize syntax
+  if are_media_queries_disjoint(&media_keys) {
+    return normalize_media_query_syntax(result);
   }
 
   // Build negations array - JS logic: for i from length-1 down to 1
@@ -160,14 +166,17 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
         let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
         let new_media_key = combined_query.to_string();
 
-        result_map.insert(new_media_key, KeyValueProp {
-          key: PropName::Str(Str {
-            span: DUMMY_SP,
-            value: Atom::from(combined_query.to_string()),
-            raw: None,
-          }),
-          value: original_kv.value.clone(),
-        });
+        result_map.insert(
+          new_media_key,
+          KeyValueProp {
+            key: PropName::Str(Str {
+              span: DUMMY_SP,
+              value: Atom::from(combined_query.to_string()),
+              raw: None,
+            }),
+            value: original_kv.value.clone(),
+          },
+        );
       }
     }
   }
@@ -210,7 +219,10 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
 }
 
 /// Combine media query with negations - matches JS combineMediaQueryWithNegations exactly
-fn combine_media_query_with_negations(current: MediaQuery, negations: Vec<MediaQuery>) -> MediaQuery {
+fn combine_media_query_with_negations(
+  current: MediaQuery,
+  negations: Vec<MediaQuery>,
+) -> MediaQuery {
   if negations.is_empty() {
     return current;
   }
@@ -224,7 +236,8 @@ fn combine_media_query_with_negations(current: MediaQuery, negations: Vec<MediaQ
   // Combine media query with negations
   let combined_ast = match current.queries {
     MediaQueryRule::Or(or_rules) => {
-      let new_rules = or_rules.rules
+      let new_rules = or_rules
+        .rules
         .into_iter()
         .map(|rule| {
           let mut and_rules = vec![rule];
@@ -244,4 +257,133 @@ fn combine_media_query_with_negations(current: MediaQuery, negations: Vec<MediaQ
   MediaQuery::new_from_rule(combined_ast)
 }
 
+/// Check if all media queries represent disjoint width/height ranges
+fn are_media_queries_disjoint(media_keys: &[String]) -> bool {
+  let mut ranges = Vec::new();
 
+  for media_key in media_keys {
+    if let Ok(mq) = MediaQuery::parser().parse_to_end(media_key) {
+      if let Some(range) = extract_width_height_range(&mq) {
+        ranges.push(range);
+      } else {
+        // If any query is not a simple width/height range, don't apply disjoint logic
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  // Check if all ranges are disjoint (no overlaps)
+  for i in 0..ranges.len() {
+    for j in (i + 1)..ranges.len() {
+      if ranges_overlap(&ranges[i], &ranges[j]) {
+        return false;
+      }
+    }
+  }
+
+  true
+}
+
+/// Extract width/height range from a media query if it's a simple range
+fn extract_width_height_range(mq: &MediaQuery) -> Option<(String, f32, f32)> {
+  match &mq.queries {
+    MediaQueryRule::And(and_rules) if and_rules.rules.len() == 2 => {
+      let mut min_val = None;
+      let mut max_val = None;
+      let mut dimension = None;
+
+      for rule in &and_rules.rules {
+        if let MediaQueryRule::Pair(pair) = rule {
+          if pair.key.starts_with("min-width") || pair.key.starts_with("max-width") {
+            if dimension.is_none() {
+              dimension = Some("width".to_string());
+            } else if dimension.as_ref() != Some(&"width".to_string()) {
+              return None; // Mixed dimensions
+            }
+
+            if let MediaRuleValue::Length(length) = &pair.value {
+              if pair.key.starts_with("min-") {
+                min_val = Some(length.value);
+              } else {
+                max_val = Some(length.value);
+              }
+            } else {
+              return None; // Non-length value
+            }
+          } else if pair.key.starts_with("min-height") || pair.key.starts_with("max-height") {
+            if dimension.is_none() {
+              dimension = Some("height".to_string());
+            } else if dimension.as_ref() != Some(&"height".to_string()) {
+              return None; // Mixed dimensions
+            }
+
+            if let MediaRuleValue::Length(length) = &pair.value {
+              if pair.key.starts_with("min-") {
+                min_val = Some(length.value);
+              } else {
+                max_val = Some(length.value);
+              }
+            } else {
+              return None; // Non-length value
+            }
+          } else {
+            return None; // Not a width/height rule
+          }
+        } else {
+          return None; // Not a simple pair rule
+        }
+      }
+
+      if let (Some(dim), Some(min), Some(max)) = (dimension, min_val, max_val) {
+        Some((dim, min, max))
+      } else {
+        None
+      }
+    }
+    _ => None,
+  }
+}
+
+/// Check if two ranges overlap
+fn ranges_overlap(range1: &(String, f32, f32), range2: &(String, f32, f32)) -> bool {
+  // Only compare ranges of the same dimension
+  if range1.0 != range2.0 {
+    return false;
+  }
+
+  let (_, min1, max1) = range1;
+  let (_, min2, max2) = range2;
+
+  // Two ranges [min1, max1] and [min2, max2] overlap if:
+  // min1 <= max2 && min2 <= max1
+  min1 <= max2 && min2 <= max1
+}
+
+/// Just normalize media query syntax without applying negation logic
+fn normalize_media_query_syntax(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> {
+  result
+    .into_iter()
+    .map(|kv| {
+      let key = key_value_to_str(&kv);
+      if key.starts_with("@media ") {
+        if let Ok(mq) = MediaQuery::parser().parse_to_end(&key) {
+          let normalized_key = mq.to_string();
+          KeyValueProp {
+            key: PropName::Str(Str {
+              span: DUMMY_SP,
+              value: Atom::from(normalized_key),
+              raw: None,
+            }),
+            value: kv.value,
+          }
+        } else {
+          kv
+        }
+      } else {
+        kv
+      }
+    })
+    .collect()
+}

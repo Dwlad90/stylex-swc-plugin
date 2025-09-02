@@ -2143,33 +2143,17 @@ mod style_value_parser_at_queries {
         let input = "@media not ((min-width: 500px) and (max-width: 600px) and (max-width: 400px))";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-
-
         match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::Not(not_rule) => {
-            assert_eq!(not_rule.r#type, "not");
-            match &*not_rule.rule {
-              crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 1);
-                // The nested AND rules are simplified to a contradiction (not all)
-                match &and_rules.rules[0] {
-                  crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-                    assert_eq!(keyword.r#type, "media-keyword");
-                    assert_eq!(keyword.key, "all");
-                    assert!(keyword.not);
-                    assert!(!keyword.only);
-                  }
-                  _ => panic!("Expected MediaKeyword rule inside And"),
-                }
-              }
-              _ => panic!("Expected And rule inside Not"),
-            }
+          crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
+            assert_eq!(keyword.r#type, "media-keyword");
+            assert_eq!(keyword.key, "all");
+            assert!(!keyword.not);
+            assert!(!keyword.only);
           }
-          _ => panic!("Expected Not rule"),
+          _ => panic!("Expected MediaKeyword rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (not (not all))");
+        assert_eq!(parsed.to_string(), "@media all");
       }
 
       #[test]

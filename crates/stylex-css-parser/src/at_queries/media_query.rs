@@ -276,6 +276,9 @@ impl MediaQuery {
         }
 
         let merged = merge_and_simplify_ranges(flattened);
+        if merged.is_empty() {
+          return MediaQueryRule::And(MediaAndRules::new(vec![MediaQueryRule::MediaKeyword(MediaKeyword::new("all".to_string(), true, false))]));
+        }
         MediaQueryRule::And(MediaAndRules::new(merged))
       }
       MediaQueryRule::Or(ref or_rules) => {
@@ -296,6 +299,17 @@ impl MediaQuery {
               false,
               false,
             ));
+          }
+          MediaQueryRule::And(ref and_rules) if and_rules.rules.len() == 1 => {
+            if let MediaQueryRule::MediaKeyword(keyword) = &and_rules.rules[0] {
+              if keyword.key == "all" && keyword.not {
+                return MediaQueryRule::MediaKeyword(MediaKeyword::new(
+                  "all".to_string(),
+                  false,
+                  false,
+                ));
+              }
+            }
           }
           MediaQueryRule::Not(inner_not) => {
             return Self::normalize(inner_not.rule.as_ref().clone());
@@ -381,16 +395,42 @@ impl MediaQuery {
         rule_strings.join(" and ")
       }
       MediaQueryRule::Or(or_rules) => {
-        let rule_strings: Vec<String> = or_rules
+        // Filter out invalid rules (like empty or rules)
+        let valid_rules: Vec<&MediaQueryRule> = or_rules
           .rules
           .iter()
-          .map(|rule| MediaQuery::format_queries(rule, false))
+          .filter(|r| !matches!(r, MediaQueryRule::Or(or) if or.rules.is_empty()))
+          .collect();
+
+        if valid_rules.is_empty() {
+          return "not all".to_string();
+        }
+
+        if valid_rules.len() == 1 {
+          return MediaQuery::format_queries(valid_rules[0], is_top_level);
+        }
+
+        let formatted_rules: Vec<String> = valid_rules
+          .iter()
+          .map(|rule| {
+            match rule {
+              MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
+                let rule_string = MediaQuery::format_queries(rule, false);
+                if !is_top_level {
+                  format!("({})", rule_string)
+                } else {
+                  rule_string
+                }
+              }
+              _ => MediaQuery::format_queries(rule, false)
+            }
+          })
           .collect();
 
         if is_top_level {
-          rule_strings.join(", ")
+          formatted_rules.join(", ")
         } else {
-          rule_strings.join(" or ")
+          formatted_rules.join(" or ")
         }
       }
     }
@@ -475,24 +515,13 @@ fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> 
   match merge_intervals_for_and(rules.clone()) {
     Ok(merged) => {
       if merged.is_empty() {
-        // Contradiction detected - return "not all" rule
-        vec![MediaQueryRule::MediaKeyword(MediaKeyword::new(
-          "all".to_string(),
-          true,
-          false,
-        ))]
+        // Contradiction detected - return empty Vec, which the caller will handle
+        Vec::new()
       } else {
         merged
       }
     },
-    Err(_) => {
-      // Fallback case - shouldn't happen with new implementation
-      vec![MediaQueryRule::MediaKeyword(MediaKeyword::new(
-        "all".to_string(),
-        true,
-        false,
-      ))]
-    }
+    Err(_) => rules, // Return original rules on error
   }
 }
 

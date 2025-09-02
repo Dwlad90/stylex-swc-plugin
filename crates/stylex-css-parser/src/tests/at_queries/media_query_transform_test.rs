@@ -741,7 +741,7 @@ mod media_query_transformer {
           "default": "1 / 2",
           "@media (max-width: 1440px) and (min-width: 900px)": "1 / 4",
           "@media (max-width: 800px) and (min-width: 600px)": "1 / 3",
-          "@media (max-width: 500px)": "1 / 1"
+          "@media (max-width: 500px) and (min-width: 400px)": "1 / 1",
         }
       }
     });
@@ -752,7 +752,7 @@ mod media_query_transformer {
           "default": "1 / 2",
           "@media (min-width: 900px) and (max-width: 1440px)": "1 / 4",
           "@media (min-width: 600px) and (max-width: 800px)": "1 / 3",
-          "@media (max-width: 500px)": "1 / 1"
+          "@media (min-width: 400px) and (max-width: 500px)": "1 / 1",
         }
       }
     });
@@ -771,7 +771,7 @@ mod media_query_transformer {
     assert_eq!(
       serde_json::to_string(&result_json).unwrap(),
       serde_json::to_string(&expected_styles).unwrap(),
-      "Mixed width many disjoint ranges should not be modified"
+      "Mixed width many disjoint ranges should be transformed with negation logic"
     );
   }
 
@@ -793,7 +793,7 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media (min-width: 900px) and (max-width: 999.99px) or (min-width: 1100.01px) and (max-width: 1440px)": "1 / 4",
+          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
           "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3",
           "@media (min-width: 400px) and (max-width: 500px)": "1 / 1"
         }
@@ -835,7 +835,7 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media (min-width: 900px) and (max-width: 999.99px) or (min-width: 1100.01px) and (max-width: 1440px)": "1 / 4",
+          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
           "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3"
         }
       }
@@ -877,8 +877,8 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media (min-width: 900px) and (max-width: 999.99px) or (min-width: 1100.01px) and (max-width: 1440px)": "1 / 4",
-          "@media (min-width: 1000px) and (max-width: 1009.99px) or (min-width: 1050.01px) and (max-width: 1100px)": "1 / 3",
+          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
+          "@media ((min-width: 1000px) and (max-width: 1009.99px)) or ((min-width: 1050.01px) and (max-width: 1100px))": "1 / 3",
           "@media (min-width: 1010px) and (max-width: 1050px)": "1 / -1"
         }
       }

@@ -2,7 +2,7 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 const _temp = {
-    kxBb7d: "x16oeupf" + "xndy4z1",
+    kxBb7d: "x16oeupf " + "xndy4z1",
     $$css: true
 };
 _inject2(".x16oeupf::before{color:red}", 8000);

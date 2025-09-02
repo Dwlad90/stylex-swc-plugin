@@ -403,13 +403,21 @@ where
                               let mut is_static = true;
                               let mut expr_list = vec![];
 
-                              for cls in &class_list {
+                              for (index, cls) in class_list.iter().enumerate() {
                                 let expr = dynamic_styles
                                   .iter()
                                   .find(|dynamic_style| {
                                     orig_class_paths.get(cls) == Some(&dynamic_style.path)
                                   })
                                   .map(|dynamic_style| dynamic_style.expression.clone());
+
+                                let is_last = index == class_list.len() - 1;
+
+                                let cls_with_space = if is_last {
+                                  cls.clone()
+                                } else {
+                                  format!("{} ", cls)
+                                };
 
                                 if let Some(expr) = expr.and_then(|mut e| {
                                   if is_safe_to_skip_null_check(&mut e) {
@@ -427,11 +435,11 @@ where
                                       left: Box::new(expr.clone()),
                                       right: Box::new(null_to_expression()),
                                     })),
-                                    cons: Box::new(string_to_expression(cls)),
+                                    cons: Box::new(string_to_expression(&cls_with_space)),
                                     alt: Box::new(expr),
                                   }));
                                 } else {
-                                  expr_list.push(string_to_expression(cls));
+                                  expr_list.push(string_to_expression(&cls_with_space));
                                 }
                               }
 

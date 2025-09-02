@@ -10,7 +10,7 @@ _inject2('@property --x-ke45ok { syntax: "*"; }', 0);
 export const styles = {
     root: (a, b, c)=>[
             {
-                kGuDYH: (a != null ? "xww4jgc" : a) + (b != null ? "xfqys7t" : b) + (c != null ? "x13w7uki" : c),
+                kGuDYH: (a != null ? "xww4jgc " : a) + (b != null ? "xfqys7t " : b) + (c != null ? "x13w7uki" : c),
                 $$css: true
             },
             {

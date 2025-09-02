@@ -2474,6 +2474,7 @@ dependencies = [
  "log",
  "proptest",
  "regex",
+ "rustc-hash",
  "serde",
  "serde_json",
  "swc_core",

@@ -10,7 +10,7 @@ _inject2('@property --x-1obb2yn { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     root: (a, b, c)=>[
             {
-                kzqmXN: "x11ymkkh" + (b != null ? "x17gmrvw" : b) + (c != null ? "x1bai16n" : c),
+                kzqmXN: "x11ymkkh " + (b != null ? "x17gmrvw " : b) + (c != null ? "x1bai16n" : c),
                 $$css: true
             },
             {

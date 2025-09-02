@@ -21,9 +21,9 @@ export const styles = {
     default: (margin)=>[
             _temp,
             {
-                k71WvV: (margin != null ? "x17e2bsb" : margin) + "xtcj1g9",
-                k1K539: (margin != null ? "xg6eqc8" : margin) + "xgrn1a3",
-                keTefX: (margin != null ? "x19ja4a5" : margin) + "x2tye95",
+                k71WvV: (margin != null ? "x17e2bsb " : margin) + "xtcj1g9",
+                k1K539: (margin != null ? "xg6eqc8 " : margin) + "xgrn1a3",
+                keTefX: (margin != null ? "x19ja4a5 " : margin) + "x2tye95",
                 $$css: true
             },
             {

@@ -1159,7 +1159,8 @@ mod media_query_transformer {
   }
 
   #[test]
-  fn skips_range_simplification_for_media_queries_with_conflicting_units_in_same_dimension_across_queries() {
+  fn skips_range_simplification_for_media_queries_with_conflicting_units_in_same_dimension_across_queries()
+   {
     let original_styles = json!({
       "gridColumn": {
         "default": "1 / 2",
@@ -1195,7 +1196,8 @@ mod media_query_transformer {
   }
 
   #[test]
-  fn skips_range_simplification_for_media_queries_with_conflicting_units_in_same_dimension_and_query() {
+  fn skips_range_simplification_for_media_queries_with_conflicting_units_in_same_dimension_and_query()
+   {
     let original_styles = json!({
       "gridColumn": {
         "default": "1 / 2",

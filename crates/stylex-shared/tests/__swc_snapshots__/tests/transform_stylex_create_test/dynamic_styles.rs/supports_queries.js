@@ -10,7 +10,7 @@ _inject2('@property --x-wu2acw { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     root: (a, b, c)=>[
             {
-                kMwMTN: (a != null ? "x3d248p" : a) + (b != null ? "x1iuwwch" : b) + (c != null ? "x5268pl" : c),
+                kMwMTN: (a != null ? "x3d248p " : a) + (b != null ? "x1iuwwch " : b) + (c != null ? "x5268pl" : c),
                 $$css: true
             },
             {

@@ -1,15 +1,15 @@
 import * as stylex from '@stylexjs/stylex';
 const _temp = {
-    kWkggS: "xr5ldyu",
-    kMwMTN: "xfx01vb",
+    kWkggS: "xl8spv7",
+    kMwMTN: "x14rh7hd",
     $$css: true
 };
 export const styles = {
     root: (color)=>[
             _temp,
             {
-                "--backgroundColor": `${color}` != null ? `${color}` : undefined,
-                "--color": `${color}px` != null ? `${color}px` : undefined
+                "--x-backgroundColor": `${color}` != null ? `${color}` : undefined,
+                "--x-color": `${color}px` != null ? `${color}px` : undefined
             }
         ]
 };

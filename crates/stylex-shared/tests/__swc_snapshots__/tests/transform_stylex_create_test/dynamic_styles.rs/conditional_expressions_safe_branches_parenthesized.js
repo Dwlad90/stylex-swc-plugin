@@ -1,13 +1,13 @@
 import * as stylex from '@stylexjs/stylex';
 const _temp = {
-    kWkggS: "xr5ldyu",
+    kWkggS: "xl8spv7",
     $$css: true
 };
 export const styles = {
     root: (color, isDark)=>[
             _temp,
             {
-                "--backgroundColor": (isDark ? 'black' : 'white') != null ? isDark ? 'black' : 'white' : undefined
+                "--x-backgroundColor": (isDark ? 'black' : 'white') != null ? isDark ? 'black' : 'white' : undefined
             }
         ]
 };

@@ -1,19 +1,19 @@
 import * as stylex from '@stylexjs/stylex';
 const _temp = {
     kWkggS: "xrkmrrc",
-    kZKoxP: "x1f5funs",
+    kZKoxP: "x16ye13r",
     $$css: true
 };
 export const styles = {
     root: (width)=>[
             _temp,
             {
-                kzqmXN: width != null ? "x1bl4301" : width,
+                kzqmXN: width != null ? "x5lhr3w" : width,
                 $$css: true
             },
             {
-                "--width": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(width),
-                "--height": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(width + 100)
+                "--x-width": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(width),
+                "--x-height": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(width + 100)
             }
         ]
 };

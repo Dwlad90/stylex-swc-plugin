@@ -289,9 +289,9 @@ fn evaluate_partial_object_recursively(
 
                     key_path.push(key_str.clone());
 
-                    format!("--{}", create_hash(&key_path.join("_")))
+                    format!("--x-{}", create_hash(&key_path.join("_")))
                   } else {
-                    format!("--{}", key_str)
+                    format!("--x-{}", key_str)
                   };
 
                   let new_prop = prop_or_spread_expression_factory(

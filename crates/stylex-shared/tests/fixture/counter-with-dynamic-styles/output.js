@@ -8,7 +8,7 @@ import { spacing, text, globalTokens as $ } from './globalTokens.stylex';
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { useState } from 'react';
 const _temp = {
-    fontSize: "fontSize-x6zurak",
+    fontSize: "fontSize-xdmh292",
     $$css: "input.stylex.js:41"
 };
 export default function Counter() {
@@ -34,7 +34,7 @@ export default function Counter() {
       </button>
     </div>;
 }
-_inject2(".fontSize-x6zurak{font-size:var(--fontSize)}", 3000);
+_inject2(".fontSize-xdmh292{font-size:var(--x-fontSize)}", 3000);
 _inject2(".display-x78zum5{display:flex}", 3000);
 _inject2(".alignItems-x6s0dn4{align-items:center}", 3000);
 _inject2(".justifyContent-xl56j7k{justify-content:center}", 3000);
@@ -68,12 +68,12 @@ _inject2(".minWidth-x1843ork{min-width:6rem}", 4000);
 _inject2(".textAlign-x2b8uid{text-align:center}", 3000);
 _inject2(".fontFamily-xh1z4oz{font-family:var(--fontMono-xgc26q9)}", 3000);
 _inject2(".fontSize-x1bb9vi5{font-size:var(--h3-xbf52ah)}", 3000);
-_inject2('@property --fontSize { syntax: "*"; inherits: false; }', 0);
+_inject2('@property --x-fontSize { syntax: "*"; inherits: false; }', 0);
 const styles = {
     size: (size)=>[
             _temp,
             {
-                "--fontSize": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(8 * size + 'px')
+                "--x-fontSize": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(8 * size + 'px')
             }
         ],
     count: {

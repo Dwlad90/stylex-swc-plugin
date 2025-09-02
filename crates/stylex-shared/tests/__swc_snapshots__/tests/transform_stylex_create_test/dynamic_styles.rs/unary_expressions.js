@@ -1,15 +1,15 @@
 import * as stylex from '@stylexjs/stylex';
 const _temp = {
-    kSiTet: "xa0d40w",
-    k3aq6I: "x1uosm7l",
+    kSiTet: "xb4nw82",
+    k3aq6I: "xsqj5wx",
     $$css: true
 };
 export const styles = {
     root: (value)=>[
             _temp,
             {
-                "--opacity": -value != null ? -value : undefined,
-                "--transform": +value != null ? +value : undefined
+                "--x-opacity": -value != null ? -value : undefined,
+                "--x-transform": +value != null ? +value : undefined
             }
         ]
 };

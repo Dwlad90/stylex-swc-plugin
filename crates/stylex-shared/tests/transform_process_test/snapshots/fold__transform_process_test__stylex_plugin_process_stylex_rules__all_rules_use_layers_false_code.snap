@@ -38,11 +38,11 @@ export const styles = {
     },
     dynamic: (color)=>[
             {
-                "color-kMwMTN": color != null ? "color-xfx01vb" : color,
+                "color-kMwMTN": color != null ? "color-x14rh7hd" : color,
                 $$css: true
             },
             {
-                "--color": color != null ? color : undefined
+                "--x-color": color != null ? color : undefined
             }
         ]
 };

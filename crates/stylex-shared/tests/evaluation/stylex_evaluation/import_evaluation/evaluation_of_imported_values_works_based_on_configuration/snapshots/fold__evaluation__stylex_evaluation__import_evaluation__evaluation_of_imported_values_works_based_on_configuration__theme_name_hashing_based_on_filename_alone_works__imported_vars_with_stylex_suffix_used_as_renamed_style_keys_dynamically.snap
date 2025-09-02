@@ -7,16 +7,16 @@ var _inject2 = _inject;
 import "otherFile.stylex";
 import stylex from 'stylex';
 import { theme as MyTheme } from 'otherFile.stylex';
-_inject2(".__hashed_var__z0fnog{--__hashed_var__11epo5g:var(----__hashed_var__11epo5g)}", 1);
-_inject2('@property ----__hashed_var__11epo5g { syntax: "*"; inherits: false; }', 0);
+_inject2(".__hashed_var__1kf7ake{--__hashed_var__11epo5g:var(--x---__hashed_var__11epo5g)}", 1);
+_inject2('@property --x---__hashed_var__11epo5g { syntax: "*"; inherits: false; }', 0);
 export const styles = {
     color: (color)=>[
             {
-                "--__hashed_var__11epo5g": color != null ? "__hashed_var__z0fnog" : color,
+                "--__hashed_var__11epo5g": color != null ? "__hashed_var__1kf7ake" : color,
                 $$css: true
             },
             {
-                "----__hashed_var__11epo5g": color != null ? color : undefined
+                "--x---__hashed_var__11epo5g": color != null ? color : undefined
             }
         ]
 };

@@ -90,7 +90,7 @@ describe('custom path evaluation works as expected', ()=>{
         expect(result.value).toEqual({
             default: {
                 borderStyle: 'dashed',
-                borderWidth: 'var(--borderWidth)',
+                borderWidth: 'var(--x-borderWidth)',
                 overflow: 'hidden'
             }
         });
@@ -104,7 +104,7 @@ describe('custom path evaluation works as expected', ()=>{
             },
           ],
           {
-            "--borderWidth": {
+            "--x-borderWidth": {
               "expression": {
                 "arguments": [
                   {
@@ -219,7 +219,7 @@ describe('custom path evaluation works as expected', ()=>{
             default: {
                 overflow: 'hidden',
                 borderStyle: 'dashed',
-                borderWidth: 'var(--borderWidth)'
+                borderWidth: 'var(--x-borderWidth)'
             }
         });
         expect(removeLoc(result.fns)).toMatchInlineSnapshot(`
@@ -232,7 +232,7 @@ describe('custom path evaluation works as expected', ()=>{
             },
           ],
           {
-            "--borderWidth": {
+            "--x-borderWidth": {
               "expression": {
                 "arguments": [
                   {

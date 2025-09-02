@@ -10,6 +10,7 @@ use crate::{
   token_parser::{TokenParser, tokens},
   token_types::SimpleToken,
 };
+use rustc_hash::FxHashMap;
 use std::fmt::{self, Display};
 
 /// Fraction type for media query values like (aspect-ratio: 16/9)
@@ -529,6 +530,15 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
   const EPSILON: f32 = 0.01;
   let dimensions = ["width", "height"];
 
+  // Track intervals for each dimension: [min, max]
+  let mut intervals: FxHashMap<&str, Vec<(f32, f32)>> = FxHashMap::default();
+  intervals.insert("width", Vec::new());
+  intervals.insert("height", Vec::new());
+
+  // Track units for each dimension
+  let mut units: FxHashMap<&str, String> = FxHashMap::default();
+  let mut has_any_unit_conflicts = false;
+
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
   for rule in &rules {
     if let MediaQueryRule::Not(not_rule) = rule {
@@ -589,17 +599,7 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
     }
   }
 
-  // Track intervals for each dimension: [min, max]
-  let mut width_intervals: Vec<(f32, f32)> = Vec::new();
-  let mut height_intervals: Vec<(f32, f32)> = Vec::new();
-  let mut other_rules: Vec<MediaQueryRule> = Vec::new();
-  let mut width_indices: Vec<usize> = Vec::new();
-  let mut height_indices: Vec<usize> = Vec::new();
-  let mut other_indices: Vec<usize> = Vec::new();
-
-  for (i, rule) in rules.iter().enumerate() {
-    let mut handled = false;
-
+  for rule in &rules {
     for dim in &dimensions {
       match &rule {
         // Handle min-width/min-height/max-width/max-height pairs
@@ -609,20 +609,22 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
         {
           if let MediaRuleValue::Length(length) = &pair.value {
             let val = length.value;
+
+            // Track unit conflicts
+            let dim_intervals = intervals.get(dim).unwrap();
+            if dim_intervals.is_empty() {
+              units.insert(dim, length.unit.clone());
+            } else if units.get(dim) != Some(&length.unit) {
+              has_any_unit_conflicts = true;
+            }
+
             let interval = if pair.key.starts_with("min-") {
               (val, f32::INFINITY)
             } else {
               (f32::NEG_INFINITY, val)
             };
 
-            if *dim == "width" {
-              width_intervals.push(interval);
-              width_indices.push(i);
-            } else {
-              height_intervals.push(interval);
-              height_indices.push(i);
-            }
-            handled = true;
+            intervals.get_mut(dim).unwrap().push(interval);
             break;
           }
         }
@@ -635,6 +637,15 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
             {
               if let MediaRuleValue::Length(length) = &pair.value {
                 let val = length.value;
+
+                // Track unit conflicts
+                let dim_intervals = intervals.get(dim).unwrap();
+                if dim_intervals.is_empty() {
+                  units.insert(dim, length.unit.clone());
+                } else if units.get(dim) != Some(&length.unit) {
+                  has_any_unit_conflicts = true;
+                }
+
                 // NOT min-width becomes max-width with adjusted value, and vice versa
                 let interval = if pair.key.starts_with("min-") {
                   (f32::NEG_INFINITY, val - EPSILON)
@@ -642,14 +653,7 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
                   (val + EPSILON, f32::INFINITY)
                 };
 
-                if *dim == "width" {
-                  width_intervals.push(interval);
-                  width_indices.push(i);
-                } else {
-                  height_intervals.push(interval);
-                  height_indices.push(i);
-                }
-                handled = true;
+                intervals.get_mut(dim).unwrap().push(interval);
                 break;
               }
             }
@@ -660,103 +664,74 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
       }
     }
 
-    if !handled {
-      other_rules.push(rule.clone());
-      other_indices.push(i);
+    // Check if this rule contains only width/height media query rules
+    if !matches!(
+      rule,
+      MediaQueryRule::Pair(pair) if (
+        pair.key == "min-width" ||
+        pair.key == "max-width" ||
+        pair.key == "min-height" ||
+        pair.key == "max-height"
+      ) && is_numeric_length(&pair.value)
+    ) && !matches!(
+      rule,
+      MediaQueryRule::Not(not_rule) if matches!(
+        not_rule.rule.as_ref(),
+        MediaQueryRule::Pair(pair) if (
+          pair.key == "min-width" ||
+          pair.key == "max-width" ||
+          pair.key == "min-height" ||
+          pair.key == "max-height"
+        ) && is_numeric_length(&pair.value)
+      )
+    ) {
+      return Ok(rules);
     }
-  }
-
-  // Check if any merging is actually needed
-  let width_merge_needed = width_intervals.len() > 1;
-  let height_merge_needed = height_intervals.len() > 1;
-
-  // If no merging is needed, preserve original order
-  if !width_merge_needed && !height_merge_needed {
-    return Ok(rules);
-  }
-
-  // Merge intervals for each dimension
-  let merged_width = merge_dimension_intervals(width_intervals, "width")?;
-  let merged_height = merge_dimension_intervals(height_intervals, "height")?;
-
-  // Create a vector to hold all rules with their original indices
-  let mut all_rules_with_indices: Vec<(usize, MediaQueryRule)> = Vec::new();
-
-  // Add other rules with their indices
-  for (i, rule) in other_rules.into_iter().enumerate() {
-    all_rules_with_indices.push((other_indices[i], rule));
-  }
-
-  // Add merged width rules (use the first width index as representative)
-  if !merged_width.is_empty() && !width_indices.is_empty() {
-    let first_width_index = *width_indices.iter().min().unwrap();
-    for rule in merged_width {
-      all_rules_with_indices.push((first_width_index, rule));
-    }
-  }
-
-  // Add merged height rules (use the first height index as representative)
-  if !merged_height.is_empty() && !height_indices.is_empty() {
-    let first_height_index = *height_indices.iter().min().unwrap();
-    for rule in merged_height {
-      all_rules_with_indices.push((first_height_index, rule));
-    }
-  }
-
-  // Sort by original indices to preserve order
-  all_rules_with_indices.sort_by_key(|(index, _)| *index);
-
-  // Extract just the rules
-  let result: Vec<MediaQueryRule> = all_rules_with_indices
-    .into_iter()
-    .map(|(_, rule)| rule)
-    .collect();
-
-  Ok(result)
-}
-
-/// Merge intervals for a single dimension
-fn merge_dimension_intervals(
-  intervals: Vec<(f32, f32)>,
-  dimension: &str,
-) -> Result<Vec<MediaQueryRule>, String> {
-  if intervals.is_empty() {
-    return Ok(Vec::new());
-  }
-
-  // Find the intersection of all intervals
-  let mut min_bound = f32::NEG_INFINITY;
-  let mut max_bound = f32::INFINITY;
-
-  for (min, max) in intervals {
-    min_bound = min_bound.max(min);
-    max_bound = max_bound.min(max);
-  }
-
-  // Check for contradictions
-  if min_bound > max_bound {
-    return Ok(Vec::new()); // Return empty vector for contradictions
   }
 
   let mut result = Vec::new();
 
-  // Generate min constraint if needed
-  if min_bound != f32::NEG_INFINITY && min_bound.is_finite() {
-    result.push(MediaQueryRule::Pair(MediaRulePair::new(
-      format!("min-{}", dimension),
-      MediaRuleValue::Length(Length::new(min_bound, "px".to_string())),
-    )));
+  // Return original rules if unit conflicts detected
+  if has_any_unit_conflicts {
+    return Ok(rules);
   }
 
-  // Generate max constraint if needed
-  if max_bound != f32::INFINITY && max_bound.is_finite() {
-    result.push(MediaQueryRule::Pair(MediaRulePair::new(
-      format!("max-{}", dimension),
-      MediaRuleValue::Length(Length::new(max_bound, "px".to_string())),
-    )));
-  }
+  for dim in &dimensions {
+    let dim_intervals = intervals.get(dim).unwrap();
+    if dim_intervals.is_empty() {
+      continue;
+    }
 
-  Ok(result)
+    let mut lower = f32::NEG_INFINITY;
+    let mut upper = f32::INFINITY;
+    for (l, u) in dim_intervals {
+      if *l > lower {
+        lower = *l;
+      }
+      if *u < upper {
+        upper = *u;
+      }
+    }
+
+    if lower > upper {
+      return Ok(Vec::new());
+    }
+
+    if lower != f32::NEG_INFINITY && lower.is_finite() {
+      result.push(MediaQueryRule::Pair(MediaRulePair::new(
+        format!("min-{}", dim),
+        MediaRuleValue::Length(Length::new(lower, units.get(dim).unwrap().clone())),
+      )));
+    }
+
+    if upper != f32::INFINITY && upper.is_finite() {
+      result.push(MediaQueryRule::Pair(MediaRulePair::new(
+        format!("max-{}", dim),
+        MediaRuleValue::Length(Length::new(upper, units.get(dim).unwrap().clone())),
+      )));
+    }
+  }
+  Ok(if result.is_empty() { rules } else { result })
 }
 
 /// Basic media type parser: screen | print | all

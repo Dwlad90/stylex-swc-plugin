@@ -1085,4 +1085,148 @@ mod media_query_transformer {
     let result = last_media_query_wins_transform_internal(queries);
     assert_eq!(result.len(), 0);
   }
+
+  #[test]
+  fn media_queries_with_em_units() {
+    let original_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media (max-width: 90em) and (min-width: 60em)": "1 / 4",
+        "@media (max-width: 70em) and (min-width: 65em)": "1 / 3"
+      }
+    });
+
+    let expected_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media ((min-width: 60em) and (max-width: 64.99em)) or ((min-width: 70.01em) and (max-width: 90em))": "1 / 4",
+        "@media (min-width: 65em) and (max-width: 70em)": "1 / 3"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap()
+    );
+  }
+
+  #[test]
+  fn media_queries_with_mixed_units() {
+    let original_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media (max-width: 1200px) and (min-height: 50vh)": "1 / 4",
+        "@media (max-width: 800px) and (min-height: 30vh)": "1 / 3"
+      }
+    });
+
+    let expected_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media (min-width: 800.01px) and (max-width: 1200px) and (min-height: 50vh)": "1 / 4",
+        "@media (max-width: 800px) and (min-height: 30vh)": "1 / 3"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap()
+    );
+  }
+
+  #[test]
+  fn skips_range_simplification_for_media_queries_with_conflicting_units_in_same_dimension_across_queries() {
+    let original_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media (min-width: 768px) and (max-width: 1200px)": "1 / 4",
+        "@media (min-width: 50em)": "1 / 3"
+      }
+    });
+
+    let expected_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media (min-width: 768px) and (max-width: 1200px) and (not (min-width: 50em))": "1 / 4",
+        "@media (min-width: 50em)": "1 / 3"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap()
+    );
+  }
+
+  #[test]
+  fn skips_range_simplification_for_media_queries_with_conflicting_units_in_same_dimension_and_query() {
+    let original_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media (min-width: 768px) and (max-width: 1200em)": "1 / 4",
+        "@media (min-width: 50em)": "1 / 3"
+      }
+    });
+
+    let expected_styles = json!({
+      "gridColumn": {
+        "default": "1 / 2",
+        "@media (min-width: 768px) and (max-width: 1200em) and (not (min-width: 50em))": "1 / 4",
+        "@media (min-width: 50em)": "1 / 3"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap()
+    );
+  }
 }

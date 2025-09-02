@@ -13,7 +13,7 @@ This implementation provides media query transformation:
 use super::media_query::{
   MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, MediaRuleValue,
 };
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use swc_core::atoms::Atom;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str};
@@ -146,7 +146,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   accumulated_negations.push(Vec::new()); // Empty negations for the last query
 
   // Transform each media query
-  let mut result_map = HashMap::new();
+  let mut result_map = FxHashMap::default();
 
   // First, build a map of existing non-media properties
   for kv in &result {

@@ -482,6 +482,40 @@ fn invalid_object_value_contains_disallowed_key() {
   )
 }
 
+#[test]
+#[ignore = "This should throw an error but doesn't"]
+#[should_panic(expected = "Invalid media query syntax")]
+fn invalid_object_value_contains_invalid_media_query_syntax() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        Some(&mut StyleXOptionsParams {
+          enable_media_query_order: Some(true),
+          ..StyleXOptionsParams::default()
+        }),
+      )
+    },
+    r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                'color': {
+                  '@media not ((not (min-width: 400px))': 'blue'
+                },
+              },
+            });
+          "#,
+    r#""#,
+  )
+}
+
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,

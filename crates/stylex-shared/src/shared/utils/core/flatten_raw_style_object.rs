@@ -6,7 +6,7 @@ use swc_core::ecma::{
 };
 
 use crate::shared::{
-  constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, non_static_value},
+  constants::messages::{non_static_value, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX},
   enums::misc::VarDeclAction,
   regex::CSS_PROPERTY_KEY,
   structures::{
@@ -48,12 +48,22 @@ pub(crate) fn flatten_raw_style_object(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> IndexMap<String, PreRules> {
-  let processed_style = if traversal_state.options.enable_media_query_order {
-    last_media_query_wins_transform(style)
-  } else {
-    style.to_vec()
-  };
-  flatten_raw_style_object_logic(&processed_style, &mut vec![], state, traversal_state, fns)
+  // JavaScript try-catch equivalent: wrap the operations and handle errors
+  let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let processed_style = if traversal_state.options.enable_media_query_order {
+      last_media_query_wins_transform(style)
+    } else {
+      style.to_vec()
+    };
+    flatten_raw_style_object_logic(&processed_style, &mut vec![], state, traversal_state, fns)
+  }));
+
+  match result {
+    Ok(flattened) => flattened,
+    Err(_) => {
+      panic!("{}", INVALID_MEDIA_QUERY_SYNTAX);
+    }
+  }
 }
 
 pub(crate) fn flatten_raw_style_object_logic(

@@ -86,4 +86,6 @@ pub(crate) static THEME_IMPORT_KEY_AS_OBJECT_KEY: &str =
 
 pub(crate) static POSITION_TRY_INVALID_PROPERTY: &str = "Invalid property in `positionTry()` call. It may only contain, positionAnchor, positionArea, inset properties (top, left, insetInline etc.), margin properties, size properties (height, inlineSize, etc.), and self-alignment properties (alignSelf, justifySelf, placeSelf)";
 
-pub(crate) const VIEW_TRANSITION_CLASS_INVALID_PROPERTY: &str = "Invalid property in `viewTransitionClass()` call. It may only contain group, imagePair, old, and new properties";
+pub(crate) static VIEW_TRANSITION_CLASS_INVALID_PROPERTY: &str = "Invalid property in `viewTransitionClass()` call. It may only contain group, imagePair, old, and new properties";
+
+pub(crate) static INVALID_MEDIA_QUERY_SYNTAX: &str = "Invalid media query syntax.";

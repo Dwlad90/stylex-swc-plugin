@@ -1,6 +1,6 @@
 [package]
 name = "stylex_css_parser"
-version = "0.10.5"
+version = "0.10.6-rc.1"
 edition = "2024"
 rust-version = "1.86.0"
 description = "CSS value parser"

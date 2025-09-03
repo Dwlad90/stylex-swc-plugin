@@ -23,7 +23,4 @@ log.workspace = true
 
 [dev-dependencies]
 proptest = "1.4"
-
-[dev-dependencies.criterion]
-version = "0.5"
-features = ["html_reports"]
+criterion = { version = "0.5", features = ["html_reports"] }

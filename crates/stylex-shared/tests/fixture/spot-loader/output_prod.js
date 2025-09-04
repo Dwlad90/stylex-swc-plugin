@@ -69,9 +69,7 @@ const styles = {
 const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal })=>{
     return isLoading && <>
         <div {...stylex.props(styles[size])}>{size}</div>
-        <div {...{
-        className: "xrvj5dj x1mt1orb xernuvs x6s0dn4 xl56j7k xmjcfx9 xettwda xs5h3dt"
-    }}>styles.sizeSmall</div>
+        <div className="xrvj5dj x1mt1orb xernuvs x6s0dn4 xl56j7k xmjcfx9 xettwda xs5h3dt">styles.sizeSmall</div>
         <div {...stylex.props(styles.root, styles.sizeSmall, style)}>styles.sizeSmall with styles</div>
       </>;
 };

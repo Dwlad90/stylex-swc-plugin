@@ -1,7 +1,13 @@
-use swc_core::ecma::{
-  ast::{BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Lit},
-  utils::ExprExt,
-  visit::FoldWith,
+use swc_core::{
+  common::DUMMY_SP,
+  ecma::{
+    ast::{
+      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, IdentName, JSXAttr, JSXAttrName,
+      JSXAttrOrSpread, JSXAttrValue, Lit, Prop, PropName, PropOrSpread,
+    },
+    utils::{ExprExt, drop_span},
+    visit::FoldWith,
+  },
 };
 
 use crate::shared::{
@@ -9,6 +15,7 @@ use crate::shared::{
   structures::{member_transform::MemberTransform, state_manager::StateManager},
   swc::get_default_expr_ctx,
   utils::{
+    ast::convertors::key_value_to_str,
     common::{reduce_ident_count, reduce_member_expression_count},
     core::{
       make_string_expression::make_string_expression,
@@ -216,6 +223,59 @@ pub(crate) fn stylex_merge(
         ResolvedArg::ConditionalStyle(_, _, _, ident, member_expr) => {
           reduce_ident_count(state, ident);
           reduce_member_expression_count(state, member_expr)
+        }
+      }
+    }
+
+    if let Some(Expr::Object(string_expression)) = string_expression.as_ref() {
+      let attr_expr = drop_span(Expr::Call(call.clone()));
+
+      if state.jsx_spread_attr_exprs_map.contains_key(&attr_expr)
+        && !string_expression.props.is_empty()
+        && string_expression.props.iter().all(|prop| {
+          matches!(prop, PropOrSpread::Prop(prop)
+            if matches!(prop.as_ref(), Prop::KeyValue(kv)
+              if !matches!(kv.key, PropName::Computed(_))))
+        })
+      {
+        // Check if this is used as a JSX spread attribute and optimize
+        // Convert each property to JSX attributes for direct use
+        let jsx_attr_expressions: Vec<JSXAttrOrSpread> = string_expression
+          .props
+          .iter()
+          .filter_map(|prop| {
+            if let PropOrSpread::Prop(prop) = prop {
+              if let Prop::KeyValue(key_value) = prop.as_ref() {
+                // Create JSX attribute directly
+                let attr_name = key_value_to_str(key_value);
+                let attr_value = key_value
+                  .value
+                  .as_lit()
+                  .map(|lit| JSXAttrValue::Lit(lit.clone()));
+
+                attr_value.map(|attr_value| {
+                  JSXAttrOrSpread::JSXAttr(JSXAttr {
+                    span: DUMMY_SP,
+                    name: JSXAttrName::Ident(IdentName::from(attr_name.as_str())),
+                    value: Some(attr_value),
+                  })
+                })
+              } else {
+                None
+              }
+            } else {
+              None
+            }
+          })
+          .collect();
+
+        // Store the JSX attributes to replace the spread element
+        if !jsx_attr_expressions.is_empty() {
+          state
+            .jsx_spread_attr_exprs_map
+            .insert(attr_expr, jsx_attr_expressions);
+
+          return None; // Early return to skip normal object creation
         }
       }
     }

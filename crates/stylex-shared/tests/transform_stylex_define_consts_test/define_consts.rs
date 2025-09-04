@@ -290,7 +290,7 @@ fn works_with_dynamic_styles() {
         nodeEnd: (animationDuration) => ({
           transition: {
             [breakpoints.small]: 'none',
-            default: \`transform \${animationDuration}ms ease-in-out\`,
+            default: `transform ${animationDuration}ms ease-in-out`,
           },
         }),
       });

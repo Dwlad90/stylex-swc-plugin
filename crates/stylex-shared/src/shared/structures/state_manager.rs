@@ -14,7 +14,10 @@ use stylex_path_resolver::{
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
-  ecma::{ast::Module, utils::drop_span},
+  ecma::{
+    ast::{JSXAttrOrSpread, Module},
+    utils::drop_span,
+  },
 };
 use swc_core::{
   common::SyntaxContext,
@@ -105,6 +108,7 @@ pub struct StateManager {
   pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
   pub(crate) css_property_seen: FxHashMap<String, String>,
   pub(crate) seen_source_code_by_path: FxHashMap<FileName, String>,
+  pub(crate) jsx_spread_attr_exprs_map: FxHashMap<Expr, Vec<JSXAttrOrSpread>>,
 
   // `stylex.create` calls
   pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
@@ -175,6 +179,7 @@ impl StateManager {
       top_level_expressions: vec![],
       all_call_expressions: FxHashMap::default(),
       var_decl_count_map: FxHashMap::default(),
+      jsx_spread_attr_exprs_map: FxHashMap::default(),
 
       in_stylex_create: false,
       options,

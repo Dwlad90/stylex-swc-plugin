@@ -403,6 +403,19 @@ where
                               let mut is_static = true;
                               let mut expr_list = vec![];
 
+                              // Pre-calculate class strings with spaces to avoid repeated allocations
+                              let class_strings: Vec<String> = class_list
+                                .iter()
+                                .enumerate()
+                                .map(|(index, cls)| {
+                                  if index == class_list.len() - 1 {
+                                    cls.clone()
+                                  } else {
+                                    format!("{} ", cls)
+                                  }
+                                })
+                                .collect();
+
                               for (index, cls) in class_list.iter().enumerate() {
                                 let expr = dynamic_styles
                                   .iter()
@@ -411,13 +424,7 @@ where
                                   })
                                   .map(|dynamic_style| dynamic_style.expression.clone());
 
-                                let is_last = index == class_list.len() - 1;
-
-                                let cls_with_space = if is_last {
-                                  cls.clone()
-                                } else {
-                                  format!("{} ", cls)
-                                };
+                                let cls_with_space = &class_strings[index];
 
                                 if let Some(expr) = expr.and_then(|mut e| {
                                   if is_safe_to_skip_null_check(&mut e) {
@@ -435,11 +442,11 @@ where
                                       left: Box::new(expr.clone()),
                                       right: Box::new(null_to_expression()),
                                     })),
-                                    cons: Box::new(string_to_expression(&cls_with_space)),
+                                    cons: Box::new(string_to_expression(cls_with_space)),
                                     alt: Box::new(expr),
                                   }));
                                 } else {
-                                  expr_list.push(string_to_expression(&cls_with_space));
+                                  expr_list.push(string_to_expression(cls_with_space));
                                 }
                               }
 

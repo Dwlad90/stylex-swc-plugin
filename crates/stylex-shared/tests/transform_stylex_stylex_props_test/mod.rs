@@ -3,6 +3,7 @@ mod keep_stylex_create_when_needed;
 mod naming_conventions;
 mod naming_conventions_with_dynamisms;
 mod naming_conventions_with_dynamisms_inline;
+mod props_calls_with_jsx;
 mod setting_custom_import_paths;
 mod specific_edge_case_bugs;
 mod stylex_props_call;

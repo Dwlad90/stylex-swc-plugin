@@ -6,6 +6,7 @@ mod fold_expr;
 // mod fold_fn_declarator;
 mod fold_ident;
 mod fold_import_decl;
+mod fold_jsx_attr_or_spread;
 mod fold_member_expression;
 mod fold_member_prop;
 mod fold_module;
@@ -103,5 +104,12 @@ where
 
   fn fold_decl(&mut self, decl: Decl) -> Decl {
     self.fold_decl_impl(decl)
+  }
+
+  fn fold_jsx_attr_or_spreads(
+    &mut self,
+    jsx_attrs: Vec<swc_core::ecma::ast::JSXAttrOrSpread>,
+  ) -> Vec<swc_core::ecma::ast::JSXAttrOrSpread> {
+    self.fold_jsx_attr_or_spreads(jsx_attrs)
   }
 }

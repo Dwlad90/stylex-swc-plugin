@@ -11,7 +11,5 @@ _inject2(".x1nhvcw1{justify-content:flex-start}", 3000);
 _inject2(".x1q0q8m5{border-bottom-style:solid}", 4000);
 _inject2(".xso031l{border-bottom-width:1px}", 4000);
 function TestComponent() {
-    return <div {...{
-        className: "x1717udv x1ghz6dp xe8uvvx xrvj5dj x1mt1orb xh8yej3 x1nhvcw1 x1q0q8m5 xso031l"
-    }}/>;
+    return <div className="x1717udv x1ghz6dp xe8uvvx xrvj5dj x1mt1orb xh8yej3 x1nhvcw1 x1q0q8m5 xso031l"/>;
 }

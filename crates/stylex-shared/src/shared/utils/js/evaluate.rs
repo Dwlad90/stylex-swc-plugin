@@ -1073,7 +1073,7 @@ fn _evaluate(
         }
         BinaryExprType::Null => None,
       })
-      .unwrap_or_else(|error: _| panic!("{}", error)),
+      .unwrap_or_else(|error| panic!("{}", error)),
     Expr::Call(call) => {
       let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
       let mut func: Option<Box<FunctionConfig>> = None;

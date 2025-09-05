@@ -21,12 +21,12 @@ impl CssFolder {
     &'a mut self,
     declaration: &'a mut Declaration,
   ) -> &'a mut Declaration {
-    if let DeclarationName::Ident(ident) = &declaration.name {
-      if ident.value == "fontSize" || self.parent_key.as_deref() == Some("fontSize") {
-        self.parent_key = Some("fontSize".into());
-        declaration.value = declaration.value.clone().fold_children_with(self);
-        self.parent_key = None;
-      }
+    if let DeclarationName::Ident(ident) = &declaration.name
+      && (ident.value == "fontSize" || self.parent_key.as_deref() == Some("fontSize"))
+    {
+      self.parent_key = Some("fontSize".into());
+      declaration.value = declaration.value.clone().fold_children_with(self);
+      self.parent_key = None;
     }
 
     declaration
@@ -129,10 +129,10 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
   }
 
   declaration.value.iter_mut().for_each(|value| {
-    if let ComponentValue::Ident(ident) = value {
-      if !ident.value.starts_with("--") {
-        ident.value = dashify(ident.value.as_str()).into();
-      }
+    if let ComponentValue::Ident(ident) = value
+      && !ident.value.starts_with("--")
+    {
+      ident.value = dashify(ident.value.as_str()).into();
     }
   });
 

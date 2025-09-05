@@ -46,7 +46,7 @@ where
   ) -> Option<Expr> {
     let is_view_transition_class_call = is_view_transition_class_call(var_decl, &self.state);
 
-    let result = if is_view_transition_class_call {
+    if is_view_transition_class_call {
       validate_stylex_view_transition_class_indent(var_decl, &mut self.state);
 
       let call = var_decl
@@ -178,8 +178,6 @@ where
       Some(result_ast)
     } else {
       None
-    };
-
-    result
+    }
   }
 }

@@ -41,20 +41,18 @@ where
       TransformationCycle::PreCleaning => {
         if let Expr::Ident(ident) = member_expression.obj.as_ref() {
           let obj_ident_name = ident.sym.to_string();
-          if self.state.style_map.contains_key(&obj_ident_name) {
-            if let MemberProp::Ident(prop_ident) = &member_expression.prop {
-              if let Some(count) = self.state.member_object_ident_count_map.get(&ident.sym) {
-                if count > &0 {
-                  increase_ident_count(&mut self.state, ident);
-                  let style_var_to_keep = StyleVarsToKeep(
-                    ident.sym.clone(),
-                    NonNullProp::Atom(prop_ident.sym.clone()),
-                    NonNullProps::True,
-                  );
-                  self.state.style_vars_to_keep.insert(style_var_to_keep);
-                }
-              }
-            }
+          if self.state.style_map.contains_key(&obj_ident_name)
+            && let MemberProp::Ident(prop_ident) = &member_expression.prop
+            && let Some(count) = self.state.member_object_ident_count_map.get(&ident.sym)
+            && count > &0
+          {
+            increase_ident_count(&mut self.state, ident);
+            let style_var_to_keep = StyleVarsToKeep(
+              ident.sym.clone(),
+              NonNullProp::Atom(prop_ident.sym.clone()),
+              NonNullProps::True,
+            );
+            self.state.style_vars_to_keep.insert(style_var_to_keep);
           }
         }
         member_expression.fold_children_with(self)

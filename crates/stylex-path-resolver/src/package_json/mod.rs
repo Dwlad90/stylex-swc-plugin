@@ -155,10 +155,9 @@ pub(crate) fn resolve_package_from_package_json(
 
   if let Some(resolution) =
     get_node_modules_path(resolver, file_name, import_path_str, package_json_seen)
+    && let FileName::Real(_) = &resolution.filename
   {
-    if let FileName::Real(_) = &resolution.filename {
-      return Some(resolution);
-    }
+    return Some(resolution);
   }
 
   let parts: Vec<&str> = import_path_str.split(PATH_SEPARATOR).collect();

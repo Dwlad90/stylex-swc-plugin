@@ -66,10 +66,10 @@ where
     }
 
     if self.state.cycle == TransformationCycle::TransformExit {
-      if self.state.stylex_props_import.contains(ident_name) {
-        if let Some(value) = self.transform_stylex_props_call(call_expr) {
-          return Some(value);
-        }
+      if self.state.stylex_props_import.contains(ident_name)
+        && let Some(value) = self.transform_stylex_props_call(call_expr)
+      {
+        return Some(value);
       }
 
       if let Some(value) = self.transform_stylex_call(call_expr) {

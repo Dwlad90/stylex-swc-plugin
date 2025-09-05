@@ -22,21 +22,20 @@ where
 
     let normalized_expr = normalize_expr(&mut expr);
 
-    if self.state.cycle == TransformationCycle::StateFilling {
-      if let Some(call_expr) = normalized_expr.as_call() {
-        self
-          .state
-          .all_call_expressions
-          .insert(stable_hash(&call_expr), call_expr.clone());
-      }
+    if self.state.cycle == TransformationCycle::StateFilling
+      && let Some(call_expr) = normalized_expr.as_call()
+    {
+      self
+        .state
+        .all_call_expressions
+        .insert(stable_hash(&call_expr), call_expr.clone());
     }
 
-    if self.state.cycle == TransformationCycle::TransformEnter
-      || self.state.cycle == TransformationCycle::TransformExit
+    if (self.state.cycle == TransformationCycle::TransformEnter
+      || self.state.cycle == TransformationCycle::TransformExit)
+      && let Some(value) = self.transform_call_expression(normalized_expr)
     {
-      if let Some(value) = self.transform_call_expression(normalized_expr) {
-        return value;
-      }
+      return value;
     }
 
     expr.fold_children_with(self)

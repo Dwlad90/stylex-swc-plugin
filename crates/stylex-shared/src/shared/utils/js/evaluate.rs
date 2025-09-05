@@ -239,15 +239,13 @@ fn _evaluate(
 
                   let value = result.value;
 
-                  let expr = match value {
+                  match value {
                     Some(res) => res
                       .as_expr()
                       .expect("Evaluation result must be an expression")
                       .clone(),
                     None => unreachable!("Evaluation result must be non optional"),
-                  };
-
-                  expr
+                  }
                 }
               };
 
@@ -745,9 +743,7 @@ fn _evaluate(
           let value = expr_to_num(&arg, state, traversal_state, fns)
             .unwrap_or_else(|error| panic!("{}", error));
 
-          Some(EvaluateResultValue::Expr(number_to_expression(
-            value * -1.0,
-          )))
+          Some(EvaluateResultValue::Expr(number_to_expression(-value)))
         }
         UnaryOp::Tilde => {
           let value = expr_to_num(&arg, state, traversal_state, fns)
@@ -1465,22 +1461,21 @@ fn _evaluate(
                   .functions
                   .member_expressions
                   .get(&ImportSources::Regular(obj_name))
+                  && let Some(member_expr_fn) = member_expr.get(&prop_id.0)
                 {
-                  if let Some(member_expr_fn) = member_expr.get(&prop_id.0) {
-                    match member_expr_fn.as_ref() {
-                      FunctionConfigType::Regular(fc) => {
-                        func = Some(Box::new(fc.clone()));
-                      }
-                      FunctionConfigType::Map(_) => build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
-                        path,
-                        "FunctionConfigType::Map not implemented",
-                        traversal_state,
-                      ),
+                  match member_expr_fn.as_ref() {
+                    FunctionConfigType::Regular(fc) => {
+                      func = Some(Box::new(fc.clone()));
                     }
+                    FunctionConfigType::Map(_) => build_code_frame_error_and_panic(
+                      &Expr::Paren(ParenExpr {
+                        span: DUMMY_SP,
+                        expr: Box::new(path.clone()),
+                      }),
+                      path,
+                      "FunctionConfigType::Map not implemented",
+                      traversal_state,
+                    ),
                   }
                 }
               }
@@ -1493,28 +1488,27 @@ fn _evaluate(
                 .functions
                 .member_expressions
                 .get(&ImportSources::Regular(obj_name))
+                && member_expr.contains_key(prop_id)
               {
-                if member_expr.contains_key(prop_id) {
-                  build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
-                    path,
-                    "Check what's happening here",
-                    traversal_state,
-                  )
+                build_code_frame_error_and_panic(
+                  &Expr::Paren(ParenExpr {
+                    span: DUMMY_SP,
+                    expr: Box::new(path.clone()),
+                  }),
+                  path,
+                  "Check what's happening here",
+                  traversal_state,
+                )
 
-                  // context = Some(member_expr.clone());
+                // context = Some(member_expr.clone());
 
-                  // TODO: uncomment this for implementation of member expressions
-                  // match member_expr.get(&prop_id).unwrap() {
-                  //   FunctionConfigType::Regular(fc) => {
-                  //     func = Some(Box::new(fc.clone()));
-                  //   }
-                  //   FunctionConfigType::Map(_) => unimplemented!("FunctionConfigType::Map"),
-                  // }
-                }
+                // TODO: uncomment this for implementation of member expressions
+                // match member_expr.get(&prop_id).unwrap() {
+                //   FunctionConfigType::Regular(fc) => {
+                //     func = Some(Box::new(fc.clone()));
+                //   }
+                //   FunctionConfigType::Map(_) => unimplemented!("FunctionConfigType::Map"),
+                // }
               }
             }
           }
@@ -1522,18 +1516,18 @@ fn _evaluate(
           if object.is_lit() {
             let obj_lit = object.as_lit().unwrap();
 
-            if property.is_ident() {
-              if let Lit::Bool(_) = obj_lit {
-                build_code_frame_error_and_panic(
-                  &Expr::Paren(ParenExpr {
-                    span: DUMMY_SP,
-                    expr: Box::new(path.clone()),
-                  }),
-                  path,
-                  "Boolean object not implemented",
-                  traversal_state,
-                )
-              }
+            if property.is_ident()
+              && let Lit::Bool(_) = obj_lit
+            {
+              build_code_frame_error_and_panic(
+                &Expr::Paren(ParenExpr {
+                  span: DUMMY_SP,
+                  expr: Box::new(path.clone()),
+                }),
+                path,
+                "Boolean object not implemented",
+                traversal_state,
+              )
             }
           }
 
@@ -2547,10 +2541,10 @@ fn get_method_name(prop: &MemberProp) -> &str {
 }
 
 fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
-  if let MemberProp::Computed(comp_prop) = prop {
-    if let Expr::Lit(Lit::Str(strng)) = comp_prop.expr.as_ref() {
-      return Some(&strng.value);
-    }
+  if let MemberProp::Computed(comp_prop) = prop
+    && let Expr::Lit(Lit::Str(strng)) = comp_prop.expr.as_ref()
+  {
+    return Some(&strng.value);
   }
 
   None
@@ -2591,16 +2585,14 @@ pub(crate) fn evaluate_quasis(
       elem.cooked.as_ref().expect("Cooked should be some")
     });
 
-    if let Some(expr) = exprs.get(i) {
-      if let Some(evaluated_expr) = evaluate_cached(expr, state, traversal_state, fns) {
-        if let Some(lit_str) = evaluated_expr
-          .as_expr()
-          .and_then(|expr| expr.as_lit())
-          .and_then(lit_to_string)
-        {
-          strng.push_str(&lit_str);
-        }
-      }
+    if let Some(expr) = exprs.get(i)
+      && let Some(evaluated_expr) = evaluate_cached(expr, state, traversal_state, fns)
+      && let Some(lit_str) = evaluated_expr
+        .as_expr()
+        .and_then(|expr| expr.as_lit())
+        .and_then(lit_to_string)
+    {
+      strng.push_str(&lit_str);
     }
   }
 

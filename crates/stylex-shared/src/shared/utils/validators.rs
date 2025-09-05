@@ -709,15 +709,15 @@ pub(crate) fn assert_valid_properties(
   error_message: &str,
   state: &mut StateManager,
 ) {
-  if let EvaluateResultValue::Expr(expr) = obj {
-    if let Expr::Object(object) = expr {
-      let key_values = get_key_values_from_object(object);
+  if let EvaluateResultValue::Expr(expr) = obj
+    && let Expr::Object(object) = expr
+  {
+    let key_values = get_key_values_from_object(object);
 
-      for key_value in key_values.iter() {
-        let key = key_value_to_str(key_value);
-        if !valid_keys.contains(&key.as_str()) {
-          build_code_frame_error_and_panic(expr, expr, error_message, state);
-        }
+    for key_value in key_values.iter() {
+      let key = key_value_to_str(key_value);
+      if !valid_keys.contains(&key.as_str()) {
+        build_code_frame_error_and_panic(expr, expr, error_message, state);
       }
     }
   }

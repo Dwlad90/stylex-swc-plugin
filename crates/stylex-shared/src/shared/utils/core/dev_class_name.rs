@@ -88,11 +88,10 @@ fn namespace_to_dev_class_name(
       .unwrap_or_default(),
     namespace
   );
-  let sanitized_class_name = SANITIZE_CLASS_NAME_REGEX
-    .replace_all(&class_name, "$1 $2")
-    .to_string();
 
-  sanitized_class_name
+  SANITIZE_CLASS_NAME_REGEX
+    .replace_all(&class_name, "$1 $2")
+    .to_string()
 }
 
 fn convert_theme_to_base_styles(

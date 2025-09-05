@@ -146,15 +146,15 @@ where
     local_name: &str,
     import_specifier: &ImportNamedSpecifier,
   ) {
-    if let Some(source_path) = self.state.import_as(source_path) {
-      if source_path.eq(&imported_name) {
-        self.state.import_paths.insert(source_path.clone());
+    if let Some(source_path) = self.state.import_as(source_path)
+      && source_path.eq(&imported_name)
+    {
+      self.state.import_paths.insert(source_path.clone());
 
-        self
-          .state
-          .stylex_import
-          .insert(ImportSources::Regular(local_name.to_string()));
-      }
+      self
+        .state
+        .stylex_import
+        .insert(ImportSources::Regular(local_name.to_string()));
     }
 
     if self.state.import_as(source_path).is_none() {

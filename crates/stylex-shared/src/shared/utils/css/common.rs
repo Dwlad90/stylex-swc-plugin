@@ -268,9 +268,7 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
     return format!("\"{}\"", value);
   }
 
-  let result = normalize_css_property_value(key, value.as_ref(), &state.options);
-
-  result
+  normalize_css_property_value(key, value.as_ref(), &state.options)
 }
 
 pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateManager) -> String {
@@ -347,7 +345,7 @@ pub(crate) fn normalize_css_property_value(
     panic!("{}, css rule: {}", error_message, css_rule)
   }
 
-  let ast_normalized = match parsed_css {
+  match parsed_css {
     Ok(parsed_css_property_value) => {
       // let validators: Vec<Validator> = vec![
       //   unprefixed_custom_properties_validator,
@@ -381,9 +379,7 @@ pub(crate) fn normalize_css_property_value(
     Err(err) => {
       panic!("{}", err.message())
     }
-  };
-
-  ast_normalized
+  }
 }
 
 // type Normalizer = fn(Stylesheet, bool) -> Stylesheet;

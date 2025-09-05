@@ -137,7 +137,7 @@ pub(crate) fn _create_spreaded_array(values: &[Expr]) -> ArrayLit {
 // NOTE: Tests only using this function
 #[allow(dead_code)]
 fn array_fabric(values: &[Expr], spread: Option<Span>) -> ArrayLit {
-  let array = ArrayLit {
+  ArrayLit {
     span: DUMMY_SP,
     elems: values
       .iter()
@@ -148,7 +148,5 @@ fn array_fabric(values: &[Expr], spread: Option<Span>) -> ArrayLit {
         })
       })
       .collect(),
-  };
-
-  array
+  }
 }

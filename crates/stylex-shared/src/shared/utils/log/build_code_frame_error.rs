@@ -87,10 +87,7 @@ fn read_source_file(file_name: &FileName) -> Result<String, std::io::Error> {
     FileName::Real(path) => fs::read_to_string(path),
     FileName::Custom(path) => fs::read_to_string(path),
     FileName::Url(url) => fs::read_to_string(Path::new(url.path())),
-    _ => Err(std::io::Error::new(
-      std::io::ErrorKind::Other,
-      "Unsupported file name type",
-    )),
+    _ => Err(std::io::Error::other("Unsupported file name type")),
   }
 }
 

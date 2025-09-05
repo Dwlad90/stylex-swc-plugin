@@ -67,10 +67,10 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
         // Extract key-value pairs from the object
         let mut key_values = Vec::new();
         for obj_prop in &obj_lit.props {
-          if let PropOrSpread::Prop(p) = obj_prop {
-            if let Prop::KeyValue(kv) = &**p {
-              key_values.push(kv.clone());
-            }
+          if let PropOrSpread::Prop(p) = obj_prop
+            && let Prop::KeyValue(kv) = &**p
+          {
+            key_values.push(kv.clone());
           }
         }
 
@@ -158,26 +158,26 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
 
   // Process media queries with negations
   for (i, media_key) in media_keys.iter().enumerate() {
-    if let Some(original_kv) = result.iter().find(|kv| key_value_to_str(kv) == *media_key) {
-      if let Ok(base_mq) = MediaQuery::parser().parse_to_end(media_key) {
-        let mut reversed_negations = accumulated_negations[i].clone();
-        reversed_negations.reverse();
+    if let Some(original_kv) = result.iter().find(|kv| key_value_to_str(kv) == *media_key)
+      && let Ok(base_mq) = MediaQuery::parser().parse_to_end(media_key)
+    {
+      let mut reversed_negations = accumulated_negations[i].clone();
+      reversed_negations.reverse();
 
-        let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
-        let new_media_key = combined_query.to_string();
+      let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
+      let new_media_key = combined_query.to_string();
 
-        result_map.insert(
-          new_media_key,
-          KeyValueProp {
-            key: PropName::Str(Str {
-              span: DUMMY_SP,
-              value: Atom::from(combined_query.to_string()),
-              raw: None,
-            }),
-            value: original_kv.value.clone(),
-          },
-        );
-      }
+      result_map.insert(
+        new_media_key,
+        KeyValueProp {
+          key: PropName::Str(Str {
+            span: DUMMY_SP,
+            value: Atom::from(combined_query.to_string()),
+            raw: None,
+          }),
+          value: original_kv.value.clone(),
+        },
+      );
     }
   }
 

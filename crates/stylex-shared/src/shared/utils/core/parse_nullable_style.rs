@@ -55,40 +55,38 @@ pub(crate) fn parse_nullable_style(
       let mut obj_name: Option<String> = None;
       let mut prop_name: Option<String> = None;
 
-      if let Some(obj_ident) = member.obj.as_ident() {
-        if state.style_map.contains_key(obj_ident.sym.as_str()) {
-          if should_reduce_count {
-            if let Some(member_ident) = member.obj.as_ident() {
-              reduce_ident_count(state, member_ident);
-            }
-          }
+      if let Some(obj_ident) = member.obj.as_ident()
+        && state.style_map.contains_key(obj_ident.sym.as_str())
+      {
+        if should_reduce_count && let Some(member_ident) = member.obj.as_ident() {
+          reduce_ident_count(state, member_ident);
+        }
 
-          match &member.prop {
-            MemberProp::Ident(prop_ident) => {
-              obj_name = Some(obj_ident.sym.as_str().to_string());
-              prop_name = Some(prop_ident.sym.as_str().to_string());
-            }
-            MemberProp::Computed(computed) => {
-              if let Some(lit) = computed.expr.as_lit() {
-                obj_name = Some(obj_ident.sym.as_str().to_string());
-                prop_name = lit_to_string(lit);
-              }
-            }
-            MemberProp::PrivateName(_) => {}
+        match &member.prop {
+          MemberProp::Ident(prop_ident) => {
+            obj_name = Some(obj_ident.sym.as_str().to_string());
+            prop_name = Some(prop_ident.sym.as_str().to_string());
           }
+          MemberProp::Computed(computed) => {
+            if let Some(lit) = computed.expr.as_lit() {
+              obj_name = Some(obj_ident.sym.as_str().to_string());
+              prop_name = lit_to_string(lit);
+            }
+          }
+          MemberProp::PrivateName(_) => {}
         }
       }
 
-      if let Some(obj_name) = obj_name {
-        if let Some(prop_name) = prop_name {
-          let style = state.style_map.get(&obj_name);
+      if let Some(obj_name) = obj_name
+        && let Some(prop_name) = prop_name
+      {
+        let style = state.style_map.get(&obj_name);
 
-          if let Some(style) = style {
-            let style_value = style.get(&prop_name);
+        if let Some(style) = style {
+          let style_value = style.get(&prop_name);
 
-            if let Some(style_value) = style_value {
-              return StyleObject::Style((**style_value).clone());
-            }
+          if let Some(style_value) = style_value {
+            return StyleObject::Style((**style_value).clone());
           }
         }
       }

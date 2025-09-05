@@ -23,10 +23,9 @@ where
             .state
             .stylex_import
             .contains(&ImportSources::Regular(ident.sym.to_string()))
+            && let Some(value) = stylex_merge(call, stylex, &mut self.state)
           {
-            if let Some(value) = stylex_merge(call, stylex, &mut self.state) {
-              return Some(value);
-            }
+            return Some(value);
           }
           None
         }

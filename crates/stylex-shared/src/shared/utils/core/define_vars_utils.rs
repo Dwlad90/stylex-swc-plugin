@@ -143,15 +143,14 @@ pub(crate) fn collect_vars_by_at_rules(
 }
 
 fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> String {
-  let initial_value = values
+  values
     .get("default")
     .map(|value| match value {
       ValueWithDefault::Number(num) => num.to_string(),
       ValueWithDefault::String(strng) => strng.clone(),
       ValueWithDefault::Map(map) => get_nitial_value_of_css_type(map),
     })
-    .expect("Default value is not defined");
-  initial_value
+    .expect("Default value is not defined")
 }
 
 pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {

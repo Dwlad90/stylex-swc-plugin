@@ -9,11 +9,11 @@ use crate::shared::utils::css::common::swc_parse_css;
 fn process_function(func: &Function) {
   if let FunctionName::Ident(func_name_ident) = &func.name {
     let func_name = get_value_from_ident(func_name_ident);
-    if func_name == "var" {
-      if let Some(ComponentValue::Ident(ident)) = func.value.first() {
-        let value = get_value_from_ident(ident.as_ref());
-        assert!(value.starts_with("--"), "{}", UNPREFIXED_CUSTOM_PROPERTIES);
-      }
+    if func_name == "var"
+      && let Some(ComponentValue::Ident(ident)) = func.value.first()
+    {
+      let value = get_value_from_ident(ident.as_ref());
+      assert!(value.starts_with("--"), "{}", UNPREFIXED_CUSTOM_PROPERTIES);
     }
   }
 }

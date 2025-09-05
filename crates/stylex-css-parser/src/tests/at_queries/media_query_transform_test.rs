@@ -90,16 +90,16 @@ fn expr_to_json(expr: &Expr) -> Value {
     Expr::Object(obj) => {
       let mut result = serde_json::Map::new();
       for prop in &obj.props {
-        if let PropOrSpread::Prop(p) = prop {
-          if let Prop::KeyValue(kv) = &**p {
-            let key = match &kv.key {
-              PropName::Str(s) => s.value.to_string(),
-              PropName::Ident(id) => id.sym.to_string(),
-              _ => continue,
-            };
-            let value = expr_to_json(&kv.value);
-            result.insert(key, value);
-          }
+        if let PropOrSpread::Prop(p) = prop
+          && let Prop::KeyValue(kv) = &**p
+        {
+          let key = match &kv.key {
+            PropName::Str(s) => s.value.to_string(),
+            PropName::Ident(id) => id.sym.to_string(),
+            _ => continue,
+          };
+          let value = expr_to_json(&kv.value);
+          result.insert(key, value);
         }
       }
       Value::Object(result)

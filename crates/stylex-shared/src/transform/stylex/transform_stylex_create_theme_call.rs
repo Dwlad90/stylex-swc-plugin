@@ -44,7 +44,7 @@ where
   pub(crate) fn transform_stylex_create_theme_call(&mut self, call: &CallExpr) -> Option<Expr> {
     let is_create_theme_call = is_create_theme_call(call, &self.state);
 
-    let result = if is_create_theme_call {
+    if is_create_theme_call {
       let (_, parent_var_decl) = &self.get_call_var_name(call);
 
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
@@ -219,8 +219,6 @@ where
       Some(result_ast)
     } else {
       None
-    };
-
-    result
+    }
   }
 }

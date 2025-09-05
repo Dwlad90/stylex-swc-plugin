@@ -304,14 +304,15 @@ impl MediaQuery {
             ));
           }
           MediaQueryRule::And(ref and_rules) if and_rules.rules.len() == 1 => {
-            if let MediaQueryRule::MediaKeyword(keyword) = &and_rules.rules[0] {
-              if keyword.key == "all" && keyword.not {
-                return MediaQueryRule::MediaKeyword(MediaKeyword::new(
-                  "all".to_string(),
-                  false,
-                  false,
-                ));
-              }
+            if let MediaQueryRule::MediaKeyword(keyword) = &and_rules.rules[0]
+              && keyword.key == "all"
+              && keyword.not
+            {
+              return MediaQueryRule::MediaKeyword(MediaKeyword::new(
+                "all".to_string(),
+                false,
+                false,
+              ));
             }
           }
           MediaQueryRule::Not(inner_not) => {
@@ -541,60 +542,59 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
 
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
   for rule in &rules {
-    if let MediaQueryRule::Not(not_rule) = rule {
-      if let MediaQueryRule::And(and_rules) = not_rule.rule.as_ref() {
-        if and_rules.rules.len() == 2 {
-          let left = &and_rules.rules[0];
-          let right = &and_rules.rules[1];
+    if let MediaQueryRule::Not(not_rule) = rule
+      && let MediaQueryRule::And(and_rules) = not_rule.rule.as_ref()
+      && and_rules.rules.len() == 2
+    {
+      let left = &and_rules.rules[0];
+      let right = &and_rules.rules[1];
 
-          // Create left branch: all rules except current, plus (not left)
-          let mut left_branch_rules: Vec<MediaQueryRule> = rules
-            .iter()
-            .filter(|r| !std::ptr::eq(*r, rule))
-            .cloned()
-            .collect();
-          left_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(left.clone())));
+      // Create left branch: all rules except current, plus (not left)
+      let mut left_branch_rules: Vec<MediaQueryRule> = rules
+        .iter()
+        .filter(|r| !std::ptr::eq(*r, rule))
+        .cloned()
+        .collect();
+      left_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(left.clone())));
 
-          // Create right branch: all rules except current, plus (not right)
-          let mut right_branch_rules: Vec<MediaQueryRule> = rules
-            .iter()
-            .filter(|r| !std::ptr::eq(*r, rule))
-            .cloned()
-            .collect();
-          right_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(right.clone())));
+      // Create right branch: all rules except current, plus (not right)
+      let mut right_branch_rules: Vec<MediaQueryRule> = rules
+        .iter()
+        .filter(|r| !std::ptr::eq(*r, rule))
+        .cloned()
+        .collect();
+      right_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(right.clone())));
 
-          // Recursively process each branch
-          let left_branch = merge_intervals_for_and(left_branch_rules);
-          let right_branch = merge_intervals_for_and(right_branch_rules);
+      // Recursively process each branch
+      let left_branch = merge_intervals_for_and(left_branch_rules);
+      let right_branch = merge_intervals_for_and(right_branch_rules);
 
-          let mut or_rules = Vec::new();
+      let mut or_rules = Vec::new();
 
-          // Add left branch if not empty
-          if let Ok(left_result) = left_branch {
-            if !left_result.is_empty() {
-              if left_result.len() == 1 {
-                or_rules.push(left_result.into_iter().next().unwrap());
-              } else {
-                or_rules.push(MediaQueryRule::And(MediaAndRules::new(left_result)));
-              }
-            }
-          }
-
-          // Add right branch if not empty
-          if let Ok(right_result) = right_branch {
-            if !right_result.is_empty() {
-              if right_result.len() == 1 {
-                or_rules.push(right_result.into_iter().next().unwrap());
-              } else {
-                or_rules.push(MediaQueryRule::And(MediaAndRules::new(right_result)));
-              }
-            }
-          }
-
-          if !or_rules.is_empty() {
-            return Ok(vec![MediaQueryRule::Or(MediaOrRules::new(or_rules))]);
-          }
+      // Add left branch if not empty
+      if let Ok(left_result) = left_branch
+        && !left_result.is_empty()
+      {
+        if left_result.len() == 1 {
+          or_rules.push(left_result.into_iter().next().unwrap());
+        } else {
+          or_rules.push(MediaQueryRule::And(MediaAndRules::new(left_result)));
         }
+      }
+
+      // Add right branch if not empty
+      if let Ok(right_result) = right_branch
+        && !right_result.is_empty()
+      {
+        if right_result.len() == 1 {
+          or_rules.push(right_result.into_iter().next().unwrap());
+        } else {
+          or_rules.push(MediaQueryRule::And(MediaAndRules::new(right_result)));
+        }
+      }
+
+      if !or_rules.is_empty() {
+        return Ok(vec![MediaQueryRule::Or(MediaOrRules::new(or_rules))]);
       }
     }
   }
@@ -631,32 +631,30 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
 
         // Handle NOT rules with min/max constraints
         MediaQueryRule::Not(not_rule) => {
-          if let MediaQueryRule::Pair(pair) = not_rule.rule.as_ref() {
-            if (pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim))
-              && is_numeric_length(&pair.value)
-            {
-              if let MediaRuleValue::Length(length) = &pair.value {
-                let val = length.value;
+          if let MediaQueryRule::Pair(pair) = not_rule.rule.as_ref()
+            && (pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim))
+            && is_numeric_length(&pair.value)
+            && let MediaRuleValue::Length(length) = &pair.value
+          {
+            let val = length.value;
 
-                // Track unit conflicts
-                let dim_intervals = intervals.get(dim).unwrap();
-                if dim_intervals.is_empty() {
-                  units.insert(dim, length.unit.clone());
-                } else if units.get(dim) != Some(&length.unit) {
-                  has_any_unit_conflicts = true;
-                }
-
-                // NOT min-width becomes max-width with adjusted value, and vice versa
-                let interval = if pair.key.starts_with("min-") {
-                  (f32::NEG_INFINITY, val - EPSILON)
-                } else {
-                  (val + EPSILON, f32::INFINITY)
-                };
-
-                intervals.get_mut(dim).unwrap().push(interval);
-                break;
-              }
+            // Track unit conflicts
+            let dim_intervals = intervals.get(dim).unwrap();
+            if dim_intervals.is_empty() {
+              units.insert(dim, length.unit.clone());
+            } else if units.get(dim) != Some(&length.unit) {
+              has_any_unit_conflicts = true;
             }
+
+            // NOT min-width becomes max-width with adjusted value, and vice versa
+            let interval = if pair.key.starts_with("min-") {
+              (f32::NEG_INFINITY, val - EPSILON)
+            } else {
+              (val + EPSILON, f32::INFINITY)
+            };
+
+            intervals.get_mut(dim).unwrap().push(interval);
+            break;
           }
         }
 
@@ -761,28 +759,28 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
       let mut only_value = false; // Default to false instead of None
 
       // Try to parse optional "not" at the beginning
-      if let Ok(Some(SimpleToken::Ident(val))) = tokens.peek() {
-        if val == "not" {
-          tokens.consume_next_token()?; // consume "not"
-          not_value = true;
+      if let Ok(Some(SimpleToken::Ident(val))) = tokens.peek()
+        && val == "not"
+      {
+        tokens.consume_next_token()?; // consume "not"
+        not_value = true;
 
-          // Consume whitespace after "not"
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
-          }
+        // Consume whitespace after "not"
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
         }
       }
 
       // Try to parse optional "only" after "not" (or at beginning if no "not")
-      if let Ok(Some(SimpleToken::Ident(val))) = tokens.peek() {
-        if val == "only" {
-          tokens.consume_next_token()?; // consume "only"
-          only_value = true;
+      if let Ok(Some(SimpleToken::Ident(val))) = tokens.peek()
+        && val == "only"
+      {
+        tokens.consume_next_token()?; // consume "only"
+        only_value = true;
 
-          // Consume whitespace after "only"
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
-          }
+        // Consume whitespace after "only"
+        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+          tokens.consume_next_token()?;
         }
       }
 
@@ -1679,19 +1677,19 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
         }
 
         // Check for "or" keyword
-        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek() {
-          if keyword == "or" {
-            tokens.consume_next_token()?; // consume "or"
+        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
+          && keyword == "or"
+        {
+          tokens.consume_next_token()?; // consume "or"
 
-            // Skip whitespace after "or"
-            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
-            }
-
-            let rule = (and_combinator_parser().run)(tokens)?;
-            rules.push(rule);
-            continue;
+          // Skip whitespace after "or"
+          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+            tokens.consume_next_token()?;
           }
+
+          let rule = (and_combinator_parser().run)(tokens)?;
+          rules.push(rule);
+          continue;
         }
 
         // No more OR patterns found, restore position and break
@@ -1803,26 +1801,26 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
         }
 
         // Try to parse a NOT expression first
-        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek() {
-          if keyword == "not" {
-            // Parse NOT expression within parentheses
-            let not_rule = (leading_not_parser().run)(tokens)?;
+        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
+          && keyword == "not"
+        {
+          // Parse NOT expression within parentheses
+          let not_rule = (leading_not_parser().run)(tokens)?;
 
-            // Skip optional whitespace before closing
-            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
-            }
+          // Skip optional whitespace before closing
+          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+            tokens.consume_next_token()?;
+          }
 
-            // Expect closing parenthesis
-            if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
-              tokens.consume_next_token()?; // consume ')'
-              return Ok(not_rule);
-            } else {
-              return Err(CssParseError::ParseError {
-                message: "Expected closing parenthesis after parenthesized NOT expression"
-                  .to_string(),
-              });
-            }
+          // Expect closing parenthesis
+          if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
+            tokens.consume_next_token()?; // consume ')'
+            return Ok(not_rule);
+          } else {
+            return Err(CssParseError::ParseError {
+              message: "Expected closing parenthesis after parenthesized NOT expression"
+                .to_string(),
+            });
           }
         }
 

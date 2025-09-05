@@ -190,10 +190,9 @@ where
         Expr::Member(member) => {
           if let (Expr::Ident(obj_ident), MemberProp::Ident(prop_ident)) =
             (member.obj.as_ref(), &member.prop)
+            && self.is_stylex_import(obj_ident.sym.as_ref())
           {
-            if self.is_stylex_import(obj_ident.sym.as_ref()) {
-              return Some((obj_ident.to_id(), prop_ident.sym.to_string()));
-            }
+            return Some((obj_ident.to_id(), prop_ident.sym.to_string()));
           }
         }
         _ => {}
@@ -237,10 +236,10 @@ where
       })
       .cloned();
 
-    if let Some(ref parent_var_decl) = parent_var_decl {
-      if let Some(ident) = parent_var_decl.name.as_ident() {
-        var_name = Some(ident.sym.to_string());
-      }
+    if let Some(ref parent_var_decl) = parent_var_decl
+      && let Some(ident) = parent_var_decl.name.as_ident()
+    {
+      var_name = Some(ident.sym.to_string());
     }
 
     (var_name, parent_var_decl)

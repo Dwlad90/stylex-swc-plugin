@@ -2,7 +2,7 @@
 name = "stylex_css_parser"
 version = "0.10.6"
 edition = "2024"
-rust-version = "1.86.0"
+rust-version = "1.89.0"
 description = "CSS value parser"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"

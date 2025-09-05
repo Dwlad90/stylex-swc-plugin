@@ -92,10 +92,10 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
 
                     let mut compiled_key_value_is_true = false;
 
-                    if let FlatCompiledStylesValue::Bool(value) = compiled_key_value.as_ref() {
-                      if *value {
-                        compiled_key_value_is_true = true;
-                      }
+                    if let FlatCompiledStylesValue::Bool(value) = compiled_key_value.as_ref()
+                      && *value
+                    {
+                      compiled_key_value_is_true = true;
                     }
 
                     if !compiled_key_value_is_true {

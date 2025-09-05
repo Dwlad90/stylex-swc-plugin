@@ -130,12 +130,13 @@ impl Shorthands {
     let mut coll: Vec<String> = Vec::with_capacity(parts.len());
 
     for part in parts {
-      if let Some(last_element) = coll.last() {
-        if last_element == "auto" && !part.is_empty() {
-          coll.pop();
-          coll.push(format!("auto {}", part));
-          continue;
-        }
+      if let Some(last_element) = coll.last()
+        && last_element == "auto"
+        && !part.is_empty()
+      {
+        coll.pop();
+        coll.push(format!("auto {}", part));
+        continue;
       }
       coll.push(part);
     }

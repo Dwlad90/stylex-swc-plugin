@@ -194,9 +194,7 @@ pub(crate) fn get_keyframes_fn() -> FunctionConfig {
         .other_injected_css_rules
         .insert(animation_name.clone(), Rc::new(injected_style));
 
-      let result = string_to_expression(animation_name.as_str());
-
-      result
+      string_to_expression(animation_name.as_str())
     }),
     takes_path: false,
   }

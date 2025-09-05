@@ -415,37 +415,37 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
         match prop.deref() {
           Prop::KeyValue(key_value) => {
-            if let Some(ident) = key_value.key.as_ident() {
-              if ident.sym == "syntax" {
-                let value = obj.props.iter().find(|prop| {
-                  match prop {
-                    PropOrSpread::Spread(_) => unimplemented!("Spread"),
-                    PropOrSpread::Prop(prop) => {
-                      let mut prop = prop.clone();
-                      transform_shorthand_to_key_values(&mut prop);
+            if let Some(ident) = key_value.key.as_ident()
+              && ident.sym == "syntax"
+            {
+              let value = obj.props.iter().find(|prop| {
+                match prop {
+                  PropOrSpread::Spread(_) => unimplemented!("Spread"),
+                  PropOrSpread::Prop(prop) => {
+                    let mut prop = prop.clone();
+                    transform_shorthand_to_key_values(&mut prop);
 
-                      match prop.as_ref() {
-                        Prop::KeyValue(key_value) => {
-                          if let Some(ident) = key_value.key.as_ident() {
-                            return ident.sym == "value";
-                          }
+                    match prop.as_ref() {
+                      Prop::KeyValue(key_value) => {
+                        if let Some(ident) = key_value.key.as_ident() {
+                          return ident.sym == "value";
                         }
-                        _ => unimplemented!(),
                       }
+                      _ => unimplemented!(),
                     }
                   }
-
-                  false
-                });
-
-                if let Some(value) = value {
-                  let result_key_value = value
-                    .as_prop()
-                    .and_then(|prop| prop.as_key_value())
-                    .unwrap();
-
-                  return (result_key_value.value.clone(), Some(obj.clone().into()));
                 }
+
+                false
+              });
+
+              if let Some(value) = value {
+                let result_key_value = value
+                  .as_prop()
+                  .and_then(|prop| prop.as_key_value())
+                  .unwrap();
+
+                return (result_key_value.value.clone(), Some(obj.clone().into()));
               }
             }
           }
@@ -517,16 +517,16 @@ pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManag
     }
     ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) => {
       for decl in &var.decls {
-        if let Some(decl_init) = decl.init.as_ref() {
-          if decl.name.as_ident().is_some() {
-            state.top_level_expressions.push(TopLevelExpression(
-              TopLevelExpressionKind::Stmt,
-              *drop_span(decl_init.clone()),
-              Some(decl.name.as_ident().unwrap().sym.clone()),
-            ));
+        if let Some(decl_init) = decl.init.as_ref()
+          && decl.name.as_ident().is_some()
+        {
+          state.top_level_expressions.push(TopLevelExpression(
+            TopLevelExpressionKind::Stmt,
+            *drop_span(decl_init.clone()),
+            Some(decl.name.as_ident().unwrap().sym.clone()),
+          ));
 
-            fill_state_declarations(state, decl);
-          }
+          fill_state_declarations(state, decl);
         }
       }
     }

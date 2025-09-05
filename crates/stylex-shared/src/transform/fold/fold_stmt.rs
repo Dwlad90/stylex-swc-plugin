@@ -21,13 +21,13 @@ where
     if self.state.cycle == TransformationCycle::Cleaning {
       let mut stmt = stmt.fold_children_with(self);
 
-      if let Some(Stmt::Decl(Decl::Var(var))) = stmt.as_ref() {
-        if var.decls.is_empty() {
-          // Variable declaration without declarator is invalid.
-          //
-          // After this, `stmt` becomes `Stmt::Empty`.
-          stmt.take();
-        }
+      if let Some(Stmt::Decl(Decl::Var(var))) = stmt.as_ref()
+        && var.decls.is_empty()
+      {
+        // Variable declaration without declarator is invalid.
+        //
+        // After this, `stmt` becomes `Stmt::Empty`.
+        stmt.take();
       }
 
       stmt

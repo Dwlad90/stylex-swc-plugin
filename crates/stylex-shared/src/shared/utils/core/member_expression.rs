@@ -48,10 +48,10 @@ pub(crate) fn member_expression(
 
   let style_non_null_props: NonNullProps;
 
-  if let Some(bail_out_index) = bail_out_index {
-    if index > bail_out_index {
-      *non_null_props = NonNullProps::True;
-    }
+  if let Some(bail_out_index) = bail_out_index
+    && index > bail_out_index
+  {
+    *non_null_props = NonNullProps::True;
   }
 
   if let NonNullProps::True = non_null_props {
@@ -69,32 +69,31 @@ pub(crate) fn member_expression(
         style_non_null_props = non_null_props.clone();
       }
 
-      if let NonNullProps::Vec(vec) = non_null_props {
-        if let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) =
+      if let NonNullProps::Vec(vec) = non_null_props
+        && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) =
           evaluate_result.value
-        {
-          let namespaces = props
-            .iter()
-            .filter_map(|item| match item {
-              PropOrSpread::Spread(_) => unimplemented!("Spread"),
-              PropOrSpread::Prop(prop) => match prop.as_ref() {
-                Prop::KeyValue(key_value) => match key_value.value.as_ref() {
-                  Expr::Lit(Lit::Null(_)) => None,
-                  _ => Some(
-                    key_value
-                      .key
-                      .as_ident()
-                      .map(|ident| &ident.sym)
-                      .expect("Key not an ident"),
-                  ),
-                },
-                _ => unimplemented!(),
+      {
+        let namespaces = props
+          .iter()
+          .filter_map(|item| match item {
+            PropOrSpread::Spread(_) => unimplemented!("Spread"),
+            PropOrSpread::Prop(prop) => match prop.as_ref() {
+              Prop::KeyValue(key_value) => match key_value.value.as_ref() {
+                Expr::Lit(Lit::Null(_)) => None,
+                _ => Some(
+                  key_value
+                    .key
+                    .as_ident()
+                    .map(|ident| &ident.sym)
+                    .expect("Key not an ident"),
+                ),
               },
-            })
-            .collect::<Vec<&Atom>>();
+              _ => unimplemented!(),
+            },
+          })
+          .collect::<Vec<&Atom>>();
 
-          vec.extend(namespaces.into_iter().cloned());
-        }
+        vec.extend(namespaces.into_iter().cloned());
       }
     }
   }

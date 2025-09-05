@@ -91,11 +91,10 @@ where
           .first()
           .and_then(|first| first.as_stmt())
           .and_then(|stmp| stmp.as_expr())
+          && let Some(Lit::Str(_)) = first.expr.as_lit()
         {
-          if let Some(Lit::Str(_)) = first.expr.as_lit() {
-            result_module_items.insert(0, module_items.first().unwrap().clone());
-            items_to_skip = 1;
-          }
+          result_module_items.insert(0, module_items.first().unwrap().clone());
+          items_to_skip = 1;
         }
 
         for module_item in module_items.iter().skip(items_to_skip) {

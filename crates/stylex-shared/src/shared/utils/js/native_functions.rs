@@ -83,13 +83,11 @@ pub(crate) fn evaluate_join(
   let result = args
     .iter()
     .map(|arg_ref| {
-      let str_arg = arg_ref
+      arg_ref
         .as_ref()
         .and_then(|arg| arg.as_expr())
         .map(|arg| expr_to_str(arg, state, functions))
-        .expect("Failed parsing \"join\" argument to string");
-
-      str_arg
+        .expect("Failed parsing \"join\" argument to string")
     })
     .collect::<Vec<String>>()
     .join(&join_arg);

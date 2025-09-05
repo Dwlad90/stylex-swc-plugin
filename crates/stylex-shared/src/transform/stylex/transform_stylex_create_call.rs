@@ -307,11 +307,12 @@ where
         &mut self.state,
       );
 
-      if let Some(fns) = evaluated_arg.fns {
-        if let Some(object) = result_ast.as_object() {
-          let key_values = get_key_values_from_object(object);
+      if let Some(fns) = evaluated_arg.fns
+        && let Some(object) = result_ast.as_object()
+      {
+        let key_values = get_key_values_from_object(object);
 
-          let props = key_values
+        let props = key_values
             .iter()
             .map(|key_value| {
               let orig_key = key_value_to_str(key_value);
@@ -325,8 +326,8 @@ where
 
               let mut prop: Option<PropOrSpread> = None;
 
-              if let Some(key) = key {
-                if let Some((params, inline_styles)) = fns.get(&key) {
+              if let Some(key) = key
+                && let Some((params, inline_styles)) = fns.get(&key) {
                   let mut orig_class_paths = IndexMap::new();
 
                   if let Some(namespace) = class_paths_per_namespace.get(&key) {
@@ -584,7 +585,6 @@ where
                     prop = Some(prop_or_spread_expression_factory(orig_key.as_str(), value));
                   }
                 }
-              }
 
               prop.unwrap_or_else(|| {
                 prop_or_spread_expression_factory(orig_key.as_str(), *value.clone())
@@ -592,12 +592,11 @@ where
             })
             .collect::<Vec<PropOrSpread>>();
 
-          result_ast = path_replace_hoisted(
-            object_expression_factory(props),
-            is_program_level,
-            &mut self.state,
-          );
-        }
+        result_ast = path_replace_hoisted(
+          object_expression_factory(props),
+          is_program_level,
+          &mut self.state,
+        );
       };
 
       self

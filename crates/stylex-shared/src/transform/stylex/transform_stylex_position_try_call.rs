@@ -43,7 +43,7 @@ where
   ) -> Option<Expr> {
     let is_position_try_call = is_position_try_call(var_decl, &self.state);
 
-    let result = if is_position_try_call {
+    if is_position_try_call {
       validate_stylex_position_try_indent(var_decl, &mut self.state);
 
       let call = var_decl
@@ -151,8 +151,6 @@ where
       Some(result_ast)
     } else {
       None
-    };
-
-    result
+    }
   }
 }

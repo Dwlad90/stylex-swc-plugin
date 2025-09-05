@@ -116,7 +116,7 @@ pub fn unari_to_num(
 
   match &op {
     UnaryOp::Minus => match expr_to_num(arg, state, traversal_state, fns) {
-      Ok(result) => result * -1.0,
+      Ok(result) => -result,
       Err(error) => panic!("{}", error),
     },
     UnaryOp::Plus => match expr_to_num(arg, state, traversal_state, fns) {
@@ -516,13 +516,10 @@ pub fn handle_tpl_to_expression(
       // If a variable declaration was found
       if let Some(var_decl) = &var_decl {
         // Swap the placeholder expression in the template with the variable declaration's initializer
-        std::mem::swap(
-          expr,
-          &mut var_decl
-            .init
-            .clone()
-            .expect("Variable declaration has no initializer"),
-        );
+        *expr = var_decl
+          .init
+          .clone()
+          .expect("Variable declaration has no initializer");
       }
     };
   }

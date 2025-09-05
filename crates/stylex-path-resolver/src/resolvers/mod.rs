@@ -150,16 +150,15 @@ fn get_package_path_by_package_json(
         let resolved_node_modules_path =
           get_node_modules_path(&resolver, &file_name, name, package_json_seen);
 
-        if let Some(resolved_node_modules_path) = resolved_node_modules_path {
-          if let FileName::Real(real_resolved_node_modules_path) =
+        if let Some(resolved_node_modules_path) = resolved_node_modules_path
+          && let FileName::Real(real_resolved_node_modules_path) =
             resolved_node_modules_path.filename
-          {
-            potential_package_path = resolve_exports_path(
-              &real_resolved_node_modules_path,
-              Path::new(potential_file_path),
-              package_json_seen,
-            );
-          }
+        {
+          potential_package_path = resolve_exports_path(
+            &real_resolved_node_modules_path,
+            Path::new(potential_file_path),
+            package_json_seen,
+          );
         }
 
         if potential_package_path.as_os_str().is_empty() {
@@ -215,10 +214,10 @@ pub(crate) fn get_node_modules_path(
   {
     match resolver.resolve(file_name, name) {
       Ok(resolution) => {
-        if let FileName::Real(real_filename) = &resolution.filename {
-          if real_filename.to_string_lossy().contains("node_modules/") {
-            return Some(resolution);
-          }
+        if let FileName::Real(real_filename) = &resolution.filename
+          && real_filename.to_string_lossy().contains("node_modules/")
+        {
+          return Some(resolution);
         }
         None
       }
@@ -561,27 +560,25 @@ fn resolve_package_with_pnpm_path(
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> Option<(PackageJsonExtended, PathBuf)> {
   let closest_package_json_path = find_closest_package_json_folder(&PathBuf::from(source_file_dir));
-  if let Some(closest_package_json_directory) = closest_package_json_path {
-    if let Ok(directories) =
+  if let Some(closest_package_json_directory) = closest_package_json_path
+    && let Ok(directories) =
       get_directories(&closest_package_json_directory.join("node_modules/.pnpm"))
-    {
-      let normalized_name = if package_name.starts_with('@') {
-        package_name.replace('/', "+")
-      } else {
-        package_name.to_string()
+  {
+    let normalized_name = if package_name.starts_with('@') {
+      package_name.replace('/', "+")
+    } else {
+      package_name.to_string()
+    };
+
+    for path in directories.iter() {
+      if path.to_string_lossy().contains(&normalized_name)
+        && let Ok(resolved_node_modules_path_buff) =
+          resolve_node_modules_path_buff(path, import_path_str, package_json_seen)
+      {
+        let (package_json, _) = get_package_json(path, package_json_seen);
+
+        return Some((package_json, resolved_node_modules_path_buff));
       };
-
-      for path in directories.iter() {
-        if path.to_string_lossy().contains(&normalized_name) {
-          if let Ok(resolved_node_modules_path_buff) =
-            resolve_node_modules_path_buff(path, import_path_str, package_json_seen)
-          {
-            let (package_json, _) = get_package_json(path, package_json_seen);
-
-            return Some((package_json, resolved_node_modules_path_buff));
-          };
-        }
-      }
     }
   };
 
@@ -600,10 +597,9 @@ fn resolve_node_modules_path_buff(
     &FileName::Real(path.to_path_buf()),
     import_path_str,
     package_json_seen,
-  ) {
-    if let FileName::Real(resolved_node_modules_path_buf) = package_resolution.filename {
-      return Ok::<PathBuf, std::io::Error>(resolved_node_modules_path_buf);
-    }
+  ) && let FileName::Real(resolved_node_modules_path_buf) = package_resolution.filename
+  {
+    return Ok::<PathBuf, std::io::Error>(resolved_node_modules_path_buf);
   }
 
   Result::Err(std::io::Error::new(

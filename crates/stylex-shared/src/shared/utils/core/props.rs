@@ -34,13 +34,13 @@ pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
     unimplemented!("Inline style");
   }
 
-  if let Some(data_style_src) = data_style_src {
-    if !data_style_src.is_empty() {
-      props_map.insert(
-        "data-style-src".to_string(),
-        Rc::new(FlatCompiledStylesValue::String(data_style_src)),
-      );
-    }
+  if let Some(data_style_src) = data_style_src
+    && !data_style_src.is_empty()
+  {
+    props_map.insert(
+      "data-style-src".to_string(),
+      Rc::new(FlatCompiledStylesValue::String(data_style_src)),
+    );
   }
 
   Some(FnResult::Props(

@@ -6,11 +6,10 @@ var defaultConfig = {
     opts: {},
     cwd: '/home/test/',
     filename: '/home/test/main.js',
-    get (_key: mixed): any {},
-    set (_key: mixed, _value: mixed): void {}
+    get (_key) {},
+    set (_key, _value) {}
 };
-var makeState = (opts?: {
-} = {})=>new StateManager({
+var makeState = (opts = {})=>new StateManager({
         ...defaultConfig,
         opts
     });

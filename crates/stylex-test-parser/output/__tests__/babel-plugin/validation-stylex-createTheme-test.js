@@ -1,4 +1,4 @@
-function transform(source: string, opts: any = {}) {
+function transform(source, opts = {}) {
     return transformSync(source, {
         filename: opts.filename || 'TestTheme.stylex.js',
         parserOpts: {

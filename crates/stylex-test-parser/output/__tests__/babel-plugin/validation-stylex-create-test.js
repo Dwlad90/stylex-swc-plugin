@@ -1,6 +1,6 @@
 var ST = '(?:\\u0007|\\u001B\\u005C|\\u009C)';
 var regex = new RegExp(pattern, 'g');
-var cleanExpect = (fn: () => mixed)=>expect(()=>{
+var cleanExpect = (fn)=>expect(()=>{
         try {
             fn();
         } catch (error) {
@@ -11,9 +11,7 @@ var cleanExpect = (fn: () => mixed)=>expect(()=>{
             throw error;
         }
     });
-function transform(source: string, opts: {
-    [key: string]: any;
-} = {}) {
+function transform(source, opts = {}) {
     return transformSync(source, {
         filename: opts.filename,
         parserOpts: {

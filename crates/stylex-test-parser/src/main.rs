@@ -134,6 +134,44 @@ impl Fold for TestsTransformer {
   }
 }
 
+struct TypeScriptStripper;
+
+impl Fold for TypeScriptStripper {
+  fn fold_binding_ident(
+    &mut self,
+    mut node: swc_core::ecma::ast::BindingIdent,
+  ) -> swc_core::ecma::ast::BindingIdent {
+    node.type_ann = None;
+
+    node.optional = false;
+
+    node
+  }
+
+  fn fold_function(
+    &mut self,
+    mut node: swc_core::ecma::ast::Function,
+  ) -> swc_core::ecma::ast::Function {
+    node.return_type = None;
+
+    node.fold_children_with(self)
+  }
+
+  fn fold_key_value_prop(
+    &mut self,
+    mut node: swc_core::ecma::ast::KeyValueProp,
+  ) -> swc_core::ecma::ast::KeyValueProp {
+    let new_value = match node.value.as_ref() {
+      Expr::TsAs(ts_as) => Box::new((*ts_as.expr).clone()),
+      _ => node.value.clone(),
+    };
+
+    node.value = new_value;
+
+    node
+  }
+}
+
 fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
   let is_snapshot = file_path.to_string_lossy().ends_with(".snap");
 
@@ -156,7 +194,7 @@ fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
     // let compiler = Compiler::new(Default::default());
     let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
 
-    let mut program = parse_js(
+    let program = parse_js(
       cm.clone(),
       fm,
       &handler,
@@ -166,6 +204,10 @@ fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
       None,
     )
     .unwrap();
+
+    // Strip TypeScript annotations first
+    let mut typescript_stripper = TypeScriptStripper;
+    let mut program = program.fold_with(&mut typescript_stripper);
 
     program = program.fold_with(&mut transformer);
 

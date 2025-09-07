@@ -208,8 +208,6 @@ test!(
         import * as stylex from '@stylexjs/stylex';
         import { fonts as f } from '@stylexjs/open-props/lib/fonts.stylex';
 
-        import { type ReactNode } from 'react';
-
         const styles = stylex.create({
           text: {
             color: 'hotpink',
@@ -225,12 +223,7 @@ test!(
           }
         })
 
-        export interface TextProps {
-          children: ReactNode;
-          size: keyof typeof variants;
-        }
-
-        export function Text2({ children, size: s }: TextProps) {
+        export function Text2({ children, size: s }) {
           return <div {...stylex.props(styles.text, variants[s])}>{children}</div>;
         }
 
@@ -255,8 +248,6 @@ test!(
         import * as stylex from '@stylexjs/stylex';
         import { fonts as foo } from '@stylexjs/open-props/lib/fonts.stylex';
 
-        import { type ReactNode } from 'react';
-
         const styles = stylex.create({
           text: {
             color: 'hotpink',
@@ -272,12 +263,7 @@ test!(
           }
         })
 
-        export interface TextProps {
-          children: ReactNode;
-          size: keyof typeof variants;
-        }
-
-        export function Text2({ children, size: foo }: TextProps) {
+        export function Text2({ children, size: foo }) {
           return <div {...stylex.props(styles.text, variants[foo])}>{children}</div>;
         }
     "#

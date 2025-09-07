@@ -54,9 +54,9 @@ export default function Home(_props: Props) {
   );
 }
 
-const MEDIA_MOBILE = '@media (max-width: 700px)' as const;
+const MEDIA_MOBILE = '@media (max-width: 700px)';
 const MEDIA_TABLET =
-  '@media (min-width: 701px) and (max-width: 1120px)' as const;
+  '@media (min-width: 701px) and (max-width: 1120px)';
 
 const beat = stylex.keyframes({
   '0%': { transform: scales.medium },

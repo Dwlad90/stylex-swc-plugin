@@ -104,7 +104,7 @@ const DEFAULT_VARIANT_MAPPING = {
   bodyMd: "p",
   body: "p",
   bodySm: "p",
-} as const;
+};
 const Typography = ({
   id,
   color,
@@ -128,7 +128,7 @@ const Typography = ({
       {...stylex.props(
         styles.text,
         styles['color_primary'],
-        color && styles[`color_${color as keyof typeof colors}`],
+        color && styles[`color_${color}`],
         color === "success" && styles.colorSuccess,
         color === "error" && styles.colorError,
         color === "info" && styles.colorInfo,

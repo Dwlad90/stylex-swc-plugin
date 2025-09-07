@@ -1,7 +1,7 @@
 var defaultConfig = {
     file: {
         metadata: {}
-    } as any,
+    },
     key: 'key',
     opts: {},
     cwd: '/home/test/',

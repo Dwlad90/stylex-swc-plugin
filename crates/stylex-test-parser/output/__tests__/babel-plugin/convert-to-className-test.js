@@ -1,5 +1,5 @@
-var extractBody = (str: string)=>str.slice(str.indexOf('{') + 1, -1);
-var convert = (styles: Parameters<typeof convertStyleToClassName>[0])=>extractBody(convertStyleToClassName(styles, [], [], [])[2].ltr);
+var extractBody = (str)=>str.slice(str.indexOf('{') + 1, -1);
+var convert = (styles)=>extractBody(convertStyleToClassName(styles, [], [], [])[2].ltr);
 describe('convert-to-className test', ()=>{
     test('converts style to className', ()=>{
         expect(convert([

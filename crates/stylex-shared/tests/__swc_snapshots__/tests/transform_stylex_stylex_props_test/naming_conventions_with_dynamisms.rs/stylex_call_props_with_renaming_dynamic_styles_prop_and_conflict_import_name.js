@@ -3,7 +3,6 @@ var _inject2 = _inject;
 import "@stylexjs/open-props/lib/fonts.stylex";
 import * as stylex from '@stylexjs/stylex';
 import { fonts as foo } from '@stylexjs/open-props/lib/fonts.stylex';
-import { type ReactNode } from 'react';
 _inject2(".x13rv2e4{color:hotpink}", 3000);
 const styles = {
     text: {
@@ -23,10 +22,6 @@ const variants = {
         $$css: true
     }
 };
-export interface TextProps {
-    children: ReactNode;
-    size: keyof typeof variants;
-}
-export function Text2({ children, size: foo }: TextProps) {
+export function Text2({ children, size: foo }) {
     return <div {...stylex.props(styles.text, variants[foo])}>{children}</div>;
 }

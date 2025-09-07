@@ -11,7 +11,7 @@ permissions:
 jobs:
   label:
     runs-on: ubuntu-latest
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Execute assign labels
         id: action-assign-labels

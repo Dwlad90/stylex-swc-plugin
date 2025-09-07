@@ -25,7 +25,7 @@ overrides:
   on-headers@<1.1.0: '>=1.1.0 <2.0.0'
   form-data@>=4.0.0 <4.0.4: '>=4.0.4 <5.0.0'
   '@eslint/plugin-kit@<0.3.3': '>=0.3.3 <1.0.0'
-  tpm@<= 0.2.3: '>=0.2.4 <1.0.0'
+  tmp@<= 0.2.3: '>=0.2.4 <1.0.0'
 
 patchedDependencies:
   scripty@3.0.0:
@@ -7273,10 +7273,6 @@ packages:
     resolution: {integrity: sha512-weP+BZ8MVNnlCm8c0Qdc1WSWq4Qn7I+9CJGm7Qali6g44e/PUzbjNqJX5NJ9ljlNMosfJvg1fKEGILklK9cwnw==}
     engines: {node: '>=18'}
 
-  os-tmpdir@1.0.2:
-    resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
-    engines: {node: '>=0.10.0'}
-
   outdent@0.5.0:
     resolution: {integrity: sha512-/jHxFIzoMXdqPzTaCpFzAAWhpkSjZPF4Vsn6jAfNpmbH/ymsmd7Qc6VE9BGn0L6YMj6uwpQLxCECpus4ukKS9Q==}
 
@@ -8463,9 +8459,9 @@ packages:
     resolution: {integrity: sha512-KxVu8EYHDPBdUYdKZdKtU2aj2XfEx9AfjXxE/Aj0vT06w2icA09Vus1rh6eSu1y01akYg6BjIK/hxyLJINoMLQ==}
     engines: {node: '>=12'}
 
-  tmp@0.0.33:
-    resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
-    engines: {node: '>=0.6.0'}
+  tmp@0.2.5:
+    resolution: {integrity: sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==}
+    engines: {node: '>=14.14'}
 
   tmpl@1.0.5:
     resolution: {integrity: sha512-3f0uOEAQwIqGuWW2MVzYg8fV/QNnc/IpuJNG837rLuczAaLVHslWHZQj4IGiEl5Hs3kkbhwL9Ab7Hrsmuj+Smw==}
@@ -13939,7 +13935,7 @@ snapshots:
     dependencies:
       chardet: 0.7.0
       iconv-lite: 0.4.24
-      tmp: 0.0.33
+      tmp: 0.2.5
 
   farm-browserslist-generator@1.0.5:
     dependencies:
@@ -16145,8 +16141,6 @@ snapshots:
       string-width: 7.2.0
       strip-ansi: 7.1.0
 
-  os-tmpdir@1.0.2: {}
-
   outdent@0.5.0: {}
 
   own-keys@1.0.1:
@@ -17472,9 +17466,7 @@ snapshots:
 
   titleize@3.0.0: {}
 
-  tmp@0.0.33:
-    dependencies:
-      os-tmpdir: 1.0.2
+  tmp@0.2.5: {}
 
   tmpl@1.0.5: {}
 

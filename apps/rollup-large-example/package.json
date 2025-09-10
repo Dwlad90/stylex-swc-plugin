@@ -9,7 +9,7 @@
     "start": "pnpx rollup --config ./rollup.config.mjs --watch"
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.15.3",
+    "@stylexjs/stylex": "^0.15.4",
     "@stylexswc/rollup-plugin": "0.11.0-rc.2"
   }
 }

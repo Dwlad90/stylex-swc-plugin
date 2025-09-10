@@ -11,7 +11,7 @@
     "test:visual": "playwright test"
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.15.3",
+    "@stylexjs/stylex": "^0.15.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

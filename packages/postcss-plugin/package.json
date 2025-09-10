@@ -31,7 +31,7 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.14.1",
+    "@stylexjs/babel-plugin": "^0.15.3",
     "@stylexswc/rs-compiler": "0.11.0-rc.1",
     "fast-glob": "^3.3.3",
     "glob-parent": "^6.0.2",
@@ -48,8 +48,8 @@
     "@types/jest": "^30.0.0",
     "@types/loader-utils": "^2.0.6",
     "@types/node": "^24.1.0",
-    "jest-chain-transform": "^0.0.8",
     "jest": "^30.0.5",
+    "jest-chain-transform": "^0.0.8",
     "ts-jest": "^29.4.0"
   },
   "keywords": [

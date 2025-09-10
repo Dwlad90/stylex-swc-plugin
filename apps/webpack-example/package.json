@@ -9,7 +9,7 @@
     "start": "webpack --watch"
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.15.0"
+    "@stylexjs/stylex": "^0.15.3"
   },
   "devDependencies": {
     "@stylexswc/webpack-plugin": "0.11.0-rc.1",

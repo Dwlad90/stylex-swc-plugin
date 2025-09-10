@@ -280,23 +280,40 @@ fn works_with_first_that_works() {
 }
 
 #[test]
-#[ignore]
-fn works_with_dynamic_styles() {
+fn works_with_dynamic_styles_constants() {
+  let input = r#"
+      import * as stylex from '@stylexjs/stylex';
+      import { colors } from './constants.stylex';
+
+      export const styles = stylex.create({
+        node: (padding) => ({
+          padding: padding,
+          color: colors.background,
+        }),
+      });
+    "#;
+
+  let output = transform_with_inline_consts(input);
+  insta::assert_snapshot!("works_with_dynamic_styles_constants", output);
+}
+
+#[test]
+fn works_with_dynamic_styles_at_rules() {
   let input = r#"
       import * as stylex from '@stylexjs/stylex';
       import { breakpoints } from './constants.stylex';
 
       export const styles = stylex.create({
-        nodeEnd: (animationDuration) => ({
-          transition: {
-            [breakpoints.small]: 'none',
-            default: `transform ${animationDuration}ms ease-in-out`,
+        node: (color) => ({
+          color: {
+            [breakpoints.small]: 'blue',
+            default: color,
           },
         }),
       });
     "#;
   let output = transform_with_inline_consts(input);
-  insta::assert_snapshot!("works_with_dynamic_styles", output);
+  insta::assert_snapshot!("works_with_dynamic_styles_at_rules", output);
 }
 
 #[test]

@@ -1,0 +1,17 @@
+---
+source: crates/stylex-shared/tests/transform_stylex_define_consts_test/define_consts.rs
+expression: output
+---
+import * as stylex from '@stylexjs/stylex';
+import { breakpoints } from './constants.stylex';
+export const styles = {
+    node: (color)=>[
+            {
+                kMwMTN: "x1pitq50 " + (color != null ? "x3d248p" : color),
+                $$css: true
+            },
+            {
+                "--x-4xs81a": color != null ? color : undefined
+            }
+        ]
+};

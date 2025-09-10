@@ -1,0 +1,22 @@
+---
+source: crates/stylex-shared/tests/transform_stylex_define_consts_test/define_consts.rs
+expression: output
+---
+import * as stylex from '@stylexjs/stylex';
+import { colors } from './constants.stylex';
+const _temp = {
+    kMwMTN: "x13hu4hd",
+    $$css: true
+};
+export const styles = {
+    node: (padding)=>[
+            _temp,
+            {
+                kmVPX3: padding != null ? "x1fozly0" : padding,
+                $$css: true
+            },
+            {
+                "--x-padding": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(padding)
+            }
+        ]
+};

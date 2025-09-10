@@ -231,7 +231,12 @@ fn evaluate_partial_object_recursively(
             let mut key_str = expr_to_str(key, traversal_state, functions);
 
             if key_str.starts_with("var(") && key_str.ends_with(')') {
-              key_str = key_str[4..key_str.len() - 1].to_string();
+              let inner = key_str[4..key_str.len() - 1].to_string();
+
+              // When the `key_path` is not empty, the var(--hash) is a `defineConsts` at-rule placeholder and must be kept intact.
+              if key_path.is_empty() {
+                key_str = inner;
+              }
             }
 
             let value_path = &mut key_value.value;

@@ -45,6 +45,7 @@ function createPlugin() {
             rsOptions: {
               ...rsOptions,
               importSources: rsOptions?.importSources ?? ['@stylexjs/stylex', 'stylex'],
+              styleResolution: rsOptions?.styleResolution ?? 'property-specificity',
             },
             useCSSLayers,
             isDev,

@@ -151,7 +151,10 @@ function createBuilder() {
       return transformedResult;
     });
 
-    const css = bundler.bundle({ useCSSLayers });
+    const css = bundler.bundle({
+      useCSSLayers,
+      enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
+    });
     return css;
   }
 

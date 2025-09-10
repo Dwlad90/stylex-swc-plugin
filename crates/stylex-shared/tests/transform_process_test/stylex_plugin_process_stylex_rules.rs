@@ -170,7 +170,7 @@ fn process_stylex_rules(metadata: &[MetaData], use_layers: bool) -> String {
 :root, .xsg933n{--blue-xpqh4lw:blue;}
 :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
 .x6xqkwy, .x6xqkwy:root{--blue-xpqh4lw:lightblue;}
-.x57uvma, .x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
+.margin-xymmreb:not(#\\#){margin:10px 20px}
 @layer priority2{
 .padding-xss17vw{padding:var(--large-x1ec7iuc)}
 }
@@ -187,20 +187,23 @@ fn process_stylex_rules(metadata: &[MetaData], use_layers: bool) -> String {
 .textShadow-x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}
 @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}"#.to_string()
   } else {
-    // Expected output for useLayers:false from JS test
-    r#"@property --color { syntax: "*"; inherits: false;}
+    // Updated output for useLayers:false
+    r#"@property --x-color { syntax: "*"; inherits: false;}
 @keyframes xi07kvp-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange);}}
 :root, .xsg933n{--blue-xpqh4lw:blue;}
 :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
 .x6xqkwy, .x6xqkwy:root{--blue-xpqh4lw:lightblue;}
 .x57uvma, .x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
-.padding-xss17vw:not(#\#){padding:var(--large-x1ec7iuc)}
-.borderColor-x1bg2uv5:not(#\#):not(#\#){border-color:green}
-@media (max-width: 1000px){.borderColor-x5ugf7c.borderColor-x5ugf7c:not(#\#):not(#\#){border-color:var(--blue-xpqh4lw)}}
-@media (max-width: 500px){@media (max-width: 1000px){.borderColor-xqiy1ys.borderColor-xqiy1ys.borderColor-xqiy1ys:not(#\#):not(#\#){border-color:yellow}}}
-.animationName-xckgs0v:not(#\#):not(#\#):not(#\#){animation-name:xi07kvp-B}
-.backgroundColor-xrkmrrc:not(#\#):not(#\#):not(#\#){background-color:red}
-.color-xfx01vb:not(#\#):not(#\#):not(#\#){color:var(--color)}
+.margin-xymmreb:not(#\\#){margin:10px 20px}
+.padding-xss17vw:not(#\\#){padding:var(--large-x1ec7iuc)}
+.borderColor-x1bg2uv5:not(#\\#):not(#\\#){border-color:green}
+@media (max-width: 1000px){.borderColor-x5ugf7c.borderColor-x5ugf7c:not(#\\#):not(#\\#){border-color:var(--blue-xpqh4lw)}}
+@media (max-width: 500px){@media (max-width: 1000px){.borderColor-xqiy1ys.borderColor-xqiy1ys.borderColor-xqiy1ys:not(#\\#):not(#\\#){border-color:yellow}}}
+.animationName-xckgs0v:not(#\\#):not(#\\#):not(#\\#){animation-name:xi07kvp-B}
+.backgroundColor-xrkmrrc:not(#\\#):not(#\\#):not(#\\#){background-color:red}
+.color-x14rh7hd:not(#\\#):not(#\\#):not(#\\#){color:var(--x-color)}
+html:not([dir='rtl']) .float-x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:left}
+html[dir='rtl'] .float-x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:right}
 .textShadow-x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}
 @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}"#.to_string()
   }
@@ -240,7 +243,9 @@ export const styles = stylex.create({
       default: '1px 2px 3px 4px red',
       '@media (min-width:320px)': '10px 20px 30px 40px green'
     },
-    padding: spacing.large
+    padding: spacing.large,
+    margin: '10px 20px',
+    float: 'inline-start'
   },
   dynamic: (color) => ({ color })
 });

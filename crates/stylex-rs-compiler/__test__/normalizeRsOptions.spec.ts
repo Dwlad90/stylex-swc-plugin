@@ -16,6 +16,7 @@ const defaultResult: StyleXOptions = {
   enableLogicalStylesPolyfill: false,
   enableMinifiedKeys: true,
   styleResolution: 'property-specificity',
+  enableLTRRTLComments: false,
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {
@@ -287,6 +288,46 @@ test('normalizeRsOptions: enableLegacyValueFlipping - false input', t => {
   const expected: StyleXOptions = {
     ...defaultResult,
     enableLegacyValueFlipping: false,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: enableLegacyValueFlipping - empty input', t => {
+  const input: StyleXOptions = {};
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    enableLegacyValueFlipping: false,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: enableLTRRTLComments - true input', t => {
+  const input: StyleXOptions = { enableLTRRTLComments: true };
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    enableLTRRTLComments: true,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: enableLTRRTLComments - false input', t => {
+  const input: StyleXOptions = { enableLTRRTLComments: false };
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    enableLTRRTLComments: false,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: enableLTRRTLComments - empty input', t => {
+  const input: StyleXOptions = {};
+  const expected: StyleXOptions = {
+    ...defaultResult,
+    enableLTRRTLComments: false,
   };
   const result = normalizeRsOptions(input);
   t.deepEqual(result, expected);

@@ -25,6 +25,8 @@ pub struct StyleXOptions {
   pub enable_media_query_order: Option<bool>,
   pub enable_logical_styles_polyfill: Option<bool>,
   pub enable_legacy_value_flipping: Option<bool>,
+  #[napi(js_name = "enableLTRRTLComments")]
+  pub enable_ltr_rtl_comments: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,
@@ -94,6 +96,7 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       enable_media_query_order: val.enable_media_query_order,
       enable_logical_styles_polyfill: val.enable_logical_styles_polyfill,
       enable_legacy_value_flipping: val.enable_legacy_value_flipping,
+      enable_ltr_rtl_comments: val.enable_ltr_rtl_comments,
       dev: val.dev,
       test: val.test,
       debug: val.debug.or(val.dev),

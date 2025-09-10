@@ -34,6 +34,8 @@ export const styles = {
         "borderColor-kVAM5u": "borderColor-x1bg2uv5 borderColor-x1mzy5kr borderColor-xqiy1ys",
         "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-x1cmij7u",
         "padding-kmVPX3": "padding-x1w2z5jh",
+        "margin-kogj98": "margin-xymmreb",
+        "float-kyUFMd": "float-x1kmio9f",
         $$css: true
     },
     dynamic: (color)=>[

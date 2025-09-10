@@ -91,11 +91,18 @@ export default function createBundler() {
   }
 
   //  Bundles all collected StyleX rules into a single CSS string.
-  function bundle({ useCSSLayers }: Pick<StyleXPluginOption, 'useCSSLayers'>) {
+  function bundle({
+    useCSSLayers,
+    enableLTRRTLComments,
+  }: Pick<StyleXPluginOption, 'useCSSLayers'> &
+    Pick<NonNullable<StyleXPluginOption['rsOptions']>, 'enableLTRRTLComments'>) {
     const rules = Array.from(styleXRulesMap.values()).flat();
 
-    const css = stylexBabelPlugin.processStylexRules(rules, !!useCSSLayers);
-
+    // @ts-expect-error - type is not up to date and will be fixed in the future
+    const css = stylexBabelPlugin.processStylexRules(rules, {
+      useLayers: useCSSLayers,
+      enableLTRRTLComments,
+    });
     return css;
   }
 

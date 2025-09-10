@@ -42,8 +42,11 @@ export default function stylexPlugin({
     generateBundle() {
       const rules: Array<Rule> = Object.values(stylexRules).flat();
       if (rules.length > 0) {
-        const collectedCSS = stylexBabelPlugin.processStylexRules(rules, useCSSLayers);
-
+        // @ts-expect-error - type is not up to date and will be fixed in the future
+        const collectedCSS = stylexBabelPlugin.processStylexRules(rules, {
+          useLayers: useCSSLayers,
+          enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
+        });
         // Process the CSS using lightningcss
         const { code } = transform({
           targets: browserslistToTargets(browserslist('>= 1%')),

@@ -6,6 +6,7 @@ use std::{option::Option, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
 use log::debug;
+use once_cell::sync::Lazy;
 use stylex_path_resolver::{
   package_json::{PackageJsonExtended, find_closest_package_json_folder, get_package_json},
   resolvers::{EXTENSIONS, resolve_file_path},
@@ -66,6 +67,8 @@ use super::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
   seen_value::SeenValue,
 };
+
+static TRANSFORMED_VARS_FILE_EXTENSION: Lazy<&'static str> = Lazy::new(|| ".transformed");
 
 type AtomHashMap = FxHashMap<Atom, i16>;
 type AtomHashSet = FxHashSet<Atom>;
@@ -394,23 +397,31 @@ impl StateManager {
       return ImportPathResolution::False;
     }
 
+    let theme_file_extension = (match &self.options.unstable_module_resolution {
+      CheckModuleResolution::CommonJS(module_resolution) => module_resolution,
+      CheckModuleResolution::Haste(module_resolution) => module_resolution,
+      CheckModuleResolution::CrossFileParsing(module_resolution) => module_resolution,
+    })
+    .theme_file_extension
+    .as_deref()
+    .unwrap_or(".stylex");
+
+    let is_valid_stylex_file = matches_file_suffix(theme_file_extension, import_path);
+    let is_valid_transformed_vars_file =
+      matches_file_suffix(&TRANSFORMED_VARS_FILE_EXTENSION, import_path);
+
+    if !is_valid_stylex_file && !is_valid_transformed_vars_file {
+      return ImportPathResolution::False;
+    }
+
     match &self.options.unstable_module_resolution {
-      CheckModuleResolution::CommonJS(module_resolution) => {
+      CheckModuleResolution::CommonJS(_) => {
         let filename = self.get_filename();
 
         let (_, root_dir) = StateManager::get_package_name_and_path(filename, package_json_seen)
           .unwrap_or_else(|| panic!("Cannot get package name and path for: {}", filename));
 
-        let theme_file_extension = module_resolution
-          .theme_file_extension
-          .as_deref()
-          .unwrap_or(".stylex");
-
         let aliases = self.options.aliases.as_ref().cloned().unwrap_or_default();
-
-        if !matches_file_suffix(theme_file_extension, import_path) {
-          return ImportPathResolution::False;
-        }
 
         let resolved_file_path = file_path_resolver(
           import_path,
@@ -427,21 +438,10 @@ impl StateManager {
 
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
       }
-      CheckModuleResolution::Haste(module_resolution) => {
-        let theme_file_extension = module_resolution
-          .theme_file_extension
-          .as_deref()
-          .unwrap_or(".stylex");
-
-        if !matches_file_suffix(theme_file_extension, import_path) {
-          return ImportPathResolution::False;
-        }
-
-        ImportPathResolution::Tuple(
-          ImportPathResolutionType::ThemeNameRef,
-          add_file_extension(import_path, source_file_path),
-        )
-      }
+      CheckModuleResolution::Haste(_) => ImportPathResolution::Tuple(
+        ImportPathResolutionType::ThemeNameRef,
+        add_file_extension(import_path, source_file_path),
+      ),
       _ => unimplemented!("Module resolution is not supported"),
     }
   }

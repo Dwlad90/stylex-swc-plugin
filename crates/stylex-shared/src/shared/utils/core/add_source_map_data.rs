@@ -1,5 +1,6 @@
 use indexmap::IndexMap;
 use log::{debug, warn};
+use once_cell::sync::Lazy;
 use std::{env, path::Path, rc::Rc};
 use swc_core::{
   common::DUMMY_SP,
@@ -17,6 +18,14 @@ use crate::shared::{
     log::build_code_frame_error::get_span_from_source_code,
   },
 };
+
+static NEXTJS_HYDRATION_WARNING: Lazy<String> = Lazy::new(|| {
+  "\n\nNote: If you are using Next.js, you may encounter hydration mismatches between server and client.\n\
+    This occurs because Next.js uses precompiled and transformed source code on the client side,\n\
+    which can lead to different AST generation and cause the following error:\n\
+    'A tree hydrated but some attributes of the server rendered HTML didn't match the client properties'\n\
+    Please verify the expression that caused this error.".to_string()
+});
 
 pub(crate) fn add_source_map_data(
   obj: &StylesObjectMap,
@@ -50,8 +59,6 @@ pub(crate) fn add_source_map_data(
 
         inner_map.extend((**value).clone());
 
-        let compiled_key = COMPILED_KEY.to_string();
-
         match style_node_path {
           Some(style_node_path) => {
             let source_code_frame_and_span = get_span_from_source_code(
@@ -65,14 +72,16 @@ pub(crate) fn add_source_map_data(
                 if span.eq(&DUMMY_SP) {
                   if log::log_enabled!(log::Level::Debug) {
                     debug!(
-                      "Could not find span for style node path. File: {}, Style node path: {:?}",
+                      "Could not find span for style node path. File: {}, Style node path: {:?}.{}",
                       state.get_filename(),
-                      style_node_path
+                      style_node_path,
+                      &*NEXTJS_HYDRATION_WARNING
                     );
                   } else {
                     warn!(
-                      "Could not find span for style node path. File: {}. For more information enable debug logging.",
-                      state.get_filename()
+                      "Could not find span for style node path. File: {}. For more information enable debug logging.{}",
+                      state.get_filename(),
+                      &*NEXTJS_HYDRATION_WARNING
                     );
                   };
                 } else {
@@ -83,12 +92,12 @@ pub(crate) fn add_source_map_data(
                   if !short_filename.is_empty() && original_line_number > 0 {
                     let source_map = format!("{}:{}", short_filename, original_line_number);
                     inner_map.insert(
-                      compiled_key.clone(),
+                      COMPILED_KEY.to_owned(),
                       Rc::new(FlatCompiledStylesValue::String(source_map)),
                     );
                   } else {
                     inner_map.insert(
-                      compiled_key.clone(),
+                      COMPILED_KEY.to_owned(),
                       Rc::new(FlatCompiledStylesValue::Bool(true)),
                     );
                   }
@@ -113,8 +122,11 @@ pub(crate) fn add_source_map_data(
               }
             }
 
-            if !inner_map.contains_key(&compiled_key) {
-              inner_map.insert(compiled_key, Rc::new(FlatCompiledStylesValue::Bool(true)));
+            if !inner_map.contains_key(&COMPILED_KEY.to_owned()) {
+              inner_map.insert(
+                COMPILED_KEY.to_owned(),
+                Rc::new(FlatCompiledStylesValue::Bool(true)),
+              );
             }
 
             result.insert(key.clone(), Rc::new(inner_map));

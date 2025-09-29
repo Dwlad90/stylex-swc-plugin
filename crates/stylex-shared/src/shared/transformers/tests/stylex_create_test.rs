@@ -6,6 +6,7 @@ mod stylex_create {
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
   use crate::shared::{
+    constants::common::COMPILED_KEY,
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
       flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -222,7 +223,7 @@ mod stylex_create {
       let mut default_val = IndexMap::new();
 
       default_val.insert(
-        "$$css".to_string(),
+        COMPILED_KEY.to_string(),
         Rc::new(FlatCompiledStylesValue::Bool(true)),
       );
 

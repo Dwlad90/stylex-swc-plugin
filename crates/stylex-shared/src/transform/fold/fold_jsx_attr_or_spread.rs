@@ -57,7 +57,6 @@ where
           })
           .collect();
 
-        // dbg!(&jsx_attrs, &result);
         result.fold_children_with(self)
       }
       _ => jsx_attrs.fold_children_with(self),

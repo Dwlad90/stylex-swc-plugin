@@ -104,16 +104,16 @@ pub(crate) fn build_code_frame_error<'a>(
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
         debug!(
-          "Failed to generate code frame error: {:?}. File: {}. Expression: {:?}",
+          "Failed to generate code frame error: {:?}. File: {}. Expression: {:?}.",
           error,
           state.get_filename(),
-          fault_expression
+          fault_expression,
         );
       } else {
         warn!(
           "Failed to generate code frame error: {:?}. File: {}. For more information enable debug logging.",
           error,
-          state.get_filename()
+          state.get_filename(),
         )
       };
     }
@@ -138,8 +138,6 @@ pub(crate) fn get_span_from_source_code(
     .source_map
     .new_source_file(Arc::new(file_name), frame_source_code);
 
-  let mut finder = ExpressionFinder::new(target_expression);
-
   match parse_js(
     code_frame.source_map.clone(),
     file.clone(),
@@ -153,14 +151,25 @@ pub(crate) fn get_span_from_source_code(
     None,
   ) {
     Ok(program) => {
-      program.fold_with(&mut finder);
+      let mut finder = ExpressionFinder::new(target_expression);
 
-      return Ok((
-        code_frame,
+      program.clone().fold_with(&mut finder);
+
+      let frame_span = if let Some(span) = finder.get_span() {
+        span
+      } else {
+        let folded_expression = target_expression.clone().fold_with(&mut TplConverter {});
+
+        let mut finder = ExpressionFinder::new(&folded_expression);
+
+        program.fold_with(&mut finder);
+
         finder
           .get_span()
-          .unwrap_or_else(|| target_expression.span()),
-      ));
+          .unwrap_or_else(|| target_expression.span())
+      };
+
+      return Ok((code_frame, frame_span));
     }
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
@@ -289,6 +298,72 @@ impl ExpressionFinder {
 
     Some(Span::new(expr.span_lo(), expr.span_hi()))
   }
+}
+
+#[derive(Debug)]
+struct TplConverter {}
+
+impl Fold for TplConverter {
+  noop_fold_type!();
+
+  fn fold_expr(&mut self, expr: Expr) -> Expr {
+    if let Some(call) = expr.as_call()
+      && let Some(template_literal_expr) = transform_concat_to_template_literal(call)
+    {
+      return template_literal_expr;
+    }
+
+    expr.fold_children_with(self)
+  }
+}
+
+fn transform_concat_to_template_literal(call_expr: &CallExpr) -> Option<Expr> {
+  if let Some(member_expr) = call_expr.callee.as_expr()?.as_member()
+    && let Some(prop_ident) = member_expr.prop.as_ident()
+    && prop_ident.sym.as_ref() == "concat"
+  {
+    let base_string = if let Some(str_lit) = member_expr.obj.as_lit()?.as_str() {
+      str_lit.value.to_string()
+    } else {
+      return None;
+    };
+
+    let mut exprs = Vec::new();
+    let mut quasis = Vec::new();
+
+    quasis.push(TplElement {
+      span: DUMMY_SP,
+      tail: false,
+      cooked: Some(base_string.clone().into()),
+      raw: base_string.clone().into(),
+    });
+
+    for (i, arg) in call_expr.args.iter().enumerate() {
+      if arg.spread.is_some() {
+        continue;
+      }
+
+      exprs.push(arg.expr.clone());
+
+      let is_last = i == call_expr.args.len() - 1;
+      quasis.push(TplElement {
+        span: DUMMY_SP,
+        tail: is_last,
+        cooked: Some("".into()),
+        raw: "".into(),
+      });
+    }
+
+    let template_literal = Tpl {
+      span: DUMMY_SP,
+      exprs,
+      quasis,
+    };
+
+    return Some(Expr::Tpl(template_literal));
+  }
+
+  None
 }
 
 impl Fold for ExpressionFinder {

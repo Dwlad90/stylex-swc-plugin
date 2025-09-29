@@ -22,16 +22,16 @@ Perfect for developers who want blazing-fast StyleX compilation and are excited 
 
 ```bash
 # For Next.js projects
-npm install --save-dev @stylexswc/nextjs-plugin
+npm install --save-dev @toss/stylexswc-nextjs-plugin
 
 # For other build tools
-npm install --save-dev @stylexswc/unplugin
+npm install --save-dev @toss/stylexswc-unplugin
 ```
 
 ### Next.js Setup
 ```javascript
 // next.config.js
-const stylexPlugin = require('@stylexswc/nextjs-plugin');
+const stylexPlugin = require('@toss/stylexswc-nextjs-plugin');
 
 module.exports = stylexPlugin({
   rsOptions: {
@@ -73,14 +73,14 @@ This monorepo is organized into specialized packages for maximum modularity and 
 
 | Tool | Package | Experience |
 |------|---------|------------|
-| Next.js | `@stylexswc/nextjs-plugin` | 🚀 Native SWC Integration |
-| Vite | `@stylexswc/unplugin` | ⚡ Lightning Fast HMR |
-| Webpack | `@stylexswc/unplugin` | 🔧 Seamless Integration |
-| Rollup | `@stylexswc/unplugin` | 📦 Optimized Bundling |
-| Jest | `@stylexswc/jest` | 🧪 Reliable Testing |
-| PostCSS | `@stylexswc/postcss-plugin` | 🎨 CSS Pipeline Ready |
-| Rspack | `@stylexswc/unplugin` | 🚀 Rust-Powered Speed |
-| Farm, Rsbuild, Solid | `@stylexswc/unplugin` | 🌟 Modern Build Experience |
+| Next.js | `@toss/stylexswc-nextjs-plugin` | 🚀 Native SWC Integration |
+| Vite | `@toss/stylexswc-unplugin` | ⚡ Lightning Fast HMR |
+| Webpack | `@toss/stylexswc-unplugin` | 🔧 Seamless Integration |
+| Rollup | `@toss/stylexswc-unplugin` | 📦 Optimized Bundling |
+| Jest | `@toss/stylexswc-jest` | 🧪 Reliable Testing |
+| PostCSS | `@toss/stylexswc-postcss-plugin` | 🎨 CSS Pipeline Ready |
+| Rspack | `@toss/stylexswc-unplugin` | 🚀 Rust-Powered Speed |
+| Farm, Rsbuild, Solid | `@toss/stylexswc-unplugin` | 🌟 Modern Build Experience |
 
 ## 🔧 Development
 

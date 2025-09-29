@@ -1,3 +1,3 @@
-# `@stylexswc/rs-compiler-darwin-x64`
+# `@toss/stylexswc-rs-compiler-darwin-x64`
 
-This is the **x86_64-apple-darwin** binary for `@stylexswc/rs-compiler`
+This is the **x86_64-apple-darwin** binary for `@toss/stylexswc-rs-compiler`

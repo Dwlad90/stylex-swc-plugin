@@ -1,5 +1,5 @@
 {
-  "extends": "@stylexswc/typescript-config/base.json",
+  "extends": "@toss/stylexswc-typescript-config/base.json",
   "compilerOptions": {
     "target": "es2017",
     "lib": [

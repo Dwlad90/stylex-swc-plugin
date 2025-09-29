@@ -1,5 +1,5 @@
-import stylexLibraryConfig from '@stylexswc/eslint-config/library.mjs';
-import stylexJsonConfig from '@stylexswc/eslint-config/json.mjs';
+import stylexLibraryConfig from '@toss/stylexswc-eslint-config/library.mjs';
+import stylexJsonConfig from '@toss/stylexswc-eslint-config/json.mjs';
 import tsParser from '@typescript-eslint/parser';
 
 /** @type {import("eslint").FlatConfig[]} */

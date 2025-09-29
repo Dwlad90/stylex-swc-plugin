@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`@stylexswc/unplugin/rollup extracts CSS and removes stylex.inject calls 1`] = `
+exports[`@toss/stylexswc-unplugin/rollup extracts CSS and removes stylex.inject calls 1`] = `
 "
 @layer priority1, priority2, priority3;
 @keyframes xgnty7z-B{0%{opacity:.25;}100%{opacity:1;}}
@@ -21,7 +21,7 @@ exports[`@stylexswc/unplugin/rollup extracts CSS and removes stylex.inject calls
 }"
 `;
 
-exports[`@stylexswc/unplugin/rollup extracts CSS and removes stylex.inject calls 2`] = `
+exports[`@toss/stylexswc-unplugin/rollup extracts CSS and removes stylex.inject calls 2`] = `
 "import * as stylex from 'stylex';
 
 const styles$2 = {
@@ -61,7 +61,7 @@ export { App as default };
 "
 `;
 
-exports[`@stylexswc/unplugin/rollup output filename match pattern 1`] = `
+exports[`@toss/stylexswc-unplugin/rollup output filename match pattern 1`] = `
 "
 @layer priority1, priority2, priority3;
 @keyframes xgnty7z-B{0%{opacity:.25;}100%{opacity:1;}}
@@ -82,7 +82,7 @@ exports[`@stylexswc/unplugin/rollup output filename match pattern 1`] = `
 }"
 `;
 
-exports[`@stylexswc/unplugin/rollup runtimeInjection:true preserves stylex.inject calls and does not extract CSS 1`] = `
+exports[`@toss/stylexswc-unplugin/rollup runtimeInjection:true preserves stylex.inject calls and does not extract CSS 1`] = `
 "
 @layer priority1, priority2, priority3;
 @keyframes xgnty7z-B{0%{opacity:.25;}100%{opacity:1;}}
@@ -103,7 +103,7 @@ exports[`@stylexswc/unplugin/rollup runtimeInjection:true preserves stylex.injec
 }"
 `;
 
-exports[`@stylexswc/unplugin/rollup runtimeInjection:true preserves stylex.inject calls and does not extract CSS 2`] = `
+exports[`@toss/stylexswc-unplugin/rollup runtimeInjection:true preserves stylex.inject calls and does not extract CSS 2`] = `
 "import _inject from '@stylexjs/stylex/lib/stylex-inject';
 import * as stylex from 'stylex';
 

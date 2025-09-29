@@ -1,6 +1,6 @@
 import { defineConfig } from '@farmfe/core'
-import styleXRSPlugin from '@stylexswc/unplugin/farm'
-import { SourceMaps } from '@stylexswc/rs-compiler'
+import styleXRSPlugin from '@toss/stylexswc-unplugin/farm'
+import { SourceMaps } from '@toss/stylexswc-rs-compiler'
 
 export default defineConfig({
   compilation: {

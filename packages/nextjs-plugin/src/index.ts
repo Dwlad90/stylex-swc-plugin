@@ -2,10 +2,10 @@ import nextMiniCssExtractPluginExports from 'next/dist/build/webpack/plugins/min
 import { warn } from 'next/dist/build/output/log';
 import browserslist from 'next/dist/compiled/browserslist';
 import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
-import StyleXWebpackPlugin, { VIRTUAL_CSS_PATTERN } from '@stylexswc/webpack-plugin';
+import StyleXWebpackPlugin, { VIRTUAL_CSS_PATTERN } from '@toss/stylexswc-webpack-plugin';
 
 import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
-import type { StyleXPluginOption } from '@stylexswc/webpack-plugin';
+import type { StyleXPluginOption } from '@toss/stylexswc-webpack-plugin';
 import type webpack from 'webpack';
 import type { Processor as PostCSSProcessor } from 'postcss';
 import type { ConfigurationContext as WebpackConfigurationContext } from 'next/dist/build/webpack/config/utils';

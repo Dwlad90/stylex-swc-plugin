@@ -1,3 +1,3 @@
-# `@stylexswc/rs-compiler-linux-arm64-gnu`
+# `@toss/stylexswc-rs-compiler-linux-arm64-gnu`
 
-This is the **aarch64-unknown-linux-gnu** binary for `@stylexswc/rs-compiler`
+This is the **aarch64-unknown-linux-gnu** binary for `@toss/stylexswc-rs-compiler`

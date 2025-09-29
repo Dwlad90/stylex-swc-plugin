@@ -96,7 +96,7 @@ mod get_canonical_file_path {
 
     assert_eq!(
       canonical_path,
-      "@stylexswc/shared:src/shared/structures/tests/fixtures/src/components"
+      "@toss/stylexswc-shared:src/shared/structures/tests/fixtures/src/components"
     );
   }
 }

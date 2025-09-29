@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/typescript-config",
+  "name": "@toss/stylexswc-typescript-config",
   "version": "0.11.0",
   "private": true,
   "license": "MIT",

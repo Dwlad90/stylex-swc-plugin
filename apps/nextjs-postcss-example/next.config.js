@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const path = require('path');
-const stylexPlugin = require('@stylexswc/nextjs-plugin');
+const stylexPlugin = require('@toss/stylexswc-nextjs-plugin');
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const rootDir = __dirname;

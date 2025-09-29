@@ -43,10 +43,10 @@ importers:
       '@commitlint/cli':
         specifier: ^19.8.1
         version: 19.8.1(@types/node@24.1.0)(typescript@5.9.2)
-      '@stylexswc/eslint-config':
+      '@toss/stylexswc-eslint-config':
         specifier: 0.11.0
         version: link:packages/eslint-config
-      '@stylexswc/typescript-config':
+      '@toss/stylexswc-typescript-config':
         specifier: 0.11.0
         version: link:packages/typescript-config
       commitizen:
@@ -97,13 +97,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -116,7 +116,7 @@ importers:
       '@playwright/test':
         specifier: ^1.54.2
         version: 1.54.2
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
       '@types/react':
@@ -140,13 +140,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -168,7 +168,7 @@ importers:
       '@playwright/test':
         specifier: ^1.54.2
         version: 1.54.2
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
       '@types/react':
@@ -189,10 +189,10 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/nextjs-plugin':
+      '@toss/stylexswc-nextjs-plugin':
         specifier: 0.11.0
         version: link:../../packages/nextjs-plugin
       next:
@@ -211,15 +211,6 @@ importers:
       '@stylexjs/eslint-plugin':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/jest':
-        specifier: 0.11.0
-        version: link:../../packages/jest
-      '@stylexswc/playwright':
-        specifier: 0.11.0
-        version: link:../../packages/playwright
-      '@stylexswc/rs-compiler':
-        specifier: 0.11.0
-        version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
         specifier: ^0.2.39
         version: 0.2.39(@swc/core@1.13.3(@swc/helpers@0.5.17))
@@ -229,6 +220,15 @@ importers:
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.7(@types/react@19.1.9))(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@toss/stylexswc-jest':
+        specifier: 0.11.0
+        version: link:../../packages/jest
+      '@toss/stylexswc-playwright':
+        specifier: 0.11.0
+        version: link:../../packages/playwright
+      '@toss/stylexswc-rs-compiler':
+        specifier: 0.11.0
+        version: link:../../crates/stylex-rs-compiler
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -277,13 +277,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/nextjs-plugin':
+      '@toss/stylexswc-nextjs-plugin':
         specifier: 0.11.0
         version: link:../../packages/nextjs-plugin
-      '@stylexswc/postcss-plugin':
+      '@toss/stylexswc-postcss-plugin':
         specifier: 0.11.0
         version: link:../../packages/postcss-plugin
       next:
@@ -302,15 +302,6 @@ importers:
       '@stylexjs/eslint-plugin':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/jest':
-        specifier: 0.11.0
-        version: link:../../packages/jest
-      '@stylexswc/playwright':
-        specifier: 0.11.0
-        version: link:../../packages/playwright
-      '@stylexswc/rs-compiler':
-        specifier: 0.11.0
-        version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
         specifier: ^0.2.39
         version: 0.2.39(@swc/core@1.13.3(@swc/helpers@0.5.17))
@@ -320,6 +311,15 @@ importers:
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.7(@types/react@19.1.9))(@types/react@19.1.9)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@toss/stylexswc-jest':
+        specifier: 0.11.0
+        version: link:../../packages/jest
+      '@toss/stylexswc-playwright':
+        specifier: 0.11.0
+        version: link:../../packages/playwright
+      '@toss/stylexswc-rs-compiler':
+        specifier: 0.11.0
+        version: link:../../crates/stylex-rs-compiler
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -390,10 +390,10 @@ importers:
       '@rollup/plugin-swc':
         specifier: ^0.4.0
         version: 0.4.0(@swc/core@1.13.3(@swc/helpers@0.5.17))(rollup@4.46.2)
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
-      '@stylexswc/rollup-plugin':
+      '@toss/stylexswc-rollup-plugin':
         specifier: 0.11.0
         version: link:../../packages/rollup-plugin
       rollup:
@@ -411,7 +411,7 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/rollup-plugin':
+      '@toss/stylexswc-rollup-plugin':
         specifier: 0.11.0
         version: link:../../packages/rollup-plugin
 
@@ -423,13 +423,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -457,7 +457,7 @@ importers:
       '@rollup/plugin-swc':
         specifier: ^0.4.0
         version: 0.4.0(@swc/core@1.13.3(@swc/helpers@0.5.17))(rollup@4.46.2)
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
       rollup:
@@ -478,13 +478,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -503,7 +503,7 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.3.2
         version: 1.3.2(@rsbuild/core@1.4.3)
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
       '@types/react':
@@ -524,13 +524,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -555,7 +555,7 @@ importers:
       '@rspack/core':
         specifier: ^1.3.14
         version: 1.3.14(@swc/helpers@0.5.17)
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
       '@types/react':
@@ -579,16 +579,16 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -628,16 +628,16 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -671,13 +671,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       vue:
@@ -687,7 +687,7 @@ importers:
       '@playwright/test':
         specifier: ^1.54.2
         version: 1.54.2
-      '@stylexswc/playwright':
+      '@toss/stylexswc-playwright':
         specifier: 0.11.0
         version: link:../../packages/playwright
       '@vitejs/plugin-vue':
@@ -715,7 +715,7 @@ importers:
         specifier: ^0.15.4
         version: 0.15.4
     devDependencies:
-      '@stylexswc/webpack-plugin':
+      '@toss/stylexswc-webpack-plugin':
         specifier: 0.11.0
         version: link:../../packages/webpack-plugin
       css-loader:
@@ -742,13 +742,13 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/design-system':
+      '@toss/stylexswc-design-system':
         specifier: 0.11.0
         version: link:../../packages/design-system
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/unplugin':
+      '@toss/stylexswc-unplugin':
         specifier: 0.11.0
         version: link:../../packages/unplugin
       react:
@@ -761,12 +761,12 @@ importers:
       '@playwright/test':
         specifier: ^1.54.2
         version: 1.54.2
-      '@stylexswc/playwright':
-        specifier: 0.11.0
-        version: link:../../packages/playwright
       '@swc/core':
         specifier: ^1.13.3
         version: 1.13.3(@swc/helpers@0.5.17)
+      '@toss/stylexswc-playwright':
+        specifier: 0.11.0
+        version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.1.9
         version: 19.1.9
@@ -827,9 +827,6 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/shared':
-        specifier: 0.11.0
-        version: link:../stylex-shared
       '@swc-node/register':
         specifier: ^1.10.10
         version: 1.10.10(@swc/core@1.13.3(@swc/helpers@0.5.17))(@swc/types@0.1.23)(typescript@5.9.2)
@@ -839,6 +836,9 @@ importers:
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
+      '@toss/stylexswc-shared':
+        specifier: 0.11.0
+        version: link:../stylex-shared
       '@types/node':
         specifier: ^24.1.0
         version: 24.1.0
@@ -872,12 +872,12 @@ importers:
 
   crates/stylex-shared:
     devDependencies:
-      '@stylexswc/path-resolver':
-        specifier: 0.11.0
-        version: link:../stylex-path-resolver
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
+      '@toss/stylexswc-path-resolver':
+        specifier: 0.11.0
+        version: link:../stylex-path-resolver
       npm-run-all2:
         specifier: ^8.0.4
         version: 8.0.4
@@ -902,7 +902,7 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
       react:
@@ -955,7 +955,7 @@ importers:
 
   packages/jest:
     dependencies:
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
     devDependencies:
@@ -968,29 +968,29 @@ importers:
       '@jest/types':
         specifier: ^29.5.14
         version: 29.6.3
-      '@stylexswc/eslint-config':
+      '@toss/stylexswc-eslint-config':
         specifier: 0.11.0
         version: link:../eslint-config
-      '@stylexswc/typescript-config':
+      '@toss/stylexswc-typescript-config':
         specifier: 0.11.0
         version: link:../typescript-config
 
   packages/nextjs-plugin:
     dependencies:
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
-      '@stylexswc/webpack-plugin':
+      '@toss/stylexswc-webpack-plugin':
         specifier: 0.11.0
         version: link:../webpack-plugin
     devDependencies:
       '@babel/types':
         specifier: ^7.28.2
         version: 7.28.2
-      '@stylexswc/eslint-config':
+      '@toss/stylexswc-eslint-config':
         specifier: 0.11.0
         version: link:../eslint-config
-      '@stylexswc/typescript-config':
+      '@toss/stylexswc-typescript-config':
         specifier: 0.11.0
         version: link:../typescript-config
       '@types/babel__core':
@@ -1020,10 +1020,10 @@ importers:
       '@playwright/test':
         specifier: ^1.54.2
         version: 1.54.2
-      '@stylexswc/eslint-config':
+      '@toss/stylexswc-eslint-config':
         specifier: 0.11.0
         version: link:../eslint-config
-      '@stylexswc/typescript-config':
+      '@toss/stylexswc-typescript-config':
         specifier: 0.11.0
         version: link:../typescript-config
       '@types/node':
@@ -1038,7 +1038,7 @@ importers:
       '@stylexjs/babel-plugin':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
       fast-glob:
@@ -1057,10 +1057,10 @@ importers:
       '@babel/types':
         specifier: ^7.28.2
         version: 7.28.2
-      '@stylexswc/eslint-config':
+      '@toss/stylexswc-eslint-config':
         specifier: 0.11.0
         version: link:../eslint-config
-      '@stylexswc/typescript-config':
+      '@toss/stylexswc-typescript-config':
         specifier: 0.11.0
         version: link:../typescript-config
       '@types/babel__core':
@@ -1096,7 +1096,7 @@ importers:
       '@stylexjs/babel-plugin':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
       lightningcss:
@@ -1147,7 +1147,7 @@ importers:
       '@stylexjs/babel-plugin':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
       esbuild:
@@ -1229,7 +1229,7 @@ importers:
       '@stylexjs/babel-plugin':
         specifier: ^0.15.4
         version: 0.15.4
-      '@stylexswc/rs-compiler':
+      '@toss/stylexswc-rs-compiler':
         specifier: 0.11.0
         version: link:../../crates/stylex-rs-compiler
       loader-utils:
@@ -1239,10 +1239,10 @@ importers:
       '@babel/types':
         specifier: ^7.28.2
         version: 7.28.2
-      '@stylexswc/eslint-config':
+      '@toss/stylexswc-eslint-config':
         specifier: 0.11.0
         version: link:../eslint-config
-      '@stylexswc/typescript-config':
+      '@toss/stylexswc-typescript-config':
         specifier: 0.11.0
         version: link:../typescript-config
       '@types/babel__core':
@@ -2090,12 +2090,14 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@farmfe/core-linux-x64-musl@1.7.10':
     resolution: {integrity: sha512-dhcoUklHlZwxVLUkS2LEm1QQlKRURDOZS7IohgUpc8DC0vYN3oYrOWA05+ozprmExkf7PVAS/Gw/e3vGUG2uGQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@farmfe/core-win32-arm64-msvc@1.7.10':
     resolution: {integrity: sha512-UVoUDYN1RYtK4jxCUXMetknp19cVNm/iQqQ8kLXAI1/4nkvInsWwGFCy+CYBq5PevWgYeKBgEc/IvhxjCvtOPA==}
@@ -2136,18 +2138,21 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@farmfe/plugin-react-linux-arm64-musl@1.2.6':
     resolution: {integrity: sha512-e1OFg8d1VnEGcg08ewTxJVbv6ie1e8U8fUSABbEUePKzeom8cfC9P4jadACw08M2Ls4YnOlLPFLTSlVCg9Xhew==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@farmfe/plugin-react-linux-x64-gnu@1.2.6':
     resolution: {integrity: sha512-0WFKSkPv/NK7A/czyluS0V+h/qxIb6jILUh82RyOfVjCit0WGPDVN/IH/ZIp2qMGdjtP9er8u4yt4zNGKrHZNQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@farmfe/plugin-react-linux-x64-musl@1.2.6':
     resolution: {integrity: sha512-X386lU5+4ELeaIS3c2xgB4cUjry12HUF3/lJWje2hV0SvGHwErkM07HhjbQd/XsJyg6dP8YnAn3RkuYFiwoTog==}
@@ -2237,78 +2242,92 @@ packages:
     resolution: {integrity: sha512-RXwd0CgG+uPRX5YYrkzKyalt2OJYRiJQ8ED/fi1tq9WQW2jsQIn0tqrlR5l5dr/rjqq6AHAxURhj2DVjyQWSOA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-arm@1.2.0':
     resolution: {integrity: sha512-mWd2uWvDtL/nvIzThLq3fr2nnGfyr/XMXlq8ZJ9WMR6PXijHlC3ksp0IpuhK6bougvQrchUAfzRLnbsen0Cqvw==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-ppc64@1.2.0':
     resolution: {integrity: sha512-Xod/7KaDDHkYu2phxxfeEPXfVXFKx70EAFZ0qyUdOjCcxbjqyJOEUpDe6RIyaunGxT34Anf9ue/wuWOqBW2WcQ==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-s390x@1.2.0':
     resolution: {integrity: sha512-eMKfzDxLGT8mnmPJTNMcjfO33fLiTDsrMlUVcp6b96ETbnJmd4uvZxVJSKPQfS+odwfVaGifhsB07J1LynFehw==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-x64@1.2.0':
     resolution: {integrity: sha512-ZW3FPWIc7K1sH9E3nxIGB3y3dZkpJlMnkk7z5tu1nSkBoCgw2nSRTFHI5pB/3CQaJM0pdzMF3paf9ckKMSE9Tg==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linuxmusl-arm64@1.2.0':
     resolution: {integrity: sha512-UG+LqQJbf5VJ8NWJ5Z3tdIe/HXjuIdo4JeVNADXBFuG7z9zjoegpzzGIyV5zQKi4zaJjnAd2+g2nna8TZvuW9Q==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-libvips-linuxmusl-x64@1.2.0':
     resolution: {integrity: sha512-SRYOLR7CXPgNze8akZwjoGBoN1ThNZoqpOgfnOxmWsklTGVfJiGJoC/Lod7aNMGA1jSsKWM1+HRX43OP6p9+6Q==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-linux-arm64@0.34.3':
     resolution: {integrity: sha512-QdrKe3EvQrqwkDrtuTIjI0bu6YEJHTgEeqdzI3uWJOH6G1O8Nl1iEeVYRGdj1h5I21CqxSvQp1Yv7xeU3ZewbA==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-arm@0.34.3':
     resolution: {integrity: sha512-oBK9l+h6KBN0i3dC8rYntLiVfW8D8wH+NPNT3O/WBHeW0OQWCjfWksLUaPidsrDKpJgXp3G3/hkmhptAW0I3+A==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-ppc64@0.34.3':
     resolution: {integrity: sha512-GLtbLQMCNC5nxuImPR2+RgrviwKwVql28FWZIW1zWruy6zLgA5/x2ZXk3mxj58X/tszVF69KK0Is83V8YgWhLA==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-s390x@0.34.3':
     resolution: {integrity: sha512-3gahT+A6c4cdc2edhsLHmIOXMb17ltffJlxR0aC2VPZfwKoTGZec6u5GrFgdR7ciJSsHT27BD3TIuGcuRT0KmQ==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-x64@0.34.3':
     resolution: {integrity: sha512-8kYso8d806ypnSq3/Ly0QEw90V5ZoHh10yH0HnrzOCr6DKAPI6QVHvwleqMkVQ0m+fc7EH8ah0BB0QPuWY6zJQ==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linuxmusl-arm64@0.34.3':
     resolution: {integrity: sha512-vAjbHDlr4izEiXM1OTggpCcPg9tn4YriK5vAjowJsHwdBIdx0fYRsURkxLG2RLm9gyBq66gwtWI8Gx0/ov+JKQ==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-linuxmusl-x64@0.34.3':
     resolution: {integrity: sha512-gCWUn9547K5bwvOn9l5XGAEjVTTRji4aPTqLzGXHvIr6bIDZKNTA34seMPgM0WmSf+RYBH411VavCejp3PkOeQ==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-wasm32@0.34.3':
     resolution: {integrity: sha512-+CyRcpagHMGteySaWos8IbnXcHgfDn7pO2fiC2slJxvNq9gDipYBN42/RagzctVRKgxATmfqOSulgZv5e1RdMg==}
@@ -2621,24 +2640,28 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@next/swc-linux-arm64-musl@15.4.7':
     resolution: {integrity: sha512-4SaCjlFR/2hGJqZLLWycccy1t+wBrE/vyJWnYaZJhUVHccpGLG5q0C+Xkw4iRzUIkE+/dr90MJRUym3s1+vO8A==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@next/swc-linux-x64-gnu@15.4.7':
     resolution: {integrity: sha512-2uNXjxvONyRidg00VwvlTYDwC9EgCGNzPAPYbttIATZRxmOZ3hllk/YYESzHZb65eyZfBR5g9xgCZjRAl9YYGg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@next/swc-linux-x64-musl@15.4.7':
     resolution: {integrity: sha512-ceNbPjsFgLscYNGKSu4I6LYaadq2B8tcK116nVuInpHHdAWLWSwVK6CHNvCi0wVS9+TTArIFKJGsEyVD1H+4Kg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@next/swc-win32-arm64-msvc@15.4.7':
     resolution: {integrity: sha512-pZyxmY1iHlZJ04LUL7Css8bNvsYAMYOY9JRwFA3HZgpaNKsJSowD09Vg2R9734GxAcLJc2KDQHSCR91uD6/AAw==}
@@ -2700,21 +2723,25 @@ packages:
     resolution: {integrity: sha512-l/0pWoQM5kVmJLg4frQ1mKZOXgi0ex/hzvFt8E4WK2ifXr5JgKFUokxsb/oat7f5YzdJJh5r9p+qS/t3dA26Aw==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-resolver/binding-linux-arm64-musl@5.0.0':
     resolution: {integrity: sha512-bx0oz/oaAW4FGYqpIIxJCnmgb906YfMhTEWCJvYkxjpEI8VKLJEL3PQevYiqDq36SA0yRLJ/sQK2fqry8AFBfA==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-resolver/binding-linux-x64-gnu@5.0.0':
     resolution: {integrity: sha512-4PH++qbSIhlRsFYdN1P9neDov4OGhTGo5nbQ1D7AL6gWFLo3gdZTc00FM2y8JjeTcPWEXkViZuwpuc0w5i6qHg==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-resolver/binding-linux-x64-musl@5.0.0':
     resolution: {integrity: sha512-mLfQFpX3/5y9oWi0b+9FbWDkL2hM0Y29653beCHiHxAdGyVgb2DsJbK74WkMTwtSz9by8vyBh8jGPZcg1yLZbQ==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-resolver/binding-wasm32-wasi@5.0.0':
     resolution: {integrity: sha512-uEhsAZSo65qsRi6+IfBTEUUFbjg7T2yruJeLYpFfEATpm3ory5Mgo5vx3L0c2/Cz1OUZXBgp3A8x6VMUB2jT2A==}
@@ -2745,21 +2772,25 @@ packages:
     resolution: {integrity: sha512-NoAWscdfVj6Sci3NdbHHc1OivSSKpwtkLff5SoAM8XgJ9t7flf+zW7XOy3OeSgZAxNbcF4QGruv+XcBLR7tWMA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@oxlint/linux-arm64-musl@0.17.0':
     resolution: {integrity: sha512-VQRmSdbuc0rpSZoLqdhKJG9nUjJmEymOU60dO3lKlCT5YXME4dxA+jf1AigtnmJS5FgOxQm54ECF9lh6dyP0ew==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@oxlint/linux-x64-gnu@0.17.0':
     resolution: {integrity: sha512-KcaXWkBfqt7weerU1EXJysEupEHB8AtJytufBOQMuLE5vx2OoAbjAk0vt2V14W8Lss9Sz+ET7nXo6ZAEku4vCA==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@oxlint/linux-x64-musl@0.17.0':
     resolution: {integrity: sha512-yWbFXWKKTrH4zR0FI1V6KDJp5NqOLFe1LZbKNeaoS1wtq5/aFPeM+d9dttGLoA5u6G9uhIK/nSnrPmtuNLPU4Q==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@oxlint/win32-arm64@0.17.0':
     resolution: {integrity: sha512-zdoB3mbvcx3eGOh6ElPJ01S2MOzyZo/gijeHw7yb2PXcRis+3clVje6kpnG7/TN69zoHv7WwDX6poJu8FURTqg==}
@@ -2937,111 +2968,133 @@ packages:
     resolution: {integrity: sha512-EtP8aquZ0xQg0ETFcxUbU71MZlHaw9MChwrQzatiE8U/bvi5uv/oChExXC4mWhjiqK7azGJBqU0tt5H123SzVA==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm-gnueabihf@4.50.1':
     resolution: {integrity: sha512-54v4okehwl5TaSIkpp97rAHGp7t3ghinRd/vyC1iXqXMfjYUTm7TfYmCzXDoHUPTTf36L8pr0E7YsD3CfB3ZDg==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.46.2':
     resolution: {integrity: sha512-qO7F7U3u1nfxYRPM8HqFtLd+raev2K137dsV08q/LRKRLEc7RsiDWihUnrINdsWQxPR9jqZ8DIIZ1zJJAm5PjQ==}
     cpu: [arm]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-arm-musleabihf@4.50.1':
     resolution: {integrity: sha512-p/LaFyajPN/0PUHjv8TNyxLiA7RwmDoVY3flXHPSzqrGcIp/c2FjwPPP5++u87DGHtw+5kSH5bCJz0mvXngYxw==}
     cpu: [arm]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.46.2':
     resolution: {integrity: sha512-3dRaqLfcOXYsfvw5xMrxAk9Lb1f395gkoBYzSFcc/scgRFptRXL9DOaDpMiehf9CO8ZDRJW2z45b6fpU5nwjng==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-gnu@4.50.1':
     resolution: {integrity: sha512-2AbMhFFkTo6Ptna1zO7kAXXDLi7H9fGTbVaIq2AAYO7yzcAsuTNWPHhb2aTA6GPiP+JXh85Y8CiS54iZoj4opw==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.46.2':
     resolution: {integrity: sha512-fhHFTutA7SM+IrR6lIfiHskxmpmPTJUXpWIsBXpeEwNgZzZZSg/q4i6FU4J8qOGyJ0TR+wXBwx/L7Ho9z0+uDg==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-arm64-musl@4.50.1':
     resolution: {integrity: sha512-Cgef+5aZwuvesQNw9eX7g19FfKX5/pQRIyhoXLCiBOrWopjo7ycfB292TX9MDcDijiuIJlx1IzJz3IoCPfqs9w==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-loongarch64-gnu@4.46.2':
     resolution: {integrity: sha512-i7wfGFXu8x4+FRqPymzjD+Hyav8l95UIZ773j7J7zRYc3Xsxy2wIn4x+llpunexXe6laaO72iEjeeGyUFmjKeA==}
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-loongarch64-gnu@4.50.1':
     resolution: {integrity: sha512-RPhTwWMzpYYrHrJAS7CmpdtHNKtt2Ueo+BlLBjfZEhYBhK00OsEqM08/7f+eohiF6poe0YRDDd8nAvwtE/Y62Q==}
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-gnu@4.46.2':
     resolution: {integrity: sha512-B/l0dFcHVUnqcGZWKcWBSV2PF01YUt0Rvlurci5P+neqY/yMKchGU8ullZvIv5e8Y1C6wOn+U03mrDylP5q9Yw==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-gnu@4.50.1':
     resolution: {integrity: sha512-eSGMVQw9iekut62O7eBdbiccRguuDgiPMsw++BVUg+1K7WjZXHOg/YOT9SWMzPZA+w98G+Fa1VqJgHZOHHnY0Q==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-gnu@4.46.2':
     resolution: {integrity: sha512-32k4ENb5ygtkMwPMucAb8MtV8olkPT03oiTxJbgkJa7lJ7dZMr0GCFJlyvy+K8iq7F/iuOr41ZdUHaOiqyR3iQ==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-gnu@4.50.1':
     resolution: {integrity: sha512-S208ojx8a4ciIPrLgazF6AgdcNJzQE4+S9rsmOmDJkusvctii+ZvEuIC4v/xFqzbuP8yDjn73oBlNDgF6YGSXQ==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.46.2':
     resolution: {integrity: sha512-t5B2loThlFEauloaQkZg9gxV05BYeITLvLkWOkRXogP4qHXLkWSbSHKM9S6H1schf/0YGP/qNKtiISlxvfmmZw==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-riscv64-musl@4.50.1':
     resolution: {integrity: sha512-3Ag8Ls1ggqkGUvSZWYcdgFwriy2lWo+0QlYgEFra/5JGtAd6C5Hw59oojx1DeqcA2Wds2ayRgvJ4qxVTzCHgzg==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.46.2':
     resolution: {integrity: sha512-YKjekwTEKgbB7n17gmODSmJVUIvj8CX7q5442/CK80L8nqOUbMtf8b01QkG3jOqyr1rotrAnW6B/qiHwfcuWQA==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-s390x-gnu@4.50.1':
     resolution: {integrity: sha512-t9YrKfaxCYe7l7ldFERE1BRg/4TATxIg+YieHQ966jwvo7ddHJxPj9cNFWLAzhkVsbBvNA4qTbPVNsZKBO4NSg==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.46.2':
     resolution: {integrity: sha512-Jj5a9RUoe5ra+MEyERkDKLwTXVu6s3aACP51nkfnK9wJTraCC8IMe3snOfALkrjTYd2G1ViE1hICj0fZ7ALBPA==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.50.1':
     resolution: {integrity: sha512-MCgtFB2+SVNuQmmjHf+wfI4CMxy3Tk8XjA5Z//A0AKD7QXUYFMQcns91K6dEHBvZPCnhJSyDWLApk40Iq/H3tA==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.46.2':
     resolution: {integrity: sha512-7kX69DIrBeD7yNp4A5b81izs8BqoZkCIaxQaOpumcJ1S/kmqNFjPhDu1LHeVXv0SexfHQv5cqHsxLOjETuqDuA==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-x64-musl@4.50.1':
     resolution: {integrity: sha512-nEvqG+0jeRmqaUMuwzlfMKwcIVffy/9KGbAGyoa26iu6eSngAYQ512bMXuqqPrlTyfqdlB9FVINs93j534UJrg==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-openharmony-arm64@4.50.1':
     resolution: {integrity: sha512-RDsLm+phmT3MJd9SNxA9MNuEAO/J2fhW8GXk62G/B4G7sLVumNFbRwDL6v5NrESb48k+QMqdGbHgEtfU0LCpbA==}
@@ -3112,41 +3165,49 @@ packages:
     resolution: {integrity: sha512-bp6TnqmUmGOYY7rBY5YnPRpWSFyAs4AHlLsYK3vgZzSQ+PjxMeT3JQaYo/mXxKrxETCgvKV4az5wO4oOwvQKpg==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-arm64-gnu@1.4.2':
     resolution: {integrity: sha512-UHAzggS8Mc7b3Xguhj82HwujLqBZquCeo8qJj5XreNaMKGb6YRw/91dJOVmkNiLCB0bj71CRE1Cocd+Peq3N9A==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-arm64-musl@1.3.14':
     resolution: {integrity: sha512-Sm8fCQbga9KByNfLsd3rnhqlkUNFQWuL+YMAOzd4mbhe5XYTdcVh+KJ8d4gzHei8mgUkel8REuIww6Rcu9m0tA==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-arm64-musl@1.4.2':
     resolution: {integrity: sha512-QybZ0VxlFih+upLoE7Le5cN3LpxJwk6EnEQTigmzpfc4c4SOC889ftBoIAO3IeBk+mF3H2C9xD+/NolTdwoeiw==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-x64-gnu@1.3.14':
     resolution: {integrity: sha512-adgzfZACCLfyv2XNLwzMtMuf+3bLaTkMtKVZoFUBxTrqSO9PaeDs08n1qNdHCUmfYo7nRuAtwUYsf2yZBhRe4A==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-x64-gnu@1.4.2':
     resolution: {integrity: sha512-ucCCWdtH1tekZadrsYj6GNJ8EP21BM2uSE7MootbwLw8aBtgVTKUuRDQEps1h/rtrdthzd9XBX6Lc2N926gM+g==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-x64-musl@1.3.14':
     resolution: {integrity: sha512-nfvaKn+gyEZGXQfFRueQYbn4ec0uXwrdIjrXled7UEQHI08+6mb5ZTgtLlLn6yEuxK1ICvKnef5PPDuA1FYLtA==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-x64-musl@1.4.2':
     resolution: {integrity: sha512-+Y2LS6Qyk2AZor8DqlA8yKCqElYr0Urjc3M66O4ZzlxDT5xXX0J2vp04AtFp0g81q/+UgV3cbC//dqDvO0SiBA==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-wasm32-wasi@1.4.2':
     resolution: {integrity: sha512-3WvfHY7NvzORek3FcQWLI/B8wQ7NZe0e0Bub9GyLNVxe5Bi+dxnSzEg6E7VsjbUzKnYufJA0hDKbEJ2qCMvpdw==}
@@ -3317,24 +3378,28 @@ packages:
     engines: {node: '>=10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@swc/core-linux-arm64-musl@1.13.3':
     resolution: {integrity: sha512-bc+CXYlFc1t8pv9yZJGus372ldzOVscBl7encUBlU1m/Sig0+NDJLz6cXXRcFyl6ABNOApWeR4Yl7iUWx6C8og==}
     engines: {node: '>=10'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@swc/core-linux-x64-gnu@1.13.3':
     resolution: {integrity: sha512-dFXoa0TEhohrKcxn/54YKs1iwNeW6tUkHJgXW33H381SvjKFUV53WR231jh1sWVJETjA3vsAwxKwR23s7UCmUA==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@swc/core-linux-x64-musl@1.13.3':
     resolution: {integrity: sha512-ieyjisLB+ldexiE/yD8uomaZuZIbTc8tjquYln9Quh5ykOBY7LpJJYBWvWtm1g3pHv6AXlBI8Jay7Fffb6aLfA==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@swc/core-win32-arm64-msvc@1.13.3':
     resolution: {integrity: sha512-elTQpnaX5vESSbhCEgcwXjpMsnUbqqHfEpB7ewpkAsLzKEXZaK67ihSRYAuAx6ewRQTo7DS5iTT6X5aQD3MzMw==}
@@ -3732,41 +3797,49 @@ packages:
     resolution: {integrity: sha512-34gw7PjDGB9JgePJEmhEqBhWvCiiWCuXsL9hYphDF7crW7UgI05gyBAi6MF58uGcMOiOqSJ2ybEeCvHcq0BCmQ==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-arm64-musl@1.11.1':
     resolution: {integrity: sha512-RyMIx6Uf53hhOtJDIamSbTskA99sPHS96wxVE/bJtePJJtpdKGXO1wY90oRdXuYOGOTuqjT8ACccMc4K6QmT3w==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@unrs/resolver-binding-linux-ppc64-gnu@1.11.1':
     resolution: {integrity: sha512-D8Vae74A4/a+mZH0FbOkFJL9DSK2R6TFPC9M+jCWYia/q2einCubX10pecpDiTmkJVUH+y8K3BZClycD8nCShA==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-riscv64-gnu@1.11.1':
     resolution: {integrity: sha512-frxL4OrzOWVVsOc96+V3aqTIQl1O2TjgExV4EKgRY09AJ9leZpEg8Ak9phadbuX0BA4k8U5qtvMSQQGGmaJqcQ==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-riscv64-musl@1.11.1':
     resolution: {integrity: sha512-mJ5vuDaIZ+l/acv01sHoXfpnyrNKOk/3aDoEdLO/Xtn9HuZlDD6jKxHlkN8ZhWyLJsRBxfv9GYM2utQ1SChKew==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@unrs/resolver-binding-linux-s390x-gnu@1.11.1':
     resolution: {integrity: sha512-kELo8ebBVtb9sA7rMe1Cph4QHreByhaZ2QEADd9NzIQsYNQpt9UkM9iqr2lhGr5afh885d/cB5QeTXSbZHTYPg==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-x64-gnu@1.11.1':
     resolution: {integrity: sha512-C3ZAHugKgovV5YvAMsxhq0gtXuwESUKc5MhEtjBpLoHPLYM+iuwSj3lflFwK3DPm68660rZ7G8BMcwSro7hD5w==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-x64-musl@1.11.1':
     resolution: {integrity: sha512-rV0YSoyhK2nZ4vEswT/QwqzqQXw5I6CjoaYMOX0TqBlWhojUf8P94mvI7nuJTeaCkkds3QE4+zS8Ko+GdXuZtA==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@unrs/resolver-binding-wasm32-wasi@1.11.1':
     resolution: {integrity: sha512-5u4RkfxJm+Ng7IWgkzi3qrFOvLvQYnPBmjmZQ8+szTK/b31fQCnleNl1GgEt7nIsZRIf5PLhPwT0WM+q45x/UQ==}
@@ -5589,18 +5662,21 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   farm-plugin-replace-dirname-linux-arm64-musl@0.2.1:
     resolution: {integrity: sha512-m3gH8ggczbRYTHZSNp3LjIQIcqhvDO4O78bxXc8O1ozKD8M47/YfQLyQV06M7H4rZ8s6XV3Bb1kAcRAASp3M5A==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   farm-plugin-replace-dirname-linux-x64-gnu@0.2.1:
     resolution: {integrity: sha512-MehKkoM2RFw3sCnEu9nCbXKjxtC3hfTad0h/dC+Z8iEBcLEReVLoNzHWWUa6BxkxqDtB82/BWO/ObSUj/VUnwQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   farm-plugin-replace-dirname-linux-x64-musl@0.2.1:
     resolution: {integrity: sha512-o1qPZi16N/sHOteZYJVv6UmZFK3QKpVQrywk/4spJI0mPH9A9Y+G6iBE2Tqjb3d+1Hb6phr++EBJHZ2x1ajtGQ==}
@@ -6925,24 +7001,28 @@ packages:
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   lightningcss-linux-arm64-musl@1.30.1:
     resolution: {integrity: sha512-jmUQVx4331m6LIX+0wUhBbmMX7TCfjF5FoOH6SD1CttzuYlGNVpA7QnrmLxrsub43ClTINfGSYyHe2HWeLl5CQ==}
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   lightningcss-linux-x64-gnu@1.30.1:
     resolution: {integrity: sha512-piWx3z4wN8J8z3+O5kO74+yr6ze/dKmPnI7vLqfSqI8bccaTGY5xiSGVIJBDd5K5BHlvVLpUB3S2YCfelyJ1bw==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   lightningcss-linux-x64-musl@1.30.1:
     resolution: {integrity: sha512-rRomAK7eIkL+tHY0YPxbc5Dra2gXlI63HL+v1Pdi1a3sC+tJTcFrHX+E86sulgAXeI7rSzDYhPSeHHjqFhqfeQ==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   lightningcss-win32-arm64-msvc@1.30.1:
     resolution: {integrity: sha512-mSL4rqPi4iXq5YVqzSsJgMVFENoa4nGTT/GjO2c0Yl9OuQfPsIfncvLrEW6RbbB24WtZ3xP/2CCmI3tNkNV4oA==}

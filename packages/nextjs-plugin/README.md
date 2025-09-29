@@ -36,7 +36,7 @@ experience with StyleX:
 To install the package, run the following command:
 
 ```bash
-npm install --save-dev @stylexswc/nextjs-plugin
+npm install --save-dev @toss/stylexswc-nextjs-plugin
 ```
 
 ## Plugin Options
@@ -86,7 +86,7 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 ```javascript
 const path = require('path');
-const stylexPlugin = require('@stylexswc/nextjs-plugin');
+const stylexPlugin = require('@toss/stylexswc-nextjs-plugin');
 const rootDir = __dirname;
 
 module.exports = stylexPlugin({

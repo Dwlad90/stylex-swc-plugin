@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/stylexswc",
+  "name": "@toss/stylexswc-stylexswc",
   "version": "0.11.0",
   "private": true,
   "scripts": {
@@ -27,8 +27,8 @@
   "devDependencies": {
     "playwright": "^1.54.2",
     "@commitlint/cli": "^19.8.1",
-    "@stylexswc/eslint-config": "0.11.0",
-    "@stylexswc/typescript-config": "0.11.0",
+    "@toss/stylexswc-eslint-config": "0.11.0",
+    "@toss/stylexswc-typescript-config": "0.11.0",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
     "del-cli": "^6.0.0",

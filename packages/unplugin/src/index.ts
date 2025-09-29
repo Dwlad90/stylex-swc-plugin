@@ -7,11 +7,11 @@ import type { UnpluginFactory, UnpluginInstance, UnpluginMessage } from 'unplugi
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions from './utils/normalizeOptions';
 import type { UnpluginStylexRSOptions } from './types';
-import stylexRsCompiler from '@stylexswc/rs-compiler';
+import stylexRsCompiler from '@toss/stylexswc-rs-compiler';
 import generateHash from './utils/generateHash';
 import crypto from 'crypto';
 
-import type { StyleXMetadata } from '@stylexswc/rs-compiler';
+import type { StyleXMetadata } from '@toss/stylexswc-rs-compiler';
 import type { HotPayload, UserConfig } from 'vite';
 
 type StyleXRules = Record<string, StyleXMetadata['stylex']>;

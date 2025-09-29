@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`@stylexswc/rollup-plugin extracts CSS and removes stylex.inject calls 1`] = `
+exports[`@toss/stylexswc-rollup-plugin extracts CSS and removes stylex.inject calls 1`] = `
 "@layer priority1;
 
 @layer priority2 {
@@ -63,7 +63,7 @@ exports[`@stylexswc/rollup-plugin extracts CSS and removes stylex.inject calls 1
 "
 `;
 
-exports[`@stylexswc/rollup-plugin extracts CSS and removes stylex.inject calls 2`] = `
+exports[`@toss/stylexswc-rollup-plugin extracts CSS and removes stylex.inject calls 2`] = `
 "import * as stylex from 'stylex';
 
 const styles$2 = {
@@ -103,7 +103,7 @@ export { App as default };
 "
 `;
 
-exports[`@stylexswc/rollup-plugin output filename match pattern 1`] = `
+exports[`@toss/stylexswc-rollup-plugin output filename match pattern 1`] = `
 "@layer priority1;
 
 @layer priority2 {
@@ -166,7 +166,7 @@ exports[`@stylexswc/rollup-plugin output filename match pattern 1`] = `
 "
 `;
 
-exports[`@stylexswc/rollup-plugin runtimeInjection:true preserves stylex.inject calls and does not extract CSS 1`] = `
+exports[`@toss/stylexswc-rollup-plugin runtimeInjection:true preserves stylex.inject calls and does not extract CSS 1`] = `
 "import _inject from '@stylexjs/stylex/lib/stylex-inject';
 import * as stylex from 'stylex';
 

@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/eslint-config",
+  "name": "@toss/stylexswc-eslint-config",
   "version": "0.11.0",
   "private": true,
   "files": [

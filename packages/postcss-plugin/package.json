@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/postcss-plugin",
+  "name": "@toss/stylexswc-postcss-plugin",
   "description": "StyleX PostCSS plugin with NAPI-RS compiler",
   "version": "0.11.0",
   "private": false,
@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.15.4",
-    "@stylexswc/rs-compiler": "0.11.0",
+    "@toss/stylexswc-rs-compiler": "0.11.0",
     "fast-glob": "^3.3.3",
     "glob-parent": "^6.0.2",
     "is-glob": "^4.0.3",
@@ -40,8 +40,8 @@
   },
   "devDependencies": {
     "@babel/types": "^7.28.2",
-    "@stylexswc/eslint-config": "0.11.0",
-    "@stylexswc/typescript-config": "0.11.0",
+    "@toss/stylexswc-eslint-config": "0.11.0",
+    "@toss/stylexswc-typescript-config": "0.11.0",
     "@types/babel__core": "^7.20.5",
     "@types/glob-parent": "^5.1.3",
     "@types/is-glob": "^4.0.4",

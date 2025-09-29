@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/playwright",
+  "name": "@toss/stylexswc-playwright",
   "description": "Playwright for Stylex SWC",
   "version": "0.11.0",
   "private": true,
@@ -32,8 +32,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
-    "@stylexswc/eslint-config": "0.11.0",
-    "@stylexswc/typescript-config": "0.11.0",
+    "@toss/stylexswc-eslint-config": "0.11.0",
+    "@toss/stylexswc-typescript-config": "0.11.0",
     "@types/node": "^24.1.0",
     "playwright": "^1.54.2"
   },

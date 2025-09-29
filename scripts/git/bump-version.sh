@@ -18,7 +18,7 @@ find . -name 'node_modules' -prune -o -name 'package.json' -print | while read -
     jq --arg version "$NEW_VERSION" '
     def update_deps:
         with_entries(
-            if (.value | type == "string") and (.value | test("^file:|^link:|^workspace:") | not) and (.key | startswith("@stylexswc/")) then
+            if (.value | type == "string") and (.value | test("^file:|^link:|^workspace:") | not) and (.key | startswith("@toss/stylexswc-")) then
                 .value = $version
             else
                 .

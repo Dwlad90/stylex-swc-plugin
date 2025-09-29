@@ -24,34 +24,34 @@ jobs:
         settings:
           - host: macos-latest
             target: x86_64-apple-darwin
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-apple-darwin
+            build: pnpm run --filter @toss/stylexswc-rs-compiler build --target x86_64-apple-darwin
           - host: windows-latest
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-pc-windows-msvc
+            build: pnpm run --filter @toss/stylexswc-rs-compiler build --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: windows-latest
-            build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-pc-windows-msvc
+            build: pnpm run --filter @toss/stylexswc-rs-compiler build --target aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
             build: |
               corepack prepare pnpm@9.15.4 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-gnu
+              pnpm run --filter @toss/stylexswc-rs-compiler build --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
             build: |
               corepack prepare pnpm@9.15.4 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-musl
+              pnpm run --filter @toss/stylexswc-rs-compiler build --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
-            build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-apple-darwin
+            build: pnpm run --filter @toss/stylexswc-rs-compiler build --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |
               corepack prepare pnpm@9.15.4 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
+              pnpm run --filter @toss/stylexswc-rs-compiler build --target aarch64-unknown-linux-gnu
         node:
           - '22.13.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
@@ -142,7 +142,7 @@ jobs:
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
       - name: Test bindings
-        run: pnpm run --filter @stylexswc/rs-compiler test
+        run: pnpm run --filter @toss/stylexswc-rs-compiler test
   test-linux-x64-gnu-binding:
     name: 🧪 Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
     needs:
@@ -178,7 +178,7 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
             npm install -g pnpm &&
-            pnpm run --filter @stylexswc/rs-compiler test
+            pnpm run --filter @toss/stylexswc-rs-compiler test
           "
   test-linux-x64-musl-binding:
     name: 🧪 Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
@@ -215,7 +215,7 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
             npm install -g pnpm &&
-            pnpm run --filter @stylexswc/rs-compiler test
+            pnpm run --filter @toss/stylexswc-rs-compiler test
           "
   benchmark:
     name: 📊 Benchmark on ${{ matrix.settings.target }} - node@${{ matrix.node }}
@@ -281,7 +281,7 @@ jobs:
             ${{ matrix.settings.target }}-benchmark-
             ${{ matrix.settings.target }}-benchmark
       - name: Run benchmarks
-        run: pnpm run --filter @stylexswc/rs-compiler bench
+        run: pnpm run --filter @toss/stylexswc-rs-compiler bench
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@d48d326b4ca9ba73ca0cd0d59f108f9e02a381c7 # v1.20.4
         with:
@@ -317,7 +317,7 @@ jobs:
         with:
           path: crates/stylex-rs-compiler/artifacts
       - name: Move artifacts
-        run: pnpm run --filter @stylexswc/rs-compiler artifacts
+        run: pnpm run --filter @toss/stylexswc-rs-compiler artifacts
       - name: Move and list artifacts
         run: |
           mkdir -p crates/stylex-rs-compiler/dist
@@ -326,10 +326,10 @@ jobs:
 
           ls -R crates/stylex-rs-compiler/dist/*
       - name: Build all public packages
-        run: pnpm run --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" build
+        run: pnpm run --filter "{./packages/*}" --filter "!@toss/stylexswc-*swc*" --filter "!{./crates/*}" build
 
       - name: Check artifacts
-        run: pnpm run --filter "{./packages/*}" --filter "!@stylexswc/*swc*"  check:artifacts
+        run: pnpm run --filter "{./packages/*}" --filter "!@toss/stylexswc-*swc*"  check:artifacts
       - name: Publish
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

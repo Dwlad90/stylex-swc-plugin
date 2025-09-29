@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const path = require('node:path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const styleXRSPlugin = require('@stylexswc/unplugin/webpack')
+const styleXRSPlugin = require('@toss/stylexswc-unplugin/webpack')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const isDev = process.env.NODE_ENV === 'development'

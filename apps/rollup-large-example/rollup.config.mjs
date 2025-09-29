@@ -1,4 +1,4 @@
-import stylexPlugin from '@stylexswc/rollup-plugin';
+import stylexPlugin from '@toss/stylexswc-rollup-plugin';
 
 const config = {
   input: './index.js',

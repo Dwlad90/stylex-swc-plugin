@@ -1,9 +1,9 @@
-import stylexPlugin, { normalizeRsOptions } from '@stylexswc/rs-compiler';
+import stylexPlugin, { normalizeRsOptions } from '@toss/stylexswc-rs-compiler';
 
 import type webpack from 'webpack';
 import type { Rule } from '@stylexjs/babel-plugin';
 import type { SWCPluginRule, StyleXWebpackLoaderOptions, SupplementedLoaderContext } from './types';
-import type { StyleXTransformResult } from '@stylexswc/rs-compiler';
+import type { StyleXTransformResult } from '@toss/stylexswc-rs-compiler';
 
 export function stringifyRequest(loaderContext: webpack.LoaderContext<unknown>, request: string) {
   return JSON.stringify(

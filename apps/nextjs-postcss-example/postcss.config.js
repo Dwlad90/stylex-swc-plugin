@@ -32,14 +32,14 @@ function getPackageIncludePaths(packageName, nodeModulePaths) {
   ];
 }
 
-const includePaths = ['@stylexjs/open-props', '@stylexswc/design-system'].flatMap(packageName => getPackageIncludePaths(packageName, [
+const includePaths = ['@stylexjs/open-props', '@toss/stylexswc-design-system'].flatMap(packageName => getPackageIncludePaths(packageName, [
   path.join(projectRoot, 'node_modules'),
   path.join(monorepoRoot, 'node_modules'),
 ]));
 
 module.exports = {
   plugins: {
-    '@stylexswc/postcss-plugin': {
+    '@toss/stylexswc-postcss-plugin': {
       include: [
         'app/**/*.{js,jsx,ts,tsx}',
         'components/**/*.{js,jsx,ts,tsx}',

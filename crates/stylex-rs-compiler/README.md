@@ -44,7 +44,7 @@ the power of NAPI-RS and SWC to achieve several key advantages:
 To install the package, run the following command:
 
 ```bash
-npm install --save-dev @stylexswc/rs-compiler
+npm install --save-dev @toss/stylexswc-rs-compiler
 ```
 
 ### Transformation Process
@@ -53,7 +53,7 @@ Internally, this compiler takes your StyleX code and transforms it into a format
 optimized for further processing.
 
 ```ts
-var { transform } = require('@stylexswc/compiler-rs');
+var { transform } = require('@toss/stylexswc-compiler-rs');
 
 /// ...other logic
 

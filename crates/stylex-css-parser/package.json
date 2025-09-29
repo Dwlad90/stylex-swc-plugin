@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/css-parser",
+  "name": "@toss/stylexswc-css-parser",
   "description": "CSS value parser",
   "version": "0.11.0",
   "private": true,

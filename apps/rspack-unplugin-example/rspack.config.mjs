@@ -1,4 +1,4 @@
-import styleXRSPlugin from '@stylexswc/unplugin/rspack'
+import styleXRSPlugin from '@toss/stylexswc-unplugin/rspack'
 import path from 'node:path'
 import rspack from '@rspack/core'
 

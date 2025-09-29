@@ -103,8 +103,8 @@ jobs:
       - name: Run visual comparison tests
         id: visual-tests
         run:
-          pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-large-example"
-          --filter="!@stylexswc/webpack-example" --continue
+          pnpm run test:visual --filter="./apps/*" --filter="!@toss/stylexswc-rollup-large-example"
+          --filter="!@toss/stylexswc-webpack-example" --continue
 
       - name: Check artifacts
         run: pnpm run --filter "{./packages/*}" --filter "{./crates/*}" check:artifacts
@@ -128,7 +128,7 @@ jobs:
             ${{ matrix.settings.target }}-benchmark
 
       - name: Run benchmarks
-        run: pnpm run --filter @stylexswc/rs-compiler bench
+        run: pnpm run --filter @toss/stylexswc-rs-compiler bench
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@d48d326b4ca9ba73ca0cd0d59f108f9e02a381c7 # v1.20.4

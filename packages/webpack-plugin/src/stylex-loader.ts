@@ -29,7 +29,7 @@ export default async function stylexLoader(
   if (!inputCode) {
     if (!this.resourcePath.includes('empty')) {
       logger?.warn(
-        `@stylexswc/webpack-plugin: inputCode is empty for resource ${this.resourcePath}`
+        `@toss/stylexswc-webpack-plugin: inputCode is empty for resource ${this.resourcePath}`
       );
     }
 

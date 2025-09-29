@@ -1,4 +1,4 @@
-const StylexPlugin = require('@stylexswc/webpack-plugin');
+const StylexPlugin = require('@toss/stylexswc-webpack-plugin');
 const path = require('node:path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 

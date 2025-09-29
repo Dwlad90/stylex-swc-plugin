@@ -1,4 +1,4 @@
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions } from '@toss/stylexswc-rs-compiler';
 import type { LoaderContext } from 'webpack';
 import type webpack from 'webpack';
 import type { RegisterStyleXRules } from '.';
@@ -41,7 +41,7 @@ export interface StyleXPluginOption extends Pick<StyleXWebpackLoaderOptions, 'tr
   /**
    * Enable other CSS transformation
    *
-   * Since @stylexswc/webpack-plugin only inject CSS after all loaders, you can not use postcss-loader.
+   * Since @toss/stylexswc-webpack-plugin only inject CSS after all loaders, you can not use postcss-loader.
    * With this you can incovate `postcss()` here.
    */
   transformCss?: CSSTransformer;

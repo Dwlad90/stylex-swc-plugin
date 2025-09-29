@@ -36,7 +36,7 @@ export default function (
 
     const css = `
     /*
-     * Temporary CSS placeholder - @stylexswc/webpack-plugin
+     * Temporary CSS placeholder - @toss/stylexswc-webpack-plugin
      * This will be replaced with actual CSS during asset injection
      *
      * StyleX Bundle ID: ${hash}

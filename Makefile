@@ -106,7 +106,7 @@ build-rust: ## Build only Rust packages
 
 build-node: ## Build only Node.js packages
 	@echo "$(YELLOW)Building Node.js packages...$(NC)"
-	$(TURBO) run build --filter="!@stylexswc/rs-compiler" --filter="!@stylexswc/test-parser"
+	$(TURBO) run build --filter="!@toss/stylexswc-rs-compiler" --filter="!@toss/stylexswc-test-parser"
 	@echo "$(GREEN)Node.js build completed!$(NC)"
 
 build-debug: ## Build Rust packages in debug mode

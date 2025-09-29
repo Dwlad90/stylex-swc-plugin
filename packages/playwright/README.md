@@ -1,10 +1,10 @@
-# @stylexswc/playwright
+# @toss/stylexswc-playwright
 
 Playwright test configuration that enables visual regression testing for StyleX applications.
 
 ## Overview
 
-The `@stylexswc/playwright` package provides a pre-configured setup for Playwright visual testing
+The `@toss/stylexswc-playwright` package provides a pre-configured setup for Playwright visual testing
 that works seamlessly with StyleX. This allows you to write visual regression tests for
 your StyleX components, ensuring your UI remains consistent across browsers and devices.
 
@@ -13,7 +13,7 @@ your StyleX components, ensuring your UI remains consistent across browsers and 
 To install the package, run the following command:
 
 ```bash
-npm install --save-dev @stylexswc/playwright
+npm install --save-dev @toss/stylexswc-playwright
 ```
 
 ## Configuration
@@ -22,7 +22,7 @@ The package exports a default Playwright configuration that you can use or exten
 
 ```typescript
 // playwright.config.ts
-import { defineConfig } from '@stylexswc/playwright';
+import { defineConfig } from '@toss/stylexswc-playwright';
 
 export default defineConfig({
   // You can override any default options here
@@ -38,7 +38,7 @@ export default defineConfig({
 The package provides extended test functions with custom screenshot capabilities:
 
 ```typescript
-import { test, expect } from '@stylexswc/playwright';
+import { test, expect } from '@toss/stylexswc-playwright';
 
 test('component renders correctly', async ({ page, screenshotOptions }) => {
   await page.goto('/my-component');
@@ -62,7 +62,7 @@ You can customize the configuration further:
 
 ```typescript
 // playwright.config.ts
-import { defineConfig } from '@stylexswc/playwright';
+import { defineConfig } from '@toss/stylexswc-playwright';
 
 export default defineConfig({
   // Custom snapshot directory
@@ -92,7 +92,7 @@ export default defineConfig({
 A complete example of a visual test suite:
 
 ```typescript
-import { test, expect } from '@stylexswc/playwright';
+import { test, expect } from '@toss/stylexswc-playwright';
 
 test.describe('Button component', () => {
   test('renders in default state', async ({ page, screenshotOptions }) => {

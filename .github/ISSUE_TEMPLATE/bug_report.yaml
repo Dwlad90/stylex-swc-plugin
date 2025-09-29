@@ -38,7 +38,7 @@ body:
     id: compiler_version
     attributes:
       label: Compiler version
-      description: e.g. @stylexswc/rs-compiler 1.2.3
+      description: e.g. @toss/stylexswc-rs-compiler 1.2.3
     validations:
       required: true
 
@@ -46,7 +46,7 @@ body:
     id: bundler_plugins_version
     attributes:
       label: Bundler plugin(s) version
-      description: e.g. @stylexswc/nextjs-plugin 1.0.0
+      description: e.g. @toss/stylexswc-nextjs-plugin 1.0.0
     validations:
       required: true
 

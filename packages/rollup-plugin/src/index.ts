@@ -1,4 +1,4 @@
-import stylexRsCompiler, { normalizeRsOptions } from '@stylexswc/rs-compiler';
+import stylexRsCompiler, { normalizeRsOptions } from '@toss/stylexswc-rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
 import type { CustomAtRules, TransformOptions } from 'lightningcss';
@@ -8,7 +8,7 @@ import { browserslistToTargets } from 'lightningcss';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import crypto from 'crypto';
 
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions } from '@toss/stylexswc-rs-compiler';
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {

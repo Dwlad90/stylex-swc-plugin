@@ -3,9 +3,9 @@ import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
 import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
 import * as stylex from '@stylexjs/stylex';
 import { createRoot } from 'react-dom/client';
-import { tokens } from '@stylexswc/design-system/tokens.stylex';
-import { breakpoints } from '@stylexswc/design-system/consts.stylex';
-import { Text } from '@stylexswc/design-system';
+import { tokens } from '@toss/stylexswc-design-system/tokens.stylex';
+import { breakpoints } from '@toss/stylexswc-design-system/consts.stylex';
+import { Text } from '@toss/stylexswc-design-system';
 
 const styles = stylex.create({
   main: {

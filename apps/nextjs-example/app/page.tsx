@@ -3,9 +3,9 @@ import * as stylex from '@stylexjs/stylex';
 import Card from '@/components/Card';
 import { globalTokens as $, spacing, text, scales } from './globalTokens.stylex';
 import Counter from './Counter';
-import { tokens } from '@stylexswc/design-system/tokens.stylex';
-import { breakpoints } from '@stylexswc/design-system/consts.stylex';
-import { Text } from '@stylexswc/design-system';
+import { tokens } from '@toss/stylexswc-design-system/tokens.stylex';
+import { breakpoints } from '@toss/stylexswc-design-system/consts.stylex';
+import { Text } from '@toss/stylexswc-design-system';
 import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
 import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
 

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import solid from 'vite-plugin-solid'
-import styleXRSPlugin from '@stylexswc/unplugin/vite'
+import styleXRSPlugin from '@toss/stylexswc-unplugin/vite'
 
 export default defineConfig({
   build: {

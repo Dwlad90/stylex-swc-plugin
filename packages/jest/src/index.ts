@@ -1,7 +1,7 @@
-import { transform, normalizeRsOptions } from '@stylexswc/rs-compiler';
+import { transform, normalizeRsOptions } from '@toss/stylexswc-rs-compiler';
 import { createHash } from 'crypto';
 
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions } from '@toss/stylexswc-rs-compiler';
 import type { TransformerCreator, SyncTransformer } from '@jest/transform';
 import type { Config } from '@jest/types';
 

@@ -1,5 +1,5 @@
 import vue from '@vitejs/plugin-vue'
-import styleXRSPlugin from '@stylexswc/unplugin/vite'
+import styleXRSPlugin from '@toss/stylexswc-unplugin/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({

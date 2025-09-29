@@ -7,7 +7,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import stylexPlugin from '../src/rollup';
 import type { UnpluginStylexRSOptions } from '../src/index';
 
-describe('@stylexswc/unplugin/rollup', () => {
+describe('@toss/stylexswc-unplugin/rollup', () => {
   async function runStylex(options: UnpluginStylexRSOptions) {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({

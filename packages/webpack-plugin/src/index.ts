@@ -77,7 +77,7 @@ export default class StyleXPlugin {
       throw new Error(
         [
           'You don\'t have "optimization.splitChunks" enabled.',
-          '"optimization.splitChunks" should be enabled for "@stylexswc/webpack-plugin" to function properly.',
+          '"optimization.splitChunks" should be enabled for "@toss/stylexswc-webpack-plugin" to function properly.',
         ].join(' ')
       );
     }

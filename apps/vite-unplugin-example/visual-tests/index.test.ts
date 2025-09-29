@@ -1,4 +1,4 @@
-import { test, expect } from '@stylexswc/playwright';
+import { test, expect } from '@toss/stylexswc-playwright';
 
 test.describe('StyleX Visual Regression', () => {
   test('should render styling correctly', async ({ page, screenshotOptions }) => {

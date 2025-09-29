@@ -5,7 +5,7 @@ import html, { makeHtmlAttributes } from '@rollup/plugin-html'
 import nodeResolve from '@rollup/plugin-node-resolve'
 import replace from '@rollup/plugin-replace'
 import serve from 'rollup-plugin-serve'
-import styleXRSPlugin from '@stylexswc/rollup-plugin'
+import styleXRSPlugin from '@toss/stylexswc-rollup-plugin'
 
 const isDev = process.env.NODE_ENV !== 'production';
 

@@ -96,7 +96,7 @@
   "devDependencies": {
     "@nuxt/kit": "^3.17.5",
     "@nuxt/schema": "^3.17.5",
-    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-replace": "^6.0.2",

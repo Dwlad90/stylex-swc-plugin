@@ -31,11 +31,11 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
+    "@playwright/test": "^1.55.1",
     "@stylexswc/eslint-config": "0.11.1",
     "@stylexswc/typescript-config": "0.11.1",
     "@types/node": "^24.1.0",
-    "playwright": "^1.54.2"
+    "playwright": "^1.55.1"
   },
   "keywords": [
     "playwright"

@@ -91,7 +91,7 @@
     "@stylexswc/rs-compiler": "0.11.1",
     "unplugin": "^2.3.5",
     "vite": "^7.0.7",
-    "vite-plugin-inspect": "^11.3.2"
+    "vite-plugin-inspect": "^11.3.3"
   },
   "devDependencies": {
     "@nuxt/kit": "^3.17.5",

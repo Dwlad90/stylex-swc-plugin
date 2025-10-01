@@ -25,7 +25,7 @@
     "@stylexswc/design-system": "0.11.1",
     "@stylexswc/nextjs-plugin": "0.11.1",
     "@stylexswc/postcss-plugin": "0.11.1",
-    "next": "^15.4.7",
+    "next": "^15.5.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
@@ -44,7 +44,7 @@
     "@types/react-dom": "^19.1.7",
     "@typescript-eslint/parser": "^8.35.1",
     "autoprefixer": "^10.4.21",
-    "eslint-config-next": "^15.4.5",
+    "eslint-config-next": "^15.5.4",
     "jest": "^30.0.5",
     "jest-chain-transform": "^0.0.8",
     "jest-environment-jsdom": "29.7.0",

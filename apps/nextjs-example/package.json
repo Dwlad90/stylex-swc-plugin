@@ -41,7 +41,7 @@
     "@types/node": "^24.1.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
-    "@typescript-eslint/parser": "^8.35.1",
+    "@typescript-eslint/parser": "^8.45.0",
     "eslint-config-next": "^15.5.4",
     "jest": "^30.0.5",
     "jest-chain-transform": "^0.0.8",

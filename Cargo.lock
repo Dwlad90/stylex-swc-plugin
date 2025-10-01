@@ -595,19 +595,6 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7c66d1cd8ed61bf80b38432613a7a2f09401ab8d0501110655f8b341484a3e3"
-dependencies = [
- "cssparser-macros",
- "dtoa-short",
- "itoa",
- "phf 0.11.3",
- "smallvec",
-]
-
-[[package]]
-name = "cssparser"
 version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e901edd733a1472f944a45116df3f846f54d37e67e68640ac8bb69689aca2aa"
@@ -2469,7 +2456,7 @@ version = "0.11.1"
 dependencies = [
  "anyhow",
  "criterion",
- "cssparser 0.34.0",
+ "cssparser",
  "indexmap",
  "log",
  "proptest",
@@ -2511,7 +2498,7 @@ dependencies = [
  "base62",
  "color-backtrace",
  "colored",
- "cssparser 0.35.0",
+ "cssparser",
  "ctor 0.4.3",
  "derive_more",
  "env_logger 0.11.8",

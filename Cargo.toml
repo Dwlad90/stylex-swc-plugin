@@ -57,10 +57,10 @@ path-clean = { version = "1.0.1" }
 cssparser = { version = "0.35.0" }
 testing = "14.0.1"
 insta = { version = "1.43.2" }
-anyhow = "1.0.98"
+anyhow = "1.0.100"
 log = "0.4.27"
 pretty_env_logger = "0.5.0"
-color-backtrace = { version = "0.7.0" }
+color-backtrace = { version = "0.7.1" }
 ctor = "0.4.3"
 env_logger = "0.11.8"
 rustc-hash = "2.1.1"

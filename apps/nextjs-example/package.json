@@ -29,7 +29,7 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
+    "@playwright/test": "^1.55.1",
     "@stylexjs/eslint-plugin": "^0.15.4",
     "@stylexswc/jest": "0.11.1",
     "@stylexswc/playwright": "0.11.1",
@@ -46,7 +46,7 @@
     "jest": "^30.0.5",
     "jest-chain-transform": "^0.0.8",
     "jest-environment-jsdom": "29.7.0",
-    "playwright": "^1.54.2",
+    "playwright": "^1.55.1",
     "rimraf": "^6.0.1",
     "serve": "^14.2.4",
     "typescript": "^5.9.2"

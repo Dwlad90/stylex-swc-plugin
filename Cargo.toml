@@ -64,7 +64,7 @@ color-backtrace = { version = "0.7.0" }
 ctor = "0.4.3"
 env_logger = "0.11.8"
 rustc-hash = "2.1.1"
-base62 = { version = "2.2.1" }
+base62 = { version = "2.2.3" }
 md5 = { version = "0.8.0" }
 rust_decimal = { version = "1.37.1", features = ["serde"] }
 

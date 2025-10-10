@@ -24,7 +24,7 @@
     "@stylexswc/playwright": "0.11.1",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
-    "esbuild": "^0.25.8",
+    "esbuild": "^0.25.10",
     "serve": "^14.2.4"
   }
 }

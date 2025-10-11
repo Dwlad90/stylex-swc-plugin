@@ -1,16 +1,12 @@
 import { VIRTUAL_CSS_PATH, PLUGIN_NAME } from './constants';
-import loaderUtils from 'loader-utils';
+import loaderUtils, { LoaderInterpolateOption } from 'loader-utils';
 import { generateStyleXOutput, isSupplementedLoaderContext, stringifyRequest } from './utils';
 
-import type {
-  InputCode,
-  SourceMap,
-  StyleXWebpackLoaderOptions,
-  SupplementedLoaderContext,
-} from './types';
+import type { InputCode, SourceMap, StyleXWebpackLoaderOptions } from './types';
+import type { LoaderContext } from 'webpack';
 
 export default async function stylexLoader(
-  this: SupplementedLoaderContext<StyleXWebpackLoaderOptions>,
+  this: LoaderContext<LoaderInterpolateOption & StyleXWebpackLoaderOptions>,
   inputCode: InputCode,
   inputSourceMap: SourceMap
 ) {

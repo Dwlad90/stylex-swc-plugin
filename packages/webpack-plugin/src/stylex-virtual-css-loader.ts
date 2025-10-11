@@ -30,7 +30,6 @@ export default function (
       return callback(null, '');
     }
 
-    // @ts-expect-error - since v3 getHashDigest supports xxhash64
     // https://github.com/webpack/loader-utils?tab=readme-ov-file#interpolatename
     const hash = getHashDigest(Buffer.from(stylex), 'xxhash64', 'base62', 32);
 

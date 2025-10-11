@@ -4,7 +4,9 @@ These benchmarks test the performance of complex CSS property parsing,
 which involves combining multiple CSS types into coherent property values.
 */
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use std::hint::black_box;
+
+use criterion::{Criterion, criterion_group, criterion_main};
 use stylex_css_parser::properties::*;
 
 fn border_radius_benchmarks(c: &mut Criterion) {

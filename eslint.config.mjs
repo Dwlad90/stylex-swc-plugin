@@ -33,6 +33,7 @@ const eslintConfig = [{
     "crates/stylex-test-parser/output/",
     "**/visual-tests",
     "**/coverage",
+    "**/next-env.d.ts",
   ],
 },
 ];

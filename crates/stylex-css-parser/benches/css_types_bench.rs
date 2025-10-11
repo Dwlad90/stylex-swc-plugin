@@ -2,7 +2,9 @@
 CSS Types Benchmarks for StyleX CSS Parser.
 */
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use std::hint::black_box;
+
+use criterion::{Criterion, criterion_group, criterion_main};
 use stylex_css_parser::css_types::*;
 
 fn color_benchmarks(c: &mut Criterion) {

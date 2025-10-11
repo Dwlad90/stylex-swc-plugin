@@ -18,7 +18,7 @@ export default function Home(_props: Props) {
     <main {...stylex.props(style.main)}>
       <div {...stylex.props(style.description)}>
         <p {...stylex.props(style.descP)}>
-          Get started by editing&nbsp;
+          Get started by editing
           <code {...stylex.props(style.code)}>app/page.tsx</code>
         </p>
       </div>

@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Home render styles successfully 1`] = `
 <div>
@@ -11,7 +11,7 @@ exports[`Home render styles successfully 1`] = `
       <p
         class="xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp xx7ihp2 x1876b5s x13b8fpu x14s53in x3tt2s9 x1orz5ps x130g4yn xmkeg23 x1ehvz7d x1y0btm7 xyiqvn9 xek1nhq xcsupl4 xd22jv x1los6se"
       >
-        Get started by editing 
+        Get started by editing
         <code
           class="x1xlr1w8 x1y8sf5l"
         >

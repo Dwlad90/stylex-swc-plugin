@@ -298,40 +298,71 @@ test!(
     "#
 );
 
-// TODO: Add support for logical styles config - skipped test
-// This test is skipped because it requires logical styles polyfill support in keyframes
-// test!(
-//   Syntax::Typescript(TsSyntax {
-//     tsx: true,
-//     ..Default::default()
-//   }),
-//   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-//     tr.comments.clone(),
-//     PluginPass::default(),
-//     Some(&mut StyleXOptionsParams {
-//       enable_logical_styles_polyfill: Some(true),
-//       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-//       ..StyleXOptionsParams::default()
-//     }),
-//   ),
-//   legacy_value_of_padding_inline_property,
-//   r#"
-//     import stylex from 'stylex';
-//     const styles = stylex.create({
-//       x: {
-//         animationName: stylex.keyframes({
-//           '0%': {
-//             paddingInline: '1px 2px'
-//           },
-//           '100%': {
-//             paddingInline: '10px 20px'
-//           }
-//         })
-//       }
-//     });
-//     const classnames = stylex(styles.x);
-//   "#
-// );
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_logical_styles_polyfill: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      ..StyleXOptionsParams::default()
+    }),
+  ),
+  legacy_value_of_padding_inline_property_with_polyfill,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: {
+        animationName: stylex.keyframes({
+          '0%': {
+            paddingInline: '1px 2px'
+          },
+          '100%': {
+            paddingInline: '10px 20px'
+          }
+        })
+      }
+    });
+    export const classnames = stylex(styles.x);
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_logical_styles_polyfill: Some(false),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      ..StyleXOptionsParams::default()
+    }),
+  ),
+  legacy_value_of_padding_inline_property_without_polyfill,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: {
+        animationName: stylex.keyframes({
+          '0%': {
+            paddingInline: '1px 2px'
+          },
+          '100%': {
+            paddingInline: '10px 20px'
+          }
+        })
+      }
+    });
+    export const classnames = stylex(styles.x);
+  "#
+);
 
 test!(
   Syntax::Typescript(TsSyntax {

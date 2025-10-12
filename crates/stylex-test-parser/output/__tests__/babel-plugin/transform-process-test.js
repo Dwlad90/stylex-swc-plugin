@@ -409,5 +409,22 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}"
       `);
         });
+        test('no mutation of rules', ()=>{
+            const { metadata } = transform(fixture);
+            function deepFreeze(object) {
+                const propNames = Reflect.ownKeys(object);
+                for (const name of propNames){
+                    const value = object[name];
+                    if ((value && typeof value === 'object') || typeof value === 'function') {
+                        deepFreeze(value);
+                    }
+                }
+                return Object.freeze(object);
+            }
+            deepFreeze(metadata);
+            expect(()=>{
+                stylexPlugin.processStylexRules(metadata);
+            }).not.toThrow();
+        });
     });
 });

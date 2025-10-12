@@ -40,7 +40,7 @@ pub(crate) fn stylex_keyframes(
     panic!("Values must be an object")
   };
 
-  let extended_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
+  let expanded_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
     let Some((_, frame, _)) = frame.as_tuple() else {
       panic!("Values must be an object")
     };
@@ -76,7 +76,7 @@ pub(crate) fn stylex_keyframes(
   let options = state.options.clone();
 
   let ltr_styles = obj_map(
-    ObjMapType::Map(extended_object.clone()),
+    ObjMapType::Map(expanded_object.clone()),
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
@@ -92,10 +92,27 @@ pub(crate) fn stylex_keyframes(
     },
   );
 
+  let stable_styles = obj_map(
+    ObjMapType::Map(expanded_object.clone()),
+    state,
+    |frame, _| {
+      let Some(pairs) = frame.as_key_values() else {
+        panic!("Values must be an object")
+      };
+
+      let ltr_values = pairs
+        .iter()
+        .map(|pair| generate_ltr(pair, &Default::default()))
+        .collect();
+
+      Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
+    },
+  );
+
   let options = state.options.clone();
 
   let rtl_styles = obj_map(
-    ObjMapType::Map(extended_object.clone()),
+    ObjMapType::Map(expanded_object.clone()),
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
@@ -113,11 +130,15 @@ pub(crate) fn stylex_keyframes(
 
   let ltr_string = construct_keyframes_obj(&ltr_styles);
   let rtl_string = construct_keyframes_obj(&rtl_styles);
+  let stable_string = construct_keyframes_obj(&stable_styles);
 
+  // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across builds.
+  // NOTE: '<>' and '-B' is used to keep existing hashes stable.
+  // They should be removed in a future version.
   let animation_name = format!(
     "{}{}-B",
     class_name_prefix,
-    create_hash(&format!("<>{}", ltr_string))
+    create_hash(&format!("<>{}", stable_string))
   );
 
   let ltr = format!("@keyframes {}{{{}}}", animation_name, ltr_string);

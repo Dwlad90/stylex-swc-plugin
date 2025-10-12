@@ -102,12 +102,34 @@ import '[fileName].css';
 
 The plugin accepts the following configuration options:
 
+> [!NOTE]
+> **Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
+
+### `include`
+
+- Type: `(string | RegExp)[]`
+- Optional
+- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
+  When specified, only files matching at least one of these patterns will be discovered and transformed.
+  Patterns are matched against paths relative to the current working directory.
+  Supports regex lookahead/lookbehind for advanced filtering.
+
+### `exclude`
+
+- Type: `(string | RegExp)[]`
+- Optional
+- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
+  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
+  Patterns are matched against paths relative to the current working directory.
+  Supports regex lookahead/lookbehind for advanced filtering.
+
 ### `rsOptions`
 
 - Type: `StyleXOptions`
 - Optional
 - Default: `{}`
-- Description: StyleX compiler options passed to the StyleX compiler
+- Description: StyleX compiler options passed to the StyleX compiler.
+  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 ### `useCSSLayers`
 
@@ -115,18 +137,6 @@ The plugin accepts the following configuration options:
 - Optional
 - Default: `false`
 - Description: Whether to use CSS layers for better style isolation
-
-### `exclude`
-
-- Type: `string[]`
-- Optional
-- Description: Array of glob patterns to exclude from processing
-
-### `include`
-
-- Type: `string[]`
-- Optional
-- Description: Array of glob patterns to include for processing
 
 ### `cwd`
 
@@ -140,3 +150,64 @@ The plugin accepts the following configuration options:
 - Type: `boolean`
 - Optional
 - Description: Whether the plugin is running in development mode
+
+## Path Filtering Examples
+
+**Include only specific directories:**
+
+```javascript
+{
+  '@stylexswc/postcss-plugin': {
+    include: ['src/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
+  },
+}
+```
+
+**Exclude test and story files:**
+
+```javascript
+{
+  '@stylexswc/postcss-plugin': {
+    include: ['src/**/*.{ts,tsx}'],
+    exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**'],
+  },
+}
+```
+
+**Using regular expressions:**
+
+```javascript
+{
+  '@stylexswc/postcss-plugin': {
+    include: ['src/**/*.{ts,tsx}', /components\/.*\.tsx$/],
+    exclude: [/\.test\./, /\.stories\./],
+  },
+}
+```
+
+**Exclude node_modules except specific packages (using lookahead):**
+
+```javascript
+{
+  '@stylexswc/postcss-plugin': {
+    include: ['src/**/*.{ts,tsx}', 'node_modules/**/*.js'],
+    // Exclude all node_modules except @stylexjs/open-props
+    exclude: [/node_modules(?!\/@stylexjs\/open-props)/],
+  },
+}
+```
+
+**Transform only specific packages from node_modules:**
+
+```javascript
+{
+  '@stylexswc/postcss-plugin': {
+    include: [
+      'src/**/*.{ts,tsx}',
+      'node_modules/@stylexjs/open-props/**/*.js',
+      'node_modules/@my-org/design-system/**/*.js',
+    ],
+    exclude: ['**/*.test.*'],
+  },
+}
+```

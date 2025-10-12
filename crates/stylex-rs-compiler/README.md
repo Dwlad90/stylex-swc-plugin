@@ -53,7 +53,7 @@ Internally, this compiler takes your StyleX code and transforms it into a format
 optimized for further processing.
 
 ```ts
-var { transform } = require('@stylexswc/compiler-rs');
+var { transform } = require('@stylexswc/rs-compiler');
 
 /// ...other logic
 
@@ -64,6 +64,100 @@ const { code, metadata, sourcemap } = transform(
 );
 
 /// ...other logic
+```
+
+### Path Filtering
+
+> [!NOTE]
+> **New Feature:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin. They provide powerful file filtering capabilities to control which files are transformed.
+
+The compiler exports a `shouldTransformFile` function to determine whether a file should be transformed based on include/exclude patterns:
+
+```ts
+import { shouldTransformFile } from '@stylexswc/rs-compiler';
+
+const shouldTransform = shouldTransformFile(
+  '/path/to/file.tsx',
+  ['src/**/*.{ts,tsx}'], // include patterns (optional)
+  ['**/*.test.*', '**/__tests__/**'] // exclude patterns (optional)
+);
+
+if (shouldTransform) {
+  // Transform the file
+}
+```
+
+#### Pattern Types
+
+- **Glob patterns** (strings): Use standard glob syntax to match file paths
+  - `src/**/*.tsx` - All `.tsx` files in `src` directory and subdirectories
+  - `**/*.test.*` - All test files
+  - `**/node_modules/**` - All files in `node_modules`
+
+- **Regular expressions**: Use RegExp objects for complex pattern matching
+  - `/\.test\./` - Files containing `.test.`
+  - `/^src\/.*\.tsx$/` - `.tsx` files directly in the `src` directory
+
+  **Advanced: Lookahead/Lookbehind Support**
+
+  The Rust regex engine fully supports lookahead and lookbehind assertions, enabling sophisticated filtering patterns:
+
+  - **Negative Lookahead** `(?!...)`: Match if NOT followed by pattern
+    - `/node_modules(?!\/@stylexjs)/` - Exclude all node_modules except @stylexjs packages
+    - `/\.tsx(?!\.test)/` - Match .tsx files that are NOT test files
+
+  - **Positive Lookahead** `(?=...)`: Match if followed by pattern
+    - `/.*\.test(?=\.tsx$)/` - Match only .test.tsx files
+
+  - **Negative Lookbehind** `(?<!...)`: Match if NOT preceded by pattern
+    - `/(?<!src\/).*\.tsx$/` - Exclude .tsx files not in src/
+
+  - **Positive Lookbehind** `(?<=...)`: Match if preceded by pattern
+    - `/(?<=components\/).*\.tsx$/` - Match only .tsx files in components/
+
+#### Filtering Rules
+
+1. If `include` patterns are specified and not empty, files must match at least one pattern
+2. If `exclude` patterns are specified, files matching any pattern are excluded
+3. Exclude patterns take precedence over include patterns
+4. All paths are matched relative to the current working directory
+
+#### Common Use Cases
+
+**Exclude all node_modules except specific packages:**
+
+```ts
+// Exclude all node_modules except @stylexjs/open-props
+shouldTransformFile(
+  filePath,
+  undefined,
+  [/node_modules(?!\/@stylexjs\/open-props)/]
+);
+```
+
+**Transform only specific packages from node_modules:**
+
+```ts
+shouldTransformFile(
+  filePath,
+  [
+    'src/**/*.{ts,tsx}',
+    'node_modules/@stylexjs/open-props/**/*.js',
+    'node_modules/@my-org/design-system/**/*.js',
+  ],
+  ['**/*.test.*']
+);
+```
+
+**Exclude multiple node_modules packages except a few:**
+
+```ts
+// Exclude all node_modules except @stylexjs packages
+shouldTransformFile(
+  filePath,
+  undefined,
+  [/node_modules(?!\/@stylexjs)/]
+);
 ```
 
 ### Output
@@ -144,6 +238,7 @@ You can enable debug logging for the StyleX compiler using the `STYLEX_DEBUG` en
 ### Log Levels
 
 The following log levels are available:
+
 - `error`: Only shows error messages
 - `warn`: Shows warnings and errors (default)
 - `info`: Shows informational messages, warnings, and errors
@@ -163,11 +258,13 @@ STYLEX_DEBUG=trace npm run dev
 ```
 
 For Windows Command Prompt:
+
 ```cmd
 set STYLEX_DEBUG=debug && npm run build
 ```
 
 For PowerShell:
+
 ```powershell
 $env:STYLEX_DEBUG="debug"; npm run build
 ```

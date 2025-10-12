@@ -8,6 +8,7 @@ import {
   VIRTUAL_CSS_PATH,
   VIRTUAL_CSS_PATTERN,
 } from './constants';
+import { shouldTransformFile } from '@stylexswc/rs-compiler';
 
 import type webpack from 'webpack';
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
@@ -116,6 +117,17 @@ export default class StyleXPlugin {
           const extname = path.extname(mod.matchResource || mod.resource);
 
           if (INCLUDE_REGEXP.test(extname)) {
+            // Add path filtering check using Rust function
+            const shouldTransform = shouldTransformFile(
+              mod.resource,
+              this.loaderOption.rsOptions?.include,
+              this.loaderOption.rsOptions?.exclude
+            );
+
+            if (!shouldTransform) {
+              return; // Skip adding loader if filtered out
+            }
+
             (loaderContext as SupplementedLoaderContext).StyleXWebpackContextKey = {
               registerStyleXRules: (resourcePath, stylexRules) => {
                 this.stylexRules.set(resourcePath, stylexRules);

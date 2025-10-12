@@ -1,4 +1,4 @@
-import stylexRsCompiler, { normalizeRsOptions } from '@stylexswc/rs-compiler';
+import stylexRsCompiler, { normalizeRsOptions, shouldTransformFile } from '@stylexswc/rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
 import type { CustomAtRules, TransformOptions } from 'lightningcss';
@@ -74,6 +74,17 @@ export default function stylexPlugin({
       inputCode: string,
       id: string
     ): Promise<null | TransformResult> {
+      // Check if file should be transformed based on include/exclude patterns
+      const shouldTransform = shouldTransformFile(
+        id,
+        rsOptions?.include,
+        rsOptions?.exclude
+      );
+
+      if (!shouldTransform) {
+        return null;
+      }
+
       const normalizedRsOptions = normalizeRsOptions(rsOptions ?? {});
 
       if (

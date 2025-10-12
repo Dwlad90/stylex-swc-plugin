@@ -6,6 +6,7 @@ import { globSync } from 'fast-glob';
 import isGlob from 'is-glob';
 import globParent from 'glob-parent';
 import createBundler from './bundler';
+import { shouldTransformFile } from '@stylexswc/rs-compiler';
 
 import type { StyleXPluginOption, TransformOptions } from './types';
 
@@ -94,14 +95,32 @@ function createBuilder() {
   // Retrieves all files that match the include and exclude patterns.
   function getFiles() {
     const { cwd, include, exclude } = getConfig();
-    let files = globSync(include || [], {
+
+    // Separate glob patterns from regex patterns
+    // String patterns that don't look like regex are treated as globs
+    const isRegexPattern = (p: string | RegExp) =>
+      p instanceof RegExp || (typeof p === 'string' && p.startsWith('/') && p.includes('/', 1));
+    const isGlobPattern = (p: string | RegExp) => !isRegexPattern(p);
+
+    const globPatterns = (include || []).filter(isGlobPattern).map(p => String(p));
+    const hasRegexPatterns =
+      (include || []).some(isRegexPattern) || (exclude || []).some(isRegexPattern);
+
+    // Use fast-glob with glob patterns for initial discovery
+    const globExclude = (exclude || []).filter(isGlobPattern).map(p => String(p));
+    let files = globSync(globPatterns.length > 0 ? globPatterns : [], {
       onlyFiles: true,
-      ignore: exclude,
+      ignore: globExclude,
       cwd,
     });
 
     // Normalize file paths
     files = files.map(file => (file.includes(cwd || '/') ? file : path.resolve(cwd || '/', file)));
+
+    // If there are regex patterns, filter using shouldTransformFile
+    if (hasRegexPatterns) {
+      files = files.filter(file => shouldTransformFile(file, include, exclude));
+    }
 
     return files;
   }
@@ -161,10 +180,12 @@ function createBuilder() {
   // Retrieves the dependencies that PostCSS should watch.
   function getDependencies() {
     const { include } = getConfig();
-    const dependencies = [];
+    const dependencies: (Awaited<ReturnType<typeof parseDependency>> | RegExp)[] = [];
 
     for (const fileOrGlob of include || []) {
-      const dependency = parseDependency(fileOrGlob);
+      const fileOrGlobString = fileOrGlob.toString();
+
+      const dependency = parseDependency(fileOrGlobString);
       if (dependency != null) {
         dependencies.push(dependency);
       }

@@ -12,6 +12,7 @@ export type CSSTransformer = (
   _css: string,
   _filePath: string | undefined
 ) => string | Buffer | Promise<string | Buffer>;
+
 export interface StyleXPluginOption extends Pick<StyleXWebpackLoaderOptions, 'transformer'> {
   /**
    * stylex options passed to stylex babel plugin

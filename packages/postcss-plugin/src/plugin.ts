@@ -68,6 +68,7 @@ function createPlugin() {
             result.messages.push({
               plugin: PLUGIN_NAME,
               parent: fileName,
+              type: 'dependency',
               ...dependency,
             });
           }

@@ -67,6 +67,7 @@ rustc-hash = "2.1.1"
 base62 = { version = "2.2.3" }
 md5 = { version = "0.8.0" }
 rust_decimal = { version = "1.38.0", features = ["serde"] }
+glob = { version = "0.3.1" }
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

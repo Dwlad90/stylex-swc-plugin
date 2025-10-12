@@ -23,7 +23,7 @@
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
     "test": "jest",
-    "typecheck": "scripty"
+    "typecheck": "scripty --ts"
   },
   "config": {
     "scripty": {

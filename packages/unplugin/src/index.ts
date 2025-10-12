@@ -7,7 +7,7 @@ import type { UnpluginFactory, UnpluginInstance, UnpluginMessage } from 'unplugi
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions from './utils/normalizeOptions';
 import type { UnpluginStylexRSOptions } from './types';
-import stylexRsCompiler from '@stylexswc/rs-compiler';
+import stylexRsCompiler, { shouldTransformFile } from '@stylexswc/rs-compiler';
 import generateHash from './utils/generateHash';
 import crypto from 'crypto';
 
@@ -58,7 +58,16 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         cleanedExtensionName = cleanedExtensionName.slice(1);
       }
 
-      return pageExtensions.includes(cleanedExtensionName);
+      if (!pageExtensions.includes(cleanedExtensionName)) {
+        return false;
+      }
+
+      // Add path filtering using Rust function
+      return shouldTransformFile(
+        id,
+        normalizedOptions.rsOptions?.include,
+        normalizedOptions.rsOptions?.exclude
+      );
     },
 
     async transform(inputCode, id) {

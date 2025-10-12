@@ -11,7 +11,10 @@ use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 use stylex_shared::{
   StyleXTransform,
   shared::{
-    structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+    structures::{
+      plugin_pass::PluginPass,
+      stylex_options::{StyleResolution, StyleXOptionsParams},
+    },
     utils::log::logger,
   },
 };
@@ -30,19 +33,44 @@ use swc_core::{
 use napi_derive::napi;
 use utils::extract_stylex_metadata;
 
-use crate::enums::{ImportSourceUnion, SourceMaps, StyleXModuleResolution};
+use crate::enums::{ImportSourceUnion, PathFilterUnion, SourceMaps, StyleXModuleResolution};
+
+fn extract_patterns(
+  env: &Env,
+  patterns_opt: &mut Option<Vec<napi::JsUnknown>>,
+) -> Option<Vec<PathFilterUnion>> {
+  patterns_opt.take().map(|patterns| {
+    patterns
+      .into_iter()
+      .filter_map(|p| parse_js_pattern(env, p).ok())
+      .collect()
+  })
+}
 
 #[napi]
 pub fn transform(
   env: Env,
   filename: String,
   code: String,
-  options: StyleXOptions,
+  mut options: StyleXOptions,
 ) -> Result<StyleXTransformResult> {
   color_backtrace::install();
   logger::initialize();
 
   info!("Transforming source file: {}", filename);
+
+  let mut include_opt = options.include.take();
+  let mut exclude_opt = options.exclude.take();
+  let include_patterns = extract_patterns(&env, &mut include_opt);
+  let exclude_patterns = extract_patterns(&env, &mut exclude_opt);
+
+  if !utils::should_transform_file(&filename, &include_patterns, &exclude_patterns) {
+    return Ok(StyleXTransformResult {
+      code,
+      metadata: StyleXMetadata { stylex: vec![] },
+      map: None,
+    });
+  }
 
   let result = panic::catch_unwind(|| {
     let cm: Arc<SourceMap> = Default::default();
@@ -132,6 +160,61 @@ pub fn transform(
 }
 
 #[napi]
+pub fn should_transform_file(
+  env: Env,
+  file_path: String,
+  include: Option<Vec<napi::JsUnknown>>,
+  exclude: Option<Vec<napi::JsUnknown>>,
+) -> Result<bool> {
+  let include_patterns = include.map(|patterns| {
+    patterns
+      .into_iter()
+      .filter_map(|p| parse_js_pattern(&env, p).ok())
+      .collect()
+  });
+  let exclude_patterns = exclude.map(|patterns| {
+    patterns
+      .into_iter()
+      .filter_map(|p| parse_js_pattern(&env, p).ok())
+      .collect()
+  });
+
+  Ok(utils::should_transform_file(
+    &file_path,
+    &include_patterns,
+    &exclude_patterns,
+  ))
+}
+
+/// Parse a JS value (string or RegExp) into a PathFilterUnion
+fn parse_js_pattern(_env: &Env, value: napi::JsUnknown) -> Result<PathFilterUnion> {
+  // Try to coerce to object first to check if it's a RegExp
+  if let Ok(obj) = value.coerce_to_object() {
+    // Check if it's a RegExp by trying to get 'source' and 'flags' properties
+    if let (Ok(source), Ok(flags)) = (
+      obj.get_named_property::<napi::JsString>("source"),
+      obj.get_named_property::<napi::JsString>("flags"),
+    ) {
+      // It's a RegExp object
+      let source_str = source.into_utf8()?.as_str()?.to_owned();
+      let flags_str = flags.into_utf8()?.as_str()?.to_owned();
+      let pattern = format!("/{}/{}", source_str, flags_str);
+      return Ok(PathFilterUnion::from_string(&pattern));
+    }
+
+    // Not a RegExp, try to get it as a string
+    if let Ok(str_val) = obj.coerce_to_string() {
+      let pattern_str = str_val.into_utf8()?.as_str()?.to_owned();
+      return Ok(PathFilterUnion::from_string(&pattern_str));
+    }
+  }
+
+  Err(napi::Error::from_reason(
+    "Invalid pattern: must be string or RegExp",
+  ))
+}
+
+#[napi]
 pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
   let normalized_options = StyleXOptions {
     dev: options
@@ -162,8 +245,12 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     ..options
   };
 
-  // NOTE: Validate StyleXOptions
-  StyleXOptionsParams::try_from(normalized_options.clone())?;
+  // Validate styleResolution if provided
+  if let Some(ref style_resolution) = normalized_options.style_resolution {
+    // Try to parse it to validate
+    serde_plain::from_str::<StyleResolution>(style_resolution)
+      .map_err(|e| napi::Error::from_reason(format!("Failed to parse style resolution: {}", e)))?;
+  }
 
   Ok(normalized_options)
 }

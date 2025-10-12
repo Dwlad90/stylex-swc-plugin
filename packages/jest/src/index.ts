@@ -1,4 +1,4 @@
-import { transform, normalizeRsOptions } from '@stylexswc/rs-compiler';
+import { transform, normalizeRsOptions, shouldTransformFile } from '@stylexswc/rs-compiler';
 import { createHash } from 'crypto';
 
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
@@ -16,10 +16,23 @@ const process: SyncTransformer<JestTransformerConfig>['process'] = function proc
   sourcePath,
   options
 ) {
+  const rsOptions = options.transformerConfig.rsOptions ?? {};
+
+  // Check if file should be transformed based on include/exclude patterns
+  const shouldTransform = shouldTransformFile(
+    sourcePath,
+    rsOptions.include,
+    rsOptions.exclude
+  );
+
+  if (!shouldTransform) {
+    return { code: sourceText };
+  }
+
   const { code } = transform(
     sourcePath,
     sourceText,
-    normalizeRsOptions(options.transformerConfig.rsOptions ?? {})
+    normalizeRsOptions(rsOptions)
   );
 
   return { code };

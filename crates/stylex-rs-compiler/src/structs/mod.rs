@@ -1,4 +1,4 @@
-use napi::JsObject;
+use napi::{JsObject, JsUnknown};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 use stylex_shared::shared::structures::{
@@ -8,7 +8,6 @@ use stylex_shared::shared::structures::{
 
 use crate::enums::{ImportSourceUnion, SourceMaps, StyleXModuleResolution};
 
-#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct StyleXOptions {
   #[napi(ts_type = "'application-order' | 'property-specificity' | 'legacy-expand-shorthands'")]
@@ -39,6 +38,10 @@ pub struct StyleXOptions {
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
   pub source_map: Option<SourceMaps>,
+  #[napi(ts_type = "Array<string | RegExp>")]
+  pub include: Option<Vec<JsUnknown>>,
+  #[napi(ts_type = "Array<string | RegExp>")]
+  pub exclude: Option<Vec<JsUnknown>>,
 }
 
 #[napi(object)]

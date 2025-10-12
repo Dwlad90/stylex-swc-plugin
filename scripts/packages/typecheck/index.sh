@@ -8,14 +8,37 @@ set -e
 trap 'exit $exit_code' INT TERM
 trap 'exit_code=$?; kill 0' EXIT
 
-tsconfig_name="tsconfig.typecheck.json"
+ts=false;
+rust=false;
 
-if [ ! -f "${tsconfig_name}" ]; then
-  echo "${tsconfig_name} not found at ${tsconfig_name}"
-  exit 1
-fi
+while [ "$#" -ne 0 ]; do
+  case "$1" in
+  -ts | --ts | -typescript | --typescript)
+    ts=true
+    shift
+    ;;
+  -rust | --rust | -rs | --rs)
+    rust=true
+    shift
+    ;;
+  esac
+done
 
-tsc --noEmit --emitDeclarationOnly false --declarationMap false -p "${tsconfig_name}"
+if [ "$ts" = true ]; then
+  tsconfig_name="tsconfig.typecheck.json"
+
+  if [ ! -f "${tsconfig_name}" ]; then
+    echo "${tsconfig_name} not found at ${tsconfig_name}"
+    exit 1
+  fi
+
+  tsc --noEmit --emitDeclarationOnly false --declarationMap false -p "${tsconfig_name}"
+
+fi;
+
+if [ "$rust" = true ]; then
+  cargo check --all-targets --all-features
+fi;
 
 # Remove traps to exit with 0
 trap - INT TERM EXIT

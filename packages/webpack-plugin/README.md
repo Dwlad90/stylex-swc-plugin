@@ -64,10 +64,27 @@ module.exports = config;
 
 - Type: `Partial<StyleXOptions>`
 - Optional
-- Description: StyleX compiler options that will be passed to the NAPI-RS
-  compiler. See
-  [StyleX configuration docs](https://stylexjs.com/docs/api/configuration/babel-plugin/)
-  for details.
+- Description: StyleX compiler options that will be passed to the NAPI-RS compiler.
+  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
+
+> [!NOTE]
+> **New Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
+
+##### `rsOptions.include`
+
+- Type: `(string | RegExp)[]`
+- Optional
+- Description: **[NAPI-RS Only]** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
+  When specified, only files matching at least one of these patterns will be transformed.
+  Patterns are matched against paths relative to the current working directory.
+
+##### `rsOptions.exclude`
+
+- Type: `(string | RegExp)[]`
+- Optional
+- Description: **[NAPI-RS Only]** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
+  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
+  Patterns are matched against paths relative to the current working directory.
 
 #### `stylexImports`
 
@@ -116,6 +133,10 @@ module.exports = {
     new StylexPlugin({
       rsOptions: {
         dev: process.env.NODE_ENV !== 'production',
+        // Include only specific directories
+        include: ['src/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
+        // Exclude test files and stories
+        exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**'],
       },
       stylexImports: ['@stylexjs/stylex', { from: './theme', as: 'tokens' }],
       useCSSLayers: true,
@@ -128,6 +149,76 @@ module.exports = {
     }),
   ],
 };
+```
+
+#### Path Filtering Examples
+
+**Include only specific directories:**
+
+```javascript
+new StylexPlugin({
+  rsOptions: {
+    include: ['src/**/*.tsx', 'app/**/*.tsx'],
+  },
+})
+```
+
+**Exclude test and build files:**
+
+```javascript
+new StylexPlugin({
+  rsOptions: {
+    exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**', '**/node_modules/**'],
+  },
+})
+```
+
+**Using regular expressions:**
+
+```javascript
+new StylexPlugin({
+  rsOptions: {
+    include: [/src\/.*\.tsx$/],
+    exclude: [/\.test\./, /\.stories\./],
+  },
+})
+```
+
+**Combined include and exclude (exclude takes precedence):**
+
+```javascript
+new StylexPlugin({
+  rsOptions: {
+    include: ['src/**/*.{ts,tsx}'],
+    exclude: ['**/__tests__/**', '**/__mocks__/**'],
+  },
+})
+```
+
+**Exclude node_modules except specific packages:**
+
+```javascript
+new StylexPlugin({
+  rsOptions: {
+    // Exclude all node_modules except @stylexjs/open-props
+    exclude: [/node_modules(?!\/@stylexjs\/open-props)/],
+  },
+})
+```
+
+**Transform only specific packages from node_modules:**
+
+```javascript
+new StylexPlugin({
+  rsOptions: {
+    include: [
+      'src/**/*.{ts,tsx}',
+      'node_modules/@stylexjs/open-props/**/*.js',
+      'node_modules/@my-org/design-system/**/*.js',
+    ],
+    exclude: ['**/*.test.*'],
+  },
+})
 ```
 
 ## Documentation

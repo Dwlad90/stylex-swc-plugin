@@ -79,7 +79,7 @@
     "prepublishOnly": "pnpm run build",
     "start": "esno src/index.ts",
     "test": "jest",
-    "typecheck": "scripty"
+    "typecheck": "scripty --ts"
   },
   "config": {
     "scripty": {

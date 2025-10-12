@@ -103,3 +103,32 @@ impl ToNapiValue for ImportSourceUnion {
     }
   }
 }
+
+// PathFilterUnion is an internal Rust type for pattern matching
+// Strings from JS are parsed into either Glob or Regex patterns
+#[derive(Debug, Clone)]
+pub enum PathFilterUnion {
+  Glob(String),
+  Regex(String),
+}
+
+impl PathFilterUnion {
+  /// Parse a string pattern into either a Glob or Regex filter
+  /// Patterns starting with '/' and ending with '/' (optionally with flags) are treated as regex
+  /// Everything else is treated as a glob pattern
+  pub fn from_string(pattern: &str) -> Self {
+    if pattern.starts_with('/') && pattern.len() > 2 {
+      // Check if it ends with / or /flags (like /i, /g, /ig, etc.)
+      if let Some(last_slash) = pattern.rfind('/')
+        && last_slash > 0
+      {
+        // Extract the regex pattern (without the surrounding slashes)
+        let regex_pattern = &pattern[1..last_slash];
+        return PathFilterUnion::Regex(regex_pattern.to_string());
+      }
+    }
+
+    // Default to glob pattern
+    PathFilterUnion::Glob(pattern.to_string())
+  }
+}

@@ -14,8 +14,10 @@ export interface StyleXPluginOption {
    */
   useCSSLayers?: boolean;
 
-  exclude?: string[];
-  include?: string[];
+  /** Glob patterns or RegExp to exclude files */
+  exclude?: (string | RegExp)[];
+  /** Glob patterns or RegExp to include files */
+  include?: (string | RegExp)[];
   cwd?: string;
   isDev?: boolean;
 }

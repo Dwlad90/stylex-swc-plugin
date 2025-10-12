@@ -1,5 +1,0 @@
----
-source: crates/stylex-shared/tests/transform_process_test/stylex_plugin_process_stylex_rules.rs
-expression: processed_rules
----
-

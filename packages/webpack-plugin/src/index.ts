@@ -126,6 +126,9 @@ export default class StyleXPlugin {
 
             if (!shouldTransform) {
               return; // Skip adding loader if filtered out
+            } else {
+              this.loaderOption.rsOptions.include = undefined;
+              this.loaderOption.rsOptions.exclude = undefined;
             }
 
             (loaderContext as SupplementedLoaderContext).StyleXWebpackContextKey = {

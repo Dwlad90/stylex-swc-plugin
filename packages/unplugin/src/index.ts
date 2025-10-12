@@ -329,7 +329,12 @@ function transformStyleXCode(
   stylexRules: StyleXRules,
   id: string
 ) {
-  const result = stylexRsCompiler.transform(file, inputCode, normalizedOptions.rsOptions);
+  const rsOptions = { ...normalizedOptions.rsOptions };
+
+  rsOptions.include = undefined;
+  rsOptions.exclude = undefined;
+
+  const result = stylexRsCompiler.transform(file, inputCode, rsOptions);
 
   const { metadata } = result;
 

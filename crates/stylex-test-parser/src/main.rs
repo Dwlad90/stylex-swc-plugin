@@ -1,5 +1,5 @@
 use clap::Parser;
-use regex::Regex;
+use fancy_regex::Regex;
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, parse_js, print};
 use swc_config::is_module::IsModule;
 
@@ -276,8 +276,15 @@ fn main() {
     let file_paths = file_paths
       .into_iter()
       .filter(|f| {
-        re.is_match(&f.display().to_string())
-          || f.display().to_string().contains("__tests__")
+        re.is_match(&f.display().to_string()).unwrap_or_else(|err| {
+          error!(
+            "Error matching regex for '{}': {}. Skipping pattern match.",
+            f.display(),
+            err
+          );
+
+          false
+        }) || f.display().to_string().contains("__tests__")
           || f.display().to_string().contains("/test/")
           || f.display().to_string().contains("/tests/")
       })

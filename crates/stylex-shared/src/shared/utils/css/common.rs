@@ -438,7 +438,7 @@ pub fn stringify(node: &Stylesheet) -> String {
      */
 
     result = CLEAN_CSS_VAR
-      .replace_all(buf.as_str(), |caps: &regex::Captures| {
+      .replace_all(buf.as_str(), |caps: &fancy_regex::Captures| {
         caps
           .get(1)
           .map_or(String::default(), |m| m.as_str().to_string())

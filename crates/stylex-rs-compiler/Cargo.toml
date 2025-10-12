@@ -34,7 +34,7 @@ color-backtrace.workspace = true
 rustc-hash.workspace = true
 log.workspace = true
 glob.workspace = true
-fancy-regex = "0.13"
+fancy-regex.workspace = true
 
 stylex_shared = { path = "../stylex-shared" }
 napi = "2"

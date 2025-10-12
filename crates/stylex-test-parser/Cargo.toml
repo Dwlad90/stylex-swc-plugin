@@ -21,7 +21,7 @@ swc_core = { workspace = true, features = [
 swc_config.workspace = true
 swc_compiler_base = { workspace = true, features = ["node"] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
-regex.workspace = true
+fancy-regex.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
 log.workspace = true

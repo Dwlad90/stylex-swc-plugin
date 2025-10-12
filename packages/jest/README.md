@@ -63,7 +63,7 @@ module.exports = {
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **[NAPI-RS Only]** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
+- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
   When specified, only files matching at least one of these patterns will be transformed.
   Patterns are matched against paths relative to the current working directory.
   Supports regex lookahead/lookbehind for advanced filtering.
@@ -72,7 +72,7 @@ module.exports = {
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **[NAPI-RS Only]** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
+- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
   Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
   Patterns are matched against paths relative to the current working directory.
   Supports regex lookahead/lookbehind for advanced filtering.
@@ -80,6 +80,7 @@ module.exports = {
 ### Path Filtering Examples
 
 **Include only specific directories:**
+
 ```javascript
 {
   rsOptions: {
@@ -89,6 +90,7 @@ module.exports = {
 ```
 
 **Exclude test files:**
+
 ```javascript
 {
   rsOptions: {
@@ -98,6 +100,7 @@ module.exports = {
 ```
 
 **Using RegExp with lookahead/lookbehind - exclude node_modules except specific packages:**
+
 ```javascript
 {
   rsOptions: {
@@ -108,6 +111,7 @@ module.exports = {
 ```
 
 **Combined include and exclude:**
+
 ```javascript
 {
   rsOptions: {
@@ -195,46 +199,6 @@ module.exports = customJestConfig;
 
 Real example can be found in the
 [@stylexswc/next-example](../../apps/nextjs-example/jest.config.js)
-
-## Path Filtering Examples
-
-**Exclude test and story files:**
-```javascript
-{
-  rsOptions: {
-    exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**'],
-  },
-}
-```
-
-**Include only specific directories:**
-```javascript
-{
-  rsOptions: {
-    include: ['src/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
-  },
-}
-```
-
-**Exclude node_modules except specific packages (using lookahead):**
-```javascript
-{
-  rsOptions: {
-    // Exclude all node_modules except @stylexjs/open-props
-    exclude: [/node_modules(?!\/@stylexjs\/open-props)/],
-  },
-}
-```
-
-**Combined include and exclude (exclude takes precedence):**
-```javascript
-{
-  rsOptions: {
-    include: ['src/**/*.{ts,tsx}'],
-    exclude: ['**/__tests__/**', '**/__mocks__/**'],
-  },
-}
-```
 
 ## License
 

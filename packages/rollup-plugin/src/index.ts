@@ -75,14 +75,13 @@ export default function stylexPlugin({
       id: string
     ): Promise<null | TransformResult> {
       // Check if file should be transformed based on include/exclude patterns
-      const shouldTransform = shouldTransformFile(
-        id,
-        rsOptions?.include,
-        rsOptions?.exclude
-      );
+      const shouldTransform = shouldTransformFile(id, rsOptions?.include, rsOptions?.exclude);
 
       if (!shouldTransform) {
         return null;
+      } else {
+        rsOptions.include = undefined;
+        rsOptions.exclude = undefined;
       }
 
       const normalizedRsOptions = normalizeRsOptions(rsOptions ?? {});

@@ -26,7 +26,7 @@ swc_core = { workspace = true, features = [
   "css_parser",
   "css_ast",
 ] }
-regex.workspace = true
+fancy-regex.workspace = true
 anyhow.workspace = true
 cssparser = { version = "0.35.0" }
 thiserror = "2.0.17"

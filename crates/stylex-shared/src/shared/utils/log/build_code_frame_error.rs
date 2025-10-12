@@ -41,7 +41,7 @@ impl CodeFrame {
 
     let urls = URL_REGEX
       .find_iter(message)
-      .map(|m| m.as_str())
+      .filter_map(|m| m.ok().map(|m| m.as_str()))
       .collect::<Vec<_>>();
 
     let note = format!("\n{}", urls.join("\n"));

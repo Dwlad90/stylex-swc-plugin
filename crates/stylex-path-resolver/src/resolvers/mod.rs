@@ -1,9 +1,9 @@
 use core::panic;
+use fancy_regex::Regex;
 use indexmap::IndexSet;
 use log::{debug, warn};
 use once_cell::sync::Lazy;
 use path_clean::PathClean;
-use regex::Regex;
 use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 use swc_core::{
@@ -39,7 +39,18 @@ pub fn resolve_path(
   root_dir: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
-  if !FILE_PATTERN.is_match(processing_file.to_str().unwrap()) {
+  let is_match = FILE_PATTERN
+    .is_match(processing_file.to_str().unwrap())
+    .unwrap_or_else(|err| {
+      warn!(
+        "Error matching FILE_PATTERN for '{}': {}. Skipping pattern match.",
+        processing_file.to_str().unwrap(),
+        err
+      );
+
+      false
+    });
+  if !is_match {
     let processing_path = if cfg!(test) {
       processing_file
         .strip_prefix(root_dir.parent().unwrap().parent().unwrap())
@@ -370,7 +381,17 @@ pub fn resolve_file_path(
   let cwd_path = Path::new(root_path);
 
   let resolved_file_paths = if import_path_str.starts_with('.') {
-    if FILE_PATTERN.is_match(import_path_str) {
+    if FILE_PATTERN
+      .is_match(import_path_str)
+      .unwrap_or_else(|err| {
+        warn!(
+          "Error matching FILE_PATTERN for '{}': {}. Skipping pattern match.",
+          import_path_str, err
+        );
+
+        false
+      })
+    {
       vec![PathBuf::from(resolve_path(
         &source_file_dir.join(import_path_str),
         root_path,

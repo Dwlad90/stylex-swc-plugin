@@ -31,7 +31,7 @@ swc_ecma_parser = { workspace = true, features = ["verify"] }
 swc_compiler_base = { workspace = true, features = ["node"] }
 lazy_static.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
-regex.workspace = true
+fancy-regex.workspace = true
 indexmap.workspace = true
 derive_more.workspace = true
 murmur2.workspace = true

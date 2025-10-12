@@ -6,7 +6,12 @@ use crate::shared::regex::{
 
 pub(crate) fn whitespace_normalizer(content: String) -> String {
   // Handle URL case
-  if let Some(url) = CSS_URL_REGEX.captures(&content).and_then(|c| c.get(0)) {
+  if let Some(url) = CSS_URL_REGEX
+    .captures(&content)
+    .ok()
+    .flatten()
+    .and_then(|c| c.get(0))
+  {
     return url.as_str().to_string();
   }
 
@@ -14,6 +19,8 @@ pub(crate) fn whitespace_normalizer(content: String) -> String {
   let mut css = if content.contains('{') {
     CSS_RULE_REGEX
       .captures(&content)
+      .ok()
+      .flatten()
       .and_then(|c| c.get(1))
       .map(|m| m.as_str().to_string())
       .unwrap_or(content)
@@ -23,7 +30,7 @@ pub(crate) fn whitespace_normalizer(content: String) -> String {
 
   // Normalize math signs
   css = WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX
-    .replace_all(&css, |caps: &regex::Captures| {
+    .replace_all(&css, |caps: &fancy_regex::Captures| {
       let left = &caps[1];
       let op = &caps[3];
       // Represents the trailing whitespace captured by the regular expression.
@@ -54,7 +61,7 @@ pub(crate) fn whitespace_normalizer(content: String) -> String {
 
   // Normalize extra spaces
   css = WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX
-    .replace_all(&css, |caps: &regex::Captures| {
+    .replace_all(&css, |caps: &fancy_regex::Captures| {
       if let (Some(q1), Some(q2)) = (caps.get(1), caps.get(2)) {
         format!("{}{}", q1.as_str(), q2.as_str())
       } else if let (Some(p1), Some(p2)) = (caps.get(3), caps.get(4)) {

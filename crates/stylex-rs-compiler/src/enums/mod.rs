@@ -1,3 +1,5 @@
+use fancy_regex::Regex;
+use log::warn;
 use napi::{
   Env, Error, JsUnknown, NapiRaw,
   bindgen_prelude::{FromNapiValue, ToNapiValue},
@@ -48,7 +50,14 @@ fn validate_import_path(path: &str) -> Result<(), String> {
     ));
   }
 
-  if !NPM_NAME_REGEX.is_match(path) {
+  if !NPM_NAME_REGEX.is_match(path).unwrap_or_else(|err| {
+    warn!(
+      "Error matching NPM_NAME_REGEX for '{}': {}. Skipping pattern match.",
+      path, err
+    );
+
+    false
+  }) {
     return Err("Import path does not match required pattern".to_string());
   }
   Ok(())
@@ -104,8 +113,6 @@ impl ToNapiValue for ImportSourceUnion {
   }
 }
 
-// PathFilterUnion is an internal Rust type for pattern matching
-// Strings from JS are parsed into either Glob or Regex patterns
 #[derive(Debug, Clone)]
 pub enum PathFilterUnion {
   Glob(String),
@@ -113,18 +120,63 @@ pub enum PathFilterUnion {
 }
 
 impl PathFilterUnion {
-  /// Parse a string pattern into either a Glob or Regex filter
-  /// Patterns starting with '/' and ending with '/' (optionally with flags) are treated as regex
-  /// Everything else is treated as a glob pattern
   pub fn from_string(pattern: &str) -> Self {
     if pattern.starts_with('/') && pattern.len() > 2 {
-      // Check if it ends with / or /flags (like /i, /g, /ig, etc.)
-      if let Some(last_slash) = pattern.rfind('/')
-        && last_slash > 0
-      {
+      // Find the last unescaped slash to handle patterns like /path\/to\/file/
+      let mut last_slash_pos = None;
+      let chars: Vec<char> = pattern.chars().collect();
+
+      for i in (1..chars.len()).rev() {
+        if chars[i] == '/' {
+          // Check if this slash is escaped (preceded by odd number of backslashes)
+          let mut backslash_count = 0;
+          let mut j = i;
+          while j > 0 && chars[j - 1] == '\\' {
+            backslash_count += 1;
+            j -= 1;
+          }
+
+          // If even number of backslashes (including 0), the slash is not escaped
+          if backslash_count % 2 == 0 {
+            last_slash_pos = Some(i);
+            break;
+          }
+        }
+      }
+
+      if let Some(last_slash) = last_slash_pos {
         // Extract the regex pattern (without the surrounding slashes)
         let regex_pattern = &pattern[1..last_slash];
-        return PathFilterUnion::Regex(regex_pattern.to_string());
+        let flags = &pattern[last_slash + 1..];
+
+        // Validate regex flags (only valid JS regex flags: gimsuy)
+        if flags
+          .chars()
+          .all(|c| matches!(c, 'g' | 'i' | 'm' | 's' | 'u' | 'y'))
+        {
+          // Try to validate the regex pattern
+          if Regex::new(regex_pattern).is_ok() {
+            // Convert JS flags to inline modifiers for Rust regex
+            let mut inline_flags = String::new();
+            if flags.contains('i') {
+              inline_flags.push('i');
+            }
+            if flags.contains('m') {
+              inline_flags.push('m');
+            }
+            if flags.contains('s') {
+              inline_flags.push('s');
+            }
+
+            let final_pattern = if !inline_flags.is_empty() {
+              format!("(?{}){}", inline_flags, regex_pattern)
+            } else {
+              regex_pattern.to_string()
+            };
+
+            return PathFilterUnion::Regex(final_pattern);
+          }
+        }
       }
     }
 

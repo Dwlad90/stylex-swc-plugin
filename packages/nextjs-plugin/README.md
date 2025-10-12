@@ -57,7 +57,7 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **[NAPI-RS Only]** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
+- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
   When specified, only files matching at least one of these patterns will be transformed.
   Patterns are matched against paths relative to the current working directory.
 
@@ -65,7 +65,7 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **[NAPI-RS Only]** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
+- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
   Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
   Patterns are matched against paths relative to the current working directory.
 
@@ -143,6 +143,7 @@ module.exports = stylexPlugin({
 ### Path Filtering Examples
 
 **Include only specific directories:**
+
 ```javascript
 stylexPlugin({
   rsOptions: {
@@ -152,6 +153,7 @@ stylexPlugin({
 ```
 
 **Exclude test and build files:**
+
 ```javascript
 stylexPlugin({
   rsOptions: {
@@ -161,6 +163,7 @@ stylexPlugin({
 ```
 
 **Using regular expressions:**
+
 ```javascript
 stylexPlugin({
   rsOptions: {
@@ -171,6 +174,7 @@ stylexPlugin({
 ```
 
 **Combined include and exclude (exclude takes precedence):**
+
 ```javascript
 stylexPlugin({
   rsOptions: {
@@ -181,6 +185,7 @@ stylexPlugin({
 ```
 
 **Exclude node_modules except specific packages:**
+
 ```javascript
 stylexPlugin({
   rsOptions: {
@@ -191,6 +196,7 @@ stylexPlugin({
 ```
 
 **Transform only specific packages from node_modules:**
+
 ```javascript
 stylexPlugin({
   rsOptions: {

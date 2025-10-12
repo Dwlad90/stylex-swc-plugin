@@ -186,7 +186,7 @@ pub fn should_transform_file(
   ))
 }
 
-/// Parse a JS value (string or RegExp) into a PathFilterUnion
+/// Parse a JS value (string or RegExp)
 fn parse_js_pattern(_env: &Env, value: napi::JsUnknown) -> Result<PathFilterUnion> {
   // Try to coerce to object first to check if it's a RegExp
   if let Ok(obj) = value.coerce_to_object() {
@@ -195,11 +195,31 @@ fn parse_js_pattern(_env: &Env, value: napi::JsUnknown) -> Result<PathFilterUnio
       obj.get_named_property::<napi::JsString>("source"),
       obj.get_named_property::<napi::JsString>("flags"),
     ) {
-      // It's a RegExp object
+      // It's a RegExp object - convert JS flags to inline modifiers
       let source_str = source.into_utf8()?.as_str()?.to_owned();
       let flags_str = flags.into_utf8()?.as_str()?.to_owned();
-      let pattern = format!("/{}/{}", source_str, flags_str);
-      return Ok(PathFilterUnion::from_string(&pattern));
+
+      // Convert JavaScript flags to regex inline modifiers
+      // Note: 'g' (global) and 'y' (sticky) are not relevant for single-string matching
+      let mut inline_flags = String::new();
+      if flags_str.contains('i') {
+        inline_flags.push('i'); // case insensitive
+      }
+      if flags_str.contains('m') {
+        inline_flags.push('m'); // multiline
+      }
+      if flags_str.contains('s') {
+        inline_flags.push('s'); // dotAll
+      }
+
+      // Prepend inline flags if any exist
+      let pattern = if !inline_flags.is_empty() {
+        format!("(?{}){}", inline_flags, source_str)
+      } else {
+        source_str
+      };
+
+      return Ok(PathFilterUnion::Regex(pattern));
     }
 
     // Not a RegExp, try to get it as a string

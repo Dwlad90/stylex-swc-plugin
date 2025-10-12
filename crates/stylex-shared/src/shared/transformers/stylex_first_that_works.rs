@@ -1,3 +1,4 @@
+use log::warn;
 use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
 use crate::shared::{
@@ -12,7 +13,14 @@ use crate::shared::{
 fn is_var(arg: &Expr) -> bool {
   let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default());
 
-  IS_CSS_VAR.is_match(&str_arg)
+  IS_CSS_VAR.is_match(&str_arg).unwrap_or_else(|err| {
+    warn!(
+      "Error matching IS_CSS_VAR for '{}': {}. Skipping pattern match.",
+      str_arg, err
+    );
+
+    false
+  })
 }
 
 pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {

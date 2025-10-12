@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use log::warn;
 use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
 use swc_core::ecma::{
   ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},
@@ -82,7 +83,14 @@ pub(crate) fn flatten_raw_style_object_logic(
   for property in style.iter() {
     let key = key_value_to_str(property);
 
-    let css_property_key = if CSS_PROPERTY_KEY.is_match(&key) {
+    let css_property_key = if CSS_PROPERTY_KEY.is_match(&key).unwrap_or_else(|err| {
+      warn!(
+        "Error matching CSS_PROPERTY_KEY for '{}': {}. Skipping pattern match.",
+        key, err
+      );
+
+      false
+    }) {
       key[4..key.len() - 1].to_string()
     } else {
       key.clone()

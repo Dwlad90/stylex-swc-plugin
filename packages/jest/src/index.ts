@@ -19,21 +19,16 @@ const process: SyncTransformer<JestTransformerConfig>['process'] = function proc
   const rsOptions = options.transformerConfig.rsOptions ?? {};
 
   // Check if file should be transformed based on include/exclude patterns
-  const shouldTransform = shouldTransformFile(
-    sourcePath,
-    rsOptions.include,
-    rsOptions.exclude
-  );
+  const shouldTransform = shouldTransformFile(sourcePath, rsOptions.include, rsOptions.exclude);
 
   if (!shouldTransform) {
     return { code: sourceText };
+  } else {
+    rsOptions.include = undefined;
+    rsOptions.exclude = undefined;
   }
 
-  const { code } = transform(
-    sourcePath,
-    sourceText,
-    normalizeRsOptions(rsOptions)
-  );
+  const { code } = transform(sourcePath, sourceText, normalizeRsOptions(rsOptions));
 
   return { code };
 };

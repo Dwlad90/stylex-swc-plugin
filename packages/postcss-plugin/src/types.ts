@@ -6,7 +6,7 @@ export interface StyleXPluginOption {
    *
    * @see https://stylexjs.com/docs/api/configuration/babel-plugin/
    */
-  rsOptions?: Partial<StyleXOptions>;
+  rsOptions?: Partial<Omit<StyleXOptions, 'exclude' | 'include'>>;
   /**
    * Whether to use CSS layers
    *
@@ -15,9 +15,9 @@ export interface StyleXPluginOption {
   useCSSLayers?: boolean;
 
   /** Glob patterns or RegExp to exclude files */
-  exclude?: (string | RegExp)[];
+  exclude?: StyleXOptions['exclude'];
   /** Glob patterns or RegExp to include files */
-  include?: (string | RegExp)[];
+  include?: StyleXOptions['include'];
   cwd?: string;
   isDev?: boolean;
 }

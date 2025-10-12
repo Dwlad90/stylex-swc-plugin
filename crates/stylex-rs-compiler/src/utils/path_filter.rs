@@ -1,6 +1,7 @@
 use crate::enums::PathFilterUnion;
 use fancy_regex::Regex;
 use glob::Pattern as GlobPattern;
+use log::warn;
 use std::env;
 use std::path::Path;
 
@@ -52,11 +53,32 @@ fn match_pattern(file_path: &str, pattern: &PathFilterUnion) -> bool {
   match pattern {
     PathFilterUnion::Glob(glob) => GlobPattern::new(glob)
       .map(|p| p.matches(file_path))
-      .unwrap_or(false),
-    PathFilterUnion::Regex(regex_str) => Regex::new(regex_str)
-      .ok()
-      .and_then(|r| r.is_match(file_path).ok())
-      .unwrap_or(false),
+      .unwrap_or_else(|e| {
+        warn!(
+          "Invalid glob pattern '{}': {}. Skipping pattern match.",
+          glob, e
+        );
+        false
+      }),
+    PathFilterUnion::Regex(regex_str) => match Regex::new(regex_str) {
+      Ok(r) => match r.is_match(file_path) {
+        Ok(matched) => matched,
+        Err(e) => {
+          warn!(
+            "Error matching regex pattern '{}' against '{}': {}. Skipping pattern match.",
+            regex_str, file_path, e
+          );
+          false
+        }
+      },
+      Err(e) => {
+        warn!(
+          "Invalid regex pattern '{}': {}. Skipping pattern match.",
+          regex_str, e
+        );
+        false
+      }
+    },
   }
 }
 

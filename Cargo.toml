@@ -44,7 +44,7 @@ swc_compiler_base = { version = "34.0.0" }
 lazy_static = "1.5.0"
 serde_json = "1.0.145"
 serde_plain = "1.0.2"
-regex = "1.12.1"
+fancy-regex = "0.16.2"
 indexmap = "2.11.4"
 derive_more = { version = "2.0.1", features = ["display"] }
 murmur2 = { version = "0.1.0" }

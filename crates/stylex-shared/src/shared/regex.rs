@@ -1,5 +1,5 @@
+use fancy_regex::Regex;
 use once_cell::sync::Lazy;
-use regex::Regex;
 
 pub(crate) static CSS_RULE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\w+:\s*([^;}]+);?").unwrap());

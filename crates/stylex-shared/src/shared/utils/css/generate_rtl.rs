@@ -1,3 +1,5 @@
+use log::warn;
+
 use crate::shared::{
   constants::{
     cursor_flip::CURSOR_FLIP,
@@ -122,7 +124,16 @@ fn flip_shadow(value: &str) -> Option<String> {
 }
 
 fn is_unit(input: &str) -> bool {
-  LENGTH_UNIT_TESTER_REGEX.is_match(input)
+  LENGTH_UNIT_TESTER_REGEX
+    .is_match(input)
+    .unwrap_or_else(|err| {
+      warn!(
+        "Error matching LENGTH_UNIT_TESTER_REGEX for '{}': {}. Skipping pattern match.",
+        input, err
+      );
+
+      false
+    })
 }
 
 fn _flip_value(value: &PreRules) -> Option<PreRules> {

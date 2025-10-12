@@ -99,7 +99,7 @@ function createBuilder() {
     // Separate glob patterns from regex patterns
     // String patterns that don't look like regex are treated as globs
     const isRegexPattern = (p: string | RegExp) =>
-      p instanceof RegExp || (typeof p === 'string' && p.startsWith('/') && p.includes('/', 1));
+      p instanceof RegExp || (typeof p === 'string' && /^\/.*\/[gimsuy]*$/.test(p));
     const isGlobPattern = (p: string | RegExp) => !isRegexPattern(p);
 
     const globPatterns = (include || []).filter(isGlobPattern).map(p => String(p));
@@ -162,6 +162,14 @@ function createBuilder() {
       if (!bundler.shouldTransform(contents, rsOptions)) {
         return;
       }
+
+      if (rsOptions) {
+        // @ts-expect-error - this field is omitted from the type for postcss plugin
+        rsOptions.include = undefined;
+        // @ts-expect-error - this field is omitted from the type for postcss plugin
+        rsOptions.exclude = undefined;
+      }
+
       const transformedResult = bundler.transform(filePath, contents, rsOptions || {}, {
         isDev,
         shouldSkipTransformError,
@@ -180,7 +188,7 @@ function createBuilder() {
   // Retrieves the dependencies that PostCSS should watch.
   function getDependencies() {
     const { include } = getConfig();
-    const dependencies: (Awaited<ReturnType<typeof parseDependency>> | RegExp)[] = [];
+    const dependencies: Awaited<ReturnType<typeof parseDependency>>[] = [];
 
     for (const fileOrGlob of include || []) {
       const fileOrGlobString = fileOrGlob.toString();

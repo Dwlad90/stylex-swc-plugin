@@ -2449,7 +2449,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stylex_compiler_rs"
-version = "0.11.1"
+version = "0.11.2-rc.1"
 dependencies = [
  "color-backtrace",
  "fancy-regex",
@@ -2470,7 +2470,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_parser"
-version = "0.11.1"
+version = "0.11.2-rc.1"
 dependencies = [
  "anyhow",
  "criterion",
@@ -2488,7 +2488,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_path_resolver"
-version = "0.11.1"
+version = "0.11.2-rc.1"
 dependencies = [
  "anyhow",
  "color-backtrace",
@@ -2510,7 +2510,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_shared"
-version = "0.11.1"
+version = "0.11.2-rc.1"
 dependencies = [
  "anyhow",
  "base62",
@@ -2547,7 +2547,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_test_parser"
-version = "0.11.1"
+version = "0.11.2-rc.1"
 dependencies = [
  "anyhow",
  "clap",

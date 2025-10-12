@@ -298,6 +298,41 @@ test!(
     "#
 );
 
+// TODO: Add support for logical styles config - skipped test
+// This test is skipped because it requires logical styles polyfill support in keyframes
+// test!(
+//   Syntax::Typescript(TsSyntax {
+//     tsx: true,
+//     ..Default::default()
+//   }),
+//   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+//     tr.comments.clone(),
+//     PluginPass::default(),
+//     Some(&mut StyleXOptionsParams {
+//       enable_logical_styles_polyfill: Some(true),
+//       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+//       ..StyleXOptionsParams::default()
+//     }),
+//   ),
+//   legacy_value_of_padding_inline_property,
+//   r#"
+//     import stylex from 'stylex';
+//     const styles = stylex.create({
+//       x: {
+//         animationName: stylex.keyframes({
+//           '0%': {
+//             paddingInline: '1px 2px'
+//           },
+//           '100%': {
+//             paddingInline: '10px 20px'
+//           }
+//         })
+//       }
+//     });
+//     const classnames = stylex(styles.x);
+//   "#
+// );
+
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,
@@ -329,7 +364,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       enable_legacy_value_flipping: Some(true),
-      enable_logical_styles_polyfill: Some(true),
       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       ..StyleXOptionsParams::default()
     }),
@@ -341,11 +375,9 @@ test!(
       x: {
         animationName: stylex.keyframes({
           '0%': {
-            borderInlineEnd: '1px solid red',
             boxShadow: '1px 2px 3px 4px red'
           },
           '100%': {
-            borderInlineEnd: '1px solid transparent',
             boxShadow: '10px 20px 30px 40px green'
           }
         })

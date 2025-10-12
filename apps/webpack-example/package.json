@@ -5,19 +5,38 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "webpack",
-    "start": "webpack --watch"
+    "build": "webpack --mode production",
+    "dev": "webpack serve --config ./webpack.config.js --mode development",
+    "serve": "serve --listen 3012 ./dist",
+    "start": "webpack --watch",
+    "test:visual": "playwright test"
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.15.4"
+    "@stylexjs/stylex": "^0.15.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.1",
+    "@stylexjs/eslint-plugin": "^0.15.4",
+    "@stylexswc/playwright": "0.11.3-rc.1",
+    "@stylexswc/postcss-plugin": "0.11.3-rc.1",
     "@stylexswc/webpack-plugin": "0.11.3-rc.1",
+    "@swc/core": "^1.13.3",
+    "autoprefixer": "^10.4.21",
     "css-loader": "^7.1.2",
+    "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.6.0",
     "mini-css-extract-plugin": "^2.9.2",
+    "postcss": "^8.5.6",
+    "postcss-loader": "^8.2.0",
+    "react-refresh": "^0.17.0",
+    "serve": "^14.2.4",
+    "swc-loader": "^0.2.6",
     "webpack": "^5.102.1",
-    "webpack-cli": "^6.0.1"
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
   },
   "main": "./dist/index.js"
 }

@@ -1,7 +1,6 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
-use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{
@@ -15,6 +14,7 @@ use crate::shared::{
     injectable_style::InjectableStyle,
     pair::Pair,
     state_manager::StateManager,
+    types::FlatCompiledStyles,
   },
   utils::{
     ast::{
@@ -175,7 +175,7 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
   }
 }
 
-fn construct_position_try_obj(styles: IndexMap<String, Rc<FlatCompiledStylesValue>>) -> String {
+fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
   // Collect and sort keys for deterministic output
   let mut sorted_keys = styles.keys().cloned().collect::<Vec<String>>();
   sorted_keys.sort();

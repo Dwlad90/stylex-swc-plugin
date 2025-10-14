@@ -28,13 +28,11 @@ pub(crate) fn stylex_default_marker(options: &StyleXStateOptions) -> NestedStrin
 
   let mut result = IndexMap::new();
 
-  // Add the marker class name mapping
   result.insert(
     marker_class.clone(),
     Rc::new(FlatCompiledStylesValue::String(marker_class)),
   );
 
-  // Add the $$css marker
   result.insert(
     "$$css".to_string(),
     Rc::new(FlatCompiledStylesValue::Bool(true)),

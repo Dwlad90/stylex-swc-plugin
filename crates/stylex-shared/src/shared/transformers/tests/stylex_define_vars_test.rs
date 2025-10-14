@@ -12,8 +12,12 @@ mod stylex_define_vars {
       value_with_default::ValueWithDefault,
     },
     structures::{
-      base_css_type::BaseCSSType, functions::FunctionType, injectable_style::InjectableStyle,
-      state_manager::StateManager, stylex_state_options::StyleXStateOptions,
+      base_css_type::BaseCSSType,
+      functions::FunctionType,
+      injectable_style::InjectableStyle,
+      state_manager::StateManager,
+      stylex_state_options::StyleXStateOptions,
+      types::{FlatCompiledStyles, InjectableStylesMap},
     },
     transformers::{stylex_define_vars::stylex_define_vars, stylex_types::get_types_fn},
     utils::{
@@ -83,9 +87,7 @@ mod stylex_define_vars {
     EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
-  fn expected_css_result_factory(
-    injected_styles: &[(&str, (&str, f64))],
-  ) -> IndexMap<String, Rc<InjectableStyleKind>> {
+  fn expected_css_result_factory(injected_styles: &[(&str, (&str, f64))]) -> InjectableStylesMap {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
@@ -102,9 +104,7 @@ mod stylex_define_vars {
     expected_injected_styles
   }
 
-  fn expected_js_result_factory(
-    js_output: &[(&str, &str)],
-  ) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+  fn expected_js_result_factory(js_output: &[(&str, &str)]) -> FlatCompiledStyles {
     let mut expected_injected_styles = IndexMap::new();
 
     for (key, value) in js_output {

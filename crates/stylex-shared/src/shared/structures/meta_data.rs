@@ -1,13 +1,10 @@
-use std::{
-  hash::{Hash, Hasher},
-  rc::Rc,
-};
+use std::hash::{Hash, Hasher};
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::shared::{
   enums::data_structures::injectable_style::{InjectableStyleBaseKind, InjectableStyleKind},
+  structures::types::InjectableStylesMap,
   utils::common::hash_f64,
 };
 
@@ -79,7 +76,7 @@ impl MetaData {
   }
 
   pub(crate) fn convert_from_injected_styles_map(
-    injected_styles_map: &IndexMap<String, Rc<InjectableStyleKind>>,
+    injected_styles_map: &InjectableStylesMap,
   ) -> Vec<MetaData> {
     injected_styles_map
       .iter()

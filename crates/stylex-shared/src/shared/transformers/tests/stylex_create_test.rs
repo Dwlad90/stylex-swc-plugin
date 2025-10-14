@@ -17,7 +17,7 @@ mod stylex_create {
       state::EvaluationState,
       state_manager::StateManager,
       stylex_state_options::StyleXStateOptions,
-      types::{ClassPathsInNamespace, FlatCompiledStyles},
+      types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap},
     },
     transformers::stylex_create::stylex_create_set,
     utils::ast::{
@@ -210,11 +210,7 @@ mod stylex_create {
     resolved_namespaces: &[(&str, &[(&str, &str)])],
     injected_styles: &InjectedStylesArg,
     class_paths_in_namespace: &[(&str, &[(&str, &[&str])])],
-  ) -> (
-    IndexMap<String, Rc<FlatCompiledStyles>>,
-    IndexMap<String, Rc<InjectableStyleKind>>,
-    IndexMap<String, Rc<ClassPathsInNamespace>>,
-  ) {
+  ) -> (StylesObjectMap, InjectableStylesMap, ClassPathsMap) {
     let mut expected_resolved_namespaces = IndexMap::new();
     let mut expected_injected_styles = IndexMap::new();
     let mut expected_class_paths_in_namespace = IndexMap::new();
@@ -277,11 +273,7 @@ mod stylex_create {
 
   fn stylex_create(
     style_object: IndexMap<Expr, Vec<KeyValueProp>>,
-  ) -> (
-    IndexMap<String, Rc<FlatCompiledStyles>>,
-    IndexMap<String, Rc<InjectableStyleKind>>,
-    IndexMap<String, Rc<ClassPathsInNamespace>>,
-  ) {
+  ) -> (StylesObjectMap, InjectableStylesMap, ClassPathsMap) {
     stylex_create_set(
       &EvaluateResultValue::Map(style_object),
       &mut EvaluationState::default(),

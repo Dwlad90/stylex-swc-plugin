@@ -1,15 +1,16 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
-use indexmap::IndexMap;
-
 use crate::shared::{
   enums::data_structures::{
     evaluate_result_value::EvaluateResultValue,
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
     obj_map_type::ObjMapType,
   },
-  structures::{injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager},
+  structures::{
+    injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
+    types::FlatCompiledStyles,
+  },
   utils::{
     common::{create_hash, dashify},
     css::common::transform_value_cached,
@@ -110,10 +111,7 @@ fn construct_view_transition_class_style_str(
   }
 }
 
-fn construct_final_view_transition_css_str(
-  styles: IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  class_name: &str,
-) -> String {
+fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_name: &str) -> String {
   let mut result = String::new();
   for (key, value) in styles.iter() {
     let style_str = match value.as_ref() {
@@ -126,7 +124,7 @@ fn construct_final_view_transition_css_str(
 }
 
 fn concat_view_transition_class_style_str(
-  style_strings: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  style_strings: &FlatCompiledStyles,
   state: &mut StateManager,
 ) -> String {
   let mut result = String::new();

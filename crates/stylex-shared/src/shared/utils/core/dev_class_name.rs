@@ -39,11 +39,11 @@ pub(crate) fn inject_dev_class_names(
 }
 
 pub(crate) fn convert_to_test_styles(
-  obj: &IndexMap<String, Rc<FlatCompiledStyles>>,
+  obj: &StylesObjectMap,
   var_name: &Option<String>,
   state: &StateManager,
-) -> IndexMap<String, Rc<FlatCompiledStyles>> {
-  let mut result: IndexMap<String, Rc<FlatCompiledStyles>> = IndexMap::new();
+) -> StylesObjectMap {
+  let mut result: StylesObjectMap = IndexMap::new();
 
   for (key, _value) in obj.iter() {
     let dev_class_name =
@@ -97,7 +97,7 @@ fn namespace_to_dev_class_name(
 fn convert_theme_to_base_styles(
   variable_name: &str,
   filename: &str,
-) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+) -> FlatCompiledStyles {
   let mut overrides_obj_extended = IndexMap::new();
 
   // Get the basename of the file without the extension
@@ -122,9 +122,9 @@ fn convert_theme_to_base_styles(
 
 pub(crate) fn convert_theme_to_dev_styles(
   variable_name: &Option<String>,
-  overrides_obj: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  overrides_obj: &FlatCompiledStyles,
   filename: &str,
-) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+) -> FlatCompiledStyles {
   let variable_name_str = variable_name
     .as_ref()
     .expect("Variable name not found.")
@@ -139,9 +139,9 @@ pub(crate) fn convert_theme_to_dev_styles(
 
 pub(crate) fn convert_theme_to_test_styles(
   variable_name: &Option<String>,
-  overrides_obj: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  overrides_obj: &FlatCompiledStyles,
   filename: &str,
-) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+) -> FlatCompiledStyles {
   let mut overrides_obj_extended =
     convert_theme_to_dev_styles(variable_name, overrides_obj, filename);
 

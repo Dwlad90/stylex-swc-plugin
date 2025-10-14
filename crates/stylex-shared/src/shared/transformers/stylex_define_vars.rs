@@ -10,7 +10,7 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
     obj_map_type::ObjMapType,
   },
-  structures::{injectable_style::InjectableStyle, state_manager::StateManager},
+  structures::{injectable_style::InjectableStyle, state_manager::StateManager, types::{FlatCompiledStyles, InjectableStylesMap}},
   utils::{
     common::{create_hash, get_css_value},
     core::define_vars_utils::construct_css_variables_string,
@@ -22,8 +22,8 @@ pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (
-  IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  IndexMap<String, Rc<InjectableStyleKind>>,
+  FlatCompiledStyles,
+  InjectableStylesMap
 ) {
   let var_group_hash = format!(
     "{}{}",
@@ -31,7 +31,7 @@ pub(crate) fn stylex_define_vars(
     create_hash(state.export_id.as_ref().unwrap())
   );
 
-  let mut typed_variables: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut typed_variables: FlatCompiledStyles = IndexMap::new();
 
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
     panic!("Values must be an object")
@@ -134,7 +134,7 @@ pub(crate) fn stylex_define_vars(
     },
   );
 
-  let mut injectable_types: IndexMap<String, Rc<InjectableStyleKind>> = injectable_types
+  let mut injectable_types: InjectableStylesMap = injectable_types
     .iter()
     .filter_map(|(key, value)| {
       value.as_injectable_style().map(|inj_style| {

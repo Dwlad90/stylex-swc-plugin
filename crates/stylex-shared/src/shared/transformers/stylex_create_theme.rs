@@ -10,7 +10,10 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
   },
   structures::{
-    functions::FunctionMap, injectable_style::InjectableStyle, state_manager::StateManager,
+    functions::FunctionMap,
+    injectable_style::InjectableStyle,
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, InjectableStylesMap},
   },
   utils::{
     ast::convertors::{expr_to_str, key_value_to_str},
@@ -24,14 +27,11 @@ pub(crate) fn stylex_create_theme(
   theme_vars: &mut EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
-  typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
-) -> (
-  IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  IndexMap<String, Rc<InjectableStyleKind>>,
-) {
+  typed_variables: &mut FlatCompiledStyles,
+) -> (FlatCompiledStyles, InjectableStylesMap) {
   let theme_name_key_value = validate_theme_variables(theme_vars, state);
 
-  let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
+  let mut rules_by_at_rule = IndexMap::new();
 
   let mut variables_key_values = Box::new(get_key_values_from_object(
     variables

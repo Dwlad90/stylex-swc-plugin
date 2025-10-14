@@ -13,7 +13,7 @@ use crate::shared::{
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
     state::EvaluationState,
     state_manager::StateManager,
-    types::{ClassPathsInNamespace, FlatCompiledStyles},
+    types::{ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, StylesObjectMap},
   },
   utils::{
     ast::convertors::expr_to_str, common::create_short_hash,
@@ -27,9 +27,9 @@ pub(crate) fn stylex_create_set(
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
 ) -> (
-  IndexMap<String, Rc<FlatCompiledStyles>>,
-  IndexMap<String, Rc<InjectableStyleKind>>,
-  IndexMap<String, Rc<ClassPathsInNamespace>>,
+  StylesObjectMap,
+  InjectableStylesMap,
+  ClassPathsMap,
 ) {
   let mut resolved_namespaces = IndexMap::new();
   let mut injected_styles_map = IndexMap::new();

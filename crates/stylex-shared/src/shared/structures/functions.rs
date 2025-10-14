@@ -4,11 +4,12 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
-use crate::shared::enums::{
-  data_structures::{
-    flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
+use crate::shared::{
+  enums::{
+    data_structures::value_with_default::ValueWithDefault,
+    js::{ArrayJS, MathJS, ObjectJS, StringJS},
   },
-  js::{ArrayJS, MathJS, ObjectJS, StringJS},
+  structures::types::FlatCompiledStyles,
 };
 
 use super::{
@@ -119,7 +120,7 @@ pub struct FunctionConfig {
 pub enum FunctionConfigType {
   Regular(FunctionConfig),
   Map(FxHashMap<Atom, FunctionConfig>),
-  IndexMap(IndexMap<String, Rc<FlatCompiledStylesValue>>),
+  IndexMap(FlatCompiledStyles),
 }
 
 impl std::fmt::Debug for FunctionConfigType {
@@ -186,7 +187,7 @@ impl FunctionConfigType {
     }
   }
 
-  pub(crate) fn _as_index_map(&self) -> Option<&IndexMap<String, Rc<FlatCompiledStylesValue>>> {
+  pub(crate) fn _as_index_map(&self) -> Option<&FlatCompiledStyles> {
     match self {
       Self::Regular(_) => None,
       Self::Map(_) => None,
@@ -194,9 +195,7 @@ impl FunctionConfigType {
     }
   }
 
-  pub(crate) fn _as_index_map_mut(
-    &mut self,
-  ) -> Option<&mut IndexMap<String, Rc<FlatCompiledStylesValue>>> {
+  pub(crate) fn _as_index_map_mut(&mut self) -> Option<&mut FlatCompiledStyles> {
     match self {
       Self::Regular(_) => None,
       Self::Map(_) => None,

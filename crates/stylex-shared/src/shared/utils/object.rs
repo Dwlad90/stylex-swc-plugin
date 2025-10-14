@@ -9,6 +9,7 @@ use crate::shared::{
   },
   structures::{
     order_pair::OrderPair, pair::Pair, pre_rule::PreRuleValue, state_manager::StateManager,
+    types::FlatCompiledStyles,
   },
   utils::{
     common::get_key_values_from_object,
@@ -22,7 +23,7 @@ pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,
   state: &mut StateManager,
   mapper: F,
-) -> IndexMap<String, Rc<FlatCompiledStylesValue>>
+) -> FlatCompiledStyles
 where
   F: Fn(Rc<FlatCompiledStylesValue>, &mut StateManager) -> Rc<FlatCompiledStylesValue>,
 {
@@ -108,7 +109,7 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
 pub(crate) fn obj_map_keys_string(
   entries: &IndexMap<String, String>,
   mapper: fn(&str) -> String,
-) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+) -> FlatCompiledStyles {
   let mut map = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
@@ -127,9 +128,9 @@ pub(crate) fn obj_map_keys_string(
 }
 
 pub(crate) fn obj_map_keys_key_value(
-  entries: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  entries: &FlatCompiledStyles,
   mapper: fn(&str) -> String,
-) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+) -> FlatCompiledStyles {
   let mut map = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {

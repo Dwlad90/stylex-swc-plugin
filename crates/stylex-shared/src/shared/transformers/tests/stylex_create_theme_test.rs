@@ -9,7 +9,9 @@ mod stylex_create_theme {
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue, injectable_style::InjectableStyleKind,
     },
-    structures::{injectable_style::InjectableStyle, state_manager::StateManager},
+    structures::{
+      injectable_style::InjectableStyle, state_manager::StateManager, types::InjectableStylesMap,
+    },
     transformers::stylex_create_theme::stylex_create_theme,
     utils::ast::{
       convertors::string_to_expression,
@@ -29,9 +31,7 @@ mod stylex_create_theme {
     EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
-  fn exprected_result_factory(
-    injected_styles: &[(&str, (&str, f64))],
-  ) -> IndexMap<String, Rc<InjectableStyleKind>> {
+  fn exprected_result_factory(injected_styles: &[(&str, (&str, f64))]) -> InjectableStylesMap {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {

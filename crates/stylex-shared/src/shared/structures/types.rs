@@ -9,6 +9,7 @@ use swc_core::{
 
 use crate::shared::enums::data_structures::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+  injectable_style::InjectableStyleKind,
 };
 
 use super::{
@@ -22,8 +23,9 @@ pub(crate) type EvaluationCallback = Rc<dyn Fn(Vec<Option<EvaluateResultValue>>)
 pub(crate) type FunctionMapMemberExpression =
   FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
 pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
-pub(crate) type StylesObjectMap =
-  IndexMap<String, Rc<IndexMap<String, Rc<FlatCompiledStylesValue>>>>;
+pub(crate) type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;
+pub(crate) type InjectableStylesMap = IndexMap<String, Rc<InjectableStyleKind>>;
+pub(crate) type ClassPathsMap = IndexMap<String, Rc<ClassPathsInNamespace>>;
 pub(crate) type ClassesToOriginalPaths = IndexMap<String, Vec<String>>;
 pub(crate) type ClassPathsInNamespace = ClassesToOriginalPaths;
 pub(crate) type TInlineStyles = IndexMap<String, Box<InlineStyle>>;

@@ -1,13 +1,12 @@
 use std::rc::Rc;
 
-use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp};
 
 use crate::shared::{
   enums::data_structures::{
     evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
   },
-  structures::{functions::FunctionMap, state_manager::StateManager},
+  structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
   utils::{
     ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, lit_to_string},
     common::reduce_ident_count,
@@ -17,7 +16,7 @@ use crate::shared::{
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StyleObject {
-  Style(IndexMap<String, Rc<FlatCompiledStylesValue>>),
+  Style(FlatCompiledStyles),
   Nullable,
   Other,
   Unreachable,
@@ -124,7 +123,7 @@ fn evaluate_style_object(
   if parsed_obj.confident
     && let Some(EvaluateResultValue::Expr(Expr::Object(obj))) = parsed_obj.value.as_ref()
   {
-    let style_value: IndexMap<String, Rc<FlatCompiledStylesValue>> = obj
+    let style_value: FlatCompiledStyles = obj
       .props
       .iter()
       .filter_map(|prop| {

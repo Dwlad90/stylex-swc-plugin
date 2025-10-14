@@ -30,6 +30,7 @@ use crate::shared::{
     functions::StylexExprFn,
     injectable_style::InjectableStyle,
     state_manager::StateManager,
+    types::InjectableStylesMap,
     uid_generator::{CounterMode, UidGenerator},
   },
   transformers::{stylex_default_maker, stylex_position_try::get_position_try_fn},
@@ -159,6 +160,7 @@ where
       }
 
       let stylex_when_rc = Rc::new(stylex_when.clone());
+
       for name in &self.state.stylex_when_import {
         identifiers.insert(
           name.clone(),
@@ -265,8 +267,7 @@ where
         )
       );
 
-      let mut injected_inherit_styles: IndexMap<String, Rc<InjectableStyleKind>> =
-        IndexMap::default();
+      let mut injected_inherit_styles: InjectableStylesMap = IndexMap::default();
 
       if let Some(fns) = &evaluated_arg.fns {
         let dynamic_fns_names = fns

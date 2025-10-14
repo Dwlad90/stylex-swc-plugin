@@ -31,7 +31,7 @@ use swc_core::{
 
 use crate::shared::{
   constants::common::DEFAULT_INJECT_PATH,
-  structures::uid_generator::CounterMode,
+  structures::{types::InjectableStylesMap, uid_generator::CounterMode},
   utils::ast::factories::{
     expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
   },
@@ -132,7 +132,7 @@ pub struct StateManager {
   pub(crate) hoisted_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
-  pub(crate) other_injected_css_rules: IndexMap<String, Rc<InjectableStyleKind>>,
+  pub(crate) other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
 
   pub(crate) cycle: TransformationCycle,
@@ -475,7 +475,7 @@ impl StateManager {
   pub(crate) fn register_styles(
     &mut self,
     call: &CallExpr,
-    style: &IndexMap<String, Rc<InjectableStyleKind>>,
+    style: &InjectableStylesMap,
     ast: &Expr,
   ) {
     // Early return if there are no styles to process

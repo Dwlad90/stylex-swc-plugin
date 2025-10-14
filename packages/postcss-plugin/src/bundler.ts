@@ -94,14 +94,16 @@ export default function createBundler() {
   function bundle({
     useCSSLayers,
     enableLTRRTLComments,
+    legacyDisableLayers,
   }: Pick<StyleXPluginOption, 'useCSSLayers'> &
-    Pick<NonNullable<StyleXPluginOption['rsOptions']>, 'enableLTRRTLComments'>) {
+    Pick<NonNullable<StyleXPluginOption['rsOptions']>, 'enableLTRRTLComments' | 'legacyDisableLayers'>) {
     const rules = Array.from(styleXRulesMap.values()).flat();
 
     // @ts-expect-error - type is not up to date and will be fixed in the future
     const css = stylexBabelPlugin.processStylexRules(rules, {
       useLayers: useCSSLayers,
       enableLTRRTLComments,
+      legacyDisableLayers,
     });
     return css;
   }

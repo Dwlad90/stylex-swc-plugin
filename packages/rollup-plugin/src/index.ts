@@ -46,6 +46,7 @@ export default function stylexPlugin({
         const collectedCSS = stylexBabelPlugin.processStylexRules(rules, {
           useLayers: useCSSLayers,
           enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
+          legacyDisableLayers: rsOptions?.legacyDisableLayers,
         });
         // Process the CSS using lightningcss
         const { code } = transform({

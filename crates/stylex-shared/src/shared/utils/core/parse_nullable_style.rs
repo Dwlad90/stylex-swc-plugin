@@ -19,7 +19,6 @@ pub(crate) enum StyleObject {
   Style(FlatCompiledStyles),
   Nullable,
   Other,
-  Unreachable,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -37,7 +36,6 @@ pub(crate) enum ResolvedArg {
 pub(crate) fn parse_nullable_style(
   path: &Expr,
   state: &mut StateManager,
-  functions: &FunctionMap,
   should_reduce_count: bool,
 ) -> StyleObject {
   match path {
@@ -98,23 +96,13 @@ pub(crate) fn parse_nullable_style(
         }
       }
 
-      if let Some(value) = evaluate_style_object(path, state, functions) {
-        return value;
-      }
-
       StyleObject::Other
     }
-    _ => {
-      if let Some(value) = evaluate_style_object(path, state, functions) {
-        return value;
-      }
-
-      StyleObject::Other
-    }
+    _ => StyleObject::Other,
   }
 }
 
-fn evaluate_style_object(
+fn _evaluate_style_object(
   path: &Expr,
   state: &mut StateManager,
   functions: &FunctionMap,

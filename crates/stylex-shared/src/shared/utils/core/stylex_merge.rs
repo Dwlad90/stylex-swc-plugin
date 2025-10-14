@@ -3,8 +3,8 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, IdentName, JSXAttr,
-      JSXAttrName, JSXAttrOrSpread, JSXAttrValue, Lit, MemberExpr, Prop, PropName, PropOrSpread,
+      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, IdentName, JSXAttr, JSXAttrName,
+      JSXAttrOrSpread, JSXAttrValue, Lit, Prop, PropName, PropOrSpread,
     },
     utils::{ExprExt, drop_span},
     visit::FoldWith,
@@ -93,35 +93,10 @@ pub(crate) fn stylex_merge(
 
     let arg = arg_path.expr.as_ref();
 
-    let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() {
-      let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config, false);
-
-      if let StyleObject::Other = resolved {
-        bail_out_index = Some(current_index);
-        bail_out = true;
-      }
-
-      resolved
-    } else {
-      StyleObject::Unreachable
-    };
-
     match &arg {
-      Expr::Object(_) => {
-        resolved_args.push(ResolvedArg::StyleObject(
-          resolved,
-          Ident::default(),
-          MemberExpr::default(),
-        ));
-      }
-      Expr::Ident(ident) => {
-        resolved_args.push(ResolvedArg::StyleObject(
-          resolved,
-          ident.clone(),
-          MemberExpr::default(),
-        ));
-      }
       Expr::Member(member) => {
+        let resolved = parse_nullable_style(arg, state, false);
+
         let ident = member
           .obj
           .as_ident()
@@ -130,21 +105,19 @@ pub(crate) fn stylex_merge(
 
         match resolved {
           StyleObject::Other => {
-            // Processed before into the `resolved` block
+            bail_out_index = Some(current_index);
+            bail_out = true;
           }
           StyleObject::Style(_) | StyleObject::Nullable => {
             resolved_args.push(ResolvedArg::StyleObject(resolved, ident, member.clone()));
-          }
-          StyleObject::Unreachable => {
-            unreachable!("StyleObject::Unreachable");
           }
         }
       }
       Expr::Cond(CondExpr {
         test, cons, alt, ..
       }) => {
-        let primary = parse_nullable_style(cons, state, &evaluate_path_fn_config, true);
-        let fallback = parse_nullable_style(alt, state, &evaluate_path_fn_config, true);
+        let primary = parse_nullable_style(cons, state, true);
+        let fallback = parse_nullable_style(alt, state, true);
 
         if primary.eq(&StyleObject::Other) || fallback.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
@@ -194,8 +167,8 @@ pub(crate) fn stylex_merge(
           break;
         }
 
-        let left_resolved = parse_nullable_style(left, state, &evaluate_path_fn_config, true);
-        let right_resolved = parse_nullable_style(right, state, &evaluate_path_fn_config, true);
+        let left_resolved = parse_nullable_style(left, state, true);
+        let right_resolved = parse_nullable_style(right, state, true);
 
         if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);

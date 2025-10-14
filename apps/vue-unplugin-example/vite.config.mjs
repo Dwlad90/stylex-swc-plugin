@@ -10,9 +10,9 @@ export default defineConfig({
     vue(),
     styleXRSPlugin({
       pageExtensions: ['tsx', 'jsx', 'js', 'ts', 'vue'],
+      useCSSLayers: true,
       rsOptions: {
         dev: true,
-        useCSSLayers: true,
         treeshakeCompensation: true,
       },
     }),

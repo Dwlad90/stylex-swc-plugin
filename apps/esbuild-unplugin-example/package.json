@@ -6,9 +6,19 @@
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "clean": "rimraf .next",
     "dev": "node scripts/dev.mjs",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "next:lint": "next lint",
+    "prebuild": "pnpm run clean",
+    "predev": "pnpm run clean",
+    "prestart": "pnpm run build",
     "serve": "serve --listen 3002 .",
-    "test:visual": "playwright test"
+    "test": "pnpm test:ci",
+    "test:ci": "jest --ci",
+    "test:visual": "playwright test",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",

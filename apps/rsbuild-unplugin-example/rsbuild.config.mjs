@@ -11,9 +11,9 @@ export default defineConfig({
     rspack: {
       plugins: [
         styleXRSPlugin({
+          useCSSLayers: true,
           rsOptions: {
             dev: true,
-            useCSSLayers: true,
             treeshakeCompensation: true,
           },
         }),

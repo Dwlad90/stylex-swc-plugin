@@ -51,9 +51,9 @@ export default {
   },
   plugins: [
     styleXRSPlugin({
+      useCSSLayers: true,
       rsOptions: {
         dev: isDev,
-        useCSSLayers: true,
       },
     }),
     new rspack.HtmlRspackPlugin({

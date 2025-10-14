@@ -9,9 +9,9 @@ export default defineConfig({
   plugins: [
     solid(),
     styleXRSPlugin({
+      useCSSLayers: true,
       rsOptions: {
         dev: true,
-        useCSSLayers: true,
         treeshakeCompensation: true,
       },
     }),

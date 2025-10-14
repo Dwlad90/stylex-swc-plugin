@@ -20,6 +20,7 @@ export default defineConfig({
         plugins: [
           // The plugin will run tests for the stories defined in your Storybook config
           // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
+          react({}),
           storybookTest({ configDir: path.join(dirname, '.storybook') }),
           styleXRSPlugin({
             pageExtensions: ['tsx', 'jsx', 'js', 'ts', 'vue'],

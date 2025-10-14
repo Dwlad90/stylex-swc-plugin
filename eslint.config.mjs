@@ -34,7 +34,9 @@ const eslintConfig = [{
     "**/visual-tests",
     "**/coverage",
     "**/next-env.d.ts",
-    "**/storybook-static"
+    "**/storybook-static",
+    "**/playwright-report",
+    "**/test-results"
   ],
 },
 ];

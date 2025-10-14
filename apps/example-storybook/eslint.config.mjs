@@ -16,7 +16,6 @@ const appSpecificRules = [
 const nextElintConfg = [
   ...baseConfig,
   ...appSpecificRules,
-
 ];
 
 export default nextElintConfg;

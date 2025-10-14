@@ -12,5 +12,6 @@ export default function normalizeOptions(
     pageExtensions: options.pageExtensions ?? ['tsx', 'jsx', 'js', 'ts'],
     rsOptions: normalizeRsOptions(options.rsOptions || {}),
     extractCSS: options.extractCSS ?? true,
+    useViteCssPipeline: options.useViteCssPipeline ?? false,
   };
 }

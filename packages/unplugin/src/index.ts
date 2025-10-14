@@ -12,11 +12,18 @@ import generateHash from './utils/generateHash';
 import crypto from 'crypto';
 
 import type { StyleXMetadata } from '@stylexswc/rs-compiler';
-import type { HotPayload, UserConfig } from 'vite';
+import type { HotPayload, UserConfig, ViteDevServer } from 'vite';
 
 type StyleXRules = Record<string, StyleXMetadata['stylex']>;
 
 const { writeFile, mkdir } = promises;
+
+const VIRTUAL_CSS_MODULE_ID = 'virtual:stylex.css';
+const RESOLVED_VIRTUAL_CSS_MODULE_ID = '\0' + VIRTUAL_CSS_MODULE_ID;
+const VIRTUAL_CSS_MARKER = ':root{--stylex-placeholder:1}';
+
+let viteDevServer: ViteDevServer | null = null;
+let hasInvalidatedInitialCSS = false;
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
@@ -104,6 +111,34 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           });
         }
 
+        // Invalidate virtual CSS module in dev mode (initial load only)
+        // For Vue HMR, handleHotUpdate handles the CSS module inclusion
+        if (normalizedOptions.useViteCssPipeline && viteDevServer && !hasInvalidatedInitialCSS) {
+          const hasStyleXCode = code !== inputCode;
+
+          if (hasStyleXCode) {
+            hasInvalidatedInitialCSS = true;
+
+            setTimeout(() => {
+              const mod = viteDevServer?.moduleGraph.getModuleById(RESOLVED_VIRTUAL_CSS_MODULE_ID);
+              if (mod) {
+                viteDevServer?.moduleGraph.invalidateModule(mod);
+                viteDevServer?.ws.send({
+                  type: 'update',
+                  updates: [
+                    {
+                      type: 'js-update',
+                      acceptedPath: RESOLVED_VIRTUAL_CSS_MODULE_ID,
+                      path: RESOLVED_VIRTUAL_CSS_MODULE_ID,
+                      timestamp: Date.now(),
+                    },
+                  ],
+                });
+              }
+            }, 50);
+          }
+        }
+
         return {
           code,
           map,
@@ -150,7 +185,72 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         config.optimizeDeps.exclude.push('@stylexjs/open-props');
       },
 
+      resolveId(id) {
+        if (id === VIRTUAL_CSS_MODULE_ID) {
+          return RESOLVED_VIRTUAL_CSS_MODULE_ID;
+        }
+      },
+
+      async load(id) {
+        if (id === RESOLVED_VIRTUAL_CSS_MODULE_ID) {
+          // In dev mode, return actual CSS for HMR
+          // In build mode, return placeholder that will be replaced in generateBundle
+          const isDev = this.meta?.watchMode;
+
+          if (isDev) {
+            // Always return current CSS state
+            const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+
+            // If no CSS yet, return a minimal placeholder that won't break
+            // HMR will update this when files are transformed
+            if (!collectedCSS || collectedCSS.trim().length === 0) {
+              return {
+                code: '/* StyleX styles will load after transformation */',
+                map: null,
+              };
+            }
+
+            return {
+              code: collectedCSS,
+              map: null,
+            };
+          }
+
+          // Build mode: return placeholder
+          return {
+            code: VIRTUAL_CSS_MARKER,
+            map: null,
+          };
+        }
+      },
+
+      generateBundle(options, bundle) {
+        if (!normalizedOptions.useViteCssPipeline) return;
+
+        const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+        if (!collectedCSS) return;
+
+        // Find and update the CSS asset generated from the virtual module
+        for (const [fileName, output] of Object.entries(bundle)) {
+          // Look for CSS assets that contain our placeholder
+          if (output.type === 'asset' && fileName.endsWith('.css')) {
+            const source = output.source.toString();
+            if (source.includes('--stylex-placeholder')) {
+              // Replace the placeholder with actual CSS
+              output.source = collectedCSS;
+              break;
+            }
+          }
+        }
+      },
+
       buildEnd() {
+        // Skip emitting CSS file when using Vite's CSS pipeline
+        // Vite will handle bundling the virtual CSS module
+        if (normalizedOptions.useViteCssPipeline) {
+          return;
+        }
+
         const { processedFileName, collectedCSS } = generateCSSAssets(
           stylexRules,
           normalizedOptions,
@@ -168,6 +268,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         }
       },
       configureServer(server) {
+        viteDevServer = server;
+        hasInvalidatedInitialCSS = false; // Reset on server restart
+
         server.middlewares.use((req, res, next) => {
           if (cssFileName && req.url?.includes(cssFileName)) {
             const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
@@ -179,7 +282,24 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           next();
         });
       },
-      async handleHotUpdate({ file: id, file, server, read }) {
+      async handleHotUpdate({ file: id, file, server, read, modules }) {
+        // For Vue files, include CSS module but don't transform
+        // (raw .vue files have <template>, <style> sections that SWC can't parse)
+        // The transform hook will update stylexRules when Vue plugin converts it to JS
+        if (file.includes('.vue')) {
+          if (normalizedOptions.useViteCssPipeline) {
+            const virtualMod = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_CSS_MODULE_ID);
+            if (virtualMod) {
+              server.moduleGraph.invalidateModule(virtualMod);
+              // Return BOTH Vue modules and CSS - Vite will fetch Vue first, triggering
+              // our transform hook to update stylexRules before CSS is fetched
+              return [...modules, virtualMod];
+            }
+          }
+
+          return;
+        }
+
         const inputCode = await read();
 
         if (!hasStyleXCode(normalizedOptions, inputCode)) {
@@ -196,23 +316,38 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         if (!collectedCSS) return;
 
-        if (processedFileName) {
-          const normalizedFileName = ensureLeadingSlash(processedFileName);
+        if (normalizedOptions.useViteCssPipeline) {
+          const virtualMod = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_CSS_MODULE_ID);
+          if (virtualMod) {
+            server.moduleGraph.invalidateModule(virtualMod);
 
-          server.ws.send({
-            type: 'update',
-            updates: [
-              {
-                acceptedPath: normalizedFileName,
-                path: normalizedFileName,
-                timestamp: Date.now(),
-                type: 'css-update',
-              },
-            ],
-          });
+            return [...modules, virtualMod];
+          }
+        } else {
+          if (processedFileName) {
+            const normalizedFileName = ensureLeadingSlash(processedFileName);
+
+            server.ws.send({
+              type: 'update',
+              updates: [
+                {
+                  acceptedPath: normalizedFileName,
+                  path: normalizedFileName,
+                  timestamp: Date.now(),
+                  type: 'css-update',
+                },
+              ],
+            });
+          }
         }
       },
       transformIndexHtml: (html, ctx) => {
+        // Skip HTML injection when using Vite's CSS pipeline
+        // Users should import 'virtual:stylex.css' in their entry file
+        if (normalizedOptions.useViteCssPipeline) {
+          return html;
+        }
+
         const isDev = !!ctx.server;
 
         const { processedFileName } = generateCSSAssets(

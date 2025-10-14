@@ -1,0 +1,31 @@
+{
+  "name": "@stylexswc/vue-unplugin-virtual-css-example",
+  "description": "A simple vue unplugin example to test @stylexswc/unplugin/vue",
+  "version": "0.11.2-rc.1",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "vue-tsc && vite build",
+    "dev": "vite",
+    "serve": "serve --listen 3013 ./dist",
+    "test:visual": "playwright test"
+  },
+  "dependencies": {
+    "@stylexjs/open-props": "^0.11.1",
+    "@stylexjs/stylex": "^0.15.4",
+    "@stylexswc/design-system": "0.11.2-rc.1",
+    "@stylexswc/rs-compiler": "0.11.2-rc.1",
+    "@stylexswc/unplugin": "0.11.2-rc.1",
+    "vue": "^3.5.22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@stylexswc/playwright": "0.11.2-rc.1",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vitejs/plugin-vue-jsx": "^5.1.1",
+    "serve": "^14.2.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vue-tsc": "^3.1.0"
+  }
+}

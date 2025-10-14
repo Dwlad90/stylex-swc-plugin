@@ -663,7 +663,99 @@ importers:
         specifier: ^7.1.9
         version: 7.1.9(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(tsx@4.19.2)(yaml@2.8.1)
 
+  apps/vite-unplugin-virtual-css-example:
+    dependencies:
+      '@playwright/test':
+        specifier: ^1.55.1
+        version: 1.55.1
+      '@stylexjs/open-props':
+        specifier: ^0.11.1
+        version: 0.11.1
+      '@stylexjs/stylex':
+        specifier: ^0.15.4
+        version: 0.15.4
+      '@stylexswc/design-system':
+        specifier: 0.11.2-rc.1
+        version: link:../../packages/design-system
+      '@stylexswc/playwright':
+        specifier: 0.11.2-rc.1
+        version: link:../../packages/playwright
+      '@stylexswc/rs-compiler':
+        specifier: 0.11.2-rc.1
+        version: link:../../crates/stylex-rs-compiler
+      '@stylexswc/unplugin':
+        specifier: 0.11.2-rc.1
+        version: link:../../packages/unplugin
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.1.1(react@19.1.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.16
+        version: 19.1.16
+      '@types/react-dom':
+        specifier: ^19.1.9
+        version: 19.1.9(@types/react@19.1.16)
+      '@vitejs/plugin-react':
+        specifier: ^5.0.4
+        version: 5.0.4(vite@7.1.9(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(tsx@4.19.2)(yaml@2.8.1))
+      serve:
+        specifier: ^14.2.4
+        version: 14.2.4
+      vite:
+        specifier: ^7.1.9
+        version: 7.1.9(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(tsx@4.19.2)(yaml@2.8.1)
+
   apps/vue-unplugin-example:
+    dependencies:
+      '@stylexjs/open-props':
+        specifier: ^0.11.1
+        version: 0.11.1
+      '@stylexjs/stylex':
+        specifier: ^0.15.4
+        version: 0.15.4
+      '@stylexswc/design-system':
+        specifier: 0.11.2-rc.1
+        version: link:../../packages/design-system
+      '@stylexswc/rs-compiler':
+        specifier: 0.11.2-rc.1
+        version: link:../../crates/stylex-rs-compiler
+      '@stylexswc/unplugin':
+        specifier: 0.11.2-rc.1
+        version: link:../../packages/unplugin
+      vue:
+        specifier: ^3.5.22
+        version: 3.5.22(typescript@5.9.3)
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.55.1
+        version: 1.55.1
+      '@stylexswc/playwright':
+        specifier: 0.11.2-rc.1
+        version: link:../../packages/playwright
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.1
+        version: 6.0.1(vite@7.1.9(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(tsx@4.19.2)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
+      '@vitejs/plugin-vue-jsx':
+        specifier: ^5.1.1
+        version: 5.1.1(vite@7.1.9(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(tsx@4.19.2)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
+      serve:
+        specifier: ^14.2.4
+        version: 14.2.4
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.1.9
+        version: 7.1.9(@types/node@24.7.2)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(tsx@4.19.2)(yaml@2.8.1)
+      vue-tsc:
+        specifier: ^3.1.0
+        version: 3.1.0(typescript@5.9.3)
+
+  apps/vue-unplugin-virtual-css-example:
     dependencies:
       '@stylexjs/open-props':
         specifier: ^0.11.1

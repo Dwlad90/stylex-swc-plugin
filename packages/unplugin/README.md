@@ -184,6 +184,58 @@ build({
 - Default: `['js', 'jsx', 'ts', 'tsx', 'mjs', 'mts']`
 - Description: File extensions to process for StyleX transformations.
 
+#### `useViteCssPipeline`
+
+- Type: `boolean`
+- Default: `false`
+- Description: **(Vite only)** Integrates StyleX-generated CSS into Vite's CSS processing pipeline as a virtual module. When enabled, StyleX CSS will be processed through Vite's CSS transformers (including PostCSS, LightningCSS, etc.) and benefit from proper HMR support.
+
+##### Benefits
+
+- **CSS Processing**: Generated StyleX CSS goes through Vite's CSS pipeline (PostCSS, LightningCSS, etc.)
+- **Better HMR**: CSS updates are handled through Vite's native CSS HMR with proper source maps
+- **Consistent Output**: All CSS follows the same processing rules and bundling strategy
+- **Build Optimization**: CSS can be code-split and optimized alongside other stylesheets
+
+##### How to Use
+
+```typescript
+// vite.config.ts
+import StylexRsPlugin from '@stylexswc/unplugin/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [
+    StylexRsPlugin({
+      useViteCssPipeline: true,
+    }),
+  ],
+});
+```
+
+Then import the virtual CSS module in your entry file:
+
+```typescript
+// src/main.ts
+import 'virtual:stylex.css';
+import { App } from './App';
+```
+
+**TypeScript Support:**
+
+For TypeScript projects, add the type definition to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@stylexswc/unplugin/virtual-css"]
+  }
+}
+```
+
+> [!NOTE]
+> When `useViteCssPipeline` is enabled, you need to explicitly import `virtual:stylex.css` in your application. The plugin will no longer inject CSS automatically into the HTML.
+
 ### Example Configuration
 
 ```typescript

@@ -15,6 +15,7 @@
     "skipLibCheck": true
   },
   "include": [
+    "virtual-css.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
     "__tests__/**/*.ts",

@@ -116,7 +116,8 @@ pub(crate) fn stylex_create_set(
       }
     }
 
-    let resolved_namespace_name = expr_to_str(namespace_name, traversal_state, functions);
+    let resolved_namespace_name =
+      expr_to_str(namespace_name, traversal_state, functions).expect("Expression is not a string");
 
     namespace_obj.insert(
       COMPILED_KEY.to_owned(),

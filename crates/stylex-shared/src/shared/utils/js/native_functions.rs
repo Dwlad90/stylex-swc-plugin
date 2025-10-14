@@ -78,7 +78,8 @@ pub(crate) fn evaluate_join(
 ) -> Option<EvaluateResultValue> {
   let join_arg = funcs.first()?;
 
-  let join_arg = expr_to_str(join_arg.as_expr()?, state, functions);
+  let join_arg =
+    expr_to_str(join_arg.as_expr()?, state, functions).expect("Join argument is not a string");
 
   let result = args
     .iter()
@@ -86,7 +87,7 @@ pub(crate) fn evaluate_join(
       arg_ref
         .as_ref()
         .and_then(|arg| arg.as_expr())
-        .map(|arg| expr_to_str(arg, state, functions))
+        .map(|arg| expr_to_str(arg, state, functions).expect("Argument is not a string"))
         .expect("Failed parsing \"join\" argument to string")
     })
     .collect::<Vec<String>>()

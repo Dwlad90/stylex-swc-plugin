@@ -153,9 +153,10 @@ pub fn get_var_decl_by_ident<'a>(
 
           return Some(var_decl);
         }
-        _ => panic!("Function type not supported"),
+        _ => panic!("Function type not supported: {:?}", func),
       },
-      FunctionConfigType::Map(_) => unimplemented!(),
+      FunctionConfigType::Map(_) => unimplemented!("Map not implemented"),
+      FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
     }
   }
 

@@ -217,6 +217,15 @@ where
         "types" => {
           self.state.stylex_types_import.insert(local_name_ident_atom);
         }
+        "when" => {
+          self.state.stylex_when_import.insert(local_name_ident_atom);
+        }
+        "defaultMarker" => {
+          self
+            .state
+            .stylex_default_marker_import
+            .insert(local_name_ident_atom);
+        }
         _ => {}
       }
     }

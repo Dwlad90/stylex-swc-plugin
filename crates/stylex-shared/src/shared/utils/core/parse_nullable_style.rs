@@ -4,9 +4,15 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp};
 
 use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::state_manager::StateManager,
-  utils::{ast::convertors::lit_to_string, common::reduce_ident_count},
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+  },
+  structures::{functions::FunctionMap, state_manager::StateManager},
+  utils::{
+    ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, lit_to_string},
+    common::reduce_ident_count,
+    js::evaluate::evaluate,
+  },
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -14,6 +20,7 @@ pub(crate) enum StyleObject {
   Style(IndexMap<String, Rc<FlatCompiledStylesValue>>),
   Nullable,
   Other,
+  Unreachable,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -29,11 +36,12 @@ pub(crate) enum ResolvedArg {
 }
 
 pub(crate) fn parse_nullable_style(
-  node: &Expr,
+  path: &Expr,
   state: &mut StateManager,
+  functions: &FunctionMap,
   should_reduce_count: bool,
 ) -> StyleObject {
-  match node {
+  match path {
     Expr::Lit(lit) => {
       if let Lit::Null(_) = lit {
         StyleObject::Nullable
@@ -90,8 +98,59 @@ pub(crate) fn parse_nullable_style(
           }
         }
       }
+
+      if let Some(value) = evaluate_style_object(path, state, functions) {
+        return value;
+      }
+
       StyleObject::Other
     }
-    _ => StyleObject::Other,
+    _ => {
+      if let Some(value) = evaluate_style_object(path, state, functions) {
+        return value;
+      }
+
+      StyleObject::Other
+    }
   }
+}
+
+fn evaluate_style_object(
+  path: &Expr,
+  state: &mut StateManager,
+  functions: &FunctionMap,
+) -> Option<StyleObject> {
+  let parsed_obj = evaluate(path, state, functions);
+  if parsed_obj.confident
+    && let Some(EvaluateResultValue::Expr(Expr::Object(obj))) = parsed_obj.value.as_ref()
+  {
+    let style_value: IndexMap<String, Rc<FlatCompiledStylesValue>> = obj
+      .props
+      .iter()
+      .filter_map(|prop| {
+        prop
+          .as_prop()
+          .and_then(|prop| prop.as_key_value())
+          .map(|key_value| {
+            let key = key_value_to_str(key_value);
+            let value = if let Some(strng) = expr_to_str(key_value.value.as_ref(), state, functions)
+            {
+              FlatCompiledStylesValue::String(strng)
+            } else {
+              FlatCompiledStylesValue::Bool(expr_to_bool(
+                key_value.value.as_ref(),
+                state,
+                functions,
+              ))
+            };
+
+            (key, Rc::new(value))
+          })
+      })
+      .collect();
+
+    return Some(StyleObject::Style(style_value));
+  };
+
+  None
 }

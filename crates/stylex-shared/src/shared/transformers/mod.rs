@@ -1,5 +1,6 @@
 pub(crate) mod stylex_create;
 pub(crate) mod stylex_create_theme;
+pub(crate) mod stylex_default_maker;
 pub(crate) mod stylex_define_consts;
 pub(crate) mod stylex_define_vars;
 pub(crate) mod stylex_first_that_works;

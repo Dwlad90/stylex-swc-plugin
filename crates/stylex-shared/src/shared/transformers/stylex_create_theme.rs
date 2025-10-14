@@ -52,7 +52,10 @@ pub(crate) fn stylex_create_theme(
     var_group_hash = theme_vars_key_values
       .iter()
       .find(|key_value| key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
-      .map(|key_value| expr_to_str(&key_value.value, state, &FunctionMap::default()))
+      .map(|key_value| {
+        expr_to_str(&key_value.value, state, &FunctionMap::default())
+          .expect("Expression is not a string")
+      })
       .unwrap_or_default();
   };
 
@@ -71,6 +74,7 @@ pub(crate) fn stylex_create_theme(
           state,
           &FunctionMap::default(),
         )
+        .expect("Expression is not a string")
       }
       EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str(), state).clone(),
       _ => unimplemented!("Unsupported theme vars type"),
@@ -153,7 +157,8 @@ pub(crate) fn stylex_create_theme(
       theme_name_key_value.value.as_ref(),
       state,
       &FunctionMap::default(),
-    ),
+    )
+    .expect("Expression is not a string"),
     EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(VAR_GROUP_HASH_KEY, state).to_owned(),
     _ => unimplemented!("Unsupported theme vars type"),
   };

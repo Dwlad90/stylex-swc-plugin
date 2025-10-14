@@ -170,6 +170,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
         }
         StyleObject::Nullable => panic!("Nullable style object is not allowed in styleq"),
         StyleObject::Other => panic!("Other style object is not allowed in styleq"),
+        StyleObject::Unreachable => unreachable!("StyleObject::Unreachable in styleq"),
       },
       _ => unreachable!(),
     };

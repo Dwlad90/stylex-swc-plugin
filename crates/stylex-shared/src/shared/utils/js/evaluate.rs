@@ -104,7 +104,8 @@ pub(crate) fn evaluate_obj_key(
     PropName::BigInt(big_int) => big_int_to_expression(big_int.clone()),
   };
 
-  let key_expr = string_to_expression(&expr_to_str(&key, state, functions));
+  let key_expr =
+    string_to_expression(&expr_to_str(&key, state, functions).expect("Key is not a string"));
 
   EvaluateResult {
     confident: true,
@@ -191,12 +192,12 @@ fn _evaluate(
         BlockStmtOrExpr::Expr(body_expr) => {
           if ident_params.len() == params.len() {
             let arrow_closure_fabric =
-              |functions: FunctionMapIdentifiers,
+              |identifiers: FunctionMapIdentifiers,
                ident_params: Vec<Atom>,
                body_expr: Box<Expr>,
                traversal_state: StateManager| {
                 move |cb_args: Vec<Option<EvaluateResultValue>>| {
-                  let mut functions = functions.clone();
+                  let mut identifiers = identifiers.clone();
 
                   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
@@ -214,14 +215,14 @@ fn _evaluate(
                         fn_ptr: FunctionType::Mapper(Rc::new(result)),
                         takes_path: false,
                       };
-                      functions.insert(
+                      identifiers.insert(
                         ident.clone(),
                         Box::new(FunctionConfigType::Regular(function.clone())),
                       );
 
                       member_expressions.insert(
                         ImportSources::Regular("entry".to_string()),
-                        Box::new(functions.clone()),
+                        Box::new(identifiers.clone()),
                       );
                     }
                   });
@@ -232,7 +233,7 @@ fn _evaluate(
                     &body_expr,
                     &mut local_state,
                     &FunctionMap {
-                      identifiers: functions,
+                      identifiers,
                       member_expressions,
                     },
                   );
@@ -249,10 +250,10 @@ fn _evaluate(
                 }
               };
 
-            let functions = state.functions.identifiers.clone();
+            let identifiers = state.functions.identifiers.clone();
 
             let arrow_closure = Rc::new(arrow_closure_fabric(
-              functions,
+              identifiers,
               ident_params,
               Box::new(*body_expr.clone()),
               traversal_state.clone(),
@@ -275,12 +276,21 @@ fn _evaluate(
             FunctionType::Mapper(func) => {
               return Some(EvaluateResultValue::Expr(func()));
             }
+            FunctionType::DefaultMarker(func) => {
+              return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
+                fn_ptr: FunctionType::DefaultMarker(func.clone()),
+                takes_path: false,
+              }));
+            }
             _ => {
               return deopt(path, state, "Function not found");
             }
           },
           FunctionConfigType::Map(func_map) => {
             return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
+          }
+          FunctionConfigType::IndexMap(_func_map) => {
+            unimplemented!("IndexMap not implemented");
           }
         }
       }
@@ -391,7 +401,6 @@ fn _evaluate(
       } else {
         evaluate_cached(&member.obj, state, traversal_state, fns)
       };
-
       match evaluated_value {
         Some(object) => {
           if !state.confident {
@@ -885,7 +894,10 @@ fn _evaluate(
                       .as_ref()
                       .and_then(|value| value.as_expr())
                     {
-                      Some(expr_to_str(expr, traversal_state, &state.functions))
+                      Some(
+                        expr_to_str(expr, traversal_state, &state.functions)
+                          .expect("Expression is not a string"),
+                      )
                     } else {
                       build_code_frame_error_and_panic(
                         &Expr::Paren(ParenExpr {
@@ -1098,6 +1110,7 @@ fn _evaluate(
                 traversal_state,
               ),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
+              FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
             }
           } else {
             let _maybe_function = evaluate_cached(callee_expr, state, traversal_state, fns);
@@ -1234,6 +1247,25 @@ fn _evaluate(
                         context = Some(vec![Some(EvaluateResultValue::Vec(
                           result.into_iter().collect(),
                         ))]);
+                      }
+                      "abs" => {
+                        let cached_first_arg =
+                          evaluate_cached(&first_arg.expr, state, traversal_state, fns);
+                        if let Some(cached_first_arg) = cached_first_arg {
+                          func = Some(Box::new(FunctionConfig {
+                            fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(
+                              MathJS::Abs,
+                            ))),
+                            takes_path: false,
+                          }));
+
+                          context = Some(vec![Some(EvaluateResultValue::Expr(
+                            cached_first_arg
+                              .as_expr()
+                              .expect("First argument should be an expression")
+                              .clone(),
+                          ))]);
+                        }
                       }
                       _ => {
                         panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
@@ -1468,6 +1500,7 @@ fn _evaluate(
                       "FunctionConfigType::Map not implemented",
                       traversal_state,
                     ),
+                    FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
                   }
                 }
               }
@@ -1684,9 +1717,17 @@ fn _evaluate(
                         takes_path: false,
                       }));
 
-                      context = Some(vec![Some(
-                        EvaluateResultValue::Entries(IndexMap::default()),
-                      )]);
+                      context = Some(vec![Some(value)]);
+                    }
+                    FunctionType::DefaultMarker(default_marker) => {
+                      if let Some(expr_fn) = default_marker.get(&prop_name) {
+                        func = Some(Box::new(FunctionConfig {
+                          fn_ptr: FunctionType::StylexExprFn(*expr_fn),
+                          takes_path: false,
+                        }));
+
+                        context = Some(vec![Some(value)]);
+                      };
                     }
                     _ => build_code_frame_error_and_panic(
                       &Expr::Paren(ParenExpr {
@@ -1780,6 +1821,15 @@ fn _evaluate(
               }),
               path,
               "Mapper",
+              traversal_state,
+            ),
+            FunctionType::DefaultMarker(_) => build_code_frame_error_and_panic(
+              &Expr::Paren(ParenExpr {
+                span: DUMMY_SP,
+                expr: Box::new(path.clone()),
+              }),
+              path,
+              "DefaultMarker",
               traversal_state,
             ),
           }
@@ -2083,6 +2133,34 @@ fn _evaluate(
 
                   return Some(EvaluateResultValue::Expr(number_to_expression(result)));
                 }
+                CallbackType::Math(MathJS::Abs) => {
+                  let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
+                    build_code_frame_error_and_panic(
+                      &Expr::Paren(ParenExpr {
+                        span: DUMMY_SP,
+                        expr: Box::new(path.clone()),
+                      }),
+                      path,
+                      "Math.abs requires an argument",
+                      traversal_state,
+                    )
+                  };
+
+                  let num =
+                    expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
+                      build_code_frame_error_and_panic(
+                        &Expr::Paren(ParenExpr {
+                          span: DUMMY_SP,
+                          expr: Box::new(path.clone()),
+                        }),
+                        path,
+                        error.to_string().as_str(),
+                        traversal_state,
+                      )
+                    });
+
+                  return Some(EvaluateResultValue::Expr(number_to_expression(num.abs())));
+                }
                 CallbackType::String(StringJS::Concat) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
                     build_code_frame_error_and_panic(
@@ -2103,13 +2181,17 @@ fn _evaluate(
                     .map(|arg| {
                       arg
                         .as_expr()
-                        .map(|expr| expr_to_str(expr, traversal_state, fns))
+                        .map(|expr| {
+                          expr_to_str(expr, traversal_state, fns)
+                            .expect("Expression is not a string")
+                        })
                         .expect("All arguments must be a string")
                     })
                     .collect::<Vec<String>>()
                     .join("");
 
-                  let base_str = expr_to_str(base_str, traversal_state, fns);
+                  let base_str = expr_to_str(base_str, traversal_state, fns)
+                    .expect("Expression is not a string");
 
                   return Some(EvaluateResultValue::Expr(string_to_expression(
                     format!("{}{}", base_str, str_args).as_str(),
@@ -2128,7 +2210,8 @@ fn _evaluate(
                     )
                   };
 
-                  let base_str = expr_to_str(base_str, traversal_state, fns);
+                  let base_str = expr_to_str(base_str, traversal_state, fns)
+                    .expect("Expression is not a string");
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
@@ -2159,9 +2242,9 @@ fn _evaluate(
                 CallbackType::Custom(arrow_fn) => {
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
-                  let aaaa = evaluate_cached(arrow_fn, state, traversal_state, fns);
+                  let evaluation_result = evaluate_cached(arrow_fn, state, traversal_state, fns);
 
-                  let bbb = match aaaa.as_ref() {
+                  let expr_result = match evaluation_result.as_ref() {
                     Some(EvaluateResultValue::Callback(cb)) => {
                       cb(args.into_iter().map(Some).collect())
                     }
@@ -2176,9 +2259,15 @@ fn _evaluate(
                     ),
                   };
 
-                  return Some(EvaluateResultValue::Expr(bbb));
+                  return Some(EvaluateResultValue::Expr(expr_result));
                 }
               }
+            }
+            FunctionType::DefaultMarker(default_marker) => {
+              return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
+                fn_ptr: FunctionType::DefaultMarker(default_marker.clone()),
+                takes_path: false,
+              }));
             }
             _ => build_code_frame_error_and_panic(
               &Expr::Paren(ParenExpr {

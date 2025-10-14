@@ -21,6 +21,7 @@ pub enum MathJS {
   Floor,
   Max,
   Min,
+  Abs,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]

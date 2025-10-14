@@ -7,7 +7,7 @@ use crate::shared::structures::{
 use super::css_syntax::CSSSyntax;
 
 #[derive(Debug, PartialEq, Clone, Hash)]
-pub(crate) enum FlatCompiledStylesValue {
+pub enum FlatCompiledStylesValue {
   String(String),
   KeyValue(Pair),
   KeyValues(Vec<Pair>),

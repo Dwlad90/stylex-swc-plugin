@@ -188,7 +188,8 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
     .iter()
     .flat_map(|pair| {
       let key = key_value_to_str(pair);
-      let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default());
+      let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default())
+        .expect("Value is not a string");
 
       flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)
         .into_iter()

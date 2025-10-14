@@ -1,4 +1,3 @@
-use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::{Expr, MemberExpr};
 use swc_core::ecma::visit::{Fold, FoldWith, noop_fold_type};
 
@@ -16,6 +15,7 @@ pub(crate) struct MemberTransform {
   pub(crate) non_null_props: NonNullProps,
   pub(crate) state: StateManager,
   pub(crate) parents: Vec<Expr>,
+  pub(crate) functions: FunctionMap,
 }
 
 impl Fold for MemberTransform {
@@ -33,10 +33,7 @@ impl Fold for MemberTransform {
       &mut self.bail_out_index,
       &mut self.non_null_props,
       &mut self.state,
-      &FunctionMap {
-        identifiers: FxHashMap::default(),
-        member_expressions: FxHashMap::default(),
-      },
+      &self.functions,
     );
 
     member

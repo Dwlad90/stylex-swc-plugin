@@ -1,9 +1,10 @@
+use rustc_hash::FxHashMap;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, IdentName, JSXAttr, JSXAttrName,
-      JSXAttrOrSpread, JSXAttrValue, Lit, Prop, PropName, PropOrSpread,
+      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, IdentName, JSXAttr,
+      JSXAttrName, JSXAttrOrSpread, JSXAttrValue, Lit, MemberExpr, Prop, PropName, PropOrSpread,
     },
     utils::{ExprExt, drop_span},
     visit::FoldWith,
@@ -12,8 +13,14 @@ use swc_core::{
 
 use crate::shared::{
   enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
-  structures::{member_transform::MemberTransform, state_manager::StateManager},
+  structures::{
+    functions::{FunctionConfigType, FunctionMap},
+    member_transform::MemberTransform,
+    state_manager::StateManager,
+    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+  },
   swc::get_default_expr_ctx,
+  transformers::stylex_default_maker,
   utils::{
     ast::convertors::key_value_to_str,
     common::{reduce_ident_count, reduce_member_expression_count},
@@ -35,7 +42,43 @@ pub(crate) fn stylex_merge(
   let mut bail_out_index = None;
   let mut resolved_args = vec![];
 
-  let args = call
+  let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
+  let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+
+  for name in &state.stylex_default_marker_import {
+    identifiers.insert(
+      name.clone(),
+      Box::new(FunctionConfigType::IndexMap(
+        stylex_default_maker::stylex_default_marker(&state.options)
+          .as_values()
+          .expect("Expected FlatCompiledStylesValues")
+          .clone(),
+      )),
+    );
+  }
+
+  for name in &state.stylex_import {
+    member_expressions.entry(name.clone()).or_default();
+
+    let member_expression = member_expressions.get_mut(name).unwrap();
+
+    member_expression.insert(
+      "defaultMarker".into(),
+      Box::new(FunctionConfigType::IndexMap(
+        stylex_default_maker::stylex_default_marker(&state.options)
+          .as_values()
+          .expect("Expected FlatCompiledStylesValues")
+          .clone(),
+      )),
+    );
+  }
+
+  let evaluate_path_fn_config = FunctionMap {
+    identifiers,
+    member_expressions,
+  };
+
+  let args_path = call
     .args
     .iter()
     .flat_map(|arg| match arg.expr.as_ref() {
@@ -45,38 +88,63 @@ pub(crate) fn stylex_merge(
     .flatten()
     .collect::<Vec<ExprOrSpread>>();
 
-  for arg in args.iter() {
+  for arg_path in args_path.iter() {
     current_index += 1;
 
-    let arg = arg.expr.as_ref();
+    let arg = arg_path.expr.as_ref();
+
+    let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() {
+      let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config, false);
+
+      if let StyleObject::Other = resolved {
+        bail_out_index = Some(current_index);
+        bail_out = true;
+      }
+
+      resolved
+    } else {
+      StyleObject::Unreachable
+    };
 
     match &arg {
+      Expr::Object(_) => {
+        resolved_args.push(ResolvedArg::StyleObject(
+          resolved,
+          Ident::default(),
+          MemberExpr::default(),
+        ));
+      }
+      Expr::Ident(ident) => {
+        resolved_args.push(ResolvedArg::StyleObject(
+          resolved,
+          ident.clone(),
+          MemberExpr::default(),
+        ));
+      }
       Expr::Member(member) => {
-        let resolved = parse_nullable_style(arg, state, false);
+        let ident = member
+          .obj
+          .as_ident()
+          .expect("Member obj is not an ident")
+          .clone();
 
         match resolved {
           StyleObject::Other => {
-            bail_out_index = Some(current_index);
-            bail_out = true;
+            // Processed before into the `resolved` block
           }
           StyleObject::Style(_) | StyleObject::Nullable => {
-            resolved_args.push(ResolvedArg::StyleObject(
-              resolved,
-              member
-                .obj
-                .as_ident()
-                .expect("Member obj is not an ident")
-                .clone(),
-              member.clone(),
-            ));
+            resolved_args.push(ResolvedArg::StyleObject(resolved, ident, member.clone()));
+          }
+          StyleObject::Unreachable => {
+            unreachable!("StyleObject::Unreachable");
           }
         }
       }
       Expr::Cond(CondExpr {
         test, cons, alt, ..
       }) => {
-        let primary = parse_nullable_style(cons, state, true);
-        let fallback = parse_nullable_style(alt, state, true);
+        let primary = parse_nullable_style(cons, state, &evaluate_path_fn_config, true);
+        let fallback = parse_nullable_style(alt, state, &evaluate_path_fn_config, true);
 
         if primary.eq(&StyleObject::Other) || fallback.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
@@ -126,8 +194,8 @@ pub(crate) fn stylex_merge(
           break;
         }
 
-        let left_resolved = parse_nullable_style(left, state, true);
-        let right_resolved = parse_nullable_style(right, state, true);
+        let left_resolved = parse_nullable_style(left, state, &evaluate_path_fn_config, true);
+        let right_resolved = parse_nullable_style(right, state, &evaluate_path_fn_config, true);
 
         if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
@@ -193,6 +261,7 @@ pub(crate) fn stylex_merge(
         non_null_props: non_null_props.clone(),
         state: state.clone(),
         parents: vec![],
+        functions: evaluate_path_fn_config.clone(),
       };
 
       let transformed_expr = arg_path.expr.clone().fold_with(&mut member_transform);
@@ -206,7 +275,7 @@ pub(crate) fn stylex_merge(
       *state = member_transform.state;
     }
 
-    for arg in args.iter() {
+    for arg in args_path.iter() {
       if let Expr::Member(member_expression) = arg.expr.as_ref() {
         reduce_member_expression_count(state, member_expression)
       }

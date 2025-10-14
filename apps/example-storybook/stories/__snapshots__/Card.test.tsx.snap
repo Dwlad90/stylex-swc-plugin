@@ -1,0 +1,41 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Card Snapshots > renders Default story correctly 1`] = `
+<div
+  class="backgroundColor-x12peec7 borderRadius-xur7f20 padding-x1tamke2 boxShadow-x1mh2kpm borderWidth-xmkeg23 borderStyle-x1y0btm7 borderColor-x159w2ql maxWidth-xw5ewwj"
+  data-style-src="stories/Card.tsx:5"
+>
+  <h3
+    class="fontSize-xosj86m fontWeight-x117nqv4 marginBottom-x1e56ztr color-x1525slw"
+    data-style-src="stories/Card.tsx:15"
+  >
+    Card Title
+  </h3>
+  <p
+    class="fontSize-xif65rj lineHeight-x1evy7pa color-x33gn0b"
+    data-style-src="stories/Card.tsx:21"
+  >
+    This is some example content for the card component.
+  </p>
+</div>
+`;
+
+exports[`Card Snapshots > renders Elevated story correctly 1`] = `
+<div
+  class="backgroundColor-x12peec7 borderRadius-xur7f20 padding-x1tamke2 borderWidth-xmkeg23 borderStyle-x1y0btm7 borderColor-x159w2ql maxWidth-xw5ewwj boxShadow-xz3rqps"
+  data-style-src="stories/Card.tsx:5; stories/Card.tsx:26"
+>
+  <h3
+    class="fontSize-xosj86m fontWeight-x117nqv4 marginBottom-x1e56ztr color-x1525slw"
+    data-style-src="stories/Card.tsx:15"
+  >
+    Elevated Card
+  </h3>
+  <p
+    class="fontSize-xif65rj lineHeight-x1evy7pa color-x33gn0b"
+    data-style-src="stories/Card.tsx:21"
+  >
+    This card has an elevated shadow effect.
+  </p>
+</div>
+`;

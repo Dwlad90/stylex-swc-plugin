@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import styleXRSPlugin from '@stylexswc/unplugin/vite';
+import react from '@vitejs/plugin-react-swc';
 
 import { defineConfig } from 'vitest/config';
 
@@ -37,6 +38,26 @@ export default defineConfig({
             provider: 'playwright',
             instances: [{ browser: 'chromium' }],
           },
+          setupFiles: ['.storybook/vitest.setup.ts'],
+        },
+      },
+      {
+        extends: true,
+        plugins: [
+          react({}),
+          styleXRSPlugin({
+            pageExtensions: ['tsx', 'jsx', 'js', 'ts', 'vue'],
+            useCSSLayers: true,
+            rsOptions: {
+              dev: true,
+              treeshakeCompensation: true,
+            },
+          }),
+        ],
+        test: {
+          name: 'snapshots',
+          include: ['stories/**/*.test.tsx'],
+          environment: 'jsdom',
           setupFiles: ['.storybook/vitest.setup.ts'],
         },
       },

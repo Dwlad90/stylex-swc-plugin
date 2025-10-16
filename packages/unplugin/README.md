@@ -236,6 +236,20 @@ For TypeScript projects, add the type definition to your `tsconfig.json`:
 > [!NOTE]
 > When `useViteCssPipeline` is enabled, you need to explicitly import `virtual:stylex.css` in your application. The plugin will no longer inject CSS automatically into the HTML.
 
+> [!IMPORTANT]
+> **Reset CSS and Other Global Styles**
+>
+> The `virtual:stylex.css` module should only contain StyleX-generated CSS. If you need to include reset CSS, global styles, or other non-StyleX CSS, import them from separate CSS files:
+>
+> ```typescript
+> // src/main.ts
+> import './reset.css';        // Your reset CSS
+> import './global.css';       // Other global styles
+> import 'virtual:stylex.css'; // StyleX-generated CSS
+> ```
+>
+> **Do not** put reset CSS or other styles inside the virtual module, as they should be managed separately from the StyleX-generated styles. See the examples in [`apps/vite-unplugin-virtual-css-example`](../../apps/vite-unplugin-virtual-css-example) and [`apps/vue-unplugin-virtual-css-example`](../../apps/vue-unplugin-virtual-css-example) for reference.
+
 ### Example Configuration
 
 ```typescript

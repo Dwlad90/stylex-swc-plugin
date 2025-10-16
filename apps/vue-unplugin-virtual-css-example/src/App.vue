@@ -16,7 +16,6 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: colors.violet1,
     flexDirection: 'column',
   },
   card: {

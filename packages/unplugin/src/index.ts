@@ -20,7 +20,8 @@ const { writeFile, mkdir } = promises;
 
 const VIRTUAL_CSS_MODULE_ID = 'virtual:stylex.css';
 const RESOLVED_VIRTUAL_CSS_MODULE_ID = '\0' + VIRTUAL_CSS_MODULE_ID;
-const VIRTUAL_CSS_MARKER = ':root{--stylex-placeholder:1}';
+const VIRTUAL_CSS_MARKER_VAR = '--stylex-placeholder';
+const VIRTUAL_CSS_MARKER = `:root{${VIRTUAL_CSS_MARKER_VAR}:1}`;
 
 let viteDevServer: ViteDevServer | null = null;
 let hasInvalidatedInitialCSS = false;
@@ -224,7 +225,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         }
       },
 
-      generateBundle(options, bundle) {
+      generateBundle(_options, bundle) {
         if (!normalizedOptions.useViteCssPipeline) return;
 
         const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
@@ -235,9 +236,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           // Look for CSS assets that contain our placeholder
           if (output.type === 'asset' && fileName.endsWith('.css')) {
             const source = output.source.toString();
-            if (source.includes('--stylex-placeholder')) {
-              // Replace the placeholder with actual CSS
-              output.source = collectedCSS;
+            if (source.includes(VIRTUAL_CSS_MARKER)) {
+              // Replace only the placeholder with actual CSS, preserving other CSS
+              output.source = source.replace(VIRTUAL_CSS_MARKER, collectedCSS);
               break;
             }
           }

@@ -570,3 +570,45 @@ test!(
             });
           "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  nullish_coalescing_with_object_type,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      fn: (opt: { height?: number }) => ({
+        height: opt.height ?? null,
+      }),
+    });
+  "#
+);
+
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  nullish_coalescing_with_object_type_and_array,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      fn: (opt: { size?: 'xlarge' | 'large' | 'medium' | 'small' }) => ({
+        borderRadius: {
+          xlarge: 16,
+          large: 12,
+          medium: 8,
+          small: 8,
+        }[opt?.size ?? 'large'],
+      }),
+    });
+  "#
+);

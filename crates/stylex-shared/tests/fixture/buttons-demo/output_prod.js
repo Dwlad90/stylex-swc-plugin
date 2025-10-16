@@ -6,7 +6,7 @@ export default function ButtonsDemo(props) {
     const onClick = ()=>{
         console.log("click");
     };
-    return <div {...stylex.props(styles.container, intents[props.intent])}>
+    return <div {...stylex.props(styles.container, intents[props.intent], intentsFn()[props.intent])}>
       <ThemeableButton onClick={onClick}>Vanilla Button</ThemeableButton>
 
       <ThemeableButton onClick={onClick} style={styles.bordered}>
@@ -68,3 +68,7 @@ const intents = {
     priority: priorityIntent,
     default: defaultIntent
 };
+const intentsFn = ()=>({
+        priority: priorityIntent,
+        default: defaultIntent
+    });

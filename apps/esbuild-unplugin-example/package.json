@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/esbuild-unplugin-example",
   "description": "A simple esbuild unplugin example to test @stylexswc/unplugin/esbuild",
-  "version": "0.11.2",
+  "version": "0.11.3-rc.1",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -13,15 +13,15 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.15.4",
-    "@stylexswc/design-system": "0.11.2",
-    "@stylexswc/rs-compiler": "0.11.2",
-    "@stylexswc/unplugin": "0.11.2",
+    "@stylexswc/design-system": "0.11.3-rc.1",
+    "@stylexswc/rs-compiler": "0.11.3-rc.1",
+    "@stylexswc/unplugin": "0.11.3-rc.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",
-    "@stylexswc/playwright": "0.11.2",
+    "@stylexswc/playwright": "0.11.3-rc.1",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "esbuild": "^0.25.10",

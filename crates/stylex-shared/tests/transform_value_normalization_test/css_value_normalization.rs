@@ -158,6 +158,28 @@ test!(
       ..StyleXOptionsParams::default()
     })
   ),
+  calc_preserves_spaces_around_minus_and_var,
+  r#"
+      import stylex from 'stylex';
+      export const styles = stylex.create({ x: { width: 'calc(0 - var(--someVar))' } });
+      export const styles2 = stylex.create({ x: { width: 'calc(0px - var(--someVar))' } });
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      runtime_injection: Some(true),
+      enable_font_size_px_to_rem: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
   strip_leading_zeros,
   r#"
       import stylex from 'stylex';

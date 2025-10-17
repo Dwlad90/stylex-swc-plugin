@@ -1076,15 +1076,7 @@ fn _evaluate(
 
       if let Callee::Expr(callee_expr) = &call.callee {
         if get_binding(callee_expr, traversal_state).is_none() && is_valid_callee(callee_expr) {
-          build_code_frame_error_and_panic(
-            &Expr::Paren(ParenExpr {
-              span: DUMMY_SP,
-              expr: Box::new(path.clone()),
-            }),
-            path,
-            BUILT_IN_FUNCTION,
-            traversal_state,
-          )
+          // skip built-in function evaluation
         } else if let Expr::Ident(ident) = callee_expr.as_ref() {
           let ident_id = ident.to_id();
 

@@ -632,11 +632,11 @@ impl StateManager {
 
     let ast_hash = stable_hash(ast);
 
-    self
-      .styles_to_inject
-      .entry(ast_hash)
-      .or_default()
-      .push(drop_span(module));
+    let styles_to_inject = self.styles_to_inject.entry(ast_hash).or_default();
+
+    if !styles_to_inject.contains(&drop_span(module.clone())) {
+      styles_to_inject.push(drop_span(module));
+    }
   }
 
   // pub(crate) fn _get_css_vars(&self) -> FxHashMap<String, String> {

@@ -611,3 +611,21 @@ test!(
     });
   "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  nullish_coalescing_with_boolean_type,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      fn: (opt?: { isPressed: boolean }) => ({
+        outline: { true: 'red', false: 'blue' }[String(!!opt?.isPressed)],
+      }),
+    });
+  "#
+);

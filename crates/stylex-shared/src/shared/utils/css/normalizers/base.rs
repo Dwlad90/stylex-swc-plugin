@@ -14,6 +14,7 @@ use crate::shared::{constants::common::ROOT_FONT_SIZE, utils::common::dashify};
 struct CssFolder {
   enable_font_size_px_to_rem: bool,
   parent_key: Option<String>,
+  is_function_arg: bool,
 }
 
 impl CssFolder {
@@ -53,7 +54,7 @@ impl Fold for CssFolder {
 
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
     let dimension = timing_normalizer(&mut dimension);
-    let dimension = zero_demention_normalizer(dimension);
+    let dimension = zero_dimension_normalizer(dimension, self.is_function_arg);
 
     dimension.clone().fold_children_with(self)
   }
@@ -82,12 +83,16 @@ impl Fold for CssFolder {
   }
 
   fn fold_function(&mut self, func: Function) -> Function {
+    self.is_function_arg = true;
+
     let mut fnc = func;
 
     // NOTE: only last css fucntion value should be folded
     if let Some(last) = fnc.value.last_mut() {
       *last = last.clone().fold_children_with(self);
     }
+
+    self.is_function_arg = false;
 
     fnc
   }
@@ -143,11 +148,16 @@ pub(crate) fn base_normalizer(ast: Stylesheet, enable_font_size_px_to_rem: bool)
   let mut folder = CssFolder {
     enable_font_size_px_to_rem,
     parent_key: None,
+    is_function_arg: false,
   };
   ast.fold_with(&mut folder)
 }
 
-fn zero_demention_normalizer(dimension: &mut Dimension) -> &mut Dimension {
+fn zero_dimension_normalizer(dimension: &mut Dimension, is_function_arg: bool) -> &mut Dimension {
+  if is_function_arg {
+    return dimension;
+  }
+
   match dimension {
     Dimension::Length(length) => {
       if length.value.value != 0.0 {

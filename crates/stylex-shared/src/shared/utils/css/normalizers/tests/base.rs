@@ -309,4 +309,31 @@ mod normalizers {
       ]
     );
   }
+
+  #[test]
+  fn should_normalize_function_arg_dimensions() {
+    let (stylesheet, errors) = swc_parse_css("* {{ color: calc(0 - var(--someVar)) }}");
+
+    assert_eq!(
+      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      "*{{color:calc(0 - var(--someVar))}}"
+    );
+
+    assert_eq!(
+      errors,
+      vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
+    );
+
+    let (stylesheet2, errors2) = swc_parse_css("* {{ color: calc(0px - var(--someVar) + 10px) }}");
+
+    assert_eq!(
+      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      "*{{color:calc(0px - var(--someVar) + 10px)}}"
+    );
+
+    assert_eq!(
+      errors2,
+      vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
+    );
+  }
 }

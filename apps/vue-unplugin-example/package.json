@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/vue-unplugin-example",
   "description": "A simple vue unplugin example to test @stylexswc/unplugin/vue",
-  "version": "0.11.2-rc.3",
+  "version": "0.11.2",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -13,14 +13,14 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.15.4",
-    "@stylexswc/design-system": "0.11.2-rc.3",
-    "@stylexswc/rs-compiler": "0.11.2-rc.3",
-    "@stylexswc/unplugin": "0.11.2-rc.3",
+    "@stylexswc/design-system": "0.11.2",
+    "@stylexswc/rs-compiler": "0.11.2",
+    "@stylexswc/unplugin": "0.11.2",
     "vue": "^3.5.22"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",
-    "@stylexswc/playwright": "0.11.2-rc.3",
+    "@stylexswc/playwright": "0.11.2",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vitejs/plugin-vue-jsx": "^5.1.1",
     "serve": "^14.2.4",

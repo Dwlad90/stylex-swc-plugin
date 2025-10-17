@@ -95,8 +95,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -138,8 +138,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -187,8 +187,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -209,8 +209,8 @@ importers:
         specifier: ^1.55.1
         version: 1.55.1
       '@stylexjs/eslint-plugin':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/jest':
         specifier: 0.11.3-rc.1
         version: link:../../packages/jest
@@ -275,8 +275,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -300,8 +300,8 @@ importers:
         specifier: ^1.55.1
         version: 1.55.1
       '@stylexjs/eslint-plugin':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/jest':
         specifier: 0.11.3-rc.1
         version: link:../../packages/jest
@@ -363,8 +363,8 @@ importers:
   apps/rollup-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       react:
         specifier: ^19.1.1
         version: 19.1.1
@@ -409,8 +409,8 @@ importers:
   apps/rollup-large-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/rollup-plugin':
         specifier: 0.11.3-rc.1
         version: link:../../packages/rollup-plugin
@@ -421,8 +421,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -476,8 +476,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -522,8 +522,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -577,8 +577,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -626,8 +626,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -672,8 +672,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -715,8 +715,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -761,8 +761,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -804,8 +804,8 @@ importers:
   apps/webpack-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
     devDependencies:
       '@stylexswc/webpack-plugin':
         specifier: 0.11.3-rc.1
@@ -832,8 +832,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/design-system':
         specifier: 0.11.3-rc.1
         version: link:../../packages/design-system
@@ -917,8 +917,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/shared':
         specifier: 0.11.3-rc.1
         version: link:../stylex-shared
@@ -992,8 +992,8 @@ importers:
   packages/design-system:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/rs-compiler':
         specifier: 0.11.3-rc.1
         version: link:../../crates/stylex-rs-compiler
@@ -1128,8 +1128,8 @@ importers:
   packages/postcss-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/rs-compiler':
         specifier: 0.11.3-rc.1
         version: link:../../crates/stylex-rs-compiler
@@ -1186,8 +1186,8 @@ importers:
   packages/rollup-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/rs-compiler':
         specifier: 0.11.3-rc.1
         version: link:../../crates/stylex-rs-compiler
@@ -1237,8 +1237,8 @@ importers:
         specifier: '>=1.7.10 <2.0.0'
         version: 1.7.10
       '@stylexjs/babel-plugin':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/rs-compiler':
         specifier: 0.11.3-rc.1
         version: link:../../crates/stylex-rs-compiler
@@ -1319,8 +1319,8 @@ importers:
   packages/webpack-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.15.4
-        version: 0.15.4
+        specifier: ^0.16.2
+        version: 0.16.2
       '@stylexswc/rs-compiler':
         specifier: 0.11.3-rc.1
         version: link:../../crates/stylex-rs-compiler
@@ -1802,8 +1802,8 @@ packages:
     resolution: {integrity: sha512-4B4OijXeVNOPZlYA2oEwWOTkzyltLao+xbotHQeqN++Rv27Y6s818+n2Qkp8q+Fxhn0t/5lA5X1Mxktud8eayQ==}
     engines: {node: '>=14.17.0'}
 
-  '@dual-bundle/import-meta-resolve@4.1.0':
-    resolution: {integrity: sha512-+nxncfwHM5SgAtrVzgpzJOI1ol0PkumhVo469KCf9lUi21IGcY90G98VuHm9VRrUypmAzawAHO9bs6hqeADaVg==}
+  '@dual-bundle/import-meta-resolve@4.2.1':
+    resolution: {integrity: sha512-id+7YRUgoUX6CgV0DtuhirQWodeeA7Lf4i2x71JS/vtA5pRb/hIGWlw+G6MeXvsM+MXrz0VAydTGElX1rAfgPg==}
 
   '@emnapi/core@1.4.3':
     resolution: {integrity: sha512-4m62DuCE07lw01soJwPiBGC0nAww0Q+RY70VZ+n49yDIO13yyinhbWCeNnaob0lakDtWQzSdtNWzJeOJt2ma+g==}
@@ -3195,11 +3195,11 @@ packages:
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
-  '@stylexjs/babel-plugin@0.15.4':
-    resolution: {integrity: sha512-QfL2j3VCU+KTyIEoPBhdwq8KW1Gv0FVvwSzfjjdQ0J2Ei/DJBx2AXVsDYzBcVw0WI+KsEfQUHFZ1Fk2t1U/9Iw==}
+  '@stylexjs/babel-plugin@0.16.2':
+    resolution: {integrity: sha512-rnxEaAwZvg7WLjsKn1hYbTYXvRFRX6qisp+9JLrPY5cyzskh19k8sp+HiO8m2vTEvoScq1SC19fFzuiSXIRKbQ==}
 
-  '@stylexjs/eslint-plugin@0.15.4':
-    resolution: {integrity: sha512-P33h+QdudEI3oSzIvVXhNHeAfbUzG4xGYW7tt4hdMizAl+bwIj58+8TK7fxQPV01yBMMNGrBlA/aCmzfQOP8Gw==}
+  '@stylexjs/eslint-plugin@0.16.2':
+    resolution: {integrity: sha512-7rAS8NjiPjKluOA2XInpyGimmVRiXzxYSCSf66P5ofjgluFXQUBdteojN6jvssiP25L5wwIN/su5nBXwHxhjeQ==}
 
   '@stylexjs/open-props@0.11.1':
     resolution: {integrity: sha512-UYeJV34LOmDZ1igQknB+iM3JMg+lbncHr/zG7i1tBwwQslNNWOMM7iR4hwSUvczQYcW5G8vMAorP/2j4T8XBjA==}
@@ -3208,8 +3208,8 @@ packages:
   '@stylexjs/stylex@0.11.1':
     resolution: {integrity: sha512-1OofsiCP2DYV+Cw/iIuHYTAJRy34TtxQt0FDuQGTnNH915hb6NkPmX6iPa++9t4KP3HWR9oVRmAHkpP58BIYbw==}
 
-  '@stylexjs/stylex@0.15.4':
-    resolution: {integrity: sha512-UQT75p3qxwCIsVpH87YfgHvzWGDyMbQcFKhguj4noBZCc+npEh5h7J4BIHMgrxpyJa9mislLfXv+M5TmP2YH5A==}
+  '@stylexjs/stylex@0.16.2':
+    resolution: {integrity: sha512-nOInNL+F70hsI9fwxCTO8qnzhF8bQTvU4CeeqjAb7BtvAAryey6zBHJCJ7u94P8ES8suB9NOaPFr4DIxmr319Q==}
 
   '@swc-node/core@1.14.1':
     resolution: {integrity: sha512-jrt5GUaZUU6cmMS+WTJEvGvaB6j1YNKPHPzC2PUi2BjaFbtxURHj6641Az6xN7b665hNniAIdvjxWcRml5yCnw==}
@@ -9742,7 +9742,7 @@ snapshots:
 
   '@babel/helper-module-imports@7.27.1':
     dependencies:
-      '@babel/traverse': 7.28.0
+      '@babel/traverse': 7.28.4
       '@babel/types': 7.28.4
     transitivePeerDependencies:
       - supports-color
@@ -9752,7 +9752,7 @@ snapshots:
       '@babel/core': 7.27.4
       '@babel/helper-module-imports': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
-      '@babel/traverse': 7.28.0
+      '@babel/traverse': 7.28.4
     transitivePeerDependencies:
       - supports-color
 
@@ -9761,7 +9761,7 @@ snapshots:
       '@babel/core': 7.28.0
       '@babel/helper-module-imports': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
-      '@babel/traverse': 7.28.0
+      '@babel/traverse': 7.28.4
     transitivePeerDependencies:
       - supports-color
 
@@ -10300,7 +10300,7 @@ snapshots:
 
   '@discoveryjs/json-ext@0.6.3': {}
 
-  '@dual-bundle/import-meta-resolve@4.1.0': {}
+  '@dual-bundle/import-meta-resolve@4.2.1': {}
 
   '@emnapi/core@1.4.3':
     dependencies:
@@ -11677,22 +11677,23 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@stylexjs/babel-plugin@0.15.4':
+  '@stylexjs/babel-plugin@0.16.2':
     dependencies:
-      '@babel/core': 7.28.0
+      '@babel/core': 7.28.4
       '@babel/helper-module-imports': 7.27.1
-      '@babel/traverse': 7.28.0
+      '@babel/traverse': 7.28.4
       '@babel/types': 7.28.4
-      '@dual-bundle/import-meta-resolve': 4.1.0
-      '@stylexjs/stylex': 0.15.4
+      '@dual-bundle/import-meta-resolve': 4.2.1
+      '@stylexjs/stylex': 0.16.2
       postcss-value-parser: 4.2.0
     transitivePeerDependencies:
       - supports-color
 
-  '@stylexjs/eslint-plugin@0.15.4':
+  '@stylexjs/eslint-plugin@0.16.2':
     dependencies:
       css-shorthand-expand: 1.2.0
       micromatch: 4.0.8
+      postcss-value-parser: 4.2.0
 
   '@stylexjs/open-props@0.11.1':
     dependencies:
@@ -11704,7 +11705,7 @@ snapshots:
       invariant: 2.2.4
       styleq: 0.2.1
 
-  '@stylexjs/stylex@0.15.4':
+  '@stylexjs/stylex@0.16.2':
     dependencies:
       css-mediaquery: 0.1.2
       invariant: 2.2.4

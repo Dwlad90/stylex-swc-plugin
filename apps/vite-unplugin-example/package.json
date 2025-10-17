@@ -13,7 +13,7 @@
   "dependencies": {
     "@playwright/test": "^1.55.1",
     "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.15.4",
+    "@stylexjs/stylex": "^0.16.2",
     "@stylexswc/design-system": "0.11.3-rc.1",
     "@stylexswc/playwright": "0.11.3-rc.1",
     "@stylexswc/rs-compiler": "0.11.3-rc.1",

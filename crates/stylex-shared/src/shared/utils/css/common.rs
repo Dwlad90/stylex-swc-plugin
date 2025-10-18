@@ -18,7 +18,10 @@ use crate::shared::{
     shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
     unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
   },
-  regex::{CLEAN_CSS_VAR, MANY_SPACES},
+  regex::{
+    ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, MANY_SPACES,
+    SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
+  },
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
     stylex_state_options::StyleXStateOptions,
@@ -185,6 +188,60 @@ pub(crate) fn get_priority(key: &str) -> f64 {
   if key.starts_with("--") {
     return 1.0;
   };
+
+  // Check ancestor selector
+  if let Ok(Some(captures)) = ANCESTOR_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
+      .get(pseudo.as_str())
+      .unwrap_or(&&40.0);
+    return 10.0 + **base_pseudo_priority / 100.0;
+  }
+
+  // Check descendant selector
+  if let Ok(Some(captures)) = DESCENDANT_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
+      .get(pseudo.as_str())
+      .unwrap_or(&&40.0);
+    return 15.0 + **base_pseudo_priority / 100.0;
+  }
+
+  // Check sibling before selector
+  if let Ok(Some(captures)) = SIBLING_BEFORE_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
+      .get(pseudo.as_str())
+      .unwrap_or(&&40.0);
+    return 20.0 + **base_pseudo_priority / 100.0;
+  }
+
+  // Check sibling after selector
+  if let Ok(Some(captures)) = SIBLING_AFTER_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
+      .get(pseudo.as_str())
+      .unwrap_or(&&40.0);
+    return 30.0 + **base_pseudo_priority / 100.0;
+  }
+
+  // Check any sibling selector
+  if let Ok(Some(captures)) = ANY_SIBLING_SELECTOR.captures(key)
+    && let (Some(pseudo1), Some(pseudo2)) = (captures.get(1), captures.get(2))
+  {
+    let base_pseudo_priority1 = PSEUDO_CLASS_PRIORITIES
+      .get(pseudo1.as_str())
+      .unwrap_or(&&40.0);
+    let base_pseudo_priority2 = PSEUDO_CLASS_PRIORITIES
+      .get(pseudo2.as_str())
+      .unwrap_or(&&40.0);
+    let base_pseudo_priority = (**base_pseudo_priority1).max(**base_pseudo_priority2);
+    return 40.0 + base_pseudo_priority / 100.0;
+  }
 
   if key.starts_with("@supports") {
     return **AT_RULE_PRIORITIES

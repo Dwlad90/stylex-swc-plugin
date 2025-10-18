@@ -60,7 +60,7 @@ pub(crate) fn descendant(
   let default_marker = options
     .map(get_default_marker_class_name)
     .unwrap_or_else(|| "x-default-marker".to_string());
-  Ok(format!(":has(.{}{})", default_marker, pseudo))
+  Ok(format!(":where(:has(.{}{}))", default_marker, pseudo))
 }
 
 /// Creates selector that observes if the given pseudo-class is
@@ -100,7 +100,7 @@ pub(crate) fn sibling_after(
   let default_marker = options
     .map(get_default_marker_class_name)
     .unwrap_or_else(|| "x-default-marker".to_string());
-  Ok(format!(":has(~ .{}{})", default_marker, pseudo))
+  Ok(format!(":where(:has(~ .{}{}))", default_marker, pseudo))
 }
 
 /// Creates selector that observes if the given pseudo-class is
@@ -160,7 +160,7 @@ mod tests {
   #[test]
   fn test_descendant_with_default_options() {
     let result = descendant(":focus", None).unwrap();
-    assert_eq!(result, ":has(.x-default-marker:focus)");
+    assert_eq!(result, ":where(:has(.x-default-marker:focus))");
   }
 
   #[test]
@@ -172,7 +172,7 @@ mod tests {
   #[test]
   fn test_sibling_after_with_default_options() {
     let result = sibling_after(":focus", None).unwrap();
-    assert_eq!(result, ":has(~ .x-default-marker:focus)");
+    assert_eq!(result, ":where(:has(~ .x-default-marker:focus))");
   }
 
   #[test]

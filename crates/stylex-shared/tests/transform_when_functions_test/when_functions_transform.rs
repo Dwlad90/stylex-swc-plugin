@@ -1,7 +1,4 @@
-use stylex_shared::{
-  StyleXTransform,
-  shared::structures::plugin_pass::PluginPass,
-};
+use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -12,7 +9,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   when_ancestor_function,
   r#"
     import { when, create } from '@stylexjs/stylex';
@@ -35,7 +36,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   when_sibling_before_function,
   r#"
     import { when, create } from '@stylexjs/stylex';
@@ -58,7 +63,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   when_functions_namespace_imports,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -85,7 +94,11 @@ test!(
     tsx: true,
     ..Default::default()
   }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   when_functions_aliased_imports,
   r#"
     import { when as w, create } from '@stylexjs/stylex';
@@ -103,4 +116,3 @@ test!(
     console.log(styles.container);
   "#
 );
-

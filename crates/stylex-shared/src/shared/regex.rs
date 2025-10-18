@@ -60,3 +60,20 @@ pub(crate) static JSON_REGEX: Lazy<Regex> =
 
 pub static NPM_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$").unwrap());
+
+pub(crate) static ANCESTOR_SELECTOR: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^:where\(\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\s+\*\)$").unwrap());
+
+pub(crate) static DESCENDANT_SELECTOR: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^:where\(:has\(\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\)\)$").unwrap());
+
+pub(crate) static SIBLING_BEFORE_SELECTOR: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^:where\(\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\s+~\s+\*\)$").unwrap());
+
+pub(crate) static SIBLING_AFTER_SELECTOR: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^:where\(:has\(~\s\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\)\)$").unwrap());
+
+pub(crate) static ANY_SIBLING_SELECTOR: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^:where\(\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\s+~\s+\*,\s+:has\(~\s\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\)\)$")
+    .unwrap()
+});

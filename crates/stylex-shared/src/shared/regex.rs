@@ -61,6 +61,7 @@ pub(crate) static JSON_REGEX: Lazy<Regex> =
 pub static NPM_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$").unwrap());
 
+// #region Relational selectors for .when() functions
 pub(crate) static ANCESTOR_SELECTOR: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^:where\(\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\s+\*\)$").unwrap());
 
@@ -77,3 +78,4 @@ pub(crate) static ANY_SIBLING_SELECTOR: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^:where\(\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\s+~\s+\*,\s+:has\(~\s\.[0-9a-zA-Z_-]+(:[a-zA-Z-]+)\)\)$")
     .unwrap()
 });
+// #endregion Relational selectors for .when() functions

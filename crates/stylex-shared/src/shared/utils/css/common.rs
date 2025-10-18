@@ -189,59 +189,45 @@ pub(crate) fn get_priority(key: &str) -> f64 {
     return 1.0;
   };
 
+  // #region Relational selectors for .when() functions
+  // Helper function equivalent to pseudoBase in JS
+  let pseudo_base = |p: &str| -> f64 { **PSEUDO_CLASS_PRIORITIES.get(p).unwrap_or(&&40.0) / 100.0 };
+
   // Check ancestor selector
   if let Ok(Some(captures)) = ANCESTOR_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
-      .get(pseudo.as_str())
-      .unwrap_or(&&40.0);
-    return 10.0 + **base_pseudo_priority / 100.0;
+    return 10.0 + pseudo_base(pseudo.as_str());
   }
 
   // Check descendant selector
   if let Ok(Some(captures)) = DESCENDANT_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
-      .get(pseudo.as_str())
-      .unwrap_or(&&40.0);
-    return 15.0 + **base_pseudo_priority / 100.0;
+    return 15.0 + pseudo_base(pseudo.as_str());
+  }
+
+  // Check any sibling selector (must come before individual sibling selectors)
+  if let Ok(Some(captures)) = ANY_SIBLING_SELECTOR.captures(key)
+    && let (Some(pseudo1), Some(pseudo2)) = (captures.get(1), captures.get(2))
+  {
+    return 20.0 + pseudo_base(pseudo1.as_str()).max(pseudo_base(pseudo2.as_str()));
   }
 
   // Check sibling before selector
   if let Ok(Some(captures)) = SIBLING_BEFORE_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
-      .get(pseudo.as_str())
-      .unwrap_or(&&40.0);
-    return 20.0 + **base_pseudo_priority / 100.0;
+    return 30.0 + pseudo_base(pseudo.as_str());
   }
 
   // Check sibling after selector
   if let Ok(Some(captures)) = SIBLING_AFTER_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    let base_pseudo_priority = PSEUDO_CLASS_PRIORITIES
-      .get(pseudo.as_str())
-      .unwrap_or(&&40.0);
-    return 30.0 + **base_pseudo_priority / 100.0;
+    return 40.0 + pseudo_base(pseudo.as_str());
   }
-
-  // Check any sibling selector
-  if let Ok(Some(captures)) = ANY_SIBLING_SELECTOR.captures(key)
-    && let (Some(pseudo1), Some(pseudo2)) = (captures.get(1), captures.get(2))
-  {
-    let base_pseudo_priority1 = PSEUDO_CLASS_PRIORITIES
-      .get(pseudo1.as_str())
-      .unwrap_or(&&40.0);
-    let base_pseudo_priority2 = PSEUDO_CLASS_PRIORITIES
-      .get(pseudo2.as_str())
-      .unwrap_or(&&40.0);
-    let base_pseudo_priority = (**base_pseudo_priority1).max(**base_pseudo_priority2);
-    return 40.0 + base_pseudo_priority / 100.0;
-  }
+  // #endregion Relational selectors for .when() functions
 
   if key.starts_with("@supports") {
     return **AT_RULE_PRIORITIES

@@ -6,19 +6,15 @@
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "clean": "rimraf .next",
+    "clean": "rimraf dist",
     "dev": "node scripts/dev.mjs",
     "lint": "eslint . --color",
     "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "next:lint": "next lint",
     "prebuild": "pnpm run clean",
     "predev": "pnpm run clean",
     "prestart": "pnpm run build",
     "serve": "serve --listen 3002 .",
-    "test": "pnpm test:ci",
-    "test:ci": "jest --ci",
-    "test:visual": "playwright test",
-    "test:watch": "jest --watch"
+    "test:visual": "playwright test"
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
@@ -30,12 +26,12 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "rimraf": "^6.0.1",
     "@playwright/test": "^1.55.1",
     "@stylexswc/playwright": "0.11.3-rc.1",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "esbuild": "^0.25.10",
+    "rimraf": "^6.0.1",
     "serve": "^14.2.4"
   }
 }

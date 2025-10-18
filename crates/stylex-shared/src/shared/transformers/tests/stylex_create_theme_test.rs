@@ -436,19 +436,22 @@ mod stylex_create_theme {
         ),
         (
           "x2y918k-1lveb7",
-          (".x2y918k, .x2y918k:root{--xgck17p:lightgreen;}", 0.6)
+          (
+            "@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}",
+            0.6
+          )
         ),
         (
           "x2y918k-1e6ryz3",
           (
-            ".x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}",
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}}}",
             0.7
           )
         ),
         (
           "x2y918k-kpd015",
           (
-            ".x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}",
+            "@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
             0.6
           )
         )
@@ -505,19 +508,22 @@ mod stylex_create_theme {
         ),
         (
           "x2y918k-1lveb7",
-          (".x2y918k, .x2y918k:root{--xgck17p:lightgreen;}", 0.6)
+          (
+            "@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}",
+            0.6
+          )
         ),
         (
           "x2y918k-1e6ryz3",
           (
-            ".x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}",
+            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}}}",
             0.7
           )
         ),
         (
           "x2y918k-kpd015",
           (
-            ".x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}",
+            "@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
             0.6
           )
         )

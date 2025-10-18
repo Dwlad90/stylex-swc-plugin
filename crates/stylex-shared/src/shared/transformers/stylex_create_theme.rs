@@ -131,16 +131,20 @@ pub(crate) fn stylex_create_theme(
     let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
 
     let priority = round_to_decimal_places(0.4 + priority_for_at_rule(at_rule) / 10.0, 1);
-    let suffix = if at_rule == "default" {
-      String::new()
+
+    let (suffix, ltr) = if at_rule == "default" {
+      (String::new(), rule)
     } else {
-      format!("-{}", create_hash(at_rule))
+      (
+        format!("-{}", create_hash(at_rule)),
+        wrap_with_at_rules(&rule, at_rule),
+      )
     };
 
     styles_to_inject.insert(
       format!("{}{}", override_class_name, suffix),
       Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-        ltr: rule,
+        ltr,
         rtl: None,
         priority: Some(priority),
       })),

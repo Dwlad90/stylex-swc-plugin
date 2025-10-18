@@ -400,7 +400,7 @@ pub(crate) fn sum_hash_map_values(
 }
 
 pub(crate) fn dashify(s: &str) -> String {
-  DASHIFY_REGEX.replace_all(s, "$1-$2").to_lowercase()
+  DASHIFY_REGEX.replace_all(s, "-$1").to_lowercase()
 }
 
 pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {

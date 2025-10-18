@@ -1,4 +1,4 @@
-use std::{ops::Mul, rc::Rc};
+use std::rc::Rc;
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};

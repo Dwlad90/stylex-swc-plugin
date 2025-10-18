@@ -12,8 +12,12 @@ mod stylex_define_vars {
       value_with_default::ValueWithDefault,
     },
     structures::{
-      base_css_type::BaseCSSType, functions::FunctionType, injectable_style::InjectableStyle,
-      state_manager::StateManager, stylex_state_options::StyleXStateOptions,
+      base_css_type::BaseCSSType,
+      functions::FunctionType,
+      injectable_style::InjectableStyle,
+      state_manager::StateManager,
+      stylex_state_options::StyleXStateOptions,
+      types::{FlatCompiledStyles, InjectableStylesMap},
     },
     transformers::{stylex_define_vars::stylex_define_vars, stylex_types::get_types_fn},
     utils::{
@@ -83,9 +87,7 @@ mod stylex_define_vars {
     EvaluateResultValue::Expr(object_expression_factory(props))
   }
 
-  fn expected_css_result_factory(
-    injected_styles: &[(&str, (&str, f64))],
-  ) -> IndexMap<String, Rc<InjectableStyleKind>> {
+  fn expected_css_result_factory(injected_styles: &[(&str, (&str, f64))]) -> InjectableStylesMap {
     let mut expected_injected_styles = IndexMap::new();
 
     for injected_style in injected_styles {
@@ -102,9 +104,7 @@ mod stylex_define_vars {
     expected_injected_styles
   }
 
-  fn expected_js_result_factory(
-    js_output: &[(&str, &str)],
-  ) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+  fn expected_js_result_factory(js_output: &[(&str, &str)]) -> FlatCompiledStyles {
     let mut expected_injected_styles = IndexMap::new();
 
     for (key, value) in js_output {
@@ -223,12 +223,12 @@ mod stylex_define_vars {
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.2)
         )
       ])
     )
@@ -308,12 +308,12 @@ mod stylex_define_vars {
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--bgColor:white;}}", 0.1)
+          ("@media print{:root, .x568ih9{--bgColor:white;}}", 0.2)
         )
       ])
     )
@@ -439,25 +439,25 @@ mod stylex_define_vars {
           "x568ih9-1e6ryz3",
           (
             "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-            0.2
+            0.3
           )
         ),
         (
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.2)
         ),
         (
           "x568ih9-kpd015",
           (
             "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
-            0.1
+            0.2
           )
         )
       ])
@@ -589,28 +589,28 @@ mod stylex_define_vars {
           "x568ih9-1e6ryz3",
           (
             "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:oklab(0.7 -0.3 -0.4);--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-            0.2
+            0.3
           )
         ),
         (
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:lightblue;--bgColorDisabled-xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-bdddrq",
           (
             "@media print{:root, .x568ih9{--bgColor-xgck17p:white;}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-kpd015",
           (
             "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}",
-            0.1
+            0.2
           )
         )
       ])
@@ -743,25 +743,25 @@ mod stylex_define_vars {
           "x568ih9-1e6ryz3",
           (
             "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-            0.2
+            0.3
           )
         ),
         (
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.2)
         ),
         (
           "x568ih9-kpd015",
           (
             "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
-            0.1
+            0.2
           )
         )
       ])
@@ -926,7 +926,7 @@ mod stylex_define_vars {
           "x568ih9-1e6ryz3",
           (
             "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-            0.2
+            0.3
           )
         ),
         (
@@ -938,7 +938,7 @@ mod stylex_define_vars {
         ),
         (
           "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.2)
         ),
         (
           "x568ih9-kpd015",
@@ -986,25 +986,25 @@ mod stylex_define_vars {
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-1e6ryz3",
           (
             "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-            0.2
+            0.3
           )
         ),
         (
           "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.1)
+          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.2)
         ),
         (
           "x568ih9-kpd015",
           (
             "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
-            0.1
+            0.2
           )
         ),
       ])
@@ -1190,25 +1190,25 @@ mod stylex_define_vars {
           "x568ih9-1e6ryz3",
           (
             "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:oklab(0.7 -0.3 -0.4);--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}}",
-            0.2
+            0.3
           )
         ),
         (
           "x568ih9-1lveb7",
           (
             "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor:lightblue;--bgColorDisabled:rgba(0, 0, 0, 0.8);}}",
-            0.1
+            0.2
           )
         ),
         (
           "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--bgColor:white;}}", 0.1)
+          ("@media print{:root, .x568ih9{--bgColor:white;}}", 0.2)
         ),
         (
           "x568ih9-kpd015",
           (
             "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled:oklab(0.7 -0.3 -0.4);}}",
-            0.1
+            0.2
           )
         ),
       ])

@@ -5,17 +5,14 @@ use crate::shared::regex::{
 };
 
 pub(crate) fn whitespace_normalizer(content: String) -> String {
-  // Handle URL case
-  if let Some(url) = CSS_URL_REGEX
-    .captures(&content)
-    .ok()
-    .flatten()
-    .and_then(|c| c.get(0))
+  // Early return: If content is a URL, return it as-is
+  if let Ok(Some(captures)) = CSS_URL_REGEX.captures(&content)
+    && let Some(url) = captures.get(0)
   {
     return url.as_str().to_string();
   }
 
-  // Extract CSS rule if present
+  // Extract CSS value from rule if present (e.g., "color: red;" -> "red")
   let mut css = if content.contains('{') {
     CSS_RULE_REGEX
       .captures(&content)
@@ -28,43 +25,46 @@ pub(crate) fn whitespace_normalizer(content: String) -> String {
     content
   };
 
-  // Normalize math signs
+  // Normalize whitespace around math operators (+, -, *, /, %)
   css = WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX
     .replace_all(&css, |caps: &fancy_regex::Captures| {
-      let left = &caps[1];
-      let op = &caps[3];
-      // Represents the trailing whitespace captured by the regular expression.
-      // Will be empty if there is no whitespace after the value.
-      let right_space = &caps[4];
-      let right = &caps[5];
+      // Using named groups for better readability
+      let left = caps.name("left").map(|m| m.as_str()).unwrap_or("");
+      let op = caps.name("op").map(|m| m.as_str()).unwrap_or("");
+      let right_space = caps.name("rspace").map(|m| m.as_str()).unwrap_or("");
+      let right = caps.name("right").map(|m| m.as_str()).unwrap_or("");
 
-      if op == "%" {
-        // Attach percent to left with no space, then one space before right.
-        format!("{}{} {}", left, op, right)
-      } else if op == "-" {
-        if right_space.is_empty() {
-          format!("{} {}{}", left, op, right)
-        } else {
-          format!("{} {} {}", left, op, right)
+      match op {
+        // Percent: attach to left, space before right (e.g., "50% 10" not "50 % 10")
+        "%" => format!("{}{} {}", left, op, right),
+        // Minus: preserve negative numbers (e.g., "5 -3" vs "5- 3")
+        "-" => {
+          if right_space.is_empty() {
+            format!("{} {}{}", left, op, right)
+          } else {
+            format!("{} {} {}", left, op, right)
+          }
         }
-      } else {
-        // Other operators, always normalize to one space around.
-        format!("{} {} {}", left, op, right)
+        // Other operators: always add space around
+        _ => format!("{} {} {}", left, op, right),
       }
     })
     .to_string();
 
-  // Normalize brackets
+  // Normalize brackets and quotes: ")a" -> ") a", """" -> ""
   css = WHITESPACE_BRACKET_NORMALIZER_REGEX
     .replace_all(&css, "$1$3 $2$4")
     .to_string();
 
-  // Normalize extra spaces
+  // Remove extra spaces in specific cases (empty quotes, multiple parens)
   css = WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX
     .replace_all(&css, |caps: &fancy_regex::Captures| {
+      // Match empty string quotes: "" -> ""
       if let (Some(q1), Some(q2)) = (caps.get(1), caps.get(2)) {
         format!("{}{}", q1.as_str(), q2.as_str())
-      } else if let (Some(p1), Some(p2)) = (caps.get(3), caps.get(4)) {
+      }
+      // Match multiple closing parens: ") )" -> "))"
+      else if let (Some(p1), Some(p2)) = (caps.get(3), caps.get(4)) {
         format!("{}{}", p1.as_str(), p2.as_str())
       } else {
         caps[0].to_string()
@@ -72,12 +72,12 @@ pub(crate) fn whitespace_normalizer(content: String) -> String {
     })
     .to_string();
 
-  // Normalize hash
+  // Add space before hash in colors: "a#fff" -> "a #fff"
   css = HASH_WHITESPACE_NORMALIZER_REGEX
     .replace_all(&css, "$1 #")
     .to_string();
 
-  // Normalize functions
+  // Normalize function arguments: "( arg )" -> "(arg)"
   css = WHITESPACE_FUNC_NORMALIZER_REGEX
     .replace_all(&css, "($1),")
     .to_string();

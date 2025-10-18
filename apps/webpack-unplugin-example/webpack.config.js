@@ -57,9 +57,9 @@ module.exports = {
   },
   plugins: [
     styleXRSPlugin({
+      useCSSLayers: true,
       rsOptions: {
         dev: true,
-        useCSSLayers: true,
       },
     }),
     new HtmlWebpackPlugin({

@@ -20,6 +20,7 @@ use crate::shared::{
     pre_rule_set::PreRuleSet,
     state::EvaluationState,
     state_manager::StateManager,
+    types::ClassesToOriginalPaths,
   },
   utils::{
     ast::convertors::{
@@ -102,7 +103,7 @@ pub(crate) fn flatten_raw_style_object_logic(
         // Collect the various values for each value in the array
         // that belongs to the same property.
 
-        let mut equivalent_pairs: IndexMap<String, Vec<String>> = IndexMap::new();
+        let mut equivalent_pairs: ClassesToOriginalPaths = IndexMap::new();
 
         property_array.elems.iter().for_each(|each_val| {
           if let Some(property) = each_val {

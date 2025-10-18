@@ -94,10 +94,10 @@ pub fn expr_to_str(
   expr_string: &Expr,
   state: &mut StateManager,
   functions: &FunctionMap,
-) -> String {
+) -> Option<String> {
   match &expr_string {
-    Expr::Ident(ident) => ident_to_string(ident, state, functions),
-    Expr::Lit(lit) => lit_to_string(lit).expect("Value is not a string"),
+    Expr::Ident(ident) => Some(ident_to_string(ident, state, functions)),
+    Expr::Lit(lit) => lit_to_string(lit),
     _ => panic!(
       "Expression in not a string, got {:?}",
       expr_string.get_type(get_default_expr_ctx())
@@ -317,7 +317,8 @@ pub fn binary_expr_to_string(
     left.as_expr().expect("Argument not expression!"),
     traversal_state,
     fns,
-  );
+  )
+  .expect("Left expression is not a string");
 
   let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
     if !state.confident {
@@ -337,7 +338,8 @@ pub fn binary_expr_to_string(
     right.as_expr().expect("Argument not expression!"),
     traversal_state,
     fns,
-  );
+  )
+  .expect("Right expression is not a string");
 
   let result = match &op {
     BinaryOp::Add => {
@@ -466,7 +468,9 @@ pub fn ident_to_number(
         ),
       }
     }
-    None => panic!("Variable {} is not declared", ident.sym),
+    None => {
+      panic!("Variable {} is not declared", ident.sym)
+    }
   }
 }
 

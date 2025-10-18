@@ -17,6 +17,7 @@ const defaultResult: StyleXOptions = {
   enableMinifiedKeys: true,
   styleResolution: 'property-specificity',
   enableLTRRTLComments: false,
+  legacyDisableLayers: false,
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {

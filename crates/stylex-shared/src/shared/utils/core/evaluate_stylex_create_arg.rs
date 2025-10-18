@@ -112,7 +112,8 @@ pub fn evaluate_stylex_create_arg(
                             .and_then(|expr| expr.as_object())
                             .expect("Value not an object");
 
-                          let key = expr_to_str(key_expr, traversal_state, functions);
+                          let key = expr_to_str(key_expr, traversal_state, functions)
+                            .expect("Key is not a string");
 
                           fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
 
@@ -228,7 +229,8 @@ fn evaluate_partial_object_recursively(
               .and_then(|v| v.as_expr())
               .expect("Evaluated key value is not a string");
 
-            let mut key_str = expr_to_str(key, traversal_state, functions);
+            let mut key_str =
+              expr_to_str(key, traversal_state, functions).expect("Key is not a string");
 
             if key_str.starts_with("var(") && key_str.ends_with(')') {
               let inner = key_str[4..key_str.len() - 1].to_string();

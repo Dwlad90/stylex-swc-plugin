@@ -94,7 +94,7 @@
     "@stylexjs/babel-plugin": "^0.15.4",
     "@stylexswc/rs-compiler": "0.11.3-rc.1",
     "unplugin": "^2.3.5",
-    "vite": "^7.1.9",
+    "vite": "^7.1.10",
     "vite-plugin-inspect": "^11.3.3"
   },
   "devDependencies": {
@@ -116,7 +116,6 @@
     "rollup": "^4.52.4",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vite": "^7.1.9",
     "vitest": "^3.2.4",
     "webpack": "^5.102.1"
   },

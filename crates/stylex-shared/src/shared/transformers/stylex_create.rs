@@ -13,7 +13,10 @@ use crate::shared::{
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
     state::EvaluationState,
     state_manager::StateManager,
-    types::{ClassPathsInNamespace, FlatCompiledStyles},
+    types::{
+      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap,
+      StylesObjectMap,
+    },
   },
   utils::{
     ast::convertors::expr_to_str, common::create_short_hash,
@@ -26,11 +29,7 @@ pub(crate) fn stylex_create_set(
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
-) -> (
-  IndexMap<String, Rc<FlatCompiledStyles>>,
-  IndexMap<String, Rc<InjectableStyleKind>>,
-  IndexMap<String, Rc<ClassPathsInNamespace>>,
-) {
+) -> (StylesObjectMap, InjectableStylesMap, ClassPathsMap) {
   let mut resolved_namespaces = IndexMap::new();
   let mut injected_styles_map = IndexMap::new();
   let mut namespace_to_class_paths = IndexMap::new();
@@ -116,7 +115,8 @@ pub(crate) fn stylex_create_set(
       }
     }
 
-    let resolved_namespace_name = expr_to_str(namespace_name, traversal_state, functions);
+    let resolved_namespace_name =
+      expr_to_str(namespace_name, traversal_state, functions).expect("Expression is not a string");
 
     namespace_obj.insert(
       COMPILED_KEY.to_owned(),

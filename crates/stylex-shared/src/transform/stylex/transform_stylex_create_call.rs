@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::OnceLock};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -27,13 +27,16 @@ use crate::shared::{
     injectable_style::InjectableStyleKind, top_level_expression::TopLevelExpression,
   },
   structures::{
+    functions::StylexExprFn,
     injectable_style::InjectableStyle,
+    state_manager::StateManager,
+    types::InjectableStylesMap,
     uid_generator::{CounterMode, UidGenerator},
   },
-  transformers::stylex_position_try::get_position_try_fn,
+  transformers::{stylex_default_maker, stylex_position_try::get_position_try_fn},
   utils::{
     ast::{
-      convertors::{key_value_to_str, lit_to_string},
+      convertors::{expr_to_str, key_value_to_str, lit_to_string},
       factories::binding_ident_factory,
     },
     common::normalize_expr,
@@ -42,6 +45,7 @@ use crate::shared::{
       dev_class_name::{convert_to_test_styles, inject_dev_class_names},
     },
     log::build_code_frame_error::build_code_frame_error,
+    when as stylex_when,
   },
 };
 use crate::shared::{
@@ -84,6 +88,8 @@ use crate::{
   StyleXTransform, shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic,
 };
 
+static STYLEX_WHEN_MAP: OnceLock<IndexMap<String, StylexExprFn>> = OnceLock::new();
+
 impl<C> StyleXTransform<C>
 where
   C: Comments,
@@ -109,6 +115,8 @@ where
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+
+      let stylex_when = STYLEX_WHEN_MAP.get_or_init(get_stylex_when_map);
 
       let first_that_works_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
@@ -139,6 +147,30 @@ where
         );
       }
 
+      for name in &self.state.stylex_default_marker_import {
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::IndexMap(
+            stylex_default_maker::stylex_default_marker(&self.state.options)
+              .as_values()
+              .expect("Expected FlatCompiledStylesValues")
+              .clone(),
+          )),
+        );
+      }
+
+      let stylex_when_rc = Rc::new(stylex_when.clone());
+
+      for name in &self.state.stylex_when_import {
+        identifiers.insert(
+          name.clone(),
+          Box::new(FunctionConfigType::Regular(FunctionConfig {
+            fn_ptr: FunctionType::DefaultMarker(Rc::clone(&stylex_when_rc)),
+            takes_path: false,
+          })),
+        );
+      }
+
       for name in &self.state.stylex_import {
         member_expressions.entry(name.clone()).or_default();
 
@@ -158,6 +190,41 @@ where
           "positionTry".into(),
           Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
+
+        member_expression.insert(
+          "defaultMarker".into(),
+          Box::new(FunctionConfigType::IndexMap(
+            stylex_default_maker::stylex_default_marker(&self.state.options)
+              .as_values()
+              .expect("Expected FlatCompiledStylesValues")
+              .clone(),
+          )),
+        );
+
+        identifiers
+          .entry(name.get_import_str().into())
+          .and_modify(|func_type| {
+            if let Some(map) = func_type.as_map_mut() {
+              map.insert(
+                "when".into(),
+                FunctionConfig {
+                  fn_ptr: FunctionType::DefaultMarker(Rc::clone(&stylex_when_rc)),
+                  takes_path: false,
+                },
+              );
+            }
+          })
+          .or_insert_with(|| {
+            let mut map = FxHashMap::default();
+            map.insert(
+              "when".into(),
+              FunctionConfig {
+                fn_ptr: FunctionType::DefaultMarker(Rc::clone(&stylex_when_rc)),
+                takes_path: false,
+              },
+            );
+            Box::new(FunctionConfigType::Map(map))
+          });
       }
 
       let function_map: Box<FunctionMap> = Box::new(FunctionMap {
@@ -200,8 +267,7 @@ where
         )
       );
 
-      let mut injected_inherit_styles: IndexMap<String, Rc<InjectableStyleKind>> =
-        IndexMap::default();
+      let mut injected_inherit_styles: InjectableStylesMap = IndexMap::default();
 
       if let Some(fns) = &evaluated_arg.fns {
         let dynamic_fns_names = fns
@@ -273,7 +339,7 @@ where
         compiled_styles = convert_to_test_styles(&compiled_styles, &var_name, &self.state);
       }
 
-      if let Some(var_name) = var_name.as_ref() {
+      if is_program_level && let Some(var_name) = var_name.as_ref() {
         let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
 
         self
@@ -301,11 +367,11 @@ where
         }
       }
 
-      let mut result_ast = path_replace_hoisted(
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles)),
-        is_program_level,
-        &mut self.state,
-      );
+      let styles_ast =
+        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
+
+      let mut result_ast =
+        path_replace_hoisted(styles_ast.clone(), is_program_level, &mut self.state);
 
       if let Some(fns) = evaluated_arg.fns
         && let Some(object) = result_ast.as_object()
@@ -601,7 +667,7 @@ where
 
       self
         .state
-        .register_styles(call, &injected_styles, &result_ast);
+        .register_styles(call, &injected_styles, &result_ast, Some(&styles_ast));
 
       Some(result_ast)
     } else {
@@ -612,6 +678,87 @@ where
 
     result
   }
+}
+
+fn get_stylex_when_map() -> IndexMap<String, fn(Expr, &mut StateManager) -> Expr> {
+  let mut map: IndexMap<String, StylexExprFn> = IndexMap::default();
+  map.insert(
+    "ancestor".to_string(),
+    move |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::ancestor(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => {
+          panic!("stylex_when::ancestor error: {}", e)
+        }
+      };
+
+      string_to_expression(&result)
+    },
+  );
+  map.insert(
+    "descendant".to_string(),
+    move |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::descendant(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => {
+          panic!("stylex_when::descendant error: {}", e)
+        }
+      };
+      string_to_expression(&result)
+    },
+  );
+  map.insert(
+    "siblingBefore".to_string(),
+    move |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::sibling_before(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => {
+          panic!("stylex_when::sibling_before error: {}", e)
+        }
+      };
+      string_to_expression(&result)
+    },
+  );
+  map.insert(
+    "siblingAfter".to_string(),
+    move |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::sibling_after(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => {
+          panic!("stylex_when::sibling_after error: {}", e)
+        }
+      };
+      string_to_expression(&result)
+    },
+  );
+  map.insert(
+    "anySibling".to_string(),
+    move |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::any_sibling(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => {
+          panic!("stylex_when::any_sibling error: {}", e)
+        }
+      };
+      string_to_expression(&result)
+    },
+  );
+  map
 }
 
 fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {

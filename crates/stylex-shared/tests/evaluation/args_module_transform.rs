@@ -95,7 +95,9 @@ impl Fold for ArgsStyleXTransform {
 
           for (key, value) in map.iter() {
             let prop = prop_or_spread_expression_factory(
-              expr_to_str(key, &mut self.state, &FunctionMap::default()).as_str(),
+              expr_to_str(key, &mut self.state, &FunctionMap::default())
+                .expect("Expression is not a string")
+                .as_str(),
               object_expression_factory(
                 value
                   .iter()

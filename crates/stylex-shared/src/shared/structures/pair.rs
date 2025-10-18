@@ -1,12 +1,12 @@
 #[derive(Debug, PartialEq, Clone, Hash)]
 
-pub(crate) struct Pair {
-  pub(crate) key: String,
-  pub(crate) value: String,
+pub struct Pair {
+  pub key: String,
+  pub value: String,
 }
 
 impl Pair {
-  pub(crate) fn new(key: String, value: String) -> Self {
+  pub fn new(key: String, value: String) -> Self {
     Self { key, value }
   }
 }

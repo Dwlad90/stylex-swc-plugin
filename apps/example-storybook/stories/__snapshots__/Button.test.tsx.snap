@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Button Snapshots > renders Danger story correctly 1`] = `
+<button
+  class="fontFamily-xmcqa5u fontWeight-xk50ysn cursor-x1ypdohk borderWidth-xc342km borderStyle-xng3xce borderColor-x9r1u3d borderRadius-x1kogg8i transition-xurpv0g display-x3nfvp2 alignItems-x6s0dn4 justifyContent-xl56j7k textDecoration-x1hl2dhg transform-xnn1q72 transform-x14ow2ja transform-x3kbueh boxShadow-x1gnnqk1 boxShadow-x1yrdse8 fontSize-xif65rj padding-x1ff1495 minHeight-xu0aao5 backgroundColor-x1596o1h backgroundColor-x37qbrc color-x1awj2ng"
+  data-style-src="stories/Button.tsx:5; stories/Button.tsx:57; stories/Button.tsx:45"
+  type="button"
+>
+  Danger Button
+</button>
+`;
+
+exports[`Button Snapshots > renders Large story correctly 1`] = `
+<button
+  class="fontFamily-xmcqa5u fontWeight-xk50ysn cursor-x1ypdohk borderWidth-xc342km borderStyle-xng3xce borderColor-x9r1u3d borderRadius-x1kogg8i transition-xurpv0g display-x3nfvp2 alignItems-x6s0dn4 justifyContent-xl56j7k textDecoration-x1hl2dhg transform-xnn1q72 transform-x14ow2ja transform-x3kbueh boxShadow-x1gnnqk1 boxShadow-x1yrdse8 fontSize-x1j61zf2 padding-x1bg5miv minHeight-x1gg8mnh backgroundColor-x11jye9f backgroundColor-xkdfp31 color-x1awj2ng"
+  data-style-src="stories/Button.tsx:5; stories/Button.tsx:62; stories/Button.tsx:28"
+  type="button"
+>
+  Large Button
+</button>
+`;
+
+exports[`Button Snapshots > renders Medium story correctly 1`] = `
+<button
+  class="fontFamily-xmcqa5u fontWeight-xk50ysn cursor-x1ypdohk borderWidth-xc342km borderStyle-xng3xce borderColor-x9r1u3d borderRadius-x1kogg8i transition-xurpv0g display-x3nfvp2 alignItems-x6s0dn4 justifyContent-xl56j7k textDecoration-x1hl2dhg transform-xnn1q72 transform-x14ow2ja transform-x3kbueh boxShadow-x1gnnqk1 boxShadow-x1yrdse8 fontSize-xif65rj padding-x1ff1495 minHeight-xu0aao5 backgroundColor-x11jye9f backgroundColor-xkdfp31 color-x1awj2ng"
+  data-style-src="stories/Button.tsx:5; stories/Button.tsx:57; stories/Button.tsx:28"
+  type="button"
+>
+  Medium Button
+</button>
+`;
+
+exports[`Button Snapshots > renders Primary story correctly 1`] = `
+<button
+  class="fontFamily-xmcqa5u fontWeight-xk50ysn cursor-x1ypdohk borderWidth-xc342km borderStyle-xng3xce borderColor-x9r1u3d borderRadius-x1kogg8i transition-xurpv0g display-x3nfvp2 alignItems-x6s0dn4 justifyContent-xl56j7k textDecoration-x1hl2dhg transform-xnn1q72 transform-x14ow2ja transform-x3kbueh boxShadow-x1gnnqk1 boxShadow-x1yrdse8 fontSize-xif65rj padding-x1ff1495 minHeight-xu0aao5 backgroundColor-x11jye9f backgroundColor-xkdfp31 color-x1awj2ng"
+  data-style-src="stories/Button.tsx:5; stories/Button.tsx:57; stories/Button.tsx:28"
+  type="button"
+>
+  Primary Button
+</button>
+`;
+
+exports[`Button Snapshots > renders Secondary story correctly 1`] = `
+<button
+  class="fontFamily-xmcqa5u fontWeight-xk50ysn cursor-x1ypdohk borderRadius-x1kogg8i transition-xurpv0g display-x3nfvp2 alignItems-x6s0dn4 justifyContent-xl56j7k textDecoration-x1hl2dhg transform-xnn1q72 transform-x14ow2ja transform-x3kbueh boxShadow-x1gnnqk1 boxShadow-x1yrdse8 fontSize-xif65rj padding-x1ff1495 minHeight-xu0aao5 backgroundColor-x6cgz0f backgroundColor-x1jmbrsh color-x1525slw borderWidth-xmkeg23 borderStyle-x1y0btm7 borderColor-x7kbyhx"
+  data-style-src="stories/Button.tsx:5; stories/Button.tsx:57; stories/Button.tsx:35"
+  type="button"
+>
+  Secondary Button
+</button>
+`;
+
+exports[`Button Snapshots > renders Small story correctly 1`] = `
+<button
+  class="fontFamily-xmcqa5u fontWeight-xk50ysn cursor-x1ypdohk borderWidth-xc342km borderStyle-xng3xce borderColor-x9r1u3d borderRadius-x1kogg8i transition-xurpv0g display-x3nfvp2 alignItems-x6s0dn4 justifyContent-xl56j7k textDecoration-x1hl2dhg transform-xnn1q72 transform-x14ow2ja transform-x3kbueh boxShadow-x1gnnqk1 boxShadow-x1yrdse8 fontSize-xfifm61 padding-x1arfzav minHeight-xe0p6wg backgroundColor-x11jye9f backgroundColor-xkdfp31 color-x1awj2ng"
+  data-style-src="stories/Button.tsx:5; stories/Button.tsx:52; stories/Button.tsx:28"
+  type="button"
+>
+  Small Button
+</button>
+`;

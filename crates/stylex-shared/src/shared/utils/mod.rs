@@ -8,3 +8,4 @@ pub mod object;
 pub(crate) mod pre_rule;
 pub(crate) mod validators;
 pub(crate) mod vector;
+pub(crate) mod when;

@@ -535,6 +535,34 @@ fn math_max() {
 }
 
 #[test]
+fn math_abs() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |_| EvaluationStyleXTransform::default_with_pass(),
+    r#"
+          const x = Math.abs(2);
+          const x = Math.abs(-2);
+          const x = Math.abs(0);
+          const x = Math.abs("1");
+          const x = Math.abs("1.2");
+          const x = Math.abs("-1.2");
+        "#,
+    r#"
+            2;
+            2;
+            0;
+            1;
+            1.2;
+            1.2;
+        "#,
+  )
+}
+
+#[test]
 fn math_complicated() {
   test_transform(
     Syntax::Typescript(TsSyntax {

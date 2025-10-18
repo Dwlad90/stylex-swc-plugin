@@ -20,16 +20,13 @@ use crate::shared::{
 };
 
 #[derive(Debug, PartialEq, Clone, Hash)]
-pub(crate) struct BaseCSSType {
-  pub(crate) value: ValueWithDefault,
-  pub(crate) syntax: CSSSyntax,
+pub struct BaseCSSType {
+  pub value: ValueWithDefault,
+  pub syntax: CSSSyntax,
 }
 
 impl BaseCSSType {
-  pub(crate) fn value_to_props(
-    value: ValueWithDefault,
-    top_key: Option<String>,
-  ) -> Vec<PropOrSpread> {
+  pub fn value_to_props(value: ValueWithDefault, top_key: Option<String>) -> Vec<PropOrSpread> {
     match value {
       ValueWithDefault::Number(n) => {
         let value_prop = prop_or_spread_string_factory(

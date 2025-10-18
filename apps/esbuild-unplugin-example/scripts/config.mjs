@@ -23,8 +23,8 @@ export const config = {
   plugins: [
     styleXRSPlugin({
       fileName: 'dist/stylex.css',
+      useCSSLayers: true,
       rsOptions: {
-        useCSSLayers: true,
         treeshakeCompensation: true,
         stylexImports: ['@stylexjs/stylex'],
       },

@@ -176,6 +176,10 @@ where
           .stylex_first_that_works_import
           .contains(&ident_sym.into())
         || state.stylex_types_import.contains(&ident_sym.into()))
+      || state
+        .stylex_default_marker_import
+        .contains(&ident_sym.into())
+      || state.stylex_when_import.contains(&ident_sym.into())
   }
 
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
@@ -207,7 +211,7 @@ where
       let declaration = self.process_declaration(ex);
 
       if declaration.is_some() {
-        return self.transform_call_expression_to_stylex_expr(ex);
+        return self.transform_stylex_fns(ex);
       }
     }
 

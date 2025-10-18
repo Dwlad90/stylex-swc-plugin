@@ -18,16 +18,22 @@ use crate::shared::{
     shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
     unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
   },
-  regex::{CLEAN_CSS_VAR, MANY_SPACES},
+  regex::{
+    ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, MANY_SPACES,
+    SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
+  },
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
     stylex_state_options::StyleXStateOptions,
   },
-  utils::css::{
-    generate_ltr::generate_ltr,
-    generate_rtl::generate_rtl,
-    normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
-    validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
+  utils::{
+    common::round_to_decimal_places,
+    css::{
+      generate_ltr::generate_ltr,
+      generate_rtl::generate_rtl,
+      normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
+      validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
+    },
   },
 };
 
@@ -186,6 +192,46 @@ pub(crate) fn get_priority(key: &str) -> f64 {
     return 1.0;
   };
 
+  // #region Relational selectors for .when() functions
+  // Helper function equivalent to pseudoBase in JS
+  let pseudo_base = |p: &str| -> f64 { **PSEUDO_CLASS_PRIORITIES.get(p).unwrap_or(&&40.0) / 100.0 };
+
+  // Check ancestor selector
+  if let Ok(Some(captures)) = ANCESTOR_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    return 10.0 + pseudo_base(pseudo.as_str());
+  }
+
+  // Check descendant selector
+  if let Ok(Some(captures)) = DESCENDANT_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    return 15.0 + pseudo_base(pseudo.as_str());
+  }
+
+  // Check any sibling selector (must come before individual sibling selectors)
+  if let Ok(Some(captures)) = ANY_SIBLING_SELECTOR.captures(key)
+    && let (Some(pseudo1), Some(pseudo2)) = (captures.get(1), captures.get(2))
+  {
+    return 20.0 + pseudo_base(pseudo1.as_str()).max(pseudo_base(pseudo2.as_str()));
+  }
+
+  // Check sibling before selector
+  if let Ok(Some(captures)) = SIBLING_BEFORE_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    return 30.0 + pseudo_base(pseudo.as_str());
+  }
+
+  // Check sibling after selector
+  if let Ok(Some(captures)) = SIBLING_AFTER_SELECTOR.captures(key)
+    && let Some(pseudo) = captures.get(1)
+  {
+    return 40.0 + pseudo_base(pseudo.as_str());
+  }
+  // #endregion Relational selectors for .when() functions
+
   if key.starts_with("@supports") {
     return **AT_RULE_PRIORITIES
       .get("@supports")
@@ -243,7 +289,7 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
   let value = match &css_property_value.parse::<f64>() {
     Ok(value) => format!(
       "{0}{1}",
-      ((value * 10000.0).round() / 10000.0),
+      round_to_decimal_places(*value, 4),
       get_number_suffix(key)
     ),
     Err(_) => css_property_value.to_string(),

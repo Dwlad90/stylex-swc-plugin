@@ -181,6 +181,7 @@ function createBuilder() {
     const css = bundler.bundle({
       useCSSLayers,
       enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
+      legacyDisableLayers: rsOptions?.legacyDisableLayers,
     });
     return css;
   }

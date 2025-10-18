@@ -16,6 +16,7 @@ use crate::shared::{
     pair::Pair,
     pre_rule::PreRuleValue,
     state_manager::StateManager,
+    types::FlatCompiledStyles,
   },
   utils::{
     ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
@@ -40,7 +41,7 @@ pub(crate) fn stylex_keyframes(
     panic!("Values must be an object")
   };
 
-  let extended_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
+  let expanded_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
     let Some((_, frame, _)) = frame.as_tuple() else {
       panic!("Values must be an object")
     };
@@ -76,7 +77,7 @@ pub(crate) fn stylex_keyframes(
   let options = state.options.clone();
 
   let ltr_styles = obj_map(
-    ObjMapType::Map(extended_object.clone()),
+    ObjMapType::Map(expanded_object.clone()),
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
@@ -92,10 +93,27 @@ pub(crate) fn stylex_keyframes(
     },
   );
 
+  let stable_styles = obj_map(
+    ObjMapType::Map(expanded_object.clone()),
+    state,
+    |frame, _| {
+      let Some(pairs) = frame.as_key_values() else {
+        panic!("Values must be an object")
+      };
+
+      let ltr_values = pairs
+        .iter()
+        .map(|pair| generate_ltr(pair, &Default::default()))
+        .collect();
+
+      Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
+    },
+  );
+
   let options = state.options.clone();
 
   let rtl_styles = obj_map(
-    ObjMapType::Map(extended_object.clone()),
+    ObjMapType::Map(expanded_object.clone()),
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
@@ -113,11 +131,15 @@ pub(crate) fn stylex_keyframes(
 
   let ltr_string = construct_keyframes_obj(&ltr_styles);
   let rtl_string = construct_keyframes_obj(&rtl_styles);
+  let stable_string = construct_keyframes_obj(&stable_styles);
 
+  // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across builds.
+  // NOTE: '<>' and '-B' is used to keep existing hashes stable.
+  // TODO: They should be removed in a future version.
   let animation_name = format!(
     "{}{}-B",
     class_name_prefix,
-    create_hash(&format!("<>{}", ltr_string))
+    create_hash(&format!("<>{}", stable_string))
   );
 
   let ltr = format!("@keyframes {}{{{}}}", animation_name, ltr_string);
@@ -137,7 +159,7 @@ pub(crate) fn stylex_keyframes(
   )
 }
 
-fn construct_keyframes_obj(frames: &IndexMap<String, Rc<FlatCompiledStylesValue>>) -> String {
+fn construct_keyframes_obj(frames: &FlatCompiledStyles) -> String {
   frames
     .into_iter()
     .map(|(key, value)| {
@@ -167,7 +189,8 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
     .iter()
     .flat_map(|pair| {
       let key = key_value_to_str(pair);
-      let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default());
+      let value = expr_to_str(pair.value.as_ref(), state, &FunctionMap::default())
+        .expect("Value is not a string");
 
       flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)
         .into_iter()

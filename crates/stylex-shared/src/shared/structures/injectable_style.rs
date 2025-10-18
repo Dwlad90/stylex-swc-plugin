@@ -19,19 +19,19 @@ pub struct InjectableStyleConstBase {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub(crate) struct InjectableStyle {
-  pub(crate) ltr: String,
-  pub(crate) rtl: Option<String>,
-  pub(crate) priority: Option<f64>,
+pub struct InjectableStyle {
+  pub ltr: String,
+  pub rtl: Option<String>,
+  pub priority: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub(crate) struct InjectableConstStyle {
-  pub(crate) ltr: String,
-  pub(crate) rtl: Option<String>,
-  pub(crate) priority: Option<f64>,
-  pub(crate) const_key: String,
-  pub(crate) const_value: String,
+  pub ltr: String,
+  pub rtl: Option<String>,
+  pub priority: Option<f64>,
+  pub const_key: String,
+  pub const_value: String,
 }
 
 impl Hash for InjectableStyle {

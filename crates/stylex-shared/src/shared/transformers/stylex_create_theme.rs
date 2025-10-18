@@ -10,11 +10,17 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
   },
   structures::{
-    functions::FunctionMap, injectable_style::InjectableStyle, state_manager::StateManager,
+    functions::FunctionMap,
+    injectable_style::InjectableStyle,
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, InjectableStylesMap},
   },
   utils::{
     ast::convertors::{expr_to_str, key_value_to_str},
-    common::{create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object},
+    common::{
+      create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object,
+      round_to_decimal_places,
+    },
     core::define_vars_utils::{collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules},
     validators::validate_theme_variables,
   },
@@ -24,14 +30,11 @@ pub(crate) fn stylex_create_theme(
   theme_vars: &mut EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
-  typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
-) -> (
-  IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  IndexMap<String, Rc<InjectableStyleKind>>,
-) {
+  typed_variables: &mut FlatCompiledStyles,
+) -> (FlatCompiledStyles, InjectableStylesMap) {
   let theme_name_key_value = validate_theme_variables(theme_vars, state);
 
-  let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
+  let mut rules_by_at_rule = IndexMap::new();
 
   let mut variables_key_values = Box::new(get_key_values_from_object(
     variables
@@ -52,7 +55,10 @@ pub(crate) fn stylex_create_theme(
     var_group_hash = theme_vars_key_values
       .iter()
       .find(|key_value| key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
-      .map(|key_value| expr_to_str(&key_value.value, state, &FunctionMap::default()))
+      .map(|key_value| {
+        expr_to_str(&key_value.value, state, &FunctionMap::default())
+          .expect("Expression is not a string")
+      })
       .unwrap_or_default();
   };
 
@@ -71,6 +77,7 @@ pub(crate) fn stylex_create_theme(
           state,
           &FunctionMap::default(),
         )
+        .expect("Expression is not a string")
       }
       EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str(), state).clone(),
       _ => unimplemented!("Unsupported theme vars type"),
@@ -123,29 +130,25 @@ pub(crate) fn stylex_create_theme(
     let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
     let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
 
-    if at_rule == "default" {
-      styles_to_inject.insert(
-        override_class_name.clone(),
-        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-          ltr: rule,
-          rtl: None,
-          priority: Some(0.5),
-        })),
-      );
-    } else {
-      let key = format!("{}-{}", override_class_name, create_hash(at_rule));
-      let ltr = wrap_with_at_rules(rule.as_str(), at_rule);
-      let priority = 0.5 + 0.1 * priority_for_at_rule(at_rule);
+    let priority = round_to_decimal_places(0.4 + priority_for_at_rule(at_rule) / 10.0, 1);
 
-      styles_to_inject.insert(
-        key,
-        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-          ltr,
-          rtl: None,
-          priority: Some(priority),
-        })),
-      );
-    }
+    let (suffix, ltr) = if at_rule == "default" {
+      (String::new(), rule)
+    } else {
+      (
+        format!("-{}", create_hash(at_rule)),
+        wrap_with_at_rules(&rule, at_rule),
+      )
+    };
+
+    styles_to_inject.insert(
+      format!("{}{}", override_class_name, suffix),
+      Rc::new(InjectableStyleKind::Regular(InjectableStyle {
+        ltr,
+        rtl: None,
+        priority: Some(priority),
+      })),
+    );
   }
 
   let theme_name_str_value = match theme_vars {
@@ -153,7 +156,8 @@ pub(crate) fn stylex_create_theme(
       theme_name_key_value.value.as_ref(),
       state,
       &FunctionMap::default(),
-    ),
+    )
+    .expect("Expression is not a string"),
     EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(VAR_GROUP_HASH_KEY, state).to_owned(),
     _ => unimplemented!("Unsupported theme vars type"),
   };

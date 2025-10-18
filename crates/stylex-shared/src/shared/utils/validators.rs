@@ -193,6 +193,23 @@ pub(crate) fn validate_stylex_position_try_indent(
   }
 }
 
+pub(crate) fn validate_stylex_default_marker_indent(call: &CallExpr, state: &mut StateManager) {
+  if !is_default_marker_call(call, state) {
+    return;
+  }
+
+  let call_expr = Expr::from(call.clone());
+
+  if !call.args.is_empty() {
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &Box::new(call_expr.clone()),
+      &illegal_argument_length("defaultMarker", 1),
+      state,
+    );
+  }
+}
+
 pub(crate) fn validate_stylex_view_transition_class_indent(
   var_decl: &VarDeclarator,
   state: &mut StateManager,
@@ -465,6 +482,14 @@ pub(crate) fn is_position_try_call(var_decl: &VarDeclarator, state: &StateManage
     ),
     _ => false,
   }
+}
+
+pub(crate) fn is_default_marker_call(call: &CallExpr, state: &StateManager) -> bool {
+  is_target_call(
+    ("defaultMarker", &state.stylex_default_marker_import),
+    call,
+    state,
+  )
 }
 
 pub(crate) fn is_view_transition_class_call(

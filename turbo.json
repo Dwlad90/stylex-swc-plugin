@@ -24,7 +24,8 @@
         "dist/**/*",
         "npm/**/*",
         ".next/**",
-        "!.next/cache/**"
+        "!.next/cache/**",
+        "storybook-static/**/*"
       ]
     },
     "clean": {

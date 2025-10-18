@@ -11,7 +11,8 @@ use crate::shared::{
 };
 
 fn is_var(arg: &Expr) -> bool {
-  let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default());
+  let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default())
+    .expect("Expression is not a string");
 
   IS_CSS_VAR.is_match(&str_arg).unwrap_or_else(|err| {
     warn!(
@@ -55,7 +56,8 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
         .into_iter()
         .map(|arg| {
           if is_var(arg) {
-            let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default());
+            let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default())
+              .expect("Argument is not a string");
             let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
             string_to_expression(cleared_str_arg)
           } else {
@@ -71,7 +73,9 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
             var_name,
             &mut StateManager::default(),
             &FunctionMap::default(),
-          );
+          )
+          .expect("Expression is not a string");
+
           so_far = if !so_far.is_empty() {
             format!("var({}, {})", var_name_str, so_far)
           } else if var_name_str.starts_with("--") {

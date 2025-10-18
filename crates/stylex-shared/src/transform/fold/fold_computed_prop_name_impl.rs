@@ -33,7 +33,10 @@ where
         &Default::default(),
       );
 
-      increase_ident_count(&mut self.state, &Ident::from(expt_str.as_str()));
+      increase_ident_count(
+        &mut self.state,
+        &Ident::from(expt_str.expect("Expression is not a string").as_str()),
+      );
     }
 
     computed_prop_name.fold_children_with(self)

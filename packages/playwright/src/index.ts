@@ -11,7 +11,7 @@ const isCI = !!process.env.CI;
 export default defineConfig({
   testDir: './visual-tests',
   outputDir: 'visual-tests/test-results',
-  timeout: 30000,
+  timeout: 5000,
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,

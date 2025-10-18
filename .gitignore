@@ -28,6 +28,8 @@ out/
 build
 dist
 target/
+storybook-static/
+visual-tests/
 
 
 # Debug

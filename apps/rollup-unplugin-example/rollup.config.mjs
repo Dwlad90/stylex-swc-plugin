@@ -41,9 +41,9 @@ export default {
       'process.env.NODE_ENV': '"development"',
     }),
     styleXRSPlugin({
-      dev: true,
+      useCSSLayers: true,
       rsOptions: {
-        useCSSLayers: true,
+        dev: true,
         treeshakeCompensation: true,
       },
     }),

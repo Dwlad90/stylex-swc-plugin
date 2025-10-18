@@ -26,6 +26,7 @@ pub struct StyleXOptions {
   pub enable_legacy_value_flipping: Option<bool>,
   #[napi(js_name = "enableLTRRTLComments")]
   pub enable_ltr_rtl_comments: Option<bool>,
+  pub legacy_disable_layers: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,

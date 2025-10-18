@@ -1,4 +1,4 @@
-use std::{ops::Mul, rc::Rc};
+use std::rc::Rc;
 
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};
@@ -9,25 +9,28 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
     value_with_default::ValueWithDefault,
   },
-  structures::injectable_style::InjectableStyle,
+  structures::{
+    injectable_style::InjectableStyle,
+    types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
+  },
   utils::{
     ast::convertors::{key_value_to_str, lit_to_string},
-    common::{create_hash, get_key_values_from_object},
+    common::{create_hash, get_key_values_from_object, round_to_decimal_places},
   },
 };
 
 pub(crate) fn construct_css_variables_string(
-  variables: &IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  variables: &FlatCompiledStyles,
   theme_name_hash: &String,
-  typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
-) -> IndexMap<String, Rc<InjectableStyleKind>> {
-  let mut rules_by_at_rule: IndexMap<String, Vec<String>> = IndexMap::new();
+  typed_variables: &mut FlatCompiledStyles,
+) -> InjectableStylesMap {
+  let mut rules_by_at_rule = IndexMap::new();
 
   for (key, value) in variables.iter() {
     collect_vars_by_at_rules(key, value, &mut rules_by_at_rule, &[], typed_variables);
   }
 
-  let mut result: IndexMap<String, Rc<InjectableStyleKind>> = IndexMap::new();
+  let mut result: InjectableStylesMap = IndexMap::new();
 
   for (at_rule, value) in rules_by_at_rule.iter() {
     let suffix = if at_rule == "default" {
@@ -47,7 +50,11 @@ pub(crate) fn construct_css_variables_string(
     result.insert(
       format!("{}{}", theme_name_hash, suffix),
       Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-        priority: Some(priority_for_at_rule(at_rule).mul(0.1)),
+        // Round to avoid floating-point precision issues (0.1 + 0.2 = 0.30000000000000004)
+        priority: Some(round_to_decimal_places(
+          priority_for_at_rule(at_rule) / 10.0,
+          1,
+        )),
         ltr,
         rtl: None,
       })),
@@ -60,9 +67,9 @@ pub(crate) fn construct_css_variables_string(
 pub(crate) fn collect_vars_by_at_rules(
   key: &String,
   value: &FlatCompiledStylesValue,
-  collection: &mut IndexMap<String, Vec<String>>,
+  collection: &mut ClassPathsInNamespace,
   at_rules: &[String],
-  typed_variables: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  typed_variables: &mut FlatCompiledStyles,
 ) {
   let Some((hash_name, value, css_type)) = value.as_tuple() else {
     panic!("Props must be an key value pair")
@@ -165,6 +172,6 @@ pub(crate) fn priority_for_at_rule(at_rule: &str) -> f64 {
   if at_rule == "default" {
     1.0
   } else {
-    at_rule.split(SPLIT_TOKEN).count() as f64
+    1.0 + at_rule.split(SPLIT_TOKEN).count() as f64
   }
 }

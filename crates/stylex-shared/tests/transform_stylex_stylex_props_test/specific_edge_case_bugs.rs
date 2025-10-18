@@ -225,3 +225,43 @@ test!(
     ]);
   "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  hoisting_correctly_with_duplicate_names,
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+    import * as React from "react";
+
+    function Foo() {
+      const styles = stylex.create({
+        div: { color: "red" },
+      });
+      return <div {...stylex.props(styles.div)}>Hello, foo!</div>;
+    }
+
+    function Bar() {
+      const styles = stylex.create({
+        div: { color: "blue" },
+      });
+      return <div {...stylex.props(styles.div)}>Hello, bar!</div>;
+    }
+
+    export function App() {
+      return (
+        <>
+          <Foo />
+          <Bar />
+        </>
+      );
+    }
+  "#
+);

@@ -7,6 +7,7 @@ use crate::{
     enums::data_structures::{
       flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
     },
+    structures::types::FlatCompiledStyles,
     utils::core::js_to_expr::NestedStringObject,
   },
   transform::styleq::common::{StyleQResult, styleq},
@@ -21,7 +22,7 @@ pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
     data_style_src,
   } = styleq(styles);
 
-  let mut props_map: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
+  let mut props_map: FlatCompiledStyles = IndexMap::new();
 
   if !class_name.is_empty() {
     props_map.insert(

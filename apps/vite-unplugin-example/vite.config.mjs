@@ -9,9 +9,9 @@ export default defineConfig({
   plugins: [
     react(),
     styleXRSPlugin({
+      useCSSLayers: true,
       rsOptions: {
         dev: true,
-        useCSSLayers: true,
         treeshakeCompensation: true,
         unstable_moduleResolution: {
           type: "commonJS",

@@ -214,7 +214,7 @@ where
 
       self
         .state
-        .register_styles(call, &inject_styles, &result_ast);
+        .register_styles(call, &inject_styles, &result_ast, None);
 
       Some(result_ast)
     } else {

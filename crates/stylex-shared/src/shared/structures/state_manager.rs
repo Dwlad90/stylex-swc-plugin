@@ -31,7 +31,7 @@ use swc_core::{
 
 use crate::shared::{
   constants::common::DEFAULT_INJECT_PATH,
-  structures::uid_generator::CounterMode,
+  structures::{types::InjectableStylesMap, uid_generator::CounterMode},
   utils::ast::factories::{
     expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
   },
@@ -96,6 +96,8 @@ pub struct StateManager {
   pub(crate) stylex_create_theme_import: AtomHashSet,
   pub(crate) stylex_position_try_import: AtomHashSet,
   pub(crate) stylex_view_transition_class_import: AtomHashSet,
+  pub(crate) stylex_default_marker_import: AtomHashSet,
+  pub(crate) stylex_when_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) export_id: Option<String>,
@@ -130,7 +132,7 @@ pub struct StateManager {
   pub(crate) hoisted_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
-  pub(crate) other_injected_css_rules: IndexMap<String, Rc<InjectableStyleKind>>,
+  pub(crate) other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
 
   pub(crate) cycle: TransformationCycle,
@@ -161,6 +163,8 @@ impl StateManager {
       stylex_types_import: FxHashSet::default(),
       stylex_position_try_import: FxHashSet::default(),
       stylex_view_transition_class_import: FxHashSet::default(),
+      stylex_default_marker_import: FxHashSet::default(),
+      stylex_when_import: FxHashSet::default(),
       inject_import_inserted: None,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
@@ -471,8 +475,9 @@ impl StateManager {
   pub(crate) fn register_styles(
     &mut self,
     call: &CallExpr,
-    style: &IndexMap<String, Rc<InjectableStyleKind>>,
+    style: &InjectableStylesMap,
     ast: &Expr,
+    fallback_ast: Option<&Expr>,
   ) {
     // Early return if there are no styles to process
     if style.is_empty() {
@@ -498,19 +503,18 @@ impl StateManager {
       self.add_style(&metadata);
 
       if let Some(ref inject_var_ident) = inject_var_ident {
-        self.add_style_to_inject(&metadata, inject_var_ident, ast);
+        self.add_style_to_inject(&metadata, inject_var_ident, ast, fallback_ast);
       }
     }
 
     // Update all references to this call expression with the new AST
-    self.update_references(call, ast);
+    self.update_references(call, ast, fallback_ast);
   }
 
   fn setup_injection_imports(&mut self) -> Ident {
     if !self.prepend_include_module_items.is_empty() {
       return self.inject_import_inserted.as_ref().unwrap().1.clone();
     }
-
     let mut uid_generator = UidGenerator::new("inject", CounterMode::Local);
 
     let runtime_injection = self
@@ -535,6 +539,7 @@ impl StateManager {
 
         let idents = (module_ident, var_ident);
         self.inject_import_inserted = Some(idents.clone());
+
         idents
       }
     };
@@ -554,7 +559,7 @@ impl StateManager {
     inject_var_ident
   }
 
-  fn update_references(&mut self, call: &CallExpr, ast: &Expr) {
+  fn update_references(&mut self, call: &CallExpr, ast: &Expr, _fallback_ast: Option<&Expr>) {
     if let Some(item) = self.declarations.iter_mut().find(|decl| {
       decl.init.as_ref().is_some_and(
         |expr| matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
@@ -601,7 +606,13 @@ impl StateManager {
     }
   }
 
-  fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, ast: &Expr) {
+  fn add_style_to_inject(
+    &mut self,
+    metadata: &MetaData,
+    inject_var_ident: &Ident,
+    ast: &Expr,
+    fallback_ast: Option<&Expr>,
+  ) {
     let priority = metadata.get_priority();
     let css = metadata.get_css();
     let css_rtl = metadata.get_css_rtl();
@@ -635,7 +646,17 @@ impl StateManager {
     let styles_to_inject = self.styles_to_inject.entry(ast_hash).or_default();
 
     if !styles_to_inject.contains(&drop_span(module.clone())) {
-      styles_to_inject.push(drop_span(module));
+      styles_to_inject.push(drop_span(module.clone()));
+    }
+
+    if let Some(fallback_ast) = fallback_ast {
+      let fallback_ast_hash = stable_hash(fallback_ast);
+
+      let styles_to_inject = self.styles_to_inject.entry(fallback_ast_hash).or_default();
+
+      if !styles_to_inject.contains(&drop_span(module.clone())) {
+        styles_to_inject.push(drop_span(module.clone()));
+      }
     }
   }
 

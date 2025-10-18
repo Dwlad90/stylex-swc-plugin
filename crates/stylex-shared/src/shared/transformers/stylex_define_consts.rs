@@ -1,7 +1,5 @@
 use std::rc::Rc;
 
-use indexmap::IndexMap;
-
 use crate::shared::{
   constants::messages,
   enums::data_structures::{
@@ -9,7 +7,11 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
     obj_map_type::ObjMapType,
   },
-  structures::{injectable_style::InjectableConstStyle, state_manager::StateManager},
+  structures::{
+    injectable_style::InjectableConstStyle,
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, InjectableStylesMap},
+  },
   utils::{
     common::{create_hash, serialize_value_to_json_string},
     object::obj_map,
@@ -19,10 +21,7 @@ use crate::shared::{
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
   state: &mut StateManager,
-) -> (
-  IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  IndexMap<String, Rc<InjectableStyleKind>>,
-) {
+) -> (FlatCompiledStyles, InjectableStylesMap) {
   let Some(constants) = constants.as_expr().and_then(|expr| expr.as_object()) else {
     panic!("Values must be an object")
   };

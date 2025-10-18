@@ -6,7 +6,13 @@
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "clean": "rimraf dist",
     "dev": "node scripts/dev.mjs",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "prebuild": "pnpm run clean",
+    "predev": "pnpm run clean",
+    "prestart": "pnpm run build",
     "serve": "serve --listen 3002 .",
     "test:visual": "playwright test"
   },
@@ -25,6 +31,7 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "esbuild": "^0.25.10",
+    "rimraf": "^6.0.1",
     "serve": "^14.2.4"
   }
 }

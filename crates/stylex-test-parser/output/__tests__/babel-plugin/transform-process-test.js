@@ -17,7 +17,18 @@ function transform(source, opts = {}) {
       mediaSmall: '@media (max-width: 500px)'
     });
     export const vars = stylex.defineVars({
-      blue: 'blue'
+      blue: 'blue',
+      marginTokens: {
+        default: "10px",
+        "@media (min-width: 600px)": "20px"
+      },
+      colorTokens: {
+        default: 'red',
+        '@media (prefers-color-scheme: dark)': {
+          default: 'lightblue',
+          '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.3 -0.4)',
+        }
+      },
     });
     `, {
         filename: '/src/app/tokens.stylex.js',
@@ -102,6 +113,7 @@ export const styles = stylex.create({
       }
     }),
     backgroundColor: 'red',
+    margin: vars.marginTokens,
     borderColor: {
       default: 'green',
       [constants.mediaBig]: {
@@ -109,6 +121,7 @@ export const styles = stylex.create({
         [constants.mediaSmall]: 'yellow',
       }
     },
+    outlineColor: vars.colorTokens,
     textShadow: {
       default: '1px 2px 3px 4px red',
       '@media (min-width:320px)': '10px 20px 30px 40px green'
@@ -137,6 +150,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           blue: "var(--blue-xpqh4lw)",
+          marginTokens: "var(--marginTokens-x8nt2k2)",
+          colorTokens: "var(--colorTokens-xkxfyv)",
           __varGroupHash__: "xsg933n"
         };
         export const spacing = {
@@ -150,8 +165,11 @@ describe('@stylexjs/babel-plugin', ()=>{
                 useLayers: false,
                 enableLTRRTLComments: false
             })).toMatchInlineSnapshot(`
-        ":root, .xsg933n{--blue-xpqh4lw:blue;}
-        :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}"
+        ":root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
+        :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}"
       `);
         });
         test('all rules (useLayers:false)', ()=>{
@@ -166,6 +184,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           blue: "var(--blue-xpqh4lw)",
+          marginTokens: "var(--marginTokens-x8nt2k2)",
+          colorTokens: "var(--colorTokens-xkxfyv)",
           __varGroupHash__: "xsg933n"
         };
         export const spacing = {
@@ -186,20 +206,21 @@ describe('@stylexjs/babel-plugin', ()=>{
           root: {
             "animationName-kKVMdj": "animationName-x13ah0pd",
             "backgroundColor-kWkggS": "backgroundColor-xrkmrrc",
+            "margin-kogj98": "margin-xymmreb",
             "borderColor-kVAM5u": "borderColor-x1bg2uv5 borderColor-x5ugf7c borderColor-xqiy1ys",
+            "outlineColor-kjBf7l": "outlineColor-x184ctg8",
             "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-x1cmij7u",
             "padding-kmVPX3": "padding-xss17vw",
-            "margin-kogj98": "margin-xymmreb",
             "float-kyUFMd": "float-x1kmio9f",
-            $$css: "app/main.js:31"
+            $$css: "app/main.js:33"
           },
           overrideColor: {
             "--orange-theme-color": "--orange-theme-color-xufgesz",
-            $$css: "app/main.js:58"
+            $$css: "app/main.js:62"
           },
           dynamic: color => [{
             "color-kMwMTN": color != null ? "color-x14rh7hd" : color,
-            $$css: "app/main.js:61"
+            $$css: "app/main.js:65"
           }, {
             "--x-color": color != null ? color : undefined
           }]
@@ -211,8 +232,11 @@ describe('@stylexjs/babel-plugin', ()=>{
             })).toMatchInlineSnapshot(`
         "@property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
-        :root, .xsg933n{--blue-xpqh4lw:blue;}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
         :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
         .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
         .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
         .--orange-theme-color-xufgesz{--orange-theme-color:red}
@@ -226,6 +250,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .color-x14rh7hd:not(#\\#):not(#\\#):not(#\\#){color:var(--x-color)}
         html:not([dir='rtl']) .float-x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:left}
         html[dir='rtl'] .float-x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:right}
+        .outlineColor-x184ctg8:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--colorTokens-xkxfyv)}
         .textShadow-x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}
         @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}"
       `);
@@ -244,6 +269,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           blue: "var(--blue-xpqh4lw)",
+          marginTokens: "var(--marginTokens-x8nt2k2)",
+          colorTokens: "var(--colorTokens-xkxfyv)",
           __varGroupHash__: "xsg933n"
         };
         export const spacing = {
@@ -264,20 +291,21 @@ describe('@stylexjs/babel-plugin', ()=>{
           root: {
             "animationName-kKVMdj": "animationName-x13ah0pd",
             "backgroundColor-kWkggS": "backgroundColor-xrkmrrc",
+            "margin-kogj98": "margin-xymmreb",
             "borderColor-kVAM5u": "borderColor-x1bg2uv5 borderColor-x5ugf7c borderColor-xqiy1ys",
+            "outlineColor-kjBf7l": "outlineColor-x184ctg8",
             "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-x1cmij7u",
             "padding-kmVPX3": "padding-xss17vw",
-            "margin-kogj98": "margin-xymmreb",
             "float-kyUFMd": "float-x1kmio9f",
-            $$css: "app/main.js:31"
+            $$css: "app/main.js:33"
           },
           overrideColor: {
             "--orange-theme-color": "--orange-theme-color-xufgesz",
-            $$css: "app/main.js:58"
+            $$css: "app/main.js:62"
           },
           dynamic: color => [{
             "color-kMwMTN": color != null ? "color-x14rh7hd" : color,
-            $$css: "app/main.js:61"
+            $$css: "app/main.js:65"
           }, {
             "--x-color": color != null ? color : undefined
           }]
@@ -291,8 +319,11 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer priority1, priority2, priority3, priority4;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
-        :root, .xsg933n{--blue-xpqh4lw:blue;}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
         :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
         .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
         .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
         .--orange-theme-color-xufgesz{--orange-theme-color:red}
@@ -311,6 +342,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .color-x14rh7hd{color:var(--x-color)}
         html:not([dir='rtl']) .float-x1kmio9f{float:left}
         html[dir='rtl'] .float-x1kmio9f{float:right}
+        .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
         .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
         @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u{text-shadow:10px 20px 30px 40px green}}
         }"
@@ -328,6 +360,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           blue: "var(--blue-xpqh4lw)",
+          marginTokens: "var(--marginTokens-x8nt2k2)",
+          colorTokens: "var(--colorTokens-xkxfyv)",
           __varGroupHash__: "xsg933n"
         };
         export const spacing = {
@@ -348,20 +382,21 @@ describe('@stylexjs/babel-plugin', ()=>{
           root: {
             "animationName-kKVMdj": "animationName-x13ah0pd",
             "backgroundColor-kWkggS": "backgroundColor-xrkmrrc",
+            "margin-kogj98": "margin-xymmreb",
             "borderColor-kVAM5u": "borderColor-x1bg2uv5 borderColor-x5ugf7c borderColor-xqiy1ys",
+            "outlineColor-kjBf7l": "outlineColor-x184ctg8",
             "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-x1cmij7u",
             "padding-kmVPX3": "padding-xss17vw",
-            "margin-kogj98": "margin-xymmreb",
             "float-kyUFMd": "float-x1kmio9f",
-            $$css: "app/main.js:31"
+            $$css: "app/main.js:33"
           },
           overrideColor: {
             "--orange-theme-color": "--orange-theme-color-xufgesz",
-            $$css: "app/main.js:58"
+            $$css: "app/main.js:62"
           },
           dynamic: color => [{
             "color-kMwMTN": color != null ? "color-x14rh7hd" : color,
-            $$css: "app/main.js:61"
+            $$css: "app/main.js:65"
           }, {
             "--x-color": color != null ? color : undefined
           }]
@@ -374,8 +409,11 @@ describe('@stylexjs/babel-plugin', ()=>{
             })).toMatchInlineSnapshot(`
         "@property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
-        :root, .xsg933n{--blue-xpqh4lw:blue;}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
         :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
         .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
         .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
         .--orange-theme-color-xufgesz{--orange-theme-color:red}
@@ -389,6 +427,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .color-x14rh7hd{color:var(--x-color)}
         html:not([dir='rtl']) .float-x1kmio9f{float:left}
         html[dir='rtl'] .float-x1kmio9f{float:right}
+        .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
         .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
         @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u{text-shadow:10px 20px 30px 40px green}}"
       `);
@@ -417,6 +456,8 @@ describe('@stylexjs/babel-plugin', ()=>{
         };
         export const vars = {
           blue: "var(--blue-xpqh4lw)",
+          marginTokens: "var(--marginTokens-x8nt2k2)",
+          colorTokens: "var(--colorTokens-xkxfyv)",
           __varGroupHash__: "xsg933n"
         };
         export const spacing = {
@@ -436,7 +477,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "paddingBottom-kGO01o": "paddingBottom-xs9asl8",
             "paddingInlineStart-kZCmMZ": "paddingInlineStart-x1gx403c",
             "float-kyUFMd": "float-x1kmio9f",
-            $$css: "app/main.js:23"
+            $$css: "app/main.js:25"
           }
         };"
       `);
@@ -444,8 +485,11 @@ describe('@stylexjs/babel-plugin', ()=>{
                 useLayers: false,
                 enableLTRRTLComments: true
             })).toMatchInlineSnapshot(`
-        ":root, .xsg933n{--blue-xpqh4lw:blue;}
+        ":root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
         :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
         /* @ltr begin */.float-x1kmio9f:not(#\\#){float:left}/* @ltr end */
         /* @rtl begin */.float-x1kmio9f:not(#\\#){float:right}/* @rtl end */
         /* @ltr begin */.marginInlineStart-xqsn43r:not(#\\#){margin-left:20px}/* @ltr end */
@@ -480,8 +524,11 @@ describe('@stylexjs/babel-plugin', ()=>{
                 useLayers: false,
                 enableLTRRTLComments: false
             })).toMatchInlineSnapshot(`
-        ":root, .xsg933n{--blue-xpqh4lw:blue;}
+        ":root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
         :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
         .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
         .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}"
       `);
@@ -516,7 +563,10 @@ describe('@stylexjs/babel-plugin', ()=>{
         "@property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
-        :root, .xsg933n{--xpqh4lw:blue;}
+        :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
+        @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
@@ -530,6 +580,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x14rh7hd{color:var(--x-color)}
         /* @ltr begin */.x1kmio9f{float:left}/* @ltr end */
         /* @rtl begin */.x1kmio9f{float:right}/* @rtl end */
+        .x18abd1y{outline-color:var(--xkxfyv)}
         .x1skrh0i{text-shadow:1px 2px 3px 4px red}
         @media (min-width:320px){.x1cmij7u.x1cmij7u{text-shadow:10px 20px 30px 40px green}}"
       `);
@@ -547,7 +598,10 @@ describe('@stylexjs/babel-plugin', ()=>{
         "@property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
-        :root, .xsg933n{--xpqh4lw:blue;}
+        :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .xufgesz{--orange-theme-color:red}
@@ -558,6 +612,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}
         .x13ah0pd{animation-name:x35atj5-B}
         .x14rh7hd{color:var(--x-color)}
+        .x18abd1y{outline-color:var(--xkxfyv)}
         /* @ltr begin */.x1kmio9f{float:left}/* @ltr end */
         /* @rtl begin */.x1kmio9f{float:right}/* @rtl end */
         .x1skrh0i{text-shadow:1px 2px 3px 4px red}

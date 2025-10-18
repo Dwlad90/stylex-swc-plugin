@@ -50,7 +50,8 @@ pub(crate) fn construct_css_variables_string(
     result.insert(
       format!("{}{}", theme_name_hash, suffix),
       Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-        priority: Some(priority_for_at_rule(at_rule).mul(0.1)),
+        // Round to avoid floating-point precision issues (0.1 + 0.2 = 0.30000000000000004)
+        priority: Some(((0.1 + priority_for_at_rule(at_rule) * 0.1) * 10.0).round() / 10.0),
         ltr,
         rtl: None,
       })),

@@ -90,7 +90,7 @@ where
         transformed_js_output,
       ));
 
-      self.state.register_styles(call, &js_output, &result_ast);
+      self.state.register_styles(call, &js_output, &result_ast, None);
 
       Some(result_ast)
     } else {

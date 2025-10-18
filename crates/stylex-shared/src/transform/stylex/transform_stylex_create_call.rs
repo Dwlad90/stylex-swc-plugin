@@ -339,7 +339,7 @@ where
         compiled_styles = convert_to_test_styles(&compiled_styles, &var_name, &self.state);
       }
 
-      if let Some(var_name) = var_name.as_ref() {
+      if is_program_level && let Some(var_name) = var_name.as_ref() {
         let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
 
         self
@@ -367,11 +367,11 @@ where
         }
       }
 
-      let mut result_ast = path_replace_hoisted(
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles)),
-        is_program_level,
-        &mut self.state,
-      );
+      let styles_ast =
+        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
+
+      let mut result_ast =
+        path_replace_hoisted(styles_ast.clone(), is_program_level, &mut self.state);
 
       if let Some(fns) = evaluated_arg.fns
         && let Some(object) = result_ast.as_object()
@@ -667,7 +667,7 @@ where
 
       self
         .state
-        .register_styles(call, &injected_styles, &result_ast);
+        .register_styles(call, &injected_styles, &result_ast, Some(&styles_ast));
 
       Some(result_ast)
     } else {

@@ -278,7 +278,7 @@ fn _evaluate(
             }
             FunctionType::DefaultMarker(func) => {
               return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
-                fn_ptr: FunctionType::DefaultMarker(func.clone()),
+                fn_ptr: FunctionType::DefaultMarker(Rc::clone(func)),
                 takes_path: false,
               }));
             }
@@ -2265,7 +2265,7 @@ fn _evaluate(
             }
             FunctionType::DefaultMarker(default_marker) => {
               return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
-                fn_ptr: FunctionType::DefaultMarker(default_marker.clone()),
+                fn_ptr: FunctionType::DefaultMarker(Rc::clone(&default_marker)),
                 takes_path: false,
               }));
             }

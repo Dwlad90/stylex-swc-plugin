@@ -134,7 +134,7 @@ pub(crate) fn stylex_keyframes(
 
   // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across builds.
   // NOTE: '<>' and '-B' is used to keep existing hashes stable.
-  // They should be removed in a future version.
+  // TODO: They should be removed in a future version.
   let animation_name = format!(
     "{}{}-B",
     class_name_prefix,

@@ -1,7 +1,6 @@
 use crate::shared::structures::stylex_state_options::StyleXStateOptions;
 
 /// Gets the default marker class name based on options
-#[allow(dead_code)]
 fn get_default_marker_class_name(options: &StyleXStateOptions) -> String {
   let prefix = if !options.class_name_prefix.is_empty() {
     format!("{}-", options.class_name_prefix)
@@ -12,7 +11,6 @@ fn get_default_marker_class_name(options: &StyleXStateOptions) -> String {
 }
 
 /// Validates that a pseudo selector starts with ':' but not '::'
-#[allow(dead_code)]
 fn validate_pseudo_selector(pseudo: &str) -> Result<(), String> {
   if !pseudo.starts_with(':') {
     return Err("Pseudo selector must start with \":\"".to_string());

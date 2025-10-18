@@ -94,10 +94,7 @@ fn namespace_to_dev_class_name(
     .to_string()
 }
 
-fn convert_theme_to_base_styles(
-  variable_name: &str,
-  filename: &str,
-) -> FlatCompiledStyles {
+fn convert_theme_to_base_styles(variable_name: &str, filename: &str) -> FlatCompiledStyles {
   let mut overrides_obj_extended = IndexMap::new();
 
   // Get the basename of the file without the extension

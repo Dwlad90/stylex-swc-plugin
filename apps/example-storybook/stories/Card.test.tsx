@@ -3,7 +3,6 @@ import { composeStories } from '@storybook/react';
 import { render } from '@testing-library/react';
 import * as CardStories from './Card.stories';
 
-
 describe('Card Snapshots', () => {
   const stories = composeStories(CardStories);
 
@@ -14,4 +13,3 @@ describe('Card Snapshots', () => {
     });
   });
 });
-

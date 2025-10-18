@@ -710,3 +710,40 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
 fn js_object_to_json(js_str: &str) -> String {
   JSON_REGEX.replace_all(js_str, r#"$1"$2":"#).to_string()
 }
+
+/// Universal rounding function that rounds a floating-point number to the specified
+/// number of decimal places and returns f64.
+///
+/// For 1 decimal place (priorities): Only rounds when within floating-point error
+/// tolerance to preserve legitimate decimals like 0.25.
+///
+/// For other decimal places: Always rounds to the specified precision.
+///
+/// # Arguments
+/// * `value` - The floating-point number to round
+/// * `decimal_places` - Number of decimal places to round to (default: 1)
+///
+/// # Examples
+/// ```
+/// round_to_decimal_places(0.6000000000000001, 1) // → 0.6
+/// round_to_decimal_places(0.25, 1)               // → 0.25 (preserved)
+///
+/// round_to_decimal_places(33.333333333333336, 4) // → 33.3333
+/// round_to_decimal_places(10.0, 4)               // → 10.0
+/// ```
+pub(crate) fn round_to_decimal_places(value: f64, decimal_places: u32) -> f64 {
+  let multiplier = 10_f64.powi(decimal_places as i32);
+  let rounded = (value * multiplier).round() / multiplier;
+
+  // For single decimal place (priorities), use smart rounding that preserves
+  // legitimate decimals like 0.25 while fixing precision errors
+  if decimal_places == 1 {
+    let diff = (value - rounded).abs();
+    // If difference is within floating-point error tolerance, use rounded value
+    // Otherwise, keep the original to preserve values like 0.25
+    if diff < 1e-10 { rounded } else { value }
+  } else {
+    // For other decimal places, always round
+    rounded
+  }
+}

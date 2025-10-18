@@ -26,10 +26,7 @@ pub struct BaseCSSType {
 }
 
 impl BaseCSSType {
-  pub fn value_to_props(
-    value: ValueWithDefault,
-    top_key: Option<String>,
-  ) -> Vec<PropOrSpread> {
+  pub fn value_to_props(value: ValueWithDefault, top_key: Option<String>) -> Vec<PropOrSpread> {
     match value {
       ValueWithDefault::Number(n) => {
         let value_prop = prop_or_spread_string_factory(

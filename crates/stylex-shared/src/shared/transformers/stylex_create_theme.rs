@@ -17,7 +17,10 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{expr_to_str, key_value_to_str},
-    common::{create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object},
+    common::{
+      create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object,
+      round_to_decimal_places,
+    },
     core::define_vars_utils::{collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules},
     validators::validate_theme_variables,
   },
@@ -127,29 +130,21 @@ pub(crate) fn stylex_create_theme(
     let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
     let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
 
-    if at_rule == "default" {
-      styles_to_inject.insert(
-        override_class_name.clone(),
-        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-          ltr: rule,
-          rtl: None,
-          priority: Some(0.5),
-        })),
-      );
+    let priority = round_to_decimal_places(0.4 + priority_for_at_rule(at_rule) / 10.0, 1);
+    let suffix = if at_rule == "default" {
+      String::new()
     } else {
-      let key = format!("{}-{}", override_class_name, create_hash(at_rule));
-      let ltr = wrap_with_at_rules(rule.as_str(), at_rule);
-      let priority = 0.5 + 0.1 * priority_for_at_rule(at_rule);
+      format!("-{}", create_hash(at_rule))
+    };
 
-      styles_to_inject.insert(
-        key,
-        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-          ltr,
-          rtl: None,
-          priority: Some(priority),
-        })),
-      );
-    }
+    styles_to_inject.insert(
+      format!("{}{}", override_class_name, suffix),
+      Rc::new(InjectableStyleKind::Regular(InjectableStyle {
+        ltr: rule,
+        rtl: None,
+        priority: Some(priority),
+      })),
+    );
   }
 
   let theme_name_str_value = match theme_vars {

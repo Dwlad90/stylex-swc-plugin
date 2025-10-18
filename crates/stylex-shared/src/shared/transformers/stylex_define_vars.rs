@@ -10,7 +10,11 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
     obj_map_type::ObjMapType,
   },
-  structures::{injectable_style::InjectableStyle, state_manager::StateManager, types::{FlatCompiledStyles, InjectableStylesMap}},
+  structures::{
+    injectable_style::InjectableStyle,
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, InjectableStylesMap},
+  },
   utils::{
     common::{create_hash, get_css_value},
     core::define_vars_utils::construct_css_variables_string,
@@ -21,10 +25,7 @@ use crate::shared::{
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
   state: &mut StateManager,
-) -> (
-  FlatCompiledStyles,
-  InjectableStylesMap
-) {
+) -> (FlatCompiledStyles, InjectableStylesMap) {
   let var_group_hash = format!(
     "{}{}",
     state.options.class_name_prefix,

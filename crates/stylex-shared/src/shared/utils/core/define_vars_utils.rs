@@ -15,7 +15,7 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{key_value_to_str, lit_to_string},
-    common::{create_hash, get_key_values_from_object},
+    common::{create_hash, get_key_values_from_object, round_to_decimal_places},
   },
 };
 
@@ -51,7 +51,10 @@ pub(crate) fn construct_css_variables_string(
       format!("{}{}", theme_name_hash, suffix),
       Rc::new(InjectableStyleKind::Regular(InjectableStyle {
         // Round to avoid floating-point precision issues (0.1 + 0.2 = 0.30000000000000004)
-        priority: Some(((0.1 + priority_for_at_rule(at_rule) * 0.1) * 10.0).round() / 10.0),
+        priority: Some(round_to_decimal_places(
+          priority_for_at_rule(at_rule) / 10.0,
+          1,
+        )),
         ltr,
         rtl: None,
       })),
@@ -169,6 +172,6 @@ pub(crate) fn priority_for_at_rule(at_rule: &str) -> f64 {
   if at_rule == "default" {
     1.0
   } else {
-    at_rule.split(SPLIT_TOKEN).count() as f64
+    1.0 + at_rule.split(SPLIT_TOKEN).count() as f64
   }
 }

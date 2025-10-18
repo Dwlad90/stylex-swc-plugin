@@ -216,7 +216,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.2
+            0.1
           )
         ),
         (
@@ -301,7 +301,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
-            0.2
+            0.1
           )
         ),
         (
@@ -432,7 +432,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.2
+            0.1
           )
         ),
         (
@@ -582,7 +582,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--bgColor-xgck17p:blue;--bgColorDisabled-xpegid5:grey;--cornerRadius-xrqfjmn:10px;--fgColor-x4y59db:pink;}",
-            0.2
+            0.1
           )
         ),
         (
@@ -736,7 +736,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.2
+            0.1
           )
         ),
         (
@@ -979,7 +979,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.2
+            0.1
           )
         ),
         (
@@ -1183,7 +1183,7 @@ mod stylex_define_vars {
           "x568ih9",
           (
             ":root, .x568ih9{--bgColor:blue;--bgColorDisabled:grey;--cornerRadius:10px;--fgColor:pink;}",
-            0.2
+            0.1
           )
         ),
         (

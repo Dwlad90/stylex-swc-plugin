@@ -67,4 +67,3 @@ fn rejects_pseudo_elements() {
     r#""#,
   )
 }
-

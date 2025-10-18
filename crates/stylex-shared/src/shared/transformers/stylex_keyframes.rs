@@ -15,14 +15,15 @@ use crate::shared::{
     order_pair::OrderPair,
     pair::Pair,
     pre_rule::PreRuleValue,
-    state_manager::StateManager, types::FlatCompiledStyles,
+    state_manager::StateManager,
+    types::FlatCompiledStyles,
   },
   utils::{
     ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
     common::{create_hash, dashify},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
-    object::{obj_entries, obj_from_entries, obj_map, obj_map_keys_string, Pipe},
+    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
   },
 };
 

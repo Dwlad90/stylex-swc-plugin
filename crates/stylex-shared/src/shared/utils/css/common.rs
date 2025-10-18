@@ -26,11 +26,14 @@ use crate::shared::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
     stylex_state_options::StyleXStateOptions,
   },
-  utils::css::{
-    generate_ltr::generate_ltr,
-    generate_rtl::generate_rtl,
-    normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
-    validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
+  utils::{
+    common::round_to_decimal_places,
+    css::{
+      generate_ltr::generate_ltr,
+      generate_rtl::generate_rtl,
+      normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
+      validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
+    },
   },
 };
 
@@ -286,7 +289,7 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
   let value = match &css_property_value.parse::<f64>() {
     Ok(value) => format!(
       "{0}{1}",
-      ((value * 10000.0).round() / 10000.0),
+      round_to_decimal_places(*value, 4),
       get_number_suffix(key)
     ),
     Err(_) => css_property_value.to_string(),

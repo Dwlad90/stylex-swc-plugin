@@ -652,10 +652,10 @@ impl StateManager {
     if let Some(fallback_ast) = fallback_ast {
       let fallback_ast_hash = stable_hash(fallback_ast);
 
-      let styles_to_inject = self.styles_to_inject.entry(fallback_ast_hash).or_default();
+      let fallback_styles_to_inject = self.styles_to_inject.entry(fallback_ast_hash).or_default();
 
-      if !styles_to_inject.contains(&drop_span(module.clone())) {
-        styles_to_inject.push(drop_span(module.clone()));
+      if !fallback_styles_to_inject.contains(&drop_span(module.clone())) {
+        fallback_styles_to_inject.push(drop_span(module.clone()));
       }
     }
   }

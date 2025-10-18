@@ -1,5 +1,5 @@
 use core::panic;
-use std::{borrow::Borrow, rc::Rc};
+use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -278,7 +278,7 @@ fn _evaluate(
             }
             FunctionType::DefaultMarker(func) => {
               return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
-                fn_ptr: FunctionType::DefaultMarker(Rc::clone(func)),
+                fn_ptr: FunctionType::DefaultMarker(Arc::clone(func)),
                 takes_path: false,
               }));
             }
@@ -2265,7 +2265,7 @@ fn _evaluate(
             }
             FunctionType::DefaultMarker(default_marker) => {
               return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
-                fn_ptr: FunctionType::DefaultMarker(Rc::clone(&default_marker)),
+                fn_ptr: FunctionType::DefaultMarker(Arc::clone(&default_marker)),
                 takes_path: false,
               }));
             }

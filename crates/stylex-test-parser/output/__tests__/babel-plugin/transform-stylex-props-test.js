@@ -1605,7 +1605,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];"
       `);
         });
-        test('hoisting correctly with duplicte names', ()=>{
+        test('hoisting correctly with duplicate names', ()=>{
             expect(transform(`
             import * as stylex from "@stylexjs/stylex";
             import * as React from "react";

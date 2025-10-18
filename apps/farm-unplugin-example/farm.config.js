@@ -28,12 +28,12 @@ export default defineConfig({
       },
     ],
     styleXRSPlugin({
-      useCSSLayers: true,
+      useCSSLayers: false,
       rsOptions: {
         sourceMap: SourceMaps.Inline,
         dev: true,
-        // this must set `true` in farm
         treeshakeCompensation: true,
+        // this must set `true` in farm
         runtimeInjection: true
       },
     }),

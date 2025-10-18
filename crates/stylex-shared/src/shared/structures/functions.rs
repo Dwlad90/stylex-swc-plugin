@@ -1,4 +1,4 @@
-use std::{fmt::Debug, rc::Rc};
+use std::{fmt::Debug, rc::Rc, sync::Arc};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -37,7 +37,7 @@ pub enum FunctionType {
 
   Mapper(Rc<dyn Fn() -> Expr + 'static>),
   Callback(Box<CallbackType>),
-  DefaultMarker(Rc<IndexMap<String, StylexExprFn>>),
+  DefaultMarker(Arc<IndexMap<String, StylexExprFn>>),
 }
 
 impl Clone for FunctionType {
@@ -49,7 +49,7 @@ impl Clone for FunctionType {
       Self::StylexFnsFactory(e) => Self::StylexFnsFactory(*e),
       Self::Callback(v) => Self::Callback(v.clone()),
       Self::Mapper(c) => Self::Mapper(Rc::clone(c)),
-      Self::DefaultMarker(e) => Self::DefaultMarker(Rc::clone(e)),
+      Self::DefaultMarker(e) => Self::DefaultMarker(Arc::clone(e)),
     }
   }
 }

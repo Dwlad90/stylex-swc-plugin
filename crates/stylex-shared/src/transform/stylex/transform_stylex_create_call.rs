@@ -1,4 +1,5 @@
-use std::{rc::Rc, sync::OnceLock};
+use std::{rc::Rc, sync::Arc};
+use once_cell::sync::Lazy;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -88,7 +89,87 @@ use crate::{
   StyleXTransform, shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic,
 };
 
-static STYLEX_WHEN_MAP: OnceLock<IndexMap<String, StylexExprFn>> = OnceLock::new();
+/// Lazily-initialized Arc-wrapped map of stylex.when helper functions.
+///
+/// Thread-safety: Arc ensures safe sharing across threads; Lazy guarantees one-time initialization.
+/// Lifecycle: Initialized on first access, immutable thereafter.
+/// Contains pure, stateless transformation functions (ancestor, descendant, etc.)
+/// that convert expressions to CSS selectors for relational styling.
+static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(|| {
+  let mut map: IndexMap<String, StylexExprFn> = IndexMap::default();
+
+  map.insert(
+    "ancestor".to_string(),
+    |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::ancestor(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => panic!("stylex_when::ancestor error: {}", e),
+      };
+      string_to_expression(&result)
+    },
+  );
+
+  map.insert(
+    "descendant".to_string(),
+    |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::descendant(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => panic!("stylex_when::descendant error: {}", e),
+      };
+      string_to_expression(&result)
+    },
+  );
+
+  map.insert(
+    "siblingBefore".to_string(),
+    |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::sibling_before(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => panic!("stylex_when::sibling_before error: {}", e),
+      };
+      string_to_expression(&result)
+    },
+  );
+
+  map.insert(
+    "siblingAfter".to_string(),
+    |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::sibling_after(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => panic!("stylex_when::sibling_after error: {}", e),
+      };
+      string_to_expression(&result)
+    },
+  );
+
+  map.insert(
+    "anySibling".to_string(),
+    |expr: Expr, state: &mut StateManager| {
+      let result = match stylex_when::any_sibling(
+        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
+        Some(&state.options),
+      ) {
+        Ok(v) => v,
+        Err(e) => panic!("stylex_when::any_sibling error: {}", e),
+      };
+      string_to_expression(&result)
+    },
+  );
+
+  Arc::new(map)
+});
 
 impl<C> StyleXTransform<C>
 where
@@ -115,8 +196,6 @@ where
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
-
-      let stylex_when = STYLEX_WHEN_MAP.get_or_init(get_stylex_when_map);
 
       let first_that_works_fn = FunctionConfig {
         fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
@@ -159,13 +238,11 @@ where
         );
       }
 
-      let stylex_when_rc = Rc::new(stylex_when.clone());
-
       for name in &self.state.stylex_when_import {
         identifiers.insert(
           name.clone(),
           Box::new(FunctionConfigType::Regular(FunctionConfig {
-            fn_ptr: FunctionType::DefaultMarker(Rc::clone(&stylex_when_rc)),
+            fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
             takes_path: false,
           })),
         );
@@ -208,7 +285,7 @@ where
               map.insert(
                 "when".into(),
                 FunctionConfig {
-                  fn_ptr: FunctionType::DefaultMarker(Rc::clone(&stylex_when_rc)),
+                  fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
                   takes_path: false,
                 },
               );
@@ -219,7 +296,7 @@ where
             map.insert(
               "when".into(),
               FunctionConfig {
-                fn_ptr: FunctionType::DefaultMarker(Rc::clone(&stylex_when_rc)),
+                fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
                 takes_path: false,
               },
             );
@@ -665,9 +742,12 @@ where
         );
       };
 
-      self
-        .state
-        .register_styles(call, &injected_styles, &result_ast, Some(&styles_ast));
+      self.state.register_styles(
+        call,
+        &injected_styles,
+        &result_ast,
+        (!result_ast.eq(&styles_ast)).then_some(&styles_ast),
+      );
 
       Some(result_ast)
     } else {
@@ -680,86 +760,6 @@ where
   }
 }
 
-fn get_stylex_when_map() -> IndexMap<String, fn(Expr, &mut StateManager) -> Expr> {
-  let mut map: IndexMap<String, StylexExprFn> = IndexMap::default();
-  map.insert(
-    "ancestor".to_string(),
-    move |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::ancestor(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
-        Ok(v) => v,
-        Err(e) => {
-          panic!("stylex_when::ancestor error: {}", e)
-        }
-      };
-
-      string_to_expression(&result)
-    },
-  );
-  map.insert(
-    "descendant".to_string(),
-    move |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::descendant(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
-        Ok(v) => v,
-        Err(e) => {
-          panic!("stylex_when::descendant error: {}", e)
-        }
-      };
-      string_to_expression(&result)
-    },
-  );
-  map.insert(
-    "siblingBefore".to_string(),
-    move |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::sibling_before(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
-        Ok(v) => v,
-        Err(e) => {
-          panic!("stylex_when::sibling_before error: {}", e)
-        }
-      };
-      string_to_expression(&result)
-    },
-  );
-  map.insert(
-    "siblingAfter".to_string(),
-    move |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::sibling_after(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
-        Ok(v) => v,
-        Err(e) => {
-          panic!("stylex_when::sibling_after error: {}", e)
-        }
-      };
-      string_to_expression(&result)
-    },
-  );
-  map.insert(
-    "anySibling".to_string(),
-    move |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::any_sibling(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
-        Ok(v) => v,
-        Err(e) => {
-          panic!("stylex_when::any_sibling error: {}", e)
-        }
-      };
-      string_to_expression(&result)
-    },
-  );
-  map
-}
 
 fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles

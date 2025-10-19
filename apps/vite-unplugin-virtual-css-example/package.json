@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/vite-unplugin-virtual-css-example",
   "description": "A simple vite unplugin example virtual css to test @stylexswc/unplugin/vite",
-  "version": "0.11.3-rc.1",
+  "version": "0.12.0-rc.1",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -14,10 +14,10 @@
     "@playwright/test": "^1.55.1",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.16.2",
-    "@stylexswc/design-system": "0.11.3-rc.1",
-    "@stylexswc/playwright": "0.11.3-rc.1",
-    "@stylexswc/rs-compiler": "0.11.3-rc.1",
-    "@stylexswc/unplugin": "0.11.3-rc.1",
+    "@stylexswc/design-system": "0.12.0-rc.1",
+    "@stylexswc/playwright": "0.12.0-rc.1",
+    "@stylexswc/rs-compiler": "0.12.0-rc.1",
+    "@stylexswc/unplugin": "0.12.0-rc.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

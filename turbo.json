@@ -48,6 +48,13 @@
         "clean"
       ]
     },
+    "@stylexswc/rs-compiler#test": {
+      "dependsOn": [
+        "^build",
+        "build",
+        "clean"
+      ]
+    },
     "@stylexswc/path-resolver#lint:check": {
       "dependsOn": [
         "^build",

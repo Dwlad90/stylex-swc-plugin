@@ -2,7 +2,7 @@ use core::panic;
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
-use crate::expr_to_str_or_deopt;
+use crate::{expr_to_str_or_deopt, unwrap_or_panic};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -757,20 +757,17 @@ fn _evaluate(
           Some(EvaluateResultValue::Expr(bool_to_expression(!value)))
         }
         UnaryOp::Plus => {
-          let value = expr_to_num(&arg, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error));
+          let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns));
 
           Some(EvaluateResultValue::Expr(number_to_expression(value)))
         }
         UnaryOp::Minus => {
-          let value = expr_to_num(&arg, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error));
+          let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns));
 
           Some(EvaluateResultValue::Expr(number_to_expression(-value)))
         }
         UnaryOp::Tilde => {
-          let value = expr_to_num(&arg, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error));
+          let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns));
 
           Some(EvaluateResultValue::Expr(number_to_expression(
             (!(value as i64)) as f64,
@@ -1076,7 +1073,7 @@ fn _evaluate(
 
       return Some(EvaluateResultValue::Expr(Expr::Object(obj)));
     }
-    Expr::Bin(bin) => binary_expr_to_num(bin, state, traversal_state, fns)
+    Expr::Bin(bin) => unwrap_or_panic!(binary_expr_to_num(bin, state, traversal_state, fns)
       .or_else(|num_error| {
         binary_expr_to_string(bin, state, traversal_state, fns).or_else::<String, _>(|str_error| {
           debug!("Binary expression to string error: {}", str_error);
@@ -1091,8 +1088,7 @@ fn _evaluate(
           Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
         }
         BinaryExprType::Null => None,
-      })
-      .unwrap_or_else(|error| panic!("{}", error)),
+      })),
     Expr::Call(call) => {
       let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
       let mut func: Option<Box<FunctionConfig>> = None;
@@ -2070,8 +2066,7 @@ fn _evaluate(
                       arg
                         .as_expr()
                         .map(|expr| {
-                          expr_to_num(expr, state, traversal_state, fns)
-                            .unwrap_or_else(|error| panic!("{}", error))
+                          unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
                         .expect("All arguments must be a number")
                     })
@@ -2230,8 +2225,7 @@ fn _evaluate(
                       arg
                         .as_expr()
                         .map(|expr| {
-                          expr_to_num(expr, state, traversal_state, fns)
-                            .unwrap_or_else(|error| panic!("{}", error))
+                          unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
                         .expect("First argument must be a number")
                     })

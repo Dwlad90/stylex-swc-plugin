@@ -1,8 +1,8 @@
-use std::hash::Hash;
+use std::{hash::Hash, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::shared::utils::common::hash_f64;
+use crate::shared::{enums::data_structures::injectable_style::InjectableStyleKind, utils::common::hash_f64};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Hash, Eq)]
 pub struct InjectableStyleBase {
@@ -49,6 +49,38 @@ impl From<InjectableStyle> for InjectableStyleBase {
       ltr: style.ltr,
       rtl: style.rtl,
     }
+  }
+}
+
+impl InjectableStyle {
+  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with only LTR content.
+  ///
+  /// # Example
+  /// ```ignore
+  /// let style = InjectableStyle::regular(css_string, Some(0.5));
+  /// ```
+  #[inline]
+  pub(crate) fn regular(ltr: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
+    Rc::new(InjectableStyleKind::Regular(InjectableStyle {
+      ltr,
+      rtl: None,
+      priority,
+    }))
+  }
+
+  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with both LTR and RTL content.
+  ///
+  /// # Example
+  /// ```ignore
+  /// let style = InjectableStyle::with_rtl(ltr_css, rtl_css, Some(0.5));
+  /// ```
+  #[inline]
+  pub(crate) fn with_rtl(ltr: String, rtl: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
+    Rc::new(InjectableStyleKind::Regular(InjectableStyle {
+      ltr,
+      rtl: Some(rtl),
+      priority,
+    }))
   }
 }
 

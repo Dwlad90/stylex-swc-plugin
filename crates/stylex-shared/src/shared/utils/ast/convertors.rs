@@ -12,7 +12,7 @@ use swc_core::ecma::{
 };
 
 // Import error handling macros from shared utilities
-use crate::{expr_to_str_or_err, as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic};
+use crate::{expr_to_str_or_err, as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, unwrap_or_panic};
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, non_static_value},
@@ -589,10 +589,8 @@ pub fn transform_bin_expr_to_number(
   let left_expr = as_expr_or_panic!(left, "Left argument not expression");
   let right_expr = as_expr_or_panic!(right, "Right argument not expression");
 
-  let left =
-    expr_to_num(left_expr, state, traversal_state, fns).unwrap_or_else(|error| panic!("{}", error));
-  let right = expr_to_num(right_expr, state, traversal_state, fns)
-    .unwrap_or_else(|error| panic!("{}", error));
+  let left = unwrap_or_panic!(expr_to_num(left_expr, state, traversal_state, fns));
+  let right = unwrap_or_panic!(expr_to_num(right_expr, state, traversal_state, fns));
 
   evaluate_bin_expr(op, left, right)
 }

@@ -3,7 +3,6 @@ use crate::shared::{structures::order_pair::OrderPair, utils::css::common::split
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct Shorthands;
 
-#[allow(dead_code)]
 impl Shorthands {
   fn border(raw_value: Option<String>) -> Vec<OrderPair> {
     vec![

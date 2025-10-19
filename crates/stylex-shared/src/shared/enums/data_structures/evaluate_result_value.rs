@@ -114,3 +114,41 @@ impl PartialEq for EvaluateResultValue {
     }
   }
 }
+
+impl EvaluateResultValue {
+  /// Extracts an ObjectLit from an EvaluateResultValue if it contains an Expr(Object).
+  ///
+  /// This is a common pattern when evaluating spread expressions or object literals.
+  ///
+  /// # Example
+  /// ```ignore
+  /// let Some(obj) = spread_expression.into_object() else {
+  ///   return None;
+  /// };
+  /// ```
+  #[inline]
+  pub fn into_object(self) -> Option<swc_core::ecma::ast::ObjectLit> {
+    match self {
+      Self::Expr(Expr::Object(obj)) => Some(obj),
+      _ => None,
+    }
+  }
+
+  /// Extracts an ArrayLit from an EvaluateResultValue if it contains an Expr(Array).
+  ///
+  /// This is a common pattern when evaluating array expressions.
+  ///
+  /// # Example
+  /// ```ignore
+  /// let Some(arr) = value.into_array() else {
+  ///   return None;
+  /// };
+  /// ```
+  #[inline]
+  pub fn into_array(self) -> Option<swc_core::ecma::ast::ArrayLit> {
+    match self {
+      Self::Expr(Expr::Array(arr)) => Some(arr),
+      _ => None,
+    }
+  }
+}

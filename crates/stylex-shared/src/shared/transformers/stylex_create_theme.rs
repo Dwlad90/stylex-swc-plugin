@@ -6,8 +6,7 @@ use swc_core::ecma::ast::KeyValueProp;
 use crate::shared::{
   constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
   enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
   },
   structures::{
     functions::FunctionMap,
@@ -143,11 +142,7 @@ pub(crate) fn stylex_create_theme(
 
     styles_to_inject.insert(
       format!("{}{}", override_class_name, suffix),
-      Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-        ltr,
-        rtl: None,
-        priority: Some(priority),
-      })),
+      InjectableStyle::regular(ltr, Some(priority)),
     );
   }
 

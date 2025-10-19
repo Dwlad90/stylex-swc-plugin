@@ -7,7 +7,6 @@ mod get_package_name_and_path {
 
   use crate::shared::structures::state_manager::StateManager;
 
-  #[allow(dead_code)]
   fn get_fixture_path(test_path: &str) -> PathBuf {
     env::current_dir()
       .unwrap()

@@ -9,7 +9,7 @@ mod stylex_create {
     constants::common::COMPILED_KEY,
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+      flat_compiled_styles_value::FlatCompiledStylesValue,
     },
     structures::{
       functions::FunctionMap,
@@ -242,11 +242,7 @@ mod stylex_create {
         let (value, priority) = inj;
         expected_injected_styles.insert(
           key.to_string(),
-          Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-            ltr: value.to_string(),
-            rtl: None,
-            priority: Some(*priority),
-          })),
+          InjectableStyle::regular(value.to_string(), Some(*priority)),
         );
       }
     }

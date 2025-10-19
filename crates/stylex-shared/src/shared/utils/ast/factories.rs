@@ -1,5 +1,5 @@
 use swc_core::ecma::ast::{
-  BigInt, BindingIdent, Ident, IdentName, KeyValueProp, Lit, Null, Prop, PropName,
+  BigInt, BindingIdent, Ident, IdentName, KeyValueProp, Lit, Null, ParenExpr, Prop, PropName,
 };
 use swc_core::{
   common::{DUMMY_SP, Span},
@@ -9,6 +9,33 @@ use swc_core::{
 use super::convertors::{
   bool_to_expression, number_to_expression, string_to_expression, string_to_prop_name,
 };
+
+/// Wraps an owned expression in a ParenExpr with DUMMY_SP span.
+/// This is commonly used when creating error contexts.
+///
+/// # Example
+/// ```ignore
+/// let wrapped = wrap_in_paren(some_expr);
+/// ```
+#[inline]
+pub fn wrap_in_paren(expr: Expr) -> Expr {
+  Expr::Paren(ParenExpr {
+    span: DUMMY_SP,
+    expr: Box::new(expr),
+  })
+}
+
+/// Wraps a reference to an expression in a ParenExpr with DUMMY_SP span.
+/// This clones the expression and is commonly used when creating error contexts.
+///
+/// # Example
+/// ```ignore
+/// let wrapped = wrap_in_paren_ref(&path);
+/// ```
+#[inline]
+pub fn wrap_in_paren_ref(expr: &Expr) -> Expr {
+  wrap_in_paren(expr.clone())
+}
 
 pub(crate) fn object_lit_factory(props: Vec<PropOrSpread>) -> ObjectLit {
   ObjectLit {
@@ -67,8 +94,6 @@ pub(crate) fn ident_factory(name: &str) -> Ident {
   Ident::from(name)
 }
 
-// NOTE: Tests only using this function
-#[allow(dead_code)]
 pub fn prop_or_spread_expr_factory(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
   let object = ObjectLit {
     span: DUMMY_SP,

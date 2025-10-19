@@ -1,14 +1,11 @@
 #[cfg(test)]
 mod stylex_create_theme {
-  use std::rc::Rc;
 
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
   use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue, injectable_style::InjectableStyleKind,
-    },
+    enums::data_structures::evaluate_result_value::EvaluateResultValue,
     structures::{
       injectable_style::InjectableStyle, state_manager::StateManager, types::InjectableStylesMap,
     },
@@ -38,11 +35,7 @@ mod stylex_create_theme {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-          ltr: value.0.to_string(),
-          rtl: None,
-          priority: Some(value.1),
-        })),
+        InjectableStyle::regular(value.0.to_string(), Some(value.1)),
       );
     }
     expected_injected_styles

@@ -12,7 +12,9 @@ use swc_core::ecma::{
 };
 
 // Import error handling macros from shared utilities
-use crate::{expr_to_str_or_err, as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic};
+use crate::{
+  as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, expr_to_str_or_err, unwrap_or_panic,
+};
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, non_static_value},
@@ -309,7 +311,12 @@ pub fn binary_expr_to_string(
   };
 
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
-  let left_str = expr_to_str_or_err!(left_expr, traversal_state, fns, "Left expression is not a string");
+  let left_str = expr_to_str_or_err!(
+    left_expr,
+    traversal_state,
+    fns,
+    "Left expression is not a string"
+  );
 
   let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
     if !state.confident {
@@ -326,7 +333,12 @@ pub fn binary_expr_to_string(
   };
 
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
-  let right_str = expr_to_str_or_err!(right_expr, traversal_state, fns, "Right expression is not a string");
+  let right_str = expr_to_str_or_err!(
+    right_expr,
+    traversal_state,
+    fns,
+    "Right expression is not a string"
+  );
 
   let result = match &op {
     BinaryOp::Add => {
@@ -589,10 +601,8 @@ pub fn transform_bin_expr_to_number(
   let left_expr = as_expr_or_panic!(left, "Left argument not expression");
   let right_expr = as_expr_or_panic!(right, "Right argument not expression");
 
-  let left =
-    expr_to_num(left_expr, state, traversal_state, fns).unwrap_or_else(|error| panic!("{}", error));
-  let right = expr_to_num(right_expr, state, traversal_state, fns)
-    .unwrap_or_else(|error| panic!("{}", error));
+  let left = unwrap_or_panic!(expr_to_num(left_expr, state, traversal_state, fns));
+  let right = unwrap_or_panic!(expr_to_num(right_expr, state, traversal_state, fns));
 
   evaluate_bin_expr(op, left, right)
 }

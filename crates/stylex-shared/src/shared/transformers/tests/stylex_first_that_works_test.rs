@@ -4,6 +4,7 @@ mod stylex_first_that_works {
   use swc_core::ecma::ast::ExprOrSpread;
 
   use crate::shared::{
+    structures::{functions::FunctionMap, state_manager::StateManager},
     transformers::stylex_first_that_works::stylex_first_that_works,
     utils::ast::{
       convertors::string_to_expression,
@@ -16,6 +17,8 @@ mod stylex_first_that_works {
     first_that_works_transform(
       vec![string_to_expression("a"), string_to_expression("b")],
       vec!["b", "a"],
+      &mut StateManager::default(),
+      &FunctionMap::default(),
     );
 
     first_that_works_transform(
@@ -25,6 +28,8 @@ mod stylex_first_that_works {
         string_to_expression("c"),
       ],
       vec!["c", "b", "a"],
+      &mut StateManager::default(),
+      &FunctionMap::default(),
     );
   }
 
@@ -36,6 +41,8 @@ mod stylex_first_that_works {
         string_to_expression("blue"),
       ],
       "var(--accent, blue)",
+      &mut StateManager::default(),
+      &FunctionMap::default(),
     );
   }
 
@@ -51,6 +58,8 @@ mod stylex_first_that_works {
         "var(--accent, blue)",
         "color-mix(in srgb, currentColor 20%, transparent)",
       ],
+      &mut StateManager::default(),
+      &FunctionMap::default(),
     );
   }
 
@@ -72,22 +81,34 @@ mod stylex_first_that_works {
         "color-mix(in srgb, currentColor 20%, transparent)",
         "color-mix(in oklch, currentColor 20%, transparent)",
       ],
+      &mut StateManager::default(),
+      &FunctionMap::default(),
     );
   }
-  fn first_that_works_transform(args: Vec<Expr>, expected_values: Vec<&str>) {
+  fn first_that_works_transform(
+    args: Vec<Expr>,
+    expected_values: Vec<&str>,
+    state: &mut StateManager,
+    functions: &FunctionMap,
+  ) {
     let expected_args = expected_values
       .into_iter()
       .map(|val| Some(expr_or_spread_string_expression_factory(val)))
       .collect::<Vec<Option<ExprOrSpread>>>();
 
-    let result = stylex_first_that_works(args.into_iter().collect());
+    let result = stylex_first_that_works(args.into_iter().collect(), state, functions);
     let expected_result = array_expression_factory(expected_args);
 
     assert_eq!(result, expected_result);
   }
 
-  fn first_that_works_transform_to_string(args: Vec<Expr>, expected_value: &str) {
-    let result = stylex_first_that_works(args.into_iter().collect());
+  fn first_that_works_transform_to_string(
+    args: Vec<Expr>,
+    expected_value: &str,
+    state: &mut StateManager,
+    functions: &FunctionMap,
+  ) {
+    let result = stylex_first_that_works(args.into_iter().collect(), state, functions);
 
     assert_eq!(result, string_to_expression(expected_value));
   }

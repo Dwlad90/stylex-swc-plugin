@@ -10,9 +10,8 @@ use crate::shared::{
   },
 };
 
-fn is_var(arg: &Expr) -> bool {
-  let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default())
-    .expect("Expression is not a string");
+fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
+  let str_arg = expr_to_str(arg, state, functions).expect("Expression is not a string");
 
   IS_CSS_VAR.is_match(&str_arg).unwrap_or_else(|err| {
     warn!(
@@ -24,8 +23,12 @@ fn is_var(arg: &Expr) -> bool {
   })
 }
 
-pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
-  let first_var = args.iter().position(is_var);
+pub(crate) fn stylex_first_that_works(
+  args: Vec<Expr>,
+  state: &mut StateManager,
+  functions: &FunctionMap,
+) -> Expr {
+  let first_var = args.iter().position(|arg| is_var(arg, state, functions));
 
   match first_var {
     None => {
@@ -45,7 +48,7 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
     Some(first_var) => {
       let priorities = args[..first_var].iter().rev().collect::<Vec<_>>();
       let rest = &args[first_var..];
-      let first_non_var = rest.iter().position(|arg| !is_var(arg));
+      let first_non_var = rest.iter().position(|arg| !is_var(arg, state, functions));
       let var_parts = if let Some(first_non_var) = first_non_var {
         rest[..=first_non_var].iter().rev().collect::<Vec<_>>()
       } else {
@@ -55,9 +58,8 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
       let vars = var_parts
         .into_iter()
         .map(|arg| {
-          if is_var(arg) {
-            let str_arg = expr_to_str(arg, &mut StateManager::default(), &FunctionMap::default())
-              .expect("Argument is not a string");
+          if is_var(arg, state, functions) {
+            let str_arg = expr_to_str(arg, state, functions).expect("Argument is not a string");
             let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
             string_to_expression(cleared_str_arg)
           } else {
@@ -69,12 +71,8 @@ pub(crate) fn stylex_first_that_works(args: Vec<Expr>) -> Expr {
       let return_value = {
         let mut so_far = String::new();
         for var_name in vars.iter() {
-          let var_name_str = expr_to_str(
-            var_name,
-            &mut StateManager::default(),
-            &FunctionMap::default(),
-          )
-          .expect("Expression is not a string");
+          let var_name_str =
+            expr_to_str(var_name, state, functions).expect("Expression is not a string");
 
           so_far = if !so_far.is_empty() {
             format!("var({}, {})", var_name_str, so_far)

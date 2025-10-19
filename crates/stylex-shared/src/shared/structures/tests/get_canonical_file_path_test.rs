@@ -10,7 +10,6 @@ mod get_canonical_file_path {
     stylex_options::{CheckModuleResolution, ModuleResolution},
   };
 
-  #[allow(dead_code)]
   fn get_fixture_path(test_path: &str) -> PathBuf {
     env::current_dir()
       .unwrap()

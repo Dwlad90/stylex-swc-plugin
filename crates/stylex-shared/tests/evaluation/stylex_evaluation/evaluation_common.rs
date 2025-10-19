@@ -154,7 +154,7 @@ fn evaluates_customs_functions() {
       let mut identifiers = FxHashMap::default();
 
       let make_array = FunctionConfig {
-        fn_ptr: FunctionType::ArrayArgs(|args| {
+        fn_ptr: FunctionType::ArrayArgs(|args, _state, _functions| {
           let mut reversed = args;
           reversed.reverse();
           Expr::Array(ArrayLit {

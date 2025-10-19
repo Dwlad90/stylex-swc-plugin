@@ -8,8 +8,7 @@ mod stylex_define_vars {
   use crate::shared::{
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-      value_with_default::ValueWithDefault,
+      flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
     },
     structures::{
       base_css_type::BaseCSSType,
@@ -94,11 +93,7 @@ mod stylex_define_vars {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-          ltr: value.0.to_string(),
-          rtl: None,
-          priority: Some(value.1),
-        })),
+        InjectableStyle::regular(value.0.to_string(), Some(value.1)),
       );
     }
     expected_injected_styles

@@ -3,8 +3,8 @@ use crate::shared::structures::order_pair::OrderPair;
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct Shorthands;
 
-#[allow(dead_code)]
 impl Shorthands {
+  #[allow(dead_code)]
   fn all(_: Option<String>) -> Vec<OrderPair> {
     panic!("all is not supported");
   }
@@ -90,7 +90,6 @@ impl Shorthands {
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct Aliases;
 
-#[allow(dead_code)]
 impl Aliases {
   fn block_size(val: Option<String>) -> Vec<OrderPair> {
     vec![OrderPair("height".to_string(), val)]

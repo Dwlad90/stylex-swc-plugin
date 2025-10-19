@@ -30,7 +30,7 @@ pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
 pub type StylexExprFn = fn(Expr, &mut StateManager) -> Expr;
 
 pub enum FunctionType {
-  ArrayArgs(fn(Vec<Expr>) -> Expr),
+  ArrayArgs(fn(Vec<Expr>, &mut StateManager, &FunctionMap) -> Expr),
   StylexExprFn(StylexExprFn),
   StylexTypeFn(StylexTypeFn),
   StylexFnsFactory(fn(input: String) -> StylexTypeFn),

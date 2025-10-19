@@ -2,7 +2,7 @@ use core::panic;
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
-use crate::expr_to_str_or_deopt;
+use crate::{collect_confident, expr_to_str_or_deopt, panic_with_context, unwrap_or_panic};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -13,8 +13,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
-      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit,
-      ParenExpr, Pat, Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
+      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Pat,
+      Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
     },
     utils::{ExprExt, drop_span, ident::IdentLike, quote_ident},
   },
@@ -69,11 +69,40 @@ use crate::shared::{
       sort_numbers_factory, stable_hash, sum_hash_map_values,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
-    log::build_code_frame_error::build_code_frame_error_and_panic,
   },
 };
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
+
+/// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
+/// This reduces code duplication for operations that convert an expression to a number,
+/// apply a transformation, and return the result as an expression.
+///
+/// # Arguments
+/// * `arg` - The expression argument to the unary operator
+/// * `state` - The evaluation state
+/// * `traversal_state` - The state manager for traversal context
+/// * `fns` - The function map for evaluating function calls
+/// * `transform` - A function to transform the numeric value
+///
+/// # Example
+/// ```ignore
+/// UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
+/// UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
+/// ```
+#[inline]
+fn evaluate_unary_numeric(
+  arg: &Expr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+  transform: impl FnOnce(f64) -> f64,
+) -> Option<EvaluateResultValue> {
+  let value = unwrap_or_panic!(expr_to_num(arg, state, traversal_state, fns));
+  Some(EvaluateResultValue::Expr(number_to_expression(transform(
+    value,
+  ))))
+}
 
 pub(crate) fn evaluate_obj_key(
   prop_kv: &KeyValueProp,
@@ -340,17 +369,8 @@ fn _evaluate(
       traversal_state,
       fns,
     ),
-    #[allow(dead_code)]
     Expr::TaggedTpl(_tagged_tpl) => {
-      build_code_frame_error_and_panic(
-        &Expr::Paren(ParenExpr {
-          span: DUMMY_SP,
-          expr: Box::new(path.clone()),
-        }),
-        path,
-        "TaggedTpl not implemented",
-        traversal_state,
-      )
+      panic_with_context!(path, traversal_state, "TaggedTpl not implemented")
       // TODO: Uncomment this for implementation of TaggedTpl
       // evaluate_quasis(
       //   &Expr::TaggedTpl(_tagged_tpl.clone()),
@@ -368,14 +388,10 @@ fn _evaluate(
 
       let test_result = match test_result.expect("Test of condition must be an expression") {
         EvaluateResultValue::Expr(ref expr) => expr_to_bool(expr, traversal_state, fns),
-        _ => build_code_frame_error_and_panic(
-          &Expr::Paren(ParenExpr {
-            span: DUMMY_SP,
-            expr: Box::new(path.clone()),
-          }),
+        _ => panic_with_context!(
           path,
-          "Test of condition must be an expression",
           traversal_state,
+          "Test of condition must be an expression"
         ),
       };
 
@@ -389,14 +405,10 @@ fn _evaluate(
         evaluate_cached(&cond.alt, state, traversal_state, fns)
       }
     }
-    Expr::Paren(_) => build_code_frame_error_and_panic(
-      &Expr::Paren(ParenExpr {
-        span: DUMMY_SP,
-        expr: Box::new(path.clone()),
-      }),
+    Expr::Paren(_) => panic_with_context!(
       path,
-      "Paren must be normalized before evaluation",
       traversal_state,
+      "Paren must be normalized before evaluation"
     ),
     Expr::Member(member) => {
       let parent_is_call_expr = traversal_state
@@ -446,42 +458,18 @@ fn _evaluate(
 
                 let expr = match eval_res {
                   EvaluateResultValue::Expr(expr) => expr,
-                  _ => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
-                    path,
-                    "Property not found",
-                    traversal_state,
-                  ),
+                  _ => panic_with_context!(path, traversal_state, "Property not found"),
                 };
 
                 let value = match expr {
                   Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
-                  _ => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
-                    path,
-                    "Member not found",
-                    traversal_state,
-                  ),
+                  _ => panic_with_context!(path, traversal_state, "Member not found"),
                 };
 
                 let property = elems.get(value)?;
 
                 let Some(expr) = property.as_ref() else {
-                  build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
-                    path,
-                    "Member not found",
-                    traversal_state,
-                  )
+                  panic_with_context!(path, traversal_state, "Member not found")
                 };
 
                 let expr = expr.expr.clone();
@@ -516,14 +504,10 @@ fn _evaluate(
                     debug!("Evaluation result: {:?}", eval_res);
                     debug!("Original property: {:?}", prop_path);
 
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    panic_with_context!(
                       path,
-                      "Property not found. For additional details, please recompile using debug mode.",
                       traversal_state,
+                      "Property not found. For additional details, please recompile using debug mode."
                     );
                   }
                 };
@@ -534,36 +518,22 @@ fn _evaluate(
                 let ident_string_name = match normalized_ident {
                   Expr::Ident(ident) => ident.sym.to_string(),
                   Expr::Lit(lit) => lit_to_string(lit).unwrap_or_else(|| {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    panic_with_context!(
                       path,
-                      "Property must be convertable to string",
                       traversal_state,
+                      "Property must be convertable to string"
                     )
                   }),
-                  _ => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
-                    path,
-                    "Member property not implemented",
-                    traversal_state,
-                  ),
+                  _ => {
+                    panic_with_context!(path, traversal_state, "Member property not implemented")
+                  }
                 };
 
                 let property = props.iter().find(|prop| match prop {
-                  PropOrSpread::Spread(_) => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
+                  PropOrSpread::Spread(_) => panic_with_context!(
                     path,
-                    "Spread properties are not implemented",
                     traversal_state,
+                    "Spread properties are not implemented"
                   ),
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
@@ -577,15 +547,7 @@ fn _evaluate(
                         ident_string_name == key
                       }
                       _ => {
-                        build_code_frame_error_and_panic(
-                          &Expr::Paren(ParenExpr {
-                            span: DUMMY_SP,
-                            expr: Box::new(path.clone()),
-                          }),
-                          path,
-                          "Property not implemented",
-                          traversal_state,
-                        );
+                        panic_with_context!(path, traversal_state, "Property not implemented");
                       }
                     }
                   }
@@ -600,26 +562,14 @@ fn _evaluate(
                       .clone(),
                   ));
                 } else {
-                  build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
-                    path,
-                    "Member not found",
-                    traversal_state,
-                  );
+                  panic_with_context!(path, traversal_state, "Member not found");
                 }
               }
               _ => {
-                build_code_frame_error_and_panic(
-                  &Expr::Paren(ParenExpr {
-                    span: DUMMY_SP,
-                    expr: Box::new(path.clone()),
-                  }),
+                panic_with_context!(
                   path,
-                  "Unimplemented case for object member access",
                   traversal_state,
+                  "Unimplemented case for object member access"
                 );
               }
             },
@@ -628,35 +578,15 @@ fn _evaluate(
                 Some(property) => match property {
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Ident(ident) => Box::new(ident.clone()),
-                    _ => build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Member not found",
-                      traversal_state,
-                    ),
+                    _ => panic_with_context!(path, traversal_state, "Member not found"),
                   },
-                  _ => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
+                  _ => panic_with_context!(
                     path,
-                    "Function config map property not implemented",
                     traversal_state,
+                    "Function config map property not implemented"
                   ),
                 },
-                None => build_code_frame_error_and_panic(
-                  &Expr::Paren(ParenExpr {
-                    span: DUMMY_SP,
-                    expr: Box::new(path.clone()),
-                  }),
-                  path,
-                  "Member not found",
-                  traversal_state,
-                ),
+                None => panic_with_context!(path, traversal_state, "Member not found"),
               };
 
               let fc = fc_map.get(&key.sym).unwrap();
@@ -669,35 +599,17 @@ fn _evaluate(
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Ident(Ident { sym, .. }) => sym.to_string(),
                     Expr::Lit(lit) => lit_to_string(&lit).expect("Property must be a string"),
-                    _ => build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Member not found",
-                      traversal_state,
-                    ),
+                    _ => panic_with_context!(path, traversal_state, "Member not found"),
                   },
-                  _ => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
+                  _ => panic_with_context!(
                     path,
-                    "Theme reference property not implemented",
                     traversal_state,
+                    "Theme reference property not implemented"
                   ),
                 },
-                None => build_code_frame_error_and_panic(
-                  &Expr::Paren(ParenExpr {
-                    span: DUMMY_SP,
-                    expr: Box::new(path.clone()),
-                  }),
-                  path,
-                  "Theme reference property not found",
-                  traversal_state,
-                ),
+                None => {
+                  panic_with_context!(path, traversal_state, "Theme reference property not found")
+                }
               };
 
               let value = theme_ref.get(&key, traversal_state);
@@ -706,14 +618,10 @@ fn _evaluate(
                 value.as_str(),
               )));
             }
-            _ => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
+            _ => panic_with_context!(
               path,
-              "Evaluation result value not implemented",
               traversal_state,
+              "Evaluation result value not implemented"
             ),
           }
         }
@@ -739,15 +647,7 @@ fn _evaluate(
 
       let arg = match arg.expect("Unary argument is not an expression") {
         EvaluateResultValue::Expr(expr) => expr,
-        _ => build_code_frame_error_and_panic(
-          &Expr::Paren(ParenExpr {
-            span: DUMMY_SP,
-            expr: Box::new(path.clone()),
-          }),
-          path,
-          "Unary argument is not an expression",
-          traversal_state,
-        ),
+        _ => panic_with_context!(path, traversal_state, "Unary argument is not an expression"),
       };
 
       match unary.op {
@@ -756,25 +656,10 @@ fn _evaluate(
 
           Some(EvaluateResultValue::Expr(bool_to_expression(!value)))
         }
-        UnaryOp::Plus => {
-          let value = expr_to_num(&arg, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error));
-
-          Some(EvaluateResultValue::Expr(number_to_expression(value)))
-        }
-        UnaryOp::Minus => {
-          let value = expr_to_num(&arg, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error));
-
-          Some(EvaluateResultValue::Expr(number_to_expression(-value)))
-        }
+        UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
+        UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
         UnaryOp::Tilde => {
-          let value = expr_to_num(&arg, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error));
-
-          Some(EvaluateResultValue::Expr(number_to_expression(
-            (!(value as i64)) as f64,
-          )))
+          evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| (!(v as i64)) as f64)
         }
         UnaryOp::TypeOf => {
           let arg_type = match &arg {
@@ -787,15 +672,7 @@ fn _evaluate(
             Expr::Ident(ident) if ident.sym == *"undefined" => "undefined",
             Expr::Object(_) => "object",
             Expr::Array(_) => "object",
-            _ => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
-              path,
-              "Unary expression not implemented",
-              traversal_state,
-            ),
+            _ => panic_with_context!(path, traversal_state, "Unary expression not implemented"),
           };
 
           Some(EvaluateResultValue::Expr(string_to_expression(arg_type)))
@@ -816,12 +693,7 @@ fn _evaluate(
 
       for elem in arr_path.elems.iter().flatten() {
         let elem_value = evaluate(&elem.expr, traversal_state, &state.functions);
-
-        if elem_value.confident {
-          arr.push(elem_value.value);
-        } else {
-          return None;
-        }
+        collect_confident!(elem_value, arr);
       }
 
       Some(EvaluateResultValue::Vec(arr))
@@ -838,19 +710,8 @@ fn _evaluate(
               return deopt(path, state, OBJECT_METHOD);
             }
 
-            let Some(new_props) = spread_expression
-              .and_then(|spread| spread.as_expr().cloned())
-              .and_then(|expr| expr.as_object().cloned())
-            else {
-              build_code_frame_error_and_panic(
-                &Expr::Paren(ParenExpr {
-                  span: DUMMY_SP,
-                  expr: Box::new(path.clone()),
-                }),
-                path,
-                "Spread must be an object",
-                traversal_state,
-              );
+            let Some(new_props) = spread_expression.and_then(|s| s.into_object()) else {
+              panic_with_context!(path, traversal_state, "Spread must be an object");
             };
 
             let merged_object = deep_merge_props(props, new_props.props);
@@ -908,17 +769,15 @@ fn _evaluate(
                       .as_ref()
                       .and_then(|value| value.as_expr())
                     {
-                      Some(expr_to_str_or_deopt!(expr, state, traversal_state, &state.functions, "Expression is not a string"))
-                    } else {
-                      build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
-                        path,
-                        "Property must be an expression",
+                      Some(expr_to_str_or_deopt!(
+                        expr,
+                        state,
                         traversal_state,
-                      );
+                        &state.functions,
+                        "Expression is not a string"
+                      ))
+                    } else {
+                      panic_with_context!(path, traversal_state, "Property must be an expression");
                     }
                   }
                   PropName::BigInt(big_int) => Some(big_int.value.to_string()),
@@ -941,19 +800,15 @@ fn _evaluate(
                 }
 
                 let Some(value) = eval_value.value else {
-                  build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
+                  panic_with_context!(
                     path,
+                    traversal_state,
                     format!(
                       "Value of key '{}' must be present, but got {:?}",
                       key.clone().unwrap_or_else(|| "Unknown".to_string()),
                       path_key_value.value.get_type(get_default_expr_ctx())
                     )
-                    .as_ref(),
-                    traversal_state,
+                    .as_ref()
                   );
                 };
 
@@ -1027,24 +882,12 @@ fn _evaluate(
                       Some(cb(cb_args))
                     }
                     Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
-                    _ => build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Callback type not supported",
-                      traversal_state,
-                    ),
+                    _ => panic_with_context!(path, traversal_state, "Callback type not supported"),
                   },
-                  _ => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
+                  _ => panic_with_context!(
                     path,
-                    "Property value must be an expression",
                     traversal_state,
+                    "Property value must be an expression"
                   ),
                 };
 
@@ -1055,14 +898,10 @@ fn _evaluate(
                   }))));
                 }
               }
-              _ => build_code_frame_error_and_panic(
-                &Expr::Paren(ParenExpr {
-                  span: DUMMY_SP,
-                  expr: Box::new(path.clone()),
-                }),
+              _ => panic_with_context!(
                 path,
-                "Evaluation result value not implemented",
                 traversal_state,
+                "Evaluation result value not implemented"
               ),
             }
           }
@@ -1076,23 +915,26 @@ fn _evaluate(
 
       return Some(EvaluateResultValue::Expr(Expr::Object(obj)));
     }
-    Expr::Bin(bin) => binary_expr_to_num(bin, state, traversal_state, fns)
-      .or_else(|num_error| {
-        binary_expr_to_string(bin, state, traversal_state, fns).or_else::<String, _>(|str_error| {
-          debug!("Binary expression to string error: {}", str_error);
-          debug!("Binary expression to number error: {}", num_error);
+    Expr::Bin(bin) => unwrap_or_panic!(
+      binary_expr_to_num(bin, state, traversal_state, fns)
+        .or_else(|num_error| {
+          binary_expr_to_string(bin, state, traversal_state, fns).or_else::<String, _>(
+            |str_error| {
+              debug!("Binary expression to string error: {}", str_error);
+              debug!("Binary expression to number error: {}", num_error);
 
-          Ok(BinaryExprType::Null)
+              Ok(BinaryExprType::Null)
+            },
+          )
         })
-      })
-      .map(|result| match result {
-        BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(number_to_expression(num))),
-        BinaryExprType::String(strng) => {
-          Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
-        }
-        BinaryExprType::Null => None,
-      })
-      .unwrap_or_else(|error| panic!("{}", error)),
+        .map(|result| match result {
+          BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(number_to_expression(num))),
+          BinaryExprType::String(strng) => {
+            Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
+          }
+          BinaryExprType::Null => None,
+        })
+    ),
     Expr::Call(call) => {
       let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
       let mut func: Option<Box<FunctionConfig>> = None;
@@ -1111,14 +953,10 @@ fn _evaluate(
               .unwrap()
               .as_ref()
             {
-              FunctionConfigType::Map(_) => build_code_frame_error_and_panic(
-                &Expr::Paren(ParenExpr {
-                  span: DUMMY_SP,
-                  expr: Box::new(path.clone()),
-                }),
+              FunctionConfigType::Map(_) => panic_with_context!(
                 path,
-                "FunctionConfigType::Map not implemented",
                 traversal_state,
+                "FunctionConfigType::Map not implemented"
               ),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
               FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
@@ -1162,15 +1000,7 @@ fn _evaluate(
                       .unwrap_or_else(|| panic!("Math.{} requires an argument", method_name));
 
                     if first_arg.spread.is_some() {
-                      build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
-                        path,
-                        "Spread not implemented",
-                        traversal_state,
-                      )
+                      panic_with_context!(path, traversal_state, "Spread not implemented");
                     }
 
                     match method_name {
@@ -1186,15 +1016,7 @@ fn _evaluate(
                           .expect("Math.pow requires a second argument");
 
                         if second_arg.spread.is_some() {
-                          build_code_frame_error_and_panic(
-                            &Expr::Paren(ParenExpr {
-                              span: DUMMY_SP,
-                              expr: Box::new(path.clone()),
-                            }),
-                            path,
-                            "Spread not implemented",
-                            traversal_state,
-                          )
+                          panic_with_context!(path, traversal_state, "Spread not implemented");
                         }
 
                         let cached_first_arg =
@@ -1291,15 +1113,7 @@ fn _evaluate(
                       .unwrap_or_else(|| panic!("Object.{} requires an argument", method_name));
 
                     if arg.spread.is_some() {
-                      build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
-                        path,
-                        "Spread not implemented",
-                        traversal_state,
-                      )
+                      panic_with_context!(path, traversal_state, "Spread not implemented");
                     }
 
                     let cached_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
@@ -1502,14 +1316,10 @@ fn _evaluate(
                     FunctionConfigType::Regular(fc) => {
                       func = Some(Box::new(fc.clone()));
                     }
-                    FunctionConfigType::Map(_) => build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    FunctionConfigType::Map(_) => panic_with_context!(
                       path,
-                      "FunctionConfigType::Map not implemented",
                       traversal_state,
+                      "FunctionConfigType::Map not implemented"
                     ),
                     FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
                   }
@@ -1526,15 +1336,7 @@ fn _evaluate(
                 .get(&ImportSources::Regular(obj_name))
                 && member_expr.contains_key(prop_id)
               {
-                build_code_frame_error_and_panic(
-                  &Expr::Paren(ParenExpr {
-                    span: DUMMY_SP,
-                    expr: Box::new(path.clone()),
-                  }),
-                  path,
-                  "Check what's happening here",
-                  traversal_state,
-                )
+                panic_with_context!(path, traversal_state, "Check what's happening here");
 
                 // context = Some(member_expr.clone());
 
@@ -1555,15 +1357,7 @@ fn _evaluate(
             if property.is_ident()
               && let Lit::Bool(_) = obj_lit
             {
-              build_code_frame_error_and_panic(
-                &Expr::Paren(ParenExpr {
-                  span: DUMMY_SP,
-                  expr: Box::new(path.clone()),
-                }),
-                path,
-                "Boolean object not implemented",
-                traversal_state,
-              )
+              panic_with_context!(path, traversal_state, "Boolean object not implemented");
             }
           }
 
@@ -1582,14 +1376,10 @@ fn _evaluate(
                     let result_fn = map.get(&Expr::from(prop_ident.clone()));
 
                     func = match result_fn {
-                      Some(_) => build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
+                      Some(_) => panic_with_context!(
                         path,
-                        "EvaluateResultValue::Map not implemented",
                         traversal_state,
+                        "EvaluateResultValue::Map not implemented"
                       ),
                       None => None,
                     };
@@ -1601,14 +1391,10 @@ fn _evaluate(
                         "filter" => CallbackType::Array(ArrayJS::Filter),
                         "join" => CallbackType::Array(ArrayJS::Join),
                         "entries" => CallbackType::Object(ObjectJS::Entries),
-                        _ => build_code_frame_error_and_panic(
-                          &Expr::Paren(ParenExpr {
-                            span: DUMMY_SP,
-                            expr: Box::new(path.clone()),
-                          }),
+                        _ => panic_with_context!(
                           path,
-                          format!("Array method '{}' implemented yet", prop_name).as_str(),
                           traversal_state,
+                          format!("Array method '{}' implemented yet", prop_name).as_str()
                         ),
                       })),
                       takes_path: false,
@@ -1623,14 +1409,10 @@ fn _evaluate(
                           "map" => CallbackType::Array(ArrayJS::Map),
                           "filter" => CallbackType::Array(ArrayJS::Filter),
                           "entries" => CallbackType::Object(ObjectJS::Entries),
-                          _ => build_code_frame_error_and_panic(
-                            &Expr::Paren(ParenExpr {
-                              span: DUMMY_SP,
-                              expr: Box::new(path.clone()),
-                            }),
+                          _ => panic_with_context!(
                             path,
-                            format!("Method '{}' implemented yet", prop_name).as_str(),
                             traversal_state,
+                            format!("Method '{}' implemented yet", prop_name).as_str()
                           ),
                         })),
                         takes_path: false,
@@ -1648,14 +1430,10 @@ fn _evaluate(
                         fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
                           "concat" => CallbackType::String(StringJS::Concat),
                           "charCodeAt" => CallbackType::String(StringJS::CharCodeAt),
-                          _ => build_code_frame_error_and_panic(
-                            &Expr::Paren(ParenExpr {
-                              span: DUMMY_SP,
-                              expr: Box::new(path.clone()),
-                            }),
+                          _ => panic_with_context!(
                             path,
-                            format!("Method '{}' implemented yet", prop_name).as_str(),
                             traversal_state,
+                            format!("Method '{}' implemented yet", prop_name).as_str()
                           ),
                         })),
                         takes_path: false,
@@ -1675,15 +1453,7 @@ fn _evaluate(
                           });
 
                       let Some(key_value) = key_value else {
-                        build_code_frame_error_and_panic(
-                          &Expr::Paren(ParenExpr {
-                            span: DUMMY_SP,
-                            expr: Box::new(path.clone()),
-                          }),
-                          path,
-                          "Property not found",
-                          traversal_state,
-                        )
+                        panic_with_context!(path, traversal_state, "Property not found");
                       };
 
                       func = Some(Box::new(FunctionConfig {
@@ -1709,14 +1479,10 @@ fn _evaluate(
 
                       context = Some(args);
                     }
-                    _ => build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    _ => panic_with_context!(
                       path,
-                      "Expression evaluation not implemented",
                       traversal_state,
+                      "Expression evaluation not implemented"
                     ),
                   },
                   EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
@@ -1740,24 +1506,16 @@ fn _evaluate(
                         context = Some(vec![Some(value)]);
                       };
                     }
-                    _ => build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    _ => panic_with_context!(
                       path,
-                      "FunctionType::StylexFnsFactory not implemented",
                       traversal_state,
+                      "FunctionType::StylexFnsFactory not implemented"
                     ),
                   },
-                  _ => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
+                  _ => panic_with_context!(
                     path,
-                    "Evaluation result value not implemented",
                     traversal_state,
+                    "Evaluation result value not implemented"
                   ),
                 }
               } else if let Some(prop_id) = is_id_prop(property) {
@@ -1767,15 +1525,7 @@ fn _evaluate(
                 let result_fn = map.get(&string_to_expression(prop_id.as_str()));
 
                 func = match result_fn {
-                  Some(_) => build_code_frame_error_and_panic(
-                    &Expr::Paren(ParenExpr {
-                      span: DUMMY_SP,
-                      expr: Box::new(path.clone()),
-                    }),
-                    path,
-                    "Result function is some",
-                    traversal_state,
-                  ),
+                  Some(_) => panic_with_context!(path, traversal_state, "Result function is some"),
                   None => None,
                 };
               }
@@ -1790,7 +1540,11 @@ fn _evaluate(
 
           match func.fn_ptr {
             FunctionType::ArrayArgs(func) => {
-              let func_result = (func)(args.iter().map(|arg| (*arg).clone()).collect());
+              let func_result = (func)(
+                args.iter().map(|arg| (*arg).clone()).collect(),
+                traversal_state,
+                fns,
+              );
               return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::StylexExprFn(func) => {
@@ -1798,51 +1552,19 @@ fn _evaluate(
 
               return Some(EvaluateResultValue::Expr(func_result));
             }
-            FunctionType::StylexTypeFn(_) => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
-              path,
-              "StylexFnsFactory not implemented",
-              traversal_state,
-            ),
-            FunctionType::StylexFnsFactory(_) => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
-              path,
-              "StylexFnsFactory",
-              traversal_state,
-            ),
-            FunctionType::Callback(_) => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
-              path,
-              "Arrow function",
-              traversal_state,
-            ),
-            FunctionType::Mapper(_) => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
-              path,
-              "Mapper",
-              traversal_state,
-            ),
-            FunctionType::DefaultMarker(_) => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
-              path,
-              "DefaultMarker",
-              traversal_state,
-            ),
+            FunctionType::StylexTypeFn(_) => {
+              panic_with_context!(path, traversal_state, "StylexFnsFactory not implemented")
+            }
+            FunctionType::StylexFnsFactory(_) => {
+              panic_with_context!(path, traversal_state, "StylexFnsFactory")
+            }
+            FunctionType::Callback(_) => {
+              panic_with_context!(path, traversal_state, "Arrow function")
+            }
+            FunctionType::Mapper(_) => panic_with_context!(path, traversal_state, "Mapper"),
+            FunctionType::DefaultMarker(_) => {
+              panic_with_context!(path, traversal_state, "DefaultMarker")
+            }
           }
         } else {
           if !state.confident {
@@ -1862,6 +1584,8 @@ fn _evaluate(
                       .expect("Argument is not an expression")
                   })
                   .collect(),
+                traversal_state,
+                fns,
               );
               return Some(EvaluateResultValue::Expr(func_result));
             }
@@ -1932,26 +1656,18 @@ fn _evaluate(
                 }
                 CallbackType::Object(ObjectJS::Entries) => {
                   let Some(Some(eval_result)) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    panic_with_context!(
                       path,
-                      "Object.entries requires an argument",
                       traversal_state,
+                      "Object.entries requires an argument"
                     )
                   };
 
                   let EvaluateResultValue::Entries(entries) = eval_result else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    panic_with_context!(
                       path,
-                      "Object.entries requires an argument",
                       traversal_state,
+                      "Object.entries requires an argument"
                     )
                   };
 
@@ -1980,44 +1696,24 @@ fn _evaluate(
                 }
                 CallbackType::Object(ObjectJS::Keys) => {
                   let Some(Some(EvaluateResultValue::Expr(keys))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Object.keys requires an argument",
-                      traversal_state,
-                    )
+                    panic_with_context!(path, traversal_state, "Object.keys requires an argument")
                   };
 
                   return Some(EvaluateResultValue::Expr(keys.clone()));
                 }
                 CallbackType::Object(ObjectJS::Values) => {
                   let Some(Some(EvaluateResultValue::Expr(values))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Object.keys requires an argument",
-                      traversal_state,
-                    )
+                    panic_with_context!(path, traversal_state, "Object.keys requires an argument")
                   };
 
                   return Some(EvaluateResultValue::Expr(values.clone()));
                 }
                 CallbackType::Object(ObjectJS::FromEntries) => {
                   let Some(Some(EvaluateResultValue::Entries(entries))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    panic_with_context!(
                       path,
-                      "Object.fromEntries requires an argument",
                       traversal_state,
+                      "Object.fromEntries requires an argument"
                     )
                   };
 
@@ -2027,15 +1723,7 @@ fn _evaluate(
                     let ident_name = if let Lit::Str(lit_str) = key {
                       quote_ident!(lit_str.value.as_ref())
                     } else {
-                      build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
-                        path,
-                        "Expected a string literal",
-                        traversal_state,
-                      )
+                      panic_with_context!(path, traversal_state, "Expected a string literal")
                     };
 
                     let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
@@ -2052,15 +1740,7 @@ fn _evaluate(
                 }
                 CallbackType::Math(MathJS::Pow) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Math.pow requires an argument",
-                      traversal_state,
-                    )
+                    panic_with_context!(path, traversal_state, "Math.pow requires an argument")
                   };
 
                   let num_args = args
@@ -2070,8 +1750,7 @@ fn _evaluate(
                       arg
                         .as_expr()
                         .map(|expr| {
-                          expr_to_num(expr, state, traversal_state, fns)
-                            .unwrap_or_else(|error| panic!("{}", error))
+                          unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
                         .expect("All arguments must be a number")
                     })
@@ -2083,28 +1762,16 @@ fn _evaluate(
                 }
                 CallbackType::Math(MathJS::Round | MathJS::Floor | MathJS::Ceil) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    panic_with_context!(
                       path,
-                      "Math.(round | ceil | floor) requires an argument",
                       traversal_state,
+                      "Math.(round | ceil | floor) requires an argument"
                     )
                   };
 
                   let num =
                     expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
-                      build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
-                        path,
-                        error.to_string().as_str(),
-                        traversal_state,
-                      )
+                      panic_with_context!(path, traversal_state, error.to_string().as_str())
                     });
 
                   let result = match func.as_ref() {
@@ -2118,14 +1785,10 @@ fn _evaluate(
                 }
                 CallbackType::Math(MathJS::Min | MathJS::Max) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
+                    panic_with_context!(
                       path,
-                      "Math.(min | max) requires an argument",
                       traversal_state,
+                      "Math.(min | max) requires an argument"
                     )
                   };
 
@@ -2146,43 +1809,19 @@ fn _evaluate(
                 }
                 CallbackType::Math(MathJS::Abs) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Math.abs requires an argument",
-                      traversal_state,
-                    )
+                    panic_with_context!(path, traversal_state, "Math.abs requires an argument")
                   };
 
                   let num =
                     expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
-                      build_code_frame_error_and_panic(
-                        &Expr::Paren(ParenExpr {
-                          span: DUMMY_SP,
-                          expr: Box::new(path.clone()),
-                        }),
-                        path,
-                        error.to_string().as_str(),
-                        traversal_state,
-                      )
+                      panic_with_context!(path, traversal_state, error.to_string().as_str())
                     });
 
                   return Some(EvaluateResultValue::Expr(number_to_expression(num.abs())));
                 }
                 CallbackType::String(StringJS::Concat) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "String concat requires an argument",
-                      traversal_state,
-                    )
+                    panic_with_context!(path, traversal_state, "String concat requires an argument")
                   };
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
@@ -2191,8 +1830,14 @@ fn _evaluate(
                   for arg in &args {
                     match arg.as_expr() {
                       Some(expr) => {
-                        str_args_vec.push(expr_to_str_or_deopt!(expr, state, traversal_state, fns, "Expression is not a string"));
-                      },
+                        str_args_vec.push(expr_to_str_or_deopt!(
+                          expr,
+                          state,
+                          traversal_state,
+                          fns,
+                          "Expression is not a string"
+                        ));
+                      }
                       None => {
                         deopt(path, state, "All arguments must be a string");
                         return None;
@@ -2201,7 +1846,13 @@ fn _evaluate(
                   }
                   let str_args = str_args_vec.join("");
 
-                  let base_str = expr_to_str_or_deopt!(base_str, state, traversal_state, fns, "Expression is not a string");
+                  let base_str = expr_to_str_or_deopt!(
+                    base_str,
+                    state,
+                    traversal_state,
+                    fns,
+                    "Expression is not a string"
+                  );
 
                   return Some(EvaluateResultValue::Expr(string_to_expression(
                     format!("{}{}", base_str, str_args).as_str(),
@@ -2209,18 +1860,16 @@ fn _evaluate(
                 }
                 CallbackType::String(StringJS::CharCodeAt) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
-                    build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "String concat requires an argument",
-                      traversal_state,
-                    )
+                    panic_with_context!(path, traversal_state, "String concat requires an argument")
                   };
 
-                  let base_str = expr_to_str_or_deopt!(base_str, state, traversal_state, fns, "Expression is not a string");
+                  let base_str = expr_to_str_or_deopt!(
+                    base_str,
+                    state,
+                    traversal_state,
+                    fns,
+                    "Expression is not a string"
+                  );
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
@@ -2230,8 +1879,7 @@ fn _evaluate(
                       arg
                         .as_expr()
                         .map(|expr| {
-                          expr_to_num(expr, state, traversal_state, fns)
-                            .unwrap_or_else(|error| panic!("{}", error))
+                          unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
                         .expect("First argument must be a number")
                     })
@@ -2257,15 +1905,7 @@ fn _evaluate(
                     Some(EvaluateResultValue::Callback(cb)) => {
                       cb(args.into_iter().map(Some).collect())
                     }
-                    _ => build_code_frame_error_and_panic(
-                      &Expr::Paren(ParenExpr {
-                        span: DUMMY_SP,
-                        expr: Box::new(path.clone()),
-                      }),
-                      path,
-                      "Arrow function not found",
-                      traversal_state,
-                    ),
+                    _ => panic_with_context!(path, traversal_state, "Arrow function not found"),
                   };
 
                   return Some(EvaluateResultValue::Expr(expr_result));
@@ -2278,15 +1918,7 @@ fn _evaluate(
                 takes_path: false,
               }));
             }
-            _ => build_code_frame_error_and_panic(
-              &Expr::Paren(ParenExpr {
-                span: DUMMY_SP,
-                expr: Box::new(path.clone()),
-              }),
-              path,
-              "Function type",
-              traversal_state,
-            ),
+            _ => panic_with_context!(path, traversal_state, "Function type"),
           }
         }
       }
@@ -2321,15 +1953,7 @@ fn _evaluate(
 
   if result.is_none() && normalized_path.is_ident() {
     let Some(ident) = normalized_path.as_ident() else {
-      build_code_frame_error_and_panic(
-        &Expr::Paren(ParenExpr {
-          span: DUMMY_SP,
-          expr: Box::new(path.clone()),
-        }),
-        path,
-        "Identifier not foun",
-        traversal_state,
-      )
+      panic_with_context!(path, traversal_state, "Identifier not foun")
     };
 
     let binding = get_var_decl_by_ident(
@@ -2574,15 +2198,7 @@ fn args_to_numbers(
         EvaluateResultValue::Expr(expr) => {
           vec![
             expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
-              build_code_frame_error_and_panic(
-                &Expr::Paren(ParenExpr {
-                  span: DUMMY_SP,
-                  expr: Box::new(expr.clone()),
-                }),
-                expr,
-                error.to_string().as_str(),
-                traversal_state,
-              )
+              panic_with_context!(expr, traversal_state, error.to_string().as_str())
             }),
           ]
         }
@@ -2653,14 +2269,10 @@ pub(crate) fn evaluate_quasis(
   let exprs = match tpl_expr {
     Expr::Tpl(tpl) => &tpl.exprs,
     Expr::TaggedTpl(tagged_tpl) => &tagged_tpl.tpl.exprs,
-    _ => build_code_frame_error_and_panic(
-      &Expr::Paren(ParenExpr {
-        span: DUMMY_SP,
-        expr: Box::new(tpl_expr.clone()),
-      }),
+    _ => panic_with_context!(
       tpl_expr,
-      "The expression is not a template",
       traversal_state,
+      "The expression is not a template"
     ),
   };
 

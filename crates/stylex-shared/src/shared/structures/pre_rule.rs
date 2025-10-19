@@ -16,7 +16,6 @@ use super::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PreRuleValue {
-  #[allow(dead_code)]
   Expr(Expr),
   String(String),
   Vec(Vec<String>),

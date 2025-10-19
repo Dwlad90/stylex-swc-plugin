@@ -9,7 +9,7 @@ mod stylex_create {
     constants::common::COMPILED_KEY,
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+      flat_compiled_styles_value::FlatCompiledStylesValue,
     },
     structures::{
       functions::FunctionMap,

@@ -6,8 +6,7 @@ use swc_core::ecma::ast::{Expr, Lit};
 use crate::shared::{
   constants::common::SPLIT_TOKEN,
   enums::data_structures::{
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-    value_with_default::ValueWithDefault,
+    flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
   },
   structures::{
     injectable_style::InjectableStyle,

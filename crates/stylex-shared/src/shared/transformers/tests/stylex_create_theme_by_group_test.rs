@@ -1,14 +1,11 @@
 #[cfg(test)]
 mod stylex_create_theme {
-  use std::rc::Rc;
 
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
   use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue, injectable_style::InjectableStyleKind,
-    },
+    enums::data_structures::evaluate_result_value::EvaluateResultValue,
     structures::{
       injectable_style::InjectableStyle, state_manager::StateManager, types::InjectableStylesMap,
     },

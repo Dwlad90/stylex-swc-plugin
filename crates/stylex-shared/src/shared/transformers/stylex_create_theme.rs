@@ -6,8 +6,7 @@ use swc_core::ecma::ast::KeyValueProp;
 use crate::shared::{
   constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
   enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
   },
   structures::{
     functions::FunctionMap,

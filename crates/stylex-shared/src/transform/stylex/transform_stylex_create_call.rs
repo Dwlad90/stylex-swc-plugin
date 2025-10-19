@@ -1,5 +1,5 @@
-use std::{rc::Rc, sync::Arc};
 use once_cell::sync::Lazy;
+use std::{rc::Rc, sync::Arc};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -24,9 +24,7 @@ use swc_core::{
 
 use crate::shared::{
   constants::{common::COMPILED_KEY, messages::non_static_value},
-  enums::data_structures::{
-    injectable_style::InjectableStyleKind, top_level_expression::TopLevelExpression,
-  },
+  enums::data_structures::top_level_expression::TopLevelExpression,
   structures::{
     functions::StylexExprFn,
     injectable_style::InjectableStyle,
@@ -46,7 +44,6 @@ use crate::shared::{
       dev_class_name::{convert_to_test_styles, inject_dev_class_names},
     },
     log::build_code_frame_error::build_code_frame_error,
-    when as stylex_when,
   },
 };
 use crate::shared::{
@@ -55,6 +52,7 @@ use crate::shared::{
     stylex_create::stylex_create_set, stylex_first_that_works::stylex_first_that_works,
     stylex_keyframes::get_keyframes_fn,
   },
+  utils::when as stylex_when,
 };
 use crate::shared::{
   structures::state::EvaluationState,
@@ -758,7 +756,6 @@ where
     result
   }
 }
-
 
 fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles

@@ -11,6 +11,9 @@ use swc_core::ecma::{
   parser::Context,
 };
 
+// Import error handling macros from shared utilities
+use crate::{expr_to_str_or_err, as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic};
+
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, non_static_value},
   enums::{
@@ -145,12 +148,8 @@ pub fn binary_expr_to_num(
     panic!("Left expression is not a number")
   };
 
-  let left_num = expr_to_num(
-    left.as_expr().expect("Argument not expression!"),
-    state,
-    traversal_state,
-    fns,
-  )?;
+  let left_expr = as_expr_or_err!(left, "Left argument not expression");
+  let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
 
   let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
     if !state.confident {
@@ -166,12 +165,8 @@ pub fn binary_expr_to_num(
     panic!("Right expression is not a number")
   };
 
-  let right_num = expr_to_num(
-    right.as_expr().expect("Argument not expression!"),
-    state,
-    traversal_state,
-    fns,
-  )?;
+  let right_expr = as_expr_or_err!(right, "Right argument not expression");
+  let right_num = expr_to_num(right_expr, state, traversal_state, fns)?;
 
   let result = match &op {
     BinaryOp::Add => {
@@ -313,12 +308,8 @@ pub fn binary_expr_to_string(
     panic!("Left expression is not a string")
   };
 
-  let left_str = expr_to_str(
-    left.as_expr().expect("Argument not expression!"),
-    traversal_state,
-    fns,
-  )
-  .expect("Left expression is not a string");
+  let left_expr = as_expr_or_err!(left, "Left argument not expression");
+  let left_str = expr_to_str_or_err!(left_expr, traversal_state, fns, "Left expression is not a string");
 
   let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
     if !state.confident {
@@ -334,12 +325,8 @@ pub fn binary_expr_to_string(
     panic!("Right expression is not a string")
   };
 
-  let right_str = expr_to_str(
-    right.as_expr().expect("Argument not expression!"),
-    traversal_state,
-    fns,
-  )
-  .expect("Right expression is not a string");
+  let right_expr = as_expr_or_err!(right, "Right argument not expression");
+  let right_str = expr_to_str_or_err!(right_expr, traversal_state, fns, "Right expression is not a string");
 
   let result = match &op {
     BinaryOp::Add => {
@@ -361,8 +348,8 @@ fn evaluate_left_and_right_expression(
   left: &EvaluateResultValue,
   right: &EvaluateResultValue,
 ) -> Option<Result<BinaryExprType, anyhow::Error>> {
-  let left_expr = left.as_expr().expect("Argument not expression");
-  let right_expr = right.as_expr().expect("Argument not expression");
+  let left_expr = as_expr_or_opt_err!(left, "Left argument not expression");
+  let right_expr = as_expr_or_opt_err!(right, "Right argument not expression");
 
   let mut state_for_left = EvaluationState {
     confident: true,
@@ -599,8 +586,8 @@ pub fn transform_bin_expr_to_number(
     )
   };
 
-  let left_expr = left.as_expr().expect("Left argument not expression");
-  let right_expr = right.as_expr().expect("Right argument not expression");
+  let left_expr = as_expr_or_panic!(left, "Left argument not expression");
+  let right_expr = as_expr_or_panic!(right, "Right argument not expression");
 
   let left =
     expr_to_num(left_expr, state, traversal_state, fns).unwrap_or_else(|error| panic!("{}", error));

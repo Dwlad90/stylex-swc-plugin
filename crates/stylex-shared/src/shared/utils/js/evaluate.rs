@@ -1,6 +1,9 @@
 use core::panic;
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
+// Import error handling macros from shared utilities
+use crate::expr_to_str_or_deopt;
+
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -104,8 +107,19 @@ pub(crate) fn evaluate_obj_key(
     PropName::BigInt(big_int) => big_int_to_expression(big_int.clone()),
   };
 
-  let key_expr =
-    string_to_expression(&expr_to_str(&key, state, functions).expect("Key is not a string"));
+  let key_expr = match expr_to_str(&key, state, functions) {
+    Some(ref s) => string_to_expression(s),
+    None => {
+      return EvaluateResult {
+        confident: false,
+        deopt: Some(key),
+        reason: Some("Key is not a string".to_string()),
+        value: None,
+        inline_styles: None,
+        fns: None,
+      };
+    }
+  };
 
   EvaluateResult {
     confident: true,
@@ -894,10 +908,7 @@ fn _evaluate(
                       .as_ref()
                       .and_then(|value| value.as_expr())
                     {
-                      Some(
-                        expr_to_str(expr, traversal_state, &state.functions)
-                          .expect("Expression is not a string"),
-                      )
+                      Some(expr_to_str_or_deopt!(expr, state, traversal_state, &state.functions, "Expression is not a string"))
                     } else {
                       build_code_frame_error_and_panic(
                         &Expr::Paren(ParenExpr {
@@ -2176,22 +2187,21 @@ fn _evaluate(
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
-                  let str_args = args
-                    .iter()
-                    .map(|arg| {
-                      arg
-                        .as_expr()
-                        .map(|expr| {
-                          expr_to_str(expr, traversal_state, fns)
-                            .expect("Expression is not a string")
-                        })
-                        .expect("All arguments must be a string")
-                    })
-                    .collect::<Vec<String>>()
-                    .join("");
+                  let mut str_args_vec = Vec::new();
+                  for arg in &args {
+                    match arg.as_expr() {
+                      Some(expr) => {
+                        str_args_vec.push(expr_to_str_or_deopt!(expr, state, traversal_state, fns, "Expression is not a string"));
+                      },
+                      None => {
+                        deopt(path, state, "All arguments must be a string");
+                        return None;
+                      }
+                    }
+                  }
+                  let str_args = str_args_vec.join("");
 
-                  let base_str = expr_to_str(base_str, traversal_state, fns)
-                    .expect("Expression is not a string");
+                  let base_str = expr_to_str_or_deopt!(base_str, state, traversal_state, fns, "Expression is not a string");
 
                   return Some(EvaluateResultValue::Expr(string_to_expression(
                     format!("{}{}", base_str, str_args).as_str(),
@@ -2210,8 +2220,7 @@ fn _evaluate(
                     )
                   };
 
-                  let base_str = expr_to_str(base_str, traversal_state, fns)
-                    .expect("Expression is not a string");
+                  let base_str = expr_to_str_or_deopt!(base_str, state, traversal_state, fns, "Expression is not a string");
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 

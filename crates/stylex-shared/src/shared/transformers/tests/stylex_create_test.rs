@@ -242,11 +242,7 @@ mod stylex_create {
         let (value, priority) = inj;
         expected_injected_styles.insert(
           key.to_string(),
-          Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-            ltr: value.to_string(),
-            rtl: None,
-            priority: Some(*priority),
-          })),
+          InjectableStyle::regular(value.to_string(), Some(*priority)),
         );
       }
     }

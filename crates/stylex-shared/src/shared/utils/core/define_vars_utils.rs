@@ -49,15 +49,14 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix),
-      Rc::new(InjectableStyleKind::Regular(InjectableStyle {
+      InjectableStyle::regular(
+        ltr,
         // Round to avoid floating-point precision issues (0.1 + 0.2 = 0.30000000000000004)
-        priority: Some(round_to_decimal_places(
+        Some(round_to_decimal_places(
           priority_for_at_rule(at_rule) / 10.0,
           1,
         )),
-        ltr,
-        rtl: None,
-      })),
+      ),
     );
   }
 

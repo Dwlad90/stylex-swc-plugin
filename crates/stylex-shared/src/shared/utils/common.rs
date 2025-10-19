@@ -61,18 +61,6 @@ pub fn create_hash(value: &str) -> String {
   radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }
 
-/// Creates a hashed name by combining a base name with a hash of the value.
-/// This is a common pattern used for generating class names, CSS variable names, etc.
-///
-/// # Example
-/// ```ignore
-/// let class_name = create_hashed_name("x", "color-red"); // "x-abc123"
-/// ```
-#[inline]
-pub fn create_hashed_name(base: &str, value: &str) -> String {
-  format!("{}-{}", base, create_hash(value))
-}
-
 pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {
   if should_wrap_in_quotes {
     format!("\"{}\"", key)

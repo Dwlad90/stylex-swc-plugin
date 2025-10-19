@@ -38,11 +38,7 @@ mod stylex_create_theme {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
         key.to_string(),
-        Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-          ltr: value.0.to_string(),
-          rtl: None,
-          priority: Some(value.1),
-        })),
+        InjectableStyle::regular(value.0.to_string(), Some(value.1)),
       );
     }
     expected_injected_styles

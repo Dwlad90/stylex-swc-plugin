@@ -711,10 +711,7 @@ fn _evaluate(
               return deopt(path, state, OBJECT_METHOD);
             }
 
-            let Some(new_props) = spread_expression
-              .and_then(|spread| spread.as_expr().cloned())
-              .and_then(|expr| expr.as_object().cloned())
-            else {
+            let Some(new_props) = spread_expression.and_then(|s| s.into_object()) else {
               panic_with_context!(path, traversal_state, "Spread must be an object");
             };
 

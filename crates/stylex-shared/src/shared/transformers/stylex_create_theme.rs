@@ -143,11 +143,7 @@ pub(crate) fn stylex_create_theme(
 
     styles_to_inject.insert(
       format!("{}{}", override_class_name, suffix),
-      Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-        ltr,
-        rtl: None,
-        priority: Some(priority),
-      })),
+      InjectableStyle::regular(ltr, Some(priority)),
     );
   }
 

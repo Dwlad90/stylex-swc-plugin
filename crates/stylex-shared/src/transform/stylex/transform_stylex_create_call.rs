@@ -364,9 +364,8 @@ where
 
           injected_inherit_styles.insert(
             variable_name.clone(),
-            Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-              priority: Some(0f64),
-              ltr: format!(
+            InjectableStyle::regular(
+              format!(
                 "@property {} {{ syntax: \"*\"; {}}}",
                 variable_name,
                 if is_pseudo_element {
@@ -375,8 +374,8 @@ where
                   "inherits: false; "
                 },
               ),
-              rtl: None,
-            })),
+              Some(0f64),
+            ),
           );
         }
       }

@@ -42,7 +42,6 @@ export default function stylexPlugin({
     generateBundle() {
       const rules: Array<Rule> = Object.values(stylexRules).flat();
       if (rules.length > 0) {
-        // @ts-expect-error - type is not up to date and will be fixed in the future
         const collectedCSS = stylexBabelPlugin.processStylexRules(rules, {
           useLayers: useCSSLayers,
           enableLTRRTLComments: rsOptions?.enableLTRRTLComments,

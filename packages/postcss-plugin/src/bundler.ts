@@ -102,7 +102,6 @@ export default function createBundler() {
     >) {
     const rules = Array.from(styleXRulesMap.values()).flat();
 
-    // @ts-expect-error - type is not up to date and will be fixed in the future
     const css = stylexBabelPlugin.processStylexRules(rules, {
       useLayers: useCSSLayers,
       enableLTRRTLComments,

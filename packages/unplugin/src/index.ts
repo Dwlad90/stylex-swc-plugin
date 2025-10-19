@@ -252,6 +252,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           return;
         }
 
+        // Skip emitting files in dev/serve mode
+        const isDev = this.meta?.watchMode;
+        if (isDev) {
+          return;
+        }
+
         const { processedFileName, collectedCSS } = generateCSSAssets(
           stylexRules,
           normalizedOptions,

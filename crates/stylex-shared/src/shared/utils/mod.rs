@@ -5,6 +5,7 @@ pub mod css;
 pub mod error_helpers;
 pub mod js;
 pub mod log;
+pub mod macros;
 pub mod object;
 pub(crate) mod pre_rule;
 pub(crate) mod validators;

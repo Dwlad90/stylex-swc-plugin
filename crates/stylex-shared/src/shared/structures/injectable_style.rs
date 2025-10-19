@@ -60,6 +60,7 @@ impl InjectableStyle {
   /// let style = InjectableStyle::regular(css_string, Some(0.5));
   /// ```
   #[inline]
+  #[allow(dead_code)] // TODO: Will be used in DRY refactoring phase 3
   pub(crate) fn regular(ltr: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
     Rc::new(InjectableStyleKind::Regular(InjectableStyle {
       ltr,
@@ -75,6 +76,7 @@ impl InjectableStyle {
   /// let style = InjectableStyle::with_rtl(ltr_css, rtl_css, Some(0.5));
   /// ```
   #[inline]
+  #[allow(dead_code)] // TODO: Will be used in DRY refactoring phase 3
   pub(crate) fn with_rtl(ltr: String, rtl: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
     Rc::new(InjectableStyleKind::Regular(InjectableStyle {
       ltr,

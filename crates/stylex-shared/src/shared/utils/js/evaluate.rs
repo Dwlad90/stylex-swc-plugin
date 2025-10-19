@@ -2,7 +2,7 @@ use core::panic;
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
-use crate::{expr_to_str_or_deopt, unwrap_or_panic};
+use crate::{collect_confident, expr_to_str_or_deopt, unwrap_or_panic};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -74,6 +74,36 @@ use crate::shared::{
 };
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
+
+/// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
+/// This reduces code duplication for operations that convert an expression to a number,
+/// apply a transformation, and return the result as an expression.
+///
+/// # Arguments
+/// * `arg` - The expression argument to the unary operator
+/// * `state` - The evaluation state
+/// * `traversal_state` - The state manager for traversal context
+/// * `fns` - The function map for evaluating function calls
+/// * `transform` - A function to transform the numeric value
+///
+/// # Example
+/// ```ignore
+/// UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
+/// UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
+/// ```
+#[inline]
+fn evaluate_unary_numeric(
+  arg: &Expr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+  transform: impl FnOnce(f64) -> f64,
+) -> Option<EvaluateResultValue> {
+  let value = unwrap_or_panic!(expr_to_num(arg, state, traversal_state, fns));
+  Some(EvaluateResultValue::Expr(number_to_expression(
+    transform(value),
+  )))
+}
 
 pub(crate) fn evaluate_obj_key(
   prop_kv: &KeyValueProp,
@@ -756,22 +786,10 @@ fn _evaluate(
 
           Some(EvaluateResultValue::Expr(bool_to_expression(!value)))
         }
-        UnaryOp::Plus => {
-          let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns));
-
-          Some(EvaluateResultValue::Expr(number_to_expression(value)))
-        }
-        UnaryOp::Minus => {
-          let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns));
-
-          Some(EvaluateResultValue::Expr(number_to_expression(-value)))
-        }
+        UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
+        UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
         UnaryOp::Tilde => {
-          let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns));
-
-          Some(EvaluateResultValue::Expr(number_to_expression(
-            (!(value as i64)) as f64,
-          )))
+          evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| (!(v as i64)) as f64)
         }
         UnaryOp::TypeOf => {
           let arg_type = match &arg {
@@ -813,12 +831,7 @@ fn _evaluate(
 
       for elem in arr_path.elems.iter().flatten() {
         let elem_value = evaluate(&elem.expr, traversal_state, &state.functions);
-
-        if elem_value.confident {
-          arr.push(elem_value.value);
-        } else {
-          return None;
-        }
+        collect_confident!(elem_value, arr);
       }
 
       Some(EvaluateResultValue::Vec(arr))

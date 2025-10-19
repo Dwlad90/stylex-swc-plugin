@@ -4,6 +4,9 @@ pub mod transform;
 use shared::structures::stylex_options::StyleXOptionsParams;
 pub use transform::StyleXTransform;
 
+// Re-export utility macros for convenient access throughout the crate
+pub use shared::utils::macros::*;
+
 #[cfg(test)]
 mod tests {
   use ctor::ctor;

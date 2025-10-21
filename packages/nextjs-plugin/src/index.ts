@@ -138,8 +138,8 @@ const withStyleX =
           lazyPostCSSPromise ||= lazyPostCSS(
             ctx.dir,
             getSupportedBrowsers(ctx.dir, ctx.dev),
-            undefined,
-            false
+            nextConfig?.experimental?.disablePostcssPresetEnv,
+            nextConfig?.experimental?.useLightningcss
           );
           return lazyPostCSSPromise;
         };

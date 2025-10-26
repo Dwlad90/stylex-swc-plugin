@@ -5,8 +5,8 @@ use swc_core::ecma::{
 };
 use swc_core::ecma::{
   ast::{
-    BinExpr, BinaryOp, Bool, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl, UnaryExpr,
-    UnaryOp,
+    BinExpr, BinaryOp, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl,
+    TplElement, UnaryExpr, UnaryOp,
   },
   parser::Context,
 };
@@ -528,6 +528,143 @@ pub fn handle_tpl_to_expression(
   }
 
   Expr::Tpl(tpl)
+}
+
+/// Converts a simple template literal (without interpolations) to a regular string literal.
+/// Returns `Some(Str)` if the template has no expressions and exactly one quasi element,
+/// otherwise returns `None`.
+///
+/// # Arguments
+/// * `tpl` - The template literal to convert
+///
+/// # Returns
+/// * `Some(Str)` - If the template is a simple string (no interpolations)
+/// * `None` - If the template has interpolations or is malformed
+///
+/// # Example
+/// ```ignore
+/// Template: `hello world` (no ${...} interpolations)
+/// Returns: Str { value: "hello world", ... }
+/// ```
+pub fn simple_tpl_to_string(tpl: &Tpl) -> Option<Lit> {
+  // Check if it's a simple template (no expressions)
+  if tpl.exprs.is_empty() && tpl.quasis.len() == 1 {
+    let quasi = &tpl.quasis[0];
+
+    // Get the string value (prefer cooked if available, otherwise use raw)
+    let value = quasi.cooked.as_ref().unwrap_or(&quasi.raw);
+
+    return Some(lit_str_factory(value));
+  }
+
+  None
+}
+
+/// Converts a simple template literal expression to a regular string literal expression.
+/// This is a convenience wrapper around `simple_tpl_to_string` that works with `Expr::Tpl`.
+///
+/// # Arguments
+/// * `expr` - The expression to check and potentially convert
+///
+/// # Returns
+/// * The original expression if it's not a simple template literal
+/// * A string literal expression if the template is simple (no interpolations)
+pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
+  match expr {
+    Expr::Tpl(ref tpl) => {
+      if let Some(str_lit) = simple_tpl_to_string(tpl) {
+        return Expr::Lit(str_lit);
+      }
+      expr
+    }
+    _ => expr,
+  }
+}
+
+/// Converts a string `.concat()` call expression to a template literal expression.
+///
+/// # Arguments
+/// * `expr` - The expression to check and potentially convert
+///
+/// # Returns
+/// * The original expression if it's not a concat call
+/// * A template literal expression if the expression is a valid concat call
+///
+/// # Example
+/// ```javascript
+/// Input: "hello".concat(world, "!")
+/// Output: `hello${world}!`
+/// ```
+pub fn convert_concat_to_tpl_expr(expr: Expr) -> Expr {
+  match expr {
+    Expr::Call(ref call_expr) => {
+      if let Some(tpl_expr) = concat_call_to_template_literal(call_expr) {
+        return tpl_expr;
+      }
+      expr
+    }
+    _ => expr,
+  }
+}
+
+/// Helper function that converts a CallExpr representing `.concat()` to a template literal.
+///
+/// # Arguments
+/// * `call_expr` - The call expression to convert
+///
+/// # Returns
+/// * `Some(Expr)` - Template literal expression if conversion is successful
+/// * `None` - If the call expression is not a valid concat call
+fn concat_call_to_template_literal(call_expr: &CallExpr) -> Option<Expr> {
+  use swc_core::common::DUMMY_SP;
+
+  // Check if this is a member expression with a "concat" property
+  let member_expr = call_expr.callee.as_expr()?.as_member()?;
+  let prop_ident = member_expr.prop.as_ident()?;
+
+  if prop_ident.sym.as_ref() != "concat" {
+    return None;
+  }
+
+  // Get the base string from the object being called
+  let base_string = member_expr.obj.as_lit()?.as_str()?.value.to_string();
+
+  let mut exprs = Vec::new();
+  let mut quasis = Vec::new();
+
+  // Add the base string as the first quasi
+  quasis.push(TplElement {
+    span: DUMMY_SP,
+    tail: false,
+    cooked: Some(base_string.clone().into()),
+    raw: base_string.into(),
+  });
+
+  // Process each argument
+  for (i, arg) in call_expr.args.iter().enumerate() {
+    // Skip spread arguments
+    if arg.spread.is_some() {
+      continue;
+    }
+
+    exprs.push(arg.expr.clone());
+
+    let is_last = i == call_expr.args.len() - 1;
+    quasis.push(TplElement {
+      span: DUMMY_SP,
+      tail: is_last,
+      cooked: Some("".into()),
+      raw: "".into(),
+    });
+  }
+
+  let template_literal = Tpl {
+    span: DUMMY_SP,
+    exprs,
+    quasis,
+  };
+
+  Some(Expr::Tpl(template_literal))
 }
 
 pub fn expr_tpl_to_string(

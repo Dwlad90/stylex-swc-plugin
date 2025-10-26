@@ -9,7 +9,7 @@ mod tests {
   };
   use swc_core::{
     common::SyntaxContext,
-    ecma::ast::{BinExpr, BinaryOp, Expr, Ident, Lit, Str},
+    ecma::ast::{BinExpr, BinaryOp, Expr, Ident, IdentName, Lit, Str},
   };
 
   fn make_num_expr(val: f64) -> Expr {
@@ -476,6 +476,319 @@ mod tests {
     match res {
       BinaryExprType::String(s) => assert_eq!(s, "foo"),
       _ => panic!("Expected left string when right is unresolved and op is LogicalOr"),
+    }
+  }
+
+  #[test]
+  fn test_simple_tpl_to_string_without_expressions() {
+    use crate::shared::utils::ast::convertors::simple_tpl_to_string;
+    use swc_core::ecma::ast::{Tpl, TplElement};
+
+    // Create a simple template literal: `hello world`
+    let tpl = Tpl {
+      span: Default::default(),
+      exprs: vec![],
+      quasis: vec![TplElement {
+        span: Default::default(),
+        tail: true,
+        cooked: Some("hello world".into()),
+        raw: "hello world".into(),
+      }],
+    };
+
+    let result = simple_tpl_to_string(&tpl);
+    assert!(result.is_some(), "Should convert simple template to string");
+
+    if let Some(Lit::Str(str_lit)) = result {
+      assert_eq!(str_lit.value.as_ref(), "hello world");
+    } else {
+      panic!("Expected Lit::Str");
+    }
+  }
+
+  #[test]
+  fn test_simple_tpl_to_string_with_expressions() {
+    use crate::shared::utils::ast::convertors::simple_tpl_to_string;
+    use swc_core::ecma::ast::{Tpl, TplElement};
+
+    // Create a template literal with expressions: `hello ${name}`
+    let tpl = Tpl {
+      span: Default::default(),
+      exprs: vec![Box::new(make_ident_expr("name"))],
+      quasis: vec![
+        TplElement {
+          span: Default::default(),
+          tail: false,
+          cooked: Some("hello ".into()),
+          raw: "hello ".into(),
+        },
+        TplElement {
+          span: Default::default(),
+          tail: true,
+          cooked: Some("".into()),
+          raw: "".into(),
+        },
+      ],
+    };
+
+    let result = simple_tpl_to_string(&tpl);
+    assert!(
+      result.is_none(),
+      "Should not convert template with expressions"
+    );
+  }
+
+  #[test]
+  fn test_convert_simple_tpl_to_str_expr() {
+    use crate::shared::utils::ast::convertors::convert_simple_tpl_to_str_expr;
+    use swc_core::ecma::ast::{Tpl, TplElement};
+
+    // Create a simple template literal
+    let tpl = Tpl {
+      span: Default::default(),
+      exprs: vec![],
+      quasis: vec![TplElement {
+        span: Default::default(),
+        tail: true,
+        cooked: Some("var(--font-geist-sans), sans-serif".into()),
+        raw: "var(--font-geist-sans), sans-serif".into(),
+      }],
+    };
+
+    let expr = Expr::Tpl(tpl);
+    let result = convert_simple_tpl_to_str_expr(expr);
+
+    match result {
+      Expr::Lit(Lit::Str(str_lit)) => {
+        assert_eq!(str_lit.value.as_ref(), "var(--font-geist-sans), sans-serif");
+      }
+      _ => panic!("Expected Expr::Lit(Lit::Str)"),
+    }
+  }
+
+  #[test]
+  fn test_convert_simple_tpl_to_str_expr_with_expressions() {
+    use crate::shared::utils::ast::convertors::convert_simple_tpl_to_str_expr;
+    use swc_core::ecma::ast::{Tpl, TplElement};
+
+    // Create a template with expressions
+    let tpl = Tpl {
+      span: Default::default(),
+      exprs: vec![Box::new(make_ident_expr("value"))],
+      quasis: vec![
+        TplElement {
+          span: Default::default(),
+          tail: false,
+          cooked: Some("prefix ".into()),
+          raw: "prefix ".into(),
+        },
+        TplElement {
+          span: Default::default(),
+          tail: true,
+          cooked: Some(" suffix".into()),
+          raw: " suffix".into(),
+        },
+      ],
+    };
+
+    let expr = Expr::Tpl(tpl.clone());
+    let result = convert_simple_tpl_to_str_expr(expr);
+
+    // Should remain as Tpl since it has expressions
+    match result {
+      Expr::Tpl(_) => {
+        // This is expected
+      }
+      _ => panic!("Expected Expr::Tpl to remain unchanged"),
+    }
+  }
+
+  #[test]
+  fn test_convert_concat_to_tpl_expr_simple() {
+    use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
+    use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
+
+    // Create: "hello".concat("world")
+    let call_expr = CallExpr {
+      span: Default::default(),
+      callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+        span: Default::default(),
+        obj: Box::new(make_str_expr("hello")),
+        prop: MemberProp::Ident(IdentName {
+          span: Default::default(),
+          sym: "concat".into(),
+        }),
+      }))),
+      args: vec![ExprOrSpread {
+        spread: None,
+        expr: Box::new(make_str_expr("world")),
+      }],
+      ..Default::default()
+    };
+
+    let expr = Expr::Call(call_expr);
+    let result = convert_concat_to_tpl_expr(expr);
+
+    // Should be converted to template literal: `hello${world}`
+    match result {
+      Expr::Tpl(tpl) => {
+        assert_eq!(tpl.quasis.len(), 2, "Should have 2 quasis");
+        assert_eq!(tpl.exprs.len(), 1, "Should have 1 expression");
+        assert_eq!(
+          tpl.quasis[0].cooked.as_ref().unwrap().as_ref(),
+          "hello",
+          "First quasi should be 'hello'"
+        );
+      }
+      _ => panic!("Expected Expr::Tpl"),
+    }
+  }
+
+  #[test]
+  fn test_convert_concat_to_tpl_expr_multiple_args() {
+    use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
+    use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
+
+    // Create: "prefix".concat(var1, var2, var3)
+    let call_expr = CallExpr {
+      span: Default::default(),
+      callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+        span: Default::default(),
+        obj: Box::new(make_str_expr("prefix")),
+        prop: MemberProp::Ident(IdentName {
+          span: Default::default(),
+          sym: "concat".into(),
+        }),
+      }))),
+      args: vec![
+        ExprOrSpread {
+          spread: None,
+          expr: Box::new(make_ident_expr("var1")),
+        },
+        ExprOrSpread {
+          spread: None,
+          expr: Box::new(make_ident_expr("var2")),
+        },
+        ExprOrSpread {
+          spread: None,
+          expr: Box::new(make_ident_expr("var3")),
+        },
+      ],
+      ..Default::default()
+    };
+
+    let expr = Expr::Call(call_expr);
+    let result = convert_concat_to_tpl_expr(expr);
+
+    // Should be converted to template literal: `prefix${var1}${var2}${var3}`
+    match result {
+      Expr::Tpl(tpl) => {
+        assert_eq!(tpl.quasis.len(), 4, "Should have 4 quasis");
+        assert_eq!(tpl.exprs.len(), 3, "Should have 3 expressions");
+        assert_eq!(
+          tpl.quasis[0].cooked.as_ref().unwrap().as_ref(),
+          "prefix",
+          "First quasi should be 'prefix'"
+        );
+        assert!(tpl.quasis[3].tail, "Last quasi should have tail=true");
+      }
+      _ => panic!("Expected Expr::Tpl"),
+    }
+  }
+
+  #[test]
+  fn test_convert_concat_to_tpl_expr_not_concat_method() {
+    use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
+    use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
+
+    // Create: "hello".split("world") - not a concat call
+    let call_expr = CallExpr {
+      span: Default::default(),
+      callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+        span: Default::default(),
+        obj: Box::new(make_str_expr("hello")),
+        prop: MemberProp::Ident(IdentName {
+          span: Default::default(),
+          sym: "split".into(), // Not "concat"
+        }),
+      }))),
+      args: vec![ExprOrSpread {
+        spread: None,
+        expr: Box::new(make_str_expr("world")),
+      }],
+      ..Default::default()
+    };
+
+    let original_expr = Expr::Call(call_expr.clone());
+    let result = convert_concat_to_tpl_expr(original_expr);
+
+    // Should remain as CallExpr since it's not concat
+    match result {
+      Expr::Call(_) => {
+        // This is expected - should remain unchanged
+      }
+      _ => panic!("Expected Expr::Call to remain unchanged"),
+    }
+  }
+
+  #[test]
+  fn test_convert_concat_to_tpl_expr_non_call_expr() {
+    use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
+
+    // Test with a non-call expression (e.g., just a string)
+    let expr = make_str_expr("hello");
+    let result = convert_concat_to_tpl_expr(expr);
+
+    // Should remain as string literal
+    match result {
+      Expr::Lit(Lit::Str(str_lit)) => {
+        assert_eq!(str_lit.value.as_ref(), "hello");
+      }
+      _ => panic!("Expected Expr::Lit(Lit::Str) to remain unchanged"),
+    }
+  }
+
+  #[test]
+  fn test_convert_concat_to_tpl_expr_with_spread() {
+    use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
+    use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
+
+    // Create: "prefix".concat(...args) - with spread argument
+    let call_expr = CallExpr {
+      span: Default::default(),
+      callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+        span: Default::default(),
+        obj: Box::new(make_str_expr("prefix")),
+        prop: MemberProp::Ident(IdentName {
+          span: Default::default(),
+          sym: "concat".into(),
+        }),
+      }))),
+      args: vec![ExprOrSpread {
+        spread: Some(Default::default()),
+        expr: Box::new(make_ident_expr("args")),
+      }],
+      ..Default::default()
+    };
+
+    let expr = Expr::Call(call_expr);
+    let result = convert_concat_to_tpl_expr(expr);
+
+    // Should still convert but skip spread arguments
+    match result {
+      Expr::Tpl(tpl) => {
+        assert_eq!(
+          tpl.quasis.len(),
+          1,
+          "Should have 1 quasi (spread args are skipped)"
+        );
+        assert_eq!(
+          tpl.exprs.len(),
+          0,
+          "Should have 0 expressions (spread args are skipped)"
+        );
+      }
+      _ => panic!("Expected Expr::Tpl"),
     }
   }
 }

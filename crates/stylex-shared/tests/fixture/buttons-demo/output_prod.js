@@ -32,7 +32,7 @@ export default function ButtonsDemo(props) {
     </div>;
 }
 const redTheme = {
-    xhq9i64: "x1idg7kz ",
+    xhq9i64: "x1idg7kz xhq9i64",
     $$css: true
 };
 const styles = {
@@ -57,11 +57,11 @@ const styles = {
     }
 };
 const priorityIntent = {
-    xhq9i64: "x13g83z8 ",
+    xhq9i64: "x13g83z8 xhq9i64",
     $$css: true
 };
 const defaultIntent = {
-    xhq9i64: "x13xmhq7 ",
+    xhq9i64: "x13xmhq7 xhq9i64",
     $$css: true
 };
 const intents = {

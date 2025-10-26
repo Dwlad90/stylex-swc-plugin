@@ -44,22 +44,31 @@ pub(crate) fn stylex_create_theme(
 
   variables_key_values.sort_by_key(key_value_to_str);
 
+  #[allow(unused_assignments)]
   let mut var_group_hash: String = String::new();
   let mut theme_vars_key_values: Vec<KeyValueProp> = Vec::new();
 
-  if let EvaluateResultValue::Expr(expr) = theme_vars {
-    theme_vars_key_values =
-      get_key_values_from_object(expr.as_object().expect("Theme vars must be an object"));
+  match theme_vars {
+    EvaluateResultValue::Expr(expr) => {
+      theme_vars_key_values =
+        get_key_values_from_object(expr.as_object().expect("Theme vars must be an object"));
 
-    var_group_hash = theme_vars_key_values
-      .iter()
-      .find(|key_value| key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
-      .map(|key_value| {
-        expr_to_str(&key_value.value, state, &FunctionMap::default())
-          .expect("Expression is not a string")
-      })
-      .unwrap_or_default();
-  };
+      var_group_hash = theme_vars_key_values
+        .iter()
+        .find(|key_value| key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
+        .map(|key_value| {
+          expr_to_str(&key_value.value, state, &FunctionMap::default())
+            .expect("Expression is not a string")
+        })
+        .unwrap_or_default();
+    }
+    EvaluateResultValue::ThemeRef(theme_ref) => {
+      var_group_hash = theme_ref.get(VAR_GROUP_HASH_KEY, state).to_owned();
+    }
+    _ => {
+      unimplemented!("Unsupported theme vars type {:?}", theme_vars)
+    }
+  }
 
   for key_value in variables_key_values.into_iter() {
     let key = key_value_to_str(&key_value);

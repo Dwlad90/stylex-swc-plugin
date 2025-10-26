@@ -152,6 +152,7 @@ pub(crate) fn get_span_from_source_code(
   ) {
     Ok(program) => {
       let mut finder = ExpressionFinder::new(target_expression);
+      let program = program.clone().fold_with(&mut Cleaner {});
 
       program.clone().fold_with(&mut finder);
 
@@ -276,12 +277,20 @@ struct Cleaner {}
 impl Fold for Cleaner {
   noop_fold_type!();
 
+  fn fold_binding_ident(&mut self, node: BindingIdent) -> BindingIdent {
+    let mut new_node = node.clone();
+
+    new_node.id.ctxt = SyntaxContext::empty();
+    new_node.type_ann = None;
+
+    new_node.fold_children_with(self)
+  }
   fn fold_ident(&mut self, ident: Ident) -> Ident {
     let mut new_ident = ident.clone();
 
     new_ident.ctxt = SyntaxContext::empty();
 
-    new_ident
+    new_ident.fold_children_with(self)
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler",
   "description": "NAPI-RS compiler for transform StyleX code",
-  "version": "0.12.0",
+  "version": "0.12.1-rc.1",
   "private": false,
   "license": "MIT",
   "files": [
@@ -44,7 +44,7 @@
     "@napi-rs/cli": "^2.18.4",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.16.2",
-    "@stylexswc/shared": "0.12.0",
+    "@stylexswc/shared": "0.12.1-rc.1",
     "@swc-node/register": "^1.11.1",
     "@swc/core": "^1.13.3",
     "@taplo/cli": "^0.7.0",

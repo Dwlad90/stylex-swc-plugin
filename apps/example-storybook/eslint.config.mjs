@@ -13,9 +13,9 @@ const appSpecificRules = [
 ];
 
 /** @type {import('eslint').FlatConfig[]} */
-const nextElintConfg = [
+const nextESlintConfg = [
   ...baseConfig,
   ...appSpecificRules,
 ];
 
-export default nextElintConfg;
+export default nextESlintConfg;

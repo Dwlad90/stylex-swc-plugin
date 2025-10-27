@@ -1,26 +1,18 @@
 import turboConfig from "eslint-config-turbo/flat";
 import prettierConfig from "eslint-config-prettier/flat";
 import stylexPlugin from '@stylexjs/eslint-plugin';
-import { FlatCompat } from '@eslint/eslintrc';
 import baseConfig from '../../eslint.config.mjs';
+import nextVitals from 'eslint-config-next/core-web-vitals'
+import nextTypescript from 'eslint-config-next/typescript'
+import { globalIgnores } from 'eslint/config'
 
-
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-})
-
-const eslintConfig = [
-  ...compat.config({
-    extends: ['eslint-config-next', 'next/core-web-vitals', 'next/typescript'],
-  }),
-]
 
 const filteredBaseConfig = baseConfig.map(config => {
   if (config.plugins?.['@typescript-eslint']) {
     // Remove the typescript-eslint plugin from the base config
     const { plugins, ...rest } = config;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { '@typescript-eslint': _, ...newPlugins } = { ...plugins };  // Use _ instead of _a
+    const { '@typescript-eslint': _, ...newPlugins } = { ...plugins };
 
     return {
       ...rest,
@@ -36,15 +28,17 @@ const filteredBaseConfig = baseConfig.map(config => {
   return config;
 });
 
-/** @type {import("eslint").FlatConfig[]} */
+/** @type {import("eslint").Linter.Config[]} */
 const nextBaseEslintConfig = [
+
   prettierConfig,
-  ...eslintConfig,
+  ...nextVitals,
+  ...nextTypescript,
   ...turboConfig,
   ...filteredBaseConfig,
   {
     name: "next:js-ts",
-    files: ["*.js?(x)", "*.ts?(x)"],
+    files: ["**/*.{js,jsx,ts,tsx}"],
   },
   {
     name: "next:stylex",
@@ -59,7 +53,14 @@ const nextBaseEslintConfig = [
       'no-html-link-for-pages': 0,
       '@next/next/no-duplicate-head': 0
     },
-  }
+  },
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+  ]),
 ];
 
 export default nextBaseEslintConfig;

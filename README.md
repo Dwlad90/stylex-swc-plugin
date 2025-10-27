@@ -29,11 +29,27 @@ npm install --save-dev @stylexswc/unplugin
 ```
 
 ### Next.js Setup
+
+#### Using with Webpack (Default)
+
 ```javascript
 // next.config.js
 const stylexPlugin = require('@stylexswc/nextjs-plugin');
 
 module.exports = stylexPlugin({
+  rsOptions: {
+    dev: process.env.NODE_ENV !== 'production',
+  },
+})();
+```
+
+#### Using with Turbopack
+
+```typescript
+// next.config.ts
+import stylexPlugin from '@stylexswc/nextjs-plugin/turbopack';
+
+export default stylexPlugin({
   rsOptions: {
     dev: process.env.NODE_ENV !== 'production',
   },
@@ -53,6 +69,7 @@ This monorepo is organized into specialized packages for maximum modularity and 
 ### 🔌 Framework Integrations
 
 - **[`nextjs-plugin`](./packages/nextjs-plugin)** - Next.js configuration wrapper with seamless SWC integration
+- **[`turbopack-plugin`](./packages/turbopack-plugin)** - Turbopack loader for Next.js with high-performance StyleX compilation
 - **[`unplugin`](./packages/unplugin)** - Universal plugin supporting Vite, Webpack, Rollup, Rspack, and 8+ build tools
 - **[`jest`](./packages/jest)** - Jest transformer for StyleX testing workflows
 - **[`postcss-plugin`](./packages/postcss-plugin)** - PostCSS integration for existing CSS pipelines
@@ -73,7 +90,8 @@ This monorepo is organized into specialized packages for maximum modularity and 
 
 | Tool | Package | Experience |
 |------|---------|------------|
-| Next.js | `@stylexswc/nextjs-plugin` | 🚀 Native SWC Integration |
+| Next.js (Webpack) | `@stylexswc/nextjs-plugin` | 🚀 Native SWC Integration |
+| Next.js (Turbopack) | `@stylexswc/nextjs-plugin/turbopack` | ⚡ Ultra-Fast Builds |
 | Vite | `@stylexswc/unplugin` | ⚡ Lightning Fast HMR |
 | Webpack | `@stylexswc/unplugin` | 🔧 Seamless Integration |
 | Rollup | `@stylexswc/unplugin` | 📦 Optimized Bundling |

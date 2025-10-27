@@ -39,6 +39,74 @@ To install the package, run the following command:
 npm install --save-dev @stylexswc/nextjs-plugin
 ```
 
+## Usage
+
+This plugin supports both Webpack and Turbopack configurations in Next.js.
+
+### Using with Webpack
+
+For standard Next.js Webpack builds, use the default import:
+
+```javascript
+const stylexPlugin = require('@stylexswc/nextjs-plugin');
+
+module.exports = stylexPlugin({
+  // StyleX options here
+})({
+  // Next.js config here
+});
+```
+
+### Using with Turbopack
+
+> [!IMPORTANT]
+> **Turbopack Limitation**: Turbopack does not support webpack plugins ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)). When using Turbopack, the loader only compiles StyleX code but **does not extract CSS**.
+>
+> **You must configure the PostCSS plugin for CSS extraction.** Install `@stylexswc/postcss-plugin` and configure it in `postcss.config.js`:
+>
+> ```javascript
+> // postcss.config.js
+> module.exports = {
+>   plugins: {
+>     '@stylexswc/postcss-plugin': {
+>       rsOptions: {
+>         dev: process.env.NODE_ENV === 'development',
+>       },
+>     },
+>     autoprefixer: {},
+>   },
+> };
+> ```
+
+For Next.js with Turbopack, use the `/turbopack` export:
+
+```typescript
+import withStylexTurbopack from '@stylexswc/nextjs-plugin/turbopack';
+
+export default withStylexTurbopack({
+  // StyleX options here same as postcss-plugin
+  rsOptions: {
+      dev: process.env.NODE_ENV === 'development',
+  },
+})({
+  // Next.js config here
+  experimental: {
+    turbopack: {
+      // Additional Turbopack configuration if needed
+    },
+  },
+});
+```
+
+> [!NOTE]
+> When using Turbopack, the following options are not supported and will be ignored:
+>
+> - `useCSSLayers`
+> - `nextjsMode`
+> - `transformCss`
+> - `extractCSS`
+> - `transformer`
+
 ## Plugin Options
 
 ### Basic Options
@@ -47,8 +115,9 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 - Type: `Partial<StyleXOptions>`
 - Optional
-- Description: StyleX compiler options that will be passed to the NAPI-RS compiler.
-  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
+- Description: StyleX compiler options that will be passed to the NAPI-RS
+  compiler. For standard StyleX options, see the
+  [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 > [!NOTE]
 > **New Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
@@ -57,17 +126,21 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
-  When specified, only files matching at least one of these patterns will be transformed.
-  Patterns are matched against paths relative to the current working directory.
+- Description: **RS-compiler Only** An array of glob patterns or regular
+  expressions to include specific files for StyleX transformation. When
+  specified, only files matching at least one of these patterns will be
+  transformed. Patterns are matched against paths relative to the current
+  working directory.
 
 ##### `rsOptions.exclude`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
-  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
-  Patterns are matched against paths relative to the current working directory.
+- Description: **RS-compiler Only** An array of glob patterns or regular
+  expressions to exclude specific files from StyleX transformation. Files
+  matching any of these patterns will not be transformed, even if they match an
+  `include` pattern. Patterns are matched against paths relative to the current
+  working directory.
 
 #### `stylexImports`
 
@@ -101,6 +174,8 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 ### Example Configuration
 
+#### Webpack Configuration
+
 ```javascript
 const path = require('path');
 const stylexPlugin = require('@stylexswc/nextjs-plugin');
@@ -111,7 +186,11 @@ module.exports = stylexPlugin({
   rsOptions: {
     dev: process.env.NODE_ENV !== 'production',
     // Include only specific directories
-    include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+    include: [
+      'app/**/*.{ts,tsx}',
+      'components/**/*.{ts,tsx}',
+      'src/**/*.{ts,tsx}',
+    ],
     // Exclude test files and API routes
     exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**', 'app/api/**'],
     aliases: {
@@ -140,6 +219,65 @@ module.exports = stylexPlugin({
 });
 ```
 
+#### Turbopack Configuration
+
+```typescript
+import path from 'path';
+import withStylexTurbopack from '@stylexswc/nextjs-plugin/turbopack';
+
+const rootDir = __dirname;
+
+export default withStylexTurbopack({
+  // Add any StyleX options here
+  rsOptions: {
+    dev: process.env.NODE_ENV !== 'production',
+    aliases: {
+      '@/*': [path.join(rootDir, '*')],
+    },
+    unstable_moduleResolution: {
+      type: 'commonJS',
+    },
+  },
+  stylexImports: ['@stylexjs/stylex'],
+})({
+  transpilePackages: ['@stylexjs/open-props'],
+  experimental: {
+    turbopack: {
+      // Additional Turbopack configuration if needed
+    },
+  },
+  // Optionally, add any other Next.js config below
+});
+```
+
+##### Required: PostCSS Configuration for CSS Extraction
+
+```javascript
+// postcss.config.js
+const path = require('path');
+
+module.exports = {
+  plugins: {
+    '@stylexswc/postcss-plugin': {
+      include: [
+        'app/**/*.{js,jsx,ts,tsx}',
+        'components/**/*.{js,jsx,ts,tsx}',
+      ],
+      rsOptions: {
+        aliases: {
+          '@/*': [path.join(__dirname, '*')],
+        },
+        unstable_moduleResolution: {
+          type: 'commonJS',
+        },
+        dev: process.env.NODE_ENV === 'development',
+      },
+    },
+    autoprefixer: {},
+  },
+};
+```
+
 ### Path Filtering Examples
 
 **Include only specific directories:**
@@ -149,7 +287,7 @@ stylexPlugin({
   rsOptions: {
     include: ['app/**/*.tsx', 'components/**/*.tsx'],
   },
-})
+});
 ```
 
 **Exclude test and build files:**
@@ -159,7 +297,7 @@ stylexPlugin({
   rsOptions: {
     exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**', '**/node_modules/**'],
   },
-})
+});
 ```
 
 **Using regular expressions:**
@@ -170,7 +308,7 @@ stylexPlugin({
     include: [/app\/.*\.tsx$/, /components\/.*\.tsx$/],
     exclude: [/\.test\./, /\.stories\./],
   },
-})
+});
 ```
 
 **Combined include and exclude (exclude takes precedence):**
@@ -181,7 +319,7 @@ stylexPlugin({
     include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
     exclude: ['**/__tests__/**', '**/__mocks__/**', 'app/api/**'],
   },
-})
+});
 ```
 
 **Exclude node_modules except specific packages:**
@@ -192,7 +330,7 @@ stylexPlugin({
     // Exclude all node_modules except @stylexjs/open-props
     exclude: [/node_modules(?!\/@stylexjs\/open-props)/],
   },
-})
+});
 ```
 
 **Transform only specific packages from node_modules:**
@@ -208,7 +346,7 @@ stylexPlugin({
     ],
     exclude: ['**/*.test.*', 'app/api/**'],
   },
-})
+});
 ```
 
 ## Examples

@@ -2,18 +2,23 @@ use log::{error, info};
 use napi::{Env, Result};
 use std::io::Read;
 use std::path::Path;
-use std::sync::Arc;
-use swc_core::{common::SourceMap, ecma::ast::Program};
+use swc_core::{common::{Globals, Mark, SourceMap, GLOBALS}, ecma::ast::Program};
 use wasmer::{Function, FunctionEnv, FunctionEnvMut, Instance, Module, Store, Value};
 use wasmer_wasi::{Pipe, WasiEnv, WasiFunctionEnv, WasiState};
 
 use crate::plugin_resolver::resolve_plugin_path;
 use crate::structs::SwcPluginConfig;
 
+use std::sync::{Arc, Mutex};
+
 /// Environment data for host functions
 #[derive(Clone)]
 struct PluginEnv {
   name: String,
+  config_ptr: i32,
+  config_len: i32,
+  // Store the transform result when plugin calls __set_transform_result
+  transform_result: Arc<Mutex<Option<(i32, i32)>>>, // (ptr, len)
 }
 
 /// Applies SWC WASM plugins using wasmer runtime.
@@ -27,7 +32,7 @@ struct PluginEnv {
 /// 2. **Setup WASI**: Initialize WASI environment (required by SWC plugins)
 /// 3. **Provide Host Functions**: Stub implementations of SWC's host functions
 /// 4. **Serialize AST**: Convert Program to bytes (currently using JSON as placeholder)
-/// 5. **Execute Plugin**: Call __plugin_process_impl with serialized data
+/// 5. **Execute Plugin**: Call __transform_plugin_process_impl with serialized data
 /// 6. **Deserialize Result**: Convert result bytes back to Program
 ///
 /// ## Current Status
@@ -132,9 +137,12 @@ fn execute_plugin_with_wasmer(
 
   let mut import_object = wasi_import_object;
 
-  // Create plugin environment for host functions
+  // Create plugin environment for host functions (will update with config after instantiation)
   let plugin_env = PluginEnv {
     name: plugin_config.name.clone(),
+    config_ptr: 0,  // Will be set after we allocate config in WASM memory
+    config_len: 0,
+    transform_result: Arc::new(Mutex::new(None)),
   };
   let env_data = FunctionEnv::new(&mut store, plugin_env);
 
@@ -247,55 +255,109 @@ fn execute_plugin_with_wasmer(
     config_len, config_ptr
   );
 
+  // Update the plugin environment with config pointer so host functions can access it
+  env_data.as_mut(&mut store).config_ptr = config_ptr;
+  env_data.as_mut(&mut store).config_len = config_len;
+
   // Call the plugin's transform function
+  // Note: SWC plugins export __transform_plugin_process_impl (not __plugin_process_impl)
   let transform_fn = instance
     .exports
-    .get_function("__plugin_process_impl")
+    .get_function("__transform_plugin_process_impl")
     .map_err(|e| {
       napi::Error::from_reason(format!(
-        "Plugin '{}' doesn't export __plugin_process_impl: {}",
+        "Plugin '{}' doesn't export __transform_plugin_process_impl: {}",
         plugin_config.name, e
       ))
     })?;
 
-  info!("  Calling __plugin_process_impl...");
+  info!("  Calling __transform_plugin_process_impl...");
 
-  let result = transform_fn
-    .call(
-      &mut store,
-      &[
-        Value::I32(program_ptr),
-        Value::I32(program_len),
-        Value::I32(config_ptr),
-        Value::I32(config_len),
-      ],
-    )
-    .map_err(|e| {
-      napi::Error::from_reason(format!(
-        "Plugin '{}' transform failed: {}",
-        plugin_config.name, e
-      ))
-    })?;
+  // __transform_plugin_process_impl signature:
+  // (ast_ptr: *const u8, ast_ptr_len: u32, unresolved_mark: u32, should_enable_comments_proxy: i32) -> u32
 
-  let result_ptr = result[0]
+  // CRITICAL: Wrap in GLOBALS.set() to initialize SWC's thread-local storage
+  // This is required for Mark::fresh() and other SWC operations
+  let result = GLOBALS.set(&Globals::new(), || {
+    // Create a fresh unresolved mark (Mark 0 is invalid in SWC)
+    // Use a non-zero mark to avoid panics in plugin code
+    let unresolved_mark: u32 = Mark::fresh(Mark::root()).as_u32();
+    let should_enable_comments_proxy: i32 = 0; // Disable comments proxy for now
+
+    info!("  Using unresolved_mark: {}", unresolved_mark);
+
+    transform_fn
+      .call(
+        &mut store,
+        &[
+          Value::I32(program_ptr),
+          Value::I32(program_len),
+          Value::I32(unresolved_mark as i32),
+          Value::I32(should_enable_comments_proxy),
+        ],
+      )
+      .map_err(|e| {
+        // Capture stderr to see if plugin logged anything
+        let mut stderr_buffer = String::new();
+        let _ = stderr.clone().read_to_string(&mut stderr_buffer);
+
+        let error_msg = if stderr_buffer.is_empty() {
+          format!("Plugin '{}' transform failed: {}", plugin_config.name, e)
+        } else {
+          format!(
+            "Plugin '{}' transform failed: {}\nPlugin stderr: {}",
+            plugin_config.name, e, stderr_buffer.trim()
+          )
+        };
+
+        error!("{}", error_msg);
+        napi::Error::from_reason(error_msg)
+      })
+  })?;
+
+  let return_code = result[0]
     .i32()
-    .ok_or_else(|| napi::Error::from_reason("Invalid return value from __plugin_process_impl"))?;
+    .ok_or_else(|| napi::Error::from_reason("Invalid return value from __transform_plugin_process_impl"))?;
 
-  info!("  Plugin returned result at address: {}", result_ptr);
+  info!("  Plugin returned code: {}", return_code);
 
-  // Read result length (first 4 bytes)
-  let mut len_bytes = [0u8; 4];
+  // According to SWC plugin macro, return value of 1 indicates an error
+  if return_code == 1 {
+    // Try to capture any stderr output
+    let mut stderr_buffer = String::new();
+    let _ = stderr.clone().read_to_string(&mut stderr_buffer);
+
+    let error_msg = if stderr_buffer.is_empty() {
+      format!("Plugin '{}' returned error code 1 (transformation failed)", plugin_config.name)
+    } else {
+      format!(
+        "Plugin '{}' returned error code 1. Plugin stderr: {}",
+        plugin_config.name, stderr_buffer.trim()
+      )
+    };
+
+    error!("{}", error_msg);
+    return Err(napi::Error::from_reason(error_msg));
+  }
+
+  // Get the result that was set via __set_transform_result
+  let (result_ptr, result_len) = env_data.as_ref(&store)
+    .transform_result
+    .lock()
+    .map_err(|e| napi::Error::from_reason(format!("Failed to lock transform result: {}", e)))?
+    .ok_or_else(|| {
+      napi::Error::from_reason(format!(
+        "Plugin '{}' returned success but didn't set transform result via __set_transform_result",
+        plugin_config.name
+      ))
+    })?;
+
+  info!("  Reading result from ptr={}, len={}", result_ptr, result_len);
+
+  // Read the transformed data directly (it's already serialized by the plugin)
+  let mut result_data = vec![0u8; result_len as usize];
   memory_view
-    .read(result_ptr as u64, &mut len_bytes)
-    .map_err(|e| napi::Error::from_reason(format!("Failed to read result length: {}", e)))?;
-  let result_len = u32::from_le_bytes(len_bytes) as usize;
-
-  info!("  Result data size: {} bytes", result_len);
-
-  // Read the transformed data
-  let mut result_data = vec![0u8; result_len];
-  memory_view
-    .read((result_ptr + 4) as u64, &mut result_data)
+    .read(result_ptr as u64, &mut result_data)
     .map_err(|e| napi::Error::from_reason(format!("Failed to read result data: {}", e)))?;
 
   // Clean up WASM memory
@@ -420,14 +482,20 @@ fn host_emit_diagnostics(env: FunctionEnvMut<PluginEnv>, diagnostic_ptr: i32, di
 }
 
 fn host_set_transform_result(env: FunctionEnvMut<PluginEnv>, result_ptr: i32, result_len: i32) {
-  let plugin_name = &env.data().name;
+  let plugin_env = env.data();
+  let plugin_name = &plugin_env.name;
+
   info!(
     "Plugin '{}' set transform result at ptr={}, len={}",
     plugin_name, result_ptr, result_len
   );
-  // This is called by the plugin to set the transformation result
-  // The actual result is read via __plugin_process_impl return value
-  // This is likely for additional metadata or alternative result storage
+
+  // Store the result pointer and length so we can read it after the plugin returns
+  if let Ok(mut result) = plugin_env.transform_result.lock() {
+    *result = Some((result_ptr, result_len));
+  } else {
+    error!("Plugin '{}': Failed to lock transform_result mutex", plugin_name);
+  }
 }
 
 fn host_set_core_pkg_diagnostics(env: FunctionEnvMut<PluginEnv>, diag_ptr: i32, diag_len: i32) {
@@ -446,19 +514,18 @@ fn host_set_core_pkg_diagnostics(env: FunctionEnvMut<PluginEnv>, diag_ptr: i32, 
 }
 
 fn host_get_plugin_config(env: FunctionEnvMut<PluginEnv>, _config_key: i32) -> i32 {
-  let plugin_name = &env.data().name;
+  let plugin_env = env.data();
+  let plugin_name = &plugin_env.name;
+  let config_ptr = plugin_env.config_ptr;
+
   info!(
-    "Plugin '{}' requested plugin config via __get_transform_plugin_config",
-    plugin_name
+    "Plugin '{}' requested plugin config via __get_transform_plugin_config, returning ptr={}",
+    plugin_name, config_ptr
   );
-  // This function is called by plugins to retrieve their configuration
-  // The config is already passed via __plugin_process_impl parameters,
-  // so we return 0 (NULL) to indicate no additional config is available
-  // In a full implementation with alternative config storage:
-  // 1. Look up stored config based on config_key
-  // 2. Serialize config to WASM memory
-  // 3. Return pointer to the serialized config
-  0
+
+  // Return the pointer to the config JSON that we allocated in WASM memory
+  // The config is already serialized and written to WASM memory during setup
+  config_ptr
 }
 
 #[cfg(test)]

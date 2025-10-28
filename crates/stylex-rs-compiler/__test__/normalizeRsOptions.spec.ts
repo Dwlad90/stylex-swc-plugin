@@ -16,6 +16,7 @@ const defaultResult: StyleXOptions = {
   enableLogicalStylesPolyfill: false,
   enableMinifiedKeys: true,
   styleResolution: 'property-specificity',
+  swcPlugins: [],
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
 };

@@ -160,6 +160,86 @@ shouldTransformFile(
 );
 ```
 
+### SWC Plugin Support
+
+> [!NOTE]
+> **New Feature:** The compiler now supports running SWC WASM plugins before StyleX transformation. This allows you to chain transformations and integrate custom SWC plugins seamlessly.
+
+The `transform` function accepts an optional `swcPlugins` array in the options object, allowing you to run SWC WASM plugins before the StyleX transformation:
+
+```ts
+const { transform } = require('@stylexswc/rs-compiler');
+
+const { code, metadata, map } = transform(
+  'Button.tsx',
+  sourceCode,
+  {
+    dev: true,
+    // Other StyleX options...
+
+    // SWC plugins to run before StyleX transformation
+    swcPlugins: [
+      // Plugin as [pluginPath, config]
+      [
+        '/path/to/swc_plugin_theme.wasm',
+        {
+          themeName: 'my-theme',
+          customOption: 'value'
+        }
+      ],
+      // You can chain multiple plugins
+      [
+        '@swc/plugin-emotion',
+        {
+          sourceMap: true
+        }
+      ]
+    ]
+  }
+);
+```
+
+#### How It Works
+
+1. **Plugin Execution Phase**: If `swcPlugins` are provided, the source code is first transformed using `@swc/core`'s `transformSync` with the specified WASM plugins
+2. **StyleX Transformation Phase**: The plugin-transformed code is then passed to the StyleX compiler
+
+#### Plugin Configuration
+
+Each plugin in the `swcPlugins` array is a tuple of:
+- **Plugin Path** (string): Can be:
+  - An absolute path to a `.wasm` file: `/path/to/plugin.wasm`
+  - An npm package name: `@swc/plugin-emotion`
+- **Plugin Config** (object): Plugin-specific configuration options
+
+#### Example: Custom Theme Plugin
+
+```ts
+transform(filename, code, {
+  dev: true,
+  swcPlugins: [
+    [
+      '/Users/me/plugins/swc_plugin_theme.wasm',
+      {
+        themeName: 'theme-name',
+        themeConfig: {
+          primaryColor: 'blue',
+          spacing: 8
+        }
+      }
+    ]
+  ]
+});
+```
+
+#### Benefits
+
+- ✅ Chain multiple transformations seamlessly
+- ✅ Leverage the SWC plugin ecosystem
+- ✅ Custom preprocessing before StyleX transformation
+- ✅ Full compatibility with SWC WASM plugins
+- ✅ No additional build configuration needed
+
 ### Output
 
 The output from the compiler includes the transformed code, metadata about the

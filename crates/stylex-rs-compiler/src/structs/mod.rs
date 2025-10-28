@@ -43,6 +43,8 @@ pub struct StyleXOptions {
   pub include: Option<Vec<JsUnknown>>,
   #[napi(ts_type = "Array<string | RegExp>")]
   pub exclude: Option<Vec<JsUnknown>>,
+  #[napi(ts_type = "Array<[string, Record<string, any>]>")]
+  pub swc_plugins: Option<Vec<JsUnknown>>,
 }
 
 #[napi(object)]

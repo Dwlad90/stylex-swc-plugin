@@ -1181,6 +1181,10 @@ importers:
         version: 3.6.2
 
   crates/stylex-rs-compiler:
+    dependencies:
+      '@swc/core':
+        specifier: ^1.13.3
+        version: 1.13.3(@swc/helpers@0.5.17)
     devDependencies:
       '@napi-rs/cli':
         specifier: ^2.18.4
@@ -1197,9 +1201,6 @@ importers:
       '@swc-node/register':
         specifier: ^1.11.1
         version: 1.11.1(@swc/core@1.13.3(@swc/helpers@0.5.17))(@swc/types@0.1.25)(typescript@5.9.3)
-      '@swc/core':
-        specifier: ^1.13.3
-        version: 1.13.3(@swc/helpers@0.5.17)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0

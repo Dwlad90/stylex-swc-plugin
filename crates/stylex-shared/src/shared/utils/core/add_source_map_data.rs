@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use log::{debug, warn};
+use log::{debug, info, warn};
 use once_cell::sync::Lazy;
 use std::{env, path::Path, rc::Rc};
 use swc_core::{
@@ -78,7 +78,7 @@ pub(crate) fn add_source_map_data(
                       &*NEXTJS_HYDRATION_WARNING
                     );
                   } else {
-                    warn!(
+                    info!(
                       "Could not find span for style node path. File: {}. For more information enable debug logging.{}",
                       state.get_filename(),
                       &*NEXTJS_HYDRATION_WARNING

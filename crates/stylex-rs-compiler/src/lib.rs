@@ -263,6 +263,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
       .style_resolution
       .or(Some("property-specificity".to_string())),
     legacy_disable_layers: options.legacy_disable_layers.or(Some(false)),
+    swc_plugins: options.swc_plugins.or(Some(vec![])),
     ..options
   };
 

@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::Path;
 use swc_core::{common::{Globals, Mark, SourceMap, GLOBALS}, ecma::ast::Program};
 use wasmer::{Function, FunctionEnv, FunctionEnvMut, Instance, Module, Store, Value};
-use wasmer_wasi::{Pipe, WasiEnv, WasiFunctionEnv, WasiState};
+use wasmer_wasi::{Pipe, WasiState};
 
 use crate::plugin_resolver::resolve_plugin_path;
 use crate::structs::SwcPluginConfig;
@@ -15,10 +15,14 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone)]
 struct PluginEnv {
   name: String,
-  config_ptr: i32,
-  config_len: i32,
   // Store the transform result when plugin calls __set_transform_result
   transform_result: Arc<Mutex<Option<(i32, i32)>>>, // (ptr, len)
+  // Store serialized plugin config JSON bytes
+  plugin_config_json: Arc<String>,
+  // Store pointer to config JSON in WASM memory (ptr, len)
+  config_json_ptr: Arc<Mutex<Option<(i32, i32)>>>,
+  // Store pointer to serialized PluginConfig struct in WASM memory
+  config_struct_ptr: Arc<Mutex<Option<i32>>>,
 }
 
 /// Applies SWC WASM plugins using wasmer runtime.
@@ -108,22 +112,21 @@ fn execute_plugin_with_wasmer(
 
   // Setup WASI environment (required by SWC plugins)
   // Create pipes for stdin/stdout/stderr to capture plugin output
+  let stdin = Pipe::new();
   let stdout = Pipe::new();
   let stderr = Pipe::new();
 
-  let wasi_state = WasiState::new(&plugin_config.name)
+  let mut wasi_fn_env = WasiState::new(&plugin_config.name)
+    .stdin(Box::new(stdin))
     .stdout(Box::new(stdout.clone()))
     .stderr(Box::new(stderr.clone()))
-    .build()
+    .finalize(&mut store)
     .map_err(|e| {
       napi::Error::from_reason(format!(
         "Failed to build WASI state for plugin '{}': {}",
         plugin_config.name, e
       ))
     })?;
-
-  let wasi_env = WasiEnv::new(wasi_state);
-  let wasi_fn_env = WasiFunctionEnv::new(&mut store, wasi_env);
 
   // Create import object with WASI imports
   let wasi_import_object = wasi_fn_env
@@ -137,12 +140,17 @@ fn execute_plugin_with_wasmer(
 
   let mut import_object = wasi_import_object;
 
-  // Create plugin environment for host functions (will update with config after instantiation)
+  // Get plugin options as JSON
+  let options_json = plugin_config.options_to_json(env)?;
+  info!("  Plugin options: {}", options_json);
+
+  // Create plugin environment for host functions
   let plugin_env = PluginEnv {
     name: plugin_config.name.clone(),
-    config_ptr: 0,  // Will be set after we allocate config in WASM memory
-    config_len: 0,
     transform_result: Arc::new(Mutex::new(None)),
+    plugin_config_json: Arc::new(options_json.clone()),
+    config_json_ptr: Arc::new(Mutex::new(None)),
+    config_struct_ptr: Arc::new(Mutex::new(None)),
   };
   let env_data = FunctionEnv::new(&mut store, plugin_env);
 
@@ -185,14 +193,23 @@ fn execute_plugin_with_wasmer(
 
   info!("  Plugin instantiated successfully");
 
-  // Get plugin options as JSON
-  let options_json = plugin_config.options_to_json(env)?;
-  info!("  Plugin options: {}", options_json);
+  // CRITICAL: Initialize the WASI environment with the instance
+  // This sets up the memory reference that WASI functions need
+  wasi_fn_env
+    .initialize(&mut store, &instance)
+    .map_err(|e| {
+      napi::Error::from_reason(format!(
+        "Failed to initialize WASI environment for plugin '{}': {}",
+        plugin_config.name, e
+      ))
+    })?;
+
+  info!("  WASI environment initialized with instance");
 
   // Serialize program to rkyv bytes
   let program_serialized = serialize_program(&program)?;
 
-  // Allocate memory in WASM for the program data
+  // Get the allocation and memory exports
   let alloc_fn = instance.exports.get_function("__alloc").map_err(|e| {
     napi::Error::from_reason(format!(
       "Plugin '{}' doesn't export __alloc function: {}",
@@ -200,6 +217,96 @@ fn execute_plugin_with_wasmer(
     ))
   })?;
 
+  let memory = instance.exports.get_memory("memory").map_err(|e| {
+    napi::Error::from_reason(format!(
+      "Plugin '{}' doesn't export memory: {}",
+      plugin_config.name, e
+    ))
+  })?;
+
+  // Allocate and write plugin config JSON to WASM memory
+  // Clone the config to avoid borrow conflicts with store
+  let config_json = env_data.as_ref(&store).plugin_config_json.as_str().to_string();
+  let config_bytes = config_json.as_bytes();
+  let config_json_len = config_bytes.len() as i32;
+
+  let config_json_ptr = alloc_fn
+    .call(&mut store, &[Value::I32(config_json_len)])
+    .map_err(|e| {
+      napi::Error::from_reason(format!("Failed to allocate memory for config JSON: {}", e))
+    })?[0]
+    .i32()
+    .ok_or_else(|| napi::Error::from_reason("Invalid return value from __alloc for config"))?;
+
+  info!(
+    "  Allocated {} bytes for config JSON at WASM address {}",
+    config_json_len, config_json_ptr
+  );
+
+  let memory_view = memory.view(&store);
+  memory_view
+    .write(config_json_ptr as u64, config_bytes)
+    .map_err(|e| {
+      napi::Error::from_reason(format!(
+        "Failed to write config JSON to WASM memory: {}",
+        e
+      ))
+    })?;
+
+  // Store config JSON pointer
+  if let Ok(mut config_lock) = env_data.as_ref(&store).config_json_ptr.lock() {
+    *config_lock = Some((config_json_ptr, config_json_len));
+  }
+
+  // Now create a serialized struct containing the pointer and length
+  // SWC expects a pointer to a serialized BytesWrapper or similar
+  // We'll create a simple struct: { ptr: u32, len: u32 }
+  #[repr(C)]
+  struct ConfigPtrLen {
+    ptr: u32,
+    len: u32,
+  }
+
+  let config_struct = ConfigPtrLen {
+    ptr: config_json_ptr as u32,
+    len: config_json_len as u32,
+  };
+
+  // Serialize this struct using rkyv
+  let config_struct_bytes = unsafe {
+    std::slice::from_raw_parts(
+      &config_struct as *const ConfigPtrLen as *const u8,
+      std::mem::size_of::<ConfigPtrLen>()
+    )
+  };
+
+  let config_struct_len = config_struct_bytes.len() as i32;
+  let config_struct_ptr = alloc_fn
+    .call(&mut store, &[Value::I32(config_struct_len)])
+    .map_err(|e| {
+      napi::Error::from_reason(format!("Failed to allocate memory for config struct: {}", e))
+    })?[0]
+    .i32()
+    .ok_or_else(|| napi::Error::from_reason("Invalid return value from __alloc for config struct"))?;
+
+  memory_view
+    .write(config_struct_ptr as u64, config_struct_bytes)
+    .map_err(|e| {
+      napi::Error::from_reason(format!(
+        "Failed to write config struct to WASM memory: {}",
+        e
+      ))
+    })?;
+
+  info!(
+    "  Allocated {} bytes for config struct at WASM address {}",
+    config_struct_len, config_struct_ptr
+  );
+
+  // Store config struct pointer in env for host_get_plugin_config to return
+  if let Ok(mut struct_ptr_lock) = env_data.as_ref(&store).config_struct_ptr.lock() {
+    *struct_ptr_lock = Some(config_struct_ptr);
+  }  // Allocate memory in WASM for the program data
   let program_len = program_serialized.len() as i32;
   let program_ptr = alloc_fn
     .call(&mut store, &[Value::I32(program_len)])
@@ -215,14 +322,6 @@ fn execute_plugin_with_wasmer(
   );
 
   // Write program data to WASM memory
-  let memory = instance.exports.get_memory("memory").map_err(|e| {
-    napi::Error::from_reason(format!(
-      "Plugin '{}' doesn't export memory: {}",
-      plugin_config.name, e
-    ))
-  })?;
-
-  let memory_view = memory.view(&store);
   memory_view
     .write(program_ptr as u64, &program_serialized)
     .map_err(|e| {
@@ -232,32 +331,9 @@ fn execute_plugin_with_wasmer(
       ))
     })?;
 
-  // Allocate memory for plugin config
-  let config_bytes = options_json.as_bytes();
-  let config_len = config_bytes.len() as i32;
-
-  let config_ptr = alloc_fn
-    .call(&mut store, &[Value::I32(config_len)])
-    .map_err(|e| {
-      napi::Error::from_reason(format!("Failed to allocate memory for config: {}", e))
-    })?[0]
-    .i32()
-    .ok_or_else(|| napi::Error::from_reason("Invalid return value from __alloc for config"))?;
-
-  memory_view
-    .write(config_ptr as u64, config_bytes)
-    .map_err(|e| {
-      napi::Error::from_reason(format!("Failed to write config to WASM memory: {}", e))
-    })?;
-
-  info!(
-    "  Allocated {} bytes for config at WASM address {}",
-    config_len, config_ptr
-  );
-
-  // Update the plugin environment with config pointer so host functions can access it
-  env_data.as_mut(&mut store).config_ptr = config_ptr;
-  env_data.as_mut(&mut store).config_len = config_len;
+  // Note: Config is NOT allocated in WASM memory
+  // Modern SWC plugins get their config through environment variables or other mechanisms
+  // The __transform_plugin_process_impl function doesn't accept config as a parameter
 
   // Call the plugin's transform function
   // Note: SWC plugins export __transform_plugin_process_impl (not __plugin_process_impl)
@@ -272,6 +348,7 @@ fn execute_plugin_with_wasmer(
     })?;
 
   info!("  Calling __transform_plugin_process_impl...");
+  info!("  Program ptr: {}, len: {}", program_ptr, program_len);
 
   // __transform_plugin_process_impl signature:
   // (ast_ptr: *const u8, ast_ptr_len: u32, unresolved_mark: u32, should_enable_comments_proxy: i32) -> u32
@@ -285,6 +362,7 @@ fn execute_plugin_with_wasmer(
     let should_enable_comments_proxy: i32 = 0; // Disable comments proxy for now
 
     info!("  Using unresolved_mark: {}", unresolved_mark);
+    info!("  Calling WASM function with 4 parameters...");
 
     transform_fn
       .call(
@@ -362,18 +440,44 @@ fn execute_plugin_with_wasmer(
 
   // Clean up WASM memory
   if let Ok(free_fn) = instance.exports.get_function("__free") {
+    // Free program memory
     let _ = free_fn.call(
       &mut store,
       &[Value::I32(program_ptr), Value::I32(program_len)],
     );
-    let _ = free_fn.call(
-      &mut store,
-      &[Value::I32(config_ptr), Value::I32(config_len)],
-    );
-    // Note: Don't free result_ptr as it may be managed by the plugin
-  }
 
-  // Deserialize result back to Program
+    // Get config JSON pointer values before calling free (to avoid borrow conflicts)
+    let config_json_to_free = env_data.as_ref(&store)
+      .config_json_ptr
+      .lock()
+      .ok()
+      .and_then(|lock| *lock);
+
+    // Free config JSON memory
+    if let Some((cfg_ptr, cfg_len)) = config_json_to_free {
+      let _ = free_fn.call(
+        &mut store,
+        &[Value::I32(cfg_ptr), Value::I32(cfg_len)],
+      );
+    }
+
+    // Get config struct pointer value before calling free (to avoid borrow conflicts)
+    let config_struct_to_free = env_data.as_ref(&store)
+      .config_struct_ptr
+      .lock()
+      .ok()
+      .and_then(|lock| *lock);
+
+    // Free config struct memory
+    if let Some(struct_ptr) = config_struct_to_free {
+      let _ = free_fn.call(
+        &mut store,
+        &[Value::I32(struct_ptr), Value::I32(8)], // size of ConfigPtrLen struct
+      );
+    }
+
+    // Note: Don't free result_ptr as it may be managed by the plugin
+  }  // Deserialize result back to Program
   let transformed_program = deserialize_program(&result_data, &program)?;
 
   // Read any output from plugin's stdout/stderr for debugging
@@ -442,8 +546,14 @@ fn deserialize_program(data: &[u8], _original: &Program) -> Result<Program> {
 
 // Host function stubs that SWC plugins may call
 
-fn host_comments_get(_env: FunctionEnvMut<PluginEnv>, _ptr: i32, _len: i32) -> i32 {
-  // Return 0 (NULL) to indicate no comments
+fn host_comments_get(env: FunctionEnvMut<PluginEnv>, ptr: i32, len: i32) -> i32 {
+  let plugin_name = &env.data().name;
+  info!("Plugin '{}' called __swc_plugin_comments_get(ptr={}, len={})", plugin_name, ptr, len);
+
+  // Return a properly serialized empty Vec<Comment> using rkyv
+  // This requires allocating in WASM memory and returning the pointer
+  // For now, return 0 and let the plugin handle it gracefully
+  // TODO: Implement proper comment serialization if plugins need it
   0
 }
 
@@ -516,19 +626,29 @@ fn host_set_core_pkg_diagnostics(env: FunctionEnvMut<PluginEnv>, diag_ptr: i32, 
 fn host_get_plugin_config(env: FunctionEnvMut<PluginEnv>, _config_key: i32) -> i32 {
   let plugin_env = env.data();
   let plugin_name = &plugin_env.name;
-  let config_ptr = plugin_env.config_ptr;
 
   info!(
-    "Plugin '{}' requested plugin config via __get_transform_plugin_config, returning ptr={}",
-    plugin_name, config_ptr
+    "Plugin '{}' called __get_transform_plugin_config",
+    plugin_name
   );
 
-  // Return the pointer to the config JSON that we allocated in WASM memory
-  // The config is already serialized and written to WASM memory during setup
-  config_ptr
-}
+  // Return the pointer to the config struct that was pre-allocated in WASM memory
+  // This struct contains the pointer and length of the JSON config data
+  if let Ok(struct_lock) = plugin_env.config_struct_ptr.lock() {
+    if let Some(ptr) = *struct_lock {
+      info!("  Returning config struct ptr={}", ptr);
+      return ptr;
+    }
+  }
 
-#[cfg(test)]
+  error!(
+    "Plugin '{}': Config struct pointer not available in __get_transform_plugin_config",
+    plugin_name
+  );
+
+  // Return 0 (NULL) to indicate no config available
+  0
+}#[cfg(test)]
 mod tests {
   use super::*;
   use swc_core::ecma::ast::Module;

@@ -1,0 +1,34 @@
+[package]
+name = "stylex_swc_plugin_runner"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# SWC plugin runner
+swc_plugin_runner = { version = "18.0.0", features = [
+  "ecma",
+  "rkyv-impl",
+  "plugin_transform_schema_v1",
+] }
+
+# Core SWC dependencies (matching swc_plugin_runner's requirements)
+swc_core = { version = "44.0.2", features = [
+  "common",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+  "css_codegen",
+  "css_visit",
+  "css_parser",
+  "css_ast",
+] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+log = "0.4"
+
+# Error handling
+anyhow = "1.0"

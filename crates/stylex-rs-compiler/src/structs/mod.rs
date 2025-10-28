@@ -8,6 +8,27 @@ use stylex_shared::shared::structures::{
 
 use crate::enums::{ImportSourceUnion, SourceMaps, StyleXModuleResolution};
 
+// Internal representation of a SWC plugin config
+pub struct SwcPluginConfig {
+  pub name: String,
+  pub options: JsObject,
+}
+
+impl SwcPluginConfig {
+  /// Convert JsObject options to JSON string for plugin consumption
+  pub fn options_to_json(&self, env: &napi::Env) -> napi::Result<String> {
+    // Use JSON.stringify to convert the JavaScript object to JSON
+    let global = env.get_global()?;
+    let json: JsObject = global.get_named_property("JSON")?;
+    let stringify: napi::JsFunction = json.get_named_property("stringify")?;
+
+    let result = stringify.call(None, &[&self.options])?;
+    let json_str: napi::JsString = result.coerce_to_string()?;
+
+    Ok(json_str.into_utf8()?.as_str()?.to_owned())
+  }
+}
+
 #[napi(object)]
 pub struct StyleXOptions {
   #[napi(ts_type = "'application-order' | 'property-specificity' | 'legacy-expand-shorthands'")]
@@ -43,6 +64,8 @@ pub struct StyleXOptions {
   pub include: Option<Vec<JsUnknown>>,
   #[napi(ts_type = "Array<string | RegExp>")]
   pub exclude: Option<Vec<JsUnknown>>,
+  #[napi(ts_type = "Array<[string, Record<string, any>]>")]
+  pub swc_plugins: Option<Vec<JsUnknown>>,
 }
 
 #[napi(object)]

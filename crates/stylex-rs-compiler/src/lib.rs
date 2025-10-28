@@ -1,6 +1,8 @@
 mod enums;
 mod structs;
 mod utils;
+mod plugin_resolver;
+mod plugin_executor;
 use log::info;
 use napi::{Env, Result};
 use std::panic;
@@ -47,6 +49,38 @@ fn extract_patterns(
   })
 }
 
+/// Parse SWC plugin config from JavaScript tuple format: [name, options]
+fn parse_swc_plugin_config(_env: &Env, value: napi::JsUnknown) -> Result<structs::SwcPluginConfig> {
+  use napi::JsObject;
+
+  // Try to coerce to array
+  let arr = value.coerce_to_object()?;
+
+  // Get the first element (plugin name)
+  let name: napi::JsString = arr.get_element(0)?;
+  let plugin_name = name.into_utf8()?.as_str()?.to_owned();
+
+  // Get the second element (plugin options)
+  let options: JsObject = arr.get_element(1)?;
+
+  Ok(structs::SwcPluginConfig {
+    name: plugin_name,
+    options,
+  })
+}
+
+fn extract_swc_plugins(
+  env: &Env,
+  plugins_opt: &mut Option<Vec<napi::JsUnknown>>,
+) -> Option<Vec<structs::SwcPluginConfig>> {
+  plugins_opt.take().map(|plugins| {
+    plugins
+      .into_iter()
+      .filter_map(|p| parse_swc_plugin_config(env, p).ok())
+      .collect()
+  })
+}
+
 #[napi]
 pub fn transform(
   env: Env,
@@ -61,8 +95,10 @@ pub fn transform(
 
   let mut include_opt = options.include.take();
   let mut exclude_opt = options.exclude.take();
+  let mut swc_plugins_opt = options.swc_plugins.take();
   let include_patterns = extract_patterns(&env, &mut include_opt);
   let exclude_patterns = extract_patterns(&env, &mut exclude_opt);
+  let swc_plugins = extract_swc_plugins(&env, &mut swc_plugins_opt);
 
   if !utils::should_transform_file(&filename, &include_patterns, &exclude_patterns) {
     return Ok(StyleXTransformResult {
@@ -81,7 +117,7 @@ pub fn transform(
     let cwd = env::current_dir()?;
 
     let plugin_pass = PluginPass {
-      cwd: Some(cwd),
+      cwd: Some(cwd.clone()),
       filename: filename.clone(),
     };
 
@@ -107,13 +143,25 @@ pub fn transform(
       None,
     ));
 
-    let program = match parser.parse_program() {
+    let mut program = match parser.parse_program() {
       Ok(program) => program,
       Err(err) => {
         let error_message = format!("Failed to parse file `{}`: {:?}", filename, err);
         return Err(napi::Error::from_reason(error_message));
       }
     };
+
+    // Apply SWC plugins if provided
+    if let Some(plugins) = swc_plugins && !plugins.is_empty() {
+      info!("Applying {} SWC plugin(s) before StyleX transformation", plugins.len());
+      program = plugin_executor::apply_swc_plugins(
+        &env,
+        program,
+        plugins,
+        cm.clone(),
+        &cwd,
+      )?;
+    }
 
     let program = program
       .apply(&mut fold_pass(&mut stylex))

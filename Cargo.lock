@@ -2462,6 +2462,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_plain",
+ "stylex_path_resolver",
  "stylex_shared",
  "swc_compiler_base",
  "swc_core",

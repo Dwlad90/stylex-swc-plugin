@@ -19,10 +19,13 @@ serde_json.workspace = true
 serde_plain.workspace = true
 swc_core = { workspace = true, features = [
   "common",
+  "common_plugin_transform",
   "ecma_plugin_transform",
   "ecma_utils",
   "ecma_parser",
   "ecma_codegen",
+  "ecma_transforms",
+  "ecma_visit",
   "css_codegen",
   "css_visit",
   "css_parser",
@@ -37,6 +40,7 @@ glob.workspace = true
 fancy-regex.workspace = true
 
 stylex_shared = { path = "../stylex-shared" }
+stylex_path_resolver = { path = "../stylex-path-resolver" }
 napi = "2"
 napi-derive = "2"
 

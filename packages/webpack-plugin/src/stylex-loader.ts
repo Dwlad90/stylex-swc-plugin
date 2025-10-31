@@ -12,13 +12,7 @@ export default async function stylexLoader(
 ) {
   const callback = this.async();
 
-  const {
-    stylexImports,
-    rsOptions,
-    nextjsMode,
-    transformer,
-    extractCSS = true,
-  } = this.getOptions();
+  const { stylexImports, rsOptions, nextjsMode, extractCSS = true } = this.getOptions();
 
   const logger = this._compiler?.getInfrastructureLogger(PLUGIN_NAME);
 
@@ -54,8 +48,7 @@ export default async function stylexLoader(
     const { code, map, metadata } = generateStyleXOutput(
       this.resourcePath,
       stringifiedInputCode,
-      rsOptions,
-      transformer
+      rsOptions
     );
 
     // If metadata.stylex doesn't exist at all, we only need to return the transformed code

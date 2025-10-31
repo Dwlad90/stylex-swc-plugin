@@ -105,7 +105,6 @@ export default withStylexTurbopack({
 > - `nextjsMode`
 > - `transformCss`
 > - `extractCSS`
-> - `transformer`
 
 ## Plugin Options
 

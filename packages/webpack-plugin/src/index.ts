@@ -51,7 +51,6 @@ export default class StyleXPlugin {
     rsOptions = {},
     nextjsMode = false,
     transformCss = identityTransfrom,
-    transformer = 'rs-compiler',
     extractCSS = true,
   }: StyleXPluginOption = {}) {
     this.useCSSLayers = useCSSLayers;
@@ -66,7 +65,6 @@ export default class StyleXPlugin {
         ...rsOptions,
       },
       nextjsMode,
-      transformer,
       extractCSS,
     };
     this.transformCss = transformCss;

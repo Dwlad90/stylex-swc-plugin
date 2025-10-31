@@ -149,7 +149,7 @@ pub(crate) fn get_span_from_source_code(
 fn compute_cache_key(expr: &Expr) -> u64 {
   let mut hasher = DefaultHasher::new();
   std::mem::discriminant(expr).hash(&mut hasher);
-  format!("{:?}", expr).hash(&mut hasher);
+  expr.hash(&mut hasher);
   hasher.finish()
 }
 
@@ -175,7 +175,9 @@ fn find_expression_span(program: &Program, target_expression: &Expr) -> Span {
 
   // Fallback: try finding after template literal conversion
   let converted_target = target_expression.clone().fold_with(&mut TplConverter {});
-  let fallback_finder = ExpressionFinder::new(&converted_target);
+  let mut fallback_finder = ExpressionFinder::new(&converted_target);
+  let _program = program.clone().fold_with(&mut fallback_finder);
+
   fallback_finder
     .get_span()
     .unwrap_or_else(|| target_expression.span())
@@ -190,26 +192,21 @@ fn get_memoized_frame_source_code(
   file_name: &FileName,
   code_frame: &CodeFrame,
 ) -> Option<Program> {
-  // Check if we have a normalized program cached
   if let Some((cached_program, source_code)) = state.get_seen_module_source_code()
     && let Some(source_code) = source_code
   {
-    // Program is already normalized, use it directly
     code_frame
       .source_map
       .new_source_file(Arc::new(file_name.clone()), source_code.to_owned());
     return Some(Program::Module(cached_program.clone()));
   }
 
-  // Get source code with priority: debug module > file > synthetic
   let source_code = get_source_code(wrapped_expression, state, file_name, code_frame)?;
 
-  // Register source with SourceMap
   let source_file = code_frame
     .source_map
     .new_source_file(Arc::new(file_name.clone()), source_code.clone());
 
-  // Parse and normalize the program
   let program = parse_and_normalize_program(
     &source_file,
     code_frame,
@@ -217,8 +214,10 @@ fn get_memoized_frame_source_code(
     target_expression,
   )?;
 
-  // Update state with normalized program
-  state.seen_module_source_code = Some(Box::new((program.clone(), Some(source_code))));
+  state.set_seen_module_source_code(
+    program.as_module().expect("Program must be a module"),
+    Some(source_code),
+  );
 
   Some(program)
 }
@@ -233,20 +232,27 @@ fn get_source_code(
   file_name: &FileName,
   code_frame: &CodeFrame,
 ) -> Option<String> {
-  // Priority 1: Use seen_source_code if available
   if let Some((module, source_code)) = state.get_seen_module_source_code() {
     if let Some(source_code) = source_code {
       return Some(source_code.clone());
     } else {
-      return Some(print_module(code_frame, module.clone(), None));
+      return Some(print_module(
+        code_frame,
+        module.clone(),
+        Some(
+          Config::default()
+            .with_minify(false)
+            .with_omit_last_semi(false)
+            .with_reduce_escaped_newline(false)
+            .with_inline_script(false),
+        ),
+      ));
     }
   }
-  // Priority 2: Try reading from file
   if let Ok(source) = read_source_file(file_name) {
     return Some(source);
   }
 
-  // Priority 3: Fallback to synthetic module (last resort)
   let synthetic_module = create_module(wrapped_expression);
   Some(print_module(code_frame, synthetic_module, None))
 }

@@ -5,7 +5,7 @@ const withStyleX =
   (
     pluginOptions?: Omit<
       StyleXPluginOption,
-      'useCSSLayers' | 'nextjsMode' | 'transformCss' | 'extractCSS' | 'transformer'
+      'useCSSLayers' | 'nextjsMode' | 'transformCss' | 'extractCSS'
     >
   ) =>
   (nextConfig: NextConfig = {}): NextConfig => {

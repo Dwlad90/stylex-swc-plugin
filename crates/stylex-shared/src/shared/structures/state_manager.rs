@@ -209,6 +209,7 @@ impl StateManager {
     {
       return Some((module, source_code));
     }
+
     None
   }
 
@@ -218,10 +219,7 @@ impl StateManager {
     module: &Module,
     source_code: Option<String>,
   ) {
-    self.seen_module_source_code = Some(Box::new((
-      Program::Module(drop_span(module.clone())),
-      source_code,
-    )));
+    self.seen_module_source_code = Some(Box::new((Program::Module(module.clone()), source_code)));
   }
 
   pub fn import_as(&self, import: &str) -> Option<String> {

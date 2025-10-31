@@ -25,7 +25,12 @@ where
 
             if let Some(&count) = self.state.var_decl_count_map.get(decl_id) {
               // Remove the variable declaration if it is used only once after transformation.
-              let is_used = count > 1;
+              let is_used = count > 1
+                || self
+                  .state
+                  .style_vars_to_keep
+                  .iter()
+                  .any(|style_var| &style_var.0 == decl_id);
 
               if !is_used {
                 self.state.cycle = TransformationCycle::Recounting;

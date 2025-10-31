@@ -16,7 +16,7 @@ use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
-    ast::{JSXAttrOrSpread, Module},
+    ast::{JSXAttrOrSpread, Module, Program},
     utils::drop_span,
   },
 };
@@ -102,7 +102,7 @@ pub struct StateManager {
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) export_id: Option<String>,
 
-  pub(crate) debug_assertions_module: Option<Module>,
+  pub(crate) seen_module_source_code: Option<Box<(Program, Option<String>)>>,
 
   pub(crate) class_name_declarations: Vec<Ident>,
   pub(crate) function_name_declarations: Vec<Ident>,
@@ -112,7 +112,7 @@ pub struct StateManager {
   pub(crate) var_decl_count_map: AtomHashMap,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
   pub(crate) css_property_seen: FxHashMap<String, String>,
-  pub(crate) seen_source_code_by_path: FxHashMap<FileName, String>,
+  pub(crate) span_cache: FxHashMap<u64, swc_core::common::Span>,
   pub(crate) jsx_spread_attr_exprs_map: FxHashMap<Expr, Vec<JSXAttrOrSpread>>,
 
   // `stylex.create` calls
@@ -172,11 +172,10 @@ impl StateManager {
       member_object_ident_count_map: FxHashMap::default(),
       export_id: None,
 
-      debug_assertions_module: None,
-
       seen: FxHashMap::default(),
       css_property_seen: FxHashMap::default(),
-      seen_source_code_by_path: FxHashMap::default(),
+      seen_module_source_code: None,
+      span_cache: FxHashMap::default(),
 
       top_imports: vec![],
 
@@ -203,19 +202,26 @@ impl StateManager {
     }
   }
 
-  pub(crate) fn get_debug_assertions_module(&self) -> Option<&Module> {
-    if cfg!(debug_assertions) {
-      self.debug_assertions_module.as_ref()
-    } else {
-      panic!("Cannot get debug assertions module in release mode");
+  /// Gets the source code program if it exists and is not yet normalized
+  pub(crate) fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
+    if let Some((program, source_code)) = self.seen_module_source_code.as_ref().map(|b| b.as_ref())
+      && let Program::Module(module) = program
+    {
+      return Some((module, source_code));
     }
+    None
   }
-  pub(crate) fn set_debug_assertions_module(&mut self, module: &Module) {
-    if cfg!(debug_assertions) {
-      self.debug_assertions_module = Some(drop_span(module.clone()));
-    } else {
-      panic!("Cannot set debug assertions module in release mode");
-    }
+
+  /// Sets the source code module (marks as not yet normalized)
+  pub(crate) fn set_seen_module_source_code(
+    &mut self,
+    module: &Module,
+    source_code: Option<String>,
+  ) {
+    self.seen_module_source_code = Some(Box::new((
+      Program::Module(drop_span(module.clone())),
+      source_code,
+    )));
   }
 
   pub fn import_as(&self, import: &str) -> Option<String> {

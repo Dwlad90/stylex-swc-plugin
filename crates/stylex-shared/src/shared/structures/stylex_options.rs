@@ -20,6 +20,7 @@ pub struct StyleXOptionsParams {
   pub enable_logical_styles_polyfill: Option<bool>,
   pub enable_legacy_value_flipping: Option<bool>,
   pub enable_ltr_rtl_comments: Option<bool>,
+  pub use_real_file_for_source: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,
@@ -54,6 +55,7 @@ impl Default for StyleXOptionsParams {
       enable_debug_data_prop: Some(true),
       enable_dev_class_names: Some(false),
       enable_minified_keys: Some(true),
+      use_real_file_for_source: Some(true),
       aliases: None,
       unstable_module_resolution: None,
     }
@@ -106,6 +108,7 @@ pub struct StyleXOptions {
   pub enable_ltr_rtl_comments: bool,
   pub enable_minified_keys: bool,
   pub enable_font_size_px_to_rem: bool,
+  pub use_real_file_for_source: bool,
   pub class_name_prefix: String,
   // pub defined_stylex_css_variables: FxHashMap<String, String>,
   pub style_resolution: StyleResolution,
@@ -155,6 +158,7 @@ impl Default for StyleXOptions {
       enable_legacy_value_flipping: false,
       enable_ltr_rtl_comments: false,
       enable_minified_keys: true,
+      use_real_file_for_source: true,
       treeshake_compensation: false,
       aliases: None,
       unstable_module_resolution: CheckModuleResolution::CommonJS(
@@ -211,6 +215,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.unwrap_or(false),
       enable_legacy_value_flipping: options.enable_legacy_value_flipping.unwrap_or(false),
       enable_ltr_rtl_comments: options.enable_ltr_rtl_comments.unwrap_or(false),
+      use_real_file_for_source: options.use_real_file_for_source.unwrap_or(true),
       aliases: options.aliases,
       unstable_module_resolution,
     }

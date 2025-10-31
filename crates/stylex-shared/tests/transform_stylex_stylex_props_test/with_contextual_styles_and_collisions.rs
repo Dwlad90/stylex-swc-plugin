@@ -323,12 +323,14 @@ test!(
   ),
   stylex_call_with_conditions_and_undefined_collisions_tranform_successfully,
   r#"
-        import stylex from 'stylex';
+        import * as stylex from 'stylex';
+
         const styles = stylex.create({
             red: {
                 color: 'red',
             },
         });
+
         stylex.props(Math.random() > 1 ? styles.red : undefined);
         stylex.props(true ? styles.red : undefined);
         stylex.props(false ? styles.red : undefined);
@@ -336,5 +338,86 @@ test!(
         stylex.props(Math.random() > 1 ? undefined: styles.red);
         stylex.props(true ? undefined: styles.red );
         stylex.props(false ? undefined : styles.red);
+        stylex.props(false ? null : styles.red);
+        stylex.props(true ? null : styles.red);
+
+        export function TestComponent({removeStyle, isAnimation}) {
+            stylex.props(Math.random() > 1 ? styles.red : undefined);
+            stylex.props(true ? styles.red : undefined);
+            stylex.props(false ? styles.red : undefined);
+
+            stylex.props(Math.random() > 1 ? undefined: styles.red);
+            stylex.props(true ? undefined: styles.red );
+            stylex.props(false ? undefined : styles.red);
+            stylex.props(false ? null : styles.red);
+            stylex.props(true ? null : styles.red);
+            stylex.props(removeStyle ? undefined : styles.red);
+            stylex.props(removeStyle ? null : styles.red);
+
+            const { className: classNameDiv2, style: styleDiv2 } = sx.props(
+              removeStyle ? null : c.red,
+              isAnimation && c.red
+            );
+
+
+            return <div className={classNameDiv2} style={styleDiv2} />;
+        }
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  stylex_call_with_conditions_and_undefined_collisions_tranform_successfully_with_inlined,
+  r#"
+        import * as stylex from 'stylex';
+
+        const styles = stylex.create({
+            red: {
+                color: 'red',
+            },
+        });
+
+        stylex.props(Math.random() > 1 ? styles.red : undefined);
+        stylex.props(true ? styles.red : undefined);
+        stylex.props(false ? styles.red : undefined);
+
+        stylex.props(Math.random() > 1 ? undefined: styles.red);
+        stylex.props(true ? undefined: styles.red );
+        stylex.props(false ? undefined : styles.red);
+        stylex.props(false ? null : styles.red);
+        stylex.props(true ? null : styles.red);
+
+        export function TestComponent({removeStyle, isAnimation}) {
+            stylex.props(Math.random() > 1 ? styles.red : undefined);
+            stylex.props(true ? styles.red : undefined);
+            stylex.props(false ? styles.red : undefined);
+
+            stylex.props(Math.random() > 1 ? undefined: styles.red);
+            stylex.props(true ? undefined: styles.red );
+            stylex.props(false ? undefined : styles.red);
+            stylex.props(false ? null : styles.red);
+            stylex.props(true ? null : styles.red);
+            stylex.props(removeStyle ? undefined : styles.red);
+            stylex.props(removeStyle ? null : styles.red);
+
+            const { className: classNameDiv2, style: styleDiv2 } = sx.props(
+              removeStyle ? null : c.red,
+              isAnimation && c.red
+            );
+
+
+            return <div className={classNameDiv2} style={styleDiv2} />;
+        }
     "#
 );

@@ -168,7 +168,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
             unimplemented!("DYNAMIC: Process inline style object")
           }
         }
-        StyleObject::Nullable => panic!("Nullable style object is not allowed in styleq"),
+        StyleObject::Nullable => {}
         StyleObject::Other => panic!("Other style object is not allowed in styleq"),
       },
       _ => unreachable!(),

@@ -20,34 +20,7 @@ export const isSupplementedLoaderContext = <T>(
 export function generateStyleXOutput(
   resourcePath: string,
   inputSource: string,
-  rsOptions: Partial<stylexPlugin.StyleXOptions>,
-  transformer: StyleXWebpackLoaderOptions['transformer']
+  rsOptions: Partial<stylexPlugin.StyleXOptions>
 ): StyleXTransformResult {
-  if (transformer === 'swc') {
-    const metadata = { stylex: [] };
-    let metadataStr = '[]';
-
-    const code = inputSource.replace(
-      /\/\/*__stylex_metadata_start__(?<metadata>.+)__stylex_metadata_end__/,
-      (...args) => {
-        metadataStr = args.at(-1)?.metadata.split('"__stylex_metadata_end__')[0];
-
-        return '';
-      }
-    );
-
-    try {
-      metadata.stylex = JSON.parse(metadataStr)?.map(
-        (rule: SWCPluginRule) => [rule.class_name, rule.style, rule.priority] as Rule
-      );
-    } catch (e) {
-      console.error('Error parsing StylexX metadata', e);
-    }
-
-    const map = undefined;
-
-    return { code, map, metadata };
-  }
-
   return stylexPlugin.transform(resourcePath, inputSource, normalizeRsOptions(rsOptions ?? {}));
 }

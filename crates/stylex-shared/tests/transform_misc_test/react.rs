@@ -1,6 +1,9 @@
 use stylex_shared::{
   StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleResolution, StyleXOptionsParams},
+  },
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -72,6 +75,45 @@ test!(
       }, [isSelected]);
 
       return innerComponent;
+    }
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_style_extend_prop_with_stylex_class,
+  r#"
+    import * as sx from '@stylexjs/stylex';
+    import * as React from 'react';
+
+
+    const c = sx.create({
+      descriptionTextLink: {
+        color: "red",
+      },
+    });
+
+
+    export default function CommentField() {
+      const isBold = false;
+
+      sx.props(isBold && c.descriptionTextLink, isBold && c.descriptionTextLink,isBold && c.descriptionTextLink,isBold && c.descriptionTextLink);
+
+      return (
+        <div styleExtend={[c.descriptionTextLink]} />
+      );
     }
 "#
 );

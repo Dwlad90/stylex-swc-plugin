@@ -847,8 +847,11 @@ fn _evaluate(
 
                         let expr = match expr {
                           Expr::Array(array) => Expr::Array(array),
+                          Expr::Object(obj) => Expr::Object(obj),
                           Expr::Lit(lit) => Expr::Lit(lit),
-                          _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+                          _ => {
+                            panic!("{}", ILLEGAL_PROP_ARRAY_VALUE)
+                          }
                         };
 
                         Some(ExprOrSpread {
@@ -1931,6 +1934,9 @@ fn _evaluate(
           normalized_path.get_type(get_default_expr_ctx())
         )),
       );
+    }
+    Expr::Await(await_expr) => {
+      return evaluate_cached(&await_expr.arg, state, traversal_state, fns);
     }
     _ => {
       warn!(

@@ -1,9 +1,10 @@
 use anyhow::Error;
 use log::{debug, warn};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::{fs, path::Path, sync::Arc};
-use swc_config::is_module::IsModule;
-
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
+use swc_config::is_module::IsModule;
 use swc_core::{
   common::{
     DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, SyntaxContext,
@@ -58,32 +59,8 @@ impl CodeFrame {
   }
 
   pub(crate) fn get_span_line_number(&self, span: Span) -> usize {
-    let loc = self.source_map.lookup_char_pos(span.lo);
-
-    loc.line
+    self.source_map.lookup_char_pos(span.lo).line
   }
-
-  // fn format_code_frame(&self, span: Span) -> String {
-  //   let loc = self.source_map.lookup_char_pos(span.lo);
-  //   let file = loc.file;
-  //   let start_line = loc.line.saturating_sub(2);
-  //   let end_line = loc.line + 2;
-
-  //   (start_line..=end_line)
-  //     .filter_map(|line_idx| {
-  //       file.get_line(line_idx).map(|line| {
-  //         let mut output = format!("  {}\n", line);
-  //         if line_idx == loc.line - 1 {
-  //           output.push_str(&format!(
-  //             "  {}{}\n",
-  //             " ".repeat(loc.col.0),
-  //             "^".repeat((span.hi - span.lo).0 as usize)
-  //           ));
-  //         }
-  //         output
-  //       })
-  //     })
-  //     .collect()
 }
 
 fn read_source_file(file_name: &FileName) -> Result<String, std::io::Error> {
@@ -126,25 +103,164 @@ pub(crate) fn build_code_frame_error<'a>(
   error_message
 }
 
+/// Finds the span (source location) of a target expression within the source code.
+/// Uses caching to avoid redundant AST traversals for the same expression.
+///
+/// # Arguments
+/// * `wrapped_expression` - The parent expression containing the target
+/// * `target_expression` - The specific expression to locate
+/// * `state` - Mutable reference to the state manager (for caching)
+///
+/// # Returns
+/// A tuple of (CodeFrame, Span) where CodeFrame contains the source map for error display
 pub(crate) fn get_span_from_source_code(
   wrapped_expression: &Expr,
   target_expression: &Expr,
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), Error> {
+  let cache_key = compute_cache_key(target_expression);
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
+  // Check cache first - avoid expensive AST operations if we've seen this before
+  if let Some(&cached_span) = state.span_cache.get(&cache_key) {
+    let code_frame = load_code_frame_from_cache(&file_name)?;
+    return Ok((code_frame, cached_span));
+  }
+
   let code_frame = CodeFrame::new();
+  let program = get_memoized_frame_source_code(
+    wrapped_expression,
+    target_expression,
+    state,
+    &file_name,
+    &code_frame,
+  )
+  .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
 
-  let frame_source_code =
-    get_memoized_frame_source_code(wrapped_expression, state, &file_name, &code_frame);
+  let span = find_expression_span(&program, target_expression);
 
-  let file = code_frame
+  // Cache the result for future lookups
+  state.span_cache.insert(cache_key, span);
+
+  Ok((code_frame, span))
+}
+
+/// Computes a cache key for an expression based on its type and structure
+fn compute_cache_key(expr: &Expr) -> u64 {
+  let mut hasher = DefaultHasher::new();
+  std::mem::discriminant(expr).hash(&mut hasher);
+  format!("{:?}", expr).hash(&mut hasher);
+  hasher.finish()
+}
+
+/// Loads a CodeFrame with the source file for error display
+fn load_code_frame_from_cache(file_name: &FileName) -> Result<CodeFrame, Error> {
+  let code_frame = CodeFrame::new();
+  let source = read_source_file(file_name)
+    .map_err(|e| anyhow::anyhow!("Failed to read source file: {}", e))?;
+  code_frame
     .source_map
-    .new_source_file(Arc::new(file_name), frame_source_code);
+    .new_source_file(file_name.clone().into(), source);
+  Ok(code_frame)
+}
 
-  match parse_js(
+/// Finds the span of a target expression within a program AST
+fn find_expression_span(program: &Program, target_expression: &Expr) -> Span {
+  let mut finder = ExpressionFinder::new(target_expression);
+  let _program = program.clone().fold_with(&mut finder);
+
+  if let Some(span) = finder.get_span() {
+    return span;
+  }
+
+  // Fallback: try finding after template literal conversion
+  let converted_target = target_expression.clone().fold_with(&mut TplConverter {});
+  let fallback_finder = ExpressionFinder::new(&converted_target);
+  fallback_finder
+    .get_span()
+    .unwrap_or_else(|| target_expression.span())
+}
+
+/// Gets or parses the source code as a Program AST, with memoization.
+/// Returns a cleaned and normalized Program that can be used for expression finding.
+fn get_memoized_frame_source_code(
+  wrapped_expression: &Expr,
+  target_expression: &Expr,
+  state: &mut StateManager,
+  file_name: &FileName,
+  code_frame: &CodeFrame,
+) -> Option<Program> {
+  // Check if we have a normalized program cached
+  if let Some((cached_program, source_code)) = state.get_seen_module_source_code()
+    && let Some(source_code) = source_code
+  {
+    // Program is already normalized, use it directly
+    code_frame
+      .source_map
+      .new_source_file(Arc::new(file_name.clone()), source_code.to_owned());
+    return Some(Program::Module(cached_program.clone()));
+  }
+
+  // Get source code with priority: debug module > file > synthetic
+  let source_code = get_source_code(wrapped_expression, state, file_name, code_frame)?;
+
+  // Register source with SourceMap
+  let source_file = code_frame
+    .source_map
+    .new_source_file(Arc::new(file_name.clone()), source_code.clone());
+
+  // Parse and normalize the program
+  let program = parse_and_normalize_program(
+    &source_file,
+    code_frame,
+    state.get_filename(),
+    target_expression,
+  )?;
+
+  // Update state with normalized program
+  state.seen_module_source_code = Some(Box::new((program.clone(), Some(source_code))));
+
+  Some(program)
+}
+
+/// Gets the source code with the following priority:
+/// 1. seen_source_code from state (if not yet normalized)
+/// 2. Read from file (original source)
+/// 3. Create synthetic module (fallback)
+fn get_source_code(
+  wrapped_expression: &Expr,
+  state: &StateManager,
+  file_name: &FileName,
+  code_frame: &CodeFrame,
+) -> Option<String> {
+  // Priority 1: Use seen_source_code if available
+  if let Some((module, source_code)) = state.get_seen_module_source_code() {
+    if let Some(source_code) = source_code {
+      return Some(source_code.clone());
+    } else {
+      return Some(print_module(code_frame, module.clone(), None));
+    }
+  }
+  // Priority 2: Try reading from file
+  if let Ok(source) = read_source_file(file_name) {
+    return Some(source);
+  }
+
+  // Priority 3: Fallback to synthetic module (last resort)
+  let synthetic_module = create_module(wrapped_expression);
+  Some(print_module(code_frame, synthetic_module, None))
+}
+
+/// Parses source code into a Program AST and normalizes it
+fn parse_and_normalize_program(
+  source_file: &Arc<swc_core::common::SourceFile>,
+  code_frame: &CodeFrame,
+  filename: &str,
+  target_expression: &Expr,
+) -> Option<Program> {
+  let parse_result = parse_js(
     code_frame.source_map.clone(),
-    file.clone(),
+    source_file.clone(),
     &code_frame.handler,
     EsVersion::EsNext,
     Syntax::Typescript(TsSyntax {
@@ -153,84 +269,28 @@ pub(crate) fn get_span_from_source_code(
     }),
     IsModule::Bool(true),
     None,
-  ) {
+  );
+
+  match parse_result {
     Ok(program) => {
-      let mut finder = ExpressionFinder::new(target_expression);
-      let program: Program = program.fold_with(&mut Cleaner {}).fold_with(&mut finder);
-
-      let frame_span = if let Some(span) = finder.get_span() {
-        span
-      } else {
-        let folded_expression = target_expression.clone().fold_with(&mut TplConverter {});
-
-        let mut finder = ExpressionFinder::new(&folded_expression);
-
-        let _program = program
-          .fold_with(&mut TplConverter {})
-          .fold_with(&mut finder);
-
-        finder
-          .get_span()
-          .unwrap_or_else(|| target_expression.span())
-      };
-
-      return Ok((code_frame, frame_span));
+      // Clean and normalize: remove syntax contexts, convert template literals
+      let normalized = program
+        .fold_with(&mut Cleaner {})
+        .fold_with(&mut TplConverter {});
+      Some(normalized)
     }
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
         debug!(
           "Failed to parse program: {:?}. File: {}. Expression: {:?}",
-          error,
-          state.get_filename(),
-          target_expression
+          error, filename, target_expression
         );
       } else {
-        warn!(
-          "Failed to parse program: {:?}. File: {}. For more information enable debug logging.",
-          error,
-          state.get_filename()
-        )
-      };
+        warn!("Failed to parse program: {:?}. File: {}", error, filename);
+      }
+      None
     }
   }
-
-  anyhow::bail!(
-    "Failed to parse program for code frame error generation. Please check the logs for more information."
-  );
-}
-
-fn get_memoized_frame_source_code(
-  wrapped_expression: &Expr,
-  state: &mut StateManager,
-  file_name: &FileName,
-  code_frame: &CodeFrame,
-) -> String {
-  if let Some(seen_source_code) = state.seen_source_code_by_path.get(file_name) {
-    return seen_source_code.clone();
-  }
-
-  let mut can_be_memoized = true;
-
-  let source_code = read_source_file(file_name);
-
-  let frame_source_code = source_code.unwrap_or_else(|_| {
-    let module = if cfg!(debug_assertions) && state.get_debug_assertions_module().is_some() {
-      state.get_debug_assertions_module().unwrap().clone()
-    } else {
-      can_be_memoized = false;
-      create_module(wrapped_expression)
-    };
-
-    print_module(code_frame, module, None)
-  });
-
-  if can_be_memoized {
-    state
-      .seen_source_code_by_path
-      .insert(file_name.clone(), frame_source_code.clone());
-  }
-
-  frame_source_code
 }
 
 pub(crate) fn print_module(
@@ -238,8 +298,14 @@ pub(crate) fn print_module(
   module: Module,
   codegen_config: Option<Config>,
 ) -> String {
-  let program = Program::Module(module);
+  print_program(code_frame, Program::Module(module), codegen_config)
+}
 
+pub(crate) fn print_program(
+  code_frame: &CodeFrame,
+  program: Program,
+  codegen_config: Option<Config>,
+) -> String {
   let printed_source_code = print(
     code_frame.source_map.clone(),
     &program,
@@ -270,38 +336,42 @@ pub(crate) fn create_module(wrapped_expression: &Expr) -> Module {
   }
 }
 
+/// Visitor that searches for a specific expression in an AST.
+/// Uses discriminant matching for fast filtering before expensive eq_ignore_span checks.
 #[derive(Debug)]
 struct ExpressionFinder {
   target: Expr,
+  target_discriminant: std::mem::Discriminant<Expr>,
   found_expr: Option<Expr>,
 }
 
+/// Visitor that normalizes AST by removing syntax contexts and type annotations.
+/// This allows for more reliable expression matching across different parsing contexts.
 #[derive(Debug)]
 struct Cleaner {}
 impl Fold for Cleaner {
   noop_fold_type!();
 
-  fn fold_binding_ident(&mut self, node: BindingIdent) -> BindingIdent {
-    let mut new_node = node.clone();
-
-    new_node.id.ctxt = SyntaxContext::empty();
-    new_node.type_ann = None;
-
-    new_node.fold_children_with(self)
+  fn fold_binding_ident(&mut self, mut node: BindingIdent) -> BindingIdent {
+    node.id.ctxt = SyntaxContext::empty();
+    node.type_ann = None;
+    node.fold_children_with(self)
   }
-  fn fold_ident(&mut self, ident: Ident) -> Ident {
-    let mut new_ident = ident.clone();
 
-    new_ident.ctxt = SyntaxContext::empty();
-
-    new_ident.fold_children_with(self)
+  fn fold_ident(&mut self, mut ident: Ident) -> Ident {
+    ident.ctxt = SyntaxContext::empty();
+    ident.fold_children_with(self)
   }
 }
 
 impl ExpressionFinder {
   fn new(target: &Expr) -> Self {
+    let cleaned_target = target.clone().fold_children_with(&mut Cleaner {});
+    let target_discriminant = std::mem::discriminant(&cleaned_target);
+
     Self {
-      target: target.clone().fold_children_with(&mut Cleaner {}),
+      target: cleaned_target,
+      target_discriminant,
       found_expr: None,
     }
   }
@@ -313,6 +383,8 @@ impl ExpressionFinder {
   }
 }
 
+/// Visitor that normalizes template literals and string concatenations.
+/// Helps match expressions that may be written differently in source vs AST.
 #[derive(Debug)]
 struct TplConverter {}
 
@@ -320,12 +392,8 @@ impl Fold for TplConverter {
   noop_fold_type!();
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
-    // Try to convert concat calls to template literals
     let expr = convert_concat_to_tpl_expr(expr);
-
-    // Convert simple template literals (without interpolations) to regular strings
     let expr = convert_simple_tpl_to_str_expr(expr);
-
     expr.fold_children_with(self)
   }
 }
@@ -338,14 +406,18 @@ impl Fold for ExpressionFinder {
       return expr;
     }
 
-    let expr = expr.clone().fold_children_with(self);
+    // Fast discriminant check filters expressions by variant type
+    if std::mem::discriminant(&expr) != self.target_discriminant {
+      return expr.fold_children_with(self);
+    }
 
+    // Expensive structural comparison only for matching variants
     if self.target.eq_ignore_span(&expr) {
       self.found_expr = Some(expr.clone());
-      expr
-    } else {
-      expr.fold_children_with(self)
+      return expr;
     }
+
+    expr.fold_children_with(self)
   }
 }
 

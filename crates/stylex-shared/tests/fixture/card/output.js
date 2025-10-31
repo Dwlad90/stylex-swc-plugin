@@ -9,7 +9,7 @@ _inject2(".marginLeft-x16ydxro{margin-left:10px}", 4000);
 export default function Card() {
     const { className, style } = {
         className: "color-x1e2nbdu borderColor-x15hxx75 padding-x7z7khe",
-        "data-style-src": "input.stylex.js:4; input.stylex.js:8"
+        "data-style-src": "input.stylex.js:3; input.stylex.js:7"
     };
     return <article className={className} style={style}>Card</article>;
 }

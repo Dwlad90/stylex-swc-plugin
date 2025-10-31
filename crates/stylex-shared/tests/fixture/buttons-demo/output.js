@@ -58,17 +58,17 @@ const styles = {
         justifyContent: "justifyContent-xl56j7k",
         gap: "gap-xou54vl",
         paddingBottom: "paddingBottom-xzk7aed",
-        $$css: "input.stylex.js:49"
+        $$css: "input.stylex.js:42"
     },
     bordered: {
         borderWidth: "borderWidth-xdh2fpr",
         borderStyle: "borderStyle-x1y0btm7",
         borderColor: "borderColor-x71xlcl",
-        $$css: "input.stylex.js:57"
+        $$css: "input.stylex.js:50"
     },
     greenBorder: {
         borderColor: "borderColor-x1bg2uv5",
-        $$css: "input.stylex.js:62"
+        $$css: "input.stylex.js:55"
     }
 };
 _inject2(".xm1pwqw, .xm1pwqw:root{--background-x166rmrk:#000;--text-x1rr8s3j:#fff;}", 0.5);

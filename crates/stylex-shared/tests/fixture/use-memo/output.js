@@ -42,7 +42,7 @@ const styles = {
     primary: {
         backgroundColor: "backgroundColor-xrkmrrc",
         color: "color-x1awj2ng",
-        $$css: "input.stylex.js:33"
+        $$css: "input.stylex.js:32"
     },
     root: {
         display: "display-x1lliihq",
@@ -51,7 +51,7 @@ const styles = {
         paddingLeft: "paddingLeft-x5tiur9",
         paddingRight: "paddingRight-x1s7jvk7",
         paddingTop: "paddingTop-xz9dl7a",
-        $$css: "input.stylex.js:37"
+        $$css: "input.stylex.js:36"
     }
 };
 var _c;

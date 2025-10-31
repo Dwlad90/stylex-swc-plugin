@@ -311,6 +311,60 @@ const styleProps = {
 > [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with an
 > attached link to reproduce the problem.
 
+## Configuration Options
+
+### `use_real_file_for_source`
+
+**Type:** `boolean`
+**Default:** `true`
+
+Controls whether the compiler should read source files from disk for error reporting and source map generation.
+
+#### Behavior
+
+- **`true` (default)**: The compiler reads the actual source file from disk when generating error messages and source maps. This provides accurate line numbers and source context that match what you see in your editor.
+
+- **`false`**: The compiler uses the transformed AST representation for error reporting. This is useful when:
+  - Working with in-memory transformations
+  - Source files are not available on disk
+  - You want faster compilation (skips file I/O)
+
+#### Example
+
+```ts
+transform(filename, code, {
+  use_real_file_for_source: true, // Use actual source files (default)
+  dev: true,
+  // ... other options
+});
+```
+
+#### Use Cases
+
+**Use `true` (recommended for development):**
+- Local development with files on disk
+- Accurate error messages with real line numbers
+- Better debugging experience
+- Source maps match your actual files
+
+**Use `false` (for special cases):**
+- In-memory transformations without disk access
+- Virtual file systems
+- Performance optimization when error accuracy is less critical
+- Build pipelines where source files are not available
+
+> [!TIP]
+> Keep the default `true` value for most use cases. Only set it to `false` if you have specific requirements for in-memory transformations or performance-critical scenarios where file I/O is a bottleneck.
+
+> [!WARNING]
+> When `use_real_file_for_source` is set to `false`, error messages may report **incorrect line numbers**. The compiler will use the transformed AST representation instead of the original source code, which can lead to line number mismatches. This happens because:
+> - The AST may have been modified by previous transformations
+> - Comments and whitespace are normalized in the AST
+> - The structure may differ from what's in your actual source file
+>
+> For accurate error reporting and debugging, always use `use_real_file_for_source: true` (the default) during development.
+
+
 ## Debug
 
 You can enable debug logging for the StyleX compiler using the `STYLEX_DEBUG` environment variable. This is useful for troubleshooting and understanding the internal processing of StyleX code.

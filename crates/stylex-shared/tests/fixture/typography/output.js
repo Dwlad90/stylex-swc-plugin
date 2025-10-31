@@ -39,114 +39,114 @@ const styles = {
         margin: "margin-x1ghz6dp",
         overflowWrap: "overflowWrap-xj0a0fe",
         fontFamily: "fontFamily-xbwy7e6",
-        $$css: "input.stylex.js:8"
+        $$css: "input.stylex.js:6"
     },
     textXxxl: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-x193ocya",
-        $$css: "input.stylex.js:13"
+        $$css: "input.stylex.js:11"
     },
     textXxl: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-xlj8byu",
-        $$css: "input.stylex.js:17"
+        $$css: "input.stylex.js:15"
     },
     textXl: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-xgc4vk5",
-        $$css: "input.stylex.js:21"
+        $$css: "input.stylex.js:19"
     },
     textLg: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-x17gblq1",
-        $$css: "input.stylex.js:25"
+        $$css: "input.stylex.js:23"
     },
     textMd: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-xm7bc5f",
-        $$css: "input.stylex.js:29"
+        $$css: "input.stylex.js:27"
     },
     textSm: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-x9bx2mk",
-        $$css: "input.stylex.js:33"
+        $$css: "input.stylex.js:31"
     },
     body: {
         fontSize: "fontSize-xr14wxu",
         lineHeight: "lineHeight-x1sjzer8",
-        $$css: "input.stylex.js:37"
+        $$css: "input.stylex.js:35"
     },
     bodySm: {
         fontSize: "fontSize-x9bx2mk",
         lineHeight: "lineHeight-x1sjzer8",
-        $$css: "input.stylex.js:41"
+        $$css: "input.stylex.js:39"
     },
     bodyMd: {
         fontSize: "fontSize-xm7bc5f",
         lineHeight: "lineHeight-x1sjzer8",
-        $$css: "input.stylex.js:45"
+        $$css: "input.stylex.js:43"
     },
     truncate: {
         whiteSpace: "whiteSpace-xuxw1ft",
         textOverflow: "textOverflow-xlyipyv",
         overflow: "overflow-xb3r6kr",
-        $$css: "input.stylex.js:49"
+        $$css: "input.stylex.js:47"
     },
     bold: {
         fontWeight: "fontWeight-x117nqv4",
-        $$css: "input.stylex.js:54"
+        $$css: "input.stylex.js:52"
     },
     italic: {
         fontStyle: "fontStyle-x1k4tb9n",
-        $$css: "input.stylex.js:57"
+        $$css: "input.stylex.js:55"
     },
     textTransform_unset: {
         textTransform: "textTransform-x1gdvv3m",
-        $$css: "input.stylex.js:60"
+        $$css: "input.stylex.js:58"
     },
     textTransform_uppercase: {
         textTransform: "textTransform-xtvhhri",
-        $$css: "input.stylex.js:63"
+        $$css: "input.stylex.js:61"
     },
     textTransform_lowercase: {
         textTransform: "textTransform-x1kyqaxf",
-        $$css: "input.stylex.js:66"
+        $$css: "input.stylex.js:64"
     },
     textTransform_capitalize: {
         textTransform: "textTransform-xn80e1m",
-        $$css: "input.stylex.js:69"
+        $$css: "input.stylex.js:67"
     },
     underline: {
         textDecoration: "textDecoration-x1bvjpef",
-        $$css: "input.stylex.js:72"
+        $$css: "input.stylex.js:70"
     },
     colorSuccess: {
         color: "color-x2i9qa9",
-        $$css: "input.stylex.js:75"
+        $$css: "input.stylex.js:73"
     },
     colorError: {
         color: "color-x1wptp0d",
-        $$css: "input.stylex.js:78"
+        $$css: "input.stylex.js:76"
     },
     colorInfo: {
         color: "color-xt2mot5",
-        $$css: "input.stylex.js:81"
+        $$css: "input.stylex.js:79"
     },
     colorWarning: {
         color: "color-xe5xflh",
-        $$css: "input.stylex.js:84"
+        $$css: "input.stylex.js:82"
     },
     colorPrimary: {
         color: "color-xw3ogp8",
-        $$css: "input.stylex.js:87"
+        $$css: "input.stylex.js:85"
     },
     color_primary: {
         color: "color-xw3ogp8",
-        $$css: "input.stylex.js:87"
+        $$css: "input.stylex.js:99"
     },
     colorSecondary: {
         color: "color-x10gd8tk",
-        $$css: "input.stylex.js:93"
+        $$css: "input.stylex.js:91"
     }
 };
 const DEFAULT_VARIANT_MAPPING = {

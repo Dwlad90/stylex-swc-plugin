@@ -97,18 +97,19 @@ pub(crate) fn stylex_merge(
       Expr::Member(member) => {
         let resolved = parse_nullable_style(arg, state, false);
 
-        let ident = member
-          .obj
-          .as_ident()
-          .expect("Member obj is not an ident")
-          .clone();
-
         match resolved {
           StyleObject::Other => {
             bail_out_index = Some(current_index);
             bail_out = true;
           }
           StyleObject::Style(_) | StyleObject::Nullable => {
+            let ident = match member.obj.as_ref() {
+              Expr::Ident(ident) => ident.clone(),
+              _ => {
+                panic!("Member obj is not an ident",)
+              }
+            };
+
             resolved_args.push(ResolvedArg::StyleObject(resolved, ident, member.clone()));
           }
         }
@@ -260,11 +261,11 @@ pub(crate) fn stylex_merge(
       match arg {
         ResolvedArg::StyleObject(_, ident, member_expr) => {
           reduce_ident_count(state, ident);
-          reduce_member_expression_count(state, member_expr)
+          reduce_member_expression_count(state, member_expr);
         }
         ResolvedArg::ConditionalStyle(_, _, _, ident, member_expr) => {
           reduce_ident_count(state, ident);
-          reduce_member_expression_count(state, member_expr)
+          reduce_member_expression_count(state, member_expr);
         }
       }
     }

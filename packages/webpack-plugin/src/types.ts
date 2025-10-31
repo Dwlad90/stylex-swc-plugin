@@ -13,7 +13,7 @@ export type CSSTransformer = (
   _filePath: string | undefined
 ) => string | Buffer | Promise<string | Buffer>;
 
-export interface StyleXPluginOption extends Pick<StyleXWebpackLoaderOptions, 'transformer'> {
+export interface StyleXPluginOption {
   /**
    * stylex options passed to stylex babel plugin
    *
@@ -58,13 +58,6 @@ export type StyleXWebpackLoaderOptions = {
   stylexImports: StyleXOptions['importSources'];
   rsOptions: Partial<StyleXOptions>;
   nextjsMode: boolean;
-
-  /**
-   * Specify the transformer to transform StyleX code
-   *
-   * @default 'rs-compiler'
-   */
-  transformer?: 'rs-compiler' | 'swc';
   extractCSS?: boolean;
 };
 

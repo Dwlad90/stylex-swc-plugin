@@ -34,6 +34,7 @@ pub struct StyleXOptions {
   pub enable_debug_data_prop: Option<bool>,
   pub enable_dev_class_names: Option<bool>,
   pub enable_minified_keys: Option<bool>,
+  pub use_real_file_for_source: Option<bool>,
   #[napi(ts_type = "Record<string, string[]>")]
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[napi(js_name = "unstable_moduleResolution")]
@@ -103,6 +104,7 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       enable_logical_styles_polyfill: val.enable_logical_styles_polyfill,
       enable_legacy_value_flipping: val.enable_legacy_value_flipping,
       enable_ltr_rtl_comments: val.enable_ltr_rtl_comments,
+      use_real_file_for_source: val.use_real_file_for_source,
       dev: val.dev,
       test: val.test,
       debug: val.debug.or(val.dev),

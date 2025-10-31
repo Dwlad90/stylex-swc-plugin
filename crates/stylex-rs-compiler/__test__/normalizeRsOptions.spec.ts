@@ -19,6 +19,7 @@ const defaultResult: StyleXOptions = {
   swcPlugins: [],
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
+  useRealFileForSource: true,
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {

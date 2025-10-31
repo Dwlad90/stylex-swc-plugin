@@ -25,6 +25,7 @@ pub struct StyleXStateOptions {
   pub enable_legacy_value_flipping: bool,
   #[allow(dead_code)]
   pub enable_ltr_rtl_comments: bool,
+  pub use_real_file_for_source: bool,
   // pub defined_stylex_css_variables: FxHashMap<String, String>,
   pub style_resolution: StyleResolution,
   pub import_sources: Vec<ImportSources>,
@@ -47,6 +48,7 @@ impl Default for StyleXStateOptions {
       enable_logical_styles_polyfill: false,
       enable_legacy_value_flipping: false,
       enable_ltr_rtl_comments: false,
+      use_real_file_for_source: true,
       enable_inlined_conditional_merge: true,
       enable_media_query_order: false,
       enable_font_size_px_to_rem: false,
@@ -103,6 +105,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       enable_logical_styles_polyfill: options.enable_logical_styles_polyfill,
       enable_legacy_value_flipping: options.enable_legacy_value_flipping,
       enable_minified_keys: options.enable_minified_keys,
+      use_real_file_for_source: true,
       treeshake_compensation: options.treeshake_compensation,
       aliases: options.aliases,
       unstable_module_resolution: options.unstable_module_resolution,

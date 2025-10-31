@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/turbopack-plugin",
   "description": "StyleX turbopack loader with NAPI-RS compiler",
-  "version": "0.13.0-rc.1",
+  "version": "0.13.0-rc.2",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -44,14 +44,14 @@
     }
   },
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.13.0-rc.1",
+    "@stylexswc/rs-compiler": "0.13.0-rc.2",
     "loader-utils": "^3.3.1"
   },
   "devDependencies": {
     "webpack": "^5.102.1",
     "@babel/types": "^7.28.4",
-    "@stylexswc/eslint-config": "0.13.0-rc.1",
-    "@stylexswc/typescript-config": "0.13.0-rc.1",
+    "@stylexswc/eslint-config": "0.13.0-rc.2",
+    "@stylexswc/typescript-config": "0.13.0-rc.2",
     "@types/babel__core": "^7.20.5",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^24.7.2"

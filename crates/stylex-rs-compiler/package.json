@@ -51,7 +51,7 @@
     "@stylexswc/shared": "0.13.0-rc.2",
     "@swc-node/register": "^1.11.1",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^24.7.2",
+    "@types/node": "^24.9.2",
     "ava": "^6.4.1",
     "benchmark": "^2.1.4",
     "chalk": "^5.6.2",

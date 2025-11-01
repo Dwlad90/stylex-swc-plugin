@@ -34,7 +34,7 @@
     "@playwright/test": "^1.55.1",
     "@stylexswc/eslint-config": "0.13.0-rc.2",
     "@stylexswc/typescript-config": "0.13.0-rc.2",
-    "@types/node": "^24.7.2",
+    "@types/node": "^24.9.2",
     "playwright": "^1.55.1"
   },
   "keywords": [

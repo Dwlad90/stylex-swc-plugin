@@ -199,7 +199,7 @@ pub(crate) fn get_import_from<'a>(
           match &named_import.imported {
             Some(imported) => match imported {
               ModuleExportName::Ident(export_ident) => export_ident.eq_ignore_span(ident),
-              ModuleExportName::Str(strng) => strng.value == ident.sym,
+              ModuleExportName::Str(strng) => *strng.value.as_atom().unwrap() == ident.sym,
             },
             _ => false,
           }
@@ -276,7 +276,11 @@ pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
         Prop::Shorthand(ident) => ident.sym.clone(),
         Prop::KeyValue(key_val) => match &key_val.key {
           PropName::Ident(ident) => ident.sym.clone(),
-          PropName::Str(strng) => strng.value.clone(),
+          PropName::Str(strng) => strng
+            .value
+            .as_atom()
+            .expect("Key should be an atom")
+            .clone(),
           _ => continue,
         },
         _ => continue,

@@ -22,7 +22,7 @@ use crate::shared::{
   swc::get_default_expr_ctx,
   transformers::stylex_default_maker,
   utils::{
-    ast::convertors::key_value_to_str,
+    ast::convertors::{key_value_to_str, lit_to_string},
     common::{reduce_ident_count, reduce_member_expression_count},
     core::{
       make_string_expression::make_string_expression,
@@ -291,10 +291,13 @@ pub(crate) fn stylex_merge(
               if let Prop::KeyValue(key_value) = prop.as_ref() {
                 // Create JSX attribute directly
                 let attr_name = key_value_to_str(key_value);
-                let attr_value = key_value
-                  .value
-                  .as_lit()
-                  .map(|lit| JSXAttrValue::Lit(lit.clone()));
+                let attr_value = key_value.value.as_lit().map(|lit| {
+                  JSXAttrValue::Str(
+                    lit_to_string(&lit.clone())
+                      .expect("Failed to get string value")
+                      .into(),
+                  )
+                });
 
                 attr_value.map(|attr_value| {
                   JSXAttrOrSpread::JSXAttr(JSXAttr {

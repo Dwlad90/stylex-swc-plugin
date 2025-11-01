@@ -8,7 +8,7 @@ use crate::at_queries::{
   },
 };
 use serde_json::{Value, json};
-use swc_core::atoms::Atom;
+use swc_core::atoms::Wtf8Atom;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str};
 
@@ -19,7 +19,7 @@ fn create_key_value_prop(key: &str, value: Value) -> KeyValueProp {
   KeyValueProp {
     key: PropName::Str(Str {
       span: DUMMY_SP,
-      value: Atom::from(key),
+      value: Wtf8Atom::from(key),
       raw: None,
     }),
     value: Box::new(json_to_expr(value)),
@@ -31,7 +31,7 @@ fn json_to_expr(value: Value) -> Expr {
   match value {
     Value::String(s) => Expr::Lit(swc_core::ecma::ast::Lit::Str(Str {
       span: DUMMY_SP,
-      value: Atom::from(s),
+      value: Wtf8Atom::from(s),
       raw: None,
     })),
     Value::Object(map) => {
@@ -41,7 +41,7 @@ fn json_to_expr(value: Value) -> Expr {
           PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
             key: PropName::Str(Str {
               span: DUMMY_SP,
-              value: Atom::from(k),
+              value: Wtf8Atom::from(k),
               raw: None,
             }),
             value: Box::new(json_to_expr(v)),
@@ -56,7 +56,7 @@ fn json_to_expr(value: Value) -> Expr {
     }
     _ => Expr::Lit(swc_core::ecma::ast::Lit::Str(Str {
       span: DUMMY_SP,
-      value: Atom::from(value.to_string()),
+      value: Wtf8Atom::from(value.to_string()),
       raw: None,
     })),
   }
@@ -68,7 +68,11 @@ fn key_value_prop_to_json(props: &[KeyValueProp]) -> Value {
 
   for prop in props {
     let key = match &prop.key {
-      PropName::Str(s) => s.value.to_string(),
+      PropName::Str(s) => s
+        .value
+        .as_str()
+        .expect("Failed to convert Str to &str")
+        .to_string(),
       PropName::Ident(id) => id.sym.to_string(),
       _ => continue,
     };
@@ -84,7 +88,12 @@ fn key_value_prop_to_json(props: &[KeyValueProp]) -> Value {
 fn expr_to_json(expr: &Expr) -> Value {
   match expr {
     Expr::Lit(lit) => match lit {
-      swc_core::ecma::ast::Lit::Str(s) => Value::String(s.value.to_string()),
+      swc_core::ecma::ast::Lit::Str(s) => Value::String(
+        s.value
+          .as_str()
+          .expect("Failed to convert Wtf8Atom to &str")
+          .to_string(),
+      ),
       _ => Value::String(format!("{:?}", lit)),
     },
     Expr::Object(obj) => {
@@ -94,7 +103,11 @@ fn expr_to_json(expr: &Expr) -> Value {
           && let Prop::KeyValue(kv) = &**p
         {
           let key = match &kv.key {
-            PropName::Str(s) => s.value.to_string(),
+            PropName::Str(s) => s
+              .value
+              .as_str()
+              .expect("Failed to convert Wtf8Atom to &str")
+              .to_string(),
             PropName::Ident(id) => id.sym.to_string(),
             _ => continue,
           };

@@ -484,8 +484,16 @@ pub fn lit_to_num(lit_num: &Lit) -> Result<f64, anyhow::Error> {
     }
     Lit::Num(num) => num.value,
     Lit::Str(strng) => {
-      let Result::Ok(num) = strng.value.parse::<f64>() else {
-        return Err(anyhow!("Value in not a number: {}", strng.value));
+      let Result::Ok(num) = strng
+        .value
+        .as_str()
+        .expect("Failed to get string value")
+        .parse::<f64>()
+      else {
+        return Err(anyhow!(
+          "Value in not a number: {}",
+          strng.value.as_str().expect("Failed to get string value")
+        ));
       };
 
       num
@@ -552,7 +560,12 @@ pub fn simple_tpl_to_string(tpl: &Tpl) -> Option<Lit> {
     let quasi = &tpl.quasis[0];
 
     // Get the string value (prefer cooked if available, otherwise use raw)
-    let value = quasi.cooked.as_ref().unwrap_or(&quasi.raw);
+    let value = quasi
+      .cooked
+      .as_ref()
+      .expect("Failed to get cooked value")
+      .as_str()
+      .expect("Failed to get string value");
 
     return Some(lit_str_factory(value));
   }
@@ -627,7 +640,14 @@ fn concat_call_to_template_literal(call_expr: &CallExpr) -> Option<Expr> {
   }
 
   // Get the base string from the object being called
-  let base_string = member_expr.obj.as_lit()?.as_str()?.value.to_string();
+  let base_string = member_expr
+    .obj
+    .as_lit()?
+    .as_str()?
+    .value
+    .as_str()
+    .expect("Failed to get base string")
+    .to_string();
 
   let mut exprs = Vec::new();
   let mut quasis = Vec::new();
@@ -838,7 +858,11 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
     PropName::Str(strng) => {
       should_wrap_in_quotes = false;
 
-      strng.value.to_string()
+      strng
+        .value
+        .as_str()
+        .expect("Failed to get string value")
+        .to_string()
     }
     PropName::Num(num) => {
       should_wrap_in_quotes = false;
@@ -861,7 +885,13 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
 
 pub(crate) fn lit_to_string(value: &Lit) -> Option<String> {
   match value {
-    Lit::Str(strng) => Some(format!("{}", strng.value)),
+    Lit::Str(strng) => Some(
+      strng
+        .value
+        .as_str()
+        .expect("Failed to get string value")
+        .to_string(),
+    ),
     Lit::Num(num) => Some(format!("{}", num.value)),
     Lit::BigInt(big_int) => Some(format!("{}", big_int.value)),
     _ => None,

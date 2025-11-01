@@ -460,7 +460,7 @@ where
 
               let key = match &key_value.key {
                 PropName::Ident(ident) => Some(ident.sym.to_string()),
-                PropName::Str(strng) => Some(strng.value.to_string()),
+                PropName::Str(strng) => Some(strng.value.as_str().expect("Failed to convert Str to &str").to_string()),
                 _ => None,
               };
 
@@ -519,7 +519,7 @@ where
                         if let Some(obj_prop) = prop.as_mut_key_value() {
                           let prop_key = match &obj_prop.key {
                             PropName::Ident(ident) => Some(ident.sym.to_string()),
-                            PropName::Str(strng) => Some(strng.value.to_string()),
+                            PropName::Str(strng) => Some(strng.value.as_str().expect("Failed to convert Str to &str").to_string()),
                             _ => None,
                           };
 

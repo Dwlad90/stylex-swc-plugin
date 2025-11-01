@@ -131,7 +131,9 @@ pub(crate) fn evaluate_obj_key(
         };
       }
     }
-    PropName::Str(strng) => string_to_expression(&strng.value),
+    PropName::Str(strng) => {
+      string_to_expression(strng.value.as_str().expect("Failed to convert Str to &str"))
+    }
     PropName::Num(num) => number_to_expression(num.value),
     PropName::BigInt(big_int) => big_int_to_expression(big_int.clone()),
   };
@@ -739,7 +741,13 @@ fn _evaluate(
               Prop::KeyValue(path_key_value) => {
                 let key = match &path_key_value.key {
                   PropName::Ident(ident) => Some(ident.sym.to_string()),
-                  PropName::Str(strng) => Some(strng.value.to_string()),
+                  PropName::Str(strng) => Some(
+                    strng
+                      .value
+                      .as_str()
+                      .expect("Failed to convert Str to &str")
+                      .to_string(),
+                  ),
                   PropName::Num(num) => Some(num.value.to_string()),
                   PropName::Computed(computed) => {
                     let evaluated_result =
@@ -1724,7 +1732,13 @@ fn _evaluate(
 
                   for (key, value) in entries {
                     let ident_name = if let Lit::Str(lit_str) = key {
-                      quote_ident!(lit_str.value.as_ref())
+                      quote_ident!(
+                        lit_str
+                          .value
+                          .as_atom()
+                          .expect("Failed to convert Str to Atom")
+                          .as_ref()
+                      )
                     } else {
                       panic_with_context!(path, traversal_state, "Expected a string literal")
                     };
@@ -2013,12 +2027,22 @@ fn _evaluate(
         .clone()
         .unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
 
-      let abs_path =
-        traversal_state.import_path_resolver(&import_path.src.value, &mut FxHashMap::default());
+      let abs_path = traversal_state.import_path_resolver(
+        import_path
+          .src
+          .value
+          .as_str()
+          .expect("Failed to convert Str to &str"),
+        &mut FxHashMap::default(),
+      );
 
       let imported_name = match imported {
         ModuleExportName::Ident(ident) => ident.sym.to_string(),
-        ModuleExportName::Str(strng) => strng.value.to_string(),
+        ModuleExportName::Str(strng) => strng
+          .value
+          .as_str()
+          .expect("Failed to convert Str to &str")
+          .to_string(),
       };
 
       let return_value = match abs_path {
@@ -2029,7 +2053,12 @@ fn _evaluate(
       };
 
       if state.confident {
-        let import_path_src = import_path.src.value.to_string();
+        let import_path_src = import_path
+          .src
+          .value
+          .as_str()
+          .expect("Failed to convert Str to &str")
+          .to_string();
 
         if !state.added_imports.contains(&import_path_src)
           && traversal_state.get_treeshake_compensation()
@@ -2090,6 +2119,8 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
       if let Expr::Lit(Lit::Str(ref strng)) = expr {
         let keys = strng
           .value
+          .as_str()
+          .expect("Failed to convert Str to &str")
           .chars()
           .enumerate()
           .map(|(i, c)| {
@@ -2256,7 +2287,12 @@ fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
   if let MemberProp::Computed(comp_prop) = prop
     && let Expr::Lit(Lit::Str(strng)) = comp_prop.expr.as_ref()
   {
-    return Some(&strng.value);
+    return Some(
+      strng
+        .value
+        .as_atom()
+        .expect("Failed to convert Str to Atom"),
+    );
   }
 
   None
@@ -2290,7 +2326,12 @@ pub(crate) fn evaluate_quasis(
     strng.push_str(if raw {
       &elem.raw
     } else {
-      elem.cooked.as_ref().expect("Cooked should be some")
+      elem
+        .cooked
+        .as_ref()
+        .expect("Cooked should be some")
+        .as_str()
+        .expect("Failed to convert Str to &str")
     });
 
     if let Some(expr) = exprs.get(i)

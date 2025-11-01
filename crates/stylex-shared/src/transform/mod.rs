@@ -1,5 +1,6 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
+  atoms::Atom,
   common::{Mark, comments::Comments},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
@@ -161,25 +162,21 @@ where
     let state = &self.state;
     let stylex_imports = state.stylex_import_stringified();
 
+    let ident_sym = Atom::from(ident_sym);
+
     stylex_imports.contains(&ident_sym.to_string())
       || (state.cycle == TransformationCycle::TransformEnter
-        && (state.stylex_create_import.contains(&ident_sym.into()))
-        || state.stylex_define_vars_import.contains(&ident_sym.into())
-        || state
-          .stylex_define_consts_import
-          .contains(&ident_sym.into())
-        || state.stylex_create_theme_import.contains(&ident_sym.into())
-        || state.stylex_position_try_import.contains(&ident_sym.into())
-        || state.stylex_keyframes_import.contains(&ident_sym.into())
-        || state.stylex_props_import.contains(&ident_sym.into())
-        || state
-          .stylex_first_that_works_import
-          .contains(&ident_sym.into())
-        || state.stylex_types_import.contains(&ident_sym.into()))
-      || state
-        .stylex_default_marker_import
-        .contains(&ident_sym.into())
-      || state.stylex_when_import.contains(&ident_sym.into())
+        && (state.stylex_create_import.contains(&ident_sym))
+        || state.stylex_define_vars_import.contains(&ident_sym)
+        || state.stylex_define_consts_import.contains(&ident_sym)
+        || state.stylex_create_theme_import.contains(&ident_sym)
+        || state.stylex_position_try_import.contains(&ident_sym)
+        || state.stylex_keyframes_import.contains(&ident_sym)
+        || state.stylex_props_import.contains(&ident_sym)
+        || state.stylex_first_that_works_import.contains(&ident_sym)
+        || state.stylex_types_import.contains(&ident_sym))
+      || state.stylex_default_marker_import.contains(&ident_sym)
+      || state.stylex_when_import.contains(&ident_sym)
   }
 
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {

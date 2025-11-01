@@ -104,7 +104,6 @@ pub(crate) fn add_source_map_data(
                 }
               }
               Err(e) => {
-                warn!("Could not retrieve source code frame: {}", e);
                 if log::log_enabled!(log::Level::Debug) {
                   debug!(
                     "Could not retrieve source code frame: {}. File: {}. Style node path: {:?}",

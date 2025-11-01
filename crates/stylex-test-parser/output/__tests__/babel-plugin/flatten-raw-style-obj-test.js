@@ -5,7 +5,7 @@ var options = {
     runtimeInjection: false,
     dev: false,
     test: false
-};
+} as const;
 describe('Flatten Style Object with legacy shorthand expansion', ()=>{
     describe('Simple Objects', ()=>{
         test('should create PreRule objects for simple style values', ()=>{

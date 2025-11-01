@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex';
 export const styles = {
     root: {
-        kWkggS: "xrkmrrc xw6up8c x1ssfqz5",
+        kWkggS: "xrkmrrc xn8cmr1 x1lr89ez x856a2w",
         $$css: true
     }
 };

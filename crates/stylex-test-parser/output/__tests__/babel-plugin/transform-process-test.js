@@ -209,7 +209,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "margin-kogj98": "margin-xymmreb",
             "borderColor-kVAM5u": "borderColor-x1bg2uv5 borderColor-x5ugf7c borderColor-xqiy1ys",
             "outlineColor-kjBf7l": "outlineColor-x184ctg8",
-            "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-x1cmij7u",
+            "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-xtj17id",
             "padding-kmVPX3": "padding-xss17vw",
             "float-kyUFMd": "float-x1kmio9f",
             $$css: "app/main.js:33"
@@ -252,7 +252,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         html[dir='rtl'] .float-x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:right}
         .outlineColor-x184ctg8:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--colorTokens-xkxfyv)}
         .textShadow-x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}
-        @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}"
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}"
       `);
         });
         test('all rules (useLayers:true)', ()=>{
@@ -294,7 +294,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "margin-kogj98": "margin-xymmreb",
             "borderColor-kVAM5u": "borderColor-x1bg2uv5 borderColor-x5ugf7c borderColor-xqiy1ys",
             "outlineColor-kjBf7l": "outlineColor-x184ctg8",
-            "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-x1cmij7u",
+            "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-xtj17id",
             "padding-kmVPX3": "padding-xss17vw",
             "float-kyUFMd": "float-x1kmio9f",
             $$css: "app/main.js:33"
@@ -344,7 +344,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         html[dir='rtl'] .float-x1kmio9f{float:right}
         .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
         .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
-        @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u{text-shadow:10px 20px 30px 40px green}}
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id{text-shadow:10px 20px 30px 40px green}}
         }"
       `);
         });
@@ -385,7 +385,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "margin-kogj98": "margin-xymmreb",
             "borderColor-kVAM5u": "borderColor-x1bg2uv5 borderColor-x5ugf7c borderColor-xqiy1ys",
             "outlineColor-kjBf7l": "outlineColor-x184ctg8",
-            "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-x1cmij7u",
+            "textShadow-kKMj4B": "textShadow-x1skrh0i textShadow-xtj17id",
             "padding-kmVPX3": "padding-xss17vw",
             "float-kyUFMd": "float-x1kmio9f",
             $$css: "app/main.js:33"
@@ -429,7 +429,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         html[dir='rtl'] .float-x1kmio9f{float:right}
         .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
         .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
-        @media (min-width:320px){.textShadow-x1cmij7u.textShadow-x1cmij7u{text-shadow:10px 20px 30px 40px green}}"
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id{text-shadow:10px 20px 30px 40px green}}"
       `);
         });
         test('legacy-expand-shorthands with logical styles polyfill', ()=>{
@@ -582,7 +582,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         /* @rtl begin */.x1kmio9f{float:right}/* @rtl end */
         .x18abd1y{outline-color:var(--xkxfyv)}
         .x1skrh0i{text-shadow:1px 2px 3px 4px red}
-        @media (min-width:320px){.x1cmij7u.x1cmij7u{text-shadow:10px 20px 30px 40px green}}"
+        @media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}"
       `);
         });
         test('useLegacyClassnamesSort: true (legacy behavior)', ()=>{
@@ -617,7 +617,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         /* @rtl begin */.x1kmio9f{float:right}/* @rtl end */
         .x1skrh0i{text-shadow:1px 2px 3px 4px red}
         .xrkmrrc{background-color:red}
-        @media (min-width:320px){.x1cmij7u.x1cmij7u{text-shadow:10px 20px 30px 40px green}}"
+        @media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}"
       `);
         });
     });

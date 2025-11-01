@@ -878,7 +878,6 @@ test!(
   }),
   |tr| {
     let mut options = StyleXOptionsParams {
-      enable_media_query_order: Some(true),
       ..Default::default()
     };
     StyleXTransform::new_test_with_pass(
@@ -888,6 +887,38 @@ test!(
     )
   },
   media_queries_with_last_query_wins,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                backgroundColor: {
+                  default: 'red',
+                  '@media (max-width: 900px)': 'blue',
+                  '@media (max-width: 500px)': 'purple',
+                  '@media (max-width: 400px)': 'green',
+                }
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let mut options = StyleXOptionsParams {
+      enable_media_query_order: Some(false),
+      ..Default::default()
+    };
+    StyleXTransform::new_test_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut options),
+    )
+  },
+  media_queries_without_last_query_wins,
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({

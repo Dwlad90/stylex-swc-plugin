@@ -6,7 +6,7 @@ var options = {
     enableFontSizePxToRem: true,
     runtimeInjection: false,
     test: false
-};
+} as const;
 describe('Converting PreRule to CSS', ()=>{
     test('should convert a PreRule to CSS', ()=>{
         expect(new PreRule('color', 'red', [

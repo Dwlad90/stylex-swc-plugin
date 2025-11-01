@@ -50,7 +50,7 @@ impl Default for StyleXStateOptions {
       enable_ltr_rtl_comments: false,
       use_real_file_for_source: true,
       enable_inlined_conditional_merge: true,
-      enable_media_query_order: false,
+      enable_media_query_order: true,
       enable_font_size_px_to_rem: false,
       enable_minified_keys: true,
       class_name_prefix: "x".to_string(),

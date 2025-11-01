@@ -14,7 +14,7 @@ describe('convert-to-className test', ()=>{
             debug: true,
             styleResolution: 'property-specificity',
             test: false
-        };
+        } as const;
         const result = convertStyleToClassName([
             'margin',
             10
@@ -30,7 +30,7 @@ describe('convert-to-className test', ()=>{
             enableDebugClassNames: false,
             styleResolution: 'property-specificity',
             test: false
-        };
+        } as const;
         const result = convertStyleToClassName([
             'margin',
             10
@@ -46,7 +46,7 @@ describe('convert-to-className test', ()=>{
             debug: false,
             styleResolution: 'property-specificity',
             test: false
-        };
+        } as const;
         const result = convertStyleToClassName([
             'margin',
             10

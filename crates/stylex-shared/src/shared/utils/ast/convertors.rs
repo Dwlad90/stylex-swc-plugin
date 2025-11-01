@@ -1,14 +1,20 @@
 use anyhow::anyhow;
-use swc_core::ecma::{
-  ast::BigInt,
-  utils::{ExprExt, quote_ident, quote_str},
-};
-use swc_core::ecma::{
-  ast::{
-    BinExpr, BinaryOp, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Tpl,
-    TplElement, UnaryExpr, UnaryOp,
+use swc_core::{
+  atoms::Atom,
+  ecma::{
+    ast::{
+      BinExpr, BinaryOp, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Str, Tpl,
+      TplElement, UnaryExpr, UnaryOp,
+    },
+    parser::Context,
   },
-  parser::Context,
+};
+use swc_core::{
+  atoms::Wtf8Atom,
+  ecma::{
+    ast::BigInt,
+    utils::{ExprExt, quote_ident, quote_str},
+  },
 };
 
 // Import error handling macros from shared utilities
@@ -86,7 +92,8 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
   }
 }
 
-fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> Expr {
+#[inline]
+pub fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> Expr {
   match get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
     Some(var_decl) => get_expr_from_var_decl(&var_decl).clone(),
     _ => {
@@ -473,6 +480,7 @@ pub fn ident_to_number(
   }
 }
 
+#[inline]
 pub fn lit_to_num(lit_num: &Lit) -> Result<f64, anyhow::Error> {
   let result = match &lit_num {
     Lit::Bool(Bool { value, .. }) => {
@@ -484,8 +492,11 @@ pub fn lit_to_num(lit_num: &Lit) -> Result<f64, anyhow::Error> {
     }
     Lit::Num(num) => num.value,
     Lit::Str(strng) => {
-      let Result::Ok(num) = strng.value.parse::<f64>() else {
-        return Err(anyhow!("Value in not a number: {}", strng.value));
+      let Result::Ok(num) = atom_to_string(&strng.value).parse::<f64>() else {
+        return Err(anyhow!(
+          "Value in not a number: {}",
+          atom_to_string(&strng.value)
+        ));
       };
 
       num
@@ -546,13 +557,19 @@ pub fn handle_tpl_to_expression(
 /// Template: `hello world` (no ${...} interpolations)
 /// Returns: Str { value: "hello world", ... }
 /// ```
+#[inline]
 pub fn simple_tpl_to_string(tpl: &Tpl) -> Option<Lit> {
   // Check if it's a simple template (no expressions)
   if tpl.exprs.is_empty() && tpl.quasis.len() == 1 {
     let quasi = &tpl.quasis[0];
 
     // Get the string value (prefer cooked if available, otherwise use raw)
-    let value = quasi.cooked.as_ref().unwrap_or(&quasi.raw);
+    let value = quasi
+      .cooked
+      .as_ref()
+      .expect("Failed to get cooked value")
+      .as_str()
+      .expect("Failed to get string value");
 
     return Some(lit_str_factory(value));
   }
@@ -569,6 +586,7 @@ pub fn simple_tpl_to_string(tpl: &Tpl) -> Option<Lit> {
 /// # Returns
 /// * The original expression if it's not a simple template literal
 /// * A string literal expression if the template is simple (no interpolations)
+#[inline]
 pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
   match expr {
     Expr::Tpl(ref tpl) => {
@@ -595,6 +613,7 @@ pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
 /// Input: "hello".concat(world, "!")
 /// Output: `hello${world}!`
 /// ```
+#[inline]
 pub fn convert_concat_to_tpl_expr(expr: Expr) -> Expr {
   match expr {
     Expr::Call(ref call_expr) => {
@@ -627,7 +646,7 @@ fn concat_call_to_template_literal(call_expr: &CallExpr) -> Option<Expr> {
   }
 
   // Get the base string from the object being called
-  let base_string = member_expr.obj.as_lit()?.as_str()?.value.to_string();
+  let base_string = lit_str_to_str_ref(member_expr.obj.as_lit()?).map(|s| s.to_string())?;
 
   let mut exprs = Vec::new();
   let mut quasis = Vec::new();
@@ -744,30 +763,37 @@ pub fn transform_bin_expr_to_number(
   evaluate_bin_expr(op, left, right)
 }
 
+#[inline]
 pub fn number_to_expression(value: f64) -> Expr {
   Expr::from(lit_number_factory(value))
 }
 
+#[inline]
 pub(crate) fn big_int_to_expression(value: BigInt) -> Expr {
   Expr::from(lit_big_int_factory(value))
 }
 
+#[inline]
 pub fn string_to_expression(value: &str) -> Expr {
   Expr::Lit(lit_str_factory(value))
 }
 
+#[inline]
 pub(crate) fn bool_to_expression(value: bool) -> Expr {
   Expr::Lit(lit_boolean_factory(value))
 }
 
+#[inline]
 pub fn ident_to_expression(value: &str) -> Expr {
   Expr::Ident(ident_factory(value))
 }
 
+#[inline]
 pub(crate) fn null_to_expression() -> Expr {
   Expr::Lit(lit_null_factory())
 }
 
+#[inline]
 fn should_wrap_prop_name_key_with_quotes(key: &str) -> bool {
   Ident::verify_symbol(key).is_err() && {
     let ctx = Context::default();
@@ -775,6 +801,7 @@ fn should_wrap_prop_name_key_with_quotes(key: &str) -> bool {
     !ctx.is_reserved_word(&key.into())
   }
 }
+#[inline]
 pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
   if should_wrap_prop_name_key_with_quotes(value) {
     Some(PropName::Str(quote_str!(value)))
@@ -829,6 +856,7 @@ pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &Fu
   }
 }
 
+#[inline]
 pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
   let key = &key_value.key;
   let mut should_wrap_in_quotes = false;
@@ -837,17 +865,14 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
     PropName::Ident(ident) => ident.sym.to_string(),
     PropName::Str(strng) => {
       should_wrap_in_quotes = false;
-
-      strng.value.to_string()
+      lit_str_to_string(strng)
     }
     PropName::Num(num) => {
       should_wrap_in_quotes = false;
-
       num.value.to_string()
     }
     PropName::BigInt(big_int) => {
       should_wrap_in_quotes = false;
-
       big_int.value.to_string()
     }
     PropName::Computed(computed) => match computed.expr.as_lit() {
@@ -859,11 +884,76 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
   wrap_key_in_quotes(&key, should_wrap_in_quotes)
 }
 
+/// Helper function to convert Wtf8Atom to String
+/// Note: `.as_str()` returns an `Option<&str>` that only fails when the string contains invalid UTF-8
+#[inline]
+pub(crate) fn atom_to_string(atom: &Wtf8Atom) -> String {
+  atom
+    .as_str()
+    .expect("String contains invalid UTF-8")
+    .to_string()
+}
+
+pub(crate) fn wtf8_atom_to_atom(atom: &Wtf8Atom) -> Atom {
+  atom
+    .as_atom()
+    .expect("String contains invalid UTF-8")
+    .clone()
+}
+
+/// Helper function to safely get string from Lit::Str
+#[inline]
+pub(crate) fn lit_str_to_string(str_lit: &Str) -> String {
+  str_lit
+    .value
+    .as_str()
+    .expect("String contains invalid UTF-8")
+    .to_string()
+}
+
+/// Helper function to safely get Atom from Lit::Str
+pub(crate) fn lit_str_to_atom(str_lit: &Str) -> Atom {
+  str_lit
+    .value
+    .as_atom()
+    .expect("String contains invalid UTF-8")
+    .clone()
+}
+
+/// Helper function to safely get cooked string from TplElement
+#[inline]
+pub(crate) fn tpl_element_cooked_to_string(elem: &TplElement) -> String {
+  elem
+    .cooked
+    .as_ref()
+    .expect("Cooked should be some")
+    .as_str()
+    .expect("String contains invalid UTF-8")
+    .to_string()
+}
+
+/// Helper function to convert Atom to &str (reference, not owned String)
+/// Useful when you need a reference instead of an owned String
+#[inline]
+pub(crate) fn atom_to_str(atom: &swc_core::atoms::Wtf8Atom) -> &str {
+  atom.as_str().expect("Failed to convert Wtf8Atom to &str")
+}
+
+#[inline]
 pub(crate) fn lit_to_string(value: &Lit) -> Option<String> {
   match value {
-    Lit::Str(strng) => Some(format!("{}", strng.value)),
+    Lit::Str(strng) => Some(lit_str_to_string(strng)),
     Lit::Num(num) => Some(format!("{}", num.value)),
     Lit::BigInt(big_int) => Some(format!("{}", big_int.value)),
+    _ => None,
+  }
+}
+
+/// Helper function to safely extract string from Lit::Str using Option pattern
+#[inline]
+pub(crate) fn lit_str_to_str_ref(lit: &Lit) -> Option<&str> {
+  match lit {
+    Lit::Str(s) => Some(atom_to_str(&s.value)),
     _ => None,
   }
 }

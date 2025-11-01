@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use napi::{Env, Error, JsObject};
 use stylex_shared::{
   StyleXTransform, shared::enums::data_structures::injectable_style::InjectableStyleBaseKind,
@@ -65,14 +67,8 @@ fn set_metadata_ltr_and_rtl(
 
   style_value.set_named_property("ltr", ltr)?;
 
-  style_value.set_named_property(
-    "rtl",
-    rtl
-      .as_ref()
-      .map_or(env.get_null()?.into_unknown(), |rtl_str| {
-        env.create_string(rtl_str).unwrap().into_unknown()
-      }),
-  )?;
+  let rtl_value = rtl.as_ref().map(|v| env.create_string(v)).transpose()?;
+  style_value.set_named_property("rtl", rtl_value)?;
 
   Ok(())
 }

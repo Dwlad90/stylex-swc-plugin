@@ -1,4 +1,4 @@
-use napi::{JsObject, JsUnknown};
+use napi::{JsObject, UnknownRef};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 use stylex_shared::shared::structures::{
@@ -41,11 +41,11 @@ pub struct StyleXOptions {
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
   pub source_map: Option<SourceMaps>,
   #[napi(ts_type = "Array<string | RegExp>")]
-  pub include: Option<Vec<JsUnknown>>,
+  pub include: Option<Vec<UnknownRef>>,
   #[napi(ts_type = "Array<string | RegExp>")]
-  pub exclude: Option<Vec<JsUnknown>>,
+  pub exclude: Option<Vec<UnknownRef>>,
   #[napi(ts_type = "Array<[string, Record<string, any>]>")]
-  pub swc_plugins: Option<Vec<JsUnknown>>,
+  pub swc_plugins: Option<Vec<UnknownRef>>,
 }
 
 #[napi(object)]

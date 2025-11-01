@@ -53,9 +53,10 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{
-        big_int_to_expression, binary_expr_to_num, binary_expr_to_string, bool_to_expression,
-        expr_to_bool, expr_to_num, expr_to_str, key_value_to_str, lit_to_string,
-        number_to_expression, string_to_expression, transform_shorthand_to_key_values,
+        atom_to_str, atom_to_string, big_int_to_expression, binary_expr_to_num,
+        binary_expr_to_string, bool_to_expression, expr_to_bool, expr_to_num, expr_to_str,
+        key_value_to_str, lit_to_string, number_to_expression, string_to_expression,
+        tpl_element_cooked_to_string, transform_shorthand_to_key_values,
       },
       factories::{
         array_expression_factory, lit_str_factory, object_expression_factory,
@@ -131,7 +132,7 @@ pub(crate) fn evaluate_obj_key(
         };
       }
     }
-    PropName::Str(strng) => string_to_expression(&strng.value),
+    PropName::Str(strng) => string_to_expression(&atom_to_string(&strng.value)),
     PropName::Num(num) => number_to_expression(num.value),
     PropName::BigInt(big_int) => big_int_to_expression(big_int.clone()),
   };
@@ -739,7 +740,7 @@ fn _evaluate(
               Prop::KeyValue(path_key_value) => {
                 let key = match &path_key_value.key {
                   PropName::Ident(ident) => Some(ident.sym.to_string()),
-                  PropName::Str(strng) => Some(strng.value.to_string()),
+                  PropName::Str(strng) => Some(atom_to_string(&strng.value)),
                   PropName::Num(num) => Some(num.value.to_string()),
                   PropName::Computed(computed) => {
                     let evaluated_result =
@@ -1724,7 +1725,7 @@ fn _evaluate(
 
                   for (key, value) in entries {
                     let ident_name = if let Lit::Str(lit_str) = key {
-                      quote_ident!(lit_str.value.as_ref())
+                      quote_ident!(atom_to_str(&lit_str.value))
                     } else {
                       panic_with_context!(path, traversal_state, "Expected a string literal")
                     };
@@ -2013,12 +2014,14 @@ fn _evaluate(
         .clone()
         .unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
 
-      let abs_path =
-        traversal_state.import_path_resolver(&import_path.src.value, &mut FxHashMap::default());
+      let abs_path = traversal_state.import_path_resolver(
+        atom_to_str(&import_path.src.value),
+        &mut FxHashMap::default(),
+      );
 
       let imported_name = match imported {
         ModuleExportName::Ident(ident) => ident.sym.to_string(),
-        ModuleExportName::Str(strng) => strng.value.to_string(),
+        ModuleExportName::Str(strng) => atom_to_string(&strng.value),
       };
 
       let return_value = match abs_path {
@@ -2029,7 +2032,7 @@ fn _evaluate(
       };
 
       if state.confident {
-        let import_path_src = import_path.src.value.to_string();
+        let import_path_src = atom_to_string(&import_path.src.value);
 
         if !state.added_imports.contains(&import_path_src)
           && traversal_state.get_treeshake_compensation()
@@ -2088,8 +2091,7 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
   cached_arg.and_then(|arg| match arg {
     EvaluateResultValue::Expr(expr) => expr.as_object().cloned().or_else(|| {
       if let Expr::Lit(Lit::Str(ref strng)) = expr {
-        let keys = strng
-          .value
+        let keys = atom_to_string(&strng.value)
           .chars()
           .enumerate()
           .map(|(i, c)| {
@@ -2256,7 +2258,12 @@ fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
   if let MemberProp::Computed(comp_prop) = prop
     && let Expr::Lit(Lit::Str(strng)) = comp_prop.expr.as_ref()
   {
-    return Some(&strng.value);
+    return Some(
+      strng
+        .value
+        .as_atom()
+        .expect("Failed to convert Str to Atom"),
+    );
   }
 
   None
@@ -2287,11 +2294,11 @@ pub(crate) fn evaluate_quasis(
       return None;
     }
 
-    strng.push_str(if raw {
-      &elem.raw
+    if raw {
+      strng.push_str(&elem.raw);
     } else {
-      elem.cooked.as_ref().expect("Cooked should be some")
-    });
+      strng.push_str(&tpl_element_cooked_to_string(elem));
+    }
 
     if let Some(expr) = exprs.get(i)
       && let Some(evaluated_expr) = evaluate_cached(expr, state, traversal_state, fns)

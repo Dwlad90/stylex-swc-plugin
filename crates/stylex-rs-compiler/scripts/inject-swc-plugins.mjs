@@ -18,17 +18,25 @@ console.log('Injecting SWC plugin wrapper into dist/index.js...');
 // === Update index.js ===
 let jsContent = fs.readFileSync(indexJsPath, 'utf8');
 
-// Find the exports section (allow variable whitespace and any order)
-const exportsRegex = /const\s*\{\s*([^}]+)\s*\}\s*=\s*nativeBinding/;
-const exportsMatch = jsContent.match(exportsRegex);
+// Find the exports section - napi v3 uses module.exports.EXPORT = nativeBinding.EXPORT format
+const transformExportRegex = /module\.exports\.transform\s*=\s*nativeBinding\.transform/;
+const exportsMatch = jsContent.match(transformExportRegex);
 if (!exportsMatch) {
   console.error('Could not find exports section in index.js');
   process.exit(1);
 }
+
+// Check if already injected (after validating file is readable and has expected content)
+if (jsContent.includes('transformWithPlugins')) {
+  console.log('✓ SWC plugin wrapper already injected, skipping...');
+  process.exit(0);
+}
+
 // Check that all required exports are present
 const requiredExports = ['SourceMaps', 'transform', 'shouldTransformFile', 'normalizeRsOptions'];
-const foundExports = exportsMatch[1].split(',').map(e => e.trim());
-const missingExports = requiredExports.filter(e => !foundExports.includes(e));
+const missingExports = requiredExports.filter(exportName => 
+  !jsContent.includes(`module.exports.${exportName}`)
+);
 if (missingExports.length > 0) {
   console.error('Missing required exports in index.js:', missingExports.join(', '));
   process.exit(1);
@@ -38,7 +46,7 @@ if (missingExports.length > 0) {
 const wrapperCode = `
 // === SWC Plugin Wrapper (injected by scripts/inject-swc-plugins.mjs) ===
 
-const nativeTransform = transform;
+const nativeTransform = nativeBinding.transform;
 
 /**
  * Wrapper around transform that supports SWC plugins
@@ -80,20 +88,17 @@ function transformWithPlugins(filename, code, options) {
   return nativeTransform(filename, transformedCode, stylexOptions);
 }
 
-// Replace the transform export with our wrapper
-module.exports.transform = transformWithPlugins;
-
 // === End SWC Plugin Wrapper ===
 `;
 
-// Replace the module.exports section
-// Replace only the transform export line with our wrapper
-const transformExportRegex = /^module\.exports\.transform\s*=\s*transform\s*;?/m;
-if (!transformExportRegex.test(jsContent)) {
-  console.error('Could not find "module.exports.transform = transform" in index.js');
+// Replace the module.exports.transform section
+// Find the line with module.exports.transform and insert wrapper before it
+const transformExportLineRegex = /^module\.exports\.transform\s*=\s*nativeBinding\.transform\s*;?$/m;
+if (!transformExportLineRegex.test(jsContent)) {
+  console.error('Could not find "module.exports.transform = nativeBinding.transform" in index.js');
   process.exit(1);
 }
-jsContent = jsContent.replace(transformExportRegex, wrapperCode + '\nmodule.exports.transform = transformWithPlugins;');
+jsContent = jsContent.replace(transformExportLineRegex, wrapperCode + '\nmodule.exports.transform = transformWithPlugins;');
 // Validate that the wrapper was injected
 if (!jsContent.includes('transformWithPlugins')) {
   console.error('Failed to inject SWC plugin wrapper into index.js');

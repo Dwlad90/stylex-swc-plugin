@@ -1,7 +1,10 @@
+#![allow(deprecated)]
+
 mod enums;
 mod structs;
 mod utils;
 use log::info;
+use napi::ValueType;
 use napi::{Env, Result};
 use std::panic;
 use std::{env, sync::Arc};
@@ -37,12 +40,21 @@ use crate::enums::{ImportSourceUnion, PathFilterUnion, SourceMaps, StyleXModuleR
 
 fn extract_patterns(
   env: &Env,
-  patterns_opt: &mut Option<Vec<napi::JsUnknown>>,
+  patterns_opt: &mut Option<Vec<napi::UnknownRef>>,
 ) -> Option<Vec<PathFilterUnion>> {
   patterns_opt.take().map(|patterns| {
     patterns
       .into_iter()
-      .filter_map(|p| parse_js_pattern(env, p).ok())
+      .filter_map(|p| match p.get_value(env) {
+        Ok(unknown) => parse_js_pattern_from_unknown(env, unknown).ok(),
+        Err(e) => {
+          info!(
+            "Failed to get value from UnknownRef in extract_patterns: {:?}",
+            e
+          );
+          None
+        }
+      })
       .collect()
   })
 }
@@ -163,20 +175,43 @@ pub fn transform(
 pub fn should_transform_file(
   env: Env,
   file_path: String,
-  include: Option<Vec<napi::JsUnknown>>,
-  exclude: Option<Vec<napi::JsUnknown>>,
+  include: Option<napi::JsObject>,
+  exclude: Option<napi::JsObject>,
 ) -> Result<bool> {
-  let include_patterns = include.map(|patterns| {
-    patterns
-      .into_iter()
-      .filter_map(|p| parse_js_pattern(&env, p).ok())
-      .collect()
+  let include_patterns = include.and_then(|arr| {
+    let mut parsed = Vec::new();
+    if let Ok(len) = arr.get_array_length() {
+      for i in 0..len {
+        if let Ok(elem) = arr.get_element::<napi::Unknown>(i)
+          && let Ok(pattern) = parse_js_pattern_from_unknown(&env, elem)
+        {
+          parsed.push(pattern);
+        }
+      }
+    }
+    if parsed.is_empty() {
+      None
+    } else {
+      Some(parsed)
+    }
   });
-  let exclude_patterns = exclude.map(|patterns| {
-    patterns
-      .into_iter()
-      .filter_map(|p| parse_js_pattern(&env, p).ok())
-      .collect()
+
+  let exclude_patterns = exclude.and_then(|arr| {
+    let mut parsed = Vec::new();
+    if let Ok(len) = arr.get_array_length() {
+      for i in 0..len {
+        if let Ok(elem) = arr.get_element::<napi::Unknown>(i)
+          && let Ok(pattern) = parse_js_pattern_from_unknown(&env, elem)
+        {
+          parsed.push(pattern);
+        }
+      }
+    }
+    if parsed.is_empty() {
+      None
+    } else {
+      Some(parsed)
+    }
   });
 
   Ok(utils::should_transform_file(
@@ -186,44 +221,53 @@ pub fn should_transform_file(
   ))
 }
 
-/// Parse a JS value (string or RegExp)
-fn parse_js_pattern(_env: &Env, value: napi::JsUnknown) -> Result<PathFilterUnion> {
-  // Try to coerce to object first to check if it's a RegExp
-  if let Ok(obj) = value.coerce_to_object() {
-    // Check if it's a RegExp by trying to get 'source' and 'flags' properties
-    if let (Ok(source), Ok(flags)) = (
-      obj.get_named_property::<napi::JsString>("source"),
-      obj.get_named_property::<napi::JsString>("flags"),
-    ) {
-      // It's a RegExp object - convert JS flags to inline modifiers
-      let source_str = source.into_utf8()?.as_str()?.to_owned();
-      let flags_str = flags.into_utf8()?.as_str()?.to_owned();
+/// Parse a JS value (string or RegExp) from an Unknown value
+fn parse_js_pattern_from_unknown(_env: &Env, value: napi::Unknown) -> Result<PathFilterUnion> {
+  // Check if it's an object
+  if value.get_type()? == ValueType::Object {
+    // Try to cast to object
+    if let Ok(obj) = unsafe { value.cast::<napi::JsObject>() } {
+      // Check if it's a RegExp by trying to get 'source' and 'flags' properties
+      if let (Ok(source), Ok(flags)) = (
+        obj.get_named_property::<napi::JsString>("source"),
+        obj.get_named_property::<napi::JsString>("flags"),
+      ) {
+        // It's a RegExp object - convert JS flags to inline modifiers
+        let source_str = source.into_utf8()?.as_str()?.to_owned();
+        let flags_str = flags.into_utf8()?.as_str()?.to_owned();
 
-      // Convert JavaScript flags to regex inline modifiers
-      // Note: 'g' (global) and 'y' (sticky) are not relevant for single-string matching
-      let mut inline_flags = String::new();
-      if flags_str.contains('i') {
-        inline_flags.push('i'); // case insensitive
-      }
-      if flags_str.contains('m') {
-        inline_flags.push('m'); // multiline
-      }
-      if flags_str.contains('s') {
-        inline_flags.push('s'); // dotAll
+        // Convert JavaScript flags to regex inline modifiers
+        // Note: 'g' (global) and 'y' (sticky) are not relevant for single-string matching
+        let mut inline_flags = String::new();
+        if flags_str.contains('i') {
+          inline_flags.push('i'); // case insensitive
+        }
+        if flags_str.contains('m') {
+          inline_flags.push('m'); // multiline
+        }
+        if flags_str.contains('s') {
+          inline_flags.push('s'); // dotAll
+        }
+
+        // Prepend inline flags if any exist
+        let pattern = if !inline_flags.is_empty() {
+          format!("(?{}){}", inline_flags, source_str)
+        } else {
+          source_str
+        };
+
+        return Ok(PathFilterUnion::Regex(pattern));
       }
 
-      // Prepend inline flags if any exist
-      let pattern = if !inline_flags.is_empty() {
-        format!("(?{}){}", inline_flags, source_str)
-      } else {
-        source_str
-      };
-
-      return Ok(PathFilterUnion::Regex(pattern));
+      // Not a RegExp, try to get it as a string through casting
+      if let Ok(str_val) = unsafe { value.cast::<napi::JsString>() } {
+        let pattern_str = str_val.into_utf8()?.as_str()?.to_owned();
+        return Ok(PathFilterUnion::from_string(&pattern_str));
+      }
     }
-
-    // Not a RegExp, try to get it as a string
-    if let Ok(str_val) = obj.coerce_to_string() {
+  } else if value.get_type()? == ValueType::String {
+    // It's already a string, try to cast it
+    if let Ok(str_val) = unsafe { value.cast::<napi::JsString>() } {
       let pattern_str = str_val.into_utf8()?.as_str()?.to_owned();
       return Ok(PathFilterUnion::from_string(&pattern_str));
     }

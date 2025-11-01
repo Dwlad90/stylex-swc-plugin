@@ -32,6 +32,7 @@ use crate::shared::{
     functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::StateManager,
   },
+  utils::ast::convertors::{lit_str_to_atom, wtf8_atom_to_atom},
 };
 
 use super::ast::{convertors::transform_shorthand_to_key_values, factories::binding_ident_factory};
@@ -199,7 +200,7 @@ pub(crate) fn get_import_from<'a>(
           match &named_import.imported {
             Some(imported) => match imported {
               ModuleExportName::Ident(export_ident) => export_ident.eq_ignore_span(ident),
-              ModuleExportName::Str(strng) => strng.value == ident.sym,
+              ModuleExportName::Str(strng) => lit_str_to_atom(strng) == ident.sym,
             },
             _ => false,
           }
@@ -276,7 +277,7 @@ pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
         Prop::Shorthand(ident) => ident.sym.clone(),
         Prop::KeyValue(key_val) => match &key_val.key {
           PropName::Ident(ident) => ident.sym.clone(),
-          PropName::Str(strng) => strng.value.clone(),
+          PropName::Str(strng) => wtf8_atom_to_atom(&strng.value),
           _ => continue,
         },
         _ => continue,

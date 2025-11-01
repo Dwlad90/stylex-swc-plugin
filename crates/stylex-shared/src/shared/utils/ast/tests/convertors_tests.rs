@@ -500,7 +500,10 @@ mod tests {
     assert!(result.is_some(), "Should convert simple template to string");
 
     if let Some(Lit::Str(str_lit)) = result {
-      assert_eq!(str_lit.value.as_ref(), "hello world");
+      assert_eq!(
+        str_lit.value.as_str().expect("Failed to get string Value"),
+        "hello world"
+      );
     } else {
       panic!("Expected Lit::Str");
     }
@@ -560,7 +563,10 @@ mod tests {
 
     match result {
       Expr::Lit(Lit::Str(str_lit)) => {
-        assert_eq!(str_lit.value.as_ref(), "var(--font-geist-sans), sans-serif");
+        assert_eq!(
+          str_lit.value.as_str().expect("Failed to get string Value"),
+          "var(--font-geist-sans), sans-serif"
+        );
       }
       _ => panic!("Expected Expr::Lit(Lit::Str)"),
     }
@@ -635,7 +641,10 @@ mod tests {
         assert_eq!(tpl.quasis.len(), 2, "Should have 2 quasis");
         assert_eq!(tpl.exprs.len(), 1, "Should have 1 expression");
         assert_eq!(
-          tpl.quasis[0].cooked.as_ref().unwrap().as_ref(),
+          tpl.quasis[0]
+            .cooked
+            .as_ref()
+            .expect("Failed to get string value"),
           "hello",
           "First quasi should be 'hello'"
         );
@@ -686,7 +695,10 @@ mod tests {
         assert_eq!(tpl.quasis.len(), 4, "Should have 4 quasis");
         assert_eq!(tpl.exprs.len(), 3, "Should have 3 expressions");
         assert_eq!(
-          tpl.quasis[0].cooked.as_ref().unwrap().as_ref(),
+          tpl.quasis[0]
+            .cooked
+            .as_ref()
+            .expect("Failed to get cooked value"),
           "prefix",
           "First quasi should be 'prefix'"
         );
@@ -742,7 +754,10 @@ mod tests {
     // Should remain as string literal
     match result {
       Expr::Lit(Lit::Str(str_lit)) => {
-        assert_eq!(str_lit.value.as_ref(), "hello");
+        assert_eq!(
+          str_lit.value.as_str().expect("Failed to get string value"),
+          "hello"
+        );
       }
       _ => panic!("Expected Expr::Lit(Lit::Str) to remain unchanged"),
     }

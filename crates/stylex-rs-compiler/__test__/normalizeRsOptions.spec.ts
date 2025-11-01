@@ -123,8 +123,9 @@ test('normalizeRsOptions: positive - accepts object importSources', t => {
 test('normalizeRsOptions: negative - importSources with invalid object', t => {
   const input = { importSources: [{ foo: {} }] };
   // @ts-expect-error - input not suitable for normalizeRsOptions
+  // Note: napi v3 throws "StringExpected" during deserialization before validation
   const error = t.throws(() => normalizeRsOptions(input), {
-    message: 'Import path does not match required pattern on StyleXOptions.importSources',
+    message: ' on StyleXOptions.importSources',
   });
   t.truthy(error);
 });

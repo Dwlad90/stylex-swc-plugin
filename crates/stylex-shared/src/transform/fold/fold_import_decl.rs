@@ -8,7 +8,10 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::{enums::core::TransformationCycle, structures::named_import_source::ImportSources},
+  shared::{
+    enums::core::TransformationCycle, structures::named_import_source::ImportSources,
+    utils::ast::convertors::atom_to_string,
+  },
 };
 
 impl<C> StyleXTransform<C>
@@ -32,7 +35,7 @@ where
 
       self.state.top_imports.push(drop_span(import_decl.clone()));
 
-      let source_path = import_decl.src.value.to_string();
+      let source_path = atom_to_string(&import_decl.src.value);
 
       for specifier in &import_decl.specifiers {
         match &specifier {
@@ -48,8 +51,11 @@ where
               self.state.import_specifiers.push(import_specifier_string);
             }
 
-            if import_sources.contains(&declaration.to_string())
-              && self.state.import_as(&import_decl.src.value).is_none()
+            if import_sources.contains(&atom_to_string(declaration))
+              && self
+                .state
+                .import_as(&atom_to_string(&import_decl.src.value))
+                .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();
 
@@ -74,8 +80,11 @@ where
               self.state.import_specifiers.push(import_specifier_string);
             }
 
-            if import_sources.contains(&declaration.to_string())
-              && self.state.import_as(&import_decl.src.value).is_none()
+            if import_sources.contains(&atom_to_string(declaration))
+              && self
+                .state
+                .import_as(&atom_to_string(&import_decl.src.value))
+                .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();
 
@@ -100,14 +109,14 @@ where
               self.state.import_specifiers.push(import_specifier_string);
             }
 
-            if import_sources.contains(&declaration.to_string()) {
+            if import_sources.contains(&atom_to_string(declaration)) {
               let local_name = import_specifier.local.sym.to_string();
 
               match &import_specifier.imported {
                 Some(imported) => {
                   let imported_name = match imported {
                     ModuleExportName::Ident(ident) => ident.sym.to_string(),
-                    ModuleExportName::Str(strng) => strng.value.to_string(),
+                    ModuleExportName::Str(strng) => atom_to_string(&strng.value),
                   };
 
                   self.fill_stylex_create_import(

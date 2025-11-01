@@ -35,7 +35,7 @@ use crate::shared::{
   transformers::{stylex_default_maker, stylex_position_try::get_position_try_fn},
   utils::{
     ast::{
-      convertors::{expr_to_str, key_value_to_str, lit_to_string},
+      convertors::{atom_to_string, expr_to_str, key_value_to_str, lit_to_string},
       factories::binding_ident_factory,
     },
     common::normalize_expr,
@@ -460,7 +460,7 @@ where
 
               let key = match &key_value.key {
                 PropName::Ident(ident) => Some(ident.sym.to_string()),
-                PropName::Str(strng) => Some(strng.value.to_string()),
+                PropName::Str(strng) => Some(atom_to_string(&strng.value)),
                 _ => None,
               };
 
@@ -519,7 +519,7 @@ where
                         if let Some(obj_prop) = prop.as_mut_key_value() {
                           let prop_key = match &obj_prop.key {
                             PropName::Ident(ident) => Some(ident.sym.to_string()),
-                            PropName::Str(strng) => Some(strng.value.to_string()),
+                            PropName::Str(strng) => Some(atom_to_string(&strng.value)),
                             _ => None,
                           };
 

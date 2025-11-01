@@ -14,14 +14,18 @@ use super::media_query::{
   MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, MediaRuleValue,
 };
 use rustc_hash::FxHashMap;
-use swc_core::atoms::Atom;
+use swc_core::atoms::Wtf8Atom;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str};
 
 /// Helper function to extract key as string from KeyValueProp
 fn key_value_to_str(key_value: &KeyValueProp) -> String {
   match &key_value.key {
-    PropName::Str(s) => s.value.to_string(),
+    PropName::Str(s) => s
+      .value
+      .as_atom()
+      .expect("Failed to convert Str to Atom")
+      .to_string(),
     PropName::Ident(id) => id.sym.to_string(),
     _ => String::new(),
   }
@@ -172,7 +176,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
         KeyValueProp {
           key: PropName::Str(Str {
             span: DUMMY_SP,
-            value: Atom::from(combined_query.to_string()),
+            value: Wtf8Atom::from(combined_query.to_string()),
             raw: None,
           }),
           value: original_kv.value.clone(),
@@ -206,7 +210,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
         final_result.push(KeyValueProp {
           key: PropName::Str(Str {
             span: DUMMY_SP,
-            value: Atom::from(new_media_key),
+            value: Wtf8Atom::from(new_media_key),
             raw: None,
           }),
           value: original_kv.value.clone(),
@@ -373,7 +377,7 @@ fn normalize_media_query_syntax(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> 
           KeyValueProp {
             key: PropName::Str(Str {
               span: DUMMY_SP,
-              value: Atom::from(normalized_key),
+              value: Wtf8Atom::from(normalized_key),
               raw: None,
             }),
             value: kv.value,

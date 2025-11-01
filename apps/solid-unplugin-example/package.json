@@ -27,7 +27,7 @@
     "serve": "^14.2.4",
     "solid-js": "^1.9.10",
     "vite": "^7.1.11",
-    "vite-plugin-solid": "^2.11.7"
+    "vite-plugin-solid": "^2.11.10"
   },
   "type": "module"
 }

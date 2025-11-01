@@ -305,8 +305,8 @@ importers:
         specifier: ^19.1.9
         version: 19.1.9(@types/react@19.1.16)
       react-refresh:
-        specifier: ^0.17.0
-        version: 0.17.0
+        specifier: ^0.18.0
+        version: 0.18.0
       serve:
         specifier: ^14.2.4
         version: 14.2.4
@@ -1042,7 +1042,7 @@ importers:
         version: 1.55.1
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.6.1
-        version: 0.6.1(react-refresh@0.17.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.102.1)
+        version: 0.6.1(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.102.1)
       '@stylexjs/eslint-plugin':
         specifier: ^0.16.2
         version: 0.16.2
@@ -1080,8 +1080,8 @@ importers:
         specifier: ^8.2.0
         version: 8.2.0(@rspack/core@1.4.2(@swc/helpers@0.5.17))(postcss@8.5.6)(typescript@5.9.3)(webpack@5.102.1)
       react-refresh:
-        specifier: ^0.17.0
-        version: 0.17.0
+        specifier: ^0.18.0
+        version: 0.18.0
       serve:
         specifier: ^14.2.4
         version: 14.2.5
@@ -9278,6 +9278,10 @@ packages:
     resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
     engines: {node: '>=0.10.0'}
 
+  react-refresh@0.18.0:
+    resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
+    engines: {node: '>=0.10.0'}
+
   react@19.2.0:
     resolution: {integrity: sha512-tmbWg6W31tQLeB5cdIBOicJDJRR2KzXsV7uSK9iNfLWQ5bIZfxuPEHp7M8wiHyHnn0DD1i7w3Zmin0FtkrwoCQ==}
     engines: {node: '>=0.10.0'}
@@ -13051,13 +13055,13 @@ snapshots:
     dependencies:
       playwright: 1.55.1
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.6.1(react-refresh@0.17.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.102.1)':
+  '@pmmmwh/react-refresh-webpack-plugin@0.6.1(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.102.1)':
     dependencies:
       anser: 2.3.2
       core-js-pure: 3.46.0
       error-stack-parser: 2.1.4
       html-entities: 2.6.0
-      react-refresh: 0.17.0
+      react-refresh: 0.18.0
       schema-utils: 4.3.3
       source-map: 0.7.6
       webpack: 5.102.1(@swc/core@1.13.3(@swc/helpers@0.5.17))(webpack-cli@6.0.1)
@@ -19810,6 +19814,8 @@ snapshots:
   react-is@18.3.1: {}
 
   react-refresh@0.17.0: {}
+
+  react-refresh@0.18.0: {}
 
   react@19.2.0: {}
 

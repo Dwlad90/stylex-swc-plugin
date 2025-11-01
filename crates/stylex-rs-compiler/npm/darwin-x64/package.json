@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler-darwin-x64",
   "description": "NAPI-RS compiler for transform StyleX code",
-  "version": "0.13.0-rc.2",
+  "version": "0.13.0-rc.3",
   "private": false,
   "license": "MIT",
   "files": [

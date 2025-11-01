@@ -30,7 +30,7 @@
     "@stylexswc/playwright": "0.13.0-rc.2",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "esbuild": "^0.25.10",
+    "esbuild": "^0.25.11",
     "rimraf": "^6.0.1",
     "serve": "^14.2.4"
   }

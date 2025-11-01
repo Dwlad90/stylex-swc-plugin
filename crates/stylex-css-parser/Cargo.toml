@@ -35,5 +35,5 @@ indexmap.workspace = true
 rustc-hash.workspace = true
 
 [dev-dependencies]
-proptest = "1.8"
+proptest = "1.9"
 criterion = { version = "0.7", features = ["html_reports"] }

@@ -25,7 +25,7 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "serve": "^14.2.4",
-    "solid-js": "^1.9.7",
+    "solid-js": "^1.9.10",
     "vite": "^7.1.11",
     "vite-plugin-solid": "^2.11.7"
   },

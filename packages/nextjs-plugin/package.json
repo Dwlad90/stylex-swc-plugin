@@ -49,7 +49,7 @@
     "@stylexswc/webpack-plugin": "0.13.0-rc.2"
   },
   "devDependencies": {
-    "@babel/types": "^7.28.4",
+    "@babel/types": "^7.28.5",
     "@stylexswc/eslint-config": "0.13.0-rc.2",
     "@stylexswc/typescript-config": "0.13.0-rc.2",
     "@types/babel__core": "^7.20.5",

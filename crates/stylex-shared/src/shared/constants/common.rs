@@ -130,3 +130,5 @@ pub(crate) static VALID_POSITION_TRY_PROPERTIES: Lazy<[&str; 40]> = Lazy::new(||
 // Validation of `stylex.viewTransitionClass` function call
 pub(crate) static VALID_VIEW_TRANSITION_CLASS_PROPERTIES: Lazy<[&str; 4]> =
   Lazy::new(|| ["group", "imagePair", "old", "new"]);
+
+pub(crate) static CONSTS_FILE_EXTENSION: &str = ".const";

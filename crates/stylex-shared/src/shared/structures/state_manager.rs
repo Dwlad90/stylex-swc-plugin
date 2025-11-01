@@ -30,7 +30,7 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::common::DEFAULT_INJECT_PATH,
+  constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
   structures::{types::InjectableStylesMap, uid_generator::CounterMode},
   utils::ast::factories::{
     expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
@@ -310,7 +310,16 @@ impl StateManager {
       }) => theme_file_extension.as_deref().unwrap_or(".stylex"),
     };
 
-    if filename.is_empty() || !matches_file_suffix(theme_file_extension, filename) {
+    if filename.is_empty() {
+      return None;
+    }
+
+    let consts_file_extension = format!("{}{}", theme_file_extension, CONSTS_FILE_EXTENSION);
+
+    let is_theme_file = matches_file_suffix(theme_file_extension, filename);
+    let is_consts_only_file = matches_file_suffix(&consts_file_extension, filename);
+
+    if !is_theme_file && !is_consts_only_file {
       return None;
     }
 
@@ -414,11 +423,15 @@ impl StateManager {
     .as_deref()
     .unwrap_or(".stylex");
 
-    let is_valid_stylex_file = matches_file_suffix(theme_file_extension, import_path);
+    let consts_file_extension = format!("{}{}", theme_file_extension, CONSTS_FILE_EXTENSION);
+
+    let is_theme_file = matches_file_suffix(theme_file_extension, import_path);
+    let is_consts_only_file = matches_file_suffix(&consts_file_extension, import_path);
+
     let is_valid_transformed_vars_file =
       matches_file_suffix(&TRANSFORMED_VARS_FILE_EXTENSION, import_path);
 
-    if !is_valid_stylex_file && !is_valid_transformed_vars_file {
+    if !is_theme_file && !is_valid_transformed_vars_file && !is_consts_only_file {
       return ImportPathResolution::False;
     }
 

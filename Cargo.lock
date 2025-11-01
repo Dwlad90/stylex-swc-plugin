@@ -505,6 +505,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1522,7 +1531,7 @@ checksum = "55740c4ae1d8696773c78fdafd5d0e5fe9bc9f1b071c7ba493ba5c413a9184f3"
 dependencies = [
  "bitflags",
  "ctor 0.2.9",
- "napi-derive",
+ "napi-derive 2.16.13",
  "napi-sys",
  "once_cell",
 ]
@@ -1540,8 +1549,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cbe2585d8ac223f7d34f13701434b9d5f4eb9c332cccce8dee57ea18ab8ab0c"
 dependencies = [
  "cfg-if",
- "convert_case",
- "napi-derive-backend",
+ "convert_case 0.6.0",
+ "napi-derive-backend 1.0.75",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "napi-derive"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78665d6bdf10e9a4e6b38123efb0f66962e6197c1aea2f07cff3f159a374696d"
+dependencies = [
+ "convert_case 0.8.0",
+ "ctor 0.6.0",
+ "napi-derive-backend 3.0.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -1553,11 +1576,24 @@ version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1639aaa9eeb76e91c6ae66da8ce3e89e921cd3885e99ec85f4abacae72fc91bf"
 dependencies = [
- "convert_case",
+ "convert_case 0.6.0",
  "once_cell",
  "proc-macro2",
  "quote",
  "regex",
+ "semver",
+ "syn",
+]
+
+[[package]]
+name = "napi-derive-backend"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42d55d01423e7264de3acc13b258fa48ca7cf38a4d25db848908ec3c1304a85a"
+dependencies = [
+ "convert_case 0.8.0",
+ "proc-macro2",
+ "quote",
  "semver",
  "syn",
 ]
@@ -2456,7 +2492,7 @@ dependencies = [
  "log",
  "napi",
  "napi-build",
- "napi-derive",
+ "napi-derive 3.3.0",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -2633,7 +2669,7 @@ dependencies = [
  "base64",
  "bytes-str",
  "napi",
- "napi-derive",
+ "napi-derive 2.16.13",
  "once_cell",
  "pathdiff",
  "rustc-hash",

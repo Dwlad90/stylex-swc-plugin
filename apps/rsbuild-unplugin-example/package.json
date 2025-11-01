@@ -24,8 +24,8 @@
     "@rsbuild/core": "^1.6.0",
     "@rsbuild/plugin-react": "^1.4.1",
     "@stylexswc/playwright": "0.13.0-rc.2",
-    "@types/react": "^19.1.16",
-    "@types/react-dom": "^19.1.9",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
     "serve": "^14.2.4"
   }
 }

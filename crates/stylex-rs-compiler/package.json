@@ -31,7 +31,7 @@
     "lint": "oxlint .",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
     "postbuild": "npm run build:swc && pnpm run check:artifacts",
-    "prepublishOnly": "napi prepublish --skip-gh-release",
+    "prepublishOnly": "napi prepublish --no-gh-release",
     "test": "ava",
     "typecheck": "scripty --rs",
     "version": "napi version"

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rollup-plugin",
   "description": "StyleX rollup plugin with NAPI-RS compiler",
-  "version": "0.13.0-rc.5",
+  "version": "0.13.0-rc.6",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.16.3",
-    "@stylexswc/rs-compiler": "0.13.0-rc.5",
+    "@stylexswc/rs-compiler": "0.13.0-rc.6",
     "lightningcss": "^1.30.2"
   },
   "devDependencies": {

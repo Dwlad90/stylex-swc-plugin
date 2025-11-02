@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/stylexswc",
-  "version": "0.13.0-rc.4",
+  "version": "0.13.0-rc.5",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -27,8 +27,8 @@
   "devDependencies": {
     "playwright": "^1.56.1",
     "@commitlint/cli": "^20.1.0",
-    "@stylexswc/eslint-config": "0.13.0-rc.4",
-    "@stylexswc/typescript-config": "0.13.0-rc.4",
+    "@stylexswc/eslint-config": "0.13.0-rc.5",
+    "@stylexswc/typescript-config": "0.13.0-rc.5",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
     "del-cli": "^7.0.0",

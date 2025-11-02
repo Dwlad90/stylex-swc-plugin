@@ -117,3 +117,52 @@ test!(
     }
 "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_style_extend_with_dynamic_stylex_class,
+  r#"
+    import * as sx from '@stylexjs/stylex';
+    import * as React from 'react';
+
+
+    const c = sx.create({
+      base: {
+        display: 'grid',
+      },
+      regularGrid: {
+        display: 'grid',
+      },
+      irregularGrid: {
+        display: 'grid',
+      },
+    });
+
+
+    export default function CommentField({ type }) {
+      let gridType = 'regular';
+
+      if(type === 'irregular') {
+        gridType = 'irregular';
+      }
+
+      const grid = `${gridType}Grid`;
+
+      return (
+        <div styleExtend={[c.base, c[grid]]} />
+      );
+    }
+"#
+);

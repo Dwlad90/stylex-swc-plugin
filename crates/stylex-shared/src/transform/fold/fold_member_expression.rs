@@ -24,37 +24,46 @@ where
   pub(crate) fn fold_member_expr_impl(&mut self, member_expression: MemberExpr) -> MemberExpr {
     match self.state.cycle {
       TransformationCycle::Skip => member_expression,
-      TransformationCycle::StateFilling | TransformationCycle::Recounting => {
+      TransformationCycle::StateFilling => {
         if let Some(obj_ident) = member_expression.obj.as_ident() {
-          match self.state.cycle {
-            TransformationCycle::StateFilling => {
-              increase_member_ident_count(&mut self.state, &obj_ident.sym);
-            }
-            TransformationCycle::Recounting => {
-              reduce_member_ident_count(&mut self.state, &obj_ident.sym);
-            }
-            _ => {}
-          };
+          increase_member_ident_count(&mut self.state, &obj_ident.sym);
+        }
+        member_expression.fold_children_with(self)
+      }
+      TransformationCycle::Recounting => {
+        if let Some(obj_ident) = member_expression.obj.as_ident() {
+          reduce_member_ident_count(&mut self.state, &obj_ident.sym);
         }
         member_expression.fold_children_with(self)
       }
       TransformationCycle::PreCleaning => {
-        if let Expr::Ident(ident) = member_expression.obj.as_ref() {
-          let obj_ident_name = ident.sym.to_string();
-          if self.state.style_map.contains_key(&obj_ident_name)
-            && let MemberProp::Ident(prop_ident) = &member_expression.prop
-            && let Some(count) = self.state.member_object_ident_count_map.get(&ident.sym)
-            && count > &0
-          {
+        if let Expr::Ident(ident) = member_expression.obj.as_ref()
+          && self.state.style_map.contains_key(ident.sym.as_ref())
+          && self
+            .state
+            .member_object_ident_count_map
+            .get(&ident.sym)
+            .is_some_and(|&c| c > 0)
+        {
+          if let MemberProp::Ident(prop_ident) = &member_expression.prop {
             increase_ident_count(&mut self.state, ident);
-            let style_var_to_keep = StyleVarsToKeep(
+            self.state.style_vars_to_keep.insert(StyleVarsToKeep(
               ident.sym.clone(),
               NonNullProp::Atom(prop_ident.sym.clone()),
               NonNullProps::True,
-            );
-            self.state.style_vars_to_keep.insert(style_var_to_keep);
+            ));
           }
-        }
+
+          if let MemberProp::Computed(_) = member_expression.prop {
+            increase_ident_count(&mut self.state, ident);
+            self.state.style_vars_to_keep.insert(StyleVarsToKeep(
+              ident.sym.clone(),
+              NonNullProp::True,
+              NonNullProps::True,
+            ));
+          }
+        };
+
         member_expression.fold_children_with(self)
       }
       _ => member_expression.fold_children_with(self),

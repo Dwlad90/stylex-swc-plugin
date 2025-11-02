@@ -309,6 +309,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     legacy_disable_layers: options.legacy_disable_layers.or(Some(false)),
     swc_plugins: options.swc_plugins.or(Some(vec![])),
     use_real_file_for_source: Some(true),
+    enable_media_query_order: options.enable_media_query_order.or(Some(true)),
     ..options
   };
 

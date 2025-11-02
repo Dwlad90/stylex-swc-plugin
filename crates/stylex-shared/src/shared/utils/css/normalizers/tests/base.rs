@@ -335,5 +335,17 @@ mod normalizers {
       errors2,
       vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
     );
+
+    let (stylesheet, errors) = swc_parse_css("* {{ grid-column-start: -1 }}");
+
+    assert_eq!(
+      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      "*{{grid-column-start:-1}}"
+    );
+
+    assert_eq!(
+      errors,
+      vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
+    );
   }
 }

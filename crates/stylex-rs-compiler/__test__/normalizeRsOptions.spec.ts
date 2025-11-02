@@ -20,6 +20,7 @@ const defaultResult: StyleXOptions = {
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
   useRealFileForSource: true,
+  enableMediaQueryOrder: true,
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {

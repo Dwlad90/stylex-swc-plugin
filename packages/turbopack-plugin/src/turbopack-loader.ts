@@ -5,6 +5,8 @@ import { generateStyleXOutput } from './utils';
 import type { InputCode, SourceMap, StyleXTurbopackLoaderOptions } from './types';
 import type { LoaderContext } from 'webpack';
 
+const skipWarnRegex = /empty|client-only/;
+
 export default async function stylexTurbopackLoader(
   this: LoaderContext<LoaderInterpolateOption & StyleXTurbopackLoaderOptions>,
   inputCode: InputCode,
@@ -17,7 +19,7 @@ export default async function stylexTurbopackLoader(
   const logger = this._compiler?.getInfrastructureLogger(PLUGIN_NAME);
 
   if (!inputCode) {
-    if (!this.resourcePath.includes('empty')) {
+    if (!skipWarnRegex.test(this.resourcePath)) {
       logger?.warn(
         `@stylexswc/webpack-plugin: inputCode is empty for resource ${this.resourcePath}`
       );

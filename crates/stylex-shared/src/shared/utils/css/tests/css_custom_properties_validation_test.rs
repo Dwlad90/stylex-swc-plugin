@@ -400,4 +400,35 @@ mod css_tests {
       "drop-shadow(0 -2px 10px rgba(0,0,0,.1))"
     );
   }
+
+  #[test]
+  fn should_normalize_dimensions() {
+    assert_eq!(
+      transform_value_cached("gridColumnStart", "1", &mut StateManager::default()),
+      "1"
+    );
+
+    assert_eq!(
+      transform_value_cached("gridColumnStart", "-1", &mut StateManager::default()),
+      "-1"
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        "calc(0 - var(--someVar))",
+        &mut StateManager::default()
+      ),
+      "calc(0 - var(--someVar))"
+    );
+
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        "calc(0px - var(--someVar))",
+        &mut StateManager::default()
+      ),
+      "calc(0px - var(--someVar))"
+    );
+  }
 }

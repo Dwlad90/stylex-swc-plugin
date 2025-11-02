@@ -41,15 +41,13 @@
       "path": "../../scripts/packages"
     }
   },
-  "dependencies": {
-    "@swc/core": "^1.13.3"
-  },
   "devDependencies": {
     "@napi-rs/cli": "^3.4.1",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.16.3",
     "@stylexswc/shared": "0.13.0-rc.4",
     "@swc-node/register": "^1.11.1",
+    "@swc/core": "^1.13.3",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^24.9.2",
     "ava": "^6.4.1",
@@ -61,6 +59,9 @@
     "prettier": "^3.6.2",
     "tinybench": "^5.1.0",
     "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "@swc/core": "^1"
   },
   "ava": {
     "extensions": {

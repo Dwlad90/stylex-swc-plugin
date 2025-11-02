@@ -39,22 +39,23 @@ where
       TransformationCycle::PreCleaning => {
         if let Expr::Ident(ident) = member_expression.obj.as_ref()
           && self.state.style_map.contains_key(ident.sym.as_ref())
-          && self
-            .state
-            .member_object_ident_count_map
-            .get(&ident.sym)
-            .is_some_and(|&c| c > 0)
         {
-          if let MemberProp::Ident(prop_ident) = &member_expression.prop {
+          if let MemberProp::Ident(prop_ident) = &member_expression.prop
+            && self
+              .state
+              .member_object_ident_count_map
+              .get(&ident.sym)
+              .is_some_and(|&c| c > 0)
+          {
             increase_ident_count(&mut self.state, ident);
             self.state.style_vars_to_keep.insert(StyleVarsToKeep(
               ident.sym.clone(),
               NonNullProp::Atom(prop_ident.sym.clone()),
               NonNullProps::True,
             ));
-          }
+          };
 
-          if let MemberProp::Computed(_) = member_expression.prop {
+          if let MemberProp::Computed(_) = &member_expression.prop {
             increase_ident_count(&mut self.state, ident);
             self.state.style_vars_to_keep.insert(StyleVarsToKeep(
               ident.sym.clone(),
@@ -62,7 +63,7 @@ where
               NonNullProps::True,
             ));
           }
-        };
+        }
 
         member_expression.fold_children_with(self)
       }

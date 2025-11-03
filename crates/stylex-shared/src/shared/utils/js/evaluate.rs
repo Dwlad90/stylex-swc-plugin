@@ -13,8 +13,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
-      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit, Pat,
-      Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
+      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit,
+      OptChainBase, Pat, Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
     },
     utils::{ExprExt, drop_span, ident::IdentLike, quote_ident},
   },
@@ -566,6 +566,21 @@ fn _evaluate(
                   panic_with_context!(path, traversal_state, "Member not found");
                 }
               }
+              Expr::Member(member_expr) => evaluate_cached(
+                &Expr::Member(member_expr.clone()),
+                state,
+                traversal_state,
+                fns,
+              ),
+              Expr::Lit(nested_lit) => {
+                evaluate_cached(&Expr::Lit(nested_lit.clone()), state, traversal_state, fns)
+              }
+              Expr::Ident(nested_ident) => evaluate_cached(
+                &Expr::Ident(nested_ident.clone()),
+                state,
+                traversal_state,
+                fns,
+              ),
               _ => {
                 panic_with_context!(
                   path,
@@ -1936,8 +1951,43 @@ fn _evaluate(
         )),
       );
     }
-    Expr::Await(await_expr) => {
-      return evaluate_cached(&await_expr.arg, state, traversal_state, fns);
+    Expr::Await(await_expr) => evaluate_cached(&await_expr.arg, state, traversal_state, fns),
+    Expr::OptChain(opt_chain) => {
+      // Evaluate the base object/callee first
+      let base_result = match opt_chain.base.as_ref() {
+        OptChainBase::Member(member) => evaluate_cached(&member.obj, state, traversal_state, fns),
+        OptChainBase::Call(call) => evaluate_cached(&call.callee, state, traversal_state, fns),
+      };
+
+      // Check if we should short-circuit:
+      // 1. Base is null literal
+      // 2. Base is undefined identifier
+      // 3. Base evaluation failed (returned None)
+      let should_short_circuit = match &base_result {
+        Some(EvaluateResultValue::Expr(base_expr)) => {
+          matches!(base_expr, Expr::Lit(Lit::Null(_)))
+            || (matches!(base_expr, Expr::Ident(ident) if ident.sym == *"undefined"))
+        }
+        None => true,
+        // For other result types (Object, Array, FunctionConfig, etc.), don't short-circuit
+        _ => false,
+      };
+
+      if should_short_circuit {
+        None
+      } else {
+        // Otherwise, evaluate the full optional chain expression
+        match opt_chain.base.as_ref() {
+          OptChainBase::Member(member) => {
+            let member_expr = Expr::Member(member.clone());
+            evaluate_cached(&member_expr, state, traversal_state, fns)
+          }
+          OptChainBase::Call(call) => {
+            let call_expr = Expr::Call(call.clone().into());
+            evaluate_cached(&call_expr, state, traversal_state, fns)
+          }
+        }
+      }
     }
     _ => {
       warn!(

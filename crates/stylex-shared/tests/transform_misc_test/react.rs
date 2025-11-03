@@ -166,3 +166,90 @@ test!(
     }
 "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_style_extend_with_optional_chaining,
+  r#"
+    import * as sx from '@stylexjs/stylex';
+    import * as React from 'react';
+
+
+    const c = sx.create({
+      base: {
+        display: 'grid',
+      },
+    });
+
+
+    export default function CommentField({ type }) {
+      const result = useHook();
+      const nullable = null;
+      const undef = undefined;
+
+      return (
+        <div {...sx.props(
+        nullable?.test && c.base,
+        undef?.test && c.base,
+        (()=>{
+                    const implementation = {
+                        foo: ()=>null,
+                        bar: ()=>c.base
+                    };
+                    return implementation[result?.value !== 'test' ? "foo" : result?.test] || implementation.foo;
+                })()())} />
+      );
+    }
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_style_extend_with_promise,
+  r#"
+    import * as sx from '@stylexjs/stylex';
+    import * as React from 'react';
+
+
+    const c = sx.create({
+      base: {
+        display: 'grid',
+      },
+    });
+
+
+    export default async function CommentField({ type }) {
+      const resultPromise = promise();
+
+      const result = await resultPromise;
+
+      return (
+        <div {...sx.props(result && c.base)} />
+      );
+    }
+"#
+);

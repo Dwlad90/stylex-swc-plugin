@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/eslint-config",
-  "version": "0.13.0-rc.6",
+  "version": "0.13.0-rc.7",
   "private": true,
   "files": [
     "library.js",

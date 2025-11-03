@@ -1,6 +1,6 @@
 {
   "name": "application-npm",
-  "version": "0.13.0-rc.6",
+  "version": "0.13.0-rc.7",
   "dependencies": {
     "@stylex/lib-exports-dist-pnpm": "*",
     "@stylex/lib-exports-pnpm": "*",

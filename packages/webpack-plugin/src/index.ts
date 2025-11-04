@@ -247,4 +247,6 @@ export type { StyleXPluginOption } from './types';
 
 module.exports = StyleXPlugin;
 module.exports.default = StyleXPlugin;
+module.exports.loader = stylexLoaderPath;
+module.exports.virtualLoader = stylexVirtualLoaderPath;
 module.exports.VIRTUAL_CSS_PATTERN = VIRTUAL_CSS_PATTERN;

@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-example",
-  "version": "0.13.0-rc.8",
+  "version": "0.13.0-rc.9",
   "private": true,
   "scripts": {
     "build": "next build --webpack",
@@ -22,8 +22,8 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.16.3",
-    "@stylexswc/design-system": "0.13.0-rc.8",
-    "@stylexswc/nextjs-plugin": "0.13.0-rc.8",
+    "@stylexswc/design-system": "0.13.0-rc.9",
+    "@stylexswc/nextjs-plugin": "0.13.0-rc.9",
     "next": "^16.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
@@ -31,9 +31,9 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@stylexjs/eslint-plugin": "^0.16.3",
-    "@stylexswc/jest": "0.13.0-rc.8",
-    "@stylexswc/playwright": "0.13.0-rc.8",
-    "@stylexswc/rs-compiler": "0.13.0-rc.8",
+    "@stylexswc/jest": "0.13.0-rc.9",
+    "@stylexswc/playwright": "0.13.0-rc.9",
+    "@stylexswc/rs-compiler": "0.13.0-rc.9",
     "@swc/jest": "^0.2.39",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",

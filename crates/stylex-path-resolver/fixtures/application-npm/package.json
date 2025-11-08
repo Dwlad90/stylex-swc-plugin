@@ -1,6 +1,6 @@
 {
   "name": "application-pnpm",
-  "version": "0.13.0-rc.8",
+  "version": "0.13.0-rc.9",
   "workspaces": [
     "apps/*",
     "packages/*"

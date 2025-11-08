@@ -133,7 +133,16 @@ pub fn evaluate_stylex_create_arg(
                         }
                       }
                       _ => {
-                        unimplemented!("Block statement")
+                        return Box::new(EvaluateResult {
+                          confident: false,
+                          deopt: None,
+                          reason: Some(
+                            "Block statement is not allowed in Dynamic Style functions".to_string(),
+                          ),
+                          value: None,
+                          inline_styles: None,
+                          fns: None,
+                        });
                       }
                     }
                   }

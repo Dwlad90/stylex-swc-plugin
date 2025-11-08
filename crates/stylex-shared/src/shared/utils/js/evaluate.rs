@@ -485,7 +485,7 @@ fn _evaluate(
                   EvaluateResultValue::ThemeRef(theme) => {
                     // NOTE: it's a very edge case, but it's possible to have a theme ref as a key
                     // in an object, when theme import key is same as other variable name.
-                    // One of reasons is code minification or obfuscation,
+                    // One of the reasons is code minification or obfuscation,
                     // when theme import key is renamed to a shorter name.
                     // Also it may be a result of a bug in the code.
 
@@ -903,6 +903,7 @@ fn _evaluate(
                     Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
                     _ => panic_with_context!(path, traversal_state, "Callback type not supported"),
                   },
+                  EvaluateResultValue::ThemeRef(_) => None,
                   _ => panic_with_context!(
                     path,
                     traversal_state,

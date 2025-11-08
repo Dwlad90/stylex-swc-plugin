@@ -253,3 +253,40 @@ test!(
     }
 "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_style_extend_with_theme_record,
+  r#"
+    import { BUTTON_PRIMARY, BUTTON_SECONDARY } from 'styles/themes/button.stylex';
+    import * as stylex from '@stylexjs/stylex';
+
+    const buttonTheme = {
+      primary: BUTTON_PRIMARY,
+      secondary: BUTTON_SECONDARY
+    };
+
+    export function Button_Record_From_Import ()  {
+
+      return <button
+        {...stylex.props(
+          buttonTheme[state.theme],
+        )}
+      >
+        Click Me!
+      </button>
+    };
+"#
+);

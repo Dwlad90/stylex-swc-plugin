@@ -248,3 +248,34 @@ test!(
           });
         "#
 );
+
+#[test]
+#[should_panic(expected = "Block statement is not allowed in Dynamic Style functions")]
+fn invalid_dynamic_rule_with_block_body() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::default(),
+        None,
+      )
+    },
+    r#"
+          import * as stylex from '@stylexjs/stylex';
+
+          export const styles = stylex.create({
+            button: () => {
+              return {
+                  justifyContent: 'center',
+              };
+            },
+          });
+        "#,
+    r#""#,
+  )
+}

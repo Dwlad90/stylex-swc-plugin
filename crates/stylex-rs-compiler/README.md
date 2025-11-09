@@ -313,7 +313,75 @@ const styleProps = {
 
 ## Configuration Options
 
-### `use_real_file_for_source`
+### `injectStylexSideEffects`
+
+**Type:** `boolean`
+**Default:** `false`
+
+Automatically injects side-effect imports for `.stylex` and `.consts` files to prevent tree-shaking from removing them during bundling.
+
+#### Problem
+
+When using build tools that perform tree-shaking (like webpack, rollup, vite), imports from `.stylex` or `.consts` files may appear unused after StyleX transformation and get removed:
+
+```ts
+// Before StyleX transformation
+import { colors } from './theme.stylex';
+import { spacing } from './tokens.consts';
+
+const styles = stylex.create({
+  root: {
+    backgroundColor: colors.primary,  // Uses colors
+    padding: spacing.md,              // Uses spacing
+  }
+});
+
+// After StyleX transformation
+import { colors } from './theme.stylex';  // Appears unused!
+import { spacing } from './tokens.consts'; // Appears unused!
+
+const styles = {
+  root: {
+    backgroundColor: 'x1a2b3c',
+    padding: 'x4d5e6f',
+    $$css: true
+  }
+};
+```
+
+The bundler may remove these "unused" imports, but they're needed for other files to resolve the same StyleX/const references correctly.
+
+#### Solution
+
+When `injectStylexSideEffects: true`, the compiler automatically adds side-effect imports to preserve these modules:
+
+```ts
+// After transformation with injectStylexSideEffects: true
+import { colors } from './theme.stylex';
+import { spacing } from './tokens.consts';
+import './theme.stylex';    // Side-effect import (prevents tree-shaking)
+import './tokens.consts';   // Side-effect import (prevents tree-shaking)
+
+const styles = {
+  root: {
+    backgroundColor: 'x1a2b3c',
+    padding: 'x4d5e6f',
+    $$css: true
+  }
+};
+```
+
+#### When to Use
+
+- ✅ **Use `true`** when your bundler runs StyleX transformation **before** other optimizations (recommended)
+- ✅ **Use `true`** with webpack's `loaderOrder: 'first'` option
+- ❌ **Use `false`** when StyleX runs **after** tree-shaking (e.g., webpack's `loaderOrder: 'last'`)
+
+> [!TIP]
+> This option is automatically enabled when using `@stylexswc/webpack-plugin` with `loaderOrder: 'first'` (the default).
+
+
+### `useRealFileForSource`
 
 **Type:** `boolean`
 **Default:** `true`
@@ -357,13 +425,12 @@ transform(filename, code, {
 > Keep the default `true` value for most use cases. Only set it to `false` if you have specific requirements for in-memory transformations or performance-critical scenarios where file I/O is a bottleneck.
 
 > [!WARNING]
-> When `use_real_file_for_source` is set to `false`, error messages may report **incorrect line numbers**. The compiler will use the transformed AST representation instead of the original source code, which can lead to line number mismatches. This happens because:
+> When `useRealFileForSource` is set to `false`, error messages may report **incorrect line numbers**. The compiler will use the transformed AST representation instead of the original source code, which can lead to line number mismatches. This happens because:
 > - The AST may have been modified by previous transformations
 > - Comments and whitespace are normalized in the AST
 > - The structure may differ from what's in your actual source file
 >
-> For accurate error reporting and debugging, always use `use_real_file_for_source: true` (the default) during development.
-
+> For accurate error reporting and debugging, always use `useRealFileForSource: true` (the default) during development.
 
 ## Debug
 

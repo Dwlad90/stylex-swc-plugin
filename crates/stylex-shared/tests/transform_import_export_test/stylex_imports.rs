@@ -1,8 +1,11 @@
 use insta::assert_snapshot;
-use stylex_shared::shared::structures::{
-  named_import_source::{ImportSources, NamedImportSource},
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
+use stylex_shared::{
+  StyleXTransform,
+  shared::structures::{
+    named_import_source::{ImportSources, NamedImportSource},
+    plugin_pass::PluginPass,
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
+  },
 };
 use swc_core::{
   common::FileName,
@@ -351,3 +354,117 @@ fn meta_only_import_default() {
   let output = transform(&fixture);
   assert_snapshot!(output);
 }
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut StyleXOptionsParams {
+        inject_stylex_side_effects: Some(true),
+        ..Default::default()
+      }),
+    )
+  },
+  inject_stylex_side_effects,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { constants } from './constants.consts';
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut StyleXOptionsParams {
+        inject_stylex_side_effects: Some(true),
+        ..Default::default()
+      }),
+    )
+  },
+  inject_stylex_theme_side_effects,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { theme } from './theme.stylex';
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut StyleXOptionsParams {
+        inject_stylex_side_effects: Some(true),
+        ..Default::default()
+      }),
+    )
+  },
+  inject_stylex_side_effects_ts,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { constants } from './constants.consts.ts';
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut StyleXOptionsParams {
+        inject_stylex_side_effects: Some(true),
+        ..Default::default()
+      }),
+    )
+  },
+  inject_stylex_theme_side_effects_ts,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { theme } from './theme.stylex.ts';
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| { StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None,) },
+  no_inject_stylex_side_effects_ts,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { constants } from './constants.stylex';
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| { StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None,) },
+  no_inject_stylex_side_effects,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { constants } from './constants.consts.ts';
+    "#
+);

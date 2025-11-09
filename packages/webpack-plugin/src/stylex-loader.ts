@@ -53,6 +53,18 @@ export default async function stylexLoader(
       rsOptions
     );
 
+    let parsedMap: SourceMap = undefined;
+
+    if (map) {
+      try {
+        parsedMap = typeof map === 'string' ? JSON.parse(map) : map;
+      } catch (error) {
+        logger?.warn(
+          `@stylexswc/webpack-plugin: failed to parse map for resource ${this.resourcePath}: ${(error as Error).message}`
+        );
+      }
+    }
+
     // If metadata.stylex doesn't exist at all, we only need to return the transformed code
     if (
       !extractCSS ||
@@ -62,7 +74,7 @@ export default async function stylexLoader(
       !metadata.stylex.length
     ) {
       if (extractCSS) logger?.debug(`No stylex styles generated from ${this.resourcePath}`);
-      return callback(null, code ?? undefined, map ?? undefined);
+      return callback(null, code, parsedMap);
     }
 
     logger?.debug(`Read stylex styles from ${this.resourcePath}:`, metadata.stylex);
@@ -92,7 +104,7 @@ export default async function stylexLoader(
       );
       const postfix = `\nimport ${virtualCssRequest};`;
 
-      return callback(null, code + postfix, map ?? undefined);
+      return callback(null, code + postfix, parsedMap);
     }
 
     // Next.js App Router doesn't support inline matchResource and inline loaders
@@ -100,7 +112,7 @@ export default async function stylexLoader(
     const virtualCssRequest = stringifyRequest(this, `${VIRTUAL_CSS_PATH}?${urlParams.toString()}`);
     const postfix = `\nimport ${virtualCssRequest};`;
 
-    return callback(null, code + postfix, map ?? undefined);
+    return callback(null, code + postfix, parsedMap);
   } catch (error) {
     return callback(error as Error);
   }

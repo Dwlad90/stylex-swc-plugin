@@ -31,6 +31,7 @@ pub struct StyleXStateOptions {
   pub import_sources: Vec<ImportSources>,
   pub runtime_injection: Option<RuntimeInjectionState>,
   pub treeshake_compensation: bool,
+  pub inject_stylex_side_effects: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
 }
@@ -56,6 +57,7 @@ impl Default for StyleXStateOptions {
       class_name_prefix: "x".to_string(),
       import_sources: vec![],
       treeshake_compensation: false,
+      inject_stylex_side_effects: false,
       runtime_injection: None,
       aliases: None,
       unstable_module_resolution: CheckModuleResolution::CommonJS(
@@ -107,6 +109,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       enable_minified_keys: options.enable_minified_keys,
       use_real_file_for_source: true,
       treeshake_compensation: options.treeshake_compensation,
+      inject_stylex_side_effects: options.inject_stylex_side_effects,
       aliases: options.aliases,
       unstable_module_resolution: options.unstable_module_resolution,
     }

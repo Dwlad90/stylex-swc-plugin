@@ -44,7 +44,7 @@ export default class StyleXPlugin {
   loaderOption: StyleXWebpackLoaderOptions;
 
   transformCss: CSSTransformer;
-
+  loaderOrder: StyleXPluginOption['loaderOrder'];
   constructor({
     stylexImports = ['stylex', '@stylexjs/stylex'],
     useCSSLayers = false,
@@ -52,6 +52,7 @@ export default class StyleXPlugin {
     nextjsMode = false,
     transformCss = identityTransfrom,
     extractCSS = true,
+    loaderOrder = 'first',
   }: StyleXPluginOption = {}) {
     this.useCSSLayers = useCSSLayers;
     this.loaderOption = {
@@ -62,12 +63,14 @@ export default class StyleXPlugin {
         runtimeInjection: false,
         treeshakeCompensation: true,
         importSources: stylexImports,
+        injectStylexSideEffects: loaderOrder !== 'last',
         ...rsOptions,
       },
       nextjsMode,
       extractCSS,
     };
     this.transformCss = transformCss;
+    this.loaderOrder = loaderOrder;
   }
 
   apply(compiler: webpack.Compiler) {
@@ -135,11 +138,10 @@ export default class StyleXPlugin {
               },
             };
 
-            // We use .unshift() and not .push() like original webpack plugin
-            // because we want to transpile theme imports first,
-            // else it will be unused imports, that will be removed by tree shaking,
-            // and to run other transformations first, e.g. custom SWC plugins.
-            mod.loaders.unshift({
+            const insertMethod =
+              this.loaderOrder === 'last' ? 'unshift' : 'push';
+
+            mod.loaders[insertMethod]({
               loader: stylexLoaderPath,
               options: this.loaderOption,
               ident: null,

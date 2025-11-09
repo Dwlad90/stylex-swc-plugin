@@ -53,6 +53,17 @@ export interface StyleXPluginOption {
    * @default true
    */
   extractCSS?: boolean;
+
+  /**
+   * Loader execution order
+   *
+   * Determines when the StyleX transformation is applied relative to other webpack loaders:
+   * - 'first': StyleX processes source code before any other loaders (recommended)
+   * - 'last': StyleX processes after all other loaders have run
+   *
+   * @default 'first'
+   */
+  loaderOrder?: 'first' | 'last';
 }
 export type StyleXWebpackLoaderOptions = {
   stylexImports: StyleXOptions['importSources'];

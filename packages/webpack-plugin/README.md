@@ -113,6 +113,35 @@ module.exports = config;
 - Default: `true`
 - Description: Controls whether CSS should be extracted into a separate file
 
+#### `loaderOrder`
+
+- Type: `'first' | 'last'`
+- Optional
+- Default: `'first'`
+- Description: Determines when the StyleX transformation is applied relative to other webpack loaders.
+  - `'first'` (recommended): StyleX processes the source code before any other loaders run.
+    Automatically enables `injectStylexSideEffects` to prevent tree-shaking from removing `.stylex` and `.consts` imports.
+  - `'last'`: StyleX processes after all other loaders have completed.
+    Use this if you need other loaders (like TypeScript or SWC plugins) to transform your code before StyleX processing.
+
+  **Why `'first'` is recommended:**
+  When StyleX transforms your code first, imports from `.stylex` and `.consts` files may appear unused to subsequent loaders/bundlers and get removed by tree-shaking. The plugin automatically injects side-effect imports to prevent this issue.
+
+  **Example of the problem:**
+  ```ts
+  // Before transformation
+  import { colors } from './theme.stylex';
+  const styles = stylex.create({
+    root: { backgroundColor: colors.primary }
+  });
+
+  // After StyleX transformation (appears unused to bundler)
+  import { colors } from './theme.stylex';  // ← May be tree-shaken!
+  const styles = { root: { backgroundColor: 'x1a2b3c', $$css: true } };
+  ```
+
+  With `loaderOrder: 'first'`, the plugin automatically preserves these imports by injecting side-effect imports.
+
 ### Advanced Options
 
 #### `transformCss`
@@ -141,6 +170,7 @@ module.exports = {
       stylexImports: ['@stylexjs/stylex', { from: './theme', as: 'tokens' }],
       useCSSLayers: true,
       nextjsMode: false,
+      loaderOrder: 'first', // Process before other loaders (default)
       transformCss: async css => {
         const postcss = require('postcss');
         const result = await postcss([require('autoprefixer')]).process(css);

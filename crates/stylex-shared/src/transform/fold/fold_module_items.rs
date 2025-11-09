@@ -1,4 +1,4 @@
-use swc_core::ecma::ast::ExportDecl;
+use swc_core::ecma::ast::{ExportDecl, ImportDecl, Str};
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::{
@@ -11,8 +11,9 @@ use crate::{
   StyleXTransform,
   shared::{
     enums::core::TransformationCycle,
+    regex::STYLEX_CONSTS_IMPORT_REGEX,
     utils::{
-      ast::factories::binding_ident_factory,
+      ast::{convertors::atom_to_string, factories::binding_ident_factory},
       common::{fill_state_declarations, stable_hash},
     },
   },
@@ -26,12 +27,41 @@ where
     match self.state.cycle {
       TransformationCycle::Skip => module_items,
       TransformationCycle::Initializing => {
-        let transformed_module_items = module_items.fold_children_with(self);
+        let mut transformed_module_items = module_items.fold_children_with(self);
 
         if self.state.import_paths.is_empty() {
           self.state.cycle = TransformationCycle::Skip;
 
           return transformed_module_items;
+        }
+
+        if self.state.options.inject_stylex_side_effects {
+          let mut side_effect_imports = Vec::new();
+
+          for module_item in &transformed_module_items {
+            if let ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) = module_item {
+              let source_path = atom_to_string(&import_decl.src.value);
+              if STYLEX_CONSTS_IMPORT_REGEX
+                .is_match(&source_path)
+                .unwrap_or(false)
+              {
+                side_effect_imports.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+                  span: DUMMY_SP,
+                  specifiers: vec![],
+                  src: Box::new(Str {
+                    span: DUMMY_SP,
+                    value: import_decl.src.value.clone(),
+                    raw: None,
+                  }),
+                  type_only: false,
+                  with: None,
+                  phase: Default::default(),
+                })));
+              }
+            }
+          }
+
+          transformed_module_items.extend(side_effect_imports);
         }
 
         transformed_module_items

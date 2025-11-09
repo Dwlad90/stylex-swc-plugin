@@ -34,6 +34,7 @@ pub struct StyleXOptions {
   pub enable_debug_data_prop: Option<bool>,
   pub enable_dev_class_names: Option<bool>,
   pub enable_minified_keys: Option<bool>,
+  pub inject_stylex_side_effects: Option<bool>,
   pub use_real_file_for_source: Option<bool>,
   #[napi(ts_type = "Record<string, string[]>")]
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
@@ -112,6 +113,7 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       enable_debug_data_prop: val.enable_debug_data_prop,
       enable_dev_class_names: val.enable_dev_class_names,
       enable_minified_keys: val.enable_minified_keys,
+      inject_stylex_side_effects: val.inject_stylex_side_effects,
       aliases: val.aliases,
       unstable_module_resolution,
     })

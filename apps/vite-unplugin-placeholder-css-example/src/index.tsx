@@ -1,5 +1,4 @@
 import './reset.css';
-import 'virtual:stylex.css';
 
 import { createRoot } from 'react-dom/client';
 import App from './App';

@@ -1,0 +1,41 @@
+{
+  "name": "@stylexswc/webpack-unplugin-placeholder-css-example",
+  "description": "A simple webpack unplugin placeholder css example to test @stylexswc/unplugin/webpack",
+  "version": "0.13.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "webpack build",
+    "dev": "NODE_ENV=development webpack serve",
+    "serve": "serve --listen 3019 ./dist",
+    "test:visual": "playwright test"
+  },
+  "dependencies": {
+    "@stylexjs/open-props": "^0.11.1",
+    "@stylexjs/stylex": "^0.16.3",
+    "@stylexswc/design-system": "0.13.0",
+    "@stylexswc/rs-compiler": "0.13.0",
+    "@stylexswc/unplugin": "0.13.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@stylexswc/playwright": "0.13.0",
+    "@swc/core": "^1.13.3",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "css-loader": "^7.1.2",
+    "css-minimizer-webpack-plugin": "^7.0.2",
+    "html-webpack-plugin": "^5.6.0",
+    "lightningcss": "^1.30.2",
+    "mini-css-extract-plugin": "^2.9.2",
+    "postcss-loader": "^8.2.0",
+    "serve": "^14.2.4",
+    "style-loader": "^4.0.0",
+    "swc-loader": "^0.2.6",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  }
+}

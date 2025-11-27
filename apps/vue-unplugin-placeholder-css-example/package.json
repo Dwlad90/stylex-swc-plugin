@@ -1,6 +1,6 @@
 {
-  "name": "@stylexswc/vue-unplugin-virtual-css-example",
-  "description": "A simple vue unplugin example to test @stylexswc/unplugin/vue",
+  "name": "@stylexswc/vue-unplugin-placeholder-css-example",
+  "description": "A simple vue unplugin placeholder css example to test @stylexswc/unplugin/vue",
   "version": "0.13.0",
   "private": true,
   "license": "MIT",

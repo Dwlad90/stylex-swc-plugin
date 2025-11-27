@@ -10,12 +10,22 @@ export default defineConfig({
     vue(),
     styleXRSPlugin({
       pageExtensions: ['tsx', 'jsx', 'js', 'ts', 'vue'],
-      useViteCssPipeline: true,
+      useCssPlaceholder: true,
       rsOptions: {
         dev: true,
         useCSSLayers: true,
         treeshakeCompensation: true,
       },
     }),
+    // add lightning css transformer
   ],
+  css: {
+    transformer: 'lightningcss',
+    lightningcss: {
+      targets: {
+        // Your browserslist targets
+        chrome: 129,
+      },
+    },
+  },
 })

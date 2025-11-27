@@ -201,71 +201,79 @@ build({
 - Default: `['js', 'jsx', 'ts', 'tsx', 'mjs', 'mts']`
 - Description: File extensions to process for StyleX transformations.
 
-#### `useViteCssPipeline`
+#### `useCssPlaceholder`
 
 - Type: `boolean`
 - Default: `false`
-- Description: **(Vite only)** Integrates StyleX-generated CSS into Vite's CSS processing pipeline as a virtual module. When enabled, StyleX CSS will be processed through Vite's CSS transformers (including PostCSS, LightningCSS, etc.) and benefit from proper HMR support.
+- Description: Enable CSS injection into CSS files via placeholder marker. When enabled, the plugin will look for `@stylex;` marker in your CSS files and replace it with the generated StyleX CSS.
 
 ##### Benefits
 
-- **CSS Processing**: Generated StyleX CSS goes through Vite's CSS pipeline (PostCSS, LightningCSS, etc.)
-- **Better HMR**: CSS updates are handled through Vite's native CSS HMR with proper source maps
+- **CSS Processing**: Generated StyleX CSS goes through the bundler's CSS pipeline (PostCSS, LightningCSS, css-loader, etc.)
+- **Deterministic Builds**: No race conditions or hash instability from virtual modules
 - **Consistent Output**: All CSS follows the same processing rules and bundling strategy
 - **Build Optimization**: CSS can be code-split and optimized alongside other stylesheets
+- **Works Everywhere**: Same approach works for Vite, Webpack, Rspack, esbuild, Rollup, and Farm
 
 ##### How to Use
 
+1. Create a CSS file with the `@stylex;` marker (e.g., `global.css`):
+
+```css
+/* global.css */
+:root {
+  --brand-color: #663399;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+@stylex;
+```
+
+2. Import the CSS file in your entry point:
+
 ```typescript
-// vite.config.ts
+// src/main.ts
+import './global.css';
+import { App } from './App';
+```
+
+3. Configure the plugin with `useCssPlaceholder: true`:
+
+```typescript
+// vite.config.ts (or webpack.config.js, rspack.config.js, etc.)
 import StylexRsPlugin from '@stylexswc/unplugin/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [
     StylexRsPlugin({
-      useViteCssPipeline: true,
+      useCssPlaceholder: true,
+      useCSSLayers: true,
     }),
   ],
 });
 ```
 
-Then import the virtual CSS module in your entry file:
-
-```typescript
-// src/main.ts
-import 'virtual:stylex.css';
-import { App } from './App';
-```
-
-**TypeScript Support:**
-
-For TypeScript projects, add the type definition to your `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "types": ["@stylexswc/unplugin/virtual-css"]
-  }
-}
-```
+The plugin will automatically replace the `@stylex;` marker with the generated StyleX CSS during the build process.
 
 > [!NOTE]
-> When `useViteCssPipeline` is enabled, you need to explicitly import `virtual:stylex.css` in your application. The plugin will no longer inject CSS automatically into the HTML.
+> When `useCssPlaceholder` is enabled, the plugin will no longer inject CSS automatically into HTML or emit a separate `stylex.css` file. The CSS is injected into your specified CSS file.
 
 > [!IMPORTANT]
-> **Reset CSS and Other Global Styles**
+> **Migration from `useViteCssPipeline`**
 >
-> The `virtual:stylex.css` module should only contain StyleX-generated CSS. If you need to include reset CSS, global styles, or other non-StyleX CSS, import them from separate CSS files:
+> The `useViteCssPipeline` option (which used virtual CSS modules) has been replaced with the `useCssPlaceholder` approach.
+> The new approach uses real CSS files instead of virtual modules, which provides:
 >
-> ```typescript
-> // src/main.ts
-> import './reset.css';        // Your reset CSS
-> import './global.css';       // Other global styles
-> import 'virtual:stylex.css'; // StyleX-generated CSS
-> ```
+> - Better compatibility across all bundlers
+> - No race conditions or timing issues
+> - Deterministic builds with stable hashes
 >
-> **Do not** put reset CSS or other styles inside the virtual module, as they should be managed separately from the StyleX-generated styles. See the examples in [`apps/vite-unplugin-virtual-css-example`](../../apps/vite-unplugin-virtual-css-example) and [`apps/vue-unplugin-virtual-css-example`](../../apps/vue-unplugin-virtual-css-example) for reference.
+> To migrate, simply create a CSS file with the `@stylex;` marker and set `useCssPlaceholder: true`.
 
 ### Example Configuration
 
@@ -285,7 +293,7 @@ export default defineConfig({
         exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**'],
       },
       useCSSLayers: true,
-      fileName: 'stylex.[hash].css',
+      useCssPlaceholder: true,
     }),
   ],
 });
@@ -357,32 +365,6 @@ StylexRsPlugin({
   rsOptions: {
     include: ['src/**/*.{ts,tsx}'],
     exclude: ['**/__tests__/**', '**/__mocks__/**'],
-  },
-})
-```
-
-**Exclude node_modules except specific packages:**
-
-```typescript
-StylexRsPlugin({
-  rsOptions: {
-    // Exclude all node_modules except @stylexjs/open-props
-    exclude: [/node_modules(?!\/@stylexjs\/open-props)/],
-  },
-})
-```
-
-**Transform only specific packages from node_modules:**
-
-```typescript
-StylexRsPlugin({
-  rsOptions: {
-    include: [
-      'src/**/*.{ts,tsx}',
-      'node_modules/@stylexjs/open-props/**/*.js',
-      'node_modules/@my-org/design-system/**/*.js',
-    ],
-    exclude: ['**/*.test.*'],
   },
 })
 ```

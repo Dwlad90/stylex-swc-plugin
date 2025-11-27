@@ -58,14 +58,10 @@
       "import": "./dist/types.js",
       "require": "./dist/types.cjs"
     },
-    "./virtual-css": {
-      "types": "./virtual-css.d.ts"
-    },
     "./*": "./*"
   },
   "files": [
-    "dist",
-    "virtual-css.d.ts"
+    "dist"
   ],
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

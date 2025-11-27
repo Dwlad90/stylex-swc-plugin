@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     react(),
     styleXRSPlugin({
-      useViteCssPipeline: true,
+      useCssPlaceholder: true,
       rsOptions: {
         dev: true,
         useCSSLayers: true,

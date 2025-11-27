@@ -7,10 +7,17 @@ export interface UnpluginStylexRSOptions {
   rsOptions?: StyleXOptions;
   extractCSS?: boolean;
   /**
-   * Use Vite's CSS pipeline for processing StyleX CSS.
-   * When enabled, StyleX CSS will be processed through Vite's transforms (LightningCSS, PostCSS, etc.)
-   * instead of being directly injected into HTML.
-   * @default false
+   * Enable CSS injection into CSS files via placeholder marker.
+   * When enabled, the plugin will look for `@stylex;` marker in your CSS files
+   * and replace it with the generated StyleX CSS.
+   *
+   * Example: Add `@stylex;` to your global.css file, then set this option to true.
+   * The plugin will automatically replace the marker with the generated StyleX CSS.
+   *
+   * This allows StyleX CSS to go through the standard bundler CSS pipeline
+   * (PostCSS, css-loader, LightningCSS, etc.) for processing.
+   *
+   * Works with all bundlers: Vite, Webpack, Rspack, esbuild, Rollup, Farm.
    */
-  useViteCssPipeline?: boolean;
+  useCssPlaceholder?: boolean;
 }

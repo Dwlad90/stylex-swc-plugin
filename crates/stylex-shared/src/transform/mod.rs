@@ -4,7 +4,7 @@ use swc_core::{
   common::{Mark, comments::Comments},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
-    transforms::base::resolver,
+    transforms::{base::resolver, typescript::strip},
     utils::drop_span,
     visit::fold_pass,
   },
@@ -103,8 +103,12 @@ where
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> impl Pass + use<C> {
+    let unresolved_mark = Mark::new();
+    let top_level_mark = Mark::new();
+
     (
-      resolve_factory(),
+      resolve_factory(unresolved_mark, top_level_mark),
+      // typescript_factory(unresolved_mark, top_level_mark),
       fold_pass(Self::new_test_force_runtime_injection(
         comments,
         plugin_pass,
@@ -152,8 +156,12 @@ where
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> impl Pass + use<C> {
+    let unresolved_mark = Mark::new();
+    let top_level_mark = Mark::new();
+
     (
-      resolve_factory(),
+      resolve_factory(unresolved_mark, top_level_mark),
+      // typescript_factory(unresolved_mark, top_level_mark),
       fold_pass(Self::new_test(comments, plugin_pass, config)),
     )
   }
@@ -264,9 +272,11 @@ fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> FxHashSet<I
 }
 
 #[warn(clippy::extra_unused_type_parameters)]
-fn resolve_factory() -> impl Pass {
-  let unresolved_mark = Mark::new();
-  let top_level_mark = Mark::new();
-
+fn resolve_factory(unresolved_mark: Mark, top_level_mark: Mark) -> impl Pass {
   resolver(unresolved_mark, top_level_mark, true)
+}
+
+#[warn(clippy::extra_unused_type_parameters)]
+fn _typescript_factory(unresolved_mark: Mark, top_level_mark: Mark) -> impl Pass {
+  strip(unresolved_mark, top_level_mark)
 }

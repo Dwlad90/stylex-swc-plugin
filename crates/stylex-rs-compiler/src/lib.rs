@@ -24,11 +24,14 @@ use stylex_shared::{
 use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
 
 use swc_core::{
-  common::{FileName, SourceMap},
+  common::{FileName, GLOBALS, Globals, Mark, SourceMap},
   ecma::{
     ast::EsVersion,
-    transforms::base::fixer::fixer,
-    visit::{fold_pass, visit_mut_pass},
+    transforms::{
+      base::{fixer::fixer, hygiene::hygiene, resolver},
+      typescript::strip as typescript_strip,
+    },
+    visit::fold_pass,
   },
   plugin::proxies::PluginCommentsProxy,
 };
@@ -106,9 +109,6 @@ pub fn transform(
 
     let mut config: StyleXOptionsParams = options.try_into()?;
 
-    let mut stylex: StyleXTransform<PluginCommentsProxy> =
-      StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
-
     let mut parser = Parser::new_from(Lexer::new(
       Syntax::Typescript(TsSyntax {
         tsx: true,
@@ -127,32 +127,44 @@ pub fn transform(
       }
     };
 
-    let program = program
-      .apply(&mut fold_pass(&mut stylex))
-      .apply(&mut visit_mut_pass(fixer(None)));
+    let globals = Globals::default();
+    GLOBALS.set(&globals, || {
+      let unresolved_mark = Mark::new();
+      let top_level_mark = Mark::new();
 
-    let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
+      let mut stylex: StyleXTransform<PluginCommentsProxy> =
+        StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
 
-    let transformed_code = print(
-      cm,
-      &program,
-      PrintArgs {
-        source_map,
-        ..Default::default()
-      },
-    );
+      let program = program
+        .apply(resolver(unresolved_mark, top_level_mark, true))
+        .apply(typescript_strip(unresolved_mark, top_level_mark))
+        .apply(&mut fold_pass(&mut stylex))
+        .apply(hygiene())
+        .apply(&mut fixer(None));
 
-    let result = transformed_code.unwrap();
+      let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
 
-    let js_result = StyleXTransformResult {
-      code: result.code,
-      metadata: StyleXMetadata {
-        stylex: stylex_metadata,
-      },
-      map: result.map,
-    };
+      let transformed_code = print(
+        cm,
+        &program,
+        PrintArgs {
+          source_map,
+          ..Default::default()
+        },
+      );
 
-    Ok(js_result)
+      let result = transformed_code.unwrap();
+
+      let js_result = StyleXTransformResult {
+        code: result.code,
+        metadata: StyleXMetadata {
+          stylex: stylex_metadata,
+        },
+        map: result.map,
+      };
+
+      Ok(js_result)
+    })
   });
 
   match result {

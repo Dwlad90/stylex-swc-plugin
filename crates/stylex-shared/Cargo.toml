@@ -24,6 +24,7 @@ swc_core = { workspace = true, features = [
   "css_visit",
   "css_parser",
   "css_ast",
+  "ecma_transforms_typescript",
 ] }
 
 swc_config.workspace = true
@@ -60,7 +61,7 @@ stylex_css_parser = { path = "../stylex-css-parser" }
 swc_core = { workspace = true, features = [
   "testing_transform",
   "ecma_parser",
-  'ecma_utils',
+  "ecma_utils",
 ] }
 testing.workspace = true
 insta = { workspace = true, features = ["yaml"] }

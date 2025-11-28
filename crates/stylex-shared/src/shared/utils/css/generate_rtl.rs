@@ -63,23 +63,14 @@ pub(crate) fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<
 
   if style_resolution == &StyleResolution::LegacyExpandShorthands {
     if !enable_logical_styles_polyfill {
-      if let Some(value) = legacy_values_polyfill(pair, key) {
-        return Some(value);
-      }
-
       return None;
     }
-
     if let Some(inline_to_rtl_value) = INLINE_TO_RTL.get(key) {
       return Some(Pair::new(
         inline_to_rtl_value.to_string(),
         pair.value.clone(),
       ));
     }
-  }
-
-  if let Some(value) = legacy_values_polyfill(pair, key) {
-    return Some(value);
   }
 
   property_to_rtl(pair, options)
@@ -150,12 +141,4 @@ fn flip_sign(value: &str) -> String {
   } else {
     format!("-{}", value)
   }
-}
-
-fn legacy_values_polyfill(pair: &Pair, key: &str) -> Option<Pair> {
-  if key == "float" || key == "clear" {
-    let new_val = logical_to_physical_rtl(pair.value.as_str()).unwrap_or(pair.value.as_str());
-    return Some(Pair::new(key.to_string(), new_val.to_string()));
-  }
-  None
 }

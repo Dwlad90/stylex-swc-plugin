@@ -8,16 +8,30 @@ export interface UnpluginStylexRSOptions {
   extractCSS?: boolean;
   /**
    * Enable CSS injection into CSS files via placeholder marker.
-   * When enabled, the plugin will look for `@stylex;` marker in your CSS files
-   * and replace it with the generated StyleX CSS.
    *
-   * Example: Add `@stylex;` to your global.css file, then set this option to true.
-   * The plugin will automatically replace the marker with the generated StyleX CSS.
+   * - When set to `true`, the plugin will look for the default `@stylex;` marker
+   * - When set to a string, the plugin will use that string as the marker
+   *
+   * Example with default marker:
+   * ```css
+   * @stylex;
+   * ```
+   * ```js
+   * { useCssPlaceholder: true }
+   * ```
+   *
+   * Example with custom marker:
+   * ```css
+   * /* INJECT_STYLEX_HERE *\/
+   * ```
+   * ```js
+   * { useCssPlaceholder: '/* INJECT_STYLEX_HERE *\/' }
+   * ```
    *
    * This allows StyleX CSS to go through the standard bundler CSS pipeline
    * (PostCSS, css-loader, LightningCSS, etc.) for processing.
    *
    * Works with all bundlers: Vite, Webpack, Rspack, esbuild, Rollup, Farm.
    */
-  useCssPlaceholder?: boolean;
+  useCssPlaceholder?: boolean | string;
 }

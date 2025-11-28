@@ -203,9 +203,11 @@ build({
 
 #### `useCssPlaceholder`
 
-- Type: `boolean`
+- Type: `boolean | string`
 - Default: `false`
-- Description: Enable CSS injection into CSS files via placeholder marker. When enabled, the plugin will look for `@stylex;` marker in your CSS files and replace it with the generated StyleX CSS.
+- Description: Enable CSS injection into CSS files via placeholder marker.
+  - When set to `true`, the plugin will look for the default `@stylex;` marker
+  - When set to a string, the plugin will use that string as the custom marker
 
 ##### Benefits
 
@@ -217,7 +219,7 @@ build({
 
 ##### How to Use
 
-1. Create a CSS file with the `@stylex;` marker (e.g., `global.css`):
+1. Create a CSS file with a marker (e.g., `global.css`):
 
 ```css
 /* global.css */
@@ -241,7 +243,7 @@ import './global.css';
 import { App } from './App';
 ```
 
-3. Configure the plugin with `useCssPlaceholder: true`:
+3. Configure the plugin with `useCssPlaceholder`:
 
 ```typescript
 // vite.config.ts (or webpack.config.js, rspack.config.js, etc.)
@@ -251,14 +253,34 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [
     StylexRsPlugin({
-      useCssPlaceholder: true,
+      useCssPlaceholder: true, // Uses default '@stylex;' marker
       useCSSLayers: true,
     }),
   ],
 });
 ```
 
-The plugin will automatically replace the `@stylex;` marker with the generated StyleX CSS during the build process.
+##### Using a Custom Marker
+
+You can specify a custom marker string:
+
+```css
+/* global.css */
+:root {
+  --brand-color: #663399;
+}
+
+/* INJECT_STYLEX_HERE */
+```
+
+```typescript
+StylexRsPlugin({
+  useCssPlaceholder: '/* INJECT_STYLEX_HERE */',
+  useCSSLayers: true,
+})
+```
+
+The plugin will replace the marker with the generated StyleX CSS during the build process.
 
 > [!NOTE]
 > When `useCssPlaceholder` is enabled, the plugin will no longer inject CSS automatically into HTML or emit a separate `stylex.css` file. The CSS is injected into your specified CSS file.
@@ -273,7 +295,7 @@ The plugin will automatically replace the `@stylex;` marker with the generated S
 > - No race conditions or timing issues
 > - Deterministic builds with stable hashes
 >
-> To migrate, simply create a CSS file with the `@stylex;` marker and set `useCssPlaceholder: true`.
+> To migrate, simply create a CSS file with a marker and set `useCssPlaceholder: true` (or use a custom marker string).
 
 ### Example Configuration
 

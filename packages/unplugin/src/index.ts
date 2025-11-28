@@ -22,6 +22,8 @@ type NormalizedOptions = NormalizedOptionsType;
 
 const { writeFile, mkdir } = promises;
 
+const PLUGIN_NAME = 'unplugin-stylex-rs';
+
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
     return original;
@@ -55,6 +57,58 @@ function pickCssAsset(
   return preferred || cssAssets[0] || null;
 }
 
+/**
+ * Injects StyleX CSS into CSS assets for webpack/rspack bundlers.
+ * Shared logic to avoid code duplication between webpack and rspack hooks.
+ */
+function injectStyleXCss(
+  assets: Record<string, { source(): { toString(): string } }>,
+  injectMarker: string,
+  collectedCSS: string,
+  fallbackFileName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateAsset: (fileName: string, source: any) => void,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  emitAsset: (fileName: string, source: any) => void,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createRawSource: (content: string) => any
+): void {
+  const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
+
+  // Try to find asset with the marker first
+  let injected = false;
+  for (const fileName of cssAssets) {
+    const asset = assets[fileName];
+    if (!asset) continue;
+    const source = asset.source().toString();
+    if (source.includes(injectMarker)) {
+      const newSource = source.replace(injectMarker, collectedCSS);
+      updateAsset(fileName, createRawSource(newSource));
+      injected = true;
+      break;
+    }
+  }
+
+  // Fallback: append to a preferred CSS asset if marker not found
+  if (!injected && cssAssets.length > 0) {
+    const targetAsset = pickCssAsset(cssAssets);
+    if (targetAsset) {
+      const asset = assets[targetAsset];
+      if (asset) {
+        const existing = asset.source().toString();
+        const newSource = existing ? existing + '\n' + collectedCSS : collectedCSS;
+        updateAsset(targetAsset, createRawSource(newSource));
+        injected = true;
+      }
+    }
+  }
+
+  // Last resort: emit standalone stylex.css
+  if (!injected) {
+    emitAsset(fallbackFileName, createRawSource(collectedCSS));
+  }
+}
+
 export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefined> = (
   options = {}
 ) => {
@@ -71,7 +125,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   let wsSend: undefined | ((payload: HotPayload) => void) = undefined;
 
   return {
-    name: 'unplugin-stylex-rs',
+    name: PLUGIN_NAME,
 
     buildStart() {
       // stylexRules accumulates during watch mode for proper HMR
@@ -145,7 +199,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
         };
       } catch (error) {
-        console.error('Tansformation error:', error);
+        console.error('Transformation error:', error);
         this.error(error as UnpluginMessage);
       }
     },
@@ -213,8 +267,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           const source = output.source.toString();
 
           // Handle useCssPlaceholder (custom marker in real CSS file)
-          if (source.includes('@stylex;')) {
-            output.source = source.replace('@stylex;', collectedCSS);
+          if (normalizedOptions.useCssPlaceholder && source.includes(normalizedOptions.useCssPlaceholder)) {
+            output.source = source.replace(normalizedOptions.useCssPlaceholder, collectedCSS);
             injected = true;
             break;
           }
@@ -375,7 +429,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
           // Handle useCssPlaceholder mode
           if (normalizedOptions.useCssPlaceholder && outDir && shouldWriteToDisk) {
-            const injectMarker = '@stylex;';
+            const injectMarker = normalizedOptions.useCssPlaceholder;
 
             // Find CSS files in output
             let cssFiles: string[] = [];
@@ -495,63 +549,29 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     rspack(compiler) {
       if (!normalizedOptions.useCssPlaceholder) return;
 
-      const injectMarker = '@stylex;';
+      const injectMarker = normalizedOptions.useCssPlaceholder;
 
       // Use processAssets hook to replace the CSS marker with actual StyleX content
       // This runs after all CSS is processed through loaders (PostCSS, etc.)
-      compiler.hooks.thisCompilation.tap('unplugin-stylex-rs', compilation => {
+      compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
         compilation.hooks.processAssets.tap(
           {
-            name: 'unplugin-stylex-rs',
+            name: PLUGIN_NAME,
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
           assets => {
             const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
             if (!collectedCSS) return;
 
-            const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
-
-            // Try to find asset with the marker first
-            let injected = false;
-            for (const fileName of cssAssets) {
-              const asset = assets[fileName];
-              if (!asset) continue;
-              const source = asset.source().toString();
-              if (source.includes(injectMarker)) {
-                const newSource = source.replace(injectMarker, collectedCSS);
-                compilation.updateAsset(
-                  fileName,
-                  new compiler.webpack.sources.RawSource(newSource)
-                );
-                injected = true;
-                break;
-              }
-            }
-
-            // Fallback: append to a preferred CSS asset if marker not found
-            if (!injected && cssAssets.length > 0) {
-              const targetAsset = pickCssAsset(cssAssets);
-              if (targetAsset) {
-                const asset = assets[targetAsset];
-                if (asset) {
-                  const existing = asset.source().toString();
-                  const newSource = existing ? existing + '\n' + collectedCSS : collectedCSS;
-                  compilation.updateAsset(
-                    targetAsset,
-                    new compiler.webpack.sources.RawSource(newSource)
-                  );
-                  injected = true;
-                }
-              }
-            }
-
-            // Last resort: emit standalone stylex.css
-            if (!injected) {
-              compilation.emitAsset(
-                normalizedOptions.fileName,
-                new compiler.webpack.sources.RawSource(collectedCSS)
-              );
-            }
+            injectStyleXCss(
+              assets,
+              injectMarker,
+              collectedCSS,
+              normalizedOptions.fileName,
+              (fileName, source) => compilation.updateAsset(fileName, source),
+              (fileName, source) => compilation.emitAsset(fileName, source),
+              (content) => new compiler.webpack.sources.RawSource(content)
+            );
           }
         );
       });
@@ -559,63 +579,29 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     webpack(compiler) {
       if (!normalizedOptions.useCssPlaceholder) return;
 
-      const injectMarker = '@stylex;';
+      const injectMarker = normalizedOptions.useCssPlaceholder;
 
       // Use processAssets hook to replace the CSS marker with actual StyleX content
       // This runs after all CSS is processed through loaders (PostCSS, etc.)
-      compiler.hooks.thisCompilation.tap('unplugin-stylex-rs', compilation => {
+      compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
         compilation.hooks.processAssets.tap(
           {
-            name: 'unplugin-stylex-rs',
+            name: PLUGIN_NAME,
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
           assets => {
             const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
             if (!collectedCSS) return;
 
-            const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
-
-            // Try to find asset with the marker first
-            let injected = false;
-            for (const fileName of cssAssets) {
-              const asset = assets[fileName];
-              if (!asset) continue;
-              const source = asset.source().toString();
-              if (source.includes(injectMarker)) {
-                const newSource = source.replace(injectMarker, collectedCSS);
-                compilation.updateAsset(
-                  fileName,
-                  new compiler.webpack.sources.RawSource(newSource)
-                );
-                injected = true;
-                break;
-              }
-            }
-
-            // Fallback: append to a preferred CSS asset if marker not found
-            if (!injected && cssAssets.length > 0) {
-              const targetAsset = pickCssAsset(cssAssets);
-              if (targetAsset) {
-                const asset = assets[targetAsset];
-                if (asset) {
-                  const existing = asset.source().toString();
-                  const newSource = existing ? existing + '\n' + collectedCSS : collectedCSS;
-                  compilation.updateAsset(
-                    targetAsset,
-                    new compiler.webpack.sources.RawSource(newSource)
-                  );
-                  injected = true;
-                }
-              }
-            }
-
-            // Last resort: emit standalone stylex.css
-            if (!injected) {
-              compilation.emitAsset(
-                normalizedOptions.fileName,
-                new compiler.webpack.sources.RawSource(collectedCSS)
-              );
-            }
+            injectStyleXCss(
+              assets,
+              injectMarker,
+              collectedCSS,
+              normalizedOptions.fileName,
+              (fileName, source) => compilation.updateAsset(fileName, source),
+              (fileName, source) => compilation.emitAsset(fileName, source),
+              (content) => new compiler.webpack.sources.RawSource(content)
+            );
           }
         );
       });

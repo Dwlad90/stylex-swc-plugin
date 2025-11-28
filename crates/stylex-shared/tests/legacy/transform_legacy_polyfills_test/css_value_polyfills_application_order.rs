@@ -63,7 +63,11 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      enable_logical_styles_polyfill: Some(true),
+      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
+      ..StyleXOptionsParams::default()
+    })
   ),
   non_standard_value_start_aka_inline_start_for_float_property,
   r#"

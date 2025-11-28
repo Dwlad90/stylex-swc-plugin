@@ -132,3 +132,6 @@ pub(crate) static VALID_VIEW_TRANSITION_CLASS_PROPERTIES: Lazy<[&str; 4]> =
   Lazy::new(|| ["group", "imagePair", "old", "new"]);
 
 pub(crate) static CONSTS_FILE_EXTENSION: &str = ".const";
+
+pub(crate) static LOGICAL_FLOAT_START_VAR: &str = "--stylex-logical-start";
+pub(crate) static LOGICAL_FLOAT_END_VAR: &str = "--stylex-logical-end";

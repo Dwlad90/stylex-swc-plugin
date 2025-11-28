@@ -12,10 +12,6 @@ pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
 
   if style_resolution == &StyleResolution::LegacyExpandShorthands {
     if !enable_logical_styles_polyfill {
-      if let Some(value) = legacy_values_polyfill(pair, key) {
-        return value;
-      }
-
       return pair.clone();
     }
 
@@ -24,21 +20,15 @@ pub(crate) fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
     }
   }
 
-  if let Some(value) = legacy_values_polyfill(pair, key) {
-    return value;
-  }
-
   property_to_ltr(pair)
 }
 
-// Always polyfill float/clear values, regardless of enable_logical_styles_polyfill
-fn legacy_values_polyfill(pair: &Pair, key: &str) -> Option<Pair> {
-  if key == "float" || key == "clear" {
-    let new_val = logical_to_physical_ltr(pair.value.as_str()).unwrap_or(pair.value.as_str());
-
-    return Some(Pair::new(key.to_string(), new_val.to_string()));
+fn logical_to_physical_ltr(input: &str) -> Option<&str> {
+  match input {
+    "start" | "inline-start" => Some("left"),
+    "end" | "inline-end" => Some("right"),
+    _ => None,
   }
-  None
 }
 
 fn property_to_ltr(pair: &Pair) -> Pair {
@@ -56,6 +46,9 @@ fn property_to_ltr(pair: &Pair) -> Pair {
         .join(" ");
       Pair::new(pair.key.clone(), new_val)
     }
+    "float" | "clear" => logical_to_physical_ltr(pair.value.as_str())
+      .map(|value| Pair::new(pair.key.clone(), value.to_string()))
+      .expect("Expected logical value for float/clear property"),
     k => {
       if let Some(&physical) = PROPERTY_TO_LTR.get(k) {
         Pair::new(physical.to_string(), pair.value.clone())
@@ -63,15 +56,5 @@ fn property_to_ltr(pair: &Pair) -> Pair {
         Pair::new(pair.key.clone(), pair.value.clone())
       }
     }
-  }
-}
-
-fn logical_to_physical_ltr(input: &str) -> Option<&str> {
-  match input {
-    "start" => Some("left"),
-    "end" => Some("right"),
-    "inline-start" => Some("left"),
-    "inline-end" => Some("right"),
-    _ => None,
   }
 }

@@ -7,13 +7,14 @@ use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, 
 use swc_config::is_module::IsModule;
 use swc_core::{
   common::{
-    DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, Spanned, SyntaxContext,
+    DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceMap, Span, Spanned, SyntaxContext,
     errors::{Handler, *},
   },
   ecma::{
     ast::*,
     codegen::Config,
     parser::{Syntax, TsSyntax},
+    transforms::typescript::strip,
     visit::*,
   },
 };
@@ -137,7 +138,7 @@ pub(crate) fn get_span_from_source_code(
   )
   .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
 
-  let span = find_expression_span(&program, target_expression);
+  let span = find_expression_span(program, target_expression);
 
   // Cache the result for future lookups
   state.span_cache.insert(cache_key, span);
@@ -165,9 +166,9 @@ fn load_code_frame_from_cache(file_name: &FileName) -> Result<CodeFrame, Error> 
 }
 
 /// Finds the span of a target expression within a program AST
-fn find_expression_span(program: &Program, target_expression: &Expr) -> Span {
+fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
   let mut finder = ExpressionFinder::new(target_expression);
-  let _program = program.clone().fold_with(&mut finder);
+  let program = program.fold_with(&mut finder);
 
   if let Some(span) = finder.get_span() {
     return span;
@@ -176,7 +177,7 @@ fn find_expression_span(program: &Program, target_expression: &Expr) -> Span {
   // Fallback: try finding after template literal conversion
   let converted_target = target_expression.clone().fold_with(&mut TplConverter {});
   let mut fallback_finder = ExpressionFinder::new(&converted_target);
-  let _program = program.clone().fold_with(&mut fallback_finder);
+  let _program = program.fold_with(&mut fallback_finder);
 
   fallback_finder
     .get_span()
@@ -279,9 +280,12 @@ fn parse_and_normalize_program(
 
   match parse_result {
     Ok(program) => {
+      let unresolved_mark = Mark::new();
+      let top_level_mark = Mark::new();
+
       // Clean and normalize: remove syntax contexts, convert template literals
       let normalized = program
-        .fold_with(&mut Cleaner {})
+        .apply(strip(unresolved_mark, top_level_mark))
         .fold_with(&mut TplConverter {});
       Some(normalized)
     }

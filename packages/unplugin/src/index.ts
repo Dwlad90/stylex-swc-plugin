@@ -66,12 +66,11 @@ function injectStyleXCss(
   injectMarker: string,
   collectedCSS: string,
   fallbackFileName: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   updateAsset: (fileName: string, source: any) => void,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emitAsset: (fileName: string, source: any) => void,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createRawSource: (content: string) => any
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 ): void {
   const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
 

@@ -2,6 +2,7 @@ import path from 'path';
 import stylexPlugin from '@stylexswc/nextjs-plugin';
 
 module.exports = stylexPlugin({
+  loaderOrder: 'first',
   // Add any StyleX options here
   rsOptions: {
     aliases: {

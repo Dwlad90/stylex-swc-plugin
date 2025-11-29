@@ -305,6 +305,7 @@ where
       let function_map: Box<FunctionMap> = Box::new(FunctionMap {
         identifiers,
         member_expressions,
+        disable_imports: false,
       });
 
       let evaluated_arg =

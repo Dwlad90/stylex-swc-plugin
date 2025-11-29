@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
-use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp};
+use indexmap::IndexMap;
+use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp, ObjectLit};
 
 use crate::shared::{
   enums::data_structures::{
@@ -19,6 +20,7 @@ pub(crate) enum StyleObject {
   Style(FlatCompiledStyles),
   Nullable,
   Other,
+  Unreachable,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -36,9 +38,10 @@ pub(crate) enum ResolvedArg {
 pub(crate) fn parse_nullable_style(
   path: &Expr,
   state: &mut StateManager,
+  evaluate_path_fn_config: &FunctionMap,
   should_reduce_count: bool,
 ) -> StyleObject {
-  match path {
+  let result = match path {
     Expr::Lit(lit) => {
       if let Lit::Null(_) = lit {
         StyleObject::Nullable
@@ -99,6 +102,100 @@ pub(crate) fn parse_nullable_style(
       StyleObject::Other
     }
     _ => StyleObject::Other,
+  };
+
+  if result == StyleObject::Other {
+    let parsed_obj = evaluate(path, state, evaluate_path_fn_config);
+
+    if parsed_obj.confident
+      && let Some(result) = parsed_obj.value.as_ref()
+    {
+      let mut compiled_styles: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
+
+      if let Some(value) = parse_compiled_styles(&mut compiled_styles, result) {
+        return value;
+      }
+    }
+  }
+
+  result
+}
+
+fn parse_compiled_styles(
+  compiled_styles: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  result: &EvaluateResultValue,
+) -> Option<StyleObject> {
+  match result {
+    EvaluateResultValue::Vec(arr) => {
+      for item in arr.iter() {
+        match item.as_ref() {
+          Some(EvaluateResultValue::Expr(expr)) => parse_nullable_object(compiled_styles, expr),
+          Some(EvaluateResultValue::Vec(arr)) => {
+            parse_compiled_styles(compiled_styles, &EvaluateResultValue::Vec(arr.clone()));
+          }
+          _ => {
+            unimplemented!("Unhandled EvaluateResultValue in nullable style parsing array");
+          }
+        };
+      }
+      return Some(StyleObject::Style(compiled_styles.clone()));
+    }
+    EvaluateResultValue::Expr(expr) => {
+      if expr.is_object() {
+        parse_nullable_object(compiled_styles, expr);
+        return Some(StyleObject::Style(compiled_styles.clone()));
+      }
+    }
+    _ => {
+      unimplemented!("Unhandled EvaluateResultValue in nullable style parsing");
+    }
+  }
+  None
+}
+
+fn parse_nullable_object(
+  compiled_styles: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  expr: &Expr,
+) {
+  match expr {
+    Expr::Object(ObjectLit { props, .. }) => {
+      for prop in props.iter() {
+        if let Some(key_value) = prop.as_prop().and_then(|p| p.as_key_value()) {
+          let key = key_value_to_str(key_value);
+          match key_value.value.as_ref() {
+            Expr::Lit(lit) => parse_nullable_key_value(compiled_styles, key, lit),
+
+            _ => {
+              unimplemented!("Unhandled Expr type in nullable style parsing array");
+            }
+          };
+        }
+      }
+    }
+    _ => {
+      unimplemented!("Unhandled Expr type in nullable style parsing array");
+    }
+  }
+}
+
+fn parse_nullable_key_value(
+  compiled_styles: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  key: String,
+  lit: &Lit,
+) {
+  match lit {
+    Lit::Str(_) => {
+      let value = lit_to_string(lit).expect("Failed to convert literal to string");
+
+      compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::String(value)));
+    }
+    Lit::Bool(bool_lit) => {
+      let value = bool_lit.value;
+      compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Bool(value)));
+    }
+    _ => {
+      panic!("Unhandled literal type in nullable style parsing array",);
+    }
   }
 }
 

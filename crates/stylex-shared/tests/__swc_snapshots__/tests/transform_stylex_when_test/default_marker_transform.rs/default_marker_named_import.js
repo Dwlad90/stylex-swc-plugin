@@ -1,5 +1,4 @@
 import { defaultMarker, props } from '@stylexjs/stylex';
-export const classNames = props({
-    "x-default-marker": "x-default-marker",
-    $$css: true
-});
+export const classNames = {
+    className: "x-default-marker"
+};

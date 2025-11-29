@@ -2,6 +2,7 @@ use rustc_hash::FxHashMap;
 
 use crate::shared::{
   constants::common::VAR_GROUP_HASH_KEY,
+  enums::theme_ref::ThemeRefResult,
   utils::common::{create_hash, gen_file_based_identifier},
 };
 
@@ -25,10 +26,14 @@ impl ThemeRef {
     }
   }
 
-  pub(crate) fn get(&mut self, key: &str, state: &StateManager) -> String {
+  pub(crate) fn get(&mut self, key: &str, state: &StateManager) -> ThemeRefResult {
+    if key == "__IS_PROXY" {
+      return ThemeRefResult::Proxy;
+    }
+
     if key.starts_with("--") {
       let css_key = format!("var({})", key);
-      return css_key;
+      return ThemeRefResult::CssVar(css_key);
     }
     let entry = self.map.entry(key.to_string()).or_insert_with(|| {
       let str_to_hash = gen_file_based_identifier(
@@ -79,7 +84,7 @@ impl ThemeRef {
       format!("var(--{})", var_name)
     });
 
-    entry.to_string()
+    ThemeRefResult::CssVar(entry.to_string())
   }
 
   fn _set(&self, key: &str, value: &str) {

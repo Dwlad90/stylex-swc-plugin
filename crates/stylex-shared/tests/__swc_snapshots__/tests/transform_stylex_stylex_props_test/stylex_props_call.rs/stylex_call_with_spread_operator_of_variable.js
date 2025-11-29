@@ -18,11 +18,6 @@ const styles = {
         $$css: true
     }
 };
-const stylesArr = [
-    styles.red,
-    styles.blue,
-    ...[
-        styles.green
-    ]
-];
-stylex.props(...stylesArr);
+({
+    className: "x1prwzq3 x1t391ir"
+});

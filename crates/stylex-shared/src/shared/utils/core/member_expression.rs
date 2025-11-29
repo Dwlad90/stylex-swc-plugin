@@ -59,7 +59,10 @@ pub(crate) fn member_expression(
   } else {
     let evaluate_result = evaluate(&Box::new(Expr::from(member.clone())), state, fns);
 
-    if !evaluate_result.confident {
+    let style_value = evaluate_result.value;
+    let confident = evaluate_result.confident;
+
+    if !confident {
       *non_null_props = NonNullProps::True;
       style_non_null_props = NonNullProps::True;
     } else {
@@ -70,8 +73,7 @@ pub(crate) fn member_expression(
       }
 
       if let NonNullProps::Vec(vec) = non_null_props
-        && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) =
-          evaluate_result.value
+        && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) = style_value
       {
         let namespaces = props
           .iter()

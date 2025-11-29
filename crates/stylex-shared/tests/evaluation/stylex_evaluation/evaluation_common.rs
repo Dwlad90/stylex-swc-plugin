@@ -189,6 +189,7 @@ fn evaluates_customs_functions() {
         functions: FunctionMap {
           identifiers,
           member_expressions,
+          disable_imports: false,
         },
         state: StateManager::default(),
       })
@@ -242,6 +243,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
+          disable_imports: false,
         },
         state: StateManager::default(),
       })
@@ -290,6 +292,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
+          disable_imports: false,
         },
         state: StateManager::default(),
       })
@@ -344,6 +347,7 @@ fn evaluates_custom_functions_that_take_paths() {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
+          disable_imports: false,
         },
         state: StateManager::default(),
       })

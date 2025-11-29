@@ -22,6 +22,7 @@ impl Default for EvaluationState {
       functions: FunctionMap {
         identifiers: FxHashMap::default(),
         member_expressions: FxHashMap::default(),
+        disable_imports: false,
       },
     }
   }

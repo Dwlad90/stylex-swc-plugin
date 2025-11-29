@@ -3,8 +3,8 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, IdentName, JSXAttr, JSXAttrName,
-      JSXAttrOrSpread, JSXAttrValue, Lit, Prop, PropName, PropOrSpread,
+      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, IdentName, JSXAttr,
+      JSXAttrName, JSXAttrOrSpread, JSXAttrValue, Lit, MemberExpr, Prop, PropName, PropOrSpread,
     },
     utils::{ExprExt, drop_span},
     visit::FoldWith,
@@ -76,6 +76,7 @@ pub(crate) fn stylex_merge(
   let evaluate_path_fn_config = FunctionMap {
     identifiers,
     member_expressions,
+    disable_imports: true,
   };
 
   let args_path = call
@@ -93,38 +94,67 @@ pub(crate) fn stylex_merge(
 
     let arg = arg_path.expr.as_ref();
 
-    match &arg {
-      Expr::Member(member) => {
-        let resolved = parse_nullable_style(arg, state, false);
+    let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() {
+      let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config, false);
 
+      if let StyleObject::Other = resolved {
+        bail_out_index = Some(current_index);
+        bail_out = true;
+      }
+
+      resolved
+    } else {
+      StyleObject::Unreachable
+    };
+
+    match &arg {
+      Expr::Object(_) => {
+        resolved_args.push(ResolvedArg::StyleObject(
+          resolved,
+          Ident::default(),
+          MemberExpr::default(),
+        ));
+      }
+      Expr::Ident(ident) => {
+        resolved_args.push(ResolvedArg::StyleObject(
+          resolved,
+          ident.clone(),
+          MemberExpr::default(),
+        ));
+      }
+      Expr::Member(member) => {
         match resolved {
           StyleObject::Other => {
-            bail_out_index = Some(current_index);
-            bail_out = true;
+            //  Already processed in the conditional block above; bail_out flag set if needed.
           }
           StyleObject::Style(_) | StyleObject::Nullable => {
-            let ident = match member.obj.as_ref() {
-              Expr::Ident(ident) => ident.clone(),
-              _ => {
-                panic!("Member obj is not an ident",)
-              }
-            };
+            let ident = member
+              .obj
+              .as_ident()
+              .expect("Member obj is not an ident")
+              .clone();
 
             resolved_args.push(ResolvedArg::StyleObject(resolved, ident, member.clone()));
+          }
+          StyleObject::Unreachable => {
+            unreachable!("StyleObject::Unreachable");
           }
         }
       }
       Expr::Cond(CondExpr {
-        test, cons, alt, ..
+        test,
+        cons: consequent,
+        alt: alternate,
+        ..
       }) => {
-        let primary = parse_nullable_style(cons, state, true);
-        let fallback = parse_nullable_style(alt, state, true);
+        let primary = parse_nullable_style(consequent, state, &evaluate_path_fn_config, true);
+        let fallback = parse_nullable_style(alternate, state, &evaluate_path_fn_config, true);
 
         if primary.eq(&StyleObject::Other) || fallback.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
           bail_out = true;
         } else {
-          let ident = match alt.as_ref() {
+          let ident = match alternate.as_ref() {
             Expr::Ident(ident) => {
               if ident.sym == "undefined" {
                 return None;
@@ -136,15 +166,15 @@ pub(crate) fn stylex_merge(
             Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => return None,
             _ => panic!(
               "Illegal argument: {:?}",
-              alt.get_type(get_default_expr_ctx())
+              alternate.get_type(get_default_expr_ctx())
             ),
           };
 
-          let member = match alt.as_ref() {
+          let member = match alternate.as_ref() {
             Expr::Member(member) => member,
             _ => panic!(
               "Illegal argument: {:?}",
-              alt.get_type(get_default_expr_ctx())
+              alternate.get_type(get_default_expr_ctx())
             ),
           };
 
@@ -160,7 +190,10 @@ pub(crate) fn stylex_merge(
         }
       }
       Expr::Bin(BinExpr {
-        left, op, right, ..
+        left: left_path,
+        op,
+        right: right_path,
+        ..
       }) => {
         if !op.eq(&BinaryOp::LogicalAnd) {
           bail_out_index = Some(current_index);
@@ -168,32 +201,33 @@ pub(crate) fn stylex_merge(
           break;
         }
 
-        let left_resolved = parse_nullable_style(left, state, true);
-        let right_resolved = parse_nullable_style(right, state, true);
+        let left_resolved = parse_nullable_style(left_path, state, &evaluate_path_fn_config, true);
+        let right_resolved =
+          parse_nullable_style(right_path, state, &evaluate_path_fn_config, true);
 
         if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
           bail_out = true;
         } else {
-          let ident = match right.as_ref() {
+          let ident = match right_path.as_ref() {
             Expr::Ident(ident) => ident,
             Expr::Member(member) => member.obj.as_ident().expect("Member obj is not an ident"),
             _ => panic!(
               "Illegal argument: {:?}",
-              right.get_type(get_default_expr_ctx())
+              right_path.get_type(get_default_expr_ctx())
             ),
           };
 
-          let member = match right.as_ref() {
+          let member = match right_path.as_ref() {
             Expr::Member(member) => member,
             _ => panic!(
               "Illegal argument: {:?}",
-              right.get_type(get_default_expr_ctx())
+              right_path.get_type(get_default_expr_ctx())
             ),
           };
 
           resolved_args.push(ResolvedArg::ConditionalStyle(
-            *left.clone(),
+            *left_path.clone(),
             Some(right_resolved),
             None,
             ident.clone(),

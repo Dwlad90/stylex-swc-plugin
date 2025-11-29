@@ -943,13 +943,6 @@ fn file_path_resolver(
   aliases: &FxHashMap<String, Vec<String>>,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
-  if EXTENSIONS
-    .iter()
-    .any(|ext| relative_file_path.ends_with(ext))
-  {
-    unimplemented!("Extension match found, but handling is unimplemented");
-  }
-
   let resolved_file_path = resolve_file_path(
     relative_file_path,
     source_file_path,

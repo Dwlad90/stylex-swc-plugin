@@ -1,4 +1,8 @@
-use crate::shared::{structures::order_pair::OrderPair, utils::css::common::split_value_required};
+use crate::shared::{
+  constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR},
+  structures::order_pair::OrderPair,
+  utils::css::common::split_value_required,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct Shorthands;
@@ -517,6 +521,40 @@ impl Aliases {
     vec![OrderPair("scrollMarginBottom".into(), value)]
   }
 
+  fn float(value: Option<String>) -> Vec<OrderPair> {
+    if let Some(ref val) = value {
+      if val == "inline-start" || val == "start" {
+        return vec![OrderPair(
+          "float".into(),
+          Some(format!("var({})", LOGICAL_FLOAT_START_VAR)),
+        )];
+      } else if val == "inline-end" || val == "end" {
+        return vec![OrderPair(
+          "float".into(),
+          Some(format!("var({})", LOGICAL_FLOAT_END_VAR)),
+        )];
+      }
+    }
+    vec![OrderPair("float".into(), value)]
+  }
+
+  fn clear(value: Option<String>) -> Vec<OrderPair> {
+    if let Some(ref val) = value {
+      if val == "inline-start" || val == "start" {
+        return vec![OrderPair(
+          "clear".into(),
+          Some(format!("var({})", LOGICAL_FLOAT_START_VAR)),
+        )];
+      } else if val == "inline-end" || val == "end" {
+        return vec![OrderPair(
+          "clear".into(),
+          Some(format!("var({})", LOGICAL_FLOAT_END_VAR)),
+        )];
+      }
+    }
+    vec![OrderPair("clear".into(), value)]
+  }
+
   pub(crate) fn get(name: &str) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
     match name {
       "insetBlockStart" => Some(Aliases::inset_block_start),
@@ -566,6 +604,8 @@ impl Aliases {
       "paddingInlineEnd" => Some(Aliases::padding_inline_end),
       "scrollMarginBlockStart" => Some(Aliases::scroll_margin_block_start),
       "scrollMarginBlockEnd" => Some(Aliases::scroll_margin_block_end),
+      "float" => Some(Aliases::float),
+      "clear" => Some(Aliases::clear),
       _ => None,
     }
   }

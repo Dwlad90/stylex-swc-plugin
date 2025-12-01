@@ -36,4 +36,4 @@ rustc-hash.workspace = true
 
 [dev-dependencies]
 proptest = "1.9"
-criterion = { version = "0.7", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }

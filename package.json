@@ -39,7 +39,7 @@
     "prettier": "^3.7.3",
     "shellcheck": "^4.1.0",
     "syncpack": "^13.0.4",
-    "turbo": "^2.6.0",
+    "turbo": "^2.6.1",
     "typescript": "^5.9.3"
   },
   "engines": {

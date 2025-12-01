@@ -28,8 +28,8 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@stylexswc/playwright": "0.13.1-rc.2",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "esbuild": "^0.25.11",
     "rimraf": "^6.0.1",
     "serve": "^14.2.4"

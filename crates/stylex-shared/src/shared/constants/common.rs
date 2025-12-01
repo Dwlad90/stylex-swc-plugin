@@ -141,3 +141,15 @@ pub(crate) static CONSTS_FILE_EXTENSION: &str = ".const";
 ///
 /// This ensures that logical float/clear values behave correctly in both LTR and RTL contexts.
 pub(crate) static LOGICAL_FLOAT_START_VAR: &str = "--stylex-logical-start";
+
+/// CSS custom property used in the logical float/clear value polyfill system.
+/// Represents the logical "start" direction for float/clear, which maps to the physical
+/// direction "left" in left-to-right (LTR) text direction and "right" in right-to-left (RTL).
+/// This variable should be defined on the root or relevant container elements, typically by
+/// a polyfill or runtime logic that sets its value based on the current text direction.
+///
+/// This ensures that logical float/clear values behave correctly in both LTR and RTL contexts.
+pub(crate) static LOGICAL_FLOAT_END_VAR: &str = "--stylex-logical-end";
+
+
+

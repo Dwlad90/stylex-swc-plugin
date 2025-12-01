@@ -28,7 +28,7 @@ swc_core = { workspace = true, features = [
 ] }
 fancy-regex.workspace = true
 anyhow.workspace = true
-cssparser = { version = "0.35.0" }
+cssparser = { version = "0.36.0" }
 thiserror = "2.0.17"
 log.workspace = true
 indexmap.workspace = true

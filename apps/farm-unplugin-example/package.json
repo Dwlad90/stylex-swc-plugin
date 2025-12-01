@@ -28,7 +28,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "react-refresh": "^0.18.0",
-    "serve": "^14.2.4"
+    "serve": "^14.2.5"
   },
   "type": "module"
 }

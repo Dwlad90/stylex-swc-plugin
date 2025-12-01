@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
-    "@rsbuild/core": "^1.6.0",
+    "@rsbuild/core": "^1.6.11",
     "@rsbuild/plugin-react": "^1.4.1",
     "@rspack/cli": "^1.4.11",
     "@rspack/core": "^1.6.5",

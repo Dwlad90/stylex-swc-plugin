@@ -63,7 +63,11 @@ pub(crate) fn stylex_create_theme(
         .unwrap_or_default();
     }
     EvaluateResultValue::ThemeRef(theme_ref) => {
-      var_group_hash = theme_ref.get(VAR_GROUP_HASH_KEY, state).to_owned();
+      var_group_hash = theme_ref
+        .get(VAR_GROUP_HASH_KEY, state)
+        .as_css_var()
+        .expect("Expected CSS variable")
+        .to_owned();
     }
     _ => {
       unimplemented!("Unsupported theme vars type {:?}", theme_vars)
@@ -87,7 +91,11 @@ pub(crate) fn stylex_create_theme(
         )
         .expect("Expression is not a string")
       }
-      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(key.as_str(), state).clone(),
+      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref
+        .get(key.as_str(), state)
+        .as_css_var()
+        .expect("Expected CSS variable")
+        .clone(),
       _ => unimplemented!("Unsupported theme vars type"),
     };
 
@@ -162,7 +170,11 @@ pub(crate) fn stylex_create_theme(
       &FunctionMap::default(),
     )
     .expect("Expression is not a string"),
-    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.get(VAR_GROUP_HASH_KEY, state).to_owned(),
+    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref
+      .get(VAR_GROUP_HASH_KEY, state)
+      .as_css_var()
+      .expect("Expected CSS variable")
+      .to_owned(),
     _ => unimplemented!("Unsupported theme vars type"),
   };
 

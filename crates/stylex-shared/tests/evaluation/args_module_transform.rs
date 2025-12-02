@@ -36,6 +36,7 @@ impl Default for ArgsStyleXTransform {
       functions: FunctionMap {
         identifiers: FxHashMap::default(),
         member_expressions: FxHashMap::default(),
+        disable_imports: false,
       },
       state: StateManager::default(),
     }

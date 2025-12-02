@@ -208,4 +208,8 @@ impl FunctionConfigType {
 pub struct FunctionMap {
   pub identifiers: FunctionMapIdentifiers,
   pub member_expressions: FunctionMapMemberExpression,
+  /// If `true`, disables the generation or processing of imports for this function map.
+  /// Set to `true` when imports should not be generated (e.g., for built-in or inlined functions).
+  /// Set to `false` to allow normal import handling.
+  pub disable_imports: bool,
 }

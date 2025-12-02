@@ -20,7 +20,7 @@ export default function ButtonsDemo(props) {
         Red Button
       </ThemeableButton>
 
-      <div {...stylex.props(redTheme)}>
+      <div className="input__redTheme x1582kvi xhq9i64">
         <ThemeableButton onClick={onClick}>
           Red Button By inheritance
         </ThemeableButton>

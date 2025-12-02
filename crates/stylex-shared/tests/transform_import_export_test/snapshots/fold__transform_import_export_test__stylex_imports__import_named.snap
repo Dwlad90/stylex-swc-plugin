@@ -10,17 +10,6 @@ export const vars = {
     bar: "var(--x1hi1hmf)",
     __varGroupHash__: "xop34xu"
 };
-const styles = {
-    root: {
-        kKVMdj: "x1qar0u3",
-        k9M3vk: "x7cint9",
-        kMwMTN: "x1e2nbdu x14693no",
-        kVAEAm: "x15oojuh",
-        $$css: true
-    }
-};
-const theme = {
-    xop34xu: "xfnndu4 xop34xu",
-    $$css: true
-};
-props(styles.root, theme);
+({
+    className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+});

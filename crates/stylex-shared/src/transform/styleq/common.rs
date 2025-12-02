@@ -63,11 +63,12 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
     match possible_style {
       ResolvedArg::StyleObject(style, _, _) => match style {
         StyleObject::Style(style) => {
-          let Some(a) = style.get(COMPILED_KEY) else {
+          let Some(compiled_key) = style.get(COMPILED_KEY) else {
             panic!("Style object does not contain a compiled key")
           };
 
-          if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) = a.as_ref()
+          if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) =
+            compiled_key.as_ref()
           {
             let btree_map: BTreeMap<_, _> = style.iter().collect();
 
@@ -170,6 +171,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
         }
         StyleObject::Nullable => {}
         StyleObject::Other => panic!("Other style object is not allowed in styleq"),
+        StyleObject::Unreachable => unreachable!("StyleObject::Unreachable in styleq"),
       },
       _ => unreachable!(),
     };

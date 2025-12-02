@@ -279,6 +279,7 @@ fn _evaluate(
                     &FunctionMap {
                       identifiers,
                       member_expressions,
+                      disable_imports: false,
                     },
                   );
 
@@ -631,7 +632,7 @@ fn _evaluate(
               let value = theme_ref.get(&key, traversal_state);
 
               return Some(EvaluateResultValue::Expr(string_to_expression(
-                value.as_str(),
+                value.as_css_var().expect("Expected CSS variable").as_str(),
               )));
             }
             _ => panic_with_context!(
@@ -2036,7 +2037,9 @@ fn _evaluate(
       return Some(EvaluateResultValue::Expr(Expr::from(ident.clone())));
     }
 
-    if let Some(import_path) = get_import_by_ident(ident, traversal_state) {
+    if let Some(import_path) = get_import_by_ident(ident, traversal_state)
+      && !state.functions.disable_imports
+    {
       let (local_name, imported) = import_path
         .specifiers
         .iter()

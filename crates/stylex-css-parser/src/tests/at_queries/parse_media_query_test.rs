@@ -117,7 +117,7 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media only print and (color)");
+        assert_eq!(parsed.to_string(), "@media only (print) and (color)");
       }
 
       #[test]
@@ -173,7 +173,7 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
+        assert_eq!(parsed.to_string(), "@media not (all) and (monochrome)");
       }
     }
 
@@ -1190,7 +1190,7 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
+        assert_eq!(parsed.to_string(), "@media not (all) and (monochrome)");
       }
 
       #[test]
@@ -1231,7 +1231,7 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media screen and (min-width: 400px)");
+        assert_eq!(parsed.to_string(), "@media (screen) and (min-width: 400px)");
       }
 
       #[test]
@@ -1322,7 +1322,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           parsed.to_string(),
-          "@media screen and (device-aspect-ratio: 16 / 9)"
+          "@media (screen) and (device-aspect-ratio: 16 / 9)"
         );
       }
 
@@ -2271,7 +2271,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           parsed.to_string(),
-          "@media not all and (monochrome) and (min-width: 600px)"
+          "@media not (all) and (monochrome) and (min-width: 600px)"
         );
       }
 
@@ -2679,7 +2679,7 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not all");
+        assert_eq!(parsed.to_string(), "@media not (all)");
       }
 
       #[test]
@@ -2917,7 +2917,7 @@ mod style_value_parser_at_queries {
           _ => panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not all");
+        assert_eq!(parsed.to_string(), "@media not (all)");
       }
 
       #[test]

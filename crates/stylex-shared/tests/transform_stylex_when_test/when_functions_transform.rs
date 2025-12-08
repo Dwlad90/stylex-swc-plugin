@@ -1,4 +1,10 @@
-use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use stylex_shared::{
+  StyleXTransform,
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
+  },
+};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -12,7 +18,11 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      treeshake_compensation: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
   ),
   when_ancestor_function,
   r#"
@@ -39,7 +49,11 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      treeshake_compensation: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
   ),
   when_sibling_before_function,
   r#"
@@ -66,7 +80,11 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      treeshake_compensation: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
   ),
   when_functions_namespace_imports,
   r#"
@@ -97,7 +115,11 @@ test!(
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
-    None
+    Some(&mut StyleXOptionsParams {
+      treeshake_compensation: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      ..StyleXOptionsParams::default()
+    })
   ),
   when_functions_aliased_imports,
   r#"

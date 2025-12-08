@@ -939,6 +939,38 @@ test!(
     tsx: true,
     ..Default::default()
   }),
+  |tr| {
+    let mut options = StyleXOptionsParams {
+      enable_media_query_order: Some(true),
+      ..Default::default()
+    };
+    StyleXTransform::new_test_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut options),
+    )
+  },
+  media_queries_without_last_query_wins_v2,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                backgroundColor: {
+                  default: 'red',
+                  '@media screen and (max-width: 900px)': 'blue',
+                  '@media screen and (max-width: 500px)': 'purple',
+                  '@media screen and (max-width: 400px)': 'green',
+                }
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
   |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   supports_queries,
   r#"

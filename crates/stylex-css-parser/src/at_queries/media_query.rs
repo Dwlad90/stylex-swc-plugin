@@ -357,7 +357,15 @@ impl MediaQuery {
         } else {
           ""
         };
-        format!("{}{}", prefix, keyword.key)
+        format!(
+          "{}{}",
+          prefix,
+          if is_top_level {
+            keyword.key.clone()
+          } else {
+            format!("({})", keyword.key)
+          }
+        )
       }
       MediaQueryRule::WordRule(word_rule) => {
         format!("({})", word_rule.key_value)
@@ -377,7 +385,7 @@ impl MediaQuery {
         }
       },
       MediaQueryRule::Not(not_rule) => match not_rule.rule.as_ref() {
-        MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
+        MediaQueryRule::And(_) | MediaQueryRule::Or(_) | MediaQueryRule::Not(_) => {
           format!(
             "(not ({}))",
             MediaQuery::format_queries(not_rule.rule.as_ref(), false)
@@ -1943,7 +1951,10 @@ mod tests {
       assert!(result.is_ok(), "Failed to validate: {}", query_str);
 
       let query = result.unwrap();
-      assert_eq!(query.to_string(), query_str);
+      assert_eq!(
+        query.to_string(),
+        query_str.replace(" screen and", " (screen) and")
+      );
       println!("✅ Validated: {}", query_str);
     }
 

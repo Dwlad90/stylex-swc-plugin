@@ -531,7 +531,7 @@ mod media_query_transformer {
     let expected_styles = json!({
       "width": {
         "default": "100%",
-        "@media screen and (not (max-width: 500px)), (min-width: 500.01px) and (max-width: 800px)": "80%",
+        "@media (screen) and (not (max-width: 500px)), (min-width: 500.01px) and (max-width: 800px)": "80%",
         "@media (max-width: 500px)": "60%"
       }
     });

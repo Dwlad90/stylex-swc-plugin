@@ -3,6 +3,7 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 
 use crate::shared::{
+  constants::common::COMPILED_KEY,
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::stylex_state_options::StyleXStateOptions,
   utils::core::js_to_expr::NestedStringObject,
@@ -34,7 +35,7 @@ pub(crate) fn stylex_default_marker(options: &StyleXStateOptions) -> NestedStrin
   );
 
   result.insert(
-    "$$css".to_string(),
+    COMPILED_KEY.to_string(),
     Rc::new(FlatCompiledStylesValue::Bool(true)),
   );
 

@@ -9,7 +9,8 @@ describe('stylex', ()=>{
             'keyframes',
             'positionTry',
             'viewTransitionClass',
-            'defaultMarker'
+            'defaultMarker',
+            'defineMarker'
         ].forEach((api)=>{
             test(`stylex.${api}`, ()=>{
                 expect(()=>stylex[api]()).toThrow();

@@ -48,7 +48,7 @@ fn property_to_ltr(pair: &Pair) -> Pair {
     }
     "float" | "clear" => logical_to_physical_ltr(pair.value.as_str())
       .map(|value| Pair::new(pair.key.clone(), value.to_string()))
-      .expect("Expected logical value for float/clear property"),
+      .unwrap_or_else(|| Pair::new(pair.key.clone(), pair.value.clone())),
     k => {
       if let Some(&physical) = PROPERTY_TO_LTR.get(k) {
         Pair::new(physical.to_string(), pair.value.clone())

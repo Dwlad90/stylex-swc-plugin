@@ -1,6 +1,8 @@
 pub(crate) enum ThemeRefResult {
   CssVar(String),
   Proxy,
+  #[allow(dead_code)]
+  ToString(String),
 }
 
 impl ThemeRefResult {

@@ -32,6 +32,10 @@ where
         return Some(value);
       }
 
+      if let Some(value) = self.transform_define_marker_call(call_expr) {
+        return Some(value);
+      }
+
       if let Some(value) = self.transform_stylex_define_vars(call_expr) {
         return Some(value);
       }

@@ -14,10 +14,8 @@ use crate::shared::{
 
 fn logical_to_physical_rtl(input: &str) -> Option<&str> {
   match input {
-    "start" => Some("right"),
-    "end" => Some("left"),
-    "inline-start" => Some("right"),
-    "inline-end" => Some("left"),
+    "start" | "inline-start" => Some("right"),
+    "end" | "inline-end" => Some("left"),
     _ => None,
   }
 }

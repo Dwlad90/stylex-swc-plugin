@@ -13,6 +13,7 @@ module.exports = stylexPlugin({
     dev: process.env.NODE_ENV === 'development',
     runtimeInjection: false,
     treeshakeCompensation: true,
+    styleResolution: 'application-order',
   },
   extractCSS: false,
 })({

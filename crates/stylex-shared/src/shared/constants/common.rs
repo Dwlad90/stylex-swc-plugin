@@ -150,6 +150,3 @@ pub(crate) static LOGICAL_FLOAT_START_VAR: &str = "--stylex-logical-start";
 ///
 /// This ensures that logical float/clear values behave correctly in both LTR and RTL contexts.
 pub(crate) static LOGICAL_FLOAT_END_VAR: &str = "--stylex-logical-end";
-
-
-

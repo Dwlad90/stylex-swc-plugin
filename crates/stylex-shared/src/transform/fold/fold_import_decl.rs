@@ -205,6 +205,12 @@ where
             .stylex_define_consts_import
             .insert(local_name_ident_atom);
         }
+        "defineMarker" => {
+          self
+            .state
+            .stylex_define_marker_import
+            .insert(local_name_ident_atom);
+        }
         "createTheme" => {
           self
             .state

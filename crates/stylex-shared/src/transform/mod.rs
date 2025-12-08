@@ -177,6 +177,7 @@ where
         && (state.stylex_create_import.contains(&ident_sym))
         || state.stylex_define_vars_import.contains(&ident_sym)
         || state.stylex_define_consts_import.contains(&ident_sym)
+        || state.stylex_define_marker_import.contains(&ident_sym)
         || state.stylex_create_theme_import.contains(&ident_sym)
         || state.stylex_position_try_import.contains(&ident_sym)
         || state.stylex_keyframes_import.contains(&ident_sym)

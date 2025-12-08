@@ -12,6 +12,7 @@ export default stylexPlugin({
     },
     runtimeInjection: false,
     treeshakeCompensation: true,
+    styleResolution: 'application-order',
   },
   stylexImports: ['stylex', '@stylexjs/stylex'],
 })({

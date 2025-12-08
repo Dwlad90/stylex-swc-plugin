@@ -394,6 +394,53 @@ pub(crate) fn find_and_validate_stylex_define_vars(
   Some(stylex_create_theme_top_level_expr.clone())
 }
 
+pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut StateManager) {
+  if !is_define_marker_call(call, state) {
+    return;
+  }
+
+  let call_expr = Expr::from(call.clone());
+
+  if !call.args.is_empty() {
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &Box::new(call_expr.clone()),
+      &illegal_argument_length("defineMarker", 0),
+      state,
+    );
+  }
+
+  let define_marker_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+    Some(define_marker_top_level_expr) => define_marker_top_level_expr,
+    None => build_code_frame_error_and_panic(
+      &call_expr,
+      &call
+        .args
+        .get(2)
+        .cloned()
+        .unwrap_or_else(|| ExprOrSpread {
+          spread: None,
+          expr: Box::new(call_expr.clone()),
+        })
+        .expr,
+      &unbound_call_value("defineMarker"),
+      state,
+    ),
+  };
+
+  if !matches!(
+    define_marker_top_level_expr.0,
+    TopLevelExpressionKind::NamedExport
+  ) {
+    build_code_frame_error_and_panic(
+      &call_expr,
+      &call_expr,
+      &non_export_named_declaration("defineMarker"),
+      state,
+    );
+  }
+}
+
 pub(crate) fn find_and_validate_stylex_define_consts(
   call: &CallExpr,
   state: &mut StateManager,
@@ -535,6 +582,13 @@ pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bo
   )
 }
 
+pub(crate) fn is_define_marker_call(call: &CallExpr, state: &StateManager) -> bool {
+  is_target_call(
+    ("defineMarker", &state.stylex_define_marker_import),
+    call,
+    state,
+  )
+}
 pub(crate) fn is_target_call(
   (call_name, imports_map): (&str, &FxHashSet<Atom>),
   call: &CallExpr,

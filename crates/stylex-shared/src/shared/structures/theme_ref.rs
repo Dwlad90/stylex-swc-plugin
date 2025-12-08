@@ -31,6 +31,19 @@ impl ThemeRef {
       return ThemeRefResult::Proxy;
     }
 
+    if key == "toString" {
+      let value = format!(
+        "{}{}",
+        state.options.class_name_prefix,
+        create_hash(&gen_file_based_identifier(
+          &self.file_name,
+          &self.export_name,
+          None
+        ))
+      );
+      return ThemeRefResult::ToString(value);
+    }
+
     if key.starts_with("--") {
       let css_key = format!("var({})", key);
       return ThemeRefResult::CssVar(css_key);

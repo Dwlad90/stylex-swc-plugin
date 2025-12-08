@@ -146,6 +146,9 @@ fn parse_compiled_styles(
         return Some(StyleObject::Style(compiled_styles.clone()));
       }
     }
+    EvaluateResultValue::ThemeRef(_) => {
+      return Some(StyleObject::Other);
+    }
     _ => {
       unimplemented!("Unhandled EvaluateResultValue in nullable style parsing");
     }

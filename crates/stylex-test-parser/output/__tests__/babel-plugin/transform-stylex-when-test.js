@@ -60,7 +60,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "x148kuu",
             {
-              "ltr": ".x148kuu:where(.x-default-marker:hover *){background-color:red}",
+              "ltr": ".x148kuu.x148kuu:where(.x-default-marker:hover *){background-color:red}",
               "rtl": null,
             },
             3011.3,
@@ -106,7 +106,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "x1i6rnlt",
             {
-              "ltr": ".x1i6rnlt:where(.x-default-marker:focus ~ *){background-color:red}",
+              "ltr": ".x1i6rnlt.x1i6rnlt:where(.x-default-marker:focus ~ *){background-color:red}",
               "rtl": null,
             },
             3031.5,
@@ -156,7 +156,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "x148kuu",
             {
-              "ltr": ".x148kuu:where(.x-default-marker:hover *){background-color:red}",
+              "ltr": ".x148kuu.x148kuu:where(.x-default-marker:hover *){background-color:red}",
               "rtl": null,
             },
             3011.3,
@@ -164,7 +164,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "xpijypl",
             {
-              "ltr": ".xpijypl:where(.x-default-marker:focus ~ *){background-color:green}",
+              "ltr": ".xpijypl.xpijypl:where(.x-default-marker:focus ~ *){background-color:green}",
               "rtl": null,
             },
             3031.5,
@@ -172,7 +172,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "xoev4mv",
             {
-              "ltr": ".xoev4mv:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:yellow}",
+              "ltr": ".xoev4mv.xoev4mv:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:yellow}",
               "rtl": null,
             },
             3021.7,
@@ -180,7 +180,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "x1v1vkh3",
             {
-              "ltr": ".x1v1vkh3:where(:has(~ .x-default-marker:focus)){background-color:purple}",
+              "ltr": ".x1v1vkh3.x1v1vkh3:where(:has(~ .x-default-marker:focus)){background-color:purple}",
               "rtl": null,
             },
             3041.5,
@@ -188,7 +188,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "x9zntq3",
             {
-              "ltr": ".x9zntq3:where(:has(.x-default-marker:focus)){background-color:orange}",
+              "ltr": ".x9zntq3.x9zntq3:where(:has(.x-default-marker:focus)){background-color:orange}",
               "rtl": null,
             },
             3016.5,
@@ -235,7 +235,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "x148kuu",
             {
-              "ltr": ".x148kuu:where(.x-default-marker:hover *){background-color:red}",
+              "ltr": ".x148kuu.x148kuu:where(.x-default-marker:hover *){background-color:red}",
               "rtl": null,
             },
             3011.3,
@@ -243,7 +243,7 @@ describe('@stylexjs/babel-plugin', ()=>{
           [
             "xpijypl",
             {
-              "ltr": ".xpijypl:where(.x-default-marker:focus ~ *){background-color:green}",
+              "ltr": ".xpijypl.xpijypl:where(.x-default-marker:focus ~ *){background-color:green}",
               "rtl": null,
             },
             3031.5,
@@ -337,7 +337,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         import 'custom-marker.stylex';
         import { customMarker } from 'custom-marker.stylex';
         _inject2(".x1t391ir{background-color:blue}", 3000);
-        _inject2(".x7rpj1w:where(.x1lc2aw:hover *){background-color:red}", 3011.3);
+        _inject2(".x7rpj1w.x7rpj1w:where(.x1lc2aw:hover *){background-color:red}", 3011.3);
         const container = stylex.props(customMarker);
         const classNames = {
           className: "x1t391ir x7rpj1w"

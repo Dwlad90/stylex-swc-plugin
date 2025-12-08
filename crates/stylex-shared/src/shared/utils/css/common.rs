@@ -100,15 +100,24 @@ pub(crate) fn build_nested_css_rule(
   combined_at_rules.extend_from_slice(at_rules);
   combined_at_rules.extend_from_slice(const_rules);
 
+  // Bump specificity of stylex.when selectors
+  // const hasWhere = pseudo.includes(':where(');
+  // const extraClassForWhere = hasWhere ? `.${className}` : '';
+
+  let has_where = pseudo.contains(":where(");
+  let extra_class_for_where = if has_where {
+    format!(".{}", class_name)
+  } else {
+    String::default()
+  };
+
   let mut selector_for_at_rules = format!(
-    ".{}{}{}",
-    class_name,
+    ".{class_name}{extra_class_for_where}{}{pseudo}",
     combined_at_rules
       .iter()
       .map(|_| format!(".{}", class_name))
       .collect::<Vec<String>>()
       .join(""),
-    pseudo
   );
 
   if pseudos.contains(&"::thumb".to_string()) {

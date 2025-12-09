@@ -160,9 +160,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
     async transform(inputCode, id) {
       if (!hasStyleXCode(normalizedOptions, inputCode)) {
-        return {
-          code: inputCode,
-        };
+        return null;
       }
 
       const dir = path.dirname(id);

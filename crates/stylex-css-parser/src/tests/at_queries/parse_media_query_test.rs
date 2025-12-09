@@ -2315,42 +2315,64 @@ mod style_value_parser_at_queries {
       fn media_min_width_576px_and_max_width_767px_or_hover_none_and_any_pointer_coarse() {
         let input = "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-        assert_eq!(parsed.to_string(), "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse)"
+        );
       }
 
       #[test]
-      fn media_min_width_576px_or_orientation_portrait_and_max_width_767px_or_prefers_color_scheme_dark() {
+      fn media_min_width_576px_or_orientation_portrait_and_max_width_767px_or_prefers_color_scheme_dark()
+       {
         let input = "@media (min-width: 576px), (orientation: portrait) and (max-width: 767px), (prefers-color-scheme: dark)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-        assert_eq!(parsed.to_string(), "@media (min-width: 576px), (orientation: portrait) and (max-width: 767px), (prefers-color-scheme: dark)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 576px), (orientation: portrait) and (max-width: 767px), (prefers-color-scheme: dark)"
+        );
       }
 
       #[test]
-      fn media_min_width_768px_and_max_width_991px_or_orientation_landscape_and_update_fast_or_prefers_reduced_motion_reduce() {
+      fn media_min_width_768px_and_max_width_991px_or_orientation_landscape_and_update_fast_or_prefers_reduced_motion_reduce()
+       {
         let input = "@media (min-width: 768px) and (max-width: 991px), (orientation: landscape) and (update: fast), (prefers-reduced-motion: reduce)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-        assert_eq!(parsed.to_string(), "@media (min-width: 768px) and (max-width: 991px), (orientation: landscape) and (update: fast), (prefers-reduced-motion: reduce)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 768px) and (max-width: 991px), (orientation: landscape) and (update: fast), (prefers-reduced-motion: reduce)"
+        );
       }
 
       #[test]
-      fn media_min_width_992px_and_max_width_1199px_or_pointer_fine_and_hover_hover_or_any_pointer_coarse_and_any_hover_none() {
+      fn media_min_width_992px_and_max_width_1199px_or_pointer_fine_and_hover_hover_or_any_pointer_coarse_and_any_hover_none()
+       {
         let input = "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover), (any-pointer: coarse) and (any-hover: none)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-        assert_eq!(parsed.to_string(), "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover), (any-pointer: coarse) and (any-hover: none)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover), (any-pointer: coarse) and (any-hover: none)"
+        );
       }
 
       #[test]
-      fn media_min_width_576px_and_max_width_767px_or_hover_none_and_any_pointer_coarse_or_prefers_reduced_transparency_reduce_and_forced_colors_active() {
+      fn media_min_width_576px_and_max_width_767px_or_hover_none_and_any_pointer_coarse_or_prefers_reduced_transparency_reduce_and_forced_colors_active()
+       {
         let input = "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse), (prefers-reduced-transparency: reduce) and (forced-colors: active)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-        assert_eq!(parsed.to_string(), "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse), (prefers-reduced-transparency: reduce) and (forced-colors: active)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse), (prefers-reduced-transparency: reduce) and (forced-colors: active)"
+        );
       }
 
       #[test]
       fn media_color_and_min_width_400px_or_screen_and_max_width_700px() {
         let input = "@media (color) and (min-width: 400px), screen and (max-width: 700px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
-        assert_eq!(parsed.to_string(), "@media (color) and (min-width: 400px), (screen) and (max-width: 700px)");
+        assert_eq!(
+          parsed.to_string(),
+          "@media (color) and (min-width: 400px), (screen) and (max-width: 700px)"
+        );
       }
     }
 
@@ -4012,8 +4034,7 @@ mod style_value_parser_at_queries {
 
       #[test]
       fn media_handles_top_level_and_and_nested_and() {
-        let input =
-          "@media screen and ((min-width: 500px) and ((max-width: 800px) and (color)))";
+        let input = "@media screen and ((min-width: 500px) and ((max-width: 800px) and (color)))";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
         match &parsed.queries {
@@ -4341,7 +4362,7 @@ mod style_value_parser_at_queries {
 
     #[test]
     fn media_max_width_1440px_and_not_max_width_1024px_and_not_max_width_768px_and_not_max_width_458px()
-    {
+     {
       let input = "@media (max-width: 1440px) and (not (max-width: 1024px)) and (not (max-width: 768px)) and (not (max-width: 458px))";
       let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
       assert_eq!(
@@ -4352,8 +4373,7 @@ mod style_value_parser_at_queries {
 
     #[test]
     fn media_min_width_100px_and_max_width_500px_and_not_min_width_600px_always_false() {
-      let input =
-        "@media (min-width: 100px) and (max-width: 500px) and (not (min-width: 600px))";
+      let input = "@media (min-width: 100px) and (max-width: 500px) and (not (min-width: 600px))";
       let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
       assert_eq!(
         parsed.to_string(),
@@ -4363,8 +4383,7 @@ mod style_value_parser_at_queries {
 
     #[test]
     fn media_min_width_100px_and_max_width_500px_and_not_max_width_200px() {
-      let input =
-        "@media (min-width: 100px) and (max-width: 500px) and (not (max-width: 200px))";
+      let input = "@media (min-width: 100px) and (max-width: 500px) and (not (max-width: 200px))";
       let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
       assert_eq!(
         parsed.to_string(),
@@ -4373,8 +4392,7 @@ mod style_value_parser_at_queries {
     }
 
     #[test]
-    fn media_min_width_100px_and_max_width_500px_and_not_max_width_200px_and_not_min_width_400px(
-    ) {
+    fn media_min_width_100px_and_max_width_500px_and_not_max_width_200px_and_not_min_width_400px() {
       let input = "@media (min-width: 100px) and (max-width: 500px) and (not (max-width: 200px)) and (not (min-width: 400px))";
       let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
       assert_eq!(

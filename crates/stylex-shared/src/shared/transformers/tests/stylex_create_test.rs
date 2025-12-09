@@ -276,6 +276,8 @@ mod stylex_create {
       &mut StateManager {
         options: StyleXStateOptions {
           debug: true,
+          enable_debug_class_names: true,
+
           ..Default::default()
         },
         ..Default::default()

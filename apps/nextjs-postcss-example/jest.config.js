@@ -14,12 +14,19 @@ const customJestConfig = {
           ["@stylexswc/jest", {
             rsOptions: {
               aliases: {
-                '@/*': [path.join(rootDir, '*')],
+                '@/*': [
+                  path.join(rootDir, '*'),
+                ],
               },
               unstable_moduleResolution: {
                 type: 'commonJS',
               },
-            }
+              dev: process.env.NODE_ENV === 'development',
+              runtimeInjection: false,
+              treeshakeCompensation: true,
+              styleResolution: 'application-order',
+              enableDebugClassNames: process.env.NODE_ENV === 'development',
+            },
           }], ['@swc/jest', {
             "$schema": "https://json.schemastore.org/swcrc",
             "jsc": {

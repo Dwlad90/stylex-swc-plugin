@@ -65,6 +65,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -90,6 +91,7 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

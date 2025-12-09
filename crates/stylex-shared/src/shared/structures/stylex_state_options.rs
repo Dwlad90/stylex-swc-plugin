@@ -43,7 +43,7 @@ impl Default for StyleXStateOptions {
       dev: false,
       test: false,
       debug: false,
-      enable_debug_class_names: true,
+      enable_debug_class_names: false,
       enable_debug_data_prop: true,
       enable_dev_class_names: false,
       enable_logical_styles_polyfill: false,

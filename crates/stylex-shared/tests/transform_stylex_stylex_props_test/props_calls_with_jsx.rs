@@ -24,6 +24,7 @@ test!(
     Some(&mut StyleXOptionsParams {
       debug: Some(true),
       dev: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -61,6 +62,7 @@ test!(
     Some(&mut StyleXOptionsParams {
       debug: Some(true),
       dev: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -99,6 +101,7 @@ test!(
     Some(&mut StyleXOptionsParams {
       debug: Some(true),
       dev: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

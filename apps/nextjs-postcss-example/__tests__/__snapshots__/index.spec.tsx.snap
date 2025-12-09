@@ -75,18 +75,18 @@ exports[`Home render styles successfully 1`] = `
       class="xrvj5dj xtp8ymz xx3cr9d xtffbmy x7gess9 x193iq5w xl858mc x15hltav"
     >
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 x1d0mer6 xhxp53m xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1jrvdfj xwht23z"
+        class="x130j894 x1d0mer6 xhxp53m x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1vjbh2c"
         href="https://stylexjs.com/docs/learn/"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba"
+          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba x1vjbh2c"
         >
           Docs
            
           <span
-            class="x1rg5ohu x11xpdln xan5c0p x13dflua x12w9bfk"
+            class="x1rg5ohu x11xpdln xfujts0 x13dflua x12w9bfk"
           >
             →
           </span>
@@ -98,18 +98,18 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 x1d0mer6 xhxp53m xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1jrvdfj xwht23z"
+        class="x130j894 x1d0mer6 xhxp53m x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1vjbh2c"
         href="https://stylexjs.com/docs/api/"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba"
+          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba x1vjbh2c"
         >
           API
            
           <span
-            class="x1rg5ohu x11xpdln xan5c0p x13dflua x12w9bfk"
+            class="x1rg5ohu x11xpdln xfujts0 x13dflua x12w9bfk"
           >
             →
           </span>
@@ -121,18 +121,18 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 x1d0mer6 xhxp53m xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1jrvdfj xwht23z"
+        class="x130j894 x1d0mer6 xhxp53m x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1vjbh2c"
         href="https://stylexjs.com/playground/"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba"
+          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba x1vjbh2c"
         >
           Playground
            
           <span
-            class="x1rg5ohu x11xpdln xan5c0p x13dflua x12w9bfk"
+            class="x1rg5ohu x11xpdln xfujts0 x13dflua x12w9bfk"
           >
             →
           </span>
@@ -144,18 +144,18 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 x1d0mer6 xhxp53m xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1jrvdfj xwht23z"
+        class="x130j894 x1d0mer6 xhxp53m x78zum5 x1ymzxv2 x6s0dn4 x1nhvcw1 xdt5ytf xcsupl4 xmkeg23 x1y0btm7 x1e3d2hy xhczobc x1heor9g x1pmkfg8 xzrlz9m xts7igz xofcydl x2b8uid x1hl2dhg x1vjbh2c"
         href="https://github.com/nmn/nextjs-app-dir-stylex"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba"
+          class="xko2ofl x1pe7niw x1s688f x1ozsttx x4dkmba x1vjbh2c"
         >
           Templates
            
           <span
-            class="x1rg5ohu x11xpdln xan5c0p x13dflua x12w9bfk"
+            class="x1rg5ohu x11xpdln xfujts0 x13dflua x12w9bfk"
           >
             →
           </span>

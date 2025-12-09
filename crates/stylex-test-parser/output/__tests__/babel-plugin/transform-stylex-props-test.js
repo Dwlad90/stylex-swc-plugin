@@ -55,7 +55,9 @@ describe('@stylexjs/babel-plugin', ()=>{
         describe('props calls with jsx', ()=>{
             const options = {
                 debug: true,
+                enableDebugClassNames: true,
                 dev: true,
+                enableDevClassNames: false,
                 filename: '/js/node_modules/npm-package/dist/components/Foo.react.js'
             };
             test('local static styles', ()=>{
@@ -875,7 +877,9 @@ describe('@stylexjs/babel-plugin', ()=>{
                 const options = {
                     filename: '/html/js/FooBar.react.js',
                     dev: true,
-                    enableInlinedConditionalMerge: false
+                    enableInlinedConditionalMerge: false,
+                    enableDebugClassNames: true,
+                    enableDevClassNames: false
                 };
                 expect(transform(`
               import stylex from 'stylex';
@@ -932,7 +936,9 @@ describe('@stylexjs/babel-plugin', ()=>{
             test('dev:true', ()=>{
                 const options = {
                     filename: '/html/js/FooBar.react.js',
-                    dev: true
+                    dev: true,
+                    enableDebugClassNames: true,
+                    enableDevClassNames: false
                 };
                 expect(transform(`
               import stylex from 'stylex';
@@ -1277,7 +1283,9 @@ describe('@stylexjs/babel-plugin', ()=>{
             sidebar == null ? styles.noSidebar : styles.withSidebar,
           ]);
         `, {
-                dev: true
+                dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1372,7 +1380,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           ]);
         `, {
                 filename: '/html/js/FooBar.react.js',
-                dev: true
+                dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1465,7 +1475,8 @@ describe('@stylexjs/babel-plugin', ()=>{
                 filename: '/html/js/FooBar.react.js',
                 dev: true,
                 debug: true,
-                enableDebugClassNames: true
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1558,7 +1569,8 @@ describe('@stylexjs/babel-plugin', ()=>{
                 filename: '/html/js/FooBar.react.js',
                 dev: true,
                 debug: true,
-                enableDebugClassNames: false
+                enableDebugClassNames: false,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;

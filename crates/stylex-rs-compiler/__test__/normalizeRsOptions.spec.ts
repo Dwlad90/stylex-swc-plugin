@@ -21,6 +21,7 @@ const defaultResult: StyleXOptions = {
   legacyDisableLayers: false,
   useRealFileForSource: true,
   enableMediaQueryOrder: true,
+  enableDebugClassNames: false,
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {

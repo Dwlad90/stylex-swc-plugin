@@ -274,7 +274,8 @@ describe('legacy-shorthand-expansion style resolution (enableLogicalStylesPolyfi
           stylex(styles.foo, styles.bar)
           export const string = stylex(styles.foo, styles.bar, xstyle);
         `, {
-                debug: true
+                debug: true,
+                enableDebugClassNames: true
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -663,7 +664,9 @@ describe('legacy-shorthand-expansion style resolution (enableLogicalStylesPolyfi
             }
           });
         `, {
-                debug: true
+                debug: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -725,7 +728,9 @@ describe('legacy-shorthand-expansion style resolution (enableLogicalStylesPolyfi
             },
           });
         `, {
-                debug: true
+                debug: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -790,7 +795,9 @@ describe('legacy-shorthand-expansion style resolution (enableLogicalStylesPolyfi
             },
           });
         `, {
-                debug: true
+                debug: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;

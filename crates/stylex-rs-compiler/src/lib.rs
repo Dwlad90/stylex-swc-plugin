@@ -322,6 +322,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     swc_plugins: options.swc_plugins.or(Some(vec![])),
     use_real_file_for_source: Some(true),
     enable_media_query_order: options.enable_media_query_order.or(Some(true)),
+    enable_debug_class_names: options.enable_debug_class_names.or(Some(false)),
     ..options
   };
 

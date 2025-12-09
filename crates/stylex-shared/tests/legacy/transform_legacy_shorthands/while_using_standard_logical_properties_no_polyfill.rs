@@ -151,6 +151,7 @@ test!(
       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       enable_logical_styles_polyfill: Some(true),
       debug: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     };
 

@@ -26,6 +26,7 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       debug: Some(true),
+      enable_debug_class_names: Some(true),
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
       ))),
@@ -61,6 +62,7 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       debug: Some(true),
+      enable_debug_class_names: Some(true),
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
       ))),

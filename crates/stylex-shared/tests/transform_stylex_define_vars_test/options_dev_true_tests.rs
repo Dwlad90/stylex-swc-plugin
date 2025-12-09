@@ -29,6 +29,7 @@ test!(
         "/stylex/packages/".to_string()
       ))),
       dev: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

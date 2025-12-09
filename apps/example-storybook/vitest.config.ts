@@ -30,6 +30,7 @@ export default defineConfig({
             rsOptions: {
               dev: true,
               treeshakeCompensation: true,
+              enableDebugClassNames: true,
             },
           }),
         ],
@@ -54,6 +55,7 @@ export default defineConfig({
             rsOptions: {
               dev: true,
               treeshakeCompensation: true,
+              enableDebugClassNames: true,
             },
           }),
         ],

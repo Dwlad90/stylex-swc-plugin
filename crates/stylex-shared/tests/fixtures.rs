@@ -28,6 +28,7 @@ fn fixture(input: PathBuf) {
         treeshake_compensation: Some(true),
         unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
         enable_minified_keys: Some(false),
+        enable_debug_class_names: Some(true),
         ..StyleXOptionsParams::default()
       };
 

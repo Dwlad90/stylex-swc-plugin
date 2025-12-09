@@ -8,7 +8,12 @@ const config = {
     nesting,
     stylexSWCPlugin({
       include: ['stories/**/*.{ts,tsx}'],
-      useCSSLayers: process.env.NODE_ENV !== 'production'
+      useCSSLayers: process.env.NODE_ENV !== 'production',
+      rsOptions: {
+        dev: true,
+        treeshakeCompensation: true,
+        enableDebugClassNames: true,
+      },
     }),
     autoprefixer
   ]

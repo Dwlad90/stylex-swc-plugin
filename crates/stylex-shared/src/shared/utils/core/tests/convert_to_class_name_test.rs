@@ -46,6 +46,7 @@ mod convert_style_to_class_name {
           dev: false,
           test: false,
           debug: true,
+          enable_debug_class_names: true,
           ..Default::default()
         },
         ..Default::default()

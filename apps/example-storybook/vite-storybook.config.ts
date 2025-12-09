@@ -21,6 +21,7 @@ export const plugins = [
     rsOptions: {
       dev: true,
       treeshakeCompensation: true,
+      enableDebugClassNames: true,
     },
   }),
 ] as PluginOption[];

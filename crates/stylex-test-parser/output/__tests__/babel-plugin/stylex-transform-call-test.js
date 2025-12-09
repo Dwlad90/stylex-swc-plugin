@@ -865,6 +865,8 @@ describe('@stylexjs/babel-plugin', ()=>{
                 const options = {
                     filename: '/html/js/FooBar.react.js',
                     dev: true,
+                    enableDevClassNames: false,
+                    enableDebugClassNames: true,
                     enableInlinedConditionalMerge: false
                 };
                 expect(transform(`
@@ -948,7 +950,9 @@ describe('@stylexjs/babel-plugin', ()=>{
             test('dev:true', ()=>{
                 const options = {
                     filename: '/html/js/FooBar.react.js',
-                    dev: true
+                    dev: true,
+                    enableDebugClassNames: true,
+                    enableDevClassNames: false
                 };
                 expect(transform(`
               import stylex from 'stylex';
@@ -1409,6 +1413,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           );
         `, {
                 dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false,
                 filename: 'src/js/components/Foo.react.js'
             })).toMatchInlineSnapshot(`
         ""use strict";
@@ -1471,7 +1477,9 @@ describe('@stylexjs/babel-plugin', ()=>{
             sidebar == null ? styles.noSidebar : styles.withSidebar,
           );
         `, {
-                dev: true
+                dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1572,6 +1580,8 @@ describe('@stylexjs/babel-plugin', ()=>{
           );
         `, {
                 dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false,
                 enableInlinedConditionalMerge: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
@@ -1671,7 +1681,9 @@ describe('@stylexjs/babel-plugin', ()=>{
             isContent && styles.content,
           );
         `, {
-                dev: true
+                dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1711,7 +1723,9 @@ describe('@stylexjs/babel-plugin', ()=>{
             }
           }
         `, {
-                dev: true
+                dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import * as stylex from '@stylexjs/stylex';
         function test(colors, obj) {
@@ -1750,7 +1764,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           });
           stylex(styles.unknown);
         `, {
-                dev: true
+                dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
@@ -1770,7 +1786,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           });
           stylex.props(styles.unknown);
         `, {
-                dev: true
+                dev: true,
+                enableDebugClassNames: true,
+                enableDevClassNames: false
             })).toMatchInlineSnapshot(`
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;

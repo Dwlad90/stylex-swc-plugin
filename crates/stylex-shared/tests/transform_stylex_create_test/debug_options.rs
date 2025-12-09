@@ -18,6 +18,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams {
       debug: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     };
     StyleXTransform::new_test_force_runtime_injection_with_pass(
@@ -54,6 +55,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams {
       debug: Some(true),
+      enable_debug_class_names: Some(true),
       ..StyleXOptionsParams::default()
     };
     StyleXTransform::new_test_force_runtime_injection_with_pass(
@@ -92,6 +94,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams {
       debug: Some(true),
+      enable_debug_class_names: Some(true),
       unstable_module_resolution: Some(ModuleResolution {
         r#type: "haste".to_string(),
         root_dir: None,
@@ -133,6 +136,7 @@ test!(
   |tr| {
     let mut config = StyleXOptionsParams {
       debug: Some(true),
+      enable_debug_class_names: Some(true),
       unstable_module_resolution: Some(ModuleResolution {
         r#type: "haste".to_string(),
         root_dir: None,

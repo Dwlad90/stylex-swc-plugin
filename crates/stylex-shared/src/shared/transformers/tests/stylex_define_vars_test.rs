@@ -517,6 +517,7 @@ mod stylex_define_vars {
       export_id: Some(export_id.to_string()),
       options: StyleXStateOptions {
         debug: true,
+        enable_debug_class_names: true,
         ..StateManager::default().options
       },
       ..StateManager::default()

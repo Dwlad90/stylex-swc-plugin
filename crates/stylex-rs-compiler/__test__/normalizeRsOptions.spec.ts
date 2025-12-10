@@ -338,3 +338,33 @@ test('normalizeRsOptions: enableLTRRTLComments - empty input', t => {
   const result = normalizeRsOptions(input);
   t.deepEqual(result, expected);
 });
+
+test('normalizeRsOptions: true value for runtimeInjection', t => {
+  const input = { runtimeInjection: true };
+  const expected = {
+    ...defaultResult,
+    runtimeInjection: true,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: false value for runtimeInjection', t => {
+  const input = { runtimeInjection: false };
+  const expected = {
+    ...defaultResult,
+    runtimeInjection: false,
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});
+
+test('normalizeRsOptions: string value for runtimeInjection', t => {
+  const input = { runtimeInjection: '@test/runtime-injection' };
+  const expected = {
+    ...defaultResult,
+    runtimeInjection: '@test/runtime-injection',
+  };
+  const result = normalizeRsOptions(input);
+  t.deepEqual(result, expected);
+});

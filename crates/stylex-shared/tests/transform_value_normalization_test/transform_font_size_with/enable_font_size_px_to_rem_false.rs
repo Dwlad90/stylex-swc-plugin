@@ -1,6 +1,9 @@
 use stylex_shared::{
   StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::structures::{
+    named_import_source::RuntimeInjection, plugin_pass::PluginPass,
+    stylex_options::StyleXOptionsParams,
+  },
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -16,7 +19,7 @@ test!(
     tr.comments.clone(),
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -49,7 +52,7 @@ test!(
     tr.comments.clone(),
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       ..StyleXOptionsParams::default()
     })
   ),

@@ -1,7 +1,7 @@
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
-    named_import_source::{ImportSources, NamedImportSource},
+    named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
     plugin_pass::PluginPass,
     stylex_options::StyleXOptionsParams,
   },
@@ -18,7 +18,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       import_sources: Some(vec![ImportSources::Regular(
         "custom-stylex-path".to_string(),
       )]),
@@ -50,7 +50,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       import_sources: Some(vec![ImportSources::Named(NamedImportSource {
         from: "custom-stylex-path".to_string(),
         r#as: "css".to_string(),
@@ -83,7 +83,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       import_sources: Some(vec![ImportSources::Named(NamedImportSource {
         from: "custom-stylex-path".to_string(),
         r#as: "css".to_string(),

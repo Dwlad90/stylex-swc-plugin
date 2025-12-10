@@ -5,7 +5,7 @@ use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::types::{FlatCompiledStyles, StylesObjectMap},
   utils::ast::{
-    convertors::{bool_to_expression, null_to_expression},
+    convertors::{bool_to_expression, null_to_expression, number_to_expression},
     factories::{
       object_expression_factory, prop_or_spread_expression_factory, prop_or_spread_string_factory,
     },
@@ -63,7 +63,11 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
       for (key, value) in obj.iter() {
         let prop = match value.as_ref() {
           FlatCompiledStylesValue::String(value) => {
-            prop_or_spread_string_factory(key.as_str(), value.as_str())
+            if let Ok(num) = value.parse::<f64>() {
+              prop_or_spread_expression_factory(key.as_str(), number_to_expression(num))
+            } else {
+              prop_or_spread_string_factory(key.as_str(), value.as_str())
+            }
           }
           FlatCompiledStylesValue::Null => {
             prop_or_spread_expression_factory(key.as_str(), null_to_expression())

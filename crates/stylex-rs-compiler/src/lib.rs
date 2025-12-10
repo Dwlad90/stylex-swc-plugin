@@ -39,7 +39,9 @@ use swc_core::{
 use napi_derive::napi;
 use utils::extract_stylex_metadata;
 
-use crate::enums::{ImportSourceUnion, PathFilterUnion, SourceMaps, StyleXModuleResolution};
+use crate::enums::{
+  ImportSourceUnion, PathFilterUnion, RuntimeInjectionUnion, SourceMaps, StyleXModuleResolution,
+};
 
 fn extract_patterns(
   env: &Env,
@@ -298,7 +300,9 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
       .or_else(|| env::var("NODE_ENV").ok().map(|env| env == "development")),
     enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.or(Some(false)),
     enable_minified_keys: options.enable_minified_keys.or(Some(true)),
-    runtime_injection: options.runtime_injection.or(Some(false)),
+    runtime_injection: options
+      .runtime_injection
+      .or(Some(RuntimeInjectionUnion::Boolean(false))),
     treeshake_compensation: options.treeshake_compensation.or(Some(false)),
     import_sources: options.import_sources.or(Some(vec![
       ImportSourceUnion::Regular("stylex".to_string()),

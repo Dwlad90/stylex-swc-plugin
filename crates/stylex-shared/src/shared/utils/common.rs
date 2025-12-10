@@ -694,6 +694,10 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
               return js_object_to_json(&inner_string);
             }
 
+            if inner_string.parse::<f64>().is_ok() {
+              return inner_string;
+            }
+
             remove_quotes(&inner_string)
           }
           _ => remove_quotes(&json_str),

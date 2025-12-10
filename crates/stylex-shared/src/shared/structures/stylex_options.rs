@@ -10,7 +10,7 @@ use super::named_import_source::{ImportSources, RuntimeInjection};
 pub struct StyleXOptionsParams {
   pub style_resolution: Option<StyleResolution>,
   pub enable_font_size_px_to_rem: Option<bool>,
-  pub runtime_injection: Option<bool>,
+  pub runtime_injection: Option<RuntimeInjection>,
   pub class_name_prefix: Option<String>,
   pub defined_stylex_css_variables: Option<FxHashMap<String, String>>,
   pub import_sources: Option<Vec<ImportSources>>,
@@ -39,7 +39,7 @@ impl Default for StyleXOptionsParams {
     StyleXOptionsParams {
       style_resolution: Some(StyleResolution::PropertySpecificity),
       enable_font_size_px_to_rem: Some(false),
-      runtime_injection: Some(false),
+      runtime_injection: Some(RuntimeInjection::Boolean(false)),
       class_name_prefix: Some("x".to_string()),
       defined_stylex_css_variables: Some(FxHashMap::default()),
       import_sources: None,
@@ -186,8 +186,12 @@ impl From<StyleXOptionsParams> for StyleXOptions {
 
     let runtime_injection = match options.runtime_injection {
       Some(value) => match value {
-        true => RuntimeInjection::Regular(DEFAULT_INJECT_PATH.to_string()),
-        false => RuntimeInjection::Boolean(false),
+        RuntimeInjection::Boolean(true) => {
+          RuntimeInjection::Regular(DEFAULT_INJECT_PATH.to_string())
+        }
+        RuntimeInjection::Boolean(false) => RuntimeInjection::Boolean(false),
+        RuntimeInjection::Regular(path) => RuntimeInjection::Regular(path),
+        RuntimeInjection::Named(named) => RuntimeInjection::Named(named),
       },
       None => RuntimeInjection::Boolean(false),
     };

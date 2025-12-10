@@ -1,7 +1,8 @@
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
-    named_import_source::ImportSources, plugin_pass::PluginPass,
+    named_import_source::{ImportSources, RuntimeInjection},
+    plugin_pass::PluginPass,
     stylex_options::StyleXOptionsParams,
   },
 };
@@ -20,7 +21,7 @@ test!(
       import_sources: Some(vec![ImportSources::Regular(
         "custom-stylex-path".to_string(),
       )]),
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       ..StyleXOptionsParams::default()
     };
 

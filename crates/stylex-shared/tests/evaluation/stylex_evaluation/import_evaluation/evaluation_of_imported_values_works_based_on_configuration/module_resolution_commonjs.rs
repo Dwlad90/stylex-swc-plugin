@@ -1,7 +1,10 @@
 use std::env;
 
 use insta::assert_snapshot;
-use stylex_shared::shared::structures::stylex_options::{StyleXOptions, StyleXOptionsParams};
+use stylex_shared::shared::structures::{
+  named_import_source::RuntimeInjection,
+  stylex_options::{StyleXOptions, StyleXOptionsParams},
+};
 use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -23,7 +26,7 @@ fn tranform(input: &str) -> String {
       let fixture_path = cwd_path.join("tests/fixture/consts");
 
       let mut config = StyleXOptionsParams {
-        runtime_injection: Some(true),
+        runtime_injection: Some(RuntimeInjection::Boolean(true)),
         treeshake_compensation: Some(true),
         unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
           fixture_path.to_string_lossy().to_string(),

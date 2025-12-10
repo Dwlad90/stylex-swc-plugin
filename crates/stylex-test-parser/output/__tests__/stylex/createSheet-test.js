@@ -12,14 +12,17 @@ describe('createSheet', ()=>{
             const sheet = createSheet();
             expect(typeof sheet.getTextContent()).toBe('string');
             expect(typeof sheet.insert).toBe('function');
+            expect(typeof sheet.update).toBe('function');
         });
         test('creates multiple sheets', ()=>{
             const sheet1 = createSheet();
             const sheet2 = createSheet();
             expect(typeof sheet1.getTextContent()).toBe('string');
             expect(typeof sheet1.insert).toBe('function');
+            expect(typeof sheet1.update).toBe('function');
             expect(typeof sheet2.getTextContent()).toBe('string');
             expect(typeof sheet2.insert).toBe('function');
+            expect(typeof sheet2.update).toBe('function');
         });
         test('reuses existing sheet for given root', ()=>{
             const sheet1 = createSheet();
@@ -57,6 +60,23 @@ describe('createSheet', ()=>{
             sheet.insert('.test-shadow { opacity: 0 }', 3);
             expect(shadowSheet.getTextContent().includes('test-shadow')).toBe(true);
         });
+        test('update method updates rules across all sheets', ()=>{
+            const sheet = createSheet();
+            sheet.insert('.update-test { color: red }', 3);
+            expect(sheet.getTextContent().includes('color: red')).toBe(true);
+            const iframe = document.createElement('iframe');
+            document.body.appendChild(iframe);
+            const iframeDoc = iframe.contentWindow.document;
+            const iframeRootTag = document.createElement('div');
+            iframeRootTag.id = 'test';
+            iframeDoc.body.appendChild(iframeRootTag);
+            const iframeSheet = createSheet(iframeRootTag);
+            expect(iframeSheet.getTextContent().includes('color: red')).toBe(true);
+            sheet.update('.update-test { color: red }', '.update-test { color: blue }', 3);
+            expect(sheet.getTextContent().includes('color: blue')).toBe(true);
+            expect(sheet.getTextContent().includes('color: red')).toBe(false);
+            expect(iframeSheet.getTextContent().includes('color: blue')).toBe(true);
+        });
     });
     describe('server side', ()=>{
         let createSheet;
@@ -71,14 +91,17 @@ describe('createSheet', ()=>{
             const sheet = createSheet();
             expect(typeof sheet.getTextContent()).toBe('string');
             expect(typeof sheet.insert).toBe('function');
+            expect(typeof sheet.update).toBe('function');
         });
         test('creates multiple sheets', ()=>{
             const sheet1 = createSheet();
             const sheet2 = createSheet();
             expect(typeof sheet1.getTextContent()).toBe('string');
             expect(typeof sheet1.insert).toBe('function');
+            expect(typeof sheet1.update).toBe('function');
             expect(typeof sheet2.getTextContent()).toBe('string');
             expect(typeof sheet2.insert).toBe('function');
+            expect(typeof sheet2.update).toBe('function');
         });
     });
 });

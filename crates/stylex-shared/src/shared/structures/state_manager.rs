@@ -508,9 +508,12 @@ impl StateManager {
       return;
     }
 
-    let needs_runtime_injection = style
-      .values()
-      .any(|value| matches!(value.as_ref(), InjectableStyleKind::Regular(_)));
+    let needs_runtime_injection = style.values().any(|value| {
+      matches!(
+        value.as_ref(),
+        InjectableStyleKind::Regular(_) | InjectableStyleKind::Const(_)
+      )
+    });
 
     let inject_var_ident = if needs_runtime_injection {
       Some(self.setup_injection_imports())
@@ -541,7 +544,7 @@ impl StateManager {
       .runtime_injection
       .as_ref()
       .cloned()
-      .unwrap_or_else(|| RuntimeInjectionState::Regular(String::default()));
+      .unwrap_or(RuntimeInjectionState::Boolean(true));
 
     let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
       Some(idents) => idents,
@@ -549,7 +552,9 @@ impl StateManager {
         let module_ident = uid_generator.generate_ident();
 
         let var_ident = match &runtime_injection {
-          RuntimeInjectionState::Regular(_) => uid_generator.generate_ident(),
+          RuntimeInjectionState::Regular(_) | RuntimeInjectionState::Boolean(_) => {
+            uid_generator.generate_ident()
+          }
           RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
             uid_generator = UidGenerator::new(r#as, CounterMode::Local);
             uid_generator.generate_ident()
@@ -564,8 +569,12 @@ impl StateManager {
     };
 
     let module_items = match &runtime_injection {
-      RuntimeInjectionState::Regular(_) => vec![
-        add_inject_default_import_expression(&inject_module_ident),
+      RuntimeInjectionState::Boolean(_) => vec![
+        add_inject_default_import_expression(&inject_module_ident, None),
+        add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
+      ],
+      RuntimeInjectionState::Regular(name) => vec![
+        add_inject_default_import_expression(&inject_module_ident, Some(name)),
         add_inject_var_decl_expression(&inject_var_ident, &inject_module_ident),
       ],
       RuntimeInjectionState::Named(_) => vec![
@@ -635,11 +644,25 @@ impl StateManager {
     let priority = metadata.get_priority();
     let css = metadata.get_css();
     let css_rtl = metadata.get_css_rtl();
+    let const_key = metadata.get_const_key();
+    let const_value = metadata.get_const_value();
 
     let mut stylex_inject_args = vec![
       expr_or_spread_string_expression_factory(css),
       expr_or_spread_number_expression_factory(round_f64(*priority, 1)),
     ];
+
+    if let Some(const_key) = const_key
+      && let Some(const_value) = const_value
+    {
+      let const_value_expr = match const_value.parse::<f64>() {
+        Ok(value) => expr_or_spread_number_expression_factory(value),
+        Err(_) => expr_or_spread_string_expression_factory(const_value),
+      };
+
+      stylex_inject_args.push(expr_or_spread_string_expression_factory(const_key));
+      stylex_inject_args.push(const_value_expr);
+    }
 
     if let Some(rtl) = css_rtl {
       stylex_inject_args.push(expr_or_spread_string_expression_factory(rtl));
@@ -764,7 +787,7 @@ impl StateManager {
   }
 }
 
-fn add_inject_default_import_expression(ident: &Ident) -> ModuleItem {
+fn add_inject_default_import_expression(ident: &Ident, inject_path: Option<&str>) -> ModuleItem {
   ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
     specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
@@ -774,7 +797,7 @@ fn add_inject_default_import_expression(ident: &Ident) -> ModuleItem {
     src: Box::new(Str {
       span: DUMMY_SP,
       raw: None,
-      value: DEFAULT_INJECT_PATH.into(),
+      value: inject_path.unwrap_or(DEFAULT_INJECT_PATH).into(),
     }),
     type_only: false,
     with: None,

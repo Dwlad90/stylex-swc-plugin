@@ -43,6 +43,41 @@ pub enum ImportSourceUnion {
   Named(NamedImportSource),
 }
 
+#[derive(Debug, Clone)]
+pub enum RuntimeInjectionUnion {
+  Boolean(bool),
+  Regular(String),
+}
+
+impl FromNapiValue for RuntimeInjectionUnion {
+  unsafe fn from_napi_value(env: napi_env, value: napi::sys::napi_value) -> Result<Self, Error> {
+    // Try to parse as boolean first
+    if let Ok(bool_value) = unsafe { bool::from_napi_value(env, value) } {
+      return Ok(RuntimeInjectionUnion::Boolean(bool_value));
+    }
+
+    // Fall back to string
+    let js_unknown = unsafe { Unknown::from_napi_value(env, value) }?;
+    let js_str = unsafe { js_unknown.cast::<napi::JsString>() }?;
+    let string_value = js_str.into_utf8()?.as_str()?.to_owned();
+
+    Ok(RuntimeInjectionUnion::Regular(string_value))
+  }
+}
+
+impl ToNapiValue for RuntimeInjectionUnion {
+  unsafe fn to_napi_value(env: napi_env, value: Self) -> Result<napi_value, Error> {
+    match value {
+      RuntimeInjectionUnion::Boolean(b) => unsafe { bool::to_napi_value(env, b) },
+      RuntimeInjectionUnion::Regular(s) => {
+        let env = Env::from_raw(env);
+        let js_str = env.create_string(&s)?;
+        Ok(js_str.raw())
+      }
+    }
+  }
+}
+
 static MAX_IMPORT_PATH_LENGTH: usize = 214;
 
 fn validate_import_path(path: &str) -> Result<(), String> {

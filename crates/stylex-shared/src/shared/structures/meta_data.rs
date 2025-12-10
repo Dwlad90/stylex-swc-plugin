@@ -60,6 +60,19 @@ impl MetaData {
     }
   }
 
+  pub fn get_const_key(&self) -> Option<&str> {
+    match &self.style {
+      InjectableStyleBaseKind::Const(style) => Some(style.const_key.as_str()),
+      _ => None,
+    }
+  }
+  pub fn get_const_value(&self) -> Option<&str> {
+    match &self.style {
+      InjectableStyleBaseKind::Const(style) => Some(style.const_value.as_str()),
+      _ => None,
+    }
+  }
+
   pub(crate) fn get_css_rtl(&self) -> Option<&str> {
     match &self.style {
       InjectableStyleBaseKind::Regular(style) => style.rtl.as_deref(),

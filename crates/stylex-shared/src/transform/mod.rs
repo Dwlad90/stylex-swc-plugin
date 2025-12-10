@@ -68,7 +68,7 @@ where
 
     let mut state = match config {
       Some(config) => {
-        config.runtime_injection = Some(true);
+        config.runtime_injection = Some(RuntimeInjection::Boolean(true));
         config.treeshake_compensation = Some(true);
 
         StateManager::new(config.clone().into())

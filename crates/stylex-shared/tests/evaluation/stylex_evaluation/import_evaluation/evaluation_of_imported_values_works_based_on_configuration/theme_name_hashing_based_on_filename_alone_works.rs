@@ -1,7 +1,10 @@
 use std::env;
 
 use insta::assert_snapshot;
-use stylex_shared::shared::structures::stylex_options::{StyleXOptions, StyleXOptionsParams};
+use stylex_shared::shared::structures::{
+  named_import_source::RuntimeInjection,
+  stylex_options::{StyleXOptions, StyleXOptionsParams},
+};
 use stylex_shared::shared::utils::common::create_hash;
 use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
 use swc_core::common::FileName;
@@ -30,7 +33,7 @@ fn tranform(input: &str) -> String {
     |tr| {
       let mut config = StyleXOptionsParams {
         class_name_prefix: Some("__hashed_var__".to_string()),
-        runtime_injection: Some(true),
+        runtime_injection: Some(RuntimeInjection::Boolean(true)),
         treeshake_compensation: Some(true),
         unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
         ..Default::default()

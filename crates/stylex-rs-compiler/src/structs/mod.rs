@@ -2,18 +2,18 @@ use napi::{JsObject, UnknownRef};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 use stylex_shared::shared::structures::{
-  named_import_source::{ImportSources, NamedImportSource},
+  named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
   stylex_options::{ModuleResolution, StyleResolution, StyleXOptionsParams},
 };
 
-use crate::enums::{ImportSourceUnion, SourceMaps, StyleXModuleResolution};
+use crate::enums::{ImportSourceUnion, RuntimeInjectionUnion, SourceMaps, StyleXModuleResolution};
 
 #[napi(object)]
 pub struct StyleXOptions {
   #[napi(ts_type = "'application-order' | 'property-specificity' | 'legacy-expand-shorthands'")]
   pub style_resolution: Option<String>,
   pub enable_font_size_px_to_rem: Option<bool>,
-  pub runtime_injection: Option<bool>,
+  pub runtime_injection: Option<RuntimeInjectionUnion>,
   pub class_name_prefix: Option<String>,
   #[napi(ts_type = "Record<string, string>")]
   pub defined_stylex_css_variables: Option<FxHashMap<String, String>>,
@@ -92,10 +92,15 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       theme_file_extension: res.theme_file_extension,
     });
 
+    let runtime_injection: Option<RuntimeInjection> = val.runtime_injection.map(|ri| match ri {
+      RuntimeInjectionUnion::Boolean(b) => RuntimeInjection::Boolean(b),
+      RuntimeInjectionUnion::Regular(s) => RuntimeInjection::Regular(s),
+    });
+
     Ok(StyleXOptionsParams {
       style_resolution,
       enable_font_size_px_to_rem: val.enable_font_size_px_to_rem,
-      runtime_injection: val.runtime_injection,
+      runtime_injection,
       class_name_prefix: val.class_name_prefix,
       defined_stylex_css_variables: val.defined_stylex_css_variables,
       import_sources,

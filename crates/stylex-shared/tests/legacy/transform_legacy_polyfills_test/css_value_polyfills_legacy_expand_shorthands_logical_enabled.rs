@@ -17,7 +17,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       enable_logical_styles_polyfill: Some(true),
       ..StyleXOptionsParams::default()
@@ -43,7 +43,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       enable_logical_styles_polyfill: Some(true),
       ..StyleXOptionsParams::default()
@@ -69,7 +69,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       enable_logical_styles_polyfill: Some(true),
       ..StyleXOptionsParams::default()
@@ -95,7 +95,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       style_resolution: Some(StyleResolution::LegacyExpandShorthands),
       enable_logical_styles_polyfill: Some(true),
       ..StyleXOptionsParams::default()

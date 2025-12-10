@@ -1,6 +1,7 @@
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
+    named_import_source::RuntimeInjection,
     plugin_pass::PluginPass,
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
@@ -44,7 +45,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
+      runtime_injection: Some(RuntimeInjection::Boolean(false)),
       ..get_default_opts()
     })
   ),

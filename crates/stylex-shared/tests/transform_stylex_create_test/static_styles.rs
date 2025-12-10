@@ -1,6 +1,7 @@
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
+    named_import_source::RuntimeInjection,
     plugin_pass::PluginPass,
     stylex_options::{ModuleResolution, StyleResolution, StyleXOptionsParams},
   },
@@ -194,7 +195,7 @@ test!(
   }),
   |tr| {
     let mut config = StyleXOptionsParams {
-      runtime_injection: Some(false),
+      runtime_injection: Some(RuntimeInjection::Boolean(false)),
       style_resolution: Some(StyleResolution::PropertySpecificity),
       ..StyleXOptionsParams::default()
     };

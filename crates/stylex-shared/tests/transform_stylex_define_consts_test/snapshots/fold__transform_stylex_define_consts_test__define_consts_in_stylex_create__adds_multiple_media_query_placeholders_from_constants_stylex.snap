@@ -1,0 +1,13 @@
+---
+source: crates/stylex-shared/tests/transform_stylex_define_consts_test/define_consts_in_stylex_create.rs
+assertion_line: 156
+expression: output
+---
+import * as stylex from '@stylexjs/stylex';
+import { breakpoints } from './constants.stylex';
+export const styles = {
+    root: {
+        kMwMTN: "x1e2nbdu x1pitq50 x14racuk",
+        $$css: true
+    }
+};

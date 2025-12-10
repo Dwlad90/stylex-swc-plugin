@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
+    named_import_source::RuntimeInjection,
     plugin_pass::PluginPass,
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
@@ -56,7 +57,7 @@ fn fixture(input: PathBuf) {
         dev: Some(false),
         treeshake_compensation: Some(true),
         unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-        runtime_injection: Some(false),
+        runtime_injection: Some(RuntimeInjection::Boolean(false)),
         ..StyleXOptionsParams::default()
       };
 

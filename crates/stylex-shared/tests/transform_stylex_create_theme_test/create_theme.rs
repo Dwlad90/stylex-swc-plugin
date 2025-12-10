@@ -1,6 +1,7 @@
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
+    named_import_source::RuntimeInjection,
     plugin_pass::PluginPass,
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
@@ -659,7 +660,7 @@ test!(
       filename: FileName::Real("/html/js/components/Foo.react.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(true),
+      runtime_injection: Some(RuntimeInjection::Boolean(true)),
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/stylex/packages/".to_string()
       ))),

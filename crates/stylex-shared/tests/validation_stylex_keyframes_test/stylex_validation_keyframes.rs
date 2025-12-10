@@ -1,7 +1,10 @@
 use rustc_hash::FxHashMap;
 use stylex_shared::{
   StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::structures::{
+    named_import_source::RuntimeInjection, plugin_pass::PluginPass,
+    stylex_options::StyleXOptionsParams,
+  },
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -148,7 +151,7 @@ test!(
     let mut defined_stylex_css_variables = FxHashMap::default();
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-    config.runtime_injection = Some(true);
+    config.runtime_injection = Some(RuntimeInjection::Boolean(true));
 
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
@@ -177,7 +180,7 @@ test!(
     let mut defined_stylex_css_variables = FxHashMap::default();
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
     config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-    config.runtime_injection = Some(true);
+    config.runtime_injection = Some(RuntimeInjection::Boolean(true));
 
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),

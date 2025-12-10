@@ -2,6 +2,7 @@ use insta::assert_snapshot;
 use stylex_shared::{
   StyleXTransform,
   shared::structures::{
+    named_import_source::RuntimeInjection,
     plugin_pass::PluginPass,
     stylex_options::{StyleXOptions, StyleXOptionsParams},
   },
@@ -39,7 +40,7 @@ fn transform(input: &str) -> String {
           filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
         },
         Some(&mut StyleXOptionsParams {
-          runtime_injection: Some(false),
+          runtime_injection: Some(RuntimeInjection::Boolean(false)),
           dev: Some(true),
           ..get_default_opts()
         }),
@@ -126,7 +127,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
+      runtime_injection: Some(RuntimeInjection::Boolean(false)),
       ..get_default_opts()
     })
   ),
@@ -180,7 +181,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
+      runtime_injection: Some(RuntimeInjection::Boolean(false)),
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
       ..get_default_opts()
     })
@@ -236,7 +237,7 @@ test!(
       filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
     },
     Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(false),
+      runtime_injection: Some(RuntimeInjection::Boolean(false)),
       ..get_default_opts()
     })
   ),

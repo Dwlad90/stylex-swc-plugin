@@ -38,7 +38,7 @@ const styles = {
         alignItems: "alignItems-x6s0dn4",
         justifyContent: "justifyContent-xl56j7k",
         gap: "gap-xmjcfx9",
-        $$css: "input.stylex.js:12"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:12"
     },
     rect: {
         backgroundColor: "backgroundColor-x1mdjlir",
@@ -48,58 +48,58 @@ const styles = {
         animationDuration: "animationDuration-x1m9vv7p",
         animationIterationCount: "animationIterationCount-xa4qsjk",
         animationTimingFunction: "animationTimingFunction-x4hg4is",
-        $$css: "input.stylex.js:20"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:20"
     },
     rect1: {
         height: "height-x10buj8t",
-        $$css: "input.stylex.js:29"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:29"
     },
     rect2: {
         animationDelay: "animationDelay-x1qdon1m",
         height: "height-x1lnynta",
-        $$css: "input.stylex.js:32"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:32"
     },
     rect3: {
         animationDelay: "animationDelay-x123bg45",
         height: "height-x5yr21d",
-        $$css: "input.stylex.js:36"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:36"
     },
     rect4: {
         animationDelay: "animationDelay-x1olj69",
         backgroundColor: "backgroundColor-xb4ade6",
         height: "height-x1lnynta",
-        $$css: "input.stylex.js:40"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:40"
     },
     rect5: {
         animationDelay: "animationDelay-x1ryhrx7",
         height: "height-x10buj8t",
-        $$css: "input.stylex.js:45"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:45"
     },
     sizeSmall: {
         height: "height-xettwda",
         width: "width-xs5h3dt",
-        $$css: "input.stylex.js:49"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:49"
     },
     size_small: {
         height: "height-xettwda",
         width: "width-xs5h3dt",
-        $$css: "input.stylex.js:61"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:61"
     },
     size_normal: {
         height: "height-x1sh0tsm",
         width: "width-xekueh",
-        $$css: "input.stylex.js:57"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:57"
     },
     size_large: {
         height: "height-x17frcva",
         width: "width-xdvn7xf",
-        $$css: "input.stylex.js:61"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:61"
     }
 };
 const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal })=>{
     return isLoading && <>
         <div {...stylex.props(styles[size])}>{size}</div>
-        <div className="display-xrvj5dj gridAutoFlow-x1mt1orb gridTemplateColumns-xernuvs alignItems-x6s0dn4 justifyContent-xl56j7k gap-xmjcfx9 height-xettwda width-xs5h3dt" data-style-src="input.stylex.js:12; input.stylex.js:49">styles.sizeSmall</div>
+        <div className="display-xrvj5dj gridAutoFlow-x1mt1orb gridTemplateColumns-xernuvs alignItems-x6s0dn4 justifyContent-xl56j7k gap-xmjcfx9 height-xettwda width-xs5h3dt" data-style-src="tests/fixture/spot-loader/input.stylex.js:12; tests/fixture/spot-loader/input.stylex.js:49">styles.sizeSmall</div>
         <div {...stylex.props(styles.root, styles.sizeSmall, style)}>styles.sizeSmall with styles</div>
       </>;
 };

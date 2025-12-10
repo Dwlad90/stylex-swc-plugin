@@ -5,7 +5,7 @@ _inject2(".color-x1e2nbdu{color:red}", 3000);
 const styles = {
     red: {
         "color-kMwMTN": "color-x1e2nbdu",
-        $$css: "npm-package:components/Foo.react.js:3"
+        $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
     }
 };
 function Foo(props) {

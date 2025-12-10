@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use std::{rc::Rc, sync::Arc};
+use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -175,6 +176,8 @@ where
 {
   pub(crate) fn transform_stylex_create(&mut self, call: &CallExpr) -> Option<Expr> {
     self.state.in_stylex_create = true;
+    let mut package_json_seen: FxHashMap<String, PackageJsonExtended> = FxHashMap::default();
+
     let is_create_call = is_create_call(call, &self.state);
 
     let result = if is_create_call {
@@ -403,7 +406,12 @@ where
       let (var_name, parent_var_decl) = self.get_call_var_name(call);
 
       if self.state.is_debug() && self.state.options.enable_debug_data_prop {
-        compiled_styles = add_source_map_data(&compiled_styles, call, &mut self.state);
+        compiled_styles = add_source_map_data(
+          &compiled_styles,
+          call,
+          &mut self.state,
+          &mut package_json_seen,
+        );
       }
 
       if self.state.is_dev() && self.state.options.enable_dev_class_names {

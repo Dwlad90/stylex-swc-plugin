@@ -1,6 +1,9 @@
 use stylex_shared::{
   StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
+  },
 };
 use swc_core::{
   common::FileName,
@@ -24,13 +27,16 @@ test!(
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
       enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
   basic_stylex_call,
   r#"
       import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
+      export const styles = stylex.create({
         sidebar: {
           boxSizing: 'border-box',
           gridArea: 'sidebar',

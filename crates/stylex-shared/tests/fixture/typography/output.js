@@ -39,114 +39,114 @@ const styles = {
         margin: "margin-x1ghz6dp",
         overflowWrap: "overflowWrap-xj0a0fe",
         fontFamily: "fontFamily-xbwy7e6",
-        $$css: "input.stylex.js:6"
+        $$css: "tests/fixture/typography/input.stylex.js:6"
     },
     textXxxl: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-x193ocya",
-        $$css: "input.stylex.js:11"
+        $$css: "tests/fixture/typography/input.stylex.js:11"
     },
     textXxl: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-xlj8byu",
-        $$css: "input.stylex.js:15"
+        $$css: "tests/fixture/typography/input.stylex.js:15"
     },
     textXl: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-xgc4vk5",
-        $$css: "input.stylex.js:19"
+        $$css: "tests/fixture/typography/input.stylex.js:19"
     },
     textLg: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-x17gblq1",
-        $$css: "input.stylex.js:23"
+        $$css: "tests/fixture/typography/input.stylex.js:23"
     },
     textMd: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-xm7bc5f",
-        $$css: "input.stylex.js:27"
+        $$css: "tests/fixture/typography/input.stylex.js:27"
     },
     textSm: {
         lineHeight: "lineHeight-x48q9rv",
         fontSize: "fontSize-x9bx2mk",
-        $$css: "input.stylex.js:31"
+        $$css: "tests/fixture/typography/input.stylex.js:31"
     },
     body: {
         fontSize: "fontSize-xr14wxu",
         lineHeight: "lineHeight-x1sjzer8",
-        $$css: "input.stylex.js:35"
+        $$css: "tests/fixture/typography/input.stylex.js:35"
     },
     bodySm: {
         fontSize: "fontSize-x9bx2mk",
         lineHeight: "lineHeight-x1sjzer8",
-        $$css: "input.stylex.js:39"
+        $$css: "tests/fixture/typography/input.stylex.js:39"
     },
     bodyMd: {
         fontSize: "fontSize-xm7bc5f",
         lineHeight: "lineHeight-x1sjzer8",
-        $$css: "input.stylex.js:43"
+        $$css: "tests/fixture/typography/input.stylex.js:43"
     },
     truncate: {
         whiteSpace: "whiteSpace-xuxw1ft",
         textOverflow: "textOverflow-xlyipyv",
         overflow: "overflow-xb3r6kr",
-        $$css: "input.stylex.js:47"
+        $$css: "tests/fixture/typography/input.stylex.js:47"
     },
     bold: {
         fontWeight: "fontWeight-x117nqv4",
-        $$css: "input.stylex.js:52"
+        $$css: "tests/fixture/typography/input.stylex.js:52"
     },
     italic: {
         fontStyle: "fontStyle-x1k4tb9n",
-        $$css: "input.stylex.js:55"
+        $$css: "tests/fixture/typography/input.stylex.js:55"
     },
     textTransform_unset: {
         textTransform: "textTransform-x1gdvv3m",
-        $$css: "input.stylex.js:58"
+        $$css: "tests/fixture/typography/input.stylex.js:58"
     },
     textTransform_uppercase: {
         textTransform: "textTransform-xtvhhri",
-        $$css: "input.stylex.js:61"
+        $$css: "tests/fixture/typography/input.stylex.js:61"
     },
     textTransform_lowercase: {
         textTransform: "textTransform-x1kyqaxf",
-        $$css: "input.stylex.js:64"
+        $$css: "tests/fixture/typography/input.stylex.js:64"
     },
     textTransform_capitalize: {
         textTransform: "textTransform-xn80e1m",
-        $$css: "input.stylex.js:67"
+        $$css: "tests/fixture/typography/input.stylex.js:67"
     },
     underline: {
         textDecoration: "textDecoration-x1bvjpef",
-        $$css: "input.stylex.js:70"
+        $$css: "tests/fixture/typography/input.stylex.js:70"
     },
     colorSuccess: {
         color: "color-x2i9qa9",
-        $$css: "input.stylex.js:73"
+        $$css: "tests/fixture/typography/input.stylex.js:73"
     },
     colorError: {
         color: "color-x1wptp0d",
-        $$css: "input.stylex.js:76"
+        $$css: "tests/fixture/typography/input.stylex.js:76"
     },
     colorInfo: {
         color: "color-xt2mot5",
-        $$css: "input.stylex.js:79"
+        $$css: "tests/fixture/typography/input.stylex.js:79"
     },
     colorWarning: {
         color: "color-xe5xflh",
-        $$css: "input.stylex.js:82"
+        $$css: "tests/fixture/typography/input.stylex.js:82"
     },
     colorPrimary: {
         color: "color-xw3ogp8",
-        $$css: "input.stylex.js:85"
+        $$css: "tests/fixture/typography/input.stylex.js:85"
     },
     color_primary: {
         color: "color-xw3ogp8",
-        $$css: "input.stylex.js:99"
+        $$css: "tests/fixture/typography/input.stylex.js:99"
     },
     colorSecondary: {
         color: "color-x10gd8tk",
-        $$css: "input.stylex.js:91"
+        $$css: "tests/fixture/typography/input.stylex.js:91"
     }
 };
 const DEFAULT_VARIANT_MAPPING = {

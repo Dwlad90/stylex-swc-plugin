@@ -1,6 +1,9 @@
 use stylex_shared::{
   StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleXOptions, StyleXOptionsParams},
+  },
 };
 use swc_core::{
   common::FileName,
@@ -25,6 +28,9 @@ test!(
       debug: Some(true),
       dev: Some(true),
       enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -63,6 +69,9 @@ test!(
       debug: Some(true),
       dev: Some(true),
       enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -102,6 +111,9 @@ test!(
       debug: Some(true),
       dev: Some(true),
       enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
       ..StyleXOptionsParams::default()
     })
   ),

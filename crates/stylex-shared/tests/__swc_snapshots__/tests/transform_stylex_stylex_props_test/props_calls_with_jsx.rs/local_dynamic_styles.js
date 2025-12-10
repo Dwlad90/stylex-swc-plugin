@@ -7,12 +7,12 @@ _inject2('@property --x-opacity { syntax: "*"; inherits: false; }', 0);
 const styles = {
     red: {
         "color-kMwMTN": "color-x1e2nbdu",
-        $$css: "npm-package:components/Foo.react.js:3"
+        $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
     },
     opacity: (opacity)=>[
             {
                 "opacity-kSiTet": opacity != null ? "opacity-xb4nw82" : opacity,
-                $$css: "npm-package:components/Foo.react.js:6"
+                $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
             },
             {
                 "--x-opacity": opacity != null ? opacity : undefined

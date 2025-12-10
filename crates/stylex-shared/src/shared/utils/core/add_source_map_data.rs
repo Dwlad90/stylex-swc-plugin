@@ -1,7 +1,9 @@
 use indexmap::IndexMap;
 use log::{debug, info, warn};
 use once_cell::sync::Lazy;
+use rustc_hash::FxHashMap;
 use std::{env, path::Path, rc::Rc};
+use stylex_path_resolver::package_json::PackageJsonExtended;
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{CallExpr, Expr, KeyValueProp},
@@ -31,6 +33,7 @@ pub(crate) fn add_source_map_data(
   obj: &StylesObjectMap,
   call_expr: &CallExpr,
   state: &mut StateManager,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> StylesObjectMap {
   let mut result: StylesObjectMap = IndexMap::new();
 
@@ -87,7 +90,8 @@ pub(crate) fn add_source_map_data(
                 } else {
                   let original_line_number = code_frame.get_span_line_number(span);
                   let filename = state.get_filename().to_string();
-                  let short_filename = create_short_filename(filename.as_ref(), state);
+                  let short_filename =
+                    create_short_filename(filename.as_ref(), state, package_json_seen);
 
                   if !short_filename.is_empty() && original_line_number > 0 {
                     let source_map = format!("{}:{}", short_filename, original_line_number);
@@ -164,7 +168,20 @@ fn get_package_prefix(absolute_path: &str) -> Option<String> {
     .map(String::from)
 }
 
-fn get_short_path(relative_path: &str) -> String {
+fn get_short_path(relative_path: &str, state: &StateManager) -> String {
+  // Check if commonJS module resolution with rootDir is configured
+  if let CheckModuleResolution::CommonJS(ref config) = state.options.unstable_module_resolution
+    && let Some(ref root_dir) = config.root_dir
+  {
+    let relative_path_obj = Path::new(relative_path);
+    let root_dir_path = Path::new(root_dir);
+
+    if let Ok(rel) = relative_path_obj.strip_prefix(root_dir_path) {
+      return rel.to_string_lossy().into_owned();
+    }
+  }
+
+  // Normalize slashes in the path and truncate to last 2 segments
   let path_parts: Vec<&str> = relative_path.split(std::path::MAIN_SEPARATOR).collect();
 
   let path_segments = if path_parts.len() >= 2 {
@@ -176,31 +193,67 @@ fn get_short_path(relative_path: &str) -> String {
   path_segments.join("/")
 }
 
-fn create_short_filename(absolute_path: &str, state: &StateManager) -> String {
+fn create_short_filename(
+  absolute_path: &str,
+  state: &StateManager,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+) -> String {
   let is_haste = matches!(
     state.options.unstable_module_resolution,
     CheckModuleResolution::Haste(_)
   );
 
   let path = Path::new(absolute_path);
-
   let cwd = env::current_dir().unwrap_or_default();
-  let relative_path = path
-    .strip_prefix(&cwd)
-    .map_or(absolute_path.to_string(), |p| {
-      p.to_string_lossy().into_owned()
-    });
 
+  let cwd_package =
+    StateManager::get_package_name_and_path(cwd.to_str().unwrap(), package_json_seen);
+  let package_details = StateManager::get_package_name_and_path(absolute_path, package_json_seen);
+
+  // If package details exist, use package-relative path
+  if let Some((package_name_opt, package_root_path)) = package_details {
+    let package_root = Path::new(&package_root_path);
+    let relative_path = path
+      .strip_prefix(package_root)
+      .map_or(absolute_path.to_string(), |p| {
+        p.to_string_lossy().into_owned()
+      });
+
+    // If the file is in the same package as cwd, return just the relative path
+    if let Some((cwd_package_name, _)) = cwd_package
+      && cwd_package_name == package_name_opt
+    {
+      return relative_path;
+    }
+
+    // Otherwise, return package:relativePath (or just relativePath if no package name)
+    if let Some(package_name) = package_name_opt {
+      return format!("{}:{}", package_name, relative_path);
+    } else {
+      return relative_path;
+    }
+  }
+
+  // Fallback: construct a path based on package prefix, module type, and file
   if let Some(package_prefix) = get_package_prefix(absolute_path) {
-    let short_path = get_short_path(&relative_path);
+    let short_path = get_short_path(absolute_path, state);
+
     return format!("{}:{}", package_prefix, short_path);
   }
 
+  // If haste mode, return just the filename
   if is_haste {
     return path
       .file_name()
       .map_or_else(String::new, |f| f.to_string_lossy().into_owned());
   }
 
-  get_short_path(&relative_path)
+  // Otherwise, return short path relative to cwd
+  let relative_path = path
+    .strip_prefix(&cwd)
+    .map_or(absolute_path.to_string(), |p| {
+      p.to_string_lossy().into_owned()
+    });
+
+  get_short_path(&relative_path, state)
 }

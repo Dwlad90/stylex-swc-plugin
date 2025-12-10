@@ -177,7 +177,7 @@ const styles$2 = {
     bar: {
         "display-k1xSpc": "display-x1lliihq",
         "width-kzqmXN": "width-xh8yej3",
-        $$css: "__fixtures__/otherStyles.js:6"
+        $$css: "__tests__/__fixtures__/otherStyles.js:6"
     }
 };
 
@@ -190,7 +190,7 @@ const styles$1 = {
         "display-k1xSpc": "display-xt0psk2",
         "height-kZKoxP": "height-x1egiwwb",
         "width-kzqmXN": "width-x3hqpx7",
-        $$css: "__fixtures__/npmStyles.js:6"
+        $$css: "__tests__/__fixtures__/npmStyles.js:6"
     }
 };
 
@@ -212,7 +212,7 @@ const styles = {
         "height-kZKoxP": "height-x1egiwwb",
         "marginInlineStart-keTefX": "marginInlineStart-x1hm9lzh",
         "marginTop-keoZOQ": "marginTop-xlrshdv",
-        $$css: "__fixtures__/index.js:17"
+        $$css: "__tests__/__fixtures__/index.js:17"
     }
 };
 function App() {

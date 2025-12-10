@@ -48,6 +48,6 @@ pub(crate) static UNITLESS_NUMBER_PROPERTIES: phf::Set<&'static str> = phf_set! 
   "strokeMiterlimit",
   "strokeOpacity",
   "strokeWidth",
-
   "mathDepth",
+  "zoom",
 };

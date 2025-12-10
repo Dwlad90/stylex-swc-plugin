@@ -265,7 +265,8 @@ test!(
         unitless: {
           fontWeight: 500,
           lineHeight: 1.5,
-          opacity: 0.5
+          opacity: 0.5,
+          zoom: 2
         },
       });
     "#

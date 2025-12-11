@@ -1500,11 +1500,18 @@ fn _evaluate(
 
                       context = Some(args);
                     }
-                    _ => panic_with_context!(
-                      path,
-                      traversal_state,
-                      "Expression evaluation not implemented"
-                    ),
+                    Expr::Lit(Lit::Regex(_)) => {
+                      // Regex methods like .test(), .exec(), etc. require runtime evaluation
+                      // We can't statically evaluate them, so we deopt
+                      return deopt(path, state, "Regex methods cannot be statically evaluated");
+                    }
+                    _ => {
+                      panic_with_context!(
+                        path,
+                        traversal_state,
+                        "Expression evaluation not implemented"
+                      )
+                    }
                   },
                   EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
                     FunctionType::StylexFnsFactory(sxfns) => {

@@ -600,4 +600,160 @@ mod tests {
       "Optional member access on number literal should return the literal value"
     );
   }
+
+  // ==================== REGEX EXPRESSION TESTS ====================
+
+  use swc_core::common::util::take::Take;
+  use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, Regex};
+
+  // Helper: Create regex literal expression
+  fn make_regex_expr(pattern: &str, flags: &str) -> Expr {
+    Expr::Lit(swc_core::ecma::ast::Lit::Regex(Regex {
+      span: DUMMY_SP,
+      exp: pattern.into(),
+      flags: flags.into(),
+    }))
+  }
+
+  // Helper: Create call expression
+  fn make_call_expr(callee: Expr, args: Vec<Expr>) -> Expr {
+    Expr::Call(CallExpr {
+      span: DUMMY_SP,
+      callee: Callee::Expr(Box::new(callee)),
+      args: args
+        .into_iter()
+        .map(|arg| ExprOrSpread {
+          spread: None,
+          expr: Box::new(arg),
+        })
+        .collect(),
+      type_args: None,
+      ..CallExpr::dummy()
+    })
+  }
+
+  #[test]
+  fn test_regex_literal_evaluation() {
+    let regex_expr = make_regex_expr("test", "g");
+    let (confident, has_value) = evaluate_expr(&regex_expr);
+    assert!(confident, "Regex literal should be confident");
+    assert!(has_value, "Regex literal should have a value");
+  }
+
+  #[test]
+  fn test_regex_with_escaped_chars() {
+    let regex_expr = make_regex_expr("\\/regex", "");
+    let (confident, has_value) = evaluate_expr(&regex_expr);
+    assert!(
+      confident,
+      "Regex with escaped characters should be confident"
+    );
+    assert!(
+      has_value,
+      "Regex with escaped characters should have a value"
+    );
+  }
+
+  #[test]
+  fn test_regex_with_flags() {
+    let regex_expr = make_regex_expr("test", "gi");
+    let (confident, has_value) = evaluate_expr(&regex_expr);
+    assert!(confident, "Regex with flags should be confident");
+    assert!(has_value, "Regex with flags should have a value");
+  }
+
+  #[test]
+  fn test_regex_without_flags() {
+    let regex_expr = make_regex_expr("^hello.*world$", "");
+    let (confident, has_value) = evaluate_expr(&regex_expr);
+    assert!(confident, "Regex without flags should be confident");
+    assert!(has_value, "Regex without flags should have a value");
+  }
+
+  #[test]
+  fn test_regex_test_method_with_variable() {
+    // Test: /regex/.test(someVar)
+    let regex_expr = make_regex_expr("test", "");
+    let member_expr = make_member_expr(regex_expr, "test");
+    let call_expr = make_call_expr(member_expr, vec![make_ident_expr("someVar")]);
+    let (confident, _has_value) = evaluate_expr(&call_expr);
+    assert!(
+      !confident,
+      "Regex.test() with variable should not be confident"
+    );
+  }
+
+  #[test]
+  fn test_regex_test_method_with_literal() {
+    // Test: /regex/.test("literal")
+    let regex_expr = make_regex_expr("test", "");
+    let member_expr = make_member_expr(regex_expr, "test");
+    let call_expr = make_call_expr(member_expr, vec![string_to_expression("literal")]);
+    let (confident, _has_value) = evaluate_expr(&call_expr);
+    assert!(
+      !confident,
+      "Regex.test() cannot be statically evaluated, should not be confident"
+    );
+  }
+
+  #[test]
+  fn test_regex_exec_method() {
+    // Test: /regex/.exec(someVar)
+    let regex_expr = make_regex_expr("test", "");
+    let member_expr = make_member_expr(regex_expr, "exec");
+    let call_expr = make_call_expr(member_expr, vec![make_ident_expr("someVar")]);
+    let (confident, _has_value) = evaluate_expr(&call_expr);
+    assert!(
+      !confident,
+      "Regex.exec() should not be confident (cannot be statically evaluated)"
+    );
+  }
+
+  #[test]
+  fn test_regex_match_method() {
+    // Test: /regex/.match()
+    let regex_expr = make_regex_expr("test", "");
+    let member_expr = make_member_expr(regex_expr, "match");
+    let call_expr = make_call_expr(member_expr, vec![]);
+    let (confident, _has_value) = evaluate_expr(&call_expr);
+    assert!(
+      !confident,
+      "Regex.match() should not be confident (cannot be statically evaluated)"
+    );
+  }
+
+  #[test]
+  fn test_complex_regex_pattern() {
+    let regex_expr = make_regex_expr("^[a-zA-Z0-9]+@[a-zA-Z0-9]+\\.[a-zA-Z]{2,}$", "");
+    let (confident, has_value) = evaluate_expr(&regex_expr);
+    assert!(confident, "Complex regex pattern should be confident");
+    assert!(has_value, "Complex regex pattern should have a value");
+  }
+
+  #[test]
+  fn test_regex_with_unicode_flag() {
+    let regex_expr = make_regex_expr("\\p{Emoji}", "u");
+    let (confident, has_value) = evaluate_expr(&regex_expr);
+    assert!(confident, "Regex with unicode flag should be confident");
+    assert!(has_value, "Regex with unicode flag should have a value");
+  }
+
+  #[test]
+  fn test_regex_test_method_with_nullish_coalescing() {
+    // Test: /regex/.test(someVar ?? '')
+    let regex_expr = make_regex_expr("\\/test", "");
+    let member_expr = make_member_expr(regex_expr, "test");
+    // Using binary expression for nullish coalescing
+    let nullish = make_binary_expr(
+      make_ident_expr("pattern"),
+      BinaryOp::NullishCoalescing,
+      string_to_expression(""),
+    );
+    let call_expr = make_call_expr(member_expr, vec![nullish]);
+    let (confident, _has_value) = evaluate_expr(&call_expr);
+    assert!(
+      !confident,
+      "Regex.test() with nullish coalescing should not be confident"
+    );
+  }
 }

@@ -40,12 +40,12 @@ mod tests {
 
       result_args.push(ResolvedArg::StyleObject(
         StyleObject::Style(object),
-        ident_factory("test"),
-        MemberExpr {
+        vec![ident_factory("test")],
+        vec![MemberExpr {
           span: DUMMY_SP,
           obj: Box::new(string_to_expression("test")),
           prop: MemberProp::Ident(quote_ident!("test")),
-        },
+        }],
       ))
     }
 

@@ -60,7 +60,7 @@ pub(crate) fn make_string_expression(
         .iter()
         .filter_map(|arg| match arg {
           ResolvedArg::StyleObject(_, _, _) => Some(arg.clone()),
-          ResolvedArg::ConditionalStyle(_test, primary, fallback, ident, member) => {
+          ResolvedArg::ConditionalStyle(_test, primary, fallback, idents, member) => {
             let result = if permutation.get(i).unwrap_or(&false) == &true {
               primary
             } else {
@@ -69,9 +69,9 @@ pub(crate) fn make_string_expression(
 
             i += 1;
 
-            result
-              .as_ref()
-              .map(|result| ResolvedArg::StyleObject(result.clone(), ident.clone(), member.clone()))
+            result.as_ref().map(|result| {
+              ResolvedArg::StyleObject(result.clone(), idents.clone(), member.clone())
+            })
           }
         })
         .collect::<Vec<ResolvedArg>>();

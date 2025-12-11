@@ -1,4 +1,10 @@
-use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use stylex_shared::{
+  StyleXTransform,
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleResolution, StyleXOptions, StyleXOptionsParams},
+  },
+};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -504,4 +510,153 @@ test!(
 
         stylex.props(...stylesArr);
     "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  transform_props_with_conditional_array,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      base: {
+        backgroundColor: 'blue',
+      },
+      active: {
+        color: 'red',
+      },
+      inactive: {
+        color: 'green',
+      },
+    });
+
+    export function Props_With_Conditional_Array (status)  {
+      const isActive = status === 'active';
+
+      return <button {...stylex.props(styles.base, ...isActive ? [styles.active]: [styles.inactive])} />
+    };
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  transform_props_with_regex,
+  r#"
+  import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      base: {
+        backgroundColor: 'blue',
+      },
+      active: {
+        color: 'red',
+      },
+      inactive: {
+        color: 'green',
+      },
+    });
+
+    export function Props_With_Conditional_Array (status)  {
+      const isActive = /status/.test(status);
+
+      return <>
+      <button {...stylex.props(styles.base, ...isActive ? [styles.active]: [styles.inactive])} />
+      {isActive ? <div {...stylex.props(styles.active)}>Active</div> : <div {...stylex.props(styles.inactive)}>Inactive</div>}
+      <div {...stylex.props(isActive && styles.active)}>Active</div>
+      </>
+    };
+"#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      dev: Some(true),
+      treeshake_compensation: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+      enable_minified_keys: Some(false),
+      enable_debug_class_names: Some(true),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_props_with_null,
+  r#"
+  import * as stylex from '@stylexjs/stylex';
+  import { useState } from 'react';
+
+  const styles = stylex.create({
+    base: {
+      backgroundColor: 'blue',
+    },
+    active: {
+      right: 0,
+    },
+    inactive: {
+      left: 0,
+    },
+    answered: {
+      right: 10,
+    },
+    unanswered: {
+      left: 10,
+    },
+  });
+
+  export function Props_With_Null(isActive, isInactive,items) {
+  const isAnswered = items[isActive] !== null;
+  const [isFirst, setIsFirst] = useState(false);
+
+    return <>
+  <button {...stylex.props(
+        styles.base,
+        ...isFirst === true ? [ styles.active] : [],
+        ...isFirst === true ? [styles.answered, styles.active] : [styles.base],
+        isAnswered ? styles.answered : null,
+        isAnswered ? styles.answered : isInactive ? styles.inactive : null,
+        isAnswered ? styles.answered : styles.unanswered
+      )} />
+    <button {...stylex.props(
+        styles.base,
+        ...isFirst === true ? [ styles.active] : [],
+      )}
+      >Active</button>
+      <button {...stylex.props(
+        styles.base,
+        ...isFirst === true ? [ styles.active] : [],
+      )}
+      >Inactive</button>
+      <button {...stylex.props(
+        styles.base,
+        ...isFirst === true ? [ styles.active] : [],
+      )}
+      >Answered</button>
+      <button {...stylex.props(
+        styles.base,
+        ...isFirst === true ? [ styles.active] : [],
+      )}
+      >Unanswered</button>
+      </>
+  };
+"#
 );

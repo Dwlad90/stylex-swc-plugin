@@ -1,8 +1,9 @@
 use stylex_shared::{
+  StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
     stylex_options::{ModuleResolution, StyleXOptions, StyleXOptionsParams},
-  }, StyleXTransform
+  },
 };
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -56,7 +57,7 @@ test!(
       debug: Some(true),
       enable_debug_class_names: Some(true),
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/js".to_string()
+        "/js".to_string(),
       ))),
       ..StyleXOptionsParams::default()
     };

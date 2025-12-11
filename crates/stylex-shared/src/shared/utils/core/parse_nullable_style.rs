@@ -25,13 +25,13 @@ pub(crate) enum StyleObject {
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum ResolvedArg {
-  StyleObject(StyleObject, Ident, MemberExpr),
+  StyleObject(StyleObject, Vec<Ident>, Vec<MemberExpr>),
   ConditionalStyle(
     Expr,
     Option<StyleObject>,
     Option<StyleObject>,
-    Ident,
-    MemberExpr,
+    Vec<Ident>,
+    Vec<MemberExpr>,
   ),
 }
 
@@ -138,6 +138,9 @@ fn parse_compiled_styles(
           }
         };
       }
+      if compiled_styles.is_empty() {
+        return Some(StyleObject::Other);
+      }
       return Some(StyleObject::Style(compiled_styles.clone()));
     }
     EvaluateResultValue::Expr(expr) => {
@@ -195,6 +198,9 @@ fn parse_nullable_key_value(
     Lit::Bool(bool_lit) => {
       let value = bool_lit.value;
       compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Bool(value)));
+    }
+    Lit::Null(_) => {
+      compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Null));
     }
     _ => {
       panic!("Unhandled literal type in nullable style parsing array",);

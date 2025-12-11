@@ -60,7 +60,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup environment
         uses: ./.github/actions/setup
       - uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2.2.1
@@ -122,7 +122,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup environment
         uses: ./.github/actions/setup-pnpm
       - name: Setup node
@@ -156,7 +156,7 @@ jobs:
           - '22.13.0'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup environment
         uses: ./.github/actions/setup-pnpm
       - name: Setup node
@@ -193,7 +193,7 @@ jobs:
           - '22.13.0'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup environment
         uses: ./.github/actions/setup-pnpm
       - name: Setup node
@@ -254,7 +254,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup environment
         uses: ./.github/actions/setup-pnpm
       - name: Setup node
@@ -271,7 +271,7 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist
       - name: Download previous benchmark data
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./cache
           key: ${{ matrix.settings.target }}-benchmark-${{ matrix.node }}
@@ -309,7 +309,7 @@ jobs:
       - test-linux-x64-gnu-binding
       - test-linux-x64-musl-binding
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
       - name: Download all artifacts

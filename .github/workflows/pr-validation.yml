@@ -59,7 +59,7 @@ jobs:
             return pullRequest
       - name: Checkout PR code
         if: github.event.pull_request.number != null
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{fromJSON(steps.pr.outputs.result).merge_commit_sha}}
           fetch-depth: 0
@@ -67,7 +67,7 @@ jobs:
 
       - name: Checkout branch code
         if: github.event.pull_request.number == null
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup environment
         uses: ./.github/actions/setup
@@ -110,7 +110,7 @@ jobs:
         run: pnpm run --filter "{./packages/*}" --filter "{./crates/*}" check:artifacts
 
       - name: Download previous benchmark data
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./cache
           key: >-
@@ -153,7 +153,7 @@ jobs:
       'dependabot[bot]'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

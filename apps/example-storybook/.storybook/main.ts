@@ -1,28 +1,28 @@
-import type { StorybookConfig } from '@storybook/react-vite';
-import { join, dirname } from 'node:path';
+import type { UserConfig } from 'vite';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-function getAbsolutePath(value: string): string {
-  return dirname(require.resolve(join(value, 'package.json')));
-}
+import { defineMain } from '@storybook/react-vite/node';
 
-const config: StorybookConfig = {
+// @ts-expect-error - its a valid type
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export default defineMain({
   stories: ['../stories/**/*.mdx', '../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
-  addons: [
-    getAbsolutePath('@storybook/addon-links'),
-    getAbsolutePath('@storybook/addon-docs'),
-    getAbsolutePath('@chromatic-com/storybook'),
-  ],
+  addons: ['@storybook/addon-links', '@storybook/addon-docs', '@chromatic-com/storybook'],
   framework: {
-    name: getAbsolutePath('@storybook/react-vite'),
+    name: '@storybook/react-vite',
     options: {},
   },
 
   typescript: {
     /* infer property docs from typescript types  */
     reactDocgen: 'react-docgen-typescript',
+    // @ts-expect-error - its a valid type
     reactDocgenTypescriptOptions: {
       shouldExtractLiteralValuesFromEnum: true,
       shouldRemoveUndefinedFromOptional: true,
+      // @ts-expect-error - its a valid type
       propFilter: prop => {
         /* does property have documentation? */
         const hasDoc = prop.description !== '';
@@ -35,19 +35,19 @@ const config: StorybookConfig = {
     },
   },
 
-  core: {
-    /* use builder-vite for fast startup times and near-instant HMR */
-    builder: {
-      name: '@storybook/builder-vite',
+  async viteFinal(config) {
+    /* use a different config for static build for self-contained setup to
+    include external deps (like react) into the served package */
+    const { mergeConfig } = await import('vite');
+    const configPath = join(__dirname, '../vite-storybook.config.ts');
+    const viteConfig = await import(configPath);
 
-      options: {
-        /* use a different config for static build for self-contained setup to
-        include external deps (like react) into the served package */
-        viteConfigPath: './vite-storybook.config.ts',
-      },
-    },
+    return mergeConfig(config, {
+      plugins: viteConfig.plugins,
+    } as UserConfig);
+  },
+
+  core: {
     disableTelemetry: true,
   },
-};
-
-export default config;
+});

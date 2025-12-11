@@ -55,13 +55,13 @@ colored = { version = "3.0.0" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
 cssparser = { version = "0.36.0" }
-testing = "17.0.0"
-insta = { version = "1.43.2" }
+testing = "19.0.0"
+insta = { version = "1.44.3" }
 anyhow = "1.0.100"
 log = "0.4.28"
 pretty_env_logger = "0.5.0"
 color-backtrace = { version = "0.7.2" }
-ctor = "0.6.0"
+ctor = "0.6.3"
 env_logger = "0.11.8"
 rustc-hash = "2.1.1"
 base62 = { version = "2.2.3" }

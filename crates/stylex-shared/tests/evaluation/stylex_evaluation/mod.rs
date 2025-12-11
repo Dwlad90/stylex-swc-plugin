@@ -1,3 +1,4 @@
+mod evaluate_path_mutation_detection;
 mod evaluating_function_expressions;
 mod evaluation_common;
 mod evaluation_fn_obj;

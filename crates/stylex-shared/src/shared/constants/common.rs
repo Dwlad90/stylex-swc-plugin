@@ -10,6 +10,25 @@ pub(crate) static VALID_CALLEES: phf::Set<&'static str> = phf_set! {
   "String", "Number", "Math", "Object", "Array"
 };
 
+pub(crate) static MUTATING_ARRAY_METHODS: phf::Set<&'static str> = phf_set! {
+  "push",
+  "pop",
+  "shift",
+  "unshift",
+  "splice",
+  "sort",
+  "reverse",
+  "fill",
+  "copyWithin",
+};
+
+pub(crate) static MUTATING_OBJECT_METHODS: phf::Set<&'static str> = phf_set! {
+  "assign",
+  "defineProperty",
+  "defineProperties",
+  "setPrototypeOf",
+};
+
 pub(crate) static INVALID_METHODS: phf::Set<&'static str> = phf_set! {
   "random",
   "assign",

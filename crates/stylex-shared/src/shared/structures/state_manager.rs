@@ -109,7 +109,7 @@ pub struct StateManager {
   pub(crate) function_name_declarations: Vec<Ident>,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
-  pub(crate) all_call_expressions: FxHashMap<u64, CallExpr>,
+  pub all_call_expressions: FxHashMap<u64, CallExpr>,
   pub(crate) var_decl_count_map: AtomHashMap,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
   pub(crate) css_property_seen: FxHashMap<String, String>,
@@ -136,7 +136,7 @@ pub struct StateManager {
   pub(crate) other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
 
-  pub(crate) cycle: TransformationCycle,
+  pub cycle: TransformationCycle,
 }
 
 impl Default for StateManager {

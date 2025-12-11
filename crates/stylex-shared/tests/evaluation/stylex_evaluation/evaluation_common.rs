@@ -21,7 +21,7 @@ use swc_core::{
   },
 };
 
-use crate::evaluation::evaluation_module_transform::EvaluationStyleXTransform;
+use crate::evaluation::evaluation_module_transform::EvaluationStyleXFirstStatementTransform;
 
 #[test]
 fn evaluates_primitive_value_expressions() {
@@ -31,7 +31,7 @@ fn evaluates_primitive_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             1 + 2;
             1 - 2;
@@ -85,7 +85,7 @@ fn evaluates_simple_arrays_and_objects() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             const x = {};
             const x = {name: "Name", age: 43};
@@ -111,7 +111,7 @@ fn evaluates_objects_with_spreads() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             const x = {name: "Name", ...({hero: true}), age: 43};
             const x = {name: "Name", ...({name: "StyleXToOverride", age: 1, name: "StyleX"}), age: 43};
@@ -134,7 +134,7 @@ fn evaluates_built_in_functions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             const x = Object.getOwnPropertyNames({a: 2});
         "#,
@@ -185,7 +185,7 @@ fn evaluates_customs_functions() {
         Box::new(identifiers.clone()),
       );
 
-      fold_pass(EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXFirstStatementTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions,
@@ -239,7 +239,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
         Box::new(FunctionConfigType::Regular(make_class)),
       );
 
-      fold_pass(EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXFirstStatementTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
@@ -288,7 +288,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
         Box::new(FunctionConfigType::Regular(make_obj)),
       );
 
-      fold_pass(EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXFirstStatementTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
@@ -343,7 +343,7 @@ fn evaluates_custom_functions_that_take_paths() {
         Box::new(FunctionConfigType::Regular(get_node)),
       );
 
-      fold_pass(EvaluationStyleXTransform {
+      fold_pass(EvaluationStyleXFirstStatementTransform {
         functions: FunctionMap {
           identifiers,
           member_expressions: FxHashMap::default(),
@@ -369,7 +369,7 @@ fn evaluates_unary_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             !1;
             !0;
@@ -420,7 +420,7 @@ fn evaluates_void_unary_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
               void 1;
 
@@ -438,7 +438,7 @@ fn evaluates_delete_unary_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
               delete a.b;
 
@@ -455,7 +455,7 @@ fn evaluates_sequence_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             (1,2,3);
             (1,2,3,4,5);
@@ -483,7 +483,7 @@ fn evaluates_ts_as_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             (3 as number) * (4 as number);
         "#,
@@ -501,7 +501,7 @@ fn evaluates_ts_satisfies_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             (3 satisfies number) * (4 satisfies number);
         "#,
@@ -519,7 +519,7 @@ fn evaluates_condition_value_expressions() {
       ..Default::default()
     }),
     Option::None,
-    |_| EvaluationStyleXTransform::default_with_pass(),
+    |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
             2 > 1 ? 1 : 0
             2 < 1 ? 1 : 0

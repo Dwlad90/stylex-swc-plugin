@@ -31,6 +31,32 @@ function evaluateFirstStatement(code, functions) {
         return result.value;
     }
 }
+function evaluateLastStatement(code, functions) {
+    const ast = parse(code);
+    let result;
+    traverse(ast, {
+        Program (path, state) {
+            const stateManager = new StateManager({
+                ...state,
+                file: {
+                    metadata: {}
+                }
+            });
+            const statements = path.get('body');
+            const last = statements[statements.length - 1];
+            if (last.isExpressionStatement()) {
+                result = evaluate(last.get('expression'), stateManager, functions);
+            }
+        }
+    });
+    if (result === undefined || result.confident === false) {
+        return {
+            confident: false
+        };
+    } else {
+        return result.value;
+    }
+}
 describe('custom path evaluation works as expected', ()=>{
     test('Evaluates Primitive Value expressions', ()=>{
         expect(evaluateFirstStatement('1 + 2', {})).toBe(3);
@@ -222,6 +248,48 @@ describe('custom path evaluation works as expected', ()=>{
         test('Methods called by string should be bind', ()=>{
             expect(evaluateFirstStatement('const x = "".concat("10px"," ").concat("10px");', {})).toBe('10px 10px');
             expect(evaluateFirstStatement('const x = "abc".charCodeAt(0);', {})).toBe(97);
+        });
+    });
+    describe('evaluate-path mutation detection', ()=>{
+        test('evaluates constant array correctly', ()=>{
+            const code = `
+        const a = [1, 2];
+        a;
+      `;
+            expect(evaluateLastStatement(code, {})).toEqual([
+                1,
+                2
+            ]);
+        });
+        test('should bail out when array is mutated via push', ()=>{
+            const code = `
+        const a = [1, 2];
+        a.push(3);
+        a;
+      `;
+            expect(evaluateLastStatement(code, {})).toEqual({
+                confident: false
+            });
+        });
+        test('should bail out when array is mutated via assignment', ()=>{
+            const code = `
+        const a = [1, 2];
+        a[0] = 3;
+        a;
+      `;
+            expect(evaluateLastStatement(code, {})).toEqual({
+                confident: false
+            });
+        });
+        test('should bail out when object is mutated via Object.assign', ()=>{
+            const code = `
+        const a = {bar: 'baz'};
+        Object.assign(a, {foo: 1});
+        a;
+      `;
+            expect(evaluateLastStatement(code, {})).toEqual({
+                confident: false
+            });
         });
     });
 });

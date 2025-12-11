@@ -1,6 +1,6 @@
 // Represents the current state of a plugin for a file.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
-pub(crate) enum TransformationCycle {
+pub enum TransformationCycle {
   // The plugin is being processed
   TransformEnter,
   // The plugin has been processed

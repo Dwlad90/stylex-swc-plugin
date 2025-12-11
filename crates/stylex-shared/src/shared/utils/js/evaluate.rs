@@ -2,7 +2,11 @@ use core::panic;
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
-use crate::{collect_confident, expr_to_str_or_deopt, panic_with_context, unwrap_or_panic};
+use crate::{
+  collect_confident, expr_to_str_or_deopt, panic_with_context,
+  shared::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS},
+  unwrap_or_panic,
+};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -12,9 +16,10 @@ use swc_core::{
   common::{DUMMY_SP, EqIgnoreSpan, SyntaxContext},
   ecma::{
     ast::{
-      ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
-      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit,
-      OptChainBase, Pat, Prop, PropName, PropOrSpread, TplElement, UnaryOp, VarDeclarator,
+      ArrayLit, AssignTarget, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr,
+      ExprOrSpread, Ident, ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName,
+      Number, ObjectLit, OptChainBase, Pat, Prop, PropName, PropOrSpread, SimpleAssignTarget,
+      TplElement, UnaryOp, VarDeclarator,
     },
     utils::{ExprExt, drop_span, ident::IdentLike, quote_ident},
   },
@@ -215,6 +220,10 @@ fn _evaluate(
   }
 
   let normalized_path = normalize_expr(path);
+
+  if is_mutation_expr(normalized_path) {
+    return deopt(path, state, NON_CONSTANT);
+  }
 
   let result: Option<EvaluateResultValue> = match normalized_path {
     Expr::Arrow(arrow) => {
@@ -1006,9 +1015,13 @@ fn _evaluate(
           let property = &member.prop;
 
           if object.is_ident() {
-            let obj_ident = object.as_ident().unwrap();
+            let obj_ident = object.as_ident().expect("Object is not an identifier");
 
             if property.is_ident() {
+              if is_mutating_object_method(property) {
+                return deopt(path, state, NON_CONSTANT);
+              }
+
               if is_valid_callee(object) && !is_invalid_method(property) {
                 let callee_name = get_callee_name(object);
                 let method_name = get_method_name(property);
@@ -1390,6 +1403,10 @@ fn _evaluate(
                 let prop_ident = property.as_ident().expect("Property is not an identifier");
                 let prop_name = prop_ident.sym.to_string();
 
+                if is_mutating_array_method(property) {
+                  return deopt(path, state, NON_CONSTANT);
+                }
+
                 let value = parsed_obj.value.expect("Parsed object has no value");
 
                 match value.clone() {
@@ -1415,7 +1432,7 @@ fn _evaluate(
                         _ => panic_with_context!(
                           path,
                           traversal_state,
-                          format!("Array method '{}' implemented yet", prop_name).as_str()
+                          format!("Array method '{}' not implemented yet", prop_name).as_str()
                         ),
                       })),
                       takes_path: false,
@@ -2304,6 +2321,58 @@ fn get_callee_name(callee: &Expr) -> &str {
 fn is_invalid_method(prop: &MemberProp) -> bool {
   match prop {
     MemberProp::Ident(ident_prop) => INVALID_METHODS.contains(&*ident_prop.sym),
+    _ => false,
+  }
+}
+
+/// Checks if a member property represents a mutating object method (Object.assign, etc.)
+fn is_mutating_object_method(prop: &MemberProp) -> bool {
+  if let MemberProp::Ident(ident_prop) = prop {
+    MUTATING_OBJECT_METHODS.contains(&*ident_prop.sym)
+  } else {
+    false
+  }
+}
+
+/// Checks if a member property represents a mutating array method (push, pop, splice, etc.)
+fn is_mutating_array_method(prop: &MemberProp) -> bool {
+  if let MemberProp::Ident(ident_prop) = prop {
+    MUTATING_ARRAY_METHODS.contains(&*ident_prop.sym)
+  } else {
+    false
+  }
+}
+
+/// Checks if an expression represents a mutation operation
+/// Returns true if any of the following conditions are met:
+/// - Assignment to a member expression (e.g., `a.x = 1` or `a[0] = 1`)
+/// - Update expression on a member (e.g., `++a.x` or `a[0]++`)
+/// - Delete operation on a member (e.g., `delete a.x`)
+fn is_mutation_expr(expr: &Expr) -> bool {
+  match expr {
+    // Check for assignment to member: a.x = 1 or a[0] = 1
+    Expr::Assign(assign)
+      if matches!(
+        &assign.left,
+        AssignTarget::Simple(SimpleAssignTarget::Member(member)) if member.obj.is_ident()
+      ) =>
+    {
+      true
+    }
+
+    // Check for update on member: ++a.x or a[0]++
+    Expr::Update(update) if matches!(&*update.arg, Expr::Member(member) if member.obj.is_ident()) => {
+      true
+    }
+
+    // Check for delete on member: delete a.x
+    Expr::Unary(unary)
+      if unary.op == UnaryOp::Delete
+        && matches!(&*unary.arg, Expr::Member(member) if member.obj.is_ident()) =>
+    {
+      true
+    }
+
     _ => false,
   }
 }

@@ -15,10 +15,10 @@ use super::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EvaluateResult {
-  pub(crate) confident: bool,
+  pub confident: bool,
   pub value: Option<EvaluateResultValue>,
   pub(crate) deopt: Option<Expr>,
-  pub(crate) reason: Option<String>,
+  pub reason: Option<String>,
   pub(crate) inline_styles: Option<TInlineStyles>,
   pub(crate) fns: Option<DynamicFns>,
 }

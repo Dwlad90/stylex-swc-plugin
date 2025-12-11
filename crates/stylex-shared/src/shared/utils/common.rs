@@ -483,7 +483,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
   key_values
 }
 
-pub(crate) fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
+pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
   module.clone().body.iter().for_each(|item| match &item {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => {
       if let Decl::Var(decl_var) = &export_decl.decl {
@@ -646,7 +646,7 @@ pub(crate) fn char_code_at(s: &str, index: usize) -> Option<u32> {
   s.chars().nth(index).map(|c| c as u32)
 }
 
-pub(crate) fn stable_hash<T: Hash>(t: &T) -> u64 {
+pub fn stable_hash<T: Hash>(t: &T) -> u64 {
   let mut hasher = DefaultHasher::new();
   t.hash(&mut hasher);
   hasher.finish()

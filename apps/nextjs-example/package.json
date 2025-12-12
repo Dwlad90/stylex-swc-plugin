@@ -24,7 +24,7 @@
     "@stylexjs/stylex": "^0.17.2",
     "@stylexswc/design-system": "0.13.1",
     "@stylexswc/nextjs-plugin": "0.13.1",
-    "next": "^16.0.7",
+    "next": "^16.0.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

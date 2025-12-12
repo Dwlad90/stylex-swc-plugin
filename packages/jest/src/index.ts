@@ -1,5 +1,5 @@
 import { transform, normalizeRsOptions, shouldTransformFile } from '@stylexswc/rs-compiler';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
 import type { TransformerCreator, SyncTransformer } from '@jest/transform';

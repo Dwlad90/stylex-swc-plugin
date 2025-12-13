@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler-linux-arm64-gnu",
   "description": "NAPI-RS compiler for transform StyleX code",
-  "version": "0.13.1",
+  "version": "0.14.0-rc.1",
   "private": false,
   "license": "MIT",
   "files": [

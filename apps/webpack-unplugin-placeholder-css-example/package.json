@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-unplugin-placeholder-css-example",
   "description": "A simple webpack unplugin placeholder css example to test @stylexswc/unplugin/webpack",
-  "version": "0.14.0-rc.1",
+  "version": "0.14.0-rc.2",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -13,15 +13,15 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.17.2",
-    "@stylexswc/design-system": "0.14.0-rc.1",
-    "@stylexswc/rs-compiler": "0.14.0-rc.1",
-    "@stylexswc/unplugin": "0.14.0-rc.1",
+    "@stylexswc/design-system": "0.14.0-rc.2",
+    "@stylexswc/rs-compiler": "0.14.0-rc.2",
+    "@stylexswc/unplugin": "0.14.0-rc.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
-    "@stylexswc/playwright": "0.14.0-rc.1",
+    "@stylexswc/playwright": "0.14.0-rc.2",
     "@swc/core": "^1.13.3",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

@@ -152,6 +152,37 @@ module.exports = config;
 - Description: Custom CSS transformation function. Since the plugin injects CSS
   after all loaders, use this to apply PostCSS or other CSS transformations.
 
+#### `cacheGroup`
+
+- Type: `CacheGroupOptions` (webpack cache group configuration)
+- Optional
+- Description: Allows overriding the default webpack cache group parameters for StyleX CSS extraction.
+  By default, the plugin creates a dedicated cache group named `stylex` for extracted StyleX CSS.
+  Use this option to customize cache group behavior such as chunk naming, priority, or other split chunks options.
+
+**Default cache group configuration:**
+```javascript
+{
+  name: 'stylex',
+  test: /\.stylex\.virtual\.css$/,
+  type: 'css/mini-extract',
+  chunks: 'all',
+  enforce: true,
+}
+```
+
+**Example - Custom cache group:**
+```javascript
+new StylexPlugin({
+  cacheGroup: {
+    name: 'my-stylex-bundle',
+    chunks: 'initial',
+    priority: 20,
+    enforce: true,
+  },
+})
+```
+
 ### Example Configuration
 
 ```javascript
@@ -175,6 +206,11 @@ module.exports = {
         const postcss = require('postcss');
         const result = await postcss([require('autoprefixer')]).process(css);
         return result.css;
+      },
+      // Optional: Override cache group settings
+      cacheGroup: {
+        name: 'stylex',
+        priority: 30,
       },
     }),
   ],

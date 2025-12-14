@@ -17,6 +17,7 @@ import type {
   StyleXPluginOption,
   StyleXWebpackLoaderOptions,
   SupplementedLoaderContext,
+  CacheGroupOptions,
 } from './types';
 import type { CssModule } from 'mini-css-extract-plugin';
 
@@ -42,7 +43,7 @@ export default class StyleXPlugin {
   useCSSLayers: boolean;
 
   loaderOption: StyleXWebpackLoaderOptions;
-
+  cacheGroup?: CacheGroupOptions;
   transformCss: CSSTransformer;
   loaderOrder: StyleXPluginOption['loaderOrder'];
   constructor({
@@ -53,6 +54,7 @@ export default class StyleXPlugin {
     transformCss = identityTransfrom,
     extractCSS = true,
     loaderOrder = 'first',
+    cacheGroup,
   }: StyleXPluginOption = {}) {
     this.useCSSLayers = useCSSLayers;
     this.loaderOption = {
@@ -71,6 +73,7 @@ export default class StyleXPlugin {
     };
     this.transformCss = transformCss;
     this.loaderOrder = loaderOrder;
+    this.cacheGroup = cacheGroup;
   }
 
   apply(compiler: webpack.Compiler) {
@@ -85,7 +88,7 @@ export default class StyleXPlugin {
     }
 
     compiler.options.optimization.splitChunks.cacheGroups ??= {};
-    compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME] = {
+    compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME] = this.cacheGroup ?? {
       name: STYLEX_CHUNK_NAME,
       test: VIRTUAL_CSS_PATTERN,
       type: 'css/mini-extract',
@@ -138,8 +141,7 @@ export default class StyleXPlugin {
               },
             };
 
-            const insertMethod =
-              this.loaderOrder === 'last' ? 'unshift' : 'push';
+            const insertMethod = this.loaderOrder === 'last' ? 'unshift' : 'push';
 
             mod.loaders[insertMethod]({
               loader: stylexLoaderPath,
@@ -243,12 +245,13 @@ export default class StyleXPlugin {
   }
 }
 
-export { VIRTUAL_CSS_PATTERN };
+export { VIRTUAL_CSS_PATTERN, STYLEX_CHUNK_NAME };
 
-export type { StyleXPluginOption } from './types';
+export type { StyleXPluginOption, CacheGroupOptions } from './types';
 
 module.exports = StyleXPlugin;
 module.exports.default = StyleXPlugin;
 module.exports.loader = stylexLoaderPath;
 module.exports.virtualLoader = stylexVirtualLoaderPath;
 module.exports.VIRTUAL_CSS_PATTERN = VIRTUAL_CSS_PATTERN;
+module.exports.STYLEX_CHUNK_NAME = STYLEX_CHUNK_NAME;

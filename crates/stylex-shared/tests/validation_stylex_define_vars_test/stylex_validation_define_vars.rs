@@ -191,6 +191,126 @@ test!(
         "#
 );
 
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::new(None, None),
+      None,
+    )
+  },
+  valid_export_separate_const_and_export_statement,
+  r#"
+          import * as stylex from '@stylexjs/stylex';
+          const vars = stylex.defineVars({});
+          export { vars };
+        "#
+);
+
+#[test]
+#[should_panic(expected = "The return value of defineVars() must be bound to a named export.")]
+fn invalid_export_re_export_from_another_file_does_not_count() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::new(None, None),
+        None,
+      )
+    },
+    r#"
+          import * as stylex from '@stylexjs/stylex';
+          const vars = stylex.defineVars({});
+          export { vars } from './other.stylex.js';
+        "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(expected = "The return value of defineVars() must be bound to a named export.")]
+fn invalid_export_renamed_re_export_from_another_file_does_not_count() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::new(None, None),
+        None,
+      )
+    },
+    r#"
+          import * as stylex from '@stylexjs/stylex';
+          const vars = stylex.defineVars({});
+          export { vars as otherVars } from './other.stylex.js';
+        "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(expected = "The return value of defineVars() must be bound to a named export.")]
+fn invalid_export_default_export_does_not_count() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::new(None, None),
+        None,
+      )
+    },
+    r#"
+          import * as stylex from '@stylexjs/stylex';
+          const vars = stylex.defineVars({});
+          export default vars;
+        "#,
+    r#""#,
+  )
+}
+
+#[test]
+#[should_panic(expected = "The return value of defineVars() must be bound to a named export.")]
+fn invalid_export_renamed_export_with_as_syntax() {
+  test_transform(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    Option::None,
+    |tr| {
+      StyleXTransform::new_test_force_runtime_injection_with_pass(
+        tr.comments.clone(),
+        PluginPass::new(None, None),
+        None,
+      )
+    },
+    r#"
+          import * as stylex from '@stylexjs/stylex';
+          const vars = stylex.defineVars({});
+          export { vars as themeVars };
+        "#,
+    r#""#,
+  )
+}
+
 /* Properties */
 
 #[test]

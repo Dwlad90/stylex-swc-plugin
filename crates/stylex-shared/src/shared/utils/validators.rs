@@ -16,12 +16,14 @@ use crate::shared::{
     },
   },
   enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+    evaluate_result_value::EvaluateResultValue, top_level_expression::TopLevelExpression,
   },
   structures::state_manager::StateManager,
   utils::{
-    ast::{convertors::string_to_expression, factories::key_value_ident_factory},
+    ast::{
+      convertors::string_to_expression, factories::key_value_ident_factory,
+      helpers::is_variable_named_exported,
+    },
     common::get_import_from,
     log::build_code_frame_error::build_code_frame_error_and_panic,
   },
@@ -380,9 +382,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
     );
   }
 
-  let TopLevelExpression(kind, _, _) = stylex_create_theme_top_level_expr;
-
-  if !matches!(kind, TopLevelExpressionKind::NamedExport) {
+  if !is_variable_named_exported(stylex_create_theme_top_level_expr, state) {
     build_code_frame_error_and_panic(
       &call_expr,
       &call_expr,
@@ -428,10 +428,7 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
     ),
   };
 
-  if !matches!(
-    define_marker_top_level_expr.0,
-    TopLevelExpressionKind::NamedExport
-  ) {
+  if !is_variable_named_exported(define_marker_top_level_expr, state) {
     build_code_frame_error_and_panic(
       &call_expr,
       &call_expr,
@@ -486,10 +483,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
     );
   }
 
-  if !matches!(
-    define_consts_top_level_expr.0,
-    TopLevelExpressionKind::NamedExport
-  ) {
+  if !is_variable_named_exported(define_consts_top_level_expr, state) {
     build_code_frame_error_and_panic(
       &call_expr,
       &call_expr,

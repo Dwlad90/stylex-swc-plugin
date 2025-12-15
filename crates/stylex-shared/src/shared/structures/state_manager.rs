@@ -16,7 +16,7 @@ use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
-    ast::{JSXAttrOrSpread, Module, Program},
+    ast::{JSXAttrOrSpread, Module, NamedExport, Program},
     utils::drop_span,
   },
 };
@@ -135,6 +135,7 @@ pub struct StateManager {
 
   pub(crate) other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
+  pub(crate) named_exports: FxHashSet<NamedExport>,
 
   pub cycle: TransformationCycle,
 }
@@ -180,6 +181,7 @@ impl StateManager {
       span_cache: FxHashMap::default(),
 
       top_imports: vec![],
+      named_exports: FxHashSet::default(),
 
       declarations: vec![],
       class_name_declarations: vec![],

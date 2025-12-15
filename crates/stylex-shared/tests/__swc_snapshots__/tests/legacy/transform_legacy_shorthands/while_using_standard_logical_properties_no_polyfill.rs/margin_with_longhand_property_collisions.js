@@ -1,12 +1,36 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".x1ok221b{margin-top:5px}", 4000);
-_inject2(".xu06os2{margin-bottom:5px}", 4000);
-_inject2(".xpcyujq{margin-inline-start:5px}", 3000);
-_inject2(".x1sa5p1d{margin-inline-end:10px}", 3000);
-_inject2(".xr9ek0c{margin-top:2px}", 4000);
-_inject2(".xnnr8r{margin-inline-end:2px}", 3000);
-_inject2(".xjpr12u{margin-bottom:2px}", 4000);
-_inject2(".x1hm9lzh{margin-inline-start:10px}", 3000);
+_inject2({
+    ltr: ".x1ok221b{margin-top:5px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".xu06os2{margin-bottom:5px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".xpcyujq{margin-inline-start:5px}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".x1sa5p1d{margin-inline-end:10px}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".xr9ek0c{margin-top:2px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".xnnr8r{margin-inline-end:2px}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".xjpr12u{margin-bottom:2px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".x1hm9lzh{margin-inline-start:10px}",
+    priority: 3000
+});
 "xr9ek0c xnnr8r xjpr12u x1hm9lzh";

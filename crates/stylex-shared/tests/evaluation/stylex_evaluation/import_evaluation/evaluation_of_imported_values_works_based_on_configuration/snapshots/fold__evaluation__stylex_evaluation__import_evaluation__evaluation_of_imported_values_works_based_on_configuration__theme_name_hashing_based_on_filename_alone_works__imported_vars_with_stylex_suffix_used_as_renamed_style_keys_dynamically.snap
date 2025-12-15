@@ -7,8 +7,14 @@ var _inject2 = _inject;
 import "otherFile.stylex";
 import stylex from 'stylex';
 import { theme as MyTheme } from 'otherFile.stylex';
-_inject2(".__hashed_var__1kf7ake{--__hashed_var__11epo5g:var(--x---__hashed_var__11epo5g)}", 1);
-_inject2('@property --x---__hashed_var__11epo5g { syntax: "*"; inherits: false; }', 0);
+_inject2({
+    ltr: ".__hashed_var__1kf7ake{--__hashed_var__11epo5g:var(--x---__hashed_var__11epo5g)}",
+    priority: 1
+});
+_inject2({
+    ltr: '@property --x---__hashed_var__11epo5g { syntax: "*"; inherits: false; }',
+    priority: 0
+});
 export const styles = {
     color: (color)=>[
             {

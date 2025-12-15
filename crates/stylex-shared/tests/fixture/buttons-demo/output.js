@@ -34,22 +34,55 @@ export default function ButtonsDemo(props) {
       </ThemeableButton>
     </div>;
 }
-_inject2(".x1582kvi, .x1582kvi:root{--bgColor-xxn4pt7:red;--cornerRadius-xebqz1:4px;--paddingBlock-x9c4myw:4px;--paddingInline-xscmh3t:8px;--textColor-xnblhe2:white;}", 0.5);
+_inject2({
+    ltr: ".x1582kvi, .x1582kvi:root{--bgColor-xxn4pt7:red;--cornerRadius-xebqz1:4px;--paddingBlock-x9c4myw:4px;--paddingInline-xscmh3t:8px;--textColor-xnblhe2:white;}",
+    priority: 0.5
+});
 const redTheme = {
     input__redTheme: "input__redTheme",
     xhq9i64: "x1582kvi xhq9i64",
     $$css: true
 };
-_inject2(".display-x78zum5{display:flex}", 3000);
-_inject2(".flexDirection-xdt5ytf{flex-direction:column}", 3000);
-_inject2(".alignItems-x6s0dn4{align-items:center}", 3000);
-_inject2(".justifyContent-xl56j7k{justify-content:center}", 3000);
-_inject2(".gap-xou54vl{gap:16px}", 2000);
-_inject2(".paddingBottom-xzk7aed{padding-bottom:64px}", 4000);
-_inject2(".borderWidth-xdh2fpr{border-width:2px}", 2000);
-_inject2(".borderStyle-x1y0btm7{border-style:solid}", 2000);
-_inject2(".borderColor-x71xlcl{border-color:red}", 2000);
-_inject2(".borderColor-x1bg2uv5{border-color:green}", 2000);
+_inject2({
+    ltr: ".display-x78zum5{display:flex}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".flexDirection-xdt5ytf{flex-direction:column}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".alignItems-x6s0dn4{align-items:center}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".justifyContent-xl56j7k{justify-content:center}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".gap-xou54vl{gap:16px}",
+    priority: 2000
+});
+_inject2({
+    ltr: ".paddingBottom-xzk7aed{padding-bottom:64px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".borderWidth-xdh2fpr{border-width:2px}",
+    priority: 2000
+});
+_inject2({
+    ltr: ".borderStyle-x1y0btm7{border-style:solid}",
+    priority: 2000
+});
+_inject2({
+    ltr: ".borderColor-x71xlcl{border-color:red}",
+    priority: 2000
+});
+_inject2({
+    ltr: ".borderColor-x1bg2uv5{border-color:green}",
+    priority: 2000
+});
 const styles = {
     container: {
         display: "display-x78zum5",
@@ -71,13 +104,19 @@ const styles = {
         $$css: "tests/fixture/buttons-demo/input.stylex.js:55"
     }
 };
-_inject2(".xm1pwqw, .xm1pwqw:root{--background-x166rmrk:#000;--text-x1rr8s3j:#fff;}", 0.5);
+_inject2({
+    ltr: ".xm1pwqw, .xm1pwqw:root{--background-x166rmrk:#000;--text-x1rr8s3j:#fff;}",
+    priority: 0.5
+});
 const priorityIntent = {
     input__priorityIntent: "input__priorityIntent",
     xhq9i64: "xm1pwqw xhq9i64",
     $$css: true
 };
-_inject2(".x1h9f7e8, .x1h9f7e8:root{--background-x166rmrk:#000000;--text-x1rr8s3j:#555555;}", 0.5);
+_inject2({
+    ltr: ".x1h9f7e8, .x1h9f7e8:root{--background-x166rmrk:#000000;--text-x1rr8s3j:#555555;}",
+    priority: 0.5
+});
 const defaultIntent = {
     input__defaultIntent: "input__defaultIntent",
     xhq9i64: "x1h9f7e8 xhq9i64",

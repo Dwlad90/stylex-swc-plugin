@@ -1,15 +1,9 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{
-    ast::NamedExport,
-    visit::FoldWith,
-  },
+  ecma::{ast::NamedExport, visit::FoldWith},
 };
 
-use crate::{
-  StyleXTransform,
-  shared::enums::core::TransformationCycle,
-};
+use crate::{StyleXTransform, shared::enums::core::TransformationCycle};
 
 impl<C> StyleXTransform<C>
 where

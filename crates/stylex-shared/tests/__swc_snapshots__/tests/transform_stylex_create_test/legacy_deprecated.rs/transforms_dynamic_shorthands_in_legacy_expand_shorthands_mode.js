@@ -6,17 +6,50 @@ const _temp = {
     keoZOQ: "x1gkbulp",
     $$css: true
 };
-_inject2(".xrkmrrc{background-color:red}", 3000);
-_inject2(".x17e2bsb{margin-inline-end:var(--x-14mfytm)}", 3000);
-_inject2(".xtcj1g9:hover{margin-inline-end:var(--x-yepcm9)}", 3130);
-_inject2(".xg6eqc8{margin-bottom:var(--x-14mfytm)}", 4000);
-_inject2(".xgrn1a3:hover{margin-bottom:var(--x-yepcm9)}", 4130);
-_inject2(".x19ja4a5{margin-inline-start:var(--x-14mfytm)}", 3000);
-_inject2(".x2tye95:hover{margin-inline-start:var(--x-yepcm9)}", 3130);
-_inject2(".x1gkbulp{margin-top:var(--x-marginTop)}", 4000);
-_inject2('@property --x-14mfytm { syntax: "*"; inherits: false; }', 0);
-_inject2('@property --x-yepcm9 { syntax: "*"; }', 0);
-_inject2('@property --x-marginTop { syntax: "*"; inherits: false; }', 0);
+_inject2({
+    ltr: ".xrkmrrc{background-color:red}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".x17e2bsb{margin-inline-end:var(--x-14mfytm)}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".xtcj1g9:hover{margin-inline-end:var(--x-yepcm9)}",
+    priority: 3130
+});
+_inject2({
+    ltr: ".xg6eqc8{margin-bottom:var(--x-14mfytm)}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".xgrn1a3:hover{margin-bottom:var(--x-yepcm9)}",
+    priority: 4130
+});
+_inject2({
+    ltr: ".x19ja4a5{margin-inline-start:var(--x-14mfytm)}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".x2tye95:hover{margin-inline-start:var(--x-yepcm9)}",
+    priority: 3130
+});
+_inject2({
+    ltr: ".x1gkbulp{margin-top:var(--x-marginTop)}",
+    priority: 4000
+});
+_inject2({
+    ltr: '@property --x-14mfytm { syntax: "*"; inherits: false; }',
+    priority: 0
+});
+_inject2({
+    ltr: '@property --x-yepcm9 { syntax: "*"; }',
+    priority: 0
+});
+_inject2({
+    ltr: '@property --x-marginTop { syntax: "*"; inherits: false; }',
+    priority: 0
+});
 export const styles = {
     default: (margin)=>[
             _temp,

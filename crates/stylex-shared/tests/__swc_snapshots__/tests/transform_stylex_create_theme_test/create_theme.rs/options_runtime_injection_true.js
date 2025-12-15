@@ -7,7 +7,10 @@ export const vars = {
     radius: "var(--xbbre8)",
     __varGroupHash__: "xop34xu"
 };
-_inject2(".xowvtgn, .xowvtgn:root{--xwx8imx:orange;}", 0.5);
+_inject2({
+    ltr: ".xowvtgn, .xowvtgn:root{--xwx8imx:orange;}",
+    priority: 0.5
+});
 export const theme = {
     xop34xu: "xowvtgn xop34xu",
     $$css: true

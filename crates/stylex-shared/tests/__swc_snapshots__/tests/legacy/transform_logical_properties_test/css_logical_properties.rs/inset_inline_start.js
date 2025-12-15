@@ -1,4 +1,7 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".x1o0tod{inset-inline-start:0}", 3000);
+_inject2({
+    ltr: ".x1o0tod{inset-inline-start:0}",
+    priority: 3000
+});

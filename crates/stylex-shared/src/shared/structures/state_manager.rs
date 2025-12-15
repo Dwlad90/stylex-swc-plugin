@@ -16,7 +16,7 @@ use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
-    ast::{JSXAttrOrSpread, Module, NamedExport, Program},
+    ast::{ExprOrSpread, JSXAttrOrSpread, Module, NamedExport, Program},
     utils::drop_span,
   },
 };
@@ -32,8 +32,12 @@ use swc_core::{
 use crate::shared::{
   constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
   structures::{types::InjectableStylesMap, uid_generator::CounterMode},
-  utils::ast::factories::{
-    expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
+  utils::ast::{
+    convertors::number_to_expression,
+    factories::{
+      expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
+      object_expression_factory, prop_or_spread_expression_factory, prop_or_spread_string_factory,
+    },
   },
 };
 use crate::shared::{
@@ -644,14 +648,14 @@ impl StateManager {
     fallback_ast: Option<&Expr>,
   ) {
     let priority = metadata.get_priority();
-    let css = metadata.get_css();
+    let css_ltr = metadata.get_css();
     let css_rtl = metadata.get_css_rtl();
     let const_key = metadata.get_const_key();
     let const_value = metadata.get_const_value();
 
     let mut stylex_inject_args = vec![
-      expr_or_spread_string_expression_factory(css),
-      expr_or_spread_number_expression_factory(round_f64(*priority, 1)),
+      prop_or_spread_string_factory("ltr", css_ltr),
+      prop_or_spread_expression_factory("priority", number_to_expression(round_f64(*priority, 1))),
     ];
 
     if let Some(const_key) = const_key
@@ -662,19 +666,27 @@ impl StateManager {
         Err(_) => expr_or_spread_string_expression_factory(const_value),
       };
 
-      stylex_inject_args.push(expr_or_spread_string_expression_factory(const_key));
-      stylex_inject_args.push(const_value_expr);
+      stylex_inject_args.push(prop_or_spread_string_factory("constKey", const_key));
+      stylex_inject_args.push(prop_or_spread_expression_factory(
+        "constVal",
+        *const_value_expr.expr,
+      ));
     }
 
     if let Some(rtl) = css_rtl {
-      stylex_inject_args.push(expr_or_spread_string_expression_factory(rtl));
+      stylex_inject_args.push(prop_or_spread_string_factory("rtl", rtl));
     }
+
+    let stylex_inject_obj = object_expression_factory(stylex_inject_args);
 
     let stylex_call_expr = CallExpr {
       span: DUMMY_SP,
       type_args: None,
       callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
-      args: stylex_inject_args,
+      args: vec![ExprOrSpread {
+        expr: Box::new(stylex_inject_obj),
+        spread: None,
+      }],
       ctxt: SyntaxContext::empty(),
     };
 

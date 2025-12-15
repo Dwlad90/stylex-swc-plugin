@@ -30,14 +30,38 @@ export default function Button(param) {
 }
 _s(Button, "XPeb32THZfEWB+gFvzI8fl0TbTY=");
 _c = Button;
-_inject2(".backgroundColor-xrkmrrc{background-color:red}", 3000);
-_inject2(".color-x1awj2ng{color:white}", 3000);
-_inject2(".display-x1lliihq{display:block}", 3000);
-_inject2(".fontSize-x1j61zf2{font-size:16px}", 3000);
-_inject2(".paddingBottom-xsag5q8{padding-bottom:12px}", 4000);
-_inject2(".paddingLeft-x5tiur9{padding-left:20px}", 4000);
-_inject2(".paddingRight-x1s7jvk7{padding-right:20px}", 4000);
-_inject2(".paddingTop-xz9dl7a{padding-top:12px}", 4000);
+_inject2({
+    ltr: ".backgroundColor-xrkmrrc{background-color:red}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".color-x1awj2ng{color:white}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".display-x1lliihq{display:block}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".fontSize-x1j61zf2{font-size:16px}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".paddingBottom-xsag5q8{padding-bottom:12px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".paddingLeft-x5tiur9{padding-left:20px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".paddingRight-x1s7jvk7{padding-right:20px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".paddingTop-xz9dl7a{padding-top:12px}",
+    priority: 4000
+});
 const styles = {
     primary: {
         backgroundColor: "backgroundColor-xrkmrrc",

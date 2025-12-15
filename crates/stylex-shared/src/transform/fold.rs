@@ -23,9 +23,8 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{
-      ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, Ident,
-      ImportDecl, MemberExpr, MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt,
-      VarDeclarator,
+      ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr,
+      MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt, VarDeclarator,
     },
     visit::{Fold, noop_fold_type},
   },

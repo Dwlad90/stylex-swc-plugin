@@ -1,13 +1,36 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".paddingTop-x123j3cw{padding-top:5px}", 4000);
-_inject2(".paddingBottom-xs9asl8{padding-bottom:5px}", 4000);
-_inject2(".paddingInlineStart-xaso8d8{padding-left:5px}", 3000, ".paddingInlineStart-xaso8d8{padding-right:5px}");
-_inject2(".paddingInlineEnd-x2vl965{padding-right:10px}", 3000, ".paddingInlineEnd-x2vl965{padding-left:10px}");
-_inject2(".paddingTop-x1nn3v0j{padding-top:2px}", 4000);
-_inject2(".paddingBottom-x1120s5i{padding-bottom:2px}", 4000);
-_inject2(".paddingLeft-xnljgj5{padding-left:22px}", 4000);
+_inject2({
+    ltr: ".paddingTop-x123j3cw{padding-top:5px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".paddingBottom-xs9asl8{padding-bottom:5px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".paddingInlineStart-xaso8d8{padding-left:5px}",
+    priority: 3000,
+    rtl: ".paddingInlineStart-xaso8d8{padding-right:5px}"
+});
+_inject2({
+    ltr: ".paddingInlineEnd-x2vl965{padding-right:10px}",
+    priority: 3000,
+    rtl: ".paddingInlineEnd-x2vl965{padding-left:10px}"
+});
+_inject2({
+    ltr: ".paddingTop-x1nn3v0j{padding-top:2px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".paddingBottom-x1120s5i{padding-bottom:2px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".paddingLeft-xnljgj5{padding-left:22px}",
+    priority: 4000
+});
 const styles = {
     foo: {
         "paddingTop-kLKAdn": "paddingTop-x123j3cw",

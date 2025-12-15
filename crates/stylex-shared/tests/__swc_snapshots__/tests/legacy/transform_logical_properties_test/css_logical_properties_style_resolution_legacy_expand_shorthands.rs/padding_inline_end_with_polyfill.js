@@ -1,5 +1,9 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".x2vl965{padding-right:10px}", 3000, ".x2vl965{padding-left:10px}");
+_inject2({
+    ltr: ".x2vl965{padding-right:10px}",
+    priority: 3000,
+    rtl: ".x2vl965{padding-left:10px}"
+});
 export const classnames = "x2vl965";

@@ -4,8 +4,14 @@ import stylex from 'stylex';
 ({
     className: "x17z2mba xc445zv"
 });
-_inject2(".x17z2mba:hover{color:blue}", 3130);
-_inject2("@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}", 3200);
+_inject2({
+    ltr: ".x17z2mba:hover{color:blue}",
+    priority: 3130
+});
+_inject2({
+    ltr: "@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}",
+    priority: 3200
+});
 export const styles = {
     default: {
         kDPRdz: "x17z2mba",

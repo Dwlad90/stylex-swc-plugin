@@ -585,9 +585,24 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "x1izlsax", "(min-width: 768px)");
-        _inject2("", 0, "xe5hjsi", "(min-width: 1024px)");
-        _inject2("", 0, "xmbwnbr", "(min-width: 1280px)");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1izlsax",
+          constVal: "(min-width: 768px)"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xe5hjsi",
+          constVal: "(min-width: 1024px)"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xmbwnbr",
+          constVal: "(min-width: 1280px)"
+        });
         export const breakpoints = {
           sm: "(min-width: 768px)",
           md: "(min-width: 1024px)",
@@ -645,9 +660,24 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "x1mllmr4", 8);
-        _inject2("", 0, "x1g9nw8d", 16);
-        _inject2("", 0, "x1c5h197", 24);
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1mllmr4",
+          constVal: 8
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1g9nw8d",
+          constVal: 16
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1c5h197",
+          constVal: 24
+        });
         export const sizes = {
           small: 8,
           medium: 16,
@@ -671,9 +701,24 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "xbx9tme", "rebeccapurple");
-        _inject2("", 0, "x1is3lfz", "coral");
-        _inject2("", 0, "x1uyqs0n", "turquoise");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xbx9tme",
+          constVal: "rebeccapurple"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1is3lfz",
+          constVal: "coral"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1uyqs0n",
+          constVal: "turquoise"
+        });
         export const colors = {
           primary: "rebeccapurple",
           secondary: "coral",
@@ -697,9 +742,24 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "xtp8oqr", 16);
-        _inject2("", 0, "xzwxy2o", "blue");
-        _inject2("", 0, "x1dhodo0", "(min-width: 768px)");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xtp8oqr",
+          constVal: 16
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xzwxy2o",
+          constVal: "blue"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1dhodo0",
+          constVal: "(min-width: 768px)"
+        });
         export const theme = {
           spacing: 16,
           color: "blue",
@@ -721,7 +781,12 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "x1abznok", "url(\\"bg.png\\")");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1abznok",
+          constVal: "url(\\"bg.png\\")"
+        });
         export const urls = {
           background: "url(\\"bg.png\\")"
         };"
@@ -741,7 +806,12 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@custom/inject-path";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "x1izlsax", "(min-width: 768px)");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1izlsax",
+          constVal: "(min-width: 768px)"
+        });
         export const breakpoints = {
           sm: "(min-width: 768px)"
         };"
@@ -765,8 +835,18 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "x1izlsax", "(min-width: 768px)");
-        _inject2("", 0, "xe5hjsi", "(min-width: 1024px)");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1izlsax",
+          constVal: "(min-width: 768px)"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xe5hjsi",
+          constVal: "(min-width: 1024px)"
+        });
         export const breakpoints = {
           sm: "(min-width: 768px)",
           md: "(min-width: 1024px)"
@@ -789,9 +869,24 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "x1t8zjeu", "zero");
-        _inject2("", 0, "xr91grk", "one");
-        _inject2("", 0, "x5diukc", "two");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1t8zjeu",
+          constVal: "zero"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xr91grk",
+          constVal: "one"
+        });
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x5diukc",
+          constVal: "two"
+        });
         export const levels = {
           "0": "zero",
           "1": "one",
@@ -816,11 +911,21 @@ describe('@stylexjs/babel-plugin', ()=>{
         "import _inject from "@stylexjs/stylex/lib/stylex-inject";
         var _inject2 = _inject;
         import * as stylex from '@stylexjs/stylex';
-        _inject2("", 0, "x1izlsax", "(min-width: 768px)");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "x1izlsax",
+          constVal: "(min-width: 768px)"
+        });
         export const breakpoints = {
           sm: "(min-width: 768px)"
         };
-        _inject2("", 0, "xbx9tme", "blue");
+        _inject2({
+          ltr: "",
+          priority: 0,
+          constKey: "xbx9tme",
+          constVal: "blue"
+        });
         export const colors = {
           primary: "blue"
         };"

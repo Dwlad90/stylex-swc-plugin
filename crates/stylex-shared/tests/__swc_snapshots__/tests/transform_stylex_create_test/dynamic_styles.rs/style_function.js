@@ -5,9 +5,18 @@ const _temp = {
     kWkggS: "xrkmrrc",
     $$css: true
 };
-_inject2(".xrkmrrc{background-color:red}", 3000);
-_inject2(".x14rh7hd{color:var(--x-color)}", 3000);
-_inject2('@property --x-color { syntax: "*"; inherits: false; }', 0);
+_inject2({
+    ltr: ".xrkmrrc{background-color:red}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".x14rh7hd{color:var(--x-color)}",
+    priority: 3000
+});
+_inject2({
+    ltr: '@property --x-color { syntax: "*"; inherits: false; }',
+    priority: 0
+});
 export const styles = {
     root: (color)=>[
             _temp,

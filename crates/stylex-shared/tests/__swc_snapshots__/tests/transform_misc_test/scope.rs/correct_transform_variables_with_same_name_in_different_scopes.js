@@ -47,7 +47,10 @@ export const ComponentWithCallings = ()=>{
     });
     return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)}>{array.map((_)=>null)}</div> : null}</div>;
 };
-_inject2(".backgroundColor-xvto61e{background-color:#F7F5F6}", 3000);
+_inject2({
+    ltr: ".backgroundColor-xvto61e{background-color:#F7F5F6}",
+    priority: 3000
+});
 const s = {
     div: {
         "backgroundColor-kWkggS": "backgroundColor-xvto61e",

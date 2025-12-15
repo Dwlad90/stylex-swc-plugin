@@ -7,5 +7,8 @@ var _inject2 = _inject;
 import "otherFile.stylex";
 import stylex from 'stylex';
 import { MyTheme } from 'otherFile.stylex';
-_inject2(".__hashed_var__1g7q0my{--__hashed_var__1jqb1tb:red}", 1);
+_inject2({
+    ltr: ".__hashed_var__1g7q0my{--__hashed_var__1jqb1tb:red}",
+    priority: 1
+});
 "__hashed_var__1g7q0my";

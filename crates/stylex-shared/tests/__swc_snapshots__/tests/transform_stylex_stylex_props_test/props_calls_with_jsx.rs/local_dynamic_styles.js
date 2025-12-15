@@ -1,9 +1,18 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".color-x1e2nbdu{color:red}", 3000);
-_inject2(".opacity-xb4nw82{opacity:var(--x-opacity)}", 3000);
-_inject2('@property --x-opacity { syntax: "*"; inherits: false; }', 0);
+_inject2({
+    ltr: ".color-x1e2nbdu{color:red}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".opacity-xb4nw82{opacity:var(--x-opacity)}",
+    priority: 3000
+});
+_inject2({
+    ltr: '@property --x-opacity { syntax: "*"; inherits: false; }',
+    priority: 0
+});
 const styles = {
     red: {
         "color-kMwMTN": "color-x1e2nbdu",

@@ -1,12 +1,40 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".x123j3cw{padding-top:5px}", 4000);
-_inject2(".xs9asl8{padding-bottom:5px}", 4000);
-_inject2(".xaso8d8{padding-left:5px}", 3000, ".xaso8d8{padding-right:5px}");
-_inject2(".x2vl965{padding-right:10px}", 3000, ".x2vl965{padding-left:10px}");
-_inject2(".x1nn3v0j{padding-top:2px}", 4000);
-_inject2(".x14vy60q{padding-right:2px}", 3000, ".x14vy60q{padding-left:2px}");
-_inject2(".x1120s5i{padding-bottom:2px}", 4000);
-_inject2(".xe2zdcy{padding-left:10px}", 3000, ".xe2zdcy{padding-right:10px}");
+_inject2({
+    ltr: ".x123j3cw{padding-top:5px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".xs9asl8{padding-bottom:5px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".xaso8d8{padding-left:5px}",
+    priority: 3000,
+    rtl: ".xaso8d8{padding-right:5px}"
+});
+_inject2({
+    ltr: ".x2vl965{padding-right:10px}",
+    priority: 3000,
+    rtl: ".x2vl965{padding-left:10px}"
+});
+_inject2({
+    ltr: ".x1nn3v0j{padding-top:2px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".x14vy60q{padding-right:2px}",
+    priority: 3000,
+    rtl: ".x14vy60q{padding-left:2px}"
+});
+_inject2({
+    ltr: ".x1120s5i{padding-bottom:2px}",
+    priority: 4000
+});
+_inject2({
+    ltr: ".xe2zdcy{padding-left:10px}",
+    priority: 3000,
+    rtl: ".xe2zdcy{padding-right:10px}"
+});
 "x1nn3v0j x14vy60q x1120s5i xe2zdcy";

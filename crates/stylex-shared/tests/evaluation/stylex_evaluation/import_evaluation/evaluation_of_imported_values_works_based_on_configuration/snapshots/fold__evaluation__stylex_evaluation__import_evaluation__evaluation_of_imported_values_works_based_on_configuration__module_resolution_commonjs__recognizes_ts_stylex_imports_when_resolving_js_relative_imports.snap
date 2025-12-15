@@ -7,5 +7,8 @@ var _inject2 = _inject;
 import "./input.stylex";
 import stylex from 'stylex';
 import { MyTheme } from './input.stylex';
-_inject2(".x2yizs4{color:x1tseezp}", 3000);
+_inject2({
+    ltr: ".x2yizs4{color:x1tseezp}",
+    priority: 3000
+});
 "x2yizs4";

@@ -8,6 +8,8 @@ import type {
 } from '@stylexjs/stylex';
 import type { InlineStyles } from '@stylexjs/stylex';
 
+type NotUndefined = {} | null;
+
 /**
  * EMPTY STYLES
  */
@@ -17,13 +19,13 @@ const styles1: Readonly<{ foo: Readonly<{}> }> = stylex.create({
 styles1.foo as StaticStyles;
 styles1.foo as StaticStyles<{}>;
 styles1.foo as StaticStyles<{ width?: number | string }>;
-styles1.foo as StaticStyles<{ width?: unknown }>;
-styles1.foo as StaticStylesWithout<{ width: unknown }>;
+styles1.foo as StaticStyles<{ width?: NotUndefined }>;
+styles1.foo as StaticStylesWithout<{ width: NotUndefined }>;
 styles1.foo as StyleXStyles;
 styles1.foo as StyleXStyles<{}>;
 styles1.foo as StyleXStyles<{ width?: number | string }>;
-styles1.foo as StyleXStyles<{ width?: unknown }>;
-styles1.foo as StyleXStylesWithout<{ width: unknown }>;
+styles1.foo as StyleXStyles<{ width?: NotUndefined }>;
+styles1.foo as StyleXStylesWithout<{ width: NotUndefined }>;
 
 stylex.props(styles1.foo);
 

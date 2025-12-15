@@ -1,5 +1,7 @@
 import * as path from 'node:path';
 import { promises } from 'node:fs';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Connect } from 'vite';
 
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance, UnpluginMessage } from 'unplugin';
@@ -12,7 +14,7 @@ import generateHash from './utils/generateHash';
 import crypto from 'crypto';
 
 import type { StyleXMetadata } from '@stylexswc/rs-compiler';
-import type { HotPayload, UserConfig } from 'vite';
+import type { HotPayload, UserConfig, ViteDevServer } from 'vite';
 
 type StyleXRules = Record<string, StyleXMetadata['stylex']>;
 
@@ -23,6 +25,10 @@ type NormalizedOptions = NormalizedOptionsType;
 const { writeFile, mkdir } = promises;
 
 const PLUGIN_NAME = 'unplugin-stylex-rs';
+
+// Track Vite dev server for CSS invalidation
+let viteDevServer: ViteDevServer | null = null;
+let hasInvalidatedInitialCSS = false;
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
@@ -55,6 +61,56 @@ function pickCssAsset(
     cssAssets.find(f => /(^|\/)main\.css$/.test(f));
 
   return preferred || cssAssets[0] || null;
+}
+
+/**
+ * Helper function to invalidate and collect CSS modules containing the placeholder.
+ * Used to avoid code duplication in HMR handling.
+ * @param server - Vite dev server instance
+ * @param placeholder - CSS placeholder string to search for
+ * @returns Array of CSS modules that contain the placeholder
+ */
+async function invalidateAndCollectCssModules(
+  server: ViteDevServer,
+  placeholder: NormalizedOptions['useCssPlaceholder']
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cssModules: any[] = [];
+
+  // Skip if placeholder is not a string
+  if (!placeholder || typeof placeholder !== 'string') {
+    return cssModules;
+  }
+
+  const allCssModules = Array.from(server.moduleGraph.urlToModuleMap.values()).filter(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (mod: any) => mod.id && mod.id.endsWith('.css')
+  );
+
+  // Check each CSS module for the placeholder
+  // Note: We must read the original source file, not the transformed result,
+  // because the transformed result already has the placeholder replaced
+  await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    allCssModules.map(async (mod: any) => {
+      try {
+        // Skip modules without a valid id
+        if (!mod.id) return;
+
+        const content = await promises.readFile(mod.id, 'utf8');
+        if (content.includes(placeholder)) {
+          server.moduleGraph.invalidateModule(mod);
+          cssModules.push(mod);
+        }
+      } catch (e) {
+        // Log read errors for debugging HMR issues
+        console.debug(`[stylex-unplugin] Failed to read CSS file "${mod.id}":`, e);
+      }
+    })
+  );
+
+  return cssModules;
 }
 
 /**
@@ -129,6 +185,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     buildStart() {
       // stylexRules accumulates during watch mode for proper HMR
       hasCssToExtract = false;
+      // Reset initial CSS invalidation flag for better lifecycle management
+      hasInvalidatedInitialCSS = false;
     },
 
     transformInclude(id) {
@@ -175,6 +233,37 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
           id
         );
+
+        // Invalidate CSS modules in dev mode (initial load only)
+        // For subsequent HMR, handleHotUpdate handles the CSS module inclusion
+        if (normalizedOptions.useCssPlaceholder && viteDevServer && !hasInvalidatedInitialCSS) {
+          // Set flag immediately to prevent concurrent invalidations
+          hasInvalidatedInitialCSS = true;
+          const wasCodeTransformed = code !== inputCode;
+
+          if (wasCodeTransformed) {
+            setTimeout(async () => {
+              // Find all CSS modules that actually contain the placeholder
+              const cssModules = await invalidateAndCollectCssModules(
+                viteDevServer!,
+                normalizedOptions.useCssPlaceholder
+              );
+
+              // Send update to trigger HMR
+              if (cssModules.length > 0) {
+                viteDevServer!.ws.send({
+                  type: 'update',
+                  updates: cssModules.map(mod => ({
+                    type: 'css-update' as const,
+                    acceptedPath: mod.url,
+                    path: mod.url,
+                    timestamp: Date.now(),
+                  })),
+                });
+              }
+            }, 50);
+          }
+        }
 
         if (typeof wsSend === 'function' && cssFileName) {
           wsSend({
@@ -242,6 +331,42 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         config.optimizeDeps.exclude.push('@stylexjs/open-props');
       },
 
+      // Load CSS files to replace placeholder before Vite's CSS processing
+      async load(id) {
+        // Only handle CSS files with useCssPlaceholder
+        if (!normalizedOptions.useCssPlaceholder) return null;
+        if (!id.endsWith('.css')) return null;
+
+        // Read the CSS file
+        let cssContent: string;
+        try {
+          cssContent = await promises.readFile(id, 'utf-8');
+        } catch {
+          return null;
+        }
+
+        // Check if it contains the placeholder
+        if (!cssContent.includes(normalizedOptions.useCssPlaceholder)) return null;
+
+        // Get collected StyleX CSS
+        const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+        // Check if dev server is running (more reliable than watchMode)
+        const isDevMode = !!viteDevServer;
+
+        // Determine replacement CSS based on mode and whether CSS exists
+        let replacementCSS: string;
+        if (!collectedCSS?.trim()) {
+          // No CSS yet: use a comment that indicates the mode
+          replacementCSS = isDevMode
+            ? '/* StyleX styles will load after transformation */'
+            : '/* No StyleX styles */';
+        } else {
+          replacementCSS = collectedCSS;
+        }
+
+        return cssContent.replace(normalizedOptions.useCssPlaceholder, replacementCSS);
+      },
+
       generateBundle(_options, bundle) {
         if (!normalizedOptions.useCssPlaceholder) return;
 
@@ -264,7 +389,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           const source = output.source.toString();
 
           // Handle useCssPlaceholder (custom marker in real CSS file)
-          if (normalizedOptions.useCssPlaceholder && source.includes(normalizedOptions.useCssPlaceholder)) {
+          if (
+            normalizedOptions.useCssPlaceholder &&
+            source.includes(normalizedOptions.useCssPlaceholder)
+          ) {
             output.source = source.replace(normalizedOptions.useCssPlaceholder, collectedCSS);
             injected = true;
             break;
@@ -322,20 +450,41 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         }
       },
       configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          if (cssFileName && req.url?.includes(cssFileName)) {
-            const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+        viteDevServer = server as unknown as ViteDevServer;
+        hasInvalidatedInitialCSS = false;
 
-            res.setHeader('Content-Type', 'text/css');
-            res.end(collectedCSS);
-            return;
+        server.middlewares.use(
+          (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
+            if (cssFileName && req.url?.includes(cssFileName)) {
+              const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+
+              res.setHeader('Content-Type', 'text/css');
+              res.end(collectedCSS);
+              return;
+            }
+            next();
           }
-          next();
-        });
+        );
       },
-      async handleHotUpdate({ file: id, file, server, read }) {
-        // Skip Vue files - they have <template>, <style> sections that SWC can't parse
-        if (file.includes('.vue')) {
+      async handleHotUpdate({ file: id, file, server, read, modules }) {
+        // For Vue files, include CSS module but don't transform
+        // (raw .vue files have <template>, <style> sections that SWC can't parse)
+        // The transform hook will update stylexRules when Vue plugin converts it to JS
+        if (file.endsWith('.vue')) {
+          if (normalizedOptions.useCssPlaceholder) {
+            // Find CSS modules that contain the placeholder
+            const cssModules = await invalidateAndCollectCssModules(
+              server as unknown as ViteDevServer,
+              normalizedOptions.useCssPlaceholder
+            );
+
+            if (cssModules.length > 0) {
+              // Return BOTH Vue modules and CSS - Vite will fetch Vue first, triggering
+              // our transform hook to update stylexRules before CSS is fetched
+              return [...modules, ...cssModules];
+            }
+          }
+
           return;
         }
 
@@ -355,20 +504,35 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         if (!collectedCSS) return;
 
-        if (processedFileName) {
-          const normalizedFileName = ensureLeadingSlash(processedFileName);
+        if (normalizedOptions.useCssPlaceholder) {
+          // Find CSS modules that contain the placeholder
+          const cssModules = await invalidateAndCollectCssModules(
+            server as unknown as ViteDevServer,
+            normalizedOptions.useCssPlaceholder
+          );
 
-          server.ws.send({
-            type: 'update',
-            updates: [
-              {
-                acceptedPath: normalizedFileName,
-                path: normalizedFileName,
-                timestamp: Date.now(),
-                type: 'css-update',
-              },
-            ],
-          });
+          if (cssModules.length > 0) {
+            // Return both the changed modules and CSS modules
+            // Vite will handle HMR for both
+            return [...modules, ...cssModules];
+          }
+        } else {
+          // Original behavior for non-placeholder mode
+          if (processedFileName) {
+            const normalizedFileName = ensureLeadingSlash(processedFileName);
+
+            server.ws.send({
+              type: 'update',
+              updates: [
+                {
+                  acceptedPath: normalizedFileName,
+                  path: normalizedFileName,
+                  timestamp: Date.now(),
+                  type: 'css-update',
+                },
+              ],
+            });
+          }
         }
       },
       transformIndexHtml: (html, ctx) => {
@@ -567,7 +731,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               normalizedOptions.fileName,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (fileName, source) => compilation.emitAsset(fileName, source),
-              (content) => new compiler.webpack.sources.RawSource(content)
+              content => new compiler.webpack.sources.RawSource(content)
             );
           }
         );
@@ -597,7 +761,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               normalizedOptions.fileName,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (fileName, source) => compilation.emitAsset(fileName, source),
-              (content) => new compiler.webpack.sources.RawSource(content)
+              content => new compiler.webpack.sources.RawSource(content)
             );
           }
         );
@@ -623,7 +787,7 @@ function generateCSSAssets(
 }
 
 function hasStyleXCode(normalizedOptions: NormalizedOptions, inputCode: string) {
-  return normalizedOptions.rsOptions.importSources?.some(importName =>
+  return normalizedOptions.rsOptions.importSources?.some((importName: string | { from: string }) =>
     typeof importName === 'string'
       ? inputCode.includes(importName)
       : inputCode.includes(importName.from)

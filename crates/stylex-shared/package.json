@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/shared",
   "description": "Shared code for stylex-swc-plugin and stylex-rs-compiler",
-  "version": "0.14.0-rc.2",
+  "version": "0.14.0-rc.3",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
@@ -37,7 +37,7 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/path-resolver": "0.14.0-rc.2",
+    "@stylexswc/path-resolver": "0.14.0-rc.3",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.7.3"

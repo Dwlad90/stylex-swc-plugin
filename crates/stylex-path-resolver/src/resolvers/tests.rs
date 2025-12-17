@@ -986,6 +986,94 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  fn resolve_regular_local_import_from_root_no_alias() {
+    let test_path = PathBuf::from("application-pnpm");
+
+    let import_path_str = "/src/colors.stylex.js";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let aliases = Default::default();
+    let expected_result = format!("{root_path}/src/colors.stylex.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_local_import_from_root_with_alias() {
+    let test_path = PathBuf::from("application-pnpm");
+
+    let import_path_str = "/src/colors.stylex.js";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert("/*".to_string(), vec![format!("{root_path}/*")]);
+
+    let expected_result = format!("{root_path}/src/colors.stylex.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_regular_local_import_from_src_alias() {
+    let test_path = PathBuf::from("application-pnpm");
+
+    let import_path_str = "/colors.stylex.js";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert("/*".to_string(), vec![format!("{root_path}/src/*")]);
+
+    let expected_result = format!("{root_path}/src/colors.stylex.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
   fn resolve_regular_local_import_from_workspace_alias() {
     let test_path = PathBuf::from("workspace-pnpm");
 

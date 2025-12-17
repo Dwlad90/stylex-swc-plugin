@@ -411,15 +411,15 @@ pub fn resolve_file_path(
         })
         .collect()
     }
-  } else if import_path_str.starts_with('/') {
-    vec![root_path.join(import_path_str)]
   } else {
     let mut possible_file_paths = possible_aliased_paths(import_path_str, aliases)
       .iter()
       .map(PathBuf::from)
       .collect::<IndexSet<PathBuf>>();
 
-    if !import_path_str.is_empty() {
+    if import_path_str.starts_with('/') {
+      possible_file_paths.insert(root_path.join(import_path_str.trim_start_matches('/')));
+    } else if !import_path_str.is_empty() {
       possible_file_paths.insert(Path::new("node_modules").join(import_path_str));
 
       let closest_node_modules_paths = recursive_find_node_modules(source_file_dir, None);

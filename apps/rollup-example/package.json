@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rollup-example",
   "description": "A simple rollup example to test @stylexswc/rollup-plugin",
-  "version": "0.14.0-rc.3",
+  "version": "0.14.0-rc.4",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -22,8 +22,8 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-swc": "^0.4.0",
-    "@stylexswc/playwright": "0.14.0-rc.3",
-    "@stylexswc/rollup-plugin": "0.14.0-rc.3",
+    "@stylexswc/playwright": "0.14.0-rc.4",
+    "@stylexswc/rollup-plugin": "0.14.0-rc.4",
     "rollup": "^4.53.3",
     "rollup-plugin-serve": "^3.0.0",
     "serve": "^14.2.5"

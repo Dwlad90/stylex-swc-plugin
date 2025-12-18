@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-example",
   "description": "A simple webpack example to test stylexswc/webpack-plugin",
-  "version": "0.14.0-rc.3",
+  "version": "0.14.0-rc.4",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -20,9 +20,9 @@
     "@playwright/test": "^1.57.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@stylexjs/eslint-plugin": "^0.17.3",
-    "@stylexswc/playwright": "0.14.0-rc.3",
-    "@stylexswc/postcss-plugin": "0.14.0-rc.3",
-    "@stylexswc/webpack-plugin": "0.14.0-rc.3",
+    "@stylexswc/playwright": "0.14.0-rc.4",
+    "@stylexswc/postcss-plugin": "0.14.0-rc.4",
+    "@stylexswc/webpack-plugin": "0.14.0-rc.4",
     "@swc/core": "^1.13.3",
     "autoprefixer": "^10.4.21",
     "css-loader": "^7.1.2",

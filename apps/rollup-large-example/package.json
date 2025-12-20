@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rollup-large-example",
   "description": "A simple rollup example to test @stylexswc/rollup-plugin",
-  "version": "0.14.0-rc.4",
+  "version": "0.14.0-rc.5",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -10,6 +10,6 @@
   },
   "dependencies": {
     "@stylexjs/stylex": "^0.17.3",
-    "@stylexswc/rollup-plugin": "0.14.0-rc.4"
+    "@stylexswc/rollup-plugin": "0.14.0-rc.5"
   }
 }

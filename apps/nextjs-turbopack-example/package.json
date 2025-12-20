@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-turbopack-example",
-  "version": "0.14.0-rc.4",
+  "version": "0.14.0-rc.5",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -22,9 +22,9 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.17.3",
-    "@stylexswc/design-system": "0.14.0-rc.4",
-    "@stylexswc/nextjs-plugin": "0.14.0-rc.4",
-    "@stylexswc/postcss-plugin": "0.14.0-rc.4",
+    "@stylexswc/design-system": "0.14.0-rc.5",
+    "@stylexswc/nextjs-plugin": "0.14.0-rc.5",
+    "@stylexswc/postcss-plugin": "0.14.0-rc.5",
     "next": "^16.0.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
@@ -32,10 +32,10 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@stylexjs/eslint-plugin": "^0.17.3",
-    "@stylexswc/jest": "0.14.0-rc.4",
-    "@stylexswc/playwright": "0.14.0-rc.4",
-    "@stylexswc/rs-compiler": "0.14.0-rc.4",
-    "@stylexswc/turbopack-plugin": "0.14.0-rc.4",
+    "@stylexswc/jest": "0.14.0-rc.5",
+    "@stylexswc/playwright": "0.14.0-rc.5",
+    "@stylexswc/rs-compiler": "0.14.0-rc.5",
+    "@stylexswc/turbopack-plugin": "0.14.0-rc.5",
     "@swc/jest": "^0.2.39",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",

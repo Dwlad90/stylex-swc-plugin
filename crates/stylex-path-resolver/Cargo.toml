@@ -30,3 +30,4 @@ indexmap.workspace = true
 
 package-json = "0.5.0"
 pathdiff = { version = "0.2.3" }
+oxc_resolver = { version = "11.16.0", features = ["yarn_pnp"] }

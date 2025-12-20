@@ -447,7 +447,7 @@ mod resolve_path_npm_tests {
       resolve_path(
         fixture(
           &local_package_test_path,
-          "packages/@stylex/theme-lib-main-dist/dist/colors.stylex.js"
+          "packages/@stylex/theme-lib-main-dist/colors.stylex.js"
         )
         .as_path(),
         get_root_dir(&test_path).as_path(),
@@ -462,9 +462,10 @@ mod resolve_path_npm_tests {
 mod resolve_path_exports_tests {
 
   use crate::resolvers::{
-    resolve_path,
+    resolve_file_path, resolve_path,
     tests::{fixture, get_root_dir},
   };
+  use rustc_hash::FxHashMap;
 
   use std::{collections::HashMap, path::PathBuf};
 
@@ -567,6 +568,115 @@ mod resolve_path_exports_tests {
         &mut HashMap::default(),
       ),
       "node_modules/stylex-lib-dist-exports-with-main/dist/index.js"
+    );
+  }
+
+  #[test]
+  fn external_package_exports_with_wildcard() {
+    let test_path = PathBuf::from("exports");
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &test_path,
+          "node_modules/stylex-lib-dist-exports-with-wildcard/src/index.ts"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "node_modules/stylex-lib-dist-exports-with-wildcard/src/index.ts"
+    );
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &test_path,
+          "node_modules/stylex-lib-dist-exports-with-wildcard/src/colors.stylex.ts"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "node_modules/stylex-lib-dist-exports-with-wildcard/src/colors.stylex.ts"
+    );
+
+    assert_eq!(
+      resolve_path(
+        fixture(
+          &test_path,
+          "node_modules/stylex-lib-dist-exports-with-wildcard/src/icons/arrow-right.tsx"
+        )
+        .as_path(),
+        get_root_dir(&test_path).as_path(),
+        &mut HashMap::default(),
+      ),
+      "node_modules/stylex-lib-dist-exports-with-wildcard/src/icons/arrow-right.tsx"
+    );
+  }
+
+  #[test]
+  fn resolve_file_path_with_wildcard_exports() {
+    let test_path = PathBuf::from("exports");
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let source_file_path = format!("{}/test.js", root_path);
+    let aliases = FxHashMap::default();
+
+    // Test root entry point (. -> ./src/index.ts)
+    let expected_root = format!(
+      "{}/{}",
+      root_path, "node_modules/stylex-lib-dist-exports-with-wildcard/src/index.ts"
+    );
+    assert_eq!(
+      resolve_file_path(
+        "stylex-lib-dist-exports-with-wildcard",
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_root
+    );
+
+    // Test wildcard export (./* -> ./src/*.ts)
+    let expected_colors = format!(
+      "{}/{}",
+      root_path, "node_modules/stylex-lib-dist-exports-with-wildcard/src/colors.stylex.ts"
+    );
+    assert_eq!(
+      resolve_file_path(
+        "stylex-lib-dist-exports-with-wildcard/colors.stylex",
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_colors
+    );
+
+    // Test nested wildcard export (./icons/* -> ./src/icons/*.tsx)
+    let expected_icon = format!(
+      "{}/{}",
+      root_path, "node_modules/stylex-lib-dist-exports-with-wildcard/src/icons/arrow-right.tsx"
+    );
+    assert_eq!(
+      resolve_file_path(
+        "stylex-lib-dist-exports-with-wildcard/icons/arrow-right",
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_icon
     );
   }
 
@@ -1251,7 +1361,7 @@ mod resolve_path_application_pnpm_tests {
   fn resolve_organisation_package_with_pnpm_with_same_path() {
     let test_path = PathBuf::from("application-pnpm");
 
-    let import_path_str = "@stylex/lib-exports-pnpm/dist/colors.stylex";
+    let import_path_str = "@stylex/lib-exports-pnpm/colors.stylex";
     let source_file_path = format!(
       "{}/src/pages/home.js",
       get_root_dir(&test_path).as_path().display()
@@ -1568,6 +1678,123 @@ mod resolve_path_aliases_tests {
       ]
     );
   }
+
+  #[test]
+  fn get_import_path_with_aliases_with_stylex_ext() {
+    assert_eq!(
+      possible_aliased_paths(
+        "@/colors.stylex",
+        &[("@/*".to_string(), vec!["/src/*".to_string()])]
+          .iter()
+          .cloned()
+          .collect::<FxHashMap<String, Vec<String>>>()
+      ),
+      vec![
+        PathBuf::from("@/colors.stylex"),
+        PathBuf::from("/src/colors.stylex"),
+      ]
+    );
+  }
+}
+
+#[cfg(test)]
+mod resolve_file_path_aliases_tests {
+  use rustc_hash::FxHashMap;
+  use std::{collections::HashMap, path::PathBuf};
+
+  use crate::resolvers::{resolve_file_path, tests::get_root_dir};
+
+  #[test]
+  fn resolve_aliased_import_with_stylex_extension() {
+    let test_path = PathBuf::from("application-pnpm");
+
+    // Import like @/colors.stylex should resolve to src/colors.stylex.js
+    let import_path_str = "@/colors.stylex";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
+
+    let expected_result = format!("{}/{}", root_path, "src/colors.stylex.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_aliased_import_with_js_extension() {
+    let test_path = PathBuf::from("application-pnpm");
+
+    let import_path_str = "@/components/button.js";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
+
+    let expected_result = format!("{}/{}", root_path, "src/components/button.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
+
+  #[test]
+  fn resolve_aliased_import_without_extension() {
+    let test_path = PathBuf::from("application-pnpm");
+
+    // Import without extension should try to add extensions
+    let import_path_str = "@/components/button";
+    let source_file_path = format!(
+      "{}/src/pages/home.js",
+      get_root_dir(&test_path).as_path().display()
+    );
+    let root_path = get_root_dir(&test_path).display().to_string();
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@/*".to_string(), vec![format!("{}/src/*", root_path)]);
+
+    let expected_result = format!("{}/{}", root_path, "src/components/button.js");
+
+    assert_eq!(
+      resolve_file_path(
+        import_path_str,
+        source_file_path.as_str(),
+        root_path.as_str(),
+        &aliases,
+        &mut HashMap::default(),
+      )
+      .unwrap_or_default()
+      .display()
+      .to_string(),
+      expected_result
+    );
+  }
 }
 
 #[cfg(test)]
@@ -1731,7 +1958,7 @@ mod resolve_nested_external_imports_tests {
 
     let expected_result = format!(
       "{}/{}",
-      root_path, "node_modules/stylex-lib-dist-exports-commonjs-esm/dist/index.js"
+      root_path, "node_modules/stylex-lib-dist-exports-commonjs-esm/dist/index.cjs"
     );
 
     assert_eq!(

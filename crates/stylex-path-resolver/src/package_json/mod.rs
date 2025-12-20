@@ -3,15 +3,11 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env};
 use std::{default::Default, fs::read_to_string};
-use swc_core::{
-  common::FileName,
-  ecma::loader::{TargetEnv, resolvers::node::NodeModulesResolver},
-};
 
 use package_json::{PackageDependencies, PackageJsonManager};
 use std::path::{Path, PathBuf};
 
-use crate::{enums::ExportsType, file_system::find_closest_path, resolvers::get_node_modules_path};
+use crate::{enums::ExportsType, file_system::find_closest_path};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -145,39 +141,10 @@ pub fn recursive_find_node_modules(
   node_modules_paths
 }
 
-pub(crate) fn resolve_package_from_package_json(
-  resolver: &NodeModulesResolver,
-  file_name: &FileName,
-  import_path_str: &str,
-  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> Option<swc_core::ecma::loader::resolve::Resolution> {
-  const PATH_SEPARATOR: char = '/';
-
-  if let Some(resolution) =
-    get_node_modules_path(resolver, file_name, import_path_str, package_json_seen)
-    && let FileName::Real(_) = &resolution.filename
-  {
-    return Some(resolution);
-  }
-
-  let parts: Vec<&str> = import_path_str.split(PATH_SEPARATOR).collect();
-
-  if parts.len() <= 1 {
-    return None;
-  }
-
-  let parent_path = parts[..parts.len() - 1].join(&PATH_SEPARATOR.to_string());
-
-  resolve_package_from_package_json(resolver, file_name, &parent_path, package_json_seen)
-}
-
-pub(crate) fn get_package_json_with_deps(
+pub(crate) fn get_package_json_deps(
   cwd: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> (NodeModulesResolver, HashMap<String, String>) {
-  let node_modules_resolver = NodeModulesResolver::new(TargetEnv::Node, Default::default(), true);
-  let resolver = node_modules_resolver;
-
+) -> HashMap<String, String> {
   let (package_json, _) = get_package_json(cwd, package_json_seen);
 
   let mut package_dependencies = package_json.dependencies.unwrap_or_default();
@@ -185,5 +152,5 @@ pub(crate) fn get_package_json_with_deps(
 
   package_dependencies.extend(package_dev_dependencies);
 
-  (resolver, package_dependencies)
+  package_dependencies
 }

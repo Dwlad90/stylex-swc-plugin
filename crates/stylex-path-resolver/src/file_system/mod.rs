@@ -3,14 +3,14 @@ use std::{
   path::{Path, PathBuf},
 };
 
-pub(crate) fn check_directory(path: &Path) -> bool {
+pub(crate) fn _check_directory(path: &Path) -> bool {
   match fs::metadata(path) {
     Ok(metadata) => metadata.is_dir(),
     Err(_) => false,
   }
 }
 
-pub(crate) fn get_directories(path: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
+pub(crate) fn _get_directories(path: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
   Ok(
     fs::read_dir(path)?
       .filter_map(|entry| {
@@ -23,17 +23,17 @@ pub(crate) fn get_directories(path: &Path) -> Result<Vec<PathBuf>, std::io::Erro
   )
 }
 
-pub(crate) fn get_directory_path_recursive(path: &Path) -> Option<PathBuf> {
+pub(crate) fn _get_directory_path_recursive(path: &Path) -> Option<PathBuf> {
   if path.as_os_str().is_empty() {
     return None;
   }
 
-  if check_directory(path) {
+  if _check_directory(path) {
     return Some(path.to_path_buf());
   }
 
   match path.parent() {
-    Some(parent) => get_directory_path_recursive(parent),
+    Some(parent) => _get_directory_path_recursive(parent),
     None => None,
   }
 }

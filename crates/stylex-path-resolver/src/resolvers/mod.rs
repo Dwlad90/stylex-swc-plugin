@@ -1,30 +1,16 @@
 use core::panic;
 use fancy_regex::Regex;
-use indexmap::IndexSet;
 use log::{debug, warn};
 use once_cell::sync::Lazy;
+use oxc_resolver::{ResolveOptions, Resolver};
 use path_clean::PathClean;
 use rustc_hash::FxHashMap;
-use std::path::{Path, PathBuf};
-use swc_core::{
-  common::FileName,
-  ecma::loader::{
-    resolve::{Resolution, Resolve},
-    resolvers::node::NodeModulesResolver,
-  },
-};
-
 use std::fs;
+use std::path::{Path, PathBuf};
 
 use crate::{
-  enums::ExportsType,
-  file_system::{get_directories, get_directory_path_recursive},
-  package_json::{
-    PackageJsonExtended, find_closest_node_modules, find_closest_package_json_folder,
-    get_package_json, get_package_json_with_deps, recursive_find_node_modules,
-    resolve_package_from_package_json,
-  },
-  utils::{contains_subpath, relative_path, sort_export_paths_by_priority},
+  package_json::{PackageJsonExtended, get_package_json_deps},
+  utils::{contains_subpath, relative_path},
 };
 
 mod tests;
@@ -138,13 +124,11 @@ fn get_package_path_by_package_json(
   relative_package_path: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> PathBuf {
-  let (resolver, package_dependencies) = get_package_json_with_deps(cwd, package_json_seen);
+  let package_dependencies = get_package_json_deps(cwd, package_json_seen);
 
   let mut potential_package_path: PathBuf = PathBuf::default();
 
   for (name, _) in package_dependencies.iter() {
-    let file_name = FileName::Real(cwd.to_path_buf());
-
     let potential_path_section = name.split("/").last().unwrap_or_default();
 
     if contains_subpath(relative_package_path, Path::new(&potential_path_section)) {
@@ -158,18 +142,39 @@ fn get_package_path_by_package_json(
       if !potential_file_path.is_empty()
         || relative_package_path_str.ends_with(format!("/{}", potential_path_section).as_str())
       {
-        let resolved_node_modules_path =
-          get_node_modules_path(&resolver, &file_name, name, package_json_seen);
+        // Try multiple import specifier variations to handle exports field matching.
+        // Prefer the version with an explicit extension first, to align with typical module
+        // resolution behavior when both extension-less and extension-qualified paths exist.
+        let import_specifiers = if potential_file_path.is_empty() {
+          vec![name.to_string()]
+        } else {
+          // Try full path with extension first, then without extension
+          let path_with_ext = format!("{}{}", name, potential_file_path);
+          let path_without_ext = Path::new(&path_with_ext)
+            .with_extension("")
+            .to_string_lossy()
+            .to_string();
+          vec![path_with_ext, path_without_ext]
+        };
 
-        if let Some(resolved_node_modules_path) = resolved_node_modules_path
-          && let FileName::Real(real_resolved_node_modules_path) =
-            resolved_node_modules_path.filename
-        {
-          potential_package_path = resolve_exports_path(
-            &real_resolved_node_modules_path,
-            Path::new(potential_file_path),
-            package_json_seen,
-          );
+        for import_specifier in import_specifiers {
+          if let Ok(resolution) = RESOLVER.resolve(cwd, &import_specifier) {
+            let resolved_path = resolution.full_path();
+            // Compute relative path from cwd to the resolved file
+            if let Some(relative_resolved) = pathdiff::diff_paths(&resolved_path, cwd) {
+              // Use the relative path (which may start with ../ for parent directories)
+              potential_package_path = relative_resolved;
+            } else {
+              // Fallback: Convert to node_modules-relative path
+              let resolved_str = resolved_path.to_string_lossy();
+              if let Some(node_modules_idx) = resolved_str.rfind("node_modules") {
+                potential_package_path = PathBuf::from(&resolved_str[node_modules_idx..]);
+              } else {
+                potential_package_path = resolved_path;
+              }
+            }
+            break;
+          }
         }
 
         if potential_package_path.as_os_str().is_empty() {
@@ -185,187 +190,41 @@ fn get_package_path_by_package_json(
   potential_package_path
 }
 
-fn resolve_exports_path(
-  real_resolved_node_modules_path: &Path,
-  potential_file_path: &Path,
-  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> PathBuf {
-  let (potential_package_json, _) =
-    get_package_json(real_resolved_node_modules_path, package_json_seen);
-
-  match &potential_package_json.exports {
-    Some(exports) => resolve_package_json_exports(
-      potential_file_path,
-      exports,
-      real_resolved_node_modules_path,
-    ),
-    None => {
-      let node_modules_regex = Regex::new(r".*node_modules").unwrap();
-
-      node_modules_regex
-        .replace(
-          real_resolved_node_modules_path
-            .display()
-            .to_string()
-            .as_str(),
-          "node_modules",
-        )
-        .to_string()
-        .into()
-    }
-  }
-}
-
-pub(crate) fn get_node_modules_path(
-  resolver: &NodeModulesResolver,
-  file_name: &FileName,
-  name: &str,
-  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> Option<swc_core::ecma::loader::resolve::Resolution> {
-  {
-    match resolver.resolve(file_name, name) {
-      Ok(resolution) => {
-        if let FileName::Real(real_filename) = &resolution.filename
-          && real_filename.to_string_lossy().contains("node_modules/")
-        {
-          return Some(resolution);
-        }
-        None
-      }
-      Err(_) => get_potential_node_modules_path(file_name, name, package_json_seen),
-    }
-  }
-}
-
-fn get_potential_node_modules_path(
-  file_name: &FileName,
-  name: &str,
-  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> Option<Resolution> {
-  let file_name_real = if let FileName::Real(real_filename) = file_name {
-    real_filename
-  } else {
-    return None;
+/// Creates an oxc_resolver with the appropriate options for resolving import paths.
+/// Lazy static resolver instance - created once and reused for all resolution calls.
+/// This is thread-safe and avoids the overhead of creating a new resolver for each call.
+static RESOLVER: Lazy<Resolver> = Lazy::new(|| {
+  let options = ResolveOptions {
+    extensions: EXTENSIONS.iter().map(|e| e.to_string()).collect(),
+    // Condition names for package.json exports field resolution.
+    // Order matters: more specific conditions should come before general ones.
+    // Note: "types" is excluded because StyleX resolves runtime code, not type definitions.
+    // - "import": ESM imports (prioritized over CommonJS)
+    // - "require": CommonJS require
+    // - "node": Node.js environment (StyleX runs at build time in Node)
+    // - "development"/"production": Environment-specific exports
+    // - "default": Fallback condition
+    condition_names: vec![
+      "import".to_string(),
+      "require".to_string(),
+      "node".to_string(),
+      "development".to_string(),
+      "production".to_string(),
+      "default".to_string(),
+    ],
+    // Resolve symlinks to their real paths (important for pnpm)
+    symlinks: true,
+    ..Default::default()
   };
 
-  let potential_package_path = PathBuf::from(format!(
-    "{}/{}",
-    find_closest_node_modules(file_name_real)
-      .unwrap_or(file_name_real.clone())
-      .to_string_lossy(),
-    name
-  ));
+  Resolver::new(options)
+});
 
-  if let Some(resolved_potential_package_path) =
-    get_directory_path_recursive(&potential_package_path)
-  {
-    let (potential_package_json, _) =
-      get_package_json(&resolved_potential_package_path, package_json_seen);
-
-    let package_name = potential_package_json
-      .name
-      .unwrap_or_else(|| panic!("Package name is not found in package.json of '{}'", name))
-      .clone();
-
-    let potential_import_path_segment = name.split(&package_name).last().unwrap_or_default();
-
-    let potential_package_path = resolve_exports_path(
-      &resolved_potential_package_path,
-      Path::new(potential_import_path_segment),
-      package_json_seen,
-    );
-
-    let file_name_real_lossy = file_name_real.to_string_lossy();
-    let root_subst_file_name = file_name_real_lossy.split("node_modules").next().unwrap();
-
-    let path = Path::new(&potential_package_path);
-
-    let stripped_path = path.strip_prefix(root_subst_file_name).unwrap_or(path);
-
-    return Some(Resolution {
-      filename: FileName::Real(stripped_path.to_path_buf()),
-      slug: None,
-    });
-  }
-
-  None
-}
-
-fn resolve_package_json_exports(
-  potential_import_segment_path: &Path,
-  exports: &FxHashMap<String, ExportsType>,
-  resolved_node_modules_path: &Path,
-) -> PathBuf {
-  let mut result: PathBuf = PathBuf::default();
-
-  let mut import_segment_path_without_extension = PathBuf::from(potential_import_segment_path)
-    .with_extension("")
-    .display()
-    .to_string();
-
-  if import_segment_path_without_extension.is_empty() {
-    import_segment_path_without_extension = String::from("index.");
-  }
-
-  let mut exports_values: Vec<&String> = exports
-    .iter()
-    .flat_map(|(_, values)| match values {
-      ExportsType::Simple(path) => vec![path],
-      ExportsType::Complex(map) => map.values().collect(),
-    })
-    .collect();
-
-  exports_values.sort_by(sort_export_paths_by_priority);
-
-  let resolved_package_path = find_closest_package_json_folder(resolved_node_modules_path)
-    .unwrap_or_else(|| {
-      panic!(
-        "package.json not found near: {}",
-        resolved_node_modules_path.display()
-      )
-    });
-
-  for export_value in exports_values {
-    if export_value.contains(&import_segment_path_without_extension) {
-      result = resolved_package_path.join(export_value);
-
-      break;
-    }
-  }
-
-  if result.components().count() == 0 {
-    let mut keys: Vec<&String> = exports.keys().collect();
-
-    keys.sort_by_key(|k| (k.to_string(), k.len()));
-
-    for key in keys {
-      if key.contains(&import_segment_path_without_extension) {
-        let mut export_paths: Vec<&String> = exports
-          .get(key)
-          .iter()
-          .flat_map(|values| match values {
-            ExportsType::Simple(path) => vec![path],
-            ExportsType::Complex(map) => map.values().collect(),
-          })
-          .collect();
-
-        export_paths.sort_by(sort_export_paths_by_priority);
-
-        if let Some(export_path) = export_paths.first() {
-          result = resolved_package_path.join(export_path);
-        }
-      }
-    }
-  }
-
-  if result.components().count() == 0 {
-    warn!(
-      "Unfortunatly, the exports field is not yet fully supported, so path resolving may work not as expected"
-    );
-    // TODO: implement exports field resolution
-  }
-
-  result
+fn file_not_found_error(import_path: &str) -> std::io::Error {
+  std::io::Error::new(
+    std::io::ErrorKind::NotFound,
+    format!("File not found for import: {}", import_path),
+  )
 }
 
 pub fn resolve_file_path(
@@ -375,12 +234,19 @@ pub fn resolve_file_path(
   aliases: &FxHashMap<String, Vec<String>>,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> std::io::Result<PathBuf> {
-  let source_file_dir = Path::new(source_file_path).parent().unwrap();
+  let source_file_dir = Path::new(source_file_path).parent().ok_or_else(|| {
+    std::io::Error::new(
+      std::io::ErrorKind::InvalidInput,
+      format!(
+        "Source file path '{}' has no parent directory",
+        source_file_path
+      ),
+    )
+  })?;
   let root_path = Path::new(root_path);
 
-  let cwd_path = Path::new(root_path);
-
-  let resolved_file_paths = if import_path_str.starts_with('.') {
+  // Handle relative imports
+  if import_path_str.starts_with('.') {
     if FILE_PATTERN
       .is_match(import_path_str)
       .unwrap_or_else(|err| {
@@ -388,245 +254,252 @@ pub fn resolve_file_path(
           "Error matching FILE_PATTERN for '{}': {}. Skipping pattern match.",
           import_path_str, err
         );
-
         false
       })
     {
-      vec![PathBuf::from(resolve_path(
+      let resolved = PathBuf::from(resolve_path(
         &source_file_dir.join(import_path_str),
         root_path,
         package_json_seen,
-      ))]
+      ));
+      let full_path = root_path.join(&resolved).clean();
+      if fs::metadata(&full_path).is_ok() {
+        return Ok(full_path);
+      }
     } else {
-      EXTENSIONS
-        .iter()
-        .map(|ext| {
-          let import_path_str_with_ext = format!("{}{}", import_path_str, ext);
-
-          PathBuf::from(resolve_path(
-            &source_file_dir.join(import_path_str_with_ext),
-            root_path,
-            package_json_seen,
-          ))
-        })
-        .collect()
-    }
-  } else {
-    let mut possible_file_paths = possible_aliased_paths(import_path_str, aliases)
-      .iter()
-      .map(PathBuf::from)
-      .collect::<IndexSet<PathBuf>>();
-
-    if import_path_str.starts_with('/') {
-      possible_file_paths.insert(root_path.join(import_path_str.trim_start_matches('/')));
-    } else if !import_path_str.is_empty() {
-      possible_file_paths.insert(Path::new("node_modules").join(import_path_str));
-
-      let closest_node_modules_paths = recursive_find_node_modules(source_file_dir, None);
-
-      for closest_node_modules_path in closest_node_modules_paths.iter() {
-        let closest_node_modules_path = closest_node_modules_path.join(import_path_str);
-
-        possible_file_paths.insert(closest_node_modules_path.clone());
-
-        possible_file_paths.extend(resolve_package_with_node_modules_path(
-          closest_node_modules_path,
-          import_path_str,
-          source_file_dir,
+      for ext in EXTENSIONS.iter() {
+        let import_path_str_with_ext = format!("{}{}", import_path_str, ext);
+        let resolved = PathBuf::from(resolve_path(
+          &source_file_dir.join(&import_path_str_with_ext),
+          root_path,
           package_json_seen,
         ));
+        let full_path = root_path.join(&resolved).clean();
+        if fs::metadata(&full_path).is_ok() {
+          return Ok(full_path);
+        }
       }
     }
 
-    if let Ok(resolved_node_modules_path_buf) =
-      resolve_node_modules_path_buff(cwd_path, import_path_str, package_json_seen)
-    {
-      possible_file_paths.extend(resolve_package_with_node_modules_path(
-        resolved_node_modules_path_buf,
-        import_path_str,
-        source_file_dir,
-        package_json_seen,
-      ));
+    return Err(file_not_found_error(import_path_str));
+  }
+
+  // Handle absolute imports (starting with /)
+  if import_path_str.starts_with('/') {
+    let path_without_slash = import_path_str.trim_start_matches('/');
+
+    // First try aliased paths
+    for aliased_path in possible_aliased_paths(import_path_str, aliases) {
+      if let Some(resolved) = try_resolve_with_extensions(&aliased_path) {
+        return Ok(resolved);
+      }
     }
 
-    possible_file_paths.into_iter().collect()
-  };
+    // Then try root path
+    let root_based_path = root_path.join(path_without_slash);
+    if let Some(resolved) = try_resolve_with_extensions(&root_based_path) {
+      return Ok(resolved);
+    }
+  }
 
-  let resolved_potential_file_paths = resolved_file_paths
-    .iter()
-    .filter(|path| path.as_path() != Path::new("."))
-    .collect::<Vec<&PathBuf>>();
+  // Handle aliased imports (skip the first one which is the original path)
+  let aliased_paths = possible_aliased_paths(import_path_str, aliases);
+  for aliased_path in aliased_paths.iter().skip(1) {
+    if let Some(resolved) = try_resolve_with_extensions(aliased_path) {
+      return Ok(resolved);
+    }
+  }
 
+  // Use oxc_resolver for node_modules resolution
   debug!(
-    "Resolved potential paths: {:?} for import `{}`",
-    resolved_potential_file_paths, import_path_str
+    "Resolving import '{}' from directory '{}'",
+    import_path_str,
+    source_file_dir.display()
   );
 
-  for ext in EXTENSIONS.iter() {
-    for resolved_file_path in resolved_potential_file_paths.iter() {
-      let mut resolved_file_path = resolved_file_path.clean();
-
-      if let Some(extension) = resolved_file_path.extension() {
-        let subpath = extension.to_string_lossy();
-        if EXTENSIONS
-          .iter()
-          .all(|ext| !ext.ends_with(subpath.as_ref()))
-        {
-          resolved_file_path.set_extension(format!("{}{}", subpath, ext));
-        }
-      } else {
-        resolved_file_path.set_extension(ext.trim_start_matches("."));
-      }
-
-      let cleaned_path = resolved_file_path.to_string_lossy().to_string();
-
-      let path_to_check: PathBuf;
-      let node_modules_path_to_check: PathBuf;
-
-      if !cleaned_path.contains(root_path.to_str().expect("root path is not valid")) {
-        if !cleaned_path.starts_with("node_modules") {
-          node_modules_path_to_check = cwd_path.join("node_modules").join(&cleaned_path);
-        } else {
-          node_modules_path_to_check = cwd_path.join(&cleaned_path);
-        }
-        path_to_check = cwd_path.join(cleaned_path);
-      } else {
-        path_to_check = PathBuf::from(&cleaned_path);
-        node_modules_path_to_check = path_to_check.clone();
-      }
-
-      if fs::metadata(&path_to_check).is_ok() {
-        return Ok(path_to_check.to_path_buf().clean());
-      }
-
-      if fs::metadata(&node_modules_path_to_check).is_ok() {
-        return Ok(node_modules_path_to_check.to_path_buf().clean());
-      }
-    }
+  if let Ok(resolution) = RESOLVER.resolve(source_file_dir, import_path_str) {
+    let resolved_path = resolution.full_path();
+    debug!("oxc_resolver resolved to: {}", resolved_path.display());
+    // Try to convert to pnpm path if applicable
+    let pnpm_path = try_resolve_pnpm_path(&resolved_path);
+    return Ok(pnpm_path.clean());
   }
 
-  Err(std::io::Error::new(
-    std::io::ErrorKind::NotFound,
-    "File not found",
-  ))
+  // Fallback: try resolving from root path as well
+  if let Ok(resolution) = RESOLVER.resolve(root_path, import_path_str) {
+    let resolved_path = resolution.full_path();
+    debug!(
+      "oxc_resolver resolved from root to: {}",
+      resolved_path.display()
+    );
+    // Try to convert to pnpm path if applicable
+    let pnpm_path = try_resolve_pnpm_path(&resolved_path);
+    return Ok(pnpm_path.clean());
+  }
+
+  Err(file_not_found_error(import_path_str))
 }
 
-fn resolve_package_with_node_modules_path(
-  mut resolved_node_modules_path_buf: PathBuf,
-  import_path_str: &str,
-  source_file_dir: &Path,
-  package_json_seen: &mut std::collections::HashMap<
-    String,
-    PackageJsonExtended,
-    rustc_hash::FxBuildHasher,
-  >,
-) -> IndexSet<PathBuf> {
-  let mut aliased_file_paths: IndexSet<PathBuf> = IndexSet::new();
+/// Tries to find the corresponding pnpm path for a resolved node_modules path.
+/// pnpm stores packages in node_modules/.pnpm/<package-name>@<version>/node_modules/<package-name>
+/// This function checks if such a path exists and returns it if found.
+fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
+  let resolved_str = resolved_path.to_string_lossy();
 
-  let (mut package_json, _) = get_package_json(&resolved_node_modules_path_buf, package_json_seen);
-
-  let package_name = package_json.name.clone().unwrap_or_else(|| {
-    panic!(
-      "Package name is not found in package.json of '{}'",
-      import_path_str
-    )
-  });
-
-  if let Some((pnpm_package_json, pnpm_package_path)) = resolve_package_with_pnpm_path(
-    source_file_dir,
-    &package_name,
-    import_path_str,
-    package_json_seen,
-  ) {
-    package_json = pnpm_package_json;
-    resolved_node_modules_path_buf = pnpm_package_path;
+  // Check if the path contains node_modules (but not .pnpm, which means it's already a pnpm path)
+  if !resolved_str.contains("node_modules") || resolved_str.contains(".pnpm") {
+    return resolved_path.to_path_buf();
   }
 
-  let potential_import_path_segment = import_path_str
-    .split(&package_name)
-    .last()
-    .unwrap_or_default();
-
-  let import_path_segment = if potential_import_path_segment.is_empty() {
-    package_name
-  } else {
-    potential_import_path_segment.to_string()
+  // Find the node_modules directory and the package path after it
+  let Some(nm_idx) = resolved_str.find("node_modules/") else {
+    return resolved_path.to_path_buf();
   };
 
-  if let Some(exports) = &package_json.exports {
-    let potential_package_path = resolve_package_json_exports(
-      Path::new(&import_path_segment),
-      exports,
-      &resolved_node_modules_path_buf,
-    );
+  let after_nm = &resolved_str[nm_idx + "node_modules/".len()..];
 
-    if !potential_package_path.as_os_str().is_empty() {
-      aliased_file_paths.insert(Path::new(&potential_package_path).to_path_buf().clean());
-    }
+  // Skip if already in .pnpm
+  if after_nm.starts_with(".pnpm") {
+    return resolved_path.to_path_buf();
   }
 
-  if !resolved_node_modules_path_buf.as_os_str().is_empty()
-    && !resolved_node_modules_path_buf.ends_with("node_modules")
-  {
-    aliased_file_paths.insert(resolved_node_modules_path_buf.clean());
-  }
-
-  aliased_file_paths
-}
-
-fn resolve_package_with_pnpm_path(
-  source_file_dir: &Path,
-  package_name: &String,
-  import_path_str: &str,
-  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> Option<(PackageJsonExtended, PathBuf)> {
-  let closest_package_json_path = find_closest_package_json_folder(&PathBuf::from(source_file_dir));
-  if let Some(closest_package_json_directory) = closest_package_json_path
-    && let Ok(directories) =
-      get_directories(&closest_package_json_directory.join("node_modules/.pnpm"))
-  {
-    let normalized_name = if package_name.starts_with('@') {
-      package_name.replace('/', "+")
+  // Extract package name and rest of path (handle scoped packages like @org/pkg)
+  let (package_name, rest_path) = if after_nm.starts_with('@') {
+    // Scoped package: @org/pkg/file.js
+    let parts: Vec<&str> = after_nm.splitn(3, '/').collect();
+    if parts.len() >= 2 {
+      let pkg_name = format!("{}/{}", parts[0], parts[1]);
+      let rest = if parts.len() > 2 { parts[2] } else { "" };
+      (pkg_name, rest)
     } else {
-      package_name.to_string()
+      return resolved_path.to_path_buf();
+    }
+  } else {
+    // Regular package: pkg/file.js
+    let parts: Vec<&str> = after_nm.splitn(2, '/').collect();
+    let pkg_name = parts[0].to_string();
+    let rest = if parts.len() > 1 { parts[1] } else { "" };
+    (pkg_name, rest)
+  };
+
+  // Construct the package directory path in node_modules
+  let node_modules_base = &resolved_str[..nm_idx + "node_modules".len()];
+  let package_dir = Path::new(node_modules_base).join(&package_name);
+
+  // Check if .pnpm directory exists (indicating pnpm is being used)
+  let pnpm_dir = Path::new(node_modules_base).join(".pnpm");
+  if !pnpm_dir.exists() || !pnpm_dir.is_dir() {
+    return resolved_path.to_path_buf();
+  }
+
+  // Try to follow the symlink to get the real pnpm path
+  // pnpm creates: node_modules/<pkg> -> .pnpm/<pkg>@<version>/node_modules/<pkg>
+  if let Ok(real_package_dir) = fs::read_link(&package_dir) {
+    // The symlink target is relative, resolve it against the node_modules directory
+    let real_package_path = if real_package_dir.is_absolute() {
+      real_package_dir
+    } else {
+      Path::new(node_modules_base).join(&real_package_dir).clean()
     };
 
-    for path in directories.iter() {
-      if path.to_string_lossy().contains(&normalized_name)
-        && let Ok(resolved_node_modules_path_buff) =
-          resolve_node_modules_path_buff(path, import_path_str, package_json_seen)
-      {
-        let (package_json, _) = get_package_json(path, package_json_seen);
+    // Append the rest of the path to the real package directory
+    let pnpm_path = if rest_path.is_empty() {
+      real_package_path
+    } else {
+      real_package_path.join(rest_path)
+    };
 
-        return Some((package_json, resolved_node_modules_path_buff));
-      };
+    if pnpm_path.exists() {
+      debug!(
+        "Converted to pnpm path via symlink: {} -> {}",
+        resolved_path.display(),
+        pnpm_path.display()
+      );
+      return pnpm_path;
     }
-  };
-
-  None
-}
-
-fn resolve_node_modules_path_buff(
-  path: &Path,
-  import_path_str: &str,
-  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> Result<PathBuf, std::io::Error> {
-  let (resolver, _) = get_package_json_with_deps(path, package_json_seen);
-
-  if let Some(package_resolution) = resolve_package_from_package_json(
-    &resolver,
-    &FileName::Real(path.to_path_buf()),
-    import_path_str,
-    package_json_seen,
-  ) && let FileName::Real(resolved_node_modules_path_buf) = package_resolution.filename
-  {
-    return Ok::<PathBuf, std::io::Error>(resolved_node_modules_path_buf);
   }
 
-  Result::Err(std::io::Error::new(
-    std::io::ErrorKind::NotFound,
-    "File not found",
-  ))
+  // Fallback: try to find the package in .pnpm by constructing the expected path
+  // This handles cases where symlinks aren't available (e.g., some Windows configs)
+  let pnpm_pkg_name = package_name.replace('/', "+");
+
+  // Try to read the package.json to get the version for direct path construction
+  let package_json_path = package_dir.join("package.json");
+  if let Some(version) = fs::read_to_string(&package_json_path)
+    .ok()
+    .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
+    .and_then(|pkg_json| {
+      pkg_json
+        .get("version")
+        .and_then(|v| v.as_str())
+        .map(String::from)
+    })
+  {
+    // Construct the expected pnpm path: .pnpm/<pkg>@<version>/node_modules/<pkg>
+    let pnpm_package_path = pnpm_dir
+      .join(format!("{}@{}", pnpm_pkg_name, version))
+      .join("node_modules")
+      .join(&package_name)
+      .join(rest_path);
+
+    if pnpm_package_path.exists() {
+      debug!(
+        "Converted to pnpm path via package.json: {} -> {}",
+        resolved_path.display(),
+        pnpm_package_path.display()
+      );
+      return pnpm_package_path;
+    }
+  }
+
+  resolved_path.to_path_buf()
+}
+
+/// Tries to resolve a path by checking various file extensions.
+/// Handles three cases:
+/// 1. Path already has a valid extension (e.g., `.js`, `.ts`) - use as-is
+/// 2. Path has a partial extension (e.g., `.stylex`) - append additional extensions
+/// 3. Path has no extension - try each extension
+///
+/// Returns `Some(path)` if a valid file is found, `None` otherwise.
+fn try_resolve_with_extensions(base_path: &Path) -> Option<PathBuf> {
+  // First check if the path exists as-is
+  if fs::metadata(base_path).is_ok() {
+    return Some(base_path.to_path_buf().clean());
+  }
+
+  let path_str = base_path.to_string_lossy();
+
+  for ext in EXTENSIONS.iter() {
+    // Skip if the path already ends with this extension (we already checked it above)
+    if path_str.ends_with(ext) {
+      continue;
+    }
+
+    let path_to_check = if let Some(existing_ext) = base_path.extension() {
+      let existing_ext_str = existing_ext.to_string_lossy();
+      // Check if this is already a valid extension
+      if EXTENSIONS
+        .iter()
+        .any(|e| e.ends_with(existing_ext_str.as_ref()))
+      {
+        // Already has a valid extension and was checked above; no further resolution possible
+        return None;
+      } else {
+        // Has a partial extension like .stylex, append the new extension
+        PathBuf::from(format!("{}{}", base_path.display(), ext))
+      }
+    } else {
+      // No extension, append one
+      PathBuf::from(format!("{}{}", base_path.display(), ext))
+    };
+
+    if fs::metadata(&path_to_check).is_ok() {
+      return Some(path_to_check.clean());
+    }
+  }
+
+  None
 }
 
 fn possible_aliased_paths(

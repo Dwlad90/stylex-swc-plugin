@@ -107,7 +107,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       enable_logical_styles_polyfill: options.enable_logical_styles_polyfill,
       enable_legacy_value_flipping: options.enable_legacy_value_flipping,
       enable_minified_keys: options.enable_minified_keys,
-      use_real_file_for_source: true,
+      use_real_file_for_source: options.use_real_file_for_source,
       treeshake_compensation: options.treeshake_compensation,
       inject_stylex_side_effects: options.inject_stylex_side_effects,
       aliases: options.aliases,

@@ -324,7 +324,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
       .or(Some("property-specificity".to_string())),
     legacy_disable_layers: options.legacy_disable_layers.or(Some(false)),
     swc_plugins: options.swc_plugins.or(Some(vec![])),
-    use_real_file_for_source: Some(true),
+    use_real_file_for_source: options.use_real_file_for_source.or(Some(true)),
     enable_media_query_order: options.enable_media_query_order.or(Some(true)),
     enable_debug_class_names: options.enable_debug_class_names.or(Some(false)),
     ..options

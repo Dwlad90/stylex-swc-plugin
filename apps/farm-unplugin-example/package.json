@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/farm-unplugin-example",
   "description": "A simple farm unplugin example to test @stylexswc/unplugin/farm",
-  "version": "0.14.0-rc.6",
+  "version": "0.14.0",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -13,9 +13,9 @@
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.17.3",
-    "@stylexswc/design-system": "0.14.0-rc.6",
-    "@stylexswc/rs-compiler": "0.14.0-rc.6",
-    "@stylexswc/unplugin": "0.14.0-rc.6",
+    "@stylexswc/design-system": "0.14.0",
+    "@stylexswc/rs-compiler": "0.14.0",
+    "@stylexswc/unplugin": "0.14.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -24,7 +24,7 @@
     "@farmfe/core": "^1.7.11",
     "@farmfe/plugin-react": "^1.2.6",
     "@playwright/test": "^1.57.0",
-    "@stylexswc/playwright": "0.14.0-rc.6",
+    "@stylexswc/playwright": "0.14.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "react-refresh": "^0.18.0",

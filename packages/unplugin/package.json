@@ -102,7 +102,7 @@
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-swc": "^0.4.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.3",
     "chalk": "^5.6.2",
     "eslint": "^9.39.2",
     "esno": "^4.7.0",

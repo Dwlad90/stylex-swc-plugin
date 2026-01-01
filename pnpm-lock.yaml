@@ -1172,8 +1172,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.103.0)
       html-webpack-plugin:
-        specifier: ^5.6.0
-        version: 5.6.3(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
+        specifier: ^5.6.5
+        version: 5.6.5(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
       mini-css-extract-plugin:
         specifier: ^2.9.2
         version: 2.9.4(webpack@5.103.0)
@@ -1242,8 +1242,8 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.7)
       html-webpack-plugin:
-        specifier: ^5.6.0
-        version: 5.6.3(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
+        specifier: ^5.6.5
+        version: 5.6.5(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
       serve:
         specifier: ^14.2.5
         version: 14.2.5
@@ -1306,8 +1306,8 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2(lightningcss@1.30.2)(webpack@5.103.0)
       html-webpack-plugin:
-        specifier: ^5.6.0
-        version: 5.6.3(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
+        specifier: ^5.6.5
+        version: 5.6.5(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
       lightningcss:
         specifier: ^1.30.2
         version: 1.30.2
@@ -6697,8 +6697,8 @@ packages:
   css-url-regex@0.0.1:
     resolution: {integrity: sha512-nFtRgFyJUwz9pyMpyscglpHEFdEJ+y2Q8pK33I99gzhUV1OFzS3t5DtIop3VWLIoGFr4mWcM4hJuWPLXn1NXgA==}
 
-  css-what@6.1.0:
-    resolution: {integrity: sha512-HTUrgRJ7r4dsZKU6GjmpfRK1O76h97Z8MfS1G0FozR+oF2kG6Vfe8JE6zwrkbxigziPHinCJ+gCPjA9EaBDtRw==}
+  css-what@6.2.2:
+    resolution: {integrity: sha512-u/O3vwbptzhMs3L1fQE82ZSLHQQfto5gyZzwteVIEyeaY5Fc7R4dapF/BvRoSYFeqfBk4m0V1Vafq5Pjv25wvA==}
     engines: {node: '>= 6'}
 
   css.escape@1.5.1:
@@ -8054,8 +8054,8 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
-  html-webpack-plugin@5.6.3:
-    resolution: {integrity: sha512-QSf1yjtSAsmf7rYBV7XX86uua4W/vkhIt0xNXKbsi2foEeW7vjJQz4bhnpL3xH+l1ryl1680uNv968Z+X6jSYg==}
+  html-webpack-plugin@5.6.5:
+    resolution: {integrity: sha512-4xynFbKNNk+WlzXeQQ+6YYsH2g7mpfPszQZUi3ovKlj+pDmngQ7vRXjrrmGROabmKwyQkcgcX5hqfOwHbFmK5g==}
     engines: {node: '>=10.13.0'}
     peerDependencies:
       '@rspack/core': 0.x || 1.x
@@ -11005,11 +11005,6 @@ packages:
         optional: true
       uglify-js:
         optional: true
-
-  terser@5.44.0:
-    resolution: {integrity: sha512-nIVck8DK+GM/0Frwd+nIhZ84pR/BX7rmXMfYwyg+Sri5oGVE99/E3KvXqpC2xHFxyqXyGHTKBSioxxplrO4I4w==}
-    engines: {node: '>=10'}
-    hasBin: true
 
   terser@5.44.1:
     resolution: {integrity: sha512-t/R3R/n0MSwnnazuPpPNVO60LX0SKL45pyl9YlvxIdkH0Of7D5qM2EVe+yASRIlY5pZ73nclYJfNANGWPwFDZw==}
@@ -17232,7 +17227,7 @@ snapshots:
   css-select@4.3.0:
     dependencies:
       boolbase: 1.0.0
-      css-what: 6.1.0
+      css-what: 6.2.2
       domhandler: 4.3.1
       domutils: 2.8.0
       nth-check: 2.1.1
@@ -17240,7 +17235,7 @@ snapshots:
   css-select@5.2.2:
     dependencies:
       boolbase: 1.0.0
-      css-what: 6.1.0
+      css-what: 6.2.2
       domhandler: 5.0.3
       domutils: 3.2.2
       nth-check: 2.1.1
@@ -17270,7 +17265,7 @@ snapshots:
 
   css-url-regex@0.0.1: {}
 
-  css-what@6.1.0: {}
+  css-what@6.2.2: {}
 
   css.escape@1.5.1: {}
 
@@ -18962,9 +18957,9 @@ snapshots:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.44.0
+      terser: 5.44.1
 
-  html-webpack-plugin@5.6.3(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0):
+  html-webpack-plugin@5.6.5(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -22374,7 +22369,7 @@ snapshots:
       commander: 11.1.0
       css-select: 5.2.2
       css-tree: 3.1.0
-      css-what: 6.1.0
+      css-what: 6.2.2
       csso: 5.0.5
       picocolors: 1.1.1
       sax: 1.4.3
@@ -22507,13 +22502,6 @@ snapshots:
       serialize-javascript: 6.0.2
       terser: 5.44.1
       webpack: 5.103.0
-
-  terser@5.44.0:
-    dependencies:
-      '@jridgewell/source-map': 0.3.11
-      acorn: 8.15.0
-      commander: 2.20.3
-      source-map-support: 0.5.21
 
   terser@5.44.1:
     dependencies:

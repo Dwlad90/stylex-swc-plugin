@@ -43,7 +43,7 @@
     "@vitejs/plugin-react-swc": "^4.1.0",
     "@vitest/browser": "^4.0.6",
     "@vitest/coverage-v8": "^4.0.6",
-    "autoprefixer": "^10.4.21",
+    "autoprefixer": "^10.4.23",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-storybook": "^10.1.2",

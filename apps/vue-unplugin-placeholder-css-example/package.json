@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.17.3",
+    "@stylexjs/stylex": "^0.17.4",
     "@stylexswc/design-system": "0.14.0",
     "@stylexswc/rs-compiler": "0.14.0",
     "@stylexswc/unplugin": "0.14.0",

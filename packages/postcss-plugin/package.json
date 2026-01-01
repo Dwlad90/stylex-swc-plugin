@@ -31,7 +31,7 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.17.3",
+    "@stylexjs/babel-plugin": "^0.17.4",
     "@stylexswc/rs-compiler": "0.14.0",
     "fast-glob": "^3.3.3",
     "glob-parent": "^6.0.2",

@@ -43,7 +43,7 @@
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^24.10.1",
     "mini-css-extract-plugin": "^2.9.2",
-    "webpack": "^5.103.0"
+    "webpack": "^5.104.1"
   },
   "keywords": [
     "stylex",

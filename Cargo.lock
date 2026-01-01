@@ -944,6 +944,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fancy-regex"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72cf461f865c862bb7dc573f643dd6a2b6842f7c30b07882b56bd148cc2761b8"
+dependencies = [
+ "bit-set",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
 name = "fast-glob"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2163,7 +2174,7 @@ checksum = "2acd0b1e3a154e7c4610b9ab31491c32e9f47db2adc0c12047301f3bacc71597"
 dependencies = [
  "byteorder",
  "concurrent_lru",
- "fancy-regex",
+ "fancy-regex 0.16.2",
  "flate2",
  "pathdiff",
  "radix_trie",
@@ -2839,7 +2850,7 @@ name = "stylex_compiler_rs"
 version = "0.14.0"
 dependencies = [
  "color-backtrace",
- "fancy-regex",
+ "fancy-regex 0.17.0",
  "glob",
  "log",
  "napi",
@@ -2862,7 +2873,7 @@ dependencies = [
  "anyhow",
  "criterion",
  "cssparser",
- "fancy-regex",
+ "fancy-regex 0.17.0",
  "indexmap",
  "log",
  "proptest",
@@ -2881,7 +2892,7 @@ dependencies = [
  "color-backtrace",
  "ctor",
  "env_logger 0.11.8",
- "fancy-regex",
+ "fancy-regex 0.17.0",
  "indexmap",
  "log",
  "once_cell",
@@ -2908,7 +2919,7 @@ dependencies = [
  "ctor",
  "derive_more",
  "env_logger 0.11.8",
- "fancy-regex",
+ "fancy-regex 0.17.0",
  "indexmap",
  "insta",
  "lazy_static",
@@ -2942,7 +2953,7 @@ dependencies = [
  "color-backtrace",
  "ctor",
  "env_logger 0.11.8",
- "fancy-regex",
+ "fancy-regex 0.17.0",
  "log",
  "pretty_env_logger",
  "serde",

@@ -42,7 +42,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/parser": "^8.48.0",
+    "@typescript-eslint/parser": "^8.51.0",
     "autoprefixer": "^10.4.23",
     "eslint-config-next": "^16.1.1",
     "jest": "^30.2.0",

@@ -39,7 +39,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
-    "@typescript-eslint/parser": "^8.48.0",
+    "@typescript-eslint/parser": "^8.51.0",
     "@vitejs/plugin-react-swc": "^4.1.0",
     "@vitest/browser": "^4.0.16",
     "@vitest/coverage-v8": "^4.0.6",

@@ -826,8 +826,8 @@ importers:
         specifier: ^1.4.1
         version: 1.4.1(@rsbuild/core@1.6.11)
       '@rspack/cli':
-        specifier: ^1.4.11
-        version: 1.4.11(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)
+        specifier: ^1.7.0
+        version: 1.7.0(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)
       '@rspack/core':
         specifier: ^1.6.5
         version: 1.6.5(@swc/helpers@0.5.17)
@@ -878,8 +878,8 @@ importers:
         specifier: ^1.4.1
         version: 1.4.1(@rsbuild/core@1.6.11)
       '@rspack/cli':
-        specifier: ^1.4.11
-        version: 1.4.11(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)
+        specifier: ^1.7.0
+        version: 1.7.0(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)
       '@rspack/core':
         specifier: ^1.6.5
         version: 1.6.5(@swc/helpers@0.5.17)
@@ -4478,8 +4478,8 @@ packages:
   '@rspack/binding@1.6.5':
     resolution: {integrity: sha512-FzYsr5vdjaVQIlDTxZFlISOQGxl/4grpF2BeiNy60Fpw9eeADeXk55DVacbXPqpiz7Doj6cyhEyMszQOvihrqQ==}
 
-  '@rspack/cli@1.4.11':
-    resolution: {integrity: sha512-21/EF/gdtTt03LYtXDFFE9rJNUfpxMtIszGgjfULal3IgYHAjo7mKPp6QlPQLSMi/26+TYHa9WZUrnHf8GUIJg==}
+  '@rspack/cli@1.7.0':
+    resolution: {integrity: sha512-4fGf1lvP9+JzpkVIljtZ+NrGn8JEsyVwNACDZPL4Heg1U2tStIde2RvzHLVs+0+NBVENu47v6tho5xMLcJPB7w==}
     hasBin: true
     peerDependencies:
       '@rspack/core': ^1.0.0-alpha || ^1.x
@@ -4493,8 +4493,8 @@ packages:
       '@swc/helpers':
         optional: true
 
-  '@rspack/dev-server@1.1.3':
-    resolution: {integrity: sha512-jWPeyiZiGpbLYGhwHvwxhaa4rsr8CQvsWkWslqeMLb2uXwmyy3UWjUR1q+AhAPnf0gs3lZoFZ1hjBQVecHKUvg==}
+  '@rspack/dev-server@1.1.5':
+    resolution: {integrity: sha512-cwz0qc6iqqoJhyWqxP7ZqE2wyYNHkBMQUXxoQ0tNoZ4YNRkDyQ4HVJ/3oPSmMKbvJk/iJ16u7xZmwG6sK47q/A==}
     engines: {node: '>= 18.12.0'}
     peerDependencies:
       '@rspack/core': '*'
@@ -14548,17 +14548,13 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 1.6.5
       '@rspack/binding-win32-x64-msvc': 1.6.5
 
-  '@rspack/cli@1.4.11(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)':
+  '@rspack/cli@1.7.0(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)':
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
       '@rspack/core': 1.6.5(@swc/helpers@0.5.17)
-      '@rspack/dev-server': 1.1.3(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)
-      colorette: 2.0.20
+      '@rspack/dev-server': 1.1.5(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)
       exit-hook: 4.0.0
-      interpret: 3.1.1
-      rechoir: 0.8.0
       webpack-bundle-analyzer: 4.10.2
-      yargs: 17.7.2
     transitivePeerDependencies:
       - '@types/express'
       - bufferutil
@@ -14576,7 +14572,7 @@ snapshots:
     optionalDependencies:
       '@swc/helpers': 0.5.17
 
-  '@rspack/dev-server@1.1.3(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)':
+  '@rspack/dev-server@1.1.5(@rspack/core@1.6.5(@swc/helpers@0.5.17))(@types/express@4.17.22)(webpack@5.103.0)':
     dependencies:
       '@rspack/core': 1.6.5(@swc/helpers@0.5.17)
       chokidar: 3.6.0

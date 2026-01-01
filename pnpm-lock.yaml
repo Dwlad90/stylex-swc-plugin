@@ -1303,8 +1303,8 @@ importers:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
       css-minimizer-webpack-plugin:
-        specifier: ^7.0.2
-        version: 7.0.2(lightningcss@1.30.2)(webpack@5.103.0)
+        specifier: ^7.0.4
+        version: 7.0.4(lightningcss@1.30.2)(webpack@5.103.0)
       html-webpack-plugin:
         specifier: ^5.6.5
         version: 5.6.5(@rspack/core@1.6.5(@swc/helpers@0.5.17))(webpack@5.103.0)
@@ -6688,8 +6688,8 @@ packages:
   css-mediaquery@0.1.2:
     resolution: {integrity: sha512-COtn4EROW5dBGlE/4PiKnh6rZpAPxDeFLaEEwt4i10jpDMFt2EhQGS79QmmrO+iKCHv0PU/HrOWEhijFd1x99Q==}
 
-  css-minimizer-webpack-plugin@7.0.2:
-    resolution: {integrity: sha512-nBRWZtI77PBZQgcXMNqiIXVshiQOVLGSf2qX/WZfG8IQfMbeHUMXaBWQmiiSTmPJUflQxHjZjzAmuyO7tpL2Jg==}
+  css-minimizer-webpack-plugin@7.0.4:
+    resolution: {integrity: sha512-2iACis+P8qdLj1tHcShtztkGhCNIRUajJj7iX0IM9a5FA0wXGwjV8Nf6+HsBjBfb4LO8TTAVoetBbM54V6f3+Q==}
     engines: {node: '>= 18.12.0'}
     peerDependencies:
       '@parcel/css': '*'
@@ -8766,10 +8766,6 @@ packages:
   jest-worker@27.5.1:
     resolution: {integrity: sha512-7vuh85V5cdDofPyxn58nrPjBktZo0u9x1g8WtjQol+jZDaE+fhN+cIvTj11GndBnMnyfrUOG1sZQxCdjKh+DKg==}
     engines: {node: '>= 10.13.0'}
-
-  jest-worker@29.7.0:
-    resolution: {integrity: sha512-eIz2msL/EzL9UFTFFx7jBTkeZfku0yUAyZZZmJ93H2TYEiroIx2PQjEXcwYtYl8zXCxb+PAmA2hLIt/6ZEkPHw==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
   jest-worker@30.0.5:
     resolution: {integrity: sha512-ojRXsWzEP16NdUuBw/4H/zkZdHOa7MMYCk4E430l+8fELeLg/mqmMlRhjL7UNZvQrDmnovWZV4DxX03fZF48fQ==}
@@ -15245,7 +15241,7 @@ snapshots:
 
   '@types/conventional-commits-parser@5.0.2':
     dependencies:
-      '@types/node': 25.0.3
+      '@types/node': 24.10.1
 
   '@types/deep-eql@4.0.2': {}
 
@@ -17271,11 +17267,11 @@ snapshots:
 
   css-mediaquery@0.1.2: {}
 
-  css-minimizer-webpack-plugin@7.0.2(lightningcss@1.30.2)(webpack@5.103.0):
+  css-minimizer-webpack-plugin@7.0.4(lightningcss@1.30.2)(webpack@5.103.0):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       cssnano: 7.1.2(postcss@8.5.6)
-      jest-worker: 29.7.0
+      jest-worker: 30.2.0
       postcss: 8.5.6
       schema-utils: 4.3.3
       serialize-javascript: 6.0.2
@@ -20034,13 +20030,6 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-  jest-worker@29.7.0:
-    dependencies:
-      '@types/node': 24.10.1
-      jest-util: 29.7.0
-      merge-stream: 2.0.0
-      supports-color: 8.1.1
-
   jest-worker@30.0.5:
     dependencies:
       '@types/node': 24.10.1
@@ -21194,7 +21183,7 @@ snapshots:
   postcss-calc@10.1.1(postcss@8.5.6):
     dependencies:
       postcss: 8.5.6
-      postcss-selector-parser: 7.0.0
+      postcss-selector-parser: 7.1.1
       postcss-value-parser: 4.2.0
 
   postcss-colormin@7.0.5(postcss@8.5.6):

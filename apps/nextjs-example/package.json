@@ -25,8 +25,8 @@
     "@stylexswc/design-system": "0.14.0",
     "@stylexswc/nextjs-plugin": "0.14.0",
     "next": "^16.1.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

@@ -18,8 +18,8 @@
     "test:visual": "playwright test"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.3",

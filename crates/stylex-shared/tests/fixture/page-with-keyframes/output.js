@@ -1,9 +1,9 @@
-/**
- * Lead Comment
- */ import _inject from "@stylexjs/stylex/lib/stylex-inject";
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import "./globalTokens.stylex";
-import React from 'react';
+/**
+ * Lead Comment
+ */ import React from 'react';
 import * as stylex from '@stylexjs/stylex';
 import Card from '@/components/Card';
 import { globalTokens as $, spacing, text, scales } from './globalTokens.stylex';

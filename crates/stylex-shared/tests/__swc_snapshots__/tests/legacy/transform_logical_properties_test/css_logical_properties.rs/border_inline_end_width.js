@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x10w94by{border-inline-end-width:0}",
     priority: 3000
 });
+export const classnames = "x10w94by";

@@ -439,6 +439,102 @@ impl Shorthands {
     result
   }
 
+  fn corner_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerShape".to_string(), value),
+      OrderPair("cornerStartStartShape".to_string(), None),
+      OrderPair("cornerStartEndShape".to_string(), None),
+      OrderPair("cornerEndStartShape".to_string(), None),
+      OrderPair("cornerEndEndShape".to_string(), None),
+      OrderPair("cornerTopLeftShape".to_string(), None),
+      OrderPair("cornerTopRightShape".to_string(), None),
+      OrderPair("cornerBottomLeftShape".to_string(), None),
+      OrderPair("cornerBottomRightShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_start_start_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerStartStartShape".to_string(), value),
+      OrderPair("cornerTopLeftShape".to_string(), None),
+      OrderPair("cornerTopRightShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_start_end_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerStartEndShape".to_string(), value),
+      OrderPair("cornerTopLeftShape".to_string(), None),
+      OrderPair("cornerTopRightShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_end_start_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerEndStartShape".to_string(), value),
+      OrderPair("cornerBottomLeftShape".to_string(), None),
+      OrderPair("cornerBottomRightShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_end_end_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerEndEndShape".to_string(), value),
+      OrderPair("cornerBottomLeftShape".to_string(), None),
+      OrderPair("cornerBottomRightShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_top_left_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerTopLeftShape".to_string(), value),
+      OrderPair("cornerStartStartShape".to_string(), None),
+      OrderPair("cornerStartEndShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_top_right_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerTopRightShape".to_string(), value),
+      OrderPair("cornerStartStartShape".to_string(), None),
+      OrderPair("cornerStartEndShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_bottom_left_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerBottomLeftShape".to_string(), value),
+      OrderPair("cornerEndStartShape".to_string(), None),
+      OrderPair("cornerEndEndShape".to_string(), None),
+    ];
+
+    result
+  }
+
+  fn corner_bottom_right_shape(value: Option<String>) -> Vec<OrderPair> {
+    let result = vec![
+      OrderPair("cornerBottomRightShape".to_string(), value),
+      OrderPair("cornerEndStartShape".to_string(), None),
+      OrderPair("cornerEndEndShape".to_string(), None),
+    ];
+
+    result
+  }
+
   fn border_image(value: Option<String>) -> Vec<OrderPair> {
     let result = vec![
       OrderPair("borderImage".to_string(), value),
@@ -1126,6 +1222,15 @@ impl Shorthands {
       "borderTopRightRadius" => Some(Shorthands::border_top_right_radius),
       "borderBottomLeftRadius" => Some(Shorthands::border_bottom_left_radius),
       "borderBottomRightRadius" => Some(Shorthands::border_bottom_right_radius),
+      "cornerShape" => Some(Shorthands::corner_shape),
+      "cornerStartStartShape" => Some(Shorthands::corner_start_start_shape),
+      "cornerStartEndShape" => Some(Shorthands::corner_start_end_shape),
+      "cornerEndStartShape" => Some(Shorthands::corner_end_start_shape),
+      "cornerEndEndShape" => Some(Shorthands::corner_end_end_shape),
+      "cornerTopLeftShape" => Some(Shorthands::corner_top_left_shape),
+      "cornerTopRightShape" => Some(Shorthands::corner_top_right_shape),
+      "cornerBottomLeftShape" => Some(Shorthands::corner_bottom_left_shape),
+      "cornerBottomRightShape" => Some(Shorthands::corner_bottom_right_shape),
       "borderImage" => Some(Shorthands::border_image),
       "columnRule" => Some(Shorthands::column_rule),
       "columns" => Some(Shorthands::columns),

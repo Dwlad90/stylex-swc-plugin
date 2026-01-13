@@ -34,6 +34,7 @@ pub(crate) static SHORTHANDS_OF_LONGHANDS: phf::Set<&'static str> = phf_set! {
 
   "border-radius",
 
+  "corner-shape",
 
   // CSS Basic User Interface
   "caret",

@@ -369,6 +369,54 @@ describe('@stylexjs/babel-plugin', ()=>{
         const classnames = "x1u0fnx4";"
       `);
         });
+        test('"cornerShape"', ()=>{
+            expect(transform(`
+          import stylex from 'stylex';
+          const styles = stylex.create({ x: { cornerShape: 'squircle' } });
+          const classnames = stylex(styles.x);
+        `)).toMatchInlineSnapshot(`
+        "import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        var _inject2 = _inject;
+        import stylex from 'stylex';
+        _inject2({
+          ltr: ".xa22041{corner-shape:squircle}",
+          priority: 2000
+        });
+        const classnames = "xa22041";"
+      `);
+        });
+        test('"cornerStartStartShape"', ()=>{
+            expect(transform(`
+          import stylex from 'stylex';
+          const styles = stylex.create({ x: { cornerStartStartShape: 'bevel' } });
+          const classnames = stylex(styles.x);
+        `)).toMatchInlineSnapshot(`
+        "import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        var _inject2 = _inject;
+        import stylex from 'stylex';
+        _inject2({
+          ltr: ".x1ao7i56{corner-start-start-shape:bevel}",
+          priority: 3000
+        });
+        const classnames = "x1ao7i56";"
+      `);
+        });
+        test('"cornerTopLeftShape"', ()=>{
+            expect(transform(`
+          import stylex from 'stylex';
+          const styles = stylex.create({ x: { cornerTopLeftShape: 'notch' } });
+          const classnames = stylex(styles.x);
+        `)).toMatchInlineSnapshot(`
+        "import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        var _inject2 = _inject;
+        import stylex from 'stylex';
+        _inject2({
+          ltr: ".x49z41y{corner-top-left-shape:notch}",
+          priority: 4000
+        });
+        const classnames = "x49z41y";"
+      `);
+        });
         test('"insetBlock"', ()=>{
             expect(transform(`
           import stylex from 'stylex';

@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x13vifvy{top:0}",
     priority: 4000
 });
+export const classnames = "x13vifvy";

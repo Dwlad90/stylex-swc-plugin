@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x1ey2m1c{bottom:0}",
     priority: 4000
 });
+export const classnames = "x1ey2m1c";

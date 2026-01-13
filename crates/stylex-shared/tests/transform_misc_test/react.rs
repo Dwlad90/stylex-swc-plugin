@@ -291,7 +291,6 @@ test!(
 "#
 );
 
-
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,
@@ -322,4 +321,3 @@ test!(
     };
 "#
 );
-

@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x1c1uobl{padding-inline-start:0}",
     priority: 3000
 });
+export const classnames = "x1c1uobl";

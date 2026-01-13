@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x10im51j{margin-block:0}",
     priority: 2000
 });
+export const classnames = "x10im51j";

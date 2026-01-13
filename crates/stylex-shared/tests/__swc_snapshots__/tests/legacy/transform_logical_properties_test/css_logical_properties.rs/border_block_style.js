@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x7mea6a{border-block-style:0}",
     priority: 3000
 });
+export const classnames = "x7mea6a";

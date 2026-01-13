@@ -5,3 +5,4 @@ _inject2({
     ltr: ".xdj266r{margin-top:0}",
     priority: 4000
 });
+export const classnames = "xdj266r";

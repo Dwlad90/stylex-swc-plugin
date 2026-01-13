@@ -195,7 +195,10 @@ fn works_with_background_property() {
     )
   });
 
-  assert!(result.is_ok(), "Test should not panic with background property");
+  assert!(
+    result.is_ok(),
+    "Test should not panic with background property"
+  );
 }
 
 // Test with animation property
@@ -234,7 +237,10 @@ fn works_with_animation_property() {
     )
   });
 
-  assert!(result.is_ok(), "Test should not panic with animation property");
+  assert!(
+    result.is_ok(),
+    "Test should not panic with animation property"
+  );
 }
 
 // Test throw mode with background

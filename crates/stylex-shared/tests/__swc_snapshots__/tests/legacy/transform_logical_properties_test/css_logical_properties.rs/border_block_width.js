@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x1616tdu{border-block-width:0}",
     priority: 3000
 });
+export const classnames = "x1616tdu";

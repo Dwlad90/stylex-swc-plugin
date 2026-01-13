@@ -5,3 +5,4 @@ _inject2({
     ltr: ".xnjsko4{padding-inline:0}",
     priority: 2000
 });
+export const classnames = "xnjsko4";

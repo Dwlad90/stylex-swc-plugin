@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x14z9mp{margin-inline-end:0}",
     priority: 3000
 });
+export const classnames = "x14z9mp";

@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x14mj1wy{border-inline-end-color:0}",
     priority: 3000
 });
+export const classnames = "x14mj1wy";

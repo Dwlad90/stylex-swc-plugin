@@ -185,8 +185,8 @@ fn zero_dimension_normalizer(
         return dimension;
       }
 
-      length.value = get_zero_demansion_value();
-      length.unit = get_zero_demansion_unit(&length.unit);
+      length.value = get_zero_dimension_value();
+      length.unit = get_zero_dimension_unit(&length.unit);
 
       dimension
     }
@@ -195,7 +195,7 @@ fn zero_dimension_normalizer(
         return dimension;
       }
 
-      angle.value = get_zero_demansion_value();
+      angle.value = get_zero_dimension_value();
 
       angle.unit = Ident {
         span: DUMMY_SP,
@@ -210,7 +210,7 @@ fn zero_dimension_normalizer(
         return dimension;
       }
 
-      time.value = get_zero_demansion_value();
+      time.value = get_zero_dimension_value();
 
       time.unit = Ident {
         span: DUMMY_SP,
@@ -225,8 +225,8 @@ fn zero_dimension_normalizer(
         return dimension;
       }
 
-      frequency.value = get_zero_demansion_value();
-      frequency.unit = get_zero_demansion_unit(&frequency.unit);
+      frequency.value = get_zero_dimension_value();
+      frequency.unit = get_zero_dimension_unit(&frequency.unit);
 
       dimension
     }
@@ -235,8 +235,8 @@ fn zero_dimension_normalizer(
         return dimension;
       }
 
-      resolution.value = get_zero_demansion_value();
-      resolution.unit = get_zero_demansion_unit(&resolution.unit);
+      resolution.value = get_zero_dimension_value();
+      resolution.unit = get_zero_dimension_unit(&resolution.unit);
 
       dimension
     }
@@ -245,8 +245,8 @@ fn zero_dimension_normalizer(
         return dimension;
       }
 
-      flex.value = get_zero_demansion_value();
-      flex.unit = get_zero_demansion_unit(&flex.unit);
+      flex.value = get_zero_dimension_value();
+      flex.unit = get_zero_dimension_unit(&flex.unit);
 
       dimension
     }
@@ -255,15 +255,15 @@ fn zero_dimension_normalizer(
         return dimension;
       }
 
-      unknown.value = get_zero_demansion_value();
-      unknown.unit = get_zero_demansion_unit(&unknown.unit);
+      unknown.value = get_zero_dimension_value();
+      unknown.unit = get_zero_dimension_unit(&unknown.unit);
 
       dimension
     }
   }
 }
 
-fn get_zero_demansion_value() -> Number {
+fn get_zero_dimension_value() -> Number {
   Number {
     value: 0.0,
     raw: None,
@@ -271,7 +271,7 @@ fn get_zero_demansion_value() -> Number {
   }
 }
 
-fn get_zero_demansion_unit(unit: &Ident) -> Ident {
+fn get_zero_dimension_unit(unit: &Ident) -> Ident {
   if unit.value.eq("fr") {
     return Ident {
       value: "fr".into(),

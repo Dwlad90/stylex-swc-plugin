@@ -23,6 +23,11 @@ pub(crate) static LONG_HAND_PHYSICAL: phf::Set<&'static str> = phf_set! {
   "border-bottom-left-radius",
   "border-bottom-right-radius",
 
+  "corner-top-left-shape",
+  "corner-top-right-shape",
+  "corner-bottom-left-shape",
+  "corner-bottom-right-shape",
+
   "height",
   "width",
 

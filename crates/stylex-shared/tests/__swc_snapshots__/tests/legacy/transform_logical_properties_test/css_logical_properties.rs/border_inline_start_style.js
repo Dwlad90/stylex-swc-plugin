@@ -5,3 +5,4 @@ _inject2({
     ltr: ".xl8mozw{border-inline-start-style:0}",
     priority: 3000
 });
+export const classnames = "xl8mozw";

@@ -2,7 +2,7 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
 _inject2({
-    ltr: ".xat24cr{margin-bottom:0}",
-    priority: 4000
+    ltr: ".x1ao7i56{corner-start-start-shape:bevel}",
+    priority: 3000
 });
-export const classnames = "xat24cr";
+export const classnames = "x1ao7i56";

@@ -5,3 +5,4 @@ _inject2({
     ltr: ".x14e42zd{border-inline-start-width:0}",
     priority: 3000
 });
+export const classnames = "x14e42zd";

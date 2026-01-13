@@ -7,11 +7,13 @@ use crate::shared::{
 /// Helper function to check if a string is a valid list-style-type value
 /// Matches: [a-z-]+ or quoted strings like "..." or '...'
 fn is_list_style_type(s: &str) -> bool {
-  // Check if it's a quoted string (single or double quotes)
-  if (s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')) {
+  // Check for properly quoted strings with matching quotes (minimum length 2)
+  if s.len() >= 2
+    && ((s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')))
+  {
     return true;
   }
-  
+
   // Check if it matches [a-z-]+ pattern (lowercase letters and hyphens only)
   !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c == '-')
 }
@@ -302,7 +304,7 @@ impl Shorthands {
 
     // Global values that must be the only value
     let list_style_global_values = ["inherit", "initial", "revert", "unset"];
-    
+
     // Position values (unambiguous)
     let list_style_position_values = ["inside", "outside"];
 

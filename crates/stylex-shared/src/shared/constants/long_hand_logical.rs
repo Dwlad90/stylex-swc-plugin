@@ -70,6 +70,11 @@ pub(crate) static LONG_HAND_LOGICAL: phf::Set<&'static str> = phf_set! {
   "border-end-end-radius", // Logical Properties
   "border-end-start-radius", // Logical Properties
 
+  "corner-start-start-shape", // Logical Properties
+  "corner-start-end-shape", // Logical Properties
+  "corner-end-start-shape", // Logical Properties
+  "corner-end-end-shape", // Logical Properties
+
   "box-shadow",
 
   // CSS Basic User Interface

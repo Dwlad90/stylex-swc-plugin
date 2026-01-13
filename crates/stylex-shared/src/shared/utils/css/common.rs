@@ -384,7 +384,10 @@ pub(crate) fn normalize_css_property_value(
   let css_rule = if css_property_for_parsing.starts_with(':') {
     format!("{0} {1}", css_property_for_parsing, css_property_value)
   } else {
-    format!("* {{ {0}: {1} }}", css_property_for_parsing, css_property_value)
+    format!(
+      "* {{ {0}: {1} }}",
+      css_property_for_parsing, css_property_value
+    )
   };
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());

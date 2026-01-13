@@ -5,3 +5,4 @@ _inject2({
     ltr: ".xyri2b{padding-inline-end:0}",
     priority: 3000
 });
+export const classnames = "xyri2b";

@@ -16,7 +16,7 @@ pub struct StyleXOptions {
   #[napi(ts_type = "'application-order' | 'property-specificity' | 'legacy-expand-shorthands'")]
   pub style_resolution: Option<String>,
   pub enable_font_size_px_to_rem: Option<bool>,
-  #[napi(ts_type = "'boolean' | 'string'")]
+  #[napi(ts_type = "boolean | string")]
   pub runtime_injection: Option<RuntimeInjectionUnion>,
   pub class_name_prefix: Option<String>,
   #[napi(ts_type = "Record<string, string>")]

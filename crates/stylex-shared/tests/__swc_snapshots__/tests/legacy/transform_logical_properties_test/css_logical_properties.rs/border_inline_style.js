@@ -5,3 +5,4 @@ _inject2({
     ltr: ".xt8kkye{border-inline-style:0}",
     priority: 2000
 });
+export const classnames = "xt8kkye";

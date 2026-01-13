@@ -5,3 +5,4 @@ _inject2({
     ltr: ".xt970qd{padding-block:0}",
     priority: 2000
 });
+export const classnames = "xt970qd";

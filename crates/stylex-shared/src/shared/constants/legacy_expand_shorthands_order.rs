@@ -1,8 +1,20 @@
 use crate::shared::{
   constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR},
   structures::order_pair::OrderPair,
-  utils::css::common::split_value_required,
+  utils::css::{common::split_value_required, parser::parse_css},
 };
+
+/// Helper function to check if a string is a valid list-style-type value
+/// Matches: [a-z-]+ or quoted strings like "..." or '...'
+fn is_list_style_type(s: &str) -> bool {
+  // Check if it's a quoted string (single or double quotes)
+  if (s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')) {
+    return true;
+  }
+  
+  // Check if it matches [a-z-]+ pattern (lowercase letters and hyphens only)
+  !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c == '-')
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub(crate) struct Shorthands;
@@ -275,6 +287,90 @@ impl Shorthands {
     ]
   }
 
+  fn list_style(raw_value: Option<String>) -> Vec<OrderPair> {
+    // Handle None case
+    if raw_value.is_none() {
+      return vec![
+        OrderPair("listStyleType".into(), None),
+        OrderPair("listStylePosition".into(), None),
+        OrderPair("listStyleImage".into(), None),
+      ];
+    }
+
+    let raw_value_str = raw_value.as_ref().unwrap();
+    let parts: Vec<String> = parse_css(raw_value_str);
+
+    // Global values that must be the only value
+    let list_style_global_values = ["inherit", "initial", "revert", "unset"];
+    
+    // Position values (unambiguous)
+    let list_style_position_values = ["inside", "outside"];
+
+    // Handle global keywords - must be the only value
+    if parts.len() == 1 && list_style_global_values.contains(&parts[0].as_str()) {
+      let global_value = Some(parts[0].clone());
+      return vec![
+        OrderPair("listStyleType".into(), global_value.clone()),
+        OrderPair("listStylePosition".into(), global_value.clone()),
+        OrderPair("listStyleImage".into(), global_value),
+      ];
+    }
+
+    let mut image: Option<String> = None;
+    let mut position: Option<String> = None;
+    let mut list_type: Option<String> = None;
+    let mut remaining_parts: Vec<String> = Vec::new();
+
+    // First pass: assign values that can only belong to one property
+    for part in &parts {
+      // Check for global keywords mixed with other values (invalid)
+      // and use of `var()` which can't be disambiguated
+      if list_style_global_values.contains(&part.as_str()) || part.contains("var(--") {
+        panic!("Invalid listStyle value: '{}'", raw_value_str);
+      }
+      // Check if it's a position value (unambiguous)
+      else if list_style_position_values.contains(&part.as_str()) {
+        if position.is_some() {
+          panic!("Invalid listStyle value: '{}'", raw_value_str);
+        }
+        position = Some(part.clone());
+      }
+      // Check if it's a type value that's not 'none' (unambiguous)
+      // Type values are: keywords (letters and hyphens) or quoted strings
+      else if part != "none" && is_list_style_type(part) {
+        if list_type.is_some() {
+          panic!("Invalid listStyle value: '{}'", raw_value_str);
+        }
+        list_type = Some(part.clone());
+      }
+      // Keep ambiguous values for second pass
+      else {
+        remaining_parts.push(part.clone());
+      }
+    }
+
+    // Second pass: handle remaining parts (including 'none' and image values)
+    for part in remaining_parts {
+      // If 'none' and type is not yet assigned, assign to type
+      if part == "none" && list_type.is_none() {
+        list_type = Some(part);
+      }
+      // Otherwise assign to image
+      else {
+        if image.is_some() {
+          panic!("Invalid listStyle value: '{}'", raw_value_str);
+        }
+        image = Some(part);
+      }
+    }
+
+    vec![
+      OrderPair("listStyleType".into(), list_type),
+      OrderPair("listStylePosition".into(), position),
+      OrderPair("listStyleImage".into(), image),
+    ]
+  }
+
   fn overflow(raw_value: Option<String>) -> Vec<OrderPair> {
     let (x, y, _, _) = split_value_required(raw_value.as_deref());
     vec![
@@ -366,6 +462,7 @@ impl Shorthands {
       "left" => Some(Shorthands::left),
       "right" => Some(Shorthands::right),
       "gap" => Some(Shorthands::gap),
+      "listStyle" => Some(Shorthands::list_style),
       "margin" => Some(Shorthands::margin),
       "marginHorizontal" => Some(Shorthands::margin_horizontal),
       "marginStart" => Some(Shorthands::margin_start),

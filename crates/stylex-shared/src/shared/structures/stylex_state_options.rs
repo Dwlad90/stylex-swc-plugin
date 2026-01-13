@@ -5,7 +5,7 @@ use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
-  stylex_options::{CheckModuleResolution, StyleResolution, StyleXOptions},
+  stylex_options::{CheckModuleResolution, PropertyValidationMode, StyleResolution, StyleXOptions},
 };
 
 #[derive(Deserialize, Clone, Debug)]
@@ -15,6 +15,7 @@ pub struct StyleXStateOptions {
   pub debug: bool,
   pub enable_font_size_px_to_rem: bool,
   pub class_name_prefix: String,
+  pub property_validation_mode: PropertyValidationMode,
   pub enable_debug_class_names: bool,
   pub enable_debug_data_prop: bool,
   pub enable_dev_class_names: bool,
@@ -40,6 +41,7 @@ impl Default for StyleXStateOptions {
   fn default() -> Self {
     StyleXStateOptions {
       style_resolution: StyleResolution::PropertySpecificity,
+      property_validation_mode: PropertyValidationMode::Silent,
       dev: false,
       test: false,
       debug: false,
@@ -90,6 +92,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
 
     StyleXStateOptions {
       style_resolution: options.style_resolution,
+      property_validation_mode: options.property_validation_mode,
       enable_font_size_px_to_rem: options.enable_font_size_px_to_rem,
       runtime_injection,
       class_name_prefix: options.class_name_prefix,

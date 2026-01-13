@@ -40,7 +40,7 @@ use napi_derive::napi;
 use utils::extract_stylex_metadata;
 
 use crate::enums::{
-  ImportSourceUnion, PathFilterUnion, RuntimeInjectionUnion, SourceMaps, StyleXModuleResolution,
+  ImportSourceUnion, PathFilterUnion, PropertyValidationMode, RuntimeInjectionUnion, SourceMaps, StyleXModuleResolution
 };
 
 fn extract_patterns(
@@ -327,6 +327,7 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
     use_real_file_for_source: options.use_real_file_for_source.or(Some(true)),
     enable_media_query_order: options.enable_media_query_order.or(Some(true)),
     enable_debug_class_names: options.enable_debug_class_names.or(Some(false)),
+    property_validation_mode: options.property_validation_mode.or(Some(PropertyValidationMode::Silent)),
     ..options
   };
 

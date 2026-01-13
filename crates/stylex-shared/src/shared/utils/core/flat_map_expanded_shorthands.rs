@@ -1,3 +1,5 @@
+use std::panic;
+
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::{
@@ -5,7 +7,8 @@ use crate::shared::{
     application_order::ApplicationOrder,
     legacy_expand_shorthands_order::LegacyExpandShorthandsOrder, order::Order,
     order_pair::OrderPair, pre_rule::PreRuleValue,
-    property_specificity_order::PropertySpecificityOrder, stylex_options::StyleResolution,
+    property_specificity_order::PropertySpecificityOrder,
+    stylex_options::{PropertyValidationMode, StyleResolution},
     stylex_state_options::StyleXStateOptions,
   },
   utils::ast::convertors::lit_to_string,
@@ -48,7 +51,34 @@ pub(crate) fn flat_map_expanded_shorthands(
   };
 
   if let Some(expansion_fn) = expansion_fn {
-    return (expansion_fn)(value);
+    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| (expansion_fn)(value)));
+
+    return match result {
+      Ok(expanded) => expanded,
+      Err(err) => {
+        let error_message = if let Some(s) = err.downcast_ref::<String>() {
+          s.clone()
+        } else if let Some(s) = err.downcast_ref::<&str>() {
+          s.to_string()
+        } else {
+          format!("{} is not supported", key)
+        };
+
+        match options.property_validation_mode {
+          PropertyValidationMode::Throw => {
+            panic!("{}", error_message);
+          }
+          PropertyValidationMode::Warn => {
+            eprintln!("[stylex] {}", error_message);
+            vec![]
+          }
+          PropertyValidationMode::Silent => {
+            // silent mode - skip the property without any output
+            vec![]
+          }
+        }
+      }
+    };
   }
 
   let order_pair = OrderPair(key, value);

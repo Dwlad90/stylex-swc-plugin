@@ -1,4 +1,5 @@
 mod while_using_rm_non_standard_shorthands;
+mod while_using_rn_non_standard_shorthands;
 mod while_using_rn_non_standard_shorthands_no_polyfill;
 mod while_using_standard_logical_properties;
 mod while_using_standard_logical_properties_no_polyfill;

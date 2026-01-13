@@ -9,6 +9,7 @@ use super::named_import_source::{ImportSources, RuntimeInjection};
 #[serde(rename_all = "camelCase")]
 pub struct StyleXOptionsParams {
   pub style_resolution: Option<StyleResolution>,
+  pub property_validation_mode: Option<PropertyValidationMode>,
   pub enable_font_size_px_to_rem: Option<bool>,
   pub runtime_injection: Option<RuntimeInjection>,
   pub class_name_prefix: Option<String>,
@@ -38,6 +39,7 @@ impl Default for StyleXOptionsParams {
   fn default() -> Self {
     StyleXOptionsParams {
       style_resolution: Some(StyleResolution::PropertySpecificity),
+      property_validation_mode: Some(PropertyValidationMode::Silent),
       enable_font_size_px_to_rem: Some(false),
       runtime_injection: Some(RuntimeInjection::Boolean(false)),
       class_name_prefix: Some("x".to_string()),
@@ -72,6 +74,15 @@ pub enum StyleResolution {
   LegacyExpandShorthands,
 }
 
+#[derive(Deserialize, Debug, Clone, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum PropertyValidationMode {
+  Throw,
+  Warn,
+  #[default]
+  Silent,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 
 pub enum Aliases {
@@ -100,6 +111,7 @@ pub struct StyleXOptions {
   pub dev: bool,
   pub test: bool,
   pub debug: bool,
+  pub property_validation_mode: PropertyValidationMode,
   pub enable_debug_class_names: bool,
   pub enable_debug_data_prop: bool,
   pub enable_dev_class_names: bool,
@@ -144,6 +156,7 @@ impl Default for StyleXOptions {
   fn default() -> Self {
     StyleXOptions {
       style_resolution: StyleResolution::PropertySpecificity,
+      property_validation_mode: PropertyValidationMode::Silent,
       enable_font_size_px_to_rem: false,
       runtime_injection: RuntimeInjection::Boolean(false),
       class_name_prefix: "x".to_string(),
@@ -200,6 +213,9 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       style_resolution: options
         .style_resolution
         .unwrap_or(StyleResolution::PropertySpecificity),
+      property_validation_mode: options
+        .property_validation_mode
+        .unwrap_or(PropertyValidationMode::Silent),
       enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.unwrap_or(false),
       runtime_injection,
       class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),

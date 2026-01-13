@@ -143,8 +143,10 @@ pub fn parse_css_inner<'a>(
         iter_result.push('#');
         iter_result.push_str(value);
       }
-      Token::QuotedString(ref _value) => {
-        unimplemented!("QuotedString");
+      Token::QuotedString(ref value) => {
+        // Add the quoted string with quotes preserved
+        iter_result.push_str(&_format_quoted_string(value));
+
         // if curr_rule == "import" {
         //   // Reset current at-rule value
         //   curr_rule =  String::default();

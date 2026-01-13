@@ -3,16 +3,20 @@ use napi_derive::napi;
 use rustc_hash::FxHashMap;
 use stylex_shared::shared::structures::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
-  stylex_options::{ModuleResolution, StyleResolution, StyleXOptionsParams},
+  stylex_options::{self, ModuleResolution, StyleResolution, StyleXOptionsParams},
 };
 
-use crate::enums::{ImportSourceUnion, RuntimeInjectionUnion, SourceMaps, StyleXModuleResolution};
+use crate::enums::{
+  ImportSourceUnion, PropertyValidationMode, RuntimeInjectionUnion, SourceMaps,
+  StyleXModuleResolution,
+};
 
 #[napi(object)]
 pub struct StyleXOptions {
   #[napi(ts_type = "'application-order' | 'property-specificity' | 'legacy-expand-shorthands'")]
   pub style_resolution: Option<String>,
   pub enable_font_size_px_to_rem: Option<bool>,
+  #[napi(ts_type = "'boolean' | 'string'")]
   pub runtime_injection: Option<RuntimeInjectionUnion>,
   pub class_name_prefix: Option<String>,
   #[napi(ts_type = "Record<string, string>")]
@@ -47,6 +51,7 @@ pub struct StyleXOptions {
   pub exclude: Option<Vec<UnknownRef>>,
   #[napi(ts_type = "Array<[string, Record<string, any>]>")]
   pub swc_plugins: Option<Vec<UnknownRef>>,
+  pub property_validation_mode: Option<PropertyValidationMode>,
 }
 
 #[napi(object)]
@@ -97,6 +102,13 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       RuntimeInjectionUnion::Regular(s) => RuntimeInjection::Regular(s),
     });
 
+    let property_validation_mode: Option<stylex_options::PropertyValidationMode> =
+      val.property_validation_mode.map(|pvm| match pvm {
+        PropertyValidationMode::Throw => stylex_options::PropertyValidationMode::Throw,
+        PropertyValidationMode::Warn => stylex_options::PropertyValidationMode::Warn,
+        PropertyValidationMode::Silent => stylex_options::PropertyValidationMode::Silent,
+      });
+
     Ok(StyleXOptionsParams {
       style_resolution,
       enable_font_size_px_to_rem: val.enable_font_size_px_to_rem,
@@ -121,6 +133,7 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       inject_stylex_side_effects: val.inject_stylex_side_effects,
       aliases: val.aliases,
       unstable_module_resolution,
+      property_validation_mode,
     })
   }
 }

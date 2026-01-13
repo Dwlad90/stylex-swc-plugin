@@ -1260,7 +1260,9 @@ describe('legacy-shorthand-expansion style resolution (enableLogicalStylesPolyfi
               listStyle: 'none inherit'
             },
           });
-        `)).toThrow();
+        `, {
+                    propertyValidationMode: 'throw'
+                })).toThrow();
             expect(()=>transform(`
           import stylex from 'stylex';
           export const styles = stylex.create({
@@ -1268,7 +1270,9 @@ describe('legacy-shorthand-expansion style resolution (enableLogicalStylesPolyfi
               listStyle: 'none var(--image)'
             },
           });
-        `)).toThrow();
+        `, {
+                    propertyValidationMode: 'throw'
+                })).toThrow();
         });
     });
 });

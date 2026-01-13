@@ -233,3 +233,14 @@ impl PathFilterUnion {
     PathFilterUnion::Glob(pattern.to_string())
   }
 }
+
+#[napi(string_enum)]
+#[derive(Debug)]
+pub enum PropertyValidationMode {
+  #[napi(value = "throw")]
+  Throw,
+  #[napi(value = "warn")]
+  Warn,
+  #[napi(value = "silent")]
+  Silent,
+}

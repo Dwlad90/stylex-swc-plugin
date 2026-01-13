@@ -88,4 +88,33 @@ mod transform_value_content_property_tests {
       assert_eq!(output, expected);
     }
   }
+
+  #[test]
+  fn preserve_units_in_zero_values_css_variables() {
+    let variables = vec![
+      // CSS variables should preserve units
+      ("--test", "0px", "0px"),
+      ("--test", "0vdh", "0vdh"),
+      // Regular properties still normalize
+      ("transform", "0rad", "0deg"),
+      ("animation-duration", "0ms", "0s"),
+      // grid-template-rows preserves fr units
+      ("grid-template-rows", "0fr", "0fr"),
+      // Percentages are always preserved
+      ("width", "0%", "0%"),
+      // Regular properties normalize px to unitless
+      ("margin", "0px", "0"),
+    ];
+
+    let state_manager = StateManager::new(StyleXOptions::default());
+
+    for (key, value, expected) in variables {
+      let output = transform_value(key, value, &state_manager);
+      assert_eq!(
+        output, expected,
+        "Failed for property '{}' with value '{}': expected '{}', got '{}'",
+        key, value, expected, output
+      );
+    }
+  }
 }

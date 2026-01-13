@@ -373,16 +373,18 @@ pub(crate) fn normalize_css_property_value(
     return MANY_SPACES.replace_all(css_property_value, " ").to_string();
   }
 
-  let css_property = if css_property.starts_with("--") {
+  let is_css_variable = css_property.starts_with("--");
+
+  let css_property_for_parsing = if is_css_variable {
     "color"
   } else {
     css_property
   };
 
-  let css_rule = if css_property.starts_with(':') {
-    format!("{0} {1}", css_property, css_property_value)
+  let css_rule = if css_property_for_parsing.starts_with(':') {
+    format!("{0} {1}", css_property_for_parsing, css_property_value)
   } else {
-    format!("* {{ {0}: {1} }}", css_property, css_property_value)
+    format!("* {{ {0}: {1} }}", css_property_for_parsing, css_property_value)
   };
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
@@ -418,6 +420,7 @@ pub(crate) fn normalize_css_property_value(
       let parsed_ast = base_normalizer(
         parsed_css_property_value,
         options.enable_font_size_px_to_rem,
+        Some(css_property),
       );
 
       // for normalizer in normalizers {

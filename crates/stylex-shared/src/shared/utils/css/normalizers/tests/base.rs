@@ -16,7 +16,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css("* {{ transitionProperty: opacity, margin-top; }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("transitionProperty"))),
       "*{{transitionproperty:opacity,margin-top}}"
     );
 
@@ -31,7 +31,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css("* {{ boxShadow: 0px 2px 4px var(--shadow-1); }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+        stringify(&base_normalizer(stylesheet.unwrap(), false, Some("boxShadow"))),
       "*{{boxshadow:0 2px 4px var(--shadow-1)}}"
     );
 
@@ -43,7 +43,7 @@ mod normalizers {
     let (stylesheet2, errors2) = swc_parse_css("* {{ boxShadow: 1px 1px #000; }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet2.unwrap(), false, Some("boxShadow"))),
       "*{{boxshadow:1px 1px#000}}"
     );
 
@@ -58,7 +58,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css("* {{ opacity: 0.5; }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("opacity"))),
       "*{{opacity:.5}}"
     );
 
@@ -73,7 +73,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css("* {{ transitionDuration: 500ms; }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("transitionDuration"))),
       "*{{transitionduration:.5s}}"
     );
 
@@ -88,7 +88,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css(r#"* {{ quotes: '""'; }}"#);
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("quotes"))),
       r#"*{{quotes:""}}"#
     );
 
@@ -100,7 +100,7 @@ mod normalizers {
     let (stylesheet2, errors2) = swc_parse_css(r#"* {{ quotes: '"123"'; }}"#);
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet2.unwrap(), false, Some("quotes"))),
       r#"*{{quotes:"123"}}"#
     );
 
@@ -115,7 +115,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css(r#"* {{ gridTemplateAreas: '"content"'; }}"#);
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("gridTemplateAreas"))),
       r#"*{{gridtemplateareas:"content"}}"#
     );
 
@@ -128,7 +128,7 @@ mod normalizers {
       swc_parse_css(r#"* {{ gridTemplateAreas: '"content" "sidebar"'; }}"#);
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet2.unwrap(), false, Some("gridTemplateAreas"))),
       r#"*{{gridtemplateareas:"content" "sidebar"}}"#
     );
 
@@ -144,7 +144,7 @@ mod normalizers {
       swc_parse_css("* {{ color: oklch(from var(--xs74gcj) l c h / 0.5) }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color"))),
       "*{{color:oklch(from var(--xs74gcj) l c h / 0.5)}}"
     );
 
@@ -167,7 +167,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css(r#"* {{ color: oklab(40.101% 0.1147 0.0453) }}"#);
 
     assert_eq!(
-      whitespace_normalizer(stringify(&base_normalizer(stylesheet.unwrap(), false))),
+      whitespace_normalizer(stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")))),
       r#"oklab(40.101% .1147 .0453)"#
     );
 
@@ -179,7 +179,7 @@ mod normalizers {
     let (stylesheet2, errors2) = swc_parse_css(r#"* {{ color: var(--a) var(--b) var(--c) }}"#);
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet2.unwrap(), false, Some("color"))),
       r#"*{{color:var(--a)var(--b)var(--c)}}"#
     );
 
@@ -192,7 +192,7 @@ mod normalizers {
       swc_parse_css("* {{ color: oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9)) }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet3.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet3.unwrap(), false, Some("color"))),
       "*{{color:oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9))}}"
     );
 
@@ -217,7 +217,7 @@ mod normalizers {
       swc_parse_css("* {{ color: oklab(from hsl(180 100% 50%) calc(l - 0.1) a b) }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet4.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet4.unwrap(), false, Some("color"))),
       "*{{color:oklab(from hsl(180 100% 50%) calc(l - 0.1) a b)}}"
     );
 
@@ -241,7 +241,7 @@ mod normalizers {
     let (stylesheet5, errors5) = swc_parse_css("* {{ color: oklab(from green l a b / 0.5) }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet5.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet5.unwrap(), false, Some("color"))),
       "*{{color:oklab(from green l a b / 0.5)}}"
     );
 
@@ -264,7 +264,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css(r#"* {{ color: clamp(200px,  40%,     400px) }}"#);
 
     assert_eq!(
-      whitespace_normalizer(stringify(&base_normalizer(stylesheet.unwrap(), false))),
+        whitespace_normalizer(stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")))),
       r#"clamp(200px,40%,400px)"#
     );
 
@@ -278,7 +278,7 @@ mod normalizers {
     );
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet2.unwrap(), false, Some("color"))),
       r#"*{{color:clamp(min(10vw,20rem),300px,max(90vw,55rem))}}"#
     );
 
@@ -292,7 +292,7 @@ mod normalizers {
     );
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet3.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet3.unwrap(), false, Some("color"))),
       "*{{color:clamp(0, (var(--l-threshold, 0.623)   /  l - 1)   *    infinity,    1)}}"
     );
 
@@ -315,7 +315,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css("* {{ color: calc(0 - var(--someVar)) }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color"))),
       "*{{color:calc(0 - var(--someVar))}}"
     );
 
@@ -327,7 +327,7 @@ mod normalizers {
     let (stylesheet2, errors2) = swc_parse_css("* {{ color: calc(0px - var(--someVar) + 10px) }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet2.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet2.unwrap(), false, Some("color"))),
       "*{{color:calc(0px - var(--someVar) + 10px)}}"
     );
 
@@ -339,7 +339,7 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css("* {{ grid-column-start: -1 }}");
 
     assert_eq!(
-      stringify(&base_normalizer(stylesheet.unwrap(), false)),
+      stringify(&base_normalizer(stylesheet.unwrap(), false, Some("grid-column-start"))),
       "*{{grid-column-start:-1}}"
     );
 

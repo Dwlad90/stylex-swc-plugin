@@ -290,3 +290,36 @@ test!(
     };
 "#
 );
+
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_css_variable_with_zero_value,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      container: {
+        "--header-height": '0px',
+        minHeight: 'calc(100dvh - var(--header-height, 0px))',
+      },
+    });
+
+    export default function Example() {
+      return <div className={stylex(styles.container)}>Content</div>;
+    };
+"#
+);
+

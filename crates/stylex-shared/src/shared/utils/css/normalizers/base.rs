@@ -15,6 +15,7 @@ struct CssFolder {
   enable_font_size_px_to_rem: bool,
   parent_key: Option<String>,
   is_function_arg: bool,
+  current_property: Option<String>,
 }
 
 impl CssFolder {
@@ -54,7 +55,11 @@ impl Fold for CssFolder {
 
   fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
     let dimension = timing_normalizer(&mut dimension);
-    let dimension = zero_dimension_normalizer(dimension, self.is_function_arg);
+    let dimension = zero_dimension_normalizer(
+      dimension,
+      self.is_function_arg,
+      self.current_property.clone(),
+    );
 
     dimension.clone().fold_children_with(self)
   }
@@ -144,16 +149,32 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
   declaration
 }
 
-pub(crate) fn base_normalizer(ast: Stylesheet, enable_font_size_px_to_rem: bool) -> Stylesheet {
+pub(crate) fn base_normalizer(
+  ast: Stylesheet,
+  enable_font_size_px_to_rem: bool,
+  current_property: Option<&str>,
+) -> Stylesheet {
   let mut folder = CssFolder {
     enable_font_size_px_to_rem,
     parent_key: None,
     is_function_arg: false,
+    current_property: current_property.map(|p| p.to_string()),
   };
   ast.fold_with(&mut folder)
 }
 
-fn zero_dimension_normalizer(dimension: &mut Dimension, is_function_arg: bool) -> &mut Dimension {
+fn zero_dimension_normalizer(
+  dimension: &mut Dimension,
+  is_function_arg: bool,
+  current_property: Option<String>,
+) -> &mut Dimension {
+  // Skip normalization for CSS custom properties (variables starting with --)
+  if let Some(prop) = current_property
+    && prop.starts_with("--")
+  {
+    return dimension;
+  }
+
   if is_function_arg {
     return dimension;
   }

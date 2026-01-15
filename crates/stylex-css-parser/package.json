@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/css-parser",
   "description": "CSS value parser",
-  "version": "0.14.1-rc.1",
+  "version": "0.14.1",
   "private": true,
   "sideEffects": false,
   "files": [

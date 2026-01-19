@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-plugin",
   "description": "StyleX webpack plugin with NAPI-RS compiler",
-  "version": "0.14.1",
+  "version": "0.14.2-rc.1",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -32,13 +32,13 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.17.4",
-    "@stylexswc/rs-compiler": "0.14.1",
+    "@stylexswc/rs-compiler": "0.14.2-rc.1",
     "loader-utils": "^3.3.1"
   },
   "devDependencies": {
     "@babel/types": "^7.28.5",
-    "@stylexswc/eslint-config": "0.14.1",
-    "@stylexswc/typescript-config": "0.14.1",
+    "@stylexswc/eslint-config": "0.14.2-rc.1",
+    "@stylexswc/typescript-config": "0.14.2-rc.1",
     "@types/babel__core": "^7.20.5",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^25.0.3",

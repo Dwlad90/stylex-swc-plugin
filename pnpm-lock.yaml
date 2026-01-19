@@ -958,7 +958,7 @@ importers:
         specifier: ^0.17.4
         version: 0.17.4
       '@stylexswc/design-system':
-        specifier: 0.14.1
+        specifier: workspace:*
         version: link:../../packages/design-system
       '@stylexswc/playwright':
         specifier: 0.14.1

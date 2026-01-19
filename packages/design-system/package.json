@@ -6,15 +6,15 @@
   "license": "MIT",
   "sideEffects": false,
   "exports": {
-    ".": "./dist/index.js",
-    "./Text": "./dist/Text.js",
-    "./consts.stylex": "./dist/consts.stylex.js",
-    "./tokens.stylex": "./dist/tokens.stylex.js",
+    ".": "./src/index.ts",
+    "./Text": "./src/Text.tsx",
+    "./*": [
+      "./src/*.ts",
+      "./src/*.tsx",
+      "./src/*.json"
+    ],
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist/*"
-  ],
   "scripts": {
     "build": "scripty --ts",
     "check:artifacts": "scripty",

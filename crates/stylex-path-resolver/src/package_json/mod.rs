@@ -7,7 +7,7 @@ use std::{default::Default, fs::read_to_string};
 use package_json::{PackageDependencies, PackageJsonManager};
 use std::path::{Path, PathBuf};
 
-use crate::{enums::ExportsType, file_system::find_closest_path};
+use crate::file_system::find_closest_path;
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -18,8 +18,6 @@ pub struct PackageJsonExtended {
   pub main: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub module: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub exports: Option<FxHashMap<String, ExportsType>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub dependencies: Option<PackageDependencies>,
   #[serde(skip_serializing_if = "Option::is_none")]

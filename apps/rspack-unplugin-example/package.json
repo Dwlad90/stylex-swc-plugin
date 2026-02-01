@@ -24,7 +24,7 @@
     "@rsbuild/core": "^1.6.11",
     "@rsbuild/plugin-react": "^1.4.2",
     "@rspack/cli": "^1.7.0",
-    "@rspack/core": "^1.6.5",
+    "@rspack/core": "^1.7.4",
     "@stylexswc/playwright": "0.14.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

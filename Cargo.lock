@@ -1879,9 +1879,9 @@ checksum = "48dd4f4a2c8405440fd0462561f0e5806bd0f77e86f51c761481bdd4018b545e"
 
 [[package]]
 name = "oxc_resolver"
-version = "11.16.2"
+version = "11.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fbba32382c25ae7d741aaf3c32475b7a1697540aa8e10b0b5e1cd3bfa1ef257"
+checksum = "88c8cd25f7fd929d2d13ef85051d75240d2e4219e36547b4085e63e668e253d7"
 dependencies = [
  "cfg-if",
  "fast-glob",
@@ -2140,14 +2140,15 @@ dependencies = [
 
 [[package]]
 name = "pnp"
-version = "0.12.7"
+version = "0.12.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6e38320d5a8e386647f622067588bdb338c9e6e43eb32cf6f8991dd0e8f0046"
+checksum = "5401c5598b8244888870c2f1e84bb7bc1976f01c0043f1a4070a268409276840"
 dependencies = [
  "byteorder",
  "concurrent_lru",
  "fancy-regex",
  "flate2",
+ "indexmap",
  "nodejs-built-in-modules",
  "pathdiff",
  "radix_trie",

@@ -12,14 +12,14 @@
     "test:visual": "playwright test"
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.17.4",
+    "@stylexjs/stylex": "^0.17.5",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
-    "@stylexjs/eslint-plugin": "^0.17.4",
+    "@stylexjs/eslint-plugin": "^0.17.5",
     "@stylexswc/playwright": "0.14.2",
     "@stylexswc/postcss-plugin": "0.14.2",
     "@stylexswc/webpack-plugin": "0.14.2",

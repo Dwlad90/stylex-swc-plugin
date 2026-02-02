@@ -49,7 +49,7 @@
     "eslint-plugin-storybook": "^10.1.11",
     "jsdom": "^27.4.0",
     "playwright": "^1.58.1",
-    "postcss-nesting": "^13.0.2",
+    "postcss-nesting": "^14.0.0",
     "prop-types": "^15.8.1",
     "rimraf": "^6.1.2",
     "rollup-plugin-jsx-remove-attributes": "^3.1.1",

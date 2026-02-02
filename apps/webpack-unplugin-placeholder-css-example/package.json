@@ -16,14 +16,14 @@
     "@stylexswc/design-system": "0.14.2",
     "@stylexswc/rs-compiler": "0.14.2",
     "@stylexswc/unplugin": "0.14.2",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
     "@stylexswc/playwright": "0.14.2",
     "@swc/core": "^1.13.3",
-    "@types/react": "^19.2.7",
+    "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.4",

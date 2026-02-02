@@ -17,7 +17,7 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.57.0",
+    "@playwright/test": "^1.58.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@stylexjs/eslint-plugin": "^0.17.5",
     "@stylexswc/playwright": "0.14.2",

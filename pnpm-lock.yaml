@@ -78,8 +78,8 @@ importers:
         specifier: ^16.2.7
         version: 16.2.7
       playwright:
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       prettier:
         specifier: ^3.7.4
         version: 3.7.4
@@ -121,8 +121,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexswc/playwright':
         specifier: 0.14.2
         version: link:../../packages/playwright
@@ -155,8 +155,8 @@ importers:
         specifier: ^4.1.3
         version: 4.1.3(storybook@10.1.11(@testing-library/dom@10.4.1)(prettier@3.7.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@storybook/addon-a11y':
         specifier: ^10.2.3
         version: 10.2.3(storybook@10.1.11(@testing-library/dom@10.4.1)(prettier@3.7.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
@@ -230,8 +230,8 @@ importers:
         specifier: ^27.4.0
         version: 27.4.0
       playwright:
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       postcss-nesting:
         specifier: ^13.0.2
         version: 13.0.2(postcss@8.5.6)
@@ -300,8 +300,8 @@ importers:
         specifier: ^1.2.6
         version: 1.2.6
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexswc/playwright':
         specifier: 0.14.2
         version: link:../../packages/playwright
@@ -334,7 +334,7 @@ importers:
         version: link:../../packages/nextjs-plugin
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.57.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react:
         specifier: ^19.2.3
         version: 19.2.3
@@ -343,8 +343,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexjs/eslint-plugin':
         specifier: ^0.17.5
         version: 0.17.5
@@ -394,8 +394,8 @@ importers:
         specifier: 30.2.0
         version: 30.2.0
       playwright:
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       rimraf:
         specifier: ^6.1.2
         version: 6.1.2
@@ -425,7 +425,7 @@ importers:
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.57.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react:
         specifier: ^19.2.3
         version: 19.2.3
@@ -434,8 +434,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexjs/eslint-plugin':
         specifier: ^0.17.5
         version: 0.17.5
@@ -516,7 +516,7 @@ importers:
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.57.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react:
         specifier: ^19.2.3
         version: 19.2.3
@@ -525,8 +525,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexjs/eslint-plugin':
         specifier: ^0.17.5
         version: 0.17.5
@@ -604,8 +604,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@rollup/plugin-commonjs':
         specifier: ^28.0.6
         version: 28.0.6(rollup@4.54.0)
@@ -671,8 +671,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@rollup/plugin-commonjs':
         specifier: ^28.0.6
         version: 28.0.6(rollup@4.54.0)
@@ -726,8 +726,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@rsbuild/core':
         specifier: ^1.7.2
         version: 1.7.2
@@ -772,8 +772,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@rsbuild/core':
         specifier: ^1.7.2
         version: 1.7.2
@@ -818,8 +818,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@rsbuild/core':
         specifier: ^1.7.2
         version: 1.7.2
@@ -870,8 +870,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@rsbuild/core':
         specifier: ^1.7.2
         version: 1.7.2
@@ -900,8 +900,8 @@ importers:
   apps/solid-unplugin-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexjs/open-props':
         specifier: ^0.11.1
         version: 0.11.1
@@ -949,8 +949,8 @@ importers:
   apps/vite-unplugin-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexjs/open-props':
         specifier: ^0.11.1
         version: 0.11.1
@@ -995,8 +995,8 @@ importers:
   apps/vite-unplugin-placeholder-css-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexjs/open-props':
         specifier: ^0.11.1
         version: 0.11.1
@@ -1060,8 +1060,8 @@ importers:
         version: 3.5.22(typescript@5.9.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexswc/playwright':
         specifier: 0.14.2
         version: link:../../packages/playwright
@@ -1106,8 +1106,8 @@ importers:
         version: 3.5.22(typescript@5.9.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexswc/playwright':
         specifier: 0.14.2
         version: link:../../packages/playwright
@@ -1143,8 +1143,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.6.2
         version: 0.6.2(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.104.1)
@@ -1228,8 +1228,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexswc/playwright':
         specifier: 0.14.2
         version: link:../../packages/playwright
@@ -1286,8 +1286,8 @@ importers:
         version: 19.2.3(react@19.2.3)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexswc/playwright':
         specifier: 0.14.2
         version: link:../../packages/playwright
@@ -1552,7 +1552,7 @@ importers:
         version: 25.0.3
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.57.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -1569,8 +1569,8 @@ importers:
   packages/playwright:
     devDependencies:
       '@playwright/test':
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
       '@stylexswc/eslint-config':
         specifier: 0.14.2
         version: link:../eslint-config
@@ -1581,8 +1581,8 @@ importers:
         specifier: ^25.0.3
         version: 25.0.3
       playwright:
-        specifier: ^1.57.0
-        version: 1.57.0
+        specifier: ^1.58.1
+        version: 1.58.1
 
   packages/postcss-plugin:
     dependencies:
@@ -3940,8 +3940,8 @@ packages:
     resolution: {integrity: sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
 
-  '@playwright/test@1.57.0':
-    resolution: {integrity: sha512-6TyEnHgd6SArQO8UO2OMTxshln3QMWBtPGrOCgs3wVEmQmwyuNtB10IZMfmYDE0riwNR1cu4q+pPcxMVtaG3TA==}
+  '@playwright/test@1.58.1':
+    resolution: {integrity: sha512-6LdVIUERWxQMmUSSQi0I53GgCBYgM2RpGngCPY7hSeju+VrKjq3lvs7HpJoPbDiY5QM5EYRtRX5fvrinnMAz3w==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -9450,13 +9450,13 @@ packages:
   platform@1.3.6:
     resolution: {integrity: sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==}
 
-  playwright-core@1.57.0:
-    resolution: {integrity: sha512-agTcKlMw/mjBWOnD6kFZttAAGHgi/Nw0CZ2o6JqWSbMlI219lAFLZZCyqByTsvVAJq5XA5H8cA6PrvBRpBWEuQ==}
+  playwright-core@1.58.1:
+    resolution: {integrity: sha512-bcWzOaTxcW+VOOGBCQgnaKToLJ65d6AqfLVKEWvexyS3AS6rbXl+xdpYRMGSRBClPvyj44njOWoxjNdL/H9UNg==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.57.0:
-    resolution: {integrity: sha512-ilYQj1s8sr2ppEJ2YVadYBN0Mb3mdo9J0wQ+UuDhzYqURwSoW4n1Xs5vs7ORwgDGmyEh33tRMeS8KhdkMoLXQw==}
+  playwright@1.58.1:
+    resolution: {integrity: sha512-+2uTZHxSCcxjvGc5C891LrS1/NlxglGxzrC4seZiVjcYVQfUa87wBL6rTDqzGjuoWNjnBzRqKmF6zRYGMvQUaQ==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -13776,9 +13776,9 @@ snapshots:
 
   '@pkgr/core@0.2.9': {}
 
-  '@playwright/test@1.57.0':
+  '@playwright/test@1.58.1':
     dependencies:
-      playwright: 1.57.0
+      playwright: 1.58.1
 
   '@pmmmwh/react-refresh-webpack-plugin@0.6.2(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.104.1)':
     dependencies:
@@ -19597,7 +19597,7 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next@16.1.6(@babel/core@7.29.0)(@playwright/test@1.57.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+  next@16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
       '@next/env': 16.1.6
       '@swc/helpers': 0.5.15
@@ -19616,7 +19616,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.1.6
       '@next/swc-win32-arm64-msvc': 16.1.6
       '@next/swc-win32-x64-msvc': 16.1.6
-      '@playwright/test': 1.57.0
+      '@playwright/test': 1.58.1
       sharp: 0.34.5
     transitivePeerDependencies:
       - '@babel/core'
@@ -20040,11 +20040,11 @@ snapshots:
 
   platform@1.3.6: {}
 
-  playwright-core@1.57.0: {}
+  playwright-core@1.58.1: {}
 
-  playwright@1.57.0:
+  playwright@1.58.1:
     dependencies:
-      playwright-core: 1.57.0
+      playwright-core: 1.58.1
     optionalDependencies:
       fsevents: 2.3.2
 

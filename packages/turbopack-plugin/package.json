@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "webpack": "^5.104.1",
-    "@babel/types": "^7.28.5",
+    "@babel/types": "^7.29.0",
     "@stylexswc/eslint-config": "0.14.2",
     "@stylexswc/typescript-config": "0.14.2",
     "@types/babel__core": "^7.20.5",

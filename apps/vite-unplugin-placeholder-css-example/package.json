@@ -11,7 +11,7 @@
     "test:visual": "playwright test"
   },
   "dependencies": {
-    "@playwright/test": "^1.58.1",
+    "@playwright/test": "^1.58.2",
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.17.5",
     "@stylexswc/design-system": "0.14.2",

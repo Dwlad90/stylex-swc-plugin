@@ -25,7 +25,7 @@
     "@farmfe/plugin-react": "^1.2.6",
     "@playwright/test": "^1.58.1",
     "@stylexswc/playwright": "0.14.2",
-    "@types/react": "^19.2.10",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "react-refresh": "^0.18.0",
     "serve": "^14.2.5"

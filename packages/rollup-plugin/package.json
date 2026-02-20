@@ -42,7 +42,7 @@
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-swc": "^0.4.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.2.0",
+    "@types/node": "^25.3.0",
     "browserslist": "^4.28.1",
     "jest": "^30.2.0",
     "jest-chain-transform": "^0.0.8",

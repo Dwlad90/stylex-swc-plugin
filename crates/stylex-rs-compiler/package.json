@@ -47,7 +47,7 @@
     "@stylexjs/stylex": "^0.17.5",
     "@stylexswc/shared": "0.14.2",
     "@swc-node/register": "^1.11.1",
-    "@swc/core": "^1.13.3",
+    "@swc/core": "^1.15.11",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^25.3.0",
     "ava": "^6.4.1",

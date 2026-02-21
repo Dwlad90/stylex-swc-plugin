@@ -38,7 +38,7 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "shellcheck": "^4.1.0",
-    "syncpack": "^13.0.4",
+    "syncpack": "^14.0.0",
     "turbo": "^2.8.10",
     "typescript": "^5.9.3"
   },

@@ -30,10 +30,15 @@ const filteredBaseConfig = baseConfig.map(config => {
 
 /** @type {import("eslint").Linter.Config[]} */
 const nextBaseEslintConfig = [
-
   prettierConfig,
   ...nextVitals,
   ...nextTypescript,
+  {
+    name: "next:react-internal",
+    settings: {
+      react: { version: "19" },
+    },
+  },
   ...turboConfig,
   ...filteredBaseConfig,
   {

@@ -1,5 +1,5 @@
 import jsoncPlugin from 'eslint-plugin-jsonc';
-import jsoncParser from 'jsonc-eslint-parser';
+import * as jsoncParser from 'jsonc-eslint-parser';
 
 /** @type {import("eslint").FlatConfig[]} */
 export default [

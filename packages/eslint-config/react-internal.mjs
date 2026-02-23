@@ -24,6 +24,7 @@ export default [
       },
     },
     settings: {
+      react: { version: "19" },
       "import/resolver": {
         typescript: {
           project,

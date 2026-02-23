@@ -45,7 +45,9 @@ function parseDependency(fileOrGlob: string) {
     return null;
   }
 
-  let message = null;
+  let message:
+    | { type: 'dir-dependency'; dir: string; glob: string }
+    | { type: 'dependency'; file: string };
 
   if (isGlob(fileOrGlob)) {
     const { base, glob } = parseGlob(fileOrGlob);

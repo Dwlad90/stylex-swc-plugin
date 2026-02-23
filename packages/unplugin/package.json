@@ -116,10 +116,10 @@
     "webpack": "^5.105.2"
   },
   "peerDependencies": {
-    "@farmfe/core": ">=1.0.0",
+    "@farmfe/core": ">=1.7.11 <2.0.0",
     "@nuxt/kit": ">=3.0.0",
     "@nuxt/schema": ">=3.0.0",
-    "esbuild": ">=0.18.0",
+    "esbuild": ">=0.25.0",
     "rollup": ">=3.0.0",
     "vite": ">=4.0.0",
     "webpack": ">=5.0.0"

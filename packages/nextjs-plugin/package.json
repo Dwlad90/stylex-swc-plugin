@@ -5,25 +5,25 @@
   "private": false,
   "license": "MIT",
   "sideEffects": false,
+  "exports": {
+    "./turbopack": {
+      "types": "./dist/turbopack.d.ts",
+      "import": "./dist/turbopack.js",
+      "require": "./dist/turbopack.js"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist"
   ],
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
-  },
-  "exports": {
-    "./turbopack": {
-      "import": "./dist/turbopack.js",
-      "require": "./dist/turbopack.js",
-      "types": "./dist/turbopack.d.ts"
-    },
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "scripty --ts",

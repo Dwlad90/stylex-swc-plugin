@@ -40,7 +40,7 @@ jobs:
 
       - name: Sync dependencies
         run: |
-          pnpm syncpack fix-mismatches --source "**/package.json"
+          pnpm syncpack fix
 
       - name: Commit changes if needed
         run: |
@@ -57,7 +57,7 @@ jobs:
           fi
 
       - name: Comment on PR
-        if: steps.commit-changes.outputs.changes_pushed == 'true'  # Only run if changes were pushed
+        if: steps.commit-changes.outputs.changes_pushed == 'true' # Only run if changes were pushed
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "I've synchronized dependencies across the workspace to ensure consistency."
         env:

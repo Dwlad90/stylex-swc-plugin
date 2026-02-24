@@ -1,15 +1,7 @@
 {
-  "dependencyTypes": [
-    "dev",
-    "prod",
-    "resolutions",
-    "overrides",
-    "pnpmOverrides"
-  ],
-  "filter": ".",
+  "$schema": "./node_modules/syncpack/schema.json",
   "indent": "  ",
   "semverGroups": [],
-  "semverRange": "",
   "sortAz": [
     "contributors",
     "private",
@@ -43,7 +35,19 @@
   ],
   "source": [
     "package.json",
-    "pkgs/*/package.json"
+    "*/*/package.json"
   ],
-  "versionGroups": []
+  "versionGroups": [
+    {
+      "label": "Accept everything except peerDependencies",
+      "dependencyTypes": [
+        "!dev",
+        "!prod",
+        "!resolutions",
+        "!overrides",
+        "!pnpmOverrides"
+      ],
+      "isIgnored": true
+    }
+  ]
 }

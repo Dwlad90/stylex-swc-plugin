@@ -39,7 +39,8 @@ jobs:
               pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+            docker: stylex-alpine-builder
+            dockerfile: .github/docker/alpine.Dockerfile
             build: |
               corepack prepare pnpm@9.15.4 --activate
               pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-musl
@@ -71,6 +72,9 @@ jobs:
         run: ${{ matrix.settings.setup }}
         if: ${{ matrix.settings.setup }}
         shell: bash
+      - name: Build custom Docker image
+        if: ${{ matrix.settings.dockerfile }}
+        run: docker build -t ${{ matrix.settings.docker }} -f ${{ matrix.settings.dockerfile }} .
       - name: Build in docker
         uses: addnab/docker-run-action@4f65fabd2431ebc8d299f8e5a018d79a769ae185 # v3.0.0
         if: ${{ matrix.settings.docker }}

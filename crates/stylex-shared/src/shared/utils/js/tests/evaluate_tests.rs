@@ -14,15 +14,15 @@ mod tests {
       js::evaluate::evaluate,
     },
   };
+  use swc_core::common::util::take::Take;
   use swc_core::{
-    common::{Globals, GLOBALS, DUMMY_SP},
+    common::{DUMMY_SP, GLOBALS, Globals},
     ecma::ast::{
       ArrayLit, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, ComputedPropName, Expr,
       ExprOrSpread, IdentName, KeyValueProp, MemberExpr, MemberProp, ObjectLit, OptChainBase,
       OptChainExpr, Prop, PropName, PropOrSpread, Regex, UnaryExpr, UnaryOp,
     },
   };
-  use swc_core::common::util::take::Take;
 
   // ==================== HELPER FUNCTIONS ====================
 
@@ -605,7 +605,6 @@ mod tests {
 
   // ==================== REGEX EXPRESSION TESTS ====================
 
-
   // Helper: Create regex literal expression
   fn make_regex_expr(pattern: &str, flags: &str) -> Expr {
     Expr::Lit(swc_core::ecma::ast::Lit::Regex(Regex {
@@ -761,7 +760,6 @@ mod tests {
   // These tests verify that panics in the member expression evaluation path
   // include useful context (e.g., property names) rather than generic messages.
 
-
   // Helper: Create array literal expression
   fn make_array_expr(elems: Vec<Expr>) -> Expr {
     Expr::Array(ArrayLit {
@@ -822,7 +820,10 @@ mod tests {
       evaluate_expr_with_globals(&call);
     }));
 
-    assert!(result.is_err(), "Should panic for unsupported string method");
+    assert!(
+      result.is_err(),
+      "Should panic for unsupported string method"
+    );
     let panic_msg = result
       .unwrap_err()
       .downcast_ref::<String>()
@@ -839,10 +840,7 @@ mod tests {
   fn test_supported_array_methods_no_panic() {
     // Calling supported methods like .join() should not panic during evaluation.
     // (.map() and .filter() need callback args, but .join() can work without)
-    let array = make_array_expr(vec![
-      number_to_expression(1.0),
-      number_to_expression(2.0),
-    ]);
+    let array = make_array_expr(vec![number_to_expression(1.0), number_to_expression(2.0)]);
     let member = make_member_expr(array, "join");
     let call = make_call_expr(member, vec![string_to_expression(",")]);
 
@@ -879,7 +877,10 @@ mod tests {
     });
 
     let (confident, reason) = evaluate_expr_full(&obj);
-    assert!(!confident, "Object with variable value should not be confident");
+    assert!(
+      !confident,
+      "Object with variable value should not be confident"
+    );
     let reason_str = reason.expect("Should have a reason for the failure");
     assert!(
       reason_str.contains("color"),
@@ -900,7 +901,10 @@ mod tests {
     });
 
     let (confident, reason) = evaluate_expr_full(&obj);
-    assert!(!confident, "Object with variable value should not be confident");
+    assert!(
+      !confident,
+      "Object with variable value should not be confident"
+    );
     let reason_str = reason.expect("Should have a reason for the failure");
     assert!(
       reason_str.contains("backgroundColor"),

@@ -40,10 +40,7 @@ use crate::shared::{
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.
 fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
-  match reason {
-    Some(r) => Some(format!("{} > {}", key, r)),
-    None => None,
-  }
+  reason.map(|r| format!("{} > {}", key, r))
 }
 
 pub fn evaluate_stylex_create_arg(
@@ -105,7 +102,9 @@ pub fn evaluate_stylex_create_arg(
 
                           if !eval_result.confident {
                             let reason = match expr_to_str(key_expr, traversal_state, functions) {
-                              Some(key_name) => prepend_key_to_reason(&key_name, eval_result.reason),
+                              Some(key_name) => {
+                                prepend_key_to_reason(&key_name, eval_result.reason)
+                              }
                               None => eval_result.reason,
                             };
                             return Box::new(EvaluateResult {

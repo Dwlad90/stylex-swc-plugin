@@ -51,10 +51,10 @@ importers:
         specifier: ^20.4.2
         version: 20.4.2(@types/node@25.3.0)(typescript@5.9.3)
       '@stylexswc/eslint-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:packages/eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:packages/typescript-config
       commitizen:
         specifier: ^4.3.1
@@ -105,13 +105,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -124,7 +124,7 @@ importers:
         specifier: ^1.58.1
         version: 1.58.1
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -182,13 +182,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/postcss-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/postcss-plugin
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       '@testing-library/react':
         specifier: ^16.3.2
@@ -278,13 +278,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -306,7 +306,7 @@ importers:
         specifier: ^1.58.1
         version: 1.58.1
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -330,14 +330,14 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/nextjs-plugin
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -352,13 +352,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/jest':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
         specifier: ^0.2.39
@@ -418,17 +418,17 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/nextjs-plugin
       '@stylexswc/postcss-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -443,13 +443,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/jest':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
         specifier: ^0.2.39
@@ -509,17 +509,17 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/nextjs-plugin
       '@stylexswc/postcss-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -534,16 +534,16 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/jest':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/turbopack-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/turbopack-plugin
       '@swc/jest':
         specifier: ^0.2.39
@@ -625,10 +625,10 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0(@swc/core@1.15.13(@swc/helpers@0.5.18))(rollup@4.58.0)
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/rollup-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/rollup-plugin
       rollup:
         specifier: ^4.58.0
@@ -646,7 +646,7 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/rollup-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/rollup-plugin
 
   apps/rollup-unplugin-example:
@@ -658,13 +658,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -692,7 +692,7 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0(@swc/core@1.15.13(@swc/helpers@0.5.18))(rollup@4.58.0)
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       rollup:
         specifier: ^4.58.0
@@ -713,13 +713,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -738,7 +738,7 @@ importers:
         specifier: ^1.4.5
         version: 1.4.5(@rsbuild/core@1.7.2)
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -759,13 +759,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -784,7 +784,7 @@ importers:
         specifier: ^1.4.5
         version: 1.4.5(@rsbuild/core@1.7.2)
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -805,13 +805,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -836,7 +836,7 @@ importers:
         specifier: ^1.7.6
         version: 1.7.6(@swc/helpers@0.5.18)
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -857,13 +857,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -888,7 +888,7 @@ importers:
         specifier: ^1.7.6
         version: 1.7.6(@swc/helpers@0.5.18)
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -912,16 +912,16 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -961,16 +961,16 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1007,16 +1007,16 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1050,13 +1050,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       vue:
         specifier: ^3.5.28
@@ -1066,7 +1066,7 @@ importers:
         specifier: ^1.58.1
         version: 1.58.1
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@vitejs/plugin-vue':
         specifier: ^6.0.3
@@ -1096,13 +1096,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       vue:
         specifier: ^3.5.28
@@ -1112,7 +1112,7 @@ importers:
         specifier: ^1.58.1
         version: 1.58.1
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@vitejs/plugin-vue':
         specifier: ^6.0.3
@@ -1155,13 +1155,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@stylexswc/postcss-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/postcss-plugin
       '@stylexswc/webpack-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/webpack-plugin
       '@swc/core':
         specifier: ^1.15.11
@@ -1215,13 +1215,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1234,7 +1234,7 @@ importers:
         specifier: ^1.58.1
         version: 1.58.1
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@swc/core':
         specifier: ^1.15.11
@@ -1273,13 +1273,13 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/design-system':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1292,7 +1292,7 @@ importers:
         specifier: ^1.58.1
         version: 1.58.1
       '@stylexswc/playwright':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../packages/playwright
       '@swc/core':
         specifier: ^1.15.11
@@ -1376,7 +1376,7 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/shared':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../stylex-shared
       '@swc-node/register':
         specifier: ^1.11.1
@@ -1421,7 +1421,7 @@ importers:
   crates/stylex-shared:
     devDependencies:
       '@stylexswc/path-resolver':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../stylex-path-resolver
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1451,7 +1451,7 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       react:
         specifier: ^19.2.4
@@ -1510,7 +1510,7 @@ importers:
   packages/jest:
     dependencies:
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
     devDependencies:
       '@babel/types':
@@ -1523,10 +1523,10 @@ importers:
         specifier: ^30.2.0
         version: 30.2.0
       '@stylexswc/eslint-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../typescript-config
       '@types/node':
         specifier: ^25.3.0
@@ -1535,23 +1535,23 @@ importers:
   packages/nextjs-plugin:
     dependencies:
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/turbopack-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../turbopack-plugin
       '@stylexswc/webpack-plugin':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../webpack-plugin
     devDependencies:
       '@babel/types':
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -1561,7 +1561,7 @@ importers:
         version: 25.3.0
       next:
         specifier: ^16.1.6
-        version: 16.1.6(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -1581,10 +1581,10 @@ importers:
         specifier: ^1.58.1
         version: 1.58.1
       '@stylexswc/eslint-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../typescript-config
       '@types/node':
         specifier: ^25.3.0
@@ -1599,7 +1599,7 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       fast-glob:
         specifier: ^3.3.3
@@ -1618,10 +1618,10 @@ importers:
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -1649,7 +1649,7 @@ importers:
         version: 0.0.8(@jest/transform@30.2.0)
       ts-jest:
         specifier: ^29.4.6
-        version: 29.4.6(@babel/core@7.28.5)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.5))(esbuild@0.27.3)(jest-util@30.2.0)(jest@30.2.0(@types/node@25.3.0)(esbuild-register@3.6.0(esbuild@0.27.3)))(typescript@5.9.3)
+        version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(esbuild@0.27.3)(jest-util@30.2.0)(jest@30.2.0(@types/node@25.3.0)(esbuild-register@3.6.0(esbuild@0.27.3)))(typescript@5.9.3)
 
   packages/rollup-plugin:
     dependencies:
@@ -1657,7 +1657,7 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       lightningcss:
         specifier: ^1.31.1
@@ -1700,7 +1700,7 @@ importers:
   packages/turbopack-plugin:
     dependencies:
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       loader-utils:
         specifier: ^3.3.1
@@ -1710,10 +1710,10 @@ importers:
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -1739,7 +1739,7 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       esbuild:
         specifier: '>=0.25.0'
@@ -1821,7 +1821,7 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       '@stylexswc/rs-compiler':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../../crates/stylex-rs-compiler
       loader-utils:
         specifier: ^3.3.1
@@ -1831,10 +1831,10 @@ importers:
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.14.2
+        specifier: 0.14.3-rc.1
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -12063,77 +12063,35 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.0
 
-  '@babel/plugin-syntax-async-generators@7.8.4(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-async-generators@7.8.4(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
-
-  '@babel/plugin-syntax-bigint@7.8.3(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
 
   '@babel/plugin-syntax-bigint@7.8.3(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
 
-  '@babel/plugin-syntax-class-properties@7.12.13(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-class-properties@7.12.13(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
-
-  '@babel/plugin-syntax-class-static-block@7.14.5(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
 
   '@babel/plugin-syntax-class-static-block@7.14.5(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
 
-  '@babel/plugin-syntax-import-attributes@7.27.1(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-import-attributes@7.27.1(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
 
-  '@babel/plugin-syntax-import-meta@7.10.4(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-import-meta@7.10.4(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
-
-  '@babel/plugin-syntax-json-strings@7.8.3(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
 
   '@babel/plugin-syntax-json-strings@7.8.3(@babel/core@7.29.0)':
     dependencies:
@@ -12155,88 +12113,40 @@ snapshots:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
 
-  '@babel/plugin-syntax-logical-assignment-operators@7.10.4(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-logical-assignment-operators@7.10.4(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
-
-  '@babel/plugin-syntax-nullish-coalescing-operator@7.8.3(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
 
   '@babel/plugin-syntax-nullish-coalescing-operator@7.8.3(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
 
-  '@babel/plugin-syntax-numeric-separator@7.10.4(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-numeric-separator@7.10.4(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
-
-  '@babel/plugin-syntax-object-rest-spread@7.8.3(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
 
   '@babel/plugin-syntax-object-rest-spread@7.8.3(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
 
-  '@babel/plugin-syntax-optional-catch-binding@7.8.3(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-optional-catch-binding@7.8.3(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
-
-  '@babel/plugin-syntax-optional-chaining@7.8.3(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
 
   '@babel/plugin-syntax-optional-chaining@7.8.3(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
 
-  '@babel/plugin-syntax-private-property-in-object@7.14.5(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
-
   '@babel/plugin-syntax-private-property-in-object@7.14.5(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/helper-plugin-utils': 7.28.6
-
-  '@babel/plugin-syntax-top-level-await@7.14.5(@babel/core@7.28.5)':
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/helper-plugin-utils': 7.28.6
-    optional: true
 
   '@babel/plugin-syntax-top-level-await@7.14.5(@babel/core@7.29.0)':
     dependencies:
@@ -16174,20 +16084,6 @@ snapshots:
 
   b4a@1.7.3: {}
 
-  babel-jest@30.2.0(@babel/core@7.28.5):
-    dependencies:
-      '@babel/core': 7.28.5
-      '@jest/transform': 30.2.0
-      '@types/babel__core': 7.20.5
-      babel-plugin-istanbul: 7.0.1
-      babel-preset-jest: 30.2.0(@babel/core@7.28.5)
-      chalk: 4.1.2
-      graceful-fs: 4.2.11
-      slash: 3.0.0
-    transitivePeerDependencies:
-      - supports-color
-    optional: true
-
   babel-jest@30.2.0(@babel/core@7.29.0):
     dependencies:
       '@babel/core': 7.29.0
@@ -16234,26 +16130,6 @@ snapshots:
       html-entities: 2.3.3
       parse5: 7.3.0
 
-  babel-preset-current-node-syntax@1.2.0(@babel/core@7.28.5):
-    dependencies:
-      '@babel/core': 7.28.5
-      '@babel/plugin-syntax-async-generators': 7.8.4(@babel/core@7.28.5)
-      '@babel/plugin-syntax-bigint': 7.8.3(@babel/core@7.28.5)
-      '@babel/plugin-syntax-class-properties': 7.12.13(@babel/core@7.28.5)
-      '@babel/plugin-syntax-class-static-block': 7.14.5(@babel/core@7.28.5)
-      '@babel/plugin-syntax-import-attributes': 7.27.1(@babel/core@7.28.5)
-      '@babel/plugin-syntax-import-meta': 7.10.4(@babel/core@7.28.5)
-      '@babel/plugin-syntax-json-strings': 7.8.3(@babel/core@7.28.5)
-      '@babel/plugin-syntax-logical-assignment-operators': 7.10.4(@babel/core@7.28.5)
-      '@babel/plugin-syntax-nullish-coalescing-operator': 7.8.3(@babel/core@7.28.5)
-      '@babel/plugin-syntax-numeric-separator': 7.10.4(@babel/core@7.28.5)
-      '@babel/plugin-syntax-object-rest-spread': 7.8.3(@babel/core@7.28.5)
-      '@babel/plugin-syntax-optional-catch-binding': 7.8.3(@babel/core@7.28.5)
-      '@babel/plugin-syntax-optional-chaining': 7.8.3(@babel/core@7.28.5)
-      '@babel/plugin-syntax-private-property-in-object': 7.14.5(@babel/core@7.28.5)
-      '@babel/plugin-syntax-top-level-await': 7.14.5(@babel/core@7.28.5)
-    optional: true
-
   babel-preset-current-node-syntax@1.2.0(@babel/core@7.29.0):
     dependencies:
       '@babel/core': 7.29.0
@@ -16272,13 +16148,6 @@ snapshots:
       '@babel/plugin-syntax-optional-chaining': 7.8.3(@babel/core@7.29.0)
       '@babel/plugin-syntax-private-property-in-object': 7.14.5(@babel/core@7.29.0)
       '@babel/plugin-syntax-top-level-await': 7.14.5(@babel/core@7.29.0)
-
-  babel-preset-jest@30.2.0(@babel/core@7.28.5):
-    dependencies:
-      '@babel/core': 7.28.5
-      babel-plugin-jest-hoist: 30.2.0
-      babel-preset-current-node-syntax: 1.2.0(@babel/core@7.28.5)
-    optional: true
 
   babel-preset-jest@30.2.0(@babel/core@7.29.0):
     dependencies:
@@ -20282,7 +20151,7 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next@16.1.6(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+  next@16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
       '@next/env': 16.1.6
       '@swc/helpers': 0.5.15
@@ -20291,7 +20160,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
-      styled-jsx: 5.1.6(react@19.2.4)
+      styled-jsx: 5.1.6(@babel/core@7.29.0)(react@19.2.4)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.1.6
       '@next/swc-darwin-x64': 16.1.6
@@ -21909,10 +21778,12 @@ snapshots:
     dependencies:
       webpack: 5.105.2(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack-cli@6.0.1)
 
-  styled-jsx@5.1.6(react@19.2.4):
+  styled-jsx@5.1.6(@babel/core@7.29.0)(react@19.2.4):
     dependencies:
       client-only: 0.0.1
       react: 19.2.4
+    optionalDependencies:
+      '@babel/core': 7.29.0
 
   stylehacks@7.0.7(postcss@8.5.6):
     dependencies:
@@ -22225,7 +22096,7 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  ts-jest@29.4.6(@babel/core@7.28.5)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.5))(esbuild@0.27.3)(jest-util@30.2.0)(jest@30.2.0(@types/node@25.3.0)(esbuild-register@3.6.0(esbuild@0.27.3)))(typescript@5.9.3):
+  ts-jest@29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(esbuild@0.27.3)(jest-util@30.2.0)(jest@30.2.0(@types/node@25.3.0)(esbuild-register@3.6.0(esbuild@0.27.3)))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
@@ -22239,10 +22110,10 @@ snapshots:
       typescript: 5.9.3
       yargs-parser: 21.1.1
     optionalDependencies:
-      '@babel/core': 7.28.5
+      '@babel/core': 7.29.0
       '@jest/transform': 30.2.0
       '@jest/types': 30.2.0
-      babel-jest: 30.2.0(@babel/core@7.28.5)
+      babel-jest: 30.2.0(@babel/core@7.29.0)
       esbuild: 0.27.3
       jest-util: 30.2.0
 

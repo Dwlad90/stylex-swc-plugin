@@ -813,11 +813,17 @@ fn _evaluate(
 
                 if !eval_value.confident {
                   if let Some(deopt_val) = eval_value.deopt {
-                    let deopt_reason = state
+                    let base_reason = state
                       .deopt_reason
                       .as_deref()
                       .unwrap_or(eval_value.reason.as_deref().unwrap_or("unknown error"))
                       .to_string();
+
+                    let deopt_reason = if let Some(ref k) = key {
+                      format!("{} > {}", k, base_reason)
+                    } else {
+                      base_reason
+                    };
 
                     deopt(&deopt_val, state, &deopt_reason);
                   }
@@ -1407,7 +1413,20 @@ fn _evaluate(
                   return deopt(path, state, NON_CONSTANT);
                 }
 
-                let value = parsed_obj.value.expect("Parsed object has no value");
+                let value = match parsed_obj.value {
+                  Some(v) => v,
+                  None => {
+                    panic_with_context!(
+                      path,
+                      traversal_state,
+                      format!(
+                        "Parsed object has no value when accessing property '.{}'",
+                        prop_name
+                      )
+                      .as_str()
+                    );
+                  }
+                };
 
                 match value.clone() {
                   EvaluateResultValue::Map(map) => {
@@ -1450,7 +1469,7 @@ fn _evaluate(
                           _ => panic_with_context!(
                             path,
                             traversal_state,
-                            format!("Method '{}' implemented yet", prop_name).as_str()
+                            format!("Method '{}' not implemented yet", prop_name).as_str()
                           ),
                         })),
                         takes_path: false,
@@ -1471,7 +1490,7 @@ fn _evaluate(
                           _ => panic_with_context!(
                             path,
                             traversal_state,
-                            format!("Method '{}' implemented yet", prop_name).as_str()
+                            format!("Method '{}' not implemented yet", prop_name).as_str()
                           ),
                         })),
                         takes_path: false,
@@ -1564,10 +1583,38 @@ fn _evaluate(
                   ),
                 }
               } else if let Some(prop_id) = is_id_prop(property) {
-                let value = parsed_obj.value.unwrap();
-                let map = value.as_map().unwrap();
+                let prop_id_owned = prop_id.to_string();
 
-                let result_fn = map.get(&string_to_expression(prop_id.as_str()));
+                let value = match parsed_obj.value {
+                  Some(v) => v,
+                  None => {
+                    panic_with_context!(
+                      path,
+                      traversal_state,
+                      format!(
+                        "Parsed object has no value when accessing computed property '{}'",
+                        prop_id_owned
+                      )
+                      .as_str()
+                    );
+                  }
+                };
+                let map = match value.as_map() {
+                  Some(m) => m,
+                  None => {
+                    panic_with_context!(
+                      path,
+                      traversal_state,
+                      format!(
+                        "Expected object map when accessing computed property '{}', got {:?}",
+                        prop_id_owned, value
+                      )
+                      .as_str()
+                    );
+                  }
+                };
+
+                let result_fn = map.get(&string_to_expression(&prop_id_owned));
 
                 func = match result_fn {
                   Some(_) => panic_with_context!(path, traversal_state, "Result function is some"),

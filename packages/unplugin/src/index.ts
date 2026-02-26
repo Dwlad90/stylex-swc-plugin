@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Connect } from 'vite';
 
 import { createUnplugin } from 'unplugin';
-import type { UnpluginFactory, UnpluginInstance, UnpluginMessage } from 'unplugin';
+import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
 
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions from './utils/normalizeOptions';
@@ -285,8 +285,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
         };
       } catch (error) {
-        console.error('Transformation error:', error);
-        this.error(error as UnpluginMessage);
+        const message = error instanceof Error ? error.message : String(error);
+        const enhancedMessage = `StyleX transformation error in ${file}:\n  ${message}`;
+        console.error(enhancedMessage, error);
+        this.error(new Error(enhancedMessage, { cause: error }));
       }
     },
 

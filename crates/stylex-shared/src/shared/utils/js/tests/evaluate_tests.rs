@@ -15,12 +15,14 @@ mod tests {
     },
   };
   use swc_core::{
-    common::DUMMY_SP,
+    common::{Globals, GLOBALS, DUMMY_SP},
     ecma::ast::{
-      AwaitExpr, BinExpr, BinaryOp, ComputedPropName, Expr, IdentName, MemberExpr, MemberProp,
-      OptChainBase, OptChainExpr, UnaryExpr, UnaryOp,
+      ArrayLit, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, ComputedPropName, Expr,
+      ExprOrSpread, IdentName, KeyValueProp, MemberExpr, MemberProp, ObjectLit, OptChainBase,
+      OptChainExpr, Prop, PropName, PropOrSpread, Regex, UnaryExpr, UnaryOp,
     },
   };
+  use swc_core::common::util::take::Take;
 
   // ==================== HELPER FUNCTIONS ====================
 
@@ -603,8 +605,6 @@ mod tests {
 
   // ==================== REGEX EXPRESSION TESTS ====================
 
-  use swc_core::common::util::take::Take;
-  use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, Regex};
 
   // Helper: Create regex literal expression
   fn make_regex_expr(pattern: &str, flags: &str) -> Expr {
@@ -754,6 +754,158 @@ mod tests {
     assert!(
       !confident,
       "Regex.test() with nullish coalescing should not be confident"
+    );
+  }
+
+  // ==================== PANIC CONTEXT TESTS ====================
+  // These tests verify that panics in the member expression evaluation path
+  // include useful context (e.g., property names) rather than generic messages.
+
+
+  // Helper: Create array literal expression
+  fn make_array_expr(elems: Vec<Expr>) -> Expr {
+    Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: elems
+        .into_iter()
+        .map(|e| {
+          Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(e),
+          })
+        })
+        .collect(),
+    })
+  }
+
+  // Helper: evaluate with SWC GLOBALS set (needed for panic_with_context! code paths)
+  fn evaluate_expr_with_globals(expr: &Expr) -> (bool, bool) {
+    let globals = Globals::default();
+    GLOBALS.set(&globals, || evaluate_expr(expr))
+  }
+
+  #[test]
+  fn test_unsupported_array_method_panic_includes_method_name() {
+    // Calling an unsupported method on an array literal (e.g., [1].unsupported())
+    // should panic with a message that includes the method name.
+    // This validates that panic_with_context! is used in the member call evaluation path.
+    let array = make_array_expr(vec![number_to_expression(1.0)]);
+    let member = make_member_expr(array, "unsupported");
+    let call = make_call_expr(member, vec![]);
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      evaluate_expr_with_globals(&call);
+    }));
+
+    assert!(result.is_err(), "Should panic for unsupported array method");
+    let panic_msg = result
+      .unwrap_err()
+      .downcast_ref::<String>()
+      .cloned()
+      .unwrap_or_default();
+    assert!(
+      panic_msg.contains("unsupported"),
+      "Panic message should contain the method name 'unsupported', got: {}",
+      panic_msg
+    );
+  }
+
+  #[test]
+  fn test_unsupported_string_method_panic_includes_method_name() {
+    // Calling an unsupported method on a string literal (e.g., "hello".unsupported())
+    // should panic with a message that includes the method name.
+    let string = string_to_expression("hello");
+    let member = make_member_expr(string, "unsupported");
+    let call = make_call_expr(member, vec![]);
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      evaluate_expr_with_globals(&call);
+    }));
+
+    assert!(result.is_err(), "Should panic for unsupported string method");
+    let panic_msg = result
+      .unwrap_err()
+      .downcast_ref::<String>()
+      .cloned()
+      .unwrap_or_default();
+    assert!(
+      panic_msg.contains("unsupported"),
+      "Panic message should contain the method name 'unsupported', got: {}",
+      panic_msg
+    );
+  }
+
+  #[test]
+  fn test_supported_array_methods_no_panic() {
+    // Calling supported methods like .join() should not panic during evaluation.
+    // (.map() and .filter() need callback args, but .join() can work without)
+    let array = make_array_expr(vec![
+      number_to_expression(1.0),
+      number_to_expression(2.0),
+    ]);
+    let member = make_member_expr(array, "join");
+    let call = make_call_expr(member, vec![string_to_expression(",")]);
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      evaluate_expr_with_globals(&call);
+    }));
+
+    assert!(
+      result.is_ok(),
+      "Supported array method .join() should not panic"
+    );
+  }
+
+  // ==================== ERROR REASON KEY-PATH TESTS ====================
+  // These tests verify that when evaluating an object expression with a
+  // non-static value, the error reason includes the property key name.
+
+  fn evaluate_expr_full(expr: &Expr) -> (bool, Option<String>) {
+    let mut state_manager = StateManager::new(StyleXOptions::default());
+    let fns = FunctionMap::default();
+    let result = evaluate(expr, &mut state_manager, &fns);
+    (result.confident, result.reason)
+  }
+
+  #[test]
+  fn test_object_eval_failure_reason_includes_property_key() {
+    // Evaluating { color: someVar } should produce a reason that includes "color"
+    let obj = Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName::new("color".into(), DUMMY_SP)),
+        value: Box::new(make_ident_expr("someVar")),
+      })))],
+    });
+
+    let (confident, reason) = evaluate_expr_full(&obj);
+    assert!(!confident, "Object with variable value should not be confident");
+    let reason_str = reason.expect("Should have a reason for the failure");
+    assert!(
+      reason_str.contains("color"),
+      "Reason should contain the property key 'color', got: {}",
+      reason_str
+    );
+  }
+
+  #[test]
+  fn test_object_eval_failure_reason_includes_nested_key() {
+    // Evaluating { backgroundColor: someVar } should include "backgroundColor" in reason
+    let obj = Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName::new("backgroundColor".into(), DUMMY_SP)),
+        value: Box::new(make_ident_expr("dynamicValue")),
+      })))],
+    });
+
+    let (confident, reason) = evaluate_expr_full(&obj);
+    assert!(!confident, "Object with variable value should not be confident");
+    let reason_str = reason.expect("Should have a reason for the failure");
+    assert!(
+      reason_str.contains("backgroundColor"),
+      "Reason should contain the property key 'backgroundColor', got: {}",
+      reason_str
     );
   }
 }

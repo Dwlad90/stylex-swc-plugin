@@ -90,4 +90,58 @@ describe('@stylexswc/unplugin', () => {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  test('transform error includes the file path and preserves cause', async () => {
+    const plugin = unplugin.raw({}, { framework: 'rollup' });
+    const pluginInstance = Array.isArray(plugin) ? plugin[0] : plugin;
+
+    if (!pluginInstance) {
+      throw new Error('Plugin instance is undefined');
+    }
+
+    let capturedError: Error | string | undefined;
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const mockContext: Partial<UnpluginBuildContext & UnpluginContext> = {
+      addWatchFile: () => {},
+      emitFile: () => '',
+      getWatchFiles: () => [],
+      parse: () => ({}) as ReturnType<UnpluginBuildContext['parse']>,
+      error: (msg: unknown) => {
+        capturedError = msg as Error | string;
+      },
+      warn: () => {},
+    };
+
+    if (typeof pluginInstance.buildStart === 'function') {
+      pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
+    }
+
+    // This code uses stylex.create with a non-static value that will cause
+    // the rs-compiler to fail during transformation
+    const badCode = `
+      import * as stylex from '@stylexjs/stylex';
+      const val = globalThis.dynamic;
+      const styles = stylex.create({ root: { color: val.nested.deep() } });
+    `;
+    const filePath = '/path/to/MyComponent.tsx';
+
+    if (typeof pluginInstance.transform === 'function') {
+      await pluginInstance.transform.call(
+        mockContext as UnpluginBuildContext & UnpluginContext,
+        badCode,
+        filePath,
+      );
+    }
+
+    consoleSpy.mockRestore();
+
+    expect(capturedError).toBeDefined();
+    expect(capturedError).toBeInstanceOf(Error);
+    const errorMessage = (capturedError as Error).message;
+    expect(errorMessage).toContain(filePath);
+    expect(errorMessage).toContain('StyleX transformation error');
+
+    // Original error should be preserved as the cause
+    expect((capturedError as Error).cause).toBeDefined();
+  });
 });

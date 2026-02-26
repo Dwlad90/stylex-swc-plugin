@@ -24,7 +24,7 @@
     "@rollup/plugin-swc": "^0.4.0",
     "@stylexswc/playwright": "0.14.3-rc.1",
     "@stylexswc/rollup-plugin": "0.14.3-rc.1",
-    "rollup": "^4.58.0",
+    "rollup": "^4.59.0",
     "rollup-plugin-serve": "^3.0.0",
     "serve": "^14.2.5"
   },

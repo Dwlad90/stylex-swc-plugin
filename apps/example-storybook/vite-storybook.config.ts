@@ -27,7 +27,7 @@ export const plugins = [
 ] as PluginOption[];
 
 export const config: UserConfig = {
-  plugins: [...plugins, externals()],
+  plugins: [...plugins, externals() as PluginOption],
 };
 
 // https://vitejs.dev/config/

@@ -140,7 +140,7 @@
     "webpack"
   ],
   "main": "./dist/index.js",
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@10.30.3",
   "peerDependenciesMeta": {
     "@farmfe/core": {
       "optional": true

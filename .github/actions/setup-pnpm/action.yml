@@ -7,7 +7,7 @@ runs:
       name: Install pnpm
       id: pnpm-install
       with:
-        version: 9.15.4
+        version: 10.30.3
 
     - uses: actions/setup-node@v4.4.0
       name: Install Node.js

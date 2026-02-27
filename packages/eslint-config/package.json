@@ -16,9 +16,11 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.6.0",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
+    "@stylexjs/eslint-plugin": "^0.17.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-turbo": "^2.8.10",
     "eslint-plugin-jest": "^29.15.0",
+    "eslint-config-next": "^16.1.6",
     "globals": "^16.5.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"

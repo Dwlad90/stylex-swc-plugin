@@ -34,6 +34,7 @@
     "del-cli": "^7.0.0",
     "eslint": "^10.0.1",
     "eslint-plugin-jsonc": "^3.0.0",
+    "@typescript-eslint/parser": "^8.56.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
@@ -45,7 +46,7 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@10.30.3",
   "pnpm": {
     "overrides": {
       "@babel/core@<7.26.10": ">=7.26.10",
@@ -87,7 +88,16 @@
     },
     "patchedDependencies": {
       "scripty@3.0.0": "patches/scripty@3.0.0.patch"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "core-js",
+      "core-js-pure",
+      "esbuild",
+      "oxc-resolver",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "repository": "dwlad90/stylex-swc-plugin"
 }

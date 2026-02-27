@@ -33,7 +33,8 @@ jobs:
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+            docker: stylex-debian-builder
+            dockerfile: .github/docker/debian.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
               pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-gnu
@@ -49,7 +50,8 @@ jobs:
             build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+            docker: stylex-debian-aarch64-builder
+            dockerfile: .github/docker/debian-aarch64.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
               pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
@@ -217,8 +219,9 @@ jobs:
         shell: bash
       - name: Test bindings
         run: |
-          docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
+          docker run --rm -e CI=true -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
             npm install -g pnpm &&
+            pnpm install --frozen-lockfile &&
             pnpm run --filter @stylexswc/rs-compiler test
           "
   benchmark:

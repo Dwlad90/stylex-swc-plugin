@@ -169,15 +169,12 @@ pub fn evaluate_stylex_create_arg(
                     }
 
                     let value_to_insert = match val.value.as_ref().unwrap() {
-                      EvaluateResultValue::Expr(expr) => match expr {
-                        Expr::Object(obj_expr) => obj_expr
-                          .props
-                          .iter()
-                          .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
-                          .cloned()
-                          .collect::<Vec<_>>(),
-                        _ => panic!("{}", ILLEGAL_NAMESPACE_VALUE),
-                      },
+                      EvaluateResultValue::Expr(Expr::Object(obj_expr)) => obj_expr
+                        .props
+                        .iter()
+                        .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
+                        .cloned()
+                        .collect::<Vec<_>>(),
                       _ => panic!("{}", ILLEGAL_NAMESPACE_VALUE),
                     };
 

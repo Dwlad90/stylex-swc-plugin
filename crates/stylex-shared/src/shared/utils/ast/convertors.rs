@@ -812,10 +812,10 @@ pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
 
 pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
   if let Some(ident) = prop.as_shorthand() {
-    *prop = Box::new(Prop::from(KeyValueProp {
+    **prop = Prop::from(KeyValueProp {
       key: string_to_prop_name(ident.sym.as_ref()).expect("Failed to convert string to prop name"),
       value: Box::new(Expr::Ident(ident.clone())),
-    }));
+    });
   }
 }
 

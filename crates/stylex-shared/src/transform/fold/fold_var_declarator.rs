@@ -129,7 +129,7 @@ where
                   self.retain_object_props(&mut new_object, namespaces_to_keep, &var_name);
                 new_object.props = props;
 
-                *var_declarator.init.as_mut().unwrap() = Box::new(Expr::Object(new_object));
+                **var_declarator.init.as_mut().unwrap() = Expr::Object(new_object);
               }
             }
           }

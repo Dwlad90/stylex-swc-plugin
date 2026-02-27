@@ -1,5 +1,3 @@
-use std::env;
-
 use insta::assert_snapshot;
 use stylex_shared::shared::structures::{
   named_import_source::RuntimeInjection,

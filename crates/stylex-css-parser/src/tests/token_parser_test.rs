@@ -373,8 +373,8 @@ mod test_token_parser {
       let result = parser.parse_to_end("foo baz");
       println!("Result: {:?}", result);
       // This is where it should succeed but probably fails
-      if result.is_err() {
-        println!("ERROR: {:?}", result.unwrap_err());
+      if let Err(err) = result {
+        println!("ERROR: {:?}", err);
       }
     }
 

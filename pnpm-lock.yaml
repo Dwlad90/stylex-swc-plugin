@@ -1205,8 +1205,8 @@ importers:
         specifier: ^14.2.5
         version: 14.2.5
       swc-loader:
-        specifier: ^0.2.6
-        version: 0.2.6(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2)
+        specifier: ^0.2.7
+        version: 0.2.7(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2)
       webpack:
         specifier: ^5.105.2
         version: 5.105.2(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack-cli@6.0.1)
@@ -1263,8 +1263,8 @@ importers:
         specifier: ^14.2.5
         version: 14.2.5
       swc-loader:
-        specifier: ^0.2.6
-        version: 0.2.6(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2)
+        specifier: ^0.2.7
+        version: 0.2.7(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2)
       webpack:
         specifier: ^5.105.2
         version: 5.105.2(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack-cli@6.0.1)
@@ -1339,8 +1339,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.105.2)
       swc-loader:
-        specifier: ^0.2.6
-        version: 0.2.6(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2)
+        specifier: ^0.2.7
+        version: 0.2.7(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2)
       webpack:
         specifier: ^5.105.2
         version: 5.105.2(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack-cli@6.0.1)
@@ -10779,8 +10779,8 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  swc-loader@0.2.6:
-    resolution: {integrity: sha512-9Zi9UP2YmDpgmQVbyOPJClY0dwf58JDyDMQ7uRc4krmc72twNI2fvlBWHLqVekBpPc7h5NJkGVT1zNDxFrqhvg==}
+  swc-loader@0.2.7:
+    resolution: {integrity: sha512-nwYWw3Fh9ame3Rtm7StS9SBLpHRRnYcK7bnpF3UKZmesAK0gw2/ADvlURFAINmPvKtDLzp+GBiP9yLoEjg6S9w==}
     peerDependencies:
       '@swc/core': ^1.2.147
       webpack: '>=5.0.0'
@@ -22005,7 +22005,7 @@ snapshots:
       picocolors: 1.1.1
       sax: 1.4.3
 
-  swc-loader@0.2.6(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2):
+  swc-loader@0.2.7(@swc/core@1.15.11(@swc/helpers@0.5.18))(webpack@5.105.2):
     dependencies:
       '@swc/core': 1.15.11(@swc/helpers@0.5.18)
       '@swc/counter': 0.1.3

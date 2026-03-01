@@ -25,7 +25,7 @@
     "scripty": "3.0.0"
   },
   "devDependencies": {
-    "playwright": "^1.58.1",
+    "playwright": "^1.58.2",
     "@commitlint/cli": "^20.4.2",
     "@stylexswc/eslint-config": "0.14.3-rc.2",
     "@stylexswc/typescript-config": "0.14.3-rc.2",

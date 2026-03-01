@@ -57,7 +57,7 @@ path-clean = { version = "1.0.1" }
 cssparser = { version = "0.36.0" }
 testing = "19.0.0"
 insta = { version = "1.46.2" }
-anyhow = "1.0.100"
+anyhow = "1.0.102"
 log = "0.4.29"
 pretty_env_logger = "0.5.0"
 color-backtrace = { version = "0.7.2" }

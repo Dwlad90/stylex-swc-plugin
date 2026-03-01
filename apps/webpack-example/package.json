@@ -24,7 +24,7 @@
     "@stylexswc/postcss-plugin": "0.14.3-rc.2",
     "@stylexswc/webpack-plugin": "0.14.3-rc.2",
     "@swc/core": "^1.15.11",
-    "autoprefixer": "^10.4.24",
+    "autoprefixer": "^10.4.27",
     "css-loader": "^7.1.2",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.6.6",

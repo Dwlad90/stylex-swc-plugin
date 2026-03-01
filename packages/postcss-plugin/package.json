@@ -47,7 +47,7 @@
     "@types/is-glob": "^4.0.4",
     "@types/jest": "^30.0.0",
     "@types/loader-utils": "^3.0.0",
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.3.3",
     "jest": "^30.2.0",
     "jest-chain-transform": "^0.0.8",
     "ts-jest": "^29.4.6"

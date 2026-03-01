@@ -42,7 +42,7 @@
     "@types/babel__core": "^7.20.5",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^25.3.3",
-    "mini-css-extract-plugin": "^2.9.2",
+    "mini-css-extract-plugin": "^2.10.0",
     "webpack": "^5.105.2"
   },
   "keywords": [

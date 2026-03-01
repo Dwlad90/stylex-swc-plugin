@@ -505,6 +505,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact_str"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fdb1325a1cece981e8a296ab8f0f9b63ae357bd0784a9faaf548cc7b480707a"
+dependencies = [
+ "castaway",
+ "cfg-if",
+ "itoa",
+ "rustversion",
+ "ryu",
+ "static_assertions",
+]
+
+[[package]]
 name = "concurrent_lru"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1885,18 +1899,18 @@ checksum = "48dd4f4a2c8405440fd0462561f0e5806bd0f77e86f51c761481bdd4018b545e"
 
 [[package]]
 name = "oxc_resolver"
-version = "11.17.0"
+version = "11.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88c8cd25f7fd929d2d13ef85051d75240d2e4219e36547b4085e63e668e253d7"
+checksum = "5632fcd47d4fdaf7ef5ee150c7001fa8ed814ce38d1a073536a366dbfc239aad"
 dependencies = [
  "cfg-if",
+ "compact_str 0.9.0",
  "fast-glob",
  "indexmap",
  "json-strip-comments",
  "nodejs-built-in-modules",
  "once_cell",
  "papaya",
- "parking_lot",
  "pnp",
  "rustc-hash",
  "rustix",
@@ -3202,7 +3216,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56116de786118dce35e90b612a1f4d952116dd2728ecb197c8064cfccf527baf"
 dependencies = [
  "ascii",
- "compact_str",
+ "compact_str 0.7.1",
  "dragonbox_ecma",
  "memchr",
  "num-bigint",

@@ -55,8 +55,8 @@ colored = { version = "3.1.1" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
 cssparser = { version = "0.36.0" }
-testing = "19.0.0"
-insta = { version = "1.46.2" }
+testing = "20.0.0"
+insta = { version = "1.46.3" }
 anyhow = "1.0.102"
 log = "0.4.29"
 pretty_env_logger = "0.5.0"

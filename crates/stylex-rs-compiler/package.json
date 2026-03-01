@@ -57,7 +57,7 @@
     "npm-run-all2": "^8.0.4",
     "oxlint": "^1.50.0",
     "prettier": "^3.8.1",
-    "tinybench": "^5.1.0",
+    "tinybench": "^6.0.0",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {

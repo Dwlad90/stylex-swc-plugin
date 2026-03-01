@@ -1190,8 +1190,8 @@ importers:
         specifier: ^5.6.6
         version: 5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.105.2)
       mini-css-extract-plugin:
-        specifier: ^2.9.2
-        version: 2.9.4(webpack@5.105.2)
+        specifier: ^2.10.0
+        version: 2.10.0(webpack@5.105.2)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -1327,8 +1327,8 @@ importers:
         specifier: ^1.31.1
         version: 1.31.1
       mini-css-extract-plugin:
-        specifier: ^2.9.2
-        version: 2.9.4(webpack@5.105.2)
+        specifier: ^2.10.0
+        version: 2.10.0(webpack@5.105.2)
       postcss-loader:
         specifier: ^8.2.0
         version: 8.2.0(@rspack/core@1.7.6(@swc/helpers@0.5.19))(postcss@8.5.6)(typescript@5.9.3)(webpack@5.105.2)
@@ -1863,8 +1863,8 @@ importers:
         specifier: ^25.3.3
         version: 25.3.3
       mini-css-extract-plugin:
-        specifier: ^2.9.2
-        version: 2.9.2(webpack@5.105.2)
+        specifier: ^2.10.0
+        version: 2.10.0(webpack@5.105.2)
       webpack:
         specifier: ^5.105.2
         version: 5.105.2
@@ -9133,14 +9133,8 @@ packages:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
     engines: {node: '>=4'}
 
-  mini-css-extract-plugin@2.9.2:
-    resolution: {integrity: sha512-GJuACcS//jtq4kCtd5ii/M0SZf7OZRH+BxdqXZHaJfb8TJiVl+NgQRPwiYt2EuqeSkNydn/7vP+bcE27C5mb9w==}
-    engines: {node: '>= 12.13.0'}
-    peerDependencies:
-      webpack: ^5.0.0
-
-  mini-css-extract-plugin@2.9.4:
-    resolution: {integrity: sha512-ZWYT7ln73Hptxqxk2DxPU9MmapXRhxkJD6tkSR04dnQxm8BGu2hzgKLugK5yySD97u/8yy7Ma7E76k9ZdvtjkQ==}
+  mini-css-extract-plugin@2.10.0:
+    resolution: {integrity: sha512-540P2c5dYnJlyJxTaSloliZexv8rji6rY8FhQN+WF/82iHQfA23j/xtJx97L+mXOML27EqksSek/g4eK7jaL3g==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
       webpack: ^5.0.0
@@ -10267,10 +10261,6 @@ packages:
     resolution: {integrity: sha512-pN/yOAvcC+5rQ5nERGuwrjLlYvLTbCibnZ1I7B1LaiAz9BRBlE9GMgE/eqV30P7aJQUf7Ddimy/RsbYO/GrVGg==}
     engines: {node: '>= 10.13.0'}
 
-  schema-utils@4.2.0:
-    resolution: {integrity: sha512-L0jRsrPpjdckP3oPug3/VxNKt2trR8TcabrM6FOAAlvC/9Phcmm+cuAgTlxBqdBR1WJx7Naj9WHw+aOmheSVbw==}
-    engines: {node: '>= 12.13.0'}
-
   schema-utils@4.3.3:
     resolution: {integrity: sha512-eflK8wEtyOE6+hsaRVPxvUKYCpRgzLqDTb8krvAsRIwOGlHoSgYLgBXoubGgLd2fT41/OUYdb48v4k4WWHQurA==}
     engines: {node: '>= 10.13.0'}
@@ -10769,10 +10759,6 @@ packages:
     resolution: {integrity: sha512-OfAa3Oip5YC9Ad1jEs92Hw08Wy4JfdpdeequIwaJGsQG0tJtb8gpQfCdLuBefsk6n8WiUdt/5qmzcW+BDXtzbQ==}
     engines: {node: '>=14.17.0'}
     hasBin: true
-
-  tapable@2.2.1:
-    resolution: {integrity: sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ==}
-    engines: {node: '>=6'}
 
   tapable@2.3.0:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
@@ -20125,13 +20111,7 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  mini-css-extract-plugin@2.9.2(webpack@5.105.2):
-    dependencies:
-      schema-utils: 4.2.0
-      tapable: 2.2.1
-      webpack: 5.105.2
-
-  mini-css-extract-plugin@2.9.4(webpack@5.105.2):
+  mini-css-extract-plugin@2.10.0(webpack@5.105.2):
     dependencies:
       schema-utils: 4.3.3
       tapable: 2.3.0
@@ -21287,13 +21267,6 @@ snapshots:
       ajv: 6.14.0
       ajv-keywords: 3.5.2(ajv@6.14.0)
 
-  schema-utils@4.2.0:
-    dependencies:
-      '@types/json-schema': 7.0.15
-      ajv: 8.18.0
-      ajv-formats: 2.1.1(ajv@8.18.0)
-      ajv-keywords: 5.1.0(ajv@8.18.0)
-
   schema-utils@4.3.3:
     dependencies:
       '@types/json-schema': 7.0.15
@@ -21918,8 +21891,6 @@ snapshots:
       syncpack-linux-x64-musl: 14.0.0
       syncpack-windows-arm64: 14.0.0
       syncpack-windows-x64: 14.0.0
-
-  tapable@2.2.1: {}
 
   tapable@2.3.0: {}
 

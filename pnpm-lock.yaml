@@ -1187,8 +1187,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.105.2)
       html-webpack-plugin:
-        specifier: ^5.6.5
-        version: 5.6.5(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2)
+        specifier: ^5.6.6
+        version: 5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2)
       mini-css-extract-plugin:
         specifier: ^2.9.2
         version: 2.9.4(webpack@5.105.2)
@@ -1257,8 +1257,8 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
       html-webpack-plugin:
-        specifier: ^5.6.5
-        version: 5.6.5(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2)
+        specifier: ^5.6.6
+        version: 5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2)
       serve:
         specifier: ^14.2.5
         version: 14.2.5
@@ -1321,8 +1321,8 @@ importers:
         specifier: ^7.0.4
         version: 7.0.4(lightningcss@1.31.1)(webpack@5.105.2)
       html-webpack-plugin:
-        specifier: ^5.6.5
-        version: 5.6.5(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2)
+        specifier: ^5.6.6
+        version: 5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2)
       lightningcss:
         specifier: ^1.31.1
         version: 1.31.1
@@ -7828,8 +7828,8 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
-  html-webpack-plugin@5.6.5:
-    resolution: {integrity: sha512-4xynFbKNNk+WlzXeQQ+6YYsH2g7mpfPszQZUi3ovKlj+pDmngQ7vRXjrrmGROabmKwyQkcgcX5hqfOwHbFmK5g==}
+  html-webpack-plugin@5.6.6:
+    resolution: {integrity: sha512-bLjW01UTrvoWTJQL5LsMRo1SypHW80FTm12OJRSnr3v6YHNhfe+1r0MYUZJMACxnCHURVnBWRwAsWs2yPU9Ezw==}
     engines: {node: '>=10.13.0'}
     peerDependencies:
       '@rspack/core': 0.x || 1.x
@@ -10632,6 +10632,10 @@ packages:
     resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
     engines: {node: '>=12'}
 
+  strip-ansi@7.2.0:
+    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
+    engines: {node: '>=12'}
+
   strip-bom@3.0.0:
     resolution: {integrity: sha512-vavAMRXOgBVNF6nyEEmL3DBK19iRpDcoIwW+swQ+CbGiu7lju6t+JklA1MHweoWtadgt4ISVUsXLyDq34ddcwA==}
     engines: {node: '>=4'}
@@ -10829,11 +10833,6 @@ packages:
         optional: true
       uglify-js:
         optional: true
-
-  terser@5.44.1:
-    resolution: {integrity: sha512-t/R3R/n0MSwnnazuPpPNVO60LX0SKL45pyl9YlvxIdkH0Of7D5qM2EVe+yASRIlY5pZ73nclYJfNANGWPwFDZw==}
-    engines: {node: '>=10'}
-    hasBin: true
 
   terser@5.46.0:
     resolution: {integrity: sha512-jTwoImyr/QbOWFFso3YoU3ik0jBBDJ6JTOQiy/J2YxVJdZCc+5u7skhNwiOR3FQIygFqVUPHl7qbbxtjW2K3Qg==}
@@ -13118,7 +13117,7 @@ snapshots:
     dependencies:
       string-width: 5.1.2
       string-width-cjs: string-width@4.2.3
-      strip-ansi: 7.1.0
+      strip-ansi: 7.2.0
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
       wrap-ansi-cjs: wrap-ansi@7.0.0
@@ -18450,9 +18449,9 @@ snapshots:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.44.1
+      terser: 5.46.0
 
-  html-webpack-plugin@5.6.5(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2):
+  html-webpack-plugin@5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.18))(webpack@5.105.2):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -21751,7 +21750,7 @@ snapshots:
   string-width@8.2.0:
     dependencies:
       get-east-asian-width: 1.5.0
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   string.prototype.includes@2.0.1:
     dependencies:
@@ -21820,6 +21819,10 @@ snapshots:
       ansi-regex: 6.2.2
 
   strip-ansi@7.1.2:
+    dependencies:
+      ansi-regex: 6.2.2
+
+  strip-ansi@7.2.0:
     dependencies:
       ansi-regex: 6.2.2
 
@@ -22032,13 +22035,6 @@ snapshots:
       serialize-javascript: 6.0.2
       terser: 5.46.0
       webpack: 5.105.2
-
-  terser@5.44.1:
-    dependencies:
-      '@jridgewell/source-map': 0.3.11
-      acorn: 8.16.0
-      commander: 2.20.3
-      source-map-support: 0.5.21
 
   terser@5.46.0:
     dependencies:

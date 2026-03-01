@@ -29,7 +29,7 @@
     "@storybook/addon-links": "^10.2.11",
     "@storybook/addon-vitest": "^10.2.11",
     "@storybook/react": "^10.2.11",
-    "@storybook/react-vite": "^10.2.11",
+    "@storybook/react-vite": "^10.2.13",
     "@stylexjs/eslint-plugin": "^0.17.5",
     "@stylexjs/stylex": "^0.17.5",
     "@stylexswc/playwright": "0.14.3-rc.2",

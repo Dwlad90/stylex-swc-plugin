@@ -853,6 +853,7 @@ test!(
           "#
 );
 
+// BUG: Generates invalid CSS, need to revisit this API
 test!(
   Syntax::Typescript(TsSyntax {
     tsx: true,
@@ -1053,4 +1054,51 @@ test!(
               },
             });
           "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  legacy_compound_hover_after_selector_as_single_key,
+  r#"
+              import * as stylex from '@stylexjs/stylex';
+              export const styles = stylex.create({
+                foo: {
+                  ':hover::after': {
+                    color: 'red',
+                  },
+                },
+              });
+            "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  compound_hover_after_selector_as_single_key,
+  r#"
+              import * as stylex from '@stylexjs/stylex';
+              export const styles = stylex.create({
+                foo: {
+                  color: {
+                    default: 'red',
+                    ':hover::after': 'blue',
+                  },
+                },
+              });
+            "#
 );

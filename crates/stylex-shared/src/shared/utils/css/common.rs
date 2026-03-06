@@ -195,34 +195,29 @@ pub(crate) fn generate_css_rule(
 
 // Helper to calculate compound pseudo priority (e.g. :hover::after => sum of parts)
 fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
-  let mut pseudo_parts: Vec<String> = vec![];
+  let mut parts: Vec<String> = vec![];
 
   for mat in PSEUDO_PART_REGEX.find_iter(key).flatten() {
-    pseudo_parts.push(mat.as_str().to_string());
+    parts.push(mat.as_str().to_string());
   }
 
-  if pseudo_parts.len() > 1 {
-    let mut total: f64 = 0.0;
-    for part in pseudo_parts.iter() {
-      if part.starts_with("::") {
-        total += PSEUDO_ELEMENT_PRIORITY;
-      } else {
-        let prop = if part.contains('(') {
-          let idx = part.find('(').unwrap_or(part.len());
-          &part[0..idx]
-        } else {
-          &part[..]
-        };
-
-        let pr = **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0);
-        total += pr;
-      }
-    }
-
-    return Some(total);
+  // Only handle chains of simple pseudo-classes and pseudo-elements.
+  // Opt out if there's zero/one part or any functional pseudo-class.
+  if parts.len() <= 1 || parts.iter().any(|p| p.contains('(')) {
+    return None;
   }
 
-  None
+  let mut total: f64 = 0.0;
+
+  for part in parts.iter() {
+    total += if part.starts_with("::") {
+      PSEUDO_ELEMENT_PRIORITY
+    } else {
+      **PSEUDO_CLASS_PRIORITIES.get(part.as_str()).unwrap_or(&&40.0)
+    };
+  }
+
+  Some(total)
 }
 
 fn get_at_rule_priority(key: &str) -> Option<f64> {
@@ -247,9 +242,6 @@ fn get_at_rule_priority(key: &str) -> Option<f64> {
 
 fn get_pseudo_element_priority(key: &str) -> Option<f64> {
   if key.starts_with("::") {
-    if let Some(compound_priority) = get_compound_pseudo_priority(key) {
-      return Some(compound_priority);
-    }
     return Some(PSEUDO_ELEMENT_PRIORITY);
   }
 
@@ -295,16 +287,7 @@ fn get_pseudo_class_priority(key: &str) -> Option<f64> {
   }
 
   if key.starts_with(':') {
-    if let Some(compound_priority) = get_compound_pseudo_priority(key) {
-      return Some(compound_priority);
-    }
-
-    let prop: &str = if key.contains('(') {
-      let index = key.chars().position(|c| c == '(').unwrap();
-      &key[0..index]
-    } else {
-      key
-    };
+    let prop: &str = key.split('(').next().unwrap_or(key);
 
     return Some(**PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0));
   }
@@ -335,6 +318,10 @@ fn get_default_priority(key: &str) -> Option<f64> {
 pub(crate) fn get_priority(key: &str) -> f64 {
   if let Some(at_rule_priority) = get_at_rule_priority(key) {
     return at_rule_priority;
+  }
+
+  if let Some(compound_priority) = get_compound_pseudo_priority(key) {
+    return compound_priority;
   }
 
   if let Some(pseudo_element_priority) = get_pseudo_element_priority(key) {

@@ -656,7 +656,7 @@ pub(crate) fn validate_namespace(
       Expr::Object(object) => {
         let key = key_value_to_str(namespace);
 
-        if key.starts_with('@') || key.starts_with(':') {
+        if key.starts_with('@') || key.starts_with(':') || key.starts_with('[') {
           if conditions.contains(&key) {
             build_code_frame_error_and_panic(
               &Expr::Object(object.clone()),
@@ -712,6 +712,7 @@ pub(crate) fn validate_conditional_styles(
 
   if !(inner_key.starts_with(':')
       || inner_key.starts_with('@')
+      || inner_key.starts_with('[')
       // This is a placeholder for `defineConsts` values that are later inlined
       || inner_key.starts_with("var(--")
       || inner_key == "default")

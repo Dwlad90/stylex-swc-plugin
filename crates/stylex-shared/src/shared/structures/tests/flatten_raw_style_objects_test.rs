@@ -744,6 +744,36 @@ mod nested_objects {
 
     assert_eq!(result, expected_result)
   }
+
+  #[test]
+  fn attribute_selector_conditions() {
+    let result = flatten_raw_style_object(
+      &[key_value_ident_factory(
+        "color",
+        object_expression_factory(vec![
+          prop_or_spread_string_factory("default", "blue"),
+          prop_or_spread_string_factory("[data-panel-state=\"open\"]", "red"),
+        ]),
+      )],
+      &mut EvaluationState::new(),
+      &mut get_state(),
+      &FunctionMap::default(),
+    );
+
+    assert_eq!(result.len(), 1);
+
+    let mut expected_result = IndexMap::new();
+
+    expected_result.insert(
+      "color".to_string(),
+      pre_rule_set_factory(&[
+        pre_rule_factory("color", "blue", &["color", "default"]),
+        pre_rule_factory("color", "red", &["color", "[data-panel-state=\"open\"]"]),
+      ]),
+    );
+
+    assert_eq!(result, expected_result)
+  }
 }
 
 #[cfg(test)]

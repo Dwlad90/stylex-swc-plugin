@@ -75,7 +75,7 @@ impl StylesPreRule {
 
     unsorted_pseudos = unsorted_pseudos
       .iter()
-      .filter(|key| key.starts_with(':'))
+      .filter(|key| key.starts_with(':') || key.starts_with("["))
       .cloned()
       .collect();
 

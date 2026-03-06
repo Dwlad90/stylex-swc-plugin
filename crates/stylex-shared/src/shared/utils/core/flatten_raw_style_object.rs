@@ -173,7 +173,10 @@ pub(crate) fn flatten_raw_style_object_logic(
         }
       }
       Expr::Lit(property_lit) => {
-        if !css_property_key.starts_with(':') && !css_property_key.starts_with('@') {
+        if !css_property_key.starts_with(':')
+          && !css_property_key.starts_with('@')
+          && !css_property_key.starts_with('[')
+        {
           let value = lit_to_string(property_lit);
 
           let pairs = flat_map_expanded_shorthands(
@@ -259,7 +262,7 @@ pub(crate) fn flatten_raw_style_object_logic(
       }
       Expr::Call(_) => panic!("{}", non_static_value("stylex")),
       Expr::Object(obj) => {
-        if !key.starts_with(':') && !key.starts_with('@') {
+        if !key.starts_with(':') && !key.starts_with('@') && !key.starts_with('[') {
           if obj.props.is_empty() {
             return flattened;
           }

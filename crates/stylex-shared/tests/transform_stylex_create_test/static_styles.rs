@@ -756,6 +756,30 @@ test!(
     ..Default::default()
   }),
   |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+  attribute_selector_with_pseudo_class_nested_same_value,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: {
+                color: {
+                  ':hover': {
+                    '[data-state="open"]': 'red',
+                  },
+                  '[data-state="open"]': {
+                    ':hover': 'red',
+                  },
+                },
+              },
+            });
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
   pseudo_class_with_array_fallbacks,
   r#"
             import * as stylex from '@stylexjs/stylex';

@@ -32,14 +32,20 @@ fn get_default_marker_class_name(options: &StyleXStateOptions) -> String {
 
 /// Validates that a pseudo selector starts with ':' but not '::'
 fn validate_pseudo_selector(pseudo: &str) -> Result<(), String> {
-  if !pseudo.starts_with(':') {
-    return Err("Pseudo selector must start with \":\"".to_string());
+  if !pseudo.starts_with(':') && !pseudo.starts_with('[') {
+    return Err("Pseudo selector must start with \":\" or \"[\"".to_string());
   }
+
   if pseudo.starts_with("::") {
     return Err(
       "Pseudo selector cannot start with \"::\" (pseudo-elements are not supported)".to_string(),
     );
   }
+
+  if pseudo.starts_with("[") && !pseudo.ends_with("]") {
+    return Err("Attribute selector must end with \"]\"".to_string());
+  }
+
   Ok(())
 }
 
@@ -161,7 +167,10 @@ mod tests {
   fn test_validate_pseudo_selector_invalid_no_colon() {
     let result = validate_pseudo_selector("hover");
     assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), "Pseudo selector must start with \":\"");
+    assert_eq!(
+      result.unwrap_err(),
+      "Pseudo selector must start with \":\" or \"[\""
+    );
   }
 
   #[test]

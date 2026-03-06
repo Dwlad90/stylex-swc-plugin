@@ -105,6 +105,10 @@ pub(crate) static ANY_SIBLING_SELECTOR: Lazy<Regex> = Lazy::new(|| {
 });
 // #endregion Relational selectors for .when() functions
 
+// Matches pseudo-elements (::after) and pseudo-classes (:hover, :nth-child(2))
+pub(crate) static PSEUDO_PART_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"::[a-zA-Z-]+|:[a-zA-Z-]+(?:\([^)]*\))?").unwrap());
+
 // Matches .stylex or .consts file imports with optional extensions (.ts, .js, .tsx, .jsx)
 pub(crate) static STYLEX_CONSTS_IMPORT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.(stylex|consts)(?:\.(.+){2,6})?$").unwrap());

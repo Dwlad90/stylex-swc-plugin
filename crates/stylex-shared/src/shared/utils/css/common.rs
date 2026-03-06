@@ -20,7 +20,7 @@ use crate::shared::{
   },
   regex::{
     ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, MANY_SPACES,
-    SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
+    PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
   },
   structures::{
     injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
@@ -193,97 +193,160 @@ pub(crate) fn generate_css_rule(
   }
 }
 
-pub(crate) fn get_priority(key: &str) -> f64 {
-  if key.starts_with("--") {
-    return 1.0;
-  };
+// Helper to calculate compound pseudo priority (e.g. :hover::after => sum of parts)
+fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
+  let mut pseudo_parts: Vec<String> = vec![];
 
-  // #region Relational selectors for .when() functions
-  // Helper function equivalent to pseudoBase in JS
+  for mat in PSEUDO_PART_REGEX.find_iter(key).flatten() {
+    pseudo_parts.push(mat.as_str().to_string());
+  }
+
+  if pseudo_parts.len() > 1 {
+    let mut total: f64 = 0.0;
+    for part in pseudo_parts.iter() {
+      if part.starts_with("::") {
+        total += PSEUDO_ELEMENT_PRIORITY;
+      } else {
+        let prop = if part.contains('(') {
+          let idx = part.find('(').unwrap_or(part.len());
+          &part[0..idx]
+        } else {
+          &part[..]
+        };
+
+        let pr = **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0);
+        total += pr;
+      }
+    }
+
+    return Some(total);
+  }
+
+  None
+}
+
+fn get_at_rule_priority(key: &str) -> Option<f64> {
+  if key.starts_with("--") {
+    return Some(1.0);
+  }
+
+  if key.starts_with("@supports") {
+    return AT_RULE_PRIORITIES.get("@supports").map(|v| **v);
+  }
+
+  if key.starts_with("@media") {
+    return AT_RULE_PRIORITIES.get("@media").map(|v| **v);
+  }
+
+  if key.starts_with("@container") {
+    return AT_RULE_PRIORITIES.get("@container").map(|v| **v);
+  }
+
+  None
+}
+
+fn get_pseudo_element_priority(key: &str) -> Option<f64> {
+  if key.starts_with("::") {
+    if let Some(compound_priority) = get_compound_pseudo_priority(key) {
+      return Some(compound_priority);
+    }
+    return Some(PSEUDO_ELEMENT_PRIORITY);
+  }
+
+  None
+}
+
+fn get_pseudo_class_priority(key: &str) -> Option<f64> {
   let pseudo_base = |p: &str| -> f64 { **PSEUDO_CLASS_PRIORITIES.get(p).unwrap_or(&&40.0) / 100.0 };
 
   // Check ancestor selector
   if let Ok(Some(captures)) = ANCESTOR_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    return 10.0 + pseudo_base(pseudo.as_str());
+    return Some(10.0 + pseudo_base(pseudo.as_str()));
   }
 
   // Check descendant selector
   if let Ok(Some(captures)) = DESCENDANT_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    return 15.0 + pseudo_base(pseudo.as_str());
+    return Some(15.0 + pseudo_base(pseudo.as_str()));
   }
 
   // Check any sibling selector (must come before individual sibling selectors)
   if let Ok(Some(captures)) = ANY_SIBLING_SELECTOR.captures(key)
     && let (Some(pseudo1), Some(pseudo2)) = (captures.get(1), captures.get(2))
   {
-    return 20.0 + pseudo_base(pseudo1.as_str()).max(pseudo_base(pseudo2.as_str()));
+    return Some(20.0 + pseudo_base(pseudo1.as_str()).max(pseudo_base(pseudo2.as_str())));
   }
 
   // Check sibling before selector
   if let Ok(Some(captures)) = SIBLING_BEFORE_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    return 30.0 + pseudo_base(pseudo.as_str());
+    return Some(30.0 + pseudo_base(pseudo.as_str()));
   }
 
   // Check sibling after selector
   if let Ok(Some(captures)) = SIBLING_AFTER_SELECTOR.captures(key)
     && let Some(pseudo) = captures.get(1)
   {
-    return 40.0 + pseudo_base(pseudo.as_str());
+    return Some(40.0 + pseudo_base(pseudo.as_str()));
   }
-  // #endregion Relational selectors for .when() functions
-
-  if key.starts_with("@supports") {
-    return **AT_RULE_PRIORITIES
-      .get("@supports")
-      .expect("No priority found");
-  };
-
-  if key.starts_with("@media") {
-    return **AT_RULE_PRIORITIES.get("@media").expect("No priority found");
-  };
-
-  if key.starts_with("@container") {
-    return **AT_RULE_PRIORITIES
-      .get("@container")
-      .expect("No priority found");
-  };
-
-  if key.starts_with("::") {
-    return PSEUDO_ELEMENT_PRIORITY;
-  };
 
   if key.starts_with(':') {
-    let prop: &str = if key.starts_with(':') && key.contains('(') {
-      let index = key.chars().position(|c| c == '(').unwrap();
+    if let Some(compound_priority) = get_compound_pseudo_priority(key) {
+      return Some(compound_priority);
+    }
 
+    let prop: &str = if key.contains('(') {
+      let index = key.chars().position(|c| c == '(').unwrap();
       &key[0..index]
     } else {
       key
     };
 
-    return **PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0);
-  };
+    return Some(**PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0));
+  }
 
+  None
+}
+
+fn get_default_priority(key: &str) -> Option<f64> {
   if SHORTHANDS_OF_SHORTHANDS.contains(key) {
-    return 1000.0;
+    return Some(1000.0);
   }
 
   if SHORTHANDS_OF_LONGHANDS.contains(key) {
-    return 2000.0;
+    return Some(2000.0);
   }
 
   if LONG_HAND_LOGICAL.contains(key) {
-    return 3000.0;
+    return Some(3000.0);
   }
 
   if LONG_HAND_PHYSICAL.contains(key) {
-    return 4000.0;
+    return Some(4000.0);
+  }
+
+  None
+}
+
+pub(crate) fn get_priority(key: &str) -> f64 {
+  if let Some(at_rule_priority) = get_at_rule_priority(key) {
+    return at_rule_priority;
+  }
+
+  if let Some(pseudo_element_priority) = get_pseudo_element_priority(key) {
+    return pseudo_element_priority;
+  }
+
+  if let Some(pseudo_class_priority) = get_pseudo_class_priority(key) {
+    return pseudo_class_priority;
+  }
+
+  if let Some(default_priority) = get_default_priority(key) {
+    return default_priority;
   }
 
   3000.0

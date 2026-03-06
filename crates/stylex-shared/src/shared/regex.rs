@@ -112,3 +112,6 @@ pub(crate) static PSEUDO_PART_REGEX: Lazy<Regex> =
 // Matches .stylex or .consts file imports with optional extensions (.ts, .js, .tsx, .jsx)
 pub(crate) static STYLEX_CONSTS_IMPORT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.(stylex|consts)(?:\.(.+){2,6})?$").unwrap());
+
+pub(crate) static VAR_EXTRACTION_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"var\((--x-[^,)]+)[^)]*\)").unwrap());

@@ -4,5 +4,6 @@ use swc_core::ecma::ast::Expr;
 pub(crate) struct DynamicStyle {
   pub(crate) expression: Expr,
   pub(crate) key: String,
+  pub(crate) var_name: String,
   pub(crate) path: String,
 }

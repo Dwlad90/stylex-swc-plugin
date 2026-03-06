@@ -339,6 +339,32 @@ test!(
     PluginPass::default(),
     None
   ),
+  media_query_values_with_nullish_coalescing,
+  r#"
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              root: (a, b, c) => ({
+                fontSize: {
+                  default: a ? '16px' : undefined,
+                  '@media (min-width: 800px)': b ? '18px' : undefined,
+                  '@media (min-width: 1280px)': c ? '20px' : undefined,
+                }
+              }),
+            });
+            stylex.props(styles.root(true, false, true));
+          "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   supports_queries,
   r#"
             import * as stylex from '@stylexjs/stylex';

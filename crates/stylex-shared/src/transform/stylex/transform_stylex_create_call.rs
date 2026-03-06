@@ -26,6 +26,7 @@ use swc_core::{
 use crate::shared::{
   constants::{common::COMPILED_KEY, messages::non_static_value},
   enums::data_structures::top_level_expression::TopLevelExpression,
+  regex::VAR_EXTRACTION_REGEX,
   structures::{
     functions::StylexExprFn,
     injectable_style::InjectableStyle,
@@ -48,6 +49,14 @@ use crate::shared::{
   },
 };
 use crate::shared::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::{dynamic_style::DynamicStyle, stylex_options::StyleResolution},
+  utils::{
+    ast::{convertors::null_to_expression, factories::array_expression_factory},
+    core::js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
+  },
+};
+use crate::shared::{
   structures::functions::{FunctionConfig, FunctionMap, FunctionType},
   transformers::{
     stylex_create::stylex_create_set, stylex_first_that_works::stylex_first_that_works,
@@ -62,13 +71,6 @@ use crate::shared::{
 use crate::shared::{
   structures::types::{FlatCompiledStyles, FunctionMapMemberExpression},
   utils::core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
-};
-use crate::shared::{
-  structures::{dynamic_style::DynamicStyle, stylex_options::StyleResolution},
-  utils::{
-    ast::{convertors::null_to_expression, factories::array_expression_factory},
-    core::js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
-  },
 };
 use crate::shared::{
   structures::{functions::FunctionConfigType, types::FunctionMapIdentifiers},
@@ -487,7 +489,7 @@ where
 
                   let mut dynamic_styles: Vec<DynamicStyle> = inline_styles
                     .iter()
-                    .map(|(_key, v)| {
+                    .map(|(var_name, v)| {
                       let key = v
                         .path
                         .iter()
@@ -505,6 +507,7 @@ where
                         expression: v.original_expression.clone(),
                         key,
                         path: v.path.join("_"),
+                        var_name: var_name.clone(),
                       }
                     })
                     .collect();
@@ -512,6 +515,14 @@ where
                   if self.state.options.style_resolution == StyleResolution::LegacyExpandShorthands
                   {
                     dynamic_styles = legacy_expand_shorthands(dynamic_styles);
+                  }
+
+                  let mut nullish_var_expressions: FxHashMap<String, Expr> = FxHashMap::default();
+                  for dynamic_style in dynamic_styles.iter() {
+                    if has_explicit_nullish_fallback(&mut dynamic_style.expression.clone()) {
+                      nullish_var_expressions
+                        .insert(dynamic_style.var_name.clone(), dynamic_style.expression.clone());
+                    }
                   }
 
                   if let Some(value) = value.as_mut_object() {
@@ -573,6 +584,37 @@ where
                                     orig_class_paths.get(cls) == Some(&dynamic_style.path)
                                   })
                                   .map(|dynamic_style| dynamic_style.expression.clone());
+
+                                let expr = if expr.is_none() && !nullish_var_expressions.is_empty()
+                                {
+                                  injected_styles.get(cls).and_then(|style| {
+                                    let rule = match style.as_ref() {
+                                      InjectableStyleKind::Regular(s) => {
+                                        let ltr = s.ltr.as_str();
+                                        let rtl = s.rtl.as_deref().unwrap_or_default();
+
+                                        if ltr.is_empty() {
+                                          rtl
+                                        } else {
+                                          ltr
+                                        }
+                                      },
+                                      InjectableStyleKind::Const(s) => {
+                                        let ltr = s.ltr.as_str();
+                                        let rtl = s.rtl.as_deref().unwrap_or_default();
+
+                                        if ltr.is_empty() {
+                                          rtl
+                                        } else {
+                                          ltr
+                                        }
+                                      },
+                                    };
+                                    extract_expr_from_rule(rule, &nullish_var_expressions)
+                                  })
+                                } else {
+                                  expr
+                                };
 
                                 let cls_with_space = &class_strings[index];
 
@@ -844,6 +886,41 @@ fn is_safe_to_skip_null_check(expr: &mut Expr) -> bool {
     }
     _ => false,
   }
+}
+
+fn has_explicit_nullish_fallback(expr: &mut Expr) -> bool {
+  let expr = normalize_expr(expr);
+  match expr {
+    Expr::Lit(Lit::Null(_)) => true,
+    Expr::Ident(ident) if ident.sym == "undefined" => true,
+    Expr::Unary(unary) if matches!(unary.op, UnaryOp::Void) => true,
+    Expr::Cond(cond) => {
+      has_explicit_nullish_fallback(&mut cond.cons) || has_explicit_nullish_fallback(&mut cond.alt)
+    }
+    Expr::Bin(bin) => match bin.op {
+      BinaryOp::LogicalOr | BinaryOp::NullishCoalescing | BinaryOp::LogicalAnd => {
+        has_explicit_nullish_fallback(&mut bin.left)
+          || has_explicit_nullish_fallback(&mut bin.right)
+      }
+      _ => false,
+    },
+    _ => false,
+  }
+}
+
+fn extract_expr_from_rule(
+  rule: &str,
+  nullish_var_expressions: &FxHashMap<String, Expr>,
+) -> Option<Expr> {
+  for cap in VAR_EXTRACTION_REGEX.captures_iter(rule).flatten() {
+    if let Some(var_match) = cap.get(1) {
+      let var_name = var_match.as_str();
+      if let Some(expr) = nullish_var_expressions.get(var_name) {
+        return Some(expr.clone());
+      }
+    }
+  }
+  None
 }
 
 /// Hoists an expression to the program level by creating a const variable declaration.

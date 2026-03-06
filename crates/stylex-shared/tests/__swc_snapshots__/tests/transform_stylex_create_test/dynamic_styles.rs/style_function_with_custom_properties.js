@@ -10,11 +10,11 @@ _inject2({
     priority: 1
 });
 _inject2({
-    ltr: '@property --x---background-color { syntax: "*"; inherits: false; }',
+    ltr: '@property --x---background-color { syntax: "*"; inherits: false;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x---otherColor { syntax: "*"; inherits: false; }',
+    ltr: '@property --x---otherColor { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

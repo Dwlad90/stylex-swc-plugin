@@ -6,7 +6,7 @@ _inject2({
     priority: 8000
 });
 _inject2({
-    ltr: '@property --x-163tekb { syntax: "*"; }',
+    ltr: '@property --x-163tekb { syntax: "*"; inherits: true;}',
     priority: 0
 });
 export const styles = {

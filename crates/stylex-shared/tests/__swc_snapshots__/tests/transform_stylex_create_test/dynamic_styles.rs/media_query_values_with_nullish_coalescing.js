@@ -14,15 +14,15 @@ _inject2({
     priority: 3200
 });
 _inject2({
-    ltr: '@property --x-19zvkyr { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-19zvkyr { syntax: "*"; inherits: false;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-1bks2es { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-1bks2es { syntax: "*"; inherits: false;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-q0n1i6 { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-q0n1i6 { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

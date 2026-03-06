@@ -314,6 +314,29 @@ test!(
     PluginPass::default(),
     None
   ),
+  dynamic_style_in_after_generates_valid_at_property_with_inherits,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      repro: (color) => ({
+        '::after': {
+          color,
+        },
+      }),
+    });
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
   media_queries,
   r#"
             import * as stylex from '@stylexjs/stylex';

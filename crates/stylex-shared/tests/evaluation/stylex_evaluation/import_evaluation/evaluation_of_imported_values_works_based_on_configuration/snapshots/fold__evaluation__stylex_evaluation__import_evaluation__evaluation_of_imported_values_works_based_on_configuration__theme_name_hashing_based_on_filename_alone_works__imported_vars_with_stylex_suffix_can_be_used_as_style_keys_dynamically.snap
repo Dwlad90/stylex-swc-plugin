@@ -12,7 +12,7 @@ _inject2({
     priority: 1
 });
 _inject2({
-    ltr: '@property --x---__hashed_var__1jqb1tb { syntax: "*"; inherits: false; }',
+    ltr: '@property --x---__hashed_var__1jqb1tb { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

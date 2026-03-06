@@ -8,7 +8,7 @@ _inject2({
     priority: 1
 });
 _inject2({
-    ltr: '@property --x---x1anmu0j { syntax: "*"; inherits: false; }',
+    ltr: '@property --x---x1anmu0j { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

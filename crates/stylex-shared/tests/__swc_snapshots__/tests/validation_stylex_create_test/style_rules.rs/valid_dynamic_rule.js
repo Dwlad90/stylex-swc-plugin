@@ -6,6 +6,6 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: '@property --x-backgroundColor { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-backgroundColor { syntax: "*"; inherits: false;}',
     priority: 0
 });

@@ -14,7 +14,7 @@ _inject2({
     priority: 8130
 });
 _inject2({
-    ltr: '@property --x-6bge3v { syntax: "*"; }',
+    ltr: '@property --x-6bge3v { syntax: "*"; inherits: true;}',
     priority: 0
 });
 export const styles = {

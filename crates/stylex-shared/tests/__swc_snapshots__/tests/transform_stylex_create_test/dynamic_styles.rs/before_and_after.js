@@ -10,11 +10,11 @@ _inject2({
     priority: 8000
 });
 _inject2({
-    ltr: '@property --x-1g451k2 { syntax: "*"; }',
+    ltr: '@property --x-1g451k2 { syntax: "*"; inherits: true;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-19erzii { syntax: "*"; }',
+    ltr: '@property --x-19erzii { syntax: "*"; inherits: true;}',
     priority: 0
 });
 export const styles = {

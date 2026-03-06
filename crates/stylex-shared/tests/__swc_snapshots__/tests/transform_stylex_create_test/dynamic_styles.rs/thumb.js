@@ -6,7 +6,7 @@ _inject2({
     priority: 9000
 });
 _inject2({
-    ltr: '@property --x-msahdu { syntax: "*"; }',
+    ltr: '@property --x-msahdu { syntax: "*"; inherits: true;}',
     priority: 0
 });
 export const styles = {

@@ -162,7 +162,7 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: '@property --x-fontSize { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-fontSize { syntax: "*"; inherits: false;}',
     priority: 0
 });
 const styles = {

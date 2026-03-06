@@ -18,15 +18,15 @@ _inject2({
     priority: 3060
 });
 _inject2({
-    ltr: '@property --x-1113oo7 { syntax: "*"; }',
+    ltr: '@property --x-1113oo7 { syntax: "*"; inherits: true;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-hxnnmm { syntax: "*"; }',
+    ltr: '@property --x-hxnnmm { syntax: "*"; inherits: true;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-8tbbve { syntax: "*"; }',
+    ltr: '@property --x-8tbbve { syntax: "*"; inherits: true;}',
     priority: 0
 });
 export const styles = {

@@ -10,7 +10,7 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: '@property --x-color { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-color { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

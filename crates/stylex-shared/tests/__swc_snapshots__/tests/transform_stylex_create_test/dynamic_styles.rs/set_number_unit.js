@@ -6,7 +6,7 @@ _inject2({
     priority: 4000
 });
 _inject2({
-    ltr: '@property --x-width { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-width { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

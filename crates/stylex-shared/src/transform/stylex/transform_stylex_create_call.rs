@@ -370,13 +370,9 @@ where
             variable_name.clone(),
             InjectableStyle::regular(
               format!(
-                "@property {} {{ syntax: \"*\"; {}}}",
+                "@property {} {{ syntax: \"*\"; inherits: {};}}",
                 variable_name,
-                if is_pseudo_element {
-                  ""
-                } else {
-                  "inherits: false; "
-                },
+                if is_pseudo_element { "true" } else { "false" },
               ),
               Some(0f64),
             ),

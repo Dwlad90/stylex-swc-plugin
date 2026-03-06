@@ -39,15 +39,15 @@ _inject2({
     priority: 4000
 });
 _inject2({
-    ltr: '@property --x-14mfytm { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-14mfytm { syntax: "*"; inherits: false;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-yepcm9 { syntax: "*"; }',
+    ltr: '@property --x-yepcm9 { syntax: "*"; inherits: true;}',
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-marginTop { syntax: "*"; inherits: false; }',
+    ltr: '@property --x-marginTop { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

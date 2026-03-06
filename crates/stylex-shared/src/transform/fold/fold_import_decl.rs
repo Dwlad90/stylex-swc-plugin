@@ -235,6 +235,9 @@ where
         "when" => {
           self.state.stylex_when_import.insert(local_name_ident_atom);
         }
+        "env" => {
+          self.state.stylex_env_import.insert(local_name_ident_atom);
+        }
         "defaultMarker" => {
           self
             .state

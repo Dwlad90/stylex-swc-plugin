@@ -82,6 +82,13 @@ pub fn transform(
   let include_patterns = extract_patterns(&env, &mut include_opt);
   let exclude_patterns = extract_patterns(&env, &mut exclude_opt);
 
+  // Parse the env object separately since it needs the napi::Env for JS function references.
+  let parsed_env = options
+    .env
+    .take()
+    .map(|ref env_obj| utils::env_parser::parse_env_object(&env, env_obj))
+    .transpose()?;
+
   if !utils::should_transform_file(&filename, &include_patterns, &exclude_patterns) {
     return Ok(StyleXTransformResult {
       code,
@@ -90,7 +97,7 @@ pub fn transform(
     });
   }
 
-  let result = panic::catch_unwind(|| {
+  let result = panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
     let cm: Arc<SourceMap> = Default::default();
     let filename = FileName::Real(filename.into());
 
@@ -112,6 +119,9 @@ pub fn transform(
 
     let mut config: StyleXOptionsParams = options.try_into()?;
 
+    // Set the parsed env on the config
+    config.env = parsed_env;
+
     let mut parser = Parser::new_from(Lexer::new(
       Syntax::Typescript(TsSyntax {
         tsx: true,
@@ -132,43 +142,46 @@ pub fn transform(
 
     let globals = Globals::default();
     GLOBALS.set(&globals, || {
-      let unresolved_mark = Mark::new();
-      let top_level_mark = Mark::new();
+      // Set the NAPI env in thread-local storage so env functions can call back to JS
+      utils::env_parser::with_napi_env(&env, || {
+        let unresolved_mark = Mark::new();
+        let top_level_mark = Mark::new();
 
-      let mut stylex: StyleXTransform<PluginCommentsProxy> =
-        StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
+        let mut stylex: StyleXTransform<PluginCommentsProxy> =
+          StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
 
-      let program = program
-        .apply(resolver(unresolved_mark, top_level_mark, true))
-        .apply(typescript_strip(unresolved_mark, top_level_mark))
-        .apply(&mut fold_pass(&mut stylex))
-        .apply(hygiene())
-        .apply(&mut fixer(None));
+        let program = program
+          .apply(resolver(unresolved_mark, top_level_mark, true))
+          .apply(typescript_strip(unresolved_mark, top_level_mark))
+          .apply(&mut fold_pass(&mut stylex))
+          .apply(hygiene())
+          .apply(&mut fixer(None));
 
-      let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
+        let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
 
-      let transformed_code = print(
-        cm,
-        &program,
-        PrintArgs {
-          source_map,
-          ..Default::default()
-        },
-      );
+        let transformed_code = print(
+          cm,
+          &program,
+          PrintArgs {
+            source_map,
+            ..Default::default()
+          },
+        );
 
-      let result = transformed_code.unwrap();
+        let result = transformed_code.unwrap();
 
-      let js_result = StyleXTransformResult {
-        code: result.code,
-        metadata: StyleXMetadata {
-          stylex: stylex_metadata,
-        },
-        map: result.map,
-      };
+        let js_result = StyleXTransformResult {
+          code: result.code,
+          metadata: StyleXMetadata {
+            stylex: stylex_metadata,
+          },
+          map: result.map,
+        };
 
-      Ok(js_result)
+        Ok(js_result)
+      }) // end with_napi_env
     })
-  });
+  }));
 
   match result {
     Ok(res) => res,

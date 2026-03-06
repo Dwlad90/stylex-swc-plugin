@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
@@ -5,6 +6,7 @@ use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
+  stylex_env::EnvValue,
   stylex_options::{CheckModuleResolution, PropertyValidationMode, StyleResolution, StyleXOptions},
 };
 
@@ -35,6 +37,8 @@ pub struct StyleXStateOptions {
   pub inject_stylex_side_effects: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
+  #[serde(skip)]
+  pub env: IndexMap<String, EnvValue>,
 }
 
 impl Default for StyleXStateOptions {
@@ -65,6 +69,7 @@ impl Default for StyleXStateOptions {
       unstable_module_resolution: CheckModuleResolution::CommonJS(
         StyleXOptions::get_common_js_module_resolution(None),
       ),
+      env: IndexMap::new(),
     }
   }
 }
@@ -115,6 +120,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       inject_stylex_side_effects: options.inject_stylex_side_effects,
       aliases: options.aliases,
       unstable_module_resolution: options.unstable_module_resolution,
+      env: options.env,
     }
   }
 }

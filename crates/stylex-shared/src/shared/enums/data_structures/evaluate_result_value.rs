@@ -12,7 +12,9 @@ use swc_core::{
 };
 
 use crate::shared::{
-  structures::{functions::FunctionConfig, theme_ref::ThemeRef, types::EvaluationCallback},
+  structures::{
+    functions::FunctionConfig, stylex_env::EnvValue, theme_ref::ThemeRef, types::EvaluationCallback,
+  },
   utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
 };
 
@@ -25,6 +27,8 @@ pub enum EvaluateResultValue {
   FunctionConfig(FunctionConfig),
   FunctionConfigMap(FxHashMap<Atom, FunctionConfig>),
   ThemeRef(ThemeRef),
+  /// An env object from the `env` config option.
+  EnvObject(IndexMap<String, EnvValue>),
 }
 
 impl Serialize for EvaluateResultValue {
@@ -66,6 +70,9 @@ impl Serialize for EvaluateResultValue {
         // map.serialize_entry("type", "vec")?;
         // map.end()
       }
+      Self::EnvObject(_) => {
+        unimplemented!("EnvObject serialization is not implemented yet")
+      }
     }
   }
 }
@@ -81,6 +88,7 @@ impl Clone for EvaluateResultValue {
       Self::FunctionConfigMap(f) => Self::FunctionConfigMap(f.clone()),
       Self::Callback(c) => Self::Callback(Rc::clone(c)),
       Self::ThemeRef(tr) => Self::ThemeRef(tr.clone()),
+      Self::EnvObject(e) => Self::EnvObject(e.clone()),
     }
   }
 }
@@ -96,6 +104,7 @@ impl fmt::Debug for EvaluateResultValue {
       Self::FunctionConfigMap(e) => f.debug_tuple("FunctionConfigMap").field(e).finish(),
       Self::ThemeRef(e) => f.debug_tuple("ThemeRef").field(e).finish(),
       Self::Callback(_) => f.debug_tuple("Callback").field(&"Callback").finish(),
+      Self::EnvObject(e) => f.debug_tuple("EnvObject").field(e).finish(),
     }
   }
 }
@@ -110,6 +119,7 @@ impl PartialEq for EvaluateResultValue {
       (Self::FunctionConfig(f1), Self::FunctionConfig(f2)) => f1 == f2,
       (Self::FunctionConfigMap(f1), Self::FunctionConfigMap(f2)) => f1 == f2,
       (Self::Callback(_), Self::Callback(_)) => false,
+      (Self::EnvObject(_), Self::EnvObject(_)) => false,
       _ => false,
     }
   }

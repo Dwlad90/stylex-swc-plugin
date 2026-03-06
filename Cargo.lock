@@ -2855,6 +2855,7 @@ dependencies = [
  "color-backtrace",
  "fancy-regex",
  "glob",
+ "indexmap",
  "log",
  "napi",
  "napi-build",

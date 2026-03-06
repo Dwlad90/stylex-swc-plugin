@@ -7,7 +7,7 @@
     "clean": "turbo clean",
     "dev": "turbo dev",
     "docs": "scripty  --rust",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "turbo run format --continue",
     "format:check": "turbo run format:check --continue",
     "lint": "turbo lint --continue",
     "lint:check": "turbo run lint:check --continue",

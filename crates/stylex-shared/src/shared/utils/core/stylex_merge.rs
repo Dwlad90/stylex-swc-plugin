@@ -73,6 +73,8 @@ pub(crate) fn stylex_merge(
     );
   }
 
+  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
+
   let evaluate_path_fn_config = FunctionMap {
     identifiers,
     member_expressions,

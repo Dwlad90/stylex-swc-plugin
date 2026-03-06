@@ -549,78 +549,54 @@ const lightTheme = {
   '--accent-deemphasized': systemTheme['--accent-deemphasized'].default,
   '--accent-emphasized': systemTheme['--accent-emphasized'].default,
   '--secondary-negative': systemTheme['--secondary-negative'].default,
-  '--secondary-negative-deemphasized':
-    systemTheme['--secondary-negative-deemphasized'].default,
-  '--secondary-negative-emphasized':
-    systemTheme['--secondary-negative-emphasized'].default,
+  '--secondary-negative-deemphasized': systemTheme['--secondary-negative-deemphasized'].default,
+  '--secondary-negative-emphasized': systemTheme['--secondary-negative-emphasized'].default,
   '--secondary-positive': systemTheme['--secondary-positive'].default,
-  '--secondary-positive-deemphasized':
-    systemTheme['--secondary-positive-deemphasized'].default,
+  '--secondary-positive-deemphasized': systemTheme['--secondary-positive-deemphasized'].default,
   '--secondary-warning': systemTheme['--secondary-warning'].default,
-  '--secondary-warning-deemphasized':
-    systemTheme['--secondary-warning-deemphasized'].default,
+  '--secondary-warning-deemphasized': systemTheme['--secondary-warning-deemphasized'].default,
   '--content-default': systemTheme['--content-default'].default,
   '--content-deemphasized': systemTheme['--content-deemphasized'].default,
   '--content-disabled': systemTheme['--content-disabled'].default,
   '--content-on-accent': systemTheme['--content-on-accent'].default,
   '--content-action-default': systemTheme['--content-action-default'].default,
-  '--content-action-emphasized':
-    systemTheme['--content-action-emphasized'].default,
+  '--content-action-emphasized': systemTheme['--content-action-emphasized'].default,
   '--content-external-link': systemTheme['--content-external-link'].default,
   '--content-inverse': systemTheme['--content-inverse'].default,
   '--content-read': systemTheme['--content-read'].default,
   '--background-wash-plain': systemTheme['--background-wash-plain'].default,
   '--background-wash-inset': systemTheme['--background-wash-inset'].default,
-  '--background-elevated-wash-plain':
-    systemTheme['--background-elevated-wash-plain'].default,
-  '--background-elevated-wash-inset':
-    systemTheme['--background-elevated-wash-inset'].default,
+  '--background-elevated-wash-plain': systemTheme['--background-elevated-wash-plain'].default,
+  '--background-elevated-wash-inset': systemTheme['--background-elevated-wash-inset'].default,
   '--background-dimmer': systemTheme['--background-dimmer'].default,
   '--surface-default': systemTheme['--surface-default'].default,
   '--surface-emphasized': systemTheme['--surface-emphasized'].default,
-  '--surface-elevated-default':
-    systemTheme['--surface-elevated-default'].default,
-  '--surface-elevated-emphasized':
-    systemTheme['--surface-elevated-emphasized'].default,
+  '--surface-elevated-default': systemTheme['--surface-elevated-default'].default,
+  '--surface-elevated-emphasized': systemTheme['--surface-elevated-emphasized'].default,
   '--surface-highlight': systemTheme['--surface-highlight'].default,
   '--surface-inverse': systemTheme['--surface-inverse'].default,
   '--surface-pressed': systemTheme['--surface-pressed'].default,
   '--lines-divider': systemTheme['--lines-divider'].default,
   '--lines-outline-default': systemTheme['--lines-outline-default'].default,
-  '--lines-outline-deemphasized':
-    systemTheme['--lines-outline-deemphasized'].default,
-  '--persistent-always-branded':
-    systemTheme['--persistent-always-branded'].default,
+  '--lines-outline-deemphasized': systemTheme['--lines-outline-deemphasized'].default,
+  '--persistent-always-branded': systemTheme['--persistent-always-branded'].default,
   '--persistent-always-black': systemTheme['--persistent-always-black'].default,
   '--persistent-always-white': systemTheme['--persistent-always-white'].default,
-  '--persistent-activity-indicator':
-    systemTheme['--persistent-activity-indicator'].default,
-  '--systems-bubble-surface-incoming':
-    systemTheme['--systems-bubble-surface-incoming'].default,
-  '--systems-bubble-surface-outgoing':
-    systemTheme['--systems-bubble-surface-outgoing'].default,
+  '--persistent-activity-indicator': systemTheme['--persistent-activity-indicator'].default,
+  '--systems-bubble-surface-incoming': systemTheme['--systems-bubble-surface-incoming'].default,
+  '--systems-bubble-surface-outgoing': systemTheme['--systems-bubble-surface-outgoing'].default,
   '--systems-bubble-content-deemphasized':
     systemTheme['--systems-bubble-content-deemphasized'].default,
-  '--systems-bubble-surface-overlay':
-    systemTheme['--systems-bubble-surface-overlay'].default,
-  '--systems-bubble-surface-system':
-    systemTheme['--systems-bubble-surface-system'].default,
-  '--systems-bubble-surface-e2e':
-    systemTheme['--systems-bubble-surface-e2e'].default,
-  '--systems-bubble-content-e2e':
-    systemTheme['--systems-bubble-content-e2e'].default,
-  '--systems-bubble-surface-business':
-    systemTheme['--systems-bubble-surface-business'].default,
-  '--systems-bubble-content-business':
-    systemTheme['--systems-bubble-content-business'].default,
-  '--systems-chat-surface-composer':
-    systemTheme['--systems-chat-surface-composer'].default,
-  '--systems-chat-background-wallpaper':
-    systemTheme['--systems-chat-background-wallpaper'].default,
-  '--systems-chat-foreground-wallpaper':
-    systemTheme['--systems-chat-foreground-wallpaper'].default,
-  '--systems-chat-surface-tray':
-    systemTheme['--systems-chat-surface-tray'].default,
+  '--systems-bubble-surface-overlay': systemTheme['--systems-bubble-surface-overlay'].default,
+  '--systems-bubble-surface-system': systemTheme['--systems-bubble-surface-system'].default,
+  '--systems-bubble-surface-e2e': systemTheme['--systems-bubble-surface-e2e'].default,
+  '--systems-bubble-content-e2e': systemTheme['--systems-bubble-content-e2e'].default,
+  '--systems-bubble-surface-business': systemTheme['--systems-bubble-surface-business'].default,
+  '--systems-bubble-content-business': systemTheme['--systems-bubble-content-business'].default,
+  '--systems-chat-surface-composer': systemTheme['--systems-chat-surface-composer'].default,
+  '--systems-chat-background-wallpaper': systemTheme['--systems-chat-background-wallpaper'].default,
+  '--systems-chat-foreground-wallpaper': systemTheme['--systems-chat-foreground-wallpaper'].default,
+  '--systems-chat-surface-tray': systemTheme['--systems-chat-surface-tray'].default,
   '--systems-status-seen': systemTheme['--systems-status-seen'].default,
   '--internal-components-surface-nav-bar':
     systemTheme['--internal-components-surface-nav-bar'].default,
@@ -633,77 +609,54 @@ const darkTheme = {
   '--accent-deemphasized': systemTheme['--accent-deemphasized'][DARK],
   '--accent-emphasized': systemTheme['--accent-emphasized'][DARK],
   '--secondary-negative': systemTheme['--secondary-negative'][DARK],
-  '--secondary-negative-deemphasized':
-    systemTheme['--secondary-negative-deemphasized'][DARK],
-  '--secondary-negative-emphasized':
-    systemTheme['--secondary-negative-emphasized'][DARK],
+  '--secondary-negative-deemphasized': systemTheme['--secondary-negative-deemphasized'][DARK],
+  '--secondary-negative-emphasized': systemTheme['--secondary-negative-emphasized'][DARK],
   '--secondary-positive': systemTheme['--secondary-positive'][DARK],
-  '--secondary-positive-deemphasized':
-    systemTheme['--secondary-positive-deemphasized'][DARK],
+  '--secondary-positive-deemphasized': systemTheme['--secondary-positive-deemphasized'][DARK],
   '--secondary-warning': systemTheme['--secondary-warning'][DARK],
-  '--secondary-warning-deemphasized':
-    systemTheme['--secondary-warning-deemphasized'][DARK],
+  '--secondary-warning-deemphasized': systemTheme['--secondary-warning-deemphasized'][DARK],
   '--content-default': systemTheme['--content-default'][DARK],
   '--content-deemphasized': systemTheme['--content-deemphasized'][DARK],
   '--content-disabled': systemTheme['--content-disabled'][DARK],
   '--content-on-accent': systemTheme['--content-on-accent'][DARK],
   '--content-action-default': systemTheme['--content-action-default'][DARK],
-  '--content-action-emphasized':
-    systemTheme['--content-action-emphasized'][DARK],
+  '--content-action-emphasized': systemTheme['--content-action-emphasized'][DARK],
   '--content-external-link': systemTheme['--content-external-link'][DARK],
   '--content-inverse': systemTheme['--content-inverse'][DARK],
   '--content-read': systemTheme['--content-read'][DARK],
   '--background-wash-plain': systemTheme['--background-wash-plain'][DARK],
   '--background-wash-inset': systemTheme['--background-wash-inset'][DARK],
-  '--background-elevated-wash-plain':
-    systemTheme['--background-elevated-wash-plain'][DARK],
-  '--background-elevated-wash-inset':
-    systemTheme['--background-elevated-wash-inset'][DARK],
+  '--background-elevated-wash-plain': systemTheme['--background-elevated-wash-plain'][DARK],
+  '--background-elevated-wash-inset': systemTheme['--background-elevated-wash-inset'][DARK],
   '--background-dimmer': systemTheme['--background-dimmer'][DARK],
   '--surface-default': systemTheme['--surface-default'][DARK],
   '--surface-emphasized': systemTheme['--surface-emphasized'][DARK],
   '--surface-elevated-default': systemTheme['--surface-elevated-default'][DARK],
-  '--surface-elevated-emphasized':
-    systemTheme['--surface-elevated-emphasized'][DARK],
+  '--surface-elevated-emphasized': systemTheme['--surface-elevated-emphasized'][DARK],
   '--surface-highlight': systemTheme['--surface-highlight'][DARK],
   '--surface-inverse': systemTheme['--surface-inverse'][DARK],
   '--surface-pressed': systemTheme['--surface-pressed'][DARK],
   '--lines-divider': systemTheme['--lines-divider'][DARK],
   '--lines-outline-default': systemTheme['--lines-outline-default'][DARK],
-  '--lines-outline-deemphasized':
-    systemTheme['--lines-outline-deemphasized'][DARK],
-  '--persistent-always-branded':
-    systemTheme['--persistent-always-branded'][DARK],
+  '--lines-outline-deemphasized': systemTheme['--lines-outline-deemphasized'][DARK],
+  '--persistent-always-branded': systemTheme['--persistent-always-branded'][DARK],
   '--persistent-always-black': systemTheme['--persistent-always-black'][DARK],
   '--persistent-always-white': systemTheme['--persistent-always-white'][DARK],
-  '--persistent-activity-indicator':
-    systemTheme['--persistent-activity-indicator'][DARK],
-  '--systems-bubble-surface-incoming':
-    systemTheme['--systems-bubble-surface-incoming'][DARK],
-  '--systems-bubble-surface-outgoing':
-    systemTheme['--systems-bubble-surface-outgoing'][DARK],
+  '--persistent-activity-indicator': systemTheme['--persistent-activity-indicator'][DARK],
+  '--systems-bubble-surface-incoming': systemTheme['--systems-bubble-surface-incoming'][DARK],
+  '--systems-bubble-surface-outgoing': systemTheme['--systems-bubble-surface-outgoing'][DARK],
   '--systems-bubble-content-deemphasized':
     systemTheme['--systems-bubble-content-deemphasized'][DARK],
-  '--systems-bubble-surface-overlay':
-    systemTheme['--systems-bubble-surface-overlay'][DARK],
-  '--systems-bubble-surface-system':
-    systemTheme['--systems-bubble-surface-system'][DARK],
-  '--systems-bubble-surface-e2e':
-    systemTheme['--systems-bubble-surface-e2e'][DARK],
-  '--systems-bubble-content-e2e':
-    systemTheme['--systems-bubble-content-e2e'][DARK],
-  '--systems-bubble-surface-business':
-    systemTheme['--systems-bubble-surface-business'][DARK],
-  '--systems-bubble-content-business':
-    systemTheme['--systems-bubble-content-business'][DARK],
-  '--systems-chat-surface-composer':
-    systemTheme['--systems-chat-surface-composer'][DARK],
-  '--systems-chat-background-wallpaper':
-    systemTheme['--systems-chat-background-wallpaper'][DARK],
-  '--systems-chat-foreground-wallpaper':
-    systemTheme['--systems-chat-foreground-wallpaper'][DARK],
-  '--systems-chat-surface-tray':
-    systemTheme['--systems-chat-surface-tray'][DARK],
+  '--systems-bubble-surface-overlay': systemTheme['--systems-bubble-surface-overlay'][DARK],
+  '--systems-bubble-surface-system': systemTheme['--systems-bubble-surface-system'][DARK],
+  '--systems-bubble-surface-e2e': systemTheme['--systems-bubble-surface-e2e'][DARK],
+  '--systems-bubble-content-e2e': systemTheme['--systems-bubble-content-e2e'][DARK],
+  '--systems-bubble-surface-business': systemTheme['--systems-bubble-surface-business'][DARK],
+  '--systems-bubble-content-business': systemTheme['--systems-bubble-content-business'][DARK],
+  '--systems-chat-surface-composer': systemTheme['--systems-chat-surface-composer'][DARK],
+  '--systems-chat-background-wallpaper': systemTheme['--systems-chat-background-wallpaper'][DARK],
+  '--systems-chat-foreground-wallpaper': systemTheme['--systems-chat-foreground-wallpaper'][DARK],
+  '--systems-chat-surface-tray': systemTheme['--systems-chat-surface-tray'][DARK],
   '--systems-status-seen': systemTheme['--systems-status-seen'][DARK],
   '--internal-components-surface-nav-bar':
     systemTheme['--internal-components-surface-nav-bar'][DARK],
@@ -711,15 +664,6 @@ const darkTheme = {
     systemTheme['--internal-components-active-list-row'][DARK],
 };
 
-export const SystemTheme = stylex.createTheme(
-  colors,
-  systemTheme,
-);
-export const LightTheme = stylex.createTheme(
-  colors,
-  lightTheme,
-);
-export const DarkTheme = stylex.createTheme(
-  colors,
-  darkTheme,
-);
+export const SystemTheme = stylex.createTheme(colors, systemTheme);
+export const LightTheme = stylex.createTheme(colors, lightTheme);
+export const DarkTheme = stylex.createTheme(colors, darkTheme);

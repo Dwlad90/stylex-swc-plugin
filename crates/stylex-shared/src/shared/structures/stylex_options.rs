@@ -1,9 +1,13 @@
+use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
-use super::named_import_source::{ImportSources, RuntimeInjection};
+use super::{
+  named_import_source::{ImportSources, RuntimeInjection},
+  stylex_env::EnvValue,
+};
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -33,6 +37,8 @@ pub struct StyleXOptionsParams {
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
+  #[serde(skip)]
+  pub env: Option<IndexMap<String, EnvValue>>,
 }
 
 impl Default for StyleXOptionsParams {
@@ -62,6 +68,7 @@ impl Default for StyleXOptionsParams {
       use_real_file_for_source: Some(true),
       aliases: None,
       unstable_module_resolution: None,
+      env: None,
     }
   }
 }
@@ -132,6 +139,7 @@ pub struct StyleXOptions {
   pub inject_stylex_side_effects: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
+  pub env: IndexMap<String, EnvValue>,
 }
 
 impl StyleXOptions {
@@ -181,6 +189,7 @@ impl Default for StyleXOptions {
       unstable_module_resolution: CheckModuleResolution::CommonJS(
         StyleXOptions::get_common_js_module_resolution(None),
       ),
+      env: IndexMap::new(),
     }
   }
 }
@@ -243,6 +252,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       use_real_file_for_source: options.use_real_file_for_source.unwrap_or(true),
       aliases: options.aliases,
       unstable_module_resolution,
+      env: options.env.unwrap_or_default(),
     }
   }
 }

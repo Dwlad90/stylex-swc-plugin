@@ -51,6 +51,7 @@ use crate::shared::{
     seen_value::SeenValue,
     state::EvaluationState,
     state_manager::{SeenValueWithVarDeclCount, StateManager, add_import_expression},
+    stylex_env::{EnvValue, expr_to_env_value},
     theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
@@ -346,6 +347,9 @@ fn _evaluate(
           FunctionConfigType::IndexMap(_func_map) => {
             unimplemented!("IndexMap not implemented");
           }
+          FunctionConfigType::EnvObject(env_map) => {
+            return Some(EvaluateResultValue::EnvObject(env_map.clone()));
+          }
         }
       }
 
@@ -615,9 +619,22 @@ fn _evaluate(
                 None => panic_with_context!(path, traversal_state, "Member not found"),
               };
 
-              let fc = fc_map.get(&key.sym).unwrap();
+              if let Some(fc) = fc_map.get(&key.sym) {
+                return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
+              }
 
-              return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
+              // Check if this is an "env" property access on a stylex import
+              if key.sym.as_ref() == "env" && !traversal_state.options.env.is_empty() {
+                return Some(EvaluateResultValue::EnvObject(
+                  traversal_state.options.env.clone(),
+                ));
+              }
+
+              panic_with_context!(
+                path,
+                traversal_state,
+                format!("Property '{}' not found in function config map", key.sym).as_str()
+              );
             }
             EvaluateResultValue::ThemeRef(mut theme_ref) => {
               let key = match property {
@@ -643,6 +660,52 @@ fn _evaluate(
               return Some(EvaluateResultValue::Expr(string_to_expression(
                 value.as_css_var().expect("Expected CSS variable").as_str(),
               )));
+            }
+            EvaluateResultValue::EnvObject(env_map) => {
+              let key = match property {
+                Some(property) => match property {
+                  EvaluateResultValue::Expr(expr) => match expr {
+                    Expr::Ident(Ident { sym, .. }) => sym.to_string(),
+                    Expr::Lit(lit) => lit_to_string(&lit).expect("Property must be a string"),
+                    _ => panic_with_context!(path, traversal_state, "Env property not found"),
+                  },
+                  _ => panic_with_context!(
+                    path,
+                    traversal_state,
+                    "Env object property not implemented"
+                  ),
+                },
+                None => {
+                  panic_with_context!(path, traversal_state, "Env object property not found")
+                }
+              };
+
+              match env_map.get(&key) {
+                Some(env_val) => {
+                  if let Some(expr) = env_val.to_expr() {
+                    return Some(EvaluateResultValue::Expr(expr));
+                  }
+                  if let EnvValue::Object(nested) = env_val {
+                    return Some(EvaluateResultValue::EnvObject(nested.clone()));
+                  }
+                  if env_val.is_function() {
+                    // Functions are handled at the call expression level
+                    return Some(EvaluateResultValue::EnvObject(env_map.clone()));
+                  }
+                  panic_with_context!(
+                    path,
+                    traversal_state,
+                    "Env value cannot be converted to expression"
+                  );
+                }
+                None => {
+                  panic_with_context!(
+                    path,
+                    traversal_state,
+                    format!("Env property '{}' not found", key).as_str()
+                  );
+                }
+              }
             }
             _ => panic_with_context!(
               path,
@@ -996,6 +1059,10 @@ fn _evaluate(
               ),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
               FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
+              FunctionConfigType::EnvObject(_) => {
+                // EnvObject is not directly callable; access is done via member expressions
+                return deopt(path, state, NON_CONSTANT);
+              }
             }
           } else {
             let _maybe_function = evaluate_cached(callee_expr, state, traversal_state, fns);
@@ -1362,6 +1429,11 @@ fn _evaluate(
                       "FunctionConfigType::Map not implemented"
                     ),
                     FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
+                    FunctionConfigType::EnvObject(_) => {
+                      // This shouldn't happen - env object isn't directly callable.
+                      // But if it does, try to evaluate it as a member expression call.
+                      return deopt(path, state, NON_CONSTANT);
+                    }
                   }
                 }
               }
@@ -1576,6 +1648,31 @@ fn _evaluate(
                       "FunctionType::StylexFnsFactory not implemented"
                     ),
                   },
+                  EvaluateResultValue::EnvObject(env_map) => {
+                    // Handle env function calls like `env.colorMix(...)` or `stylex.env.colorMix(...)`
+                    if let Some(env_val) = env_map.get(&prop_name) {
+                      if let Some(env_fn) = env_val.as_function() {
+                        func = Some(Box::new(FunctionConfig {
+                          fn_ptr: FunctionType::EnvFunction(env_fn.clone()),
+                          takes_path: false,
+                        }));
+                      } else {
+                        // It's a value, not a function - return it directly
+                        if let Some(expr) = env_val.to_expr() {
+                          return Some(EvaluateResultValue::Expr(expr));
+                        }
+                        if let EnvValue::Object(nested) = env_val {
+                          return Some(EvaluateResultValue::EnvObject(nested.clone()));
+                        }
+                      }
+                    } else {
+                      panic_with_context!(
+                        path,
+                        traversal_state,
+                        format!("Env property '{}' not found", prop_name).as_str()
+                      );
+                    }
+                  }
                   _ => panic_with_context!(
                     path,
                     traversal_state,
@@ -1656,6 +1753,13 @@ fn _evaluate(
             FunctionType::Mapper(_) => panic_with_context!(path, traversal_state, "Mapper"),
             FunctionType::DefaultMarker(_) => {
               panic_with_context!(path, traversal_state, "DefaultMarker")
+            }
+            FunctionType::EnvFunction(_) => {
+              panic_with_context!(
+                path,
+                traversal_state,
+                "EnvFunction with takes_path not supported"
+              )
             }
           }
         } else {
@@ -2009,6 +2113,20 @@ fn _evaluate(
                 fn_ptr: FunctionType::DefaultMarker(Arc::clone(&default_marker)),
                 takes_path: false,
               }));
+            }
+            FunctionType::EnvFunction(env_fn) => {
+              let args = evaluate_func_call_args(call, state, traversal_state, fns);
+              let env_args: Vec<EnvValue> = args
+                .iter()
+                .map(|arg| {
+                  let expr = arg
+                    .as_expr()
+                    .expect("Env function argument must be an expression");
+                  expr_to_env_value(expr)
+                })
+                .collect();
+              let result = env_fn.call(env_args);
+              return Some(EvaluateResultValue::Expr(string_to_expression(&result)));
             }
             _ => panic_with_context!(path, traversal_state, "Function type"),
           }

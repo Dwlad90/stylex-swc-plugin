@@ -104,6 +104,7 @@ pub struct StateManager {
   pub(crate) stylex_default_marker_import: AtomHashSet,
   pub(crate) stylex_when_import: AtomHashSet,
   pub(crate) stylex_types_import: AtomHashSet,
+  pub(crate) stylex_env_import: AtomHashSet,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) export_id: Option<String>,
 
@@ -172,6 +173,7 @@ impl StateManager {
       stylex_view_transition_class_import: FxHashSet::default(),
       stylex_default_marker_import: FxHashSet::default(),
       stylex_when_import: FxHashSet::default(),
+      stylex_env_import: FxHashSet::default(),
       inject_import_inserted: None,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
@@ -207,6 +209,39 @@ impl StateManager {
       other_injected_css_rules: IndexMap::new(),
 
       cycle: TransformationCycle::Initializing,
+    }
+  }
+
+  /// Applies the `env` configuration to the given identifiers and member_expressions maps.
+  /// This is the Rust equivalent of the JavaScript `applyStylexEnv` method.
+  pub(crate) fn apply_stylex_env(
+    &self,
+    identifiers: &mut super::types::FunctionMapIdentifiers,
+    member_expressions: &mut super::types::FunctionMapMemberExpression,
+  ) {
+    if self.options.env.is_empty() {
+      return;
+    }
+
+    let env = self.options.env.clone();
+
+    // For namespace imports (e.g., `import stylex from '@stylexjs/stylex'`),
+    // add `env` to member_expressions so `stylex.env.x` resolves.
+    for name in &self.stylex_import {
+      let member_expression = member_expressions.entry(name.clone()).or_default();
+      member_expression.insert(
+        "env".into(),
+        Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
+      );
+    }
+
+    // For direct env imports (e.g., `import { env } from '@stylexjs/stylex'`),
+    // add the env object directly to identifiers.
+    for name in &self.stylex_env_import {
+      identifiers.insert(
+        name.clone(),
+        Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
+      );
     }
   }
 
@@ -777,6 +812,7 @@ impl StateManager {
       self.member_object_ident_count_map.clone(),
       other.member_object_ident_count_map.clone(),
     );
+    self.stylex_env_import = union_hash_set(&self.stylex_env_import, &other.stylex_env_import);
     self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
 
     self.metadata = chain_collect_index_map(self.metadata.clone(), other.metadata.clone());

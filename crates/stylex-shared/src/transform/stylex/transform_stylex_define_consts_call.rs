@@ -40,7 +40,19 @@ where
         None => first_arg.expr.clone(),
       })?;
 
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &FunctionMap::default());
+      let mut identifiers = rustc_hash::FxHashMap::default();
+      let mut member_expressions = rustc_hash::FxHashMap::default();
+      self
+        .state
+        .apply_stylex_env(&mut identifiers, &mut member_expressions);
+
+      let function_map = FunctionMap {
+        identifiers,
+        member_expressions,
+        disable_imports: true,
+      };
+
+      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
       assert!(
         evaluated_arg.confident,

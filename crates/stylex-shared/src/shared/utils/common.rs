@@ -158,6 +158,7 @@ pub fn get_var_decl_by_ident<'a>(
       },
       FunctionConfigType::Map(_) => unimplemented!("Map not implemented"),
       FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
+      FunctionConfigType::EnvObject(_) => return None,
     }
   }
 

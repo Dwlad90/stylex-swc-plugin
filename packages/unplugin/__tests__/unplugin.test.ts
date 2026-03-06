@@ -42,9 +42,7 @@ describe('@stylexswc/unplugin', () => {
   });
 
   test('writes fallback CSS asset when no CSS bundle entry exists', async () => {
-    const tempDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'stylex-unplugin-test-'),
-    );
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-unplugin-test-'));
 
     const inputFile = path.join(tempDir, 'input.js');
     const source = `
@@ -129,7 +127,7 @@ describe('@stylexswc/unplugin', () => {
       await pluginInstance.transform.call(
         mockContext as UnpluginBuildContext & UnpluginContext,
         badCode,
-        filePath,
+        filePath
       );
     }
 

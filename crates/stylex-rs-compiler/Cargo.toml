@@ -37,6 +37,7 @@ glob.workspace = true
 fancy-regex.workspace = true
 
 stylex_shared = { path = "../stylex-shared" }
+indexmap.workspace = true
 napi = { version = "3", features = ["compat-mode"] }
 napi-derive = "3"
 

@@ -98,6 +98,12 @@
       ]
     },
     "format:check": {},
+    "format": {
+      "cache": false,
+      "outputs": [
+        "**/src/**/*.{ts,tsx,md,json,jsonc,toml,rs,js,jsx,cjs,mjs,css,scss,html,xml,yml,yaml,mdx}"
+      ]
+    },
     "bench": {
       "dependsOn": [
         "^build",

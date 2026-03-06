@@ -14,6 +14,7 @@ use crate::shared::{
 
 use super::{
   state_manager::StateManager,
+  stylex_env::EnvFunction,
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
@@ -38,6 +39,9 @@ pub enum FunctionType {
   Mapper(Rc<dyn Fn() -> Expr + 'static>),
   Callback(Box<CallbackType>),
   DefaultMarker(Arc<IndexMap<String, StylexExprFn>>),
+  /// An env function from the `env` config option.
+  /// Takes evaluated arguments as `EnvValue`s and returns a CSS string.
+  EnvFunction(EnvFunction),
 }
 
 impl Clone for FunctionType {
@@ -50,6 +54,7 @@ impl Clone for FunctionType {
       Self::Callback(v) => Self::Callback(v.clone()),
       Self::Mapper(c) => Self::Mapper(Rc::clone(c)),
       Self::DefaultMarker(e) => Self::DefaultMarker(Arc::clone(e)),
+      Self::EnvFunction(e) => Self::EnvFunction(e.clone()),
     }
   }
 }
@@ -64,6 +69,7 @@ impl std::fmt::Debug for FunctionType {
       FunctionType::Mapper(_) => write!(f, "Mapper"),
       FunctionType::Callback(_) => write!(f, "Callback"),
       FunctionType::DefaultMarker(_) => write!(f, "DefaultMarker"),
+      FunctionType::EnvFunction(_) => write!(f, "EnvFunction"),
     }
   }
 }
@@ -78,6 +84,7 @@ impl PartialEq for FunctionType {
       (FunctionType::Mapper(_), FunctionType::StylexExprFn(_)) => false,
       (FunctionType::Callback(_), FunctionType::Callback(_)) => false,
       (FunctionType::DefaultMarker(_), FunctionType::DefaultMarker(_)) => false,
+      (FunctionType::EnvFunction(_), FunctionType::EnvFunction(_)) => false,
       _ => false,
     }
   }
@@ -85,29 +92,7 @@ impl PartialEq for FunctionType {
 
 impl std::hash::Hash for FunctionType {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    match self {
-      FunctionType::ArrayArgs(_) => {
-        std::mem::discriminant(self).hash(state);
-      }
-      FunctionType::StylexExprFn(_) => {
-        std::mem::discriminant(self).hash(state);
-      }
-      FunctionType::StylexTypeFn(_) => {
-        std::mem::discriminant(self).hash(state);
-      }
-      FunctionType::StylexFnsFactory(_) => {
-        std::mem::discriminant(self).hash(state);
-      }
-      FunctionType::Mapper(_) => {
-        std::mem::discriminant(self).hash(state);
-      }
-      FunctionType::Callback(_) => {
-        std::mem::discriminant(self).hash(state);
-      }
-      FunctionType::DefaultMarker(_) => {
-        std::mem::discriminant(self).hash(state);
-      }
-    }
+    std::mem::discriminant(self).hash(state);
   }
 }
 
@@ -121,6 +106,8 @@ pub enum FunctionConfigType {
   Regular(FunctionConfig),
   Map(FxHashMap<Atom, FunctionConfig>),
   IndexMap(FlatCompiledStyles),
+  /// An env object from the `env` config option. Contains both values and functions.
+  EnvObject(IndexMap<String, super::stylex_env::EnvValue>),
 }
 
 impl std::fmt::Debug for FunctionConfigType {
@@ -129,6 +116,7 @@ impl std::fmt::Debug for FunctionConfigType {
       Self::Regular(config) => f.debug_tuple("Regular").field(config).finish(),
       Self::Map(map) => f.debug_tuple("Map").field(map).finish(),
       Self::IndexMap(map) => f.debug_tuple("IndexMap").field(map).finish(),
+      Self::EnvObject(map) => f.debug_tuple("EnvObject").field(map).finish(),
     }
   }
 }
@@ -139,6 +127,7 @@ impl Clone for FunctionConfigType {
       Self::Regular(config) => Self::Regular(config.clone()),
       Self::Map(map) => Self::Map(map.clone()),
       Self::IndexMap(map) => Self::IndexMap(map.clone()),
+      Self::EnvObject(map) => Self::EnvObject(map.clone()),
     }
   }
 }
@@ -149,6 +138,7 @@ impl PartialEq for FunctionConfigType {
       (Self::Regular(a), Self::Regular(b)) => a == b,
       (Self::Map(a), Self::Map(b)) => a == b,
       (Self::IndexMap(a), Self::IndexMap(b)) => a == b,
+      (Self::EnvObject(_), Self::EnvObject(_)) => false,
       _ => false,
     }
   }
@@ -158,48 +148,42 @@ impl FunctionConfigType {
   pub(crate) fn _as_function_config(&self) -> Option<&FunctionConfig> {
     match self {
       Self::Regular(config) => Some(config),
-      Self::Map(_) => None,
-      Self::IndexMap(_) => None,
+      Self::Map(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
     }
   }
 
   pub(crate) fn _as_map(&self) -> Option<&FxHashMap<Atom, FunctionConfig>> {
     match self {
-      Self::Regular(_) => None,
       Self::Map(map) => Some(map),
-      Self::IndexMap(_) => None,
+      Self::Regular(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
     }
   }
 
   pub(crate) fn as_map_mut(&mut self) -> Option<&mut FxHashMap<Atom, FunctionConfig>> {
     match self {
-      Self::Regular(_) => None,
       Self::Map(map) => Some(map),
-      Self::IndexMap(_) => None,
+      Self::Regular(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
     }
   }
 
   pub(crate) fn _as_function_config_mut(&mut self) -> Option<&mut FunctionConfig> {
     match self {
       Self::Regular(config) => Some(config),
-      Self::Map(_) => None,
-      Self::IndexMap(_) => None,
+      Self::Map(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
     }
   }
 
   pub(crate) fn _as_index_map(&self) -> Option<&FlatCompiledStyles> {
     match self {
-      Self::Regular(_) => None,
-      Self::Map(_) => None,
       Self::IndexMap(map) => Some(map),
+      Self::Regular(_) | Self::Map(_) | Self::EnvObject(_) => None,
     }
   }
 
   pub(crate) fn _as_index_map_mut(&mut self) -> Option<&mut FlatCompiledStyles> {
     match self {
-      Self::Regular(_) => None,
-      Self::Map(_) => None,
       Self::IndexMap(map) => Some(map),
+      Self::Regular(_) | Self::Map(_) | Self::EnvObject(_) => None,
     }
   }
 }

@@ -81,6 +81,10 @@ where
         );
       }
 
+      self
+        .state
+        .apply_stylex_env(&mut identifiers, &mut member_expressions);
+
       let function_map: Box<FunctionMap> = Box::new(FunctionMap {
         identifiers,
         member_expressions,

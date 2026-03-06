@@ -11,7 +11,12 @@ type Props = Readonly<{
 
 export default function Card({ title, body, href }: Props) {
   return (
-    <a {...stylex.props(styles.link, cardMarker)} href={href} rel="noopener noreferrer" target="_blank">
+    <a
+      {...stylex.props(styles.link, cardMarker)}
+      href={href}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
       <h2 {...stylex.props(styles.h2, headingMarker)}>
         {title} <span {...stylex.props(styles.span)}>→</span>
       </h2>
@@ -55,7 +60,6 @@ const styles = stylex.create({
     transitionDuration: '400ms',
     textAlign: 'center',
     textDecoration: 'none',
-
   },
   h2: {
     color: colors.blue3,

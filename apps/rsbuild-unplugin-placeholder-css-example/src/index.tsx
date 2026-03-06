@@ -1,4 +1,4 @@
-import './global.css'
+import './global.css';
 
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';

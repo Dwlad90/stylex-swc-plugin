@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
 use crate::shared::{
-  constants::messages,
   enums::data_structures::{
     evaluate_result_value::EvaluateResultValue,
     flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -39,11 +38,7 @@ pub(crate) fn stylex_define_consts(
         FlatCompiledStylesValue::InjectableStyle(_) => {
           panic!("InjectableStyle is not supported")
         }
-        FlatCompiledStylesValue::Tuple(key, value, _) => {
-          if key.starts_with("--") {
-            panic!("{}", messages::INVALID_CONST_KEY)
-          }
-
+        FlatCompiledStylesValue::Tuple(_key, value, _) => {
           let serialized_value =
             serialize_value_to_json_string(EvaluateResultValue::Expr(*value.clone()));
 
@@ -71,7 +66,10 @@ pub(crate) fn stylex_define_consts(
         .map(|c| if c.is_alphanumeric() { c } else { '_' })
         .collect::<String>();
 
-        let const_key = if debug && enable_debug_class_names {
+        let const_key = if key.starts_with("--") {
+          // Preserve user-authored CSS custom property name without the leading `--`
+          key.chars().skip(2).collect::<String>()
+        } else if debug && enable_debug_class_names {
           format!(
             "{}-{}{}",
             var_safe_key,

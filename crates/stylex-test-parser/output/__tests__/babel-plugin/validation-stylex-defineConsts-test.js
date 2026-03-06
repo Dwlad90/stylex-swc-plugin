@@ -131,13 +131,13 @@ describe('@stylexjs/babel-plugin', ()=>{
         `);
             }).toThrow(messages.nonExportNamedDeclaration('defineConsts'));
         });
-        test('invalid key: starts with "--"', ()=>{
+        test('valid key: starts with "--"', ()=>{
             expect(()=>transform(`
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts({
             '--small': '8px'
           });
-        `)).toThrow(messages.INVALID_CONST_KEY);
+        `)).not.toThrow();
         });
         test('invalid key: non-static', ()=>{
             expect(()=>{

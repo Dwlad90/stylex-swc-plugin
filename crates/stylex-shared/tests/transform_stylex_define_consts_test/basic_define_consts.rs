@@ -183,3 +183,33 @@ test!(
         });
       "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: Some(PathBuf::from("/stylex/packages/")),
+      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      unstable_module_resolution: Some(ModuleResolution {
+        r#type: "commonJS".to_string(),
+        root_dir: Some("/stylex/packages/".to_string()),
+        theme_file_extension: None,
+      }),
+      ..Default::default()
+    })
+  ),
+  constant_names_double_dash_prefix,
+  r#"
+        import * as stylex from '@stylexjs/stylex';
+        export const sizes = stylex.defineConsts({
+          '--small': '8px',
+          '--large': '24px',
+        });
+      "#
+);

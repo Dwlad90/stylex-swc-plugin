@@ -224,13 +224,18 @@ mod stylex_define_consts {
   }
 
   #[test]
-  #[should_panic(expected = "Keys in defineConsts() cannot start with \"--\".")]
   fn throws_an_error_for_keys_that_start_with_double_dash() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
     let mut state = create_test_state_manager(export_id);
 
     let constants = constants_factory(&[("--custom-var", "red")]);
 
-    stylex_define_consts(&constants, &mut state);
+    let (js_output, _) = stylex_define_consts(&constants, &mut state);
+
+    assert_eq!(js_output.len(), 1);
+    assert_eq!(
+      js_output.get("--custom-var").unwrap().as_string().unwrap(),
+      "red"
+    );
   }
 }

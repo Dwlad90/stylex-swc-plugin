@@ -313,31 +313,26 @@ fn invalid_export_renamed_export_with_as_syntax() {
 
 /* Properties */
 
-#[test]
-#[should_panic(expected = r#"Keys in defineConsts() cannot start with "--"."#)]
-fn invalid_key_starts_with_double_dash() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
-    },
-    r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            '--small': '8px'
-          });
-        "#,
-    r#""#,
-  )
-}
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::new(None, None),
+      None,
+    )
+  },
+  valid_key_starts_with_double_dash,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      '--small': '8px'
+    });
+  "#
+);
 
 #[test]
 #[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]

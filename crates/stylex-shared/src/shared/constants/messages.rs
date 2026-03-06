@@ -51,8 +51,6 @@ pub static ILLEGAL_PROP_ARRAY_VALUE: &str =
 
 pub static ILLEGAL_NAMESPACE_VALUE: &str = "A StyleX namespace must be an object.";
 
-pub static INVALID_CONST_KEY: &str = r#"Keys in defineConsts() cannot start with "--"."#;
-
 pub static INVALID_PSEUDO: &str = "Invalid pseudo selector, not on the whitelist.";
 
 pub static INVALID_PSEUDO_OR_AT_RULE: &str = "Invalid pseudo or at-rule.";

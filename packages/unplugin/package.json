@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/unplugin",
   "description": "Unplugin for StyleX RS compiler",
-  "version": "0.14.3",
+  "version": "0.15.0-rc.1",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -88,7 +88,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.18.1",
-    "@stylexswc/rs-compiler": "0.14.3",
+    "@stylexswc/rs-compiler": "0.15.0-rc.1",
     "unplugin": "^2.3.5",
     "vite": "^7.3.1",
     "vite-plugin-inspect": "^11.3.3"

@@ -16,7 +16,8 @@ const HOMEPAGE = 'https://stylexjs.com';
 
 export default function Home() {
   return (
-    <main {...stylex.props(style.main)}>
+    // @ts-expect-error - sx is not correctly typed
+    <main sx={style.main}>
       <div {...stylex.props(style.description)}>
         <p {...stylex.props(style.descP)}>
           Get started by editing&nbsp;

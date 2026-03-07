@@ -27,8 +27,8 @@ const styles = stylex.create({
 });
 
 export default function App() {
-  return (
-    <div {...stylex.props(styles.main)}>
+    return (
+    <div sx={styles.main}>
       <div {...stylex.props(styles.card)}>Content</div>
     </div>
   );

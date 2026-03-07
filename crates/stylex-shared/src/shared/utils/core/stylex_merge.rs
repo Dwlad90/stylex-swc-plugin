@@ -1,14 +1,11 @@
 use rustc_hash::FxHashMap;
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::{
-    ast::{
-      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, IdentName, JSXAttr,
-      JSXAttrName, JSXAttrOrSpread, JSXAttrValue, Lit, MemberExpr, Prop, PropName, PropOrSpread,
-    },
-    utils::{ExprExt, drop_span},
-    visit::FoldWith,
+use swc_core::ecma::{
+  ast::{
+    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
+    JSXAttrValue, Lit, MemberExpr, Prop, PropName, PropOrSpread,
   },
+  utils::{ExprExt, drop_span},
+  visit::FoldWith,
 };
 
 use crate::shared::{
@@ -22,7 +19,10 @@ use crate::shared::{
   swc::get_default_expr_ctx,
   transformers::stylex_default_maker,
   utils::{
-    ast::convertors::{key_value_to_str, lit_to_string},
+    ast::{
+      convertors::{key_value_to_str, lit_to_string},
+      factories::{jsx_attr_factory, jsx_attr_or_spread_attr_factory},
+    },
     common::{reduce_ident_count, reduce_member_expression_count},
     core::{
       make_string_expression::make_string_expression,
@@ -111,17 +111,12 @@ pub(crate) fn stylex_merge(
 
     match &arg {
       Expr::Object(_) => {
-        resolved_args.push(ResolvedArg::StyleObject(
-          resolved,
-          Vec::default(),
-          Vec::default(),
-        ));
+        resolved_args.push(ResolvedArg::style_object(resolved));
       }
       Expr::Ident(ident) => {
-        resolved_args.push(ResolvedArg::StyleObject(
+        resolved_args.push(ResolvedArg::style_object_with_ident(
           resolved,
           vec![ident.clone()],
-          Vec::default(),
         ));
       }
       Expr::Member(member) => {
@@ -136,7 +131,7 @@ pub(crate) fn stylex_merge(
               .expect("Member obj is not an ident")
               .clone();
 
-            resolved_args.push(ResolvedArg::StyleObject(
+            resolved_args.push(ResolvedArg::style_object_full(
               resolved,
               vec![ident],
               vec![member.clone()],
@@ -163,7 +158,7 @@ pub(crate) fn stylex_merge(
           let idents = get_conditional_expr_idents(alternate.as_ref())?;
           let members = get_conditional_expr_members(alternate.as_ref())?;
 
-          resolved_args.push(ResolvedArg::ConditionalStyle(
+          resolved_args.push(ResolvedArg::conditional(
             *test.clone(),
             Some(primary),
             Some(fallback),
@@ -211,7 +206,7 @@ pub(crate) fn stylex_merge(
             ),
           };
 
-          resolved_args.push(ResolvedArg::ConditionalStyle(
+          resolved_args.push(ResolvedArg::conditional(
             *left_path.clone(),
             Some(right_resolved),
             None,
@@ -328,11 +323,10 @@ pub(crate) fn stylex_merge(
                 });
 
                 attr_value.map(|attr_value| {
-                  JSXAttrOrSpread::JSXAttr(JSXAttr {
-                    span: DUMMY_SP,
-                    name: JSXAttrName::Ident(IdentName::from(attr_name.as_str())),
-                    value: Some(attr_value),
-                  })
+                  jsx_attr_or_spread_attr_factory(jsx_attr_factory(
+                    attr_name.as_str(),
+                    attr_value.clone(),
+                  ))
                 })
               } else {
                 None

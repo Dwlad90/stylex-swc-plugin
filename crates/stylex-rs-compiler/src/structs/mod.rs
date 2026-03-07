@@ -3,12 +3,12 @@ use napi_derive::napi;
 use rustc_hash::FxHashMap;
 use stylex_shared::shared::structures::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
-  stylex_options::{self, ModuleResolution, StyleResolution, StyleXOptionsParams},
+  stylex_options::{self, ModuleResolution, StyleResolution, StyleXOptionsParams, SxPropNameParam},
 };
 
 use crate::enums::{
   ImportSourceUnion, PropertyValidationMode, RuntimeInjectionUnion, SourceMaps,
-  StyleXModuleResolution,
+  StyleXModuleResolution, SxPropNameUnion,
 };
 
 #[napi(object)]
@@ -58,6 +58,9 @@ pub struct StyleXOptions {
   /// Optional function or string to transform file paths used in debug class names / source maps.
   #[napi(ts_type = "((filePath: string) => string) | string | undefined")]
   pub debug_file_path: Option<JsObject>,
+  /// The prop name to use as the `sx` shorthand (default: `"sx"`). Set to `false` to disable.
+  #[napi(ts_type = "string | false")]
+  pub sx_prop_name: Option<SxPropNameUnion>,
 }
 
 #[napi(object)]
@@ -115,6 +118,11 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
         PropertyValidationMode::Silent => stylex_options::PropertyValidationMode::Silent,
       });
 
+    let sx_prop_name: Option<SxPropNameParam> = val.sx_prop_name.map(|spn| match spn {
+      SxPropNameUnion::Disabled(b) => SxPropNameParam::Disabled(b),
+      SxPropNameUnion::Name(s) => SxPropNameParam::Enabled(s),
+    });
+
     Ok(StyleXOptionsParams {
       style_resolution,
       enable_font_size_px_to_rem: val.enable_font_size_px_to_rem,
@@ -139,6 +147,7 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       inject_stylex_side_effects: val.inject_stylex_side_effects,
       aliases: val.aliases,
       unstable_module_resolution,
+      sx_prop_name,
       property_validation_mode,
       env: None, // Parsed separately via parse_env_object since it needs napi::Env
       debug_file_path: None, // Parsed separately via parse_debug_file_path since it needs napi::Env

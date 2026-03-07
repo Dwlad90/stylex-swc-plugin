@@ -37,6 +37,7 @@ pub struct StyleXStateOptions {
   pub inject_stylex_side_effects: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
+  pub sx_prop_name: Option<String>,
   #[serde(skip)]
   pub env: IndexMap<String, EnvValue>,
   #[serde(skip)]
@@ -71,6 +72,7 @@ impl Default for StyleXStateOptions {
       unstable_module_resolution: CheckModuleResolution::CommonJS(
         StyleXOptions::get_common_js_module_resolution(None),
       ),
+      sx_prop_name: Some("sx".to_string()),
       env: IndexMap::new(),
       debug_file_path: None,
     }
@@ -123,6 +125,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
       inject_stylex_side_effects: options.inject_stylex_side_effects,
       aliases: options.aliases,
       unstable_module_resolution: options.unstable_module_resolution,
+      sx_prop_name: options.sx_prop_name,
       env: options.env,
       debug_file_path: options.debug_file_path,
     }

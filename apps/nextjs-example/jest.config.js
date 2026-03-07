@@ -21,6 +21,7 @@ const customJestConfig = {
                 type: 'commonJS',
               },
               styleResolution: "application-order",
+              sxPropName: "css",
               env: {
                 tokens: {
                   layout: {

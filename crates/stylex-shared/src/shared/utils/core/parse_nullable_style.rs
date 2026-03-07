@@ -35,6 +35,81 @@ pub(crate) enum ResolvedArg {
   ),
 }
 
+impl ResolvedArg {
+  /// Creates a `ResolvedArg::StyleObject` with empty ident and member vectors.
+  ///
+  /// # Arguments
+  /// * `style_obj` - The resolved style object
+  ///
+  /// # Example
+  /// ```ignore
+  /// let arg = ResolvedArg::style_object(StyleObject::Style(...));
+  /// ```
+  #[inline]
+  pub(crate) fn style_object(style_obj: StyleObject) -> Self {
+    ResolvedArg::StyleObject(style_obj, Vec::default(), Vec::default())
+  }
+
+  /// Creates a `ResolvedArg::StyleObject` with identifier tracking.
+  ///
+  /// # Arguments
+  /// * `style_obj` - The resolved style object
+  /// * `idents` - Vector of identifiers
+  ///
+  /// # Example
+  /// ```ignore
+  /// let arg = ResolvedArg::style_object_with_ident(StyleObject::Style(...), vec![ident]);
+  /// ```
+  #[inline]
+  pub(crate) fn style_object_with_ident(style_obj: StyleObject, idents: Vec<Ident>) -> Self {
+    ResolvedArg::StyleObject(style_obj, idents, Vec::default())
+  }
+
+  /// Creates a `ResolvedArg::StyleObject` with both identifier and member tracking.
+  ///
+  /// # Arguments
+  /// * `style_obj` - The resolved style object
+  /// * `idents` - Vector of identifiers
+  /// * `members` - Vector of member expressions
+  ///
+  /// # Example
+  /// ```ignore
+  /// let arg = ResolvedArg::style_object_full(StyleObject::Style(...), vec![ident], vec![member]);
+  /// ```
+  #[inline]
+  pub(crate) fn style_object_full(
+    style_obj: StyleObject,
+    idents: Vec<Ident>,
+    members: Vec<MemberExpr>,
+  ) -> Self {
+    ResolvedArg::StyleObject(style_obj, idents, members)
+  }
+
+  /// Creates a `ResolvedArg::ConditionalStyle` with full parameters.
+  ///
+  /// # Arguments
+  /// * `test` - The test expression
+  /// * `primary` - Primary style object
+  /// * `fallback` - Fallback style object
+  /// * `idents` - Vector of identifiers
+  /// * `members` - Vector of member expressions
+  ///
+  /// # Example
+  /// ```ignore
+  /// let arg = ResolvedArg::conditional(test, Some(primary), Some(fallback), idents, members);
+  /// ```
+  #[inline]
+  pub(crate) fn conditional(
+    test: Expr,
+    primary: Option<StyleObject>,
+    fallback: Option<StyleObject>,
+    idents: Vec<Ident>,
+    members: Vec<MemberExpr>,
+  ) -> Self {
+    ResolvedArg::ConditionalStyle(test, primary, fallback, idents, members)
+  }
+}
+
 pub(crate) fn parse_nullable_style(
   path: &Expr,
   state: &mut StateManager,

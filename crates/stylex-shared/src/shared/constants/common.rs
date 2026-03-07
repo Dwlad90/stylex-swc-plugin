@@ -169,3 +169,22 @@ pub(crate) static LOGICAL_FLOAT_START_VAR: &str = "--stylex-logical-start";
 ///
 /// This ensures that logical float/clear values behave correctly in both LTR and RTL contexts.
 pub(crate) static LOGICAL_FLOAT_END_VAR: &str = "--stylex-logical-end";
+
+/// List of valid JSX runtime call names to check against when determining if a call expression is a JSX runtime call.
+/// This includes both the classic React.createElement and the newer jsx/jsxs calls, as well as their DEV variants.
+///
+/// Supported:
+/// - React runtime: `_jsx`, `_jsxs`
+/// - React classic: `createElement`, `React.createElement`
+/// - Vue runtime: `_createElementBlock`, `_createElementVNode`, `_createVNode`
+///
+///   The DEV variants (e.g., `_jsxDEV`) are also included by checking for a "DEV" suffix,
+///   which is commonly used in development builds of React to provide additional debugging information.
+pub(crate) static RUNTIME_JSX_CALL_NAMES: &[&str] = &[
+  "jsx",
+  "jsxs",
+  "createElement",
+  "createElementBlock",
+  "createElementVNode",
+  "createVNode",
+];

@@ -7,6 +7,7 @@ mod fold_expr;
 mod fold_ident;
 mod fold_import_decl;
 mod fold_jsx_attr_or_spread;
+mod fold_jsx_opening_element_impl;
 mod fold_member_expression;
 mod fold_member_prop;
 mod fold_module;
@@ -23,8 +24,9 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{
-      ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl, MemberExpr,
-      MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt, VarDeclarator,
+      ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl,
+      JSXOpeningElement, MemberExpr, MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt,
+      VarDeclarator,
     },
     visit::{Fold, noop_fold_type},
   },
@@ -109,6 +111,13 @@ where
 
   fn fold_decl(&mut self, decl: Decl) -> Decl {
     self.fold_decl_impl(decl)
+  }
+
+  fn fold_jsx_opening_element(
+    &mut self,
+    jsx_opening_element: JSXOpeningElement,
+  ) -> JSXOpeningElement {
+    self.fold_jsx_opening_element_impl(jsx_opening_element)
   }
 
   fn fold_jsx_attr_or_spreads(

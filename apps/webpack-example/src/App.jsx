@@ -45,7 +45,7 @@ const styles = stylex.create({
 
 const App = () => {
   return (
-    <main {...stylex.props(styles.main)}>
+    <main sx={styles.main}>
       <div {...stylex.props(styles.logoContainer)}>
         <a href="https://webpack.js.org" target="_blank">
           <img alt="Webpack Logo" src={webpackLogo} {...stylex.props(styles.logo)} />

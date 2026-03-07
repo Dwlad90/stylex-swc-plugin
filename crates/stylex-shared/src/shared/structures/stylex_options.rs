@@ -9,6 +9,16 @@ use super::{
   stylex_env::{EnvValue, JSFunction},
 };
 
+/// Represents the `sxPropName` option: either a string name or `false` (disabled).
+#[derive(Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum SxPropNameParam {
+  /// `false` — disables the `sx` prop feature
+  Disabled(bool),
+  /// A string name for the sx prop (e.g. `"sx"` or `"css"`)
+  Enabled(String),
+}
+
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct StyleXOptionsParams {
@@ -37,6 +47,7 @@ pub struct StyleXOptionsParams {
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
+  pub sx_prop_name: Option<SxPropNameParam>,
   #[serde(skip)]
   pub env: Option<IndexMap<String, EnvValue>>,
   #[serde(skip)]
@@ -70,6 +81,7 @@ impl Default for StyleXOptionsParams {
       use_real_file_for_source: Some(true),
       aliases: None,
       unstable_module_resolution: None,
+      sx_prop_name: None,
       env: None,
       debug_file_path: None,
     }
@@ -142,6 +154,7 @@ pub struct StyleXOptions {
   pub inject_stylex_side_effects: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
+  pub sx_prop_name: Option<String>,
   pub env: IndexMap<String, EnvValue>,
   pub debug_file_path: Option<JSFunction>,
 }
@@ -193,6 +206,7 @@ impl Default for StyleXOptions {
       unstable_module_resolution: CheckModuleResolution::CommonJS(
         StyleXOptions::get_common_js_module_resolution(None),
       ),
+      sx_prop_name: Some("sx".to_string()),
       env: IndexMap::new(),
       debug_file_path: None,
     }
@@ -257,6 +271,11 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       use_real_file_for_source: options.use_real_file_for_source.unwrap_or(true),
       aliases: options.aliases,
       unstable_module_resolution,
+      sx_prop_name: match options.sx_prop_name {
+        None => Some("sx".to_string()),
+        Some(SxPropNameParam::Disabled(_)) => None,
+        Some(SxPropNameParam::Enabled(name)) => Some(name),
+      },
       env: options.env.unwrap_or_default(),
       debug_file_path: options.debug_file_path,
     }

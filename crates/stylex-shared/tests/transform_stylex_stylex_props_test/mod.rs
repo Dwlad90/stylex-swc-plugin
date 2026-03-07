@@ -8,5 +8,6 @@ mod props_calls_with_jsx;
 mod setting_custom_import_paths;
 mod specific_edge_case_bugs;
 mod stylex_props_call;
+mod sx_attribute;
 mod with_contextual_styles_and_collisions;
 mod with_plugin_options;

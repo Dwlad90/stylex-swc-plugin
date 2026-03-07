@@ -15,7 +15,8 @@ const HOMEPAGE = 'https://stylexjs.com';
 interface Props {}
 export default function Home(_props: Props) {
   return (
-    <main {...stylex.props(style.main)}>
+    // @ts-expect-error - css is not correctly typed
+    <main css={style.main}>
       <div {...stylex.props(style.description)}>
         <p {...stylex.props(style.descP)}>
           Get started by editing
@@ -80,10 +81,8 @@ const style = stylex.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'space-between',
-    // @ts-expect-error - env is not correctly typed
-    minHeight: stylex.env.tokens.layout.fullHeight,
-    // @ts-expect-error - env is not correctly typed
-    paddingTop: stylex.env.wrapper(spacing.xxl),
+    minHeight: '100vh',
+    paddingTop: spacing.xxl,
     paddingBottom: {
       default: spacing.xxl,
       [MEDIA_MOBILE]: spacing.md,
@@ -122,9 +121,7 @@ const style = stylex.create({
   },
   emoji: {
     position: 'relative',
-    // @ts-expect-error - env is not correctly typed
-    // eslint-disable-next-line @stylexjs/valid-styles
-    fontFamily: stylex.env.tokens.fonts.sansSerif,
+    fontFamily: 'sans-serif',
     top: {
       default: 0,
       [MEDIA_MOBILE]: spacing.xxxs,

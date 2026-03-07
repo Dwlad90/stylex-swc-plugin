@@ -40,7 +40,8 @@ type CardProps = {
 
 export const Card: FC<CardProps> = ({ title, content, elevated = false }) => {
   return (
-    <div {...stylex.props(cardStyles.base, elevated && cardStyles.elevated)}>
+    // @ts-expect-error - sx is not correctly typed
+    <div sx={[cardStyles.base, elevated && cardStyles.elevated]}>
       <h3 {...stylex.props(cardStyles.title)}>{title}</h3>
       <p {...stylex.props(cardStyles.content)}>{content}</p>
     </div>

@@ -3,7 +3,13 @@ use swc_core::{
   ecma::{ast::JSXAttrOrSpread, utils::drop_span, visit::FoldWith},
 };
 
-use crate::{StyleXTransform, shared::enums::core::TransformationCycle};
+use crate::{
+  StyleXTransform,
+  shared::{
+    enums::core::TransformationCycle,
+    utils::ast::factories::{jsx_attr_or_spread_attr_factory, jsx_attr_or_spread_spread_factory},
+  },
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -46,12 +52,12 @@ where
                   }
                 } else {
                   // If no replacement found, keep the original spread element
-                  vec![JSXAttrOrSpread::SpreadElement(spread.clone())]
+                  vec![jsx_attr_or_spread_spread_factory(*spread.expr.clone())]
                 }
               }
               JSXAttrOrSpread::JSXAttr(attr) => {
                 // Keep regular attributes as-is (wrapped in vec for flat_map)
-                vec![JSXAttrOrSpread::JSXAttr(attr.clone())]
+                vec![jsx_attr_or_spread_attr_factory(attr.clone())]
               }
             }
           })

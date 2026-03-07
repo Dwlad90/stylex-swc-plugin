@@ -54,7 +54,7 @@ const styles = stylex.create({
 
 function App() {
   return (
-    <div {...stylex.props(styles.main)}>
+    <div sx={styles.main}>
       <div {...stylex.props(styles.card, styles.blueBg)}>
         <span {...stylex.props(styles.orangeFg)}>Blue rounded rectangle with orange text</span>
       </div>

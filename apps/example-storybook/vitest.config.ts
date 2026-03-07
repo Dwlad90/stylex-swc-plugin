@@ -32,6 +32,15 @@ export default defineConfig({
               dev: true,
               treeshakeCompensation: true,
               enableDebugClassNames: true,
+              env: {
+                tokens: {
+                  colors: {
+                    background: 'white',
+                    text: '#333',
+                  },
+                },
+                wrapper: (value: string) => `${value}`,
+              },
             },
           }),
         ],
@@ -57,6 +66,15 @@ export default defineConfig({
               dev: true,
               treeshakeCompensation: true,
               enableDebugClassNames: true,
+              env: {
+                tokens: {
+                  colors: {
+                    background: 'white',
+                    text: '#333',
+                  },
+                },
+                wrapper: (value: string) => `${value}`,
+              },
             },
           }),
         ],

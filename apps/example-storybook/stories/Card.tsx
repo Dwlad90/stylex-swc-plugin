@@ -3,9 +3,11 @@ import * as stylex from '@stylexjs/stylex';
 
 export const cardStyles = stylex.create({
   base: {
-    backgroundColor: 'white',
+    // @ts-expect-error - env is not correctly typed
+    backgroundColor: stylex.env.wrapper(stylex.env.tokens.colors.background),
     borderRadius: 8,
-    padding: 16,
+    // @ts-expect-error - env is not correctly typed
+    padding: stylex.env.wrapper(16),
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     borderWidth: 1,
     borderStyle: 'solid',
@@ -15,8 +17,10 @@ export const cardStyles = stylex.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    // @ts-expect-error - env is not correctly typed
+    marginBottom: stylex.env.wrapper(8),
+    // @ts-expect-error - env is not correctly typed
+    color: stylex.env.wrapper(stylex.env.tokens.colors.text),
   },
   content: {
     fontSize: 14,

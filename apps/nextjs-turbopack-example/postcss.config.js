@@ -59,6 +59,21 @@ module.exports = {
         treeshakeCompensation: true,
         styleResolution: 'application-order',
         enableDebugClassNames: process.env.NODE_ENV === 'development',
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+            colors: {
+              background: 'white',
+              text: 'black',
+            },
+            fonts: {
+              sansSerif: 'sans-serif',
+            },
+          },
+        },
       },
     },
     autoprefixer: {},

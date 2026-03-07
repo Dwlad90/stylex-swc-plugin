@@ -187,7 +187,7 @@ pub fn transform(
         };
 
         Ok(js_result)
-      }) // end with_napi_env
+      })
     })
   }));
 

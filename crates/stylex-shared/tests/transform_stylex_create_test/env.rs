@@ -26,7 +26,6 @@ fn env_config(env: IndexMap<String, EnvValue>) -> StyleXOptionsParams {
   }
 }
 
-// Test 1: stylex.env resolves compile-time constants
 test!(
   ts_syntax(),
   |tr| {
@@ -52,7 +51,6 @@ test!(
   "#
 );
 
-// Test 2: stylex.env named import resolves compile-time constants
 test!(
   ts_syntax(),
   |tr| {
@@ -79,7 +77,6 @@ test!(
   "#
 );
 
-// Test 3: stylex.env destructured import resolves compile-time constants
 test!(
   ts_syntax(),
   |tr| {
@@ -105,7 +102,6 @@ test!(
   "#
 );
 
-// Test 4: stylex.env function call resolves at compile time
 test!(
   ts_syntax(),
   |tr| {
@@ -145,7 +141,6 @@ test!(
   "#
 );
 
-// Test 5: stylex.env named import function call resolves at compile time
 test!(
   ts_syntax(),
   |tr| {
@@ -185,7 +180,6 @@ test!(
   "#
 );
 
-// Test 6: stylex.env function using template literals
 test!(
   ts_syntax(),
   |tr| {
@@ -225,7 +219,6 @@ test!(
   "#
 );
 
-// Test 7: stylex.env function with multiple properties
 test!(
   ts_syntax(),
   |tr| {

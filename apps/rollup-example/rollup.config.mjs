@@ -48,6 +48,15 @@ export default {
       rsOptions: {
         useCSSLayers: true,
         treeshakeCompensation: true,
+        env: {
+          tokens: {
+            colors: {
+              background: 'lightblue',
+              text: '#333',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
       },
     }),
     isDev &&

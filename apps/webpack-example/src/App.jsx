@@ -12,8 +12,10 @@ const styles = stylex.create({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    gap: '2rem',
-    height: '100vh',
+    // @ts-expect-error - env is not correctly typed
+    gap: stylex.env.wrapper(stylex.env.tokens.spacing.gap),
+    // @ts-expect-error - env is not correctly typed
+    height: stylex.env.tokens.layout.fullHeight,
     justifyContent: 'center',
     padding: '2rem',
   },

@@ -22,6 +22,15 @@ export const plugins = [
       dev: true,
       treeshakeCompensation: true,
       enableDebugClassNames: true,
+      env: {
+        tokens: {
+          colors: {
+            background: 'white',
+            text: '#333',
+          },
+        },
+        wrapper: (value: string) => `${value}`,
+      },
     },
   }),
 ] as PluginOption[];

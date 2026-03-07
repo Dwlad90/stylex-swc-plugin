@@ -67,7 +67,19 @@ const config = (env, argv) => {
         dev: isDev,
         // See all options in the babel plugin configuration docs:
         // https://stylexjs.com/docs/api/configuration/babel-plugin/
-        rsOptions: {}
+        rsOptions: {
+          env: {
+            tokens: {
+              layout: {
+                fullHeight: '100vh',
+              },
+              spacing: {
+                gap: '2rem',
+              },
+            },
+            wrapper: (value) => `${value}`,
+          },
+        },
       }),
       new HtmlWebpackPlugin({
         inject: true,

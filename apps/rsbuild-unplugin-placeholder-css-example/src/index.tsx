@@ -11,8 +11,8 @@ import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 
 const styles = stylex.create({
   main: {
-    width: '100vw',
-    height: '100vh',
+    width: stylex.env.tokens.layout.fullWidth,
+    height: stylex.env.tokens.layout.fullHeight,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -20,7 +20,7 @@ const styles = stylex.create({
     flexDirection: 'column',
   },
   card: {
-    padding: sizes.spacing5,
+    padding: stylex.env.wrapper(sizes.spacing5),
     borderRadius: sizes.spacing2,
     justifyContent: 'center',
     display: 'flex',

@@ -9,16 +9,19 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'lightblue',
+    // @ts-expect-error - env is not correctly typed
+    backgroundColor: stylex.env.wrapper(stylex.env.tokens.colors.background),
   },
   card: {
     backgroundColor: '#fefefe',
-    padding: '1rem',
+    // @ts-expect-error - env is not correctly typed
+    padding: stylex.env.wrapper('1rem'),
     borderRadius: 10,
     justifyContent: 'center',
     display: 'flex',
     alignItems: 'center',
-    color: '#333',
+    // @ts-expect-error - env is not correctly typed
+    color: stylex.env.wrapper(stylex.env.tokens.colors.text),
     fontFamily: 'Arial',
   },
 });

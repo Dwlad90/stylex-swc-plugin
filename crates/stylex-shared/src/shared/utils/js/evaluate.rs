@@ -624,7 +624,15 @@ fn _evaluate(
               }
 
               // Check if this is an "env" property access on a stylex import
-              if key.sym.as_ref() == "env" && !traversal_state.options.env.is_empty() {
+              if key.sym.as_ref() == "env" {
+                if traversal_state.options.env.is_empty() {
+                  panic_with_context!(
+                    path,
+                    traversal_state,
+                    "Check if `env` object is available in the options"
+                  );
+                }
+
                 return Some(EvaluateResultValue::EnvObject(
                   traversal_state.options.env.clone(),
                 ));

@@ -18,6 +18,15 @@ export default defineConfig({
         unstable_moduleResolution: {
           type: "commonJS",
         },
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
       },
     }),
   ],

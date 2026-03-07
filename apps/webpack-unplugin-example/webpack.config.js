@@ -60,6 +60,15 @@ module.exports = {
       useCSSLayers: true,
       rsOptions: {
         dev: true,
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
       },
     }),
     new HtmlWebpackPlugin({

@@ -11,15 +11,18 @@ import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 <script lang="ts">
 const styles = stylex.create({
   main: {
-    width: '100vw',
-    height: '100vh',
+    // @ts-expect-error - env is not correctly typed
+    width: stylex.env.tokens.layout.fullWidth,
+    // @ts-expect-error - env is not correctly typed
+    height: stylex.env.tokens.layout.fullHeight,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-around',
     flexDirection: 'column',
   },
   card: {
-    padding: sizes.spacing5,
+    // @ts-expect-error - env is not correctly typed
+    padding: stylex.env.wrapper(sizes.spacing5),
     borderRadius: sizes.spacing2,
     justifyContent: 'center',
     display: 'flex',

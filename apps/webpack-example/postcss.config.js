@@ -7,6 +7,19 @@ module.exports = {
         // this should include NPM dependencies that use StyleX
       ],
       useCSSLayers: true,
+      rsOptions: {
+        env: {
+          tokens: {
+            layout: {
+              fullHeight: '100vh',
+            },
+            spacing: {
+              gap: '2rem',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
+      },
     },
     autoprefixer: {},
   },

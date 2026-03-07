@@ -79,6 +79,15 @@ module.exports = {
       useCssPlaceholder: true,
       rsOptions: {
         dev: isDev,
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
       },
     }),
     new HtmlWebpackPlugin({

@@ -54,6 +54,15 @@ export default {
       useCSSLayers: true,
       rsOptions: {
         dev: isDev,
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
       },
     }),
     new rspack.HtmlRspackPlugin({

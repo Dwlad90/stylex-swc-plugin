@@ -80,7 +80,8 @@ const style = stylex.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: '100vh',
+    // @ts-expect-error - env is not correctly typed
+    minHeight: stylex.env.tokens.layout.fullHeight,
     paddingTop: spacing.xxl,
     paddingBottom: {
       default: spacing.xxl,
@@ -120,7 +121,9 @@ const style = stylex.create({
   },
   emoji: {
     position: 'relative',
-    fontFamily: 'sans-serif',
+    // @ts-expect-error - env is not correctly typed
+    // eslint-disable-next-line @stylexjs/valid-styles
+    fontFamily: stylex.env.tokens.fonts.sansSerif,
     top: {
       default: 0,
       [MEDIA_MOBILE]: spacing.xxxs,

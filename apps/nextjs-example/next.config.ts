@@ -16,6 +16,17 @@ module.exports = stylexPlugin({
     treeshakeCompensation: true,
     styleResolution: 'application-order',
     enableDebugClassNames: process.env.NODE_ENV === 'development',
+    env: {
+      tokens: {
+        layout: {
+          fullHeight: '100vh',
+        },
+        fonts: {
+          sansSerif: 'sans-serif',
+        },
+      },
+      wrapper: (value: string) => `${value}`,
+    },
   },
 })({
   transpilePackages: ['@stylexjs/open-props'],

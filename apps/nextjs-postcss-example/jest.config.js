@@ -26,6 +26,17 @@ const customJestConfig = {
               treeshakeCompensation: true,
               styleResolution: 'application-order',
               enableDebugClassNames: process.env.NODE_ENV === 'development',
+              env: {
+                tokens: {
+                  layout: {
+                    fullHeight: '100vh',
+                  },
+                  fonts: {
+                    sansSerif: 'sans-serif',
+                  },
+                },
+                wrapper: (value) => `${value}`,
+              },
             },
           }], ['@swc/jest', {
             "$schema": "https://json.schemastore.org/swcrc",

@@ -27,6 +27,20 @@ export const config = {
       rsOptions: {
         treeshakeCompensation: true,
         stylexImports: ['@stylexjs/stylex'],
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+            colors: {
+              background: 'white',
+              text: 'black',
+            },
+          },
+          wrapper: (value) => `${value}`,
+          colorMix: (c1, c2, pct) => `color-mix(in srgb, ${c1} ${pct}%, ${c2})`,
+        },
       },
     })
   ],

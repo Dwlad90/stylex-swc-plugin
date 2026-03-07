@@ -45,6 +45,15 @@ export default {
       rsOptions: {
         dev: true,
         treeshakeCompensation: true,
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
       },
     }),
     isDev &&

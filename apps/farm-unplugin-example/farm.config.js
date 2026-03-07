@@ -34,7 +34,16 @@ export default defineConfig({
         dev: true,
         treeshakeCompensation: true,
         // this must set `true` in farm
-        runtimeInjection: true
+        runtimeInjection: true,
+        env: {
+          tokens: {
+            layout: {
+              fullWidth: '100vw',
+              fullHeight: '100vh',
+            },
+          },
+          wrapper: (value) => `${value}`,
+        },
       },
     }),
   ],

@@ -1,4 +1,4 @@
-pub(crate) mod env_parser;
+pub(crate) mod fn_parser;
 mod metadata;
 mod path_filter;
 

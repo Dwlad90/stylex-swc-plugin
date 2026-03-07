@@ -25,17 +25,17 @@ pub enum EnvValue {
   Object(IndexMap<String, EnvValue>),
   /// A compile-time function that receives evaluated arguments as `EnvValue`s
   /// and returns a string result.
-  Function(EnvFunction),
+  Function(JSFunction),
 }
 
 /// A compile-time function from the `env` config.
 /// Wraps a closure that takes a list of `EnvValue` arguments and returns a string.
 #[derive(Clone)]
-pub struct EnvFunction {
+pub struct JSFunction {
   inner: Rc<dyn Fn(Vec<EnvValue>) -> String>,
 }
 
-impl EnvFunction {
+impl JSFunction {
   pub fn new(f: impl Fn(Vec<EnvValue>) -> String + 'static) -> Self {
     Self { inner: Rc::new(f) }
   }
@@ -45,7 +45,7 @@ impl EnvFunction {
   }
 }
 
-impl std::fmt::Debug for EnvFunction {
+impl std::fmt::Debug for JSFunction {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "EnvFunction(<closure>)")
   }
@@ -117,7 +117,7 @@ impl EnvValue {
   }
 
   /// Returns the inner `EnvFunction` if this is a `Function` variant.
-  pub fn as_function(&self) -> Option<&EnvFunction> {
+  pub fn as_function(&self) -> Option<&JSFunction> {
     match self {
       EnvValue::Function(f) => Some(f),
       _ => None,

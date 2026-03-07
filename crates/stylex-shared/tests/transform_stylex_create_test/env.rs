@@ -3,7 +3,7 @@ use stylex_shared::{
   StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
-    stylex_env::{EnvFunction, EnvValue},
+    stylex_env::{JSFunction, EnvValue},
     stylex_options::StyleXOptionsParams,
   },
 };
@@ -112,7 +112,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "colorMix".to_string(),
-      EnvValue::Function(EnvFunction::new(|args: Vec<EnvValue>| {
+      EnvValue::Function(JSFunction::new(|args: Vec<EnvValue>| {
         let c1 = args
           .first()
           .and_then(|v| v.to_css_string())
@@ -152,7 +152,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "colorMix".to_string(),
-      EnvValue::Function(EnvFunction::new(|args: Vec<EnvValue>| {
+      EnvValue::Function(JSFunction::new(|args: Vec<EnvValue>| {
         let c1 = args
           .first()
           .and_then(|v| v.to_css_string())
@@ -192,7 +192,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "shadow".to_string(),
-      EnvValue::Function(EnvFunction::new(|args: Vec<EnvValue>| {
+      EnvValue::Function(JSFunction::new(|args: Vec<EnvValue>| {
         let color = args
           .first()
           .and_then(|v| v.to_css_string())
@@ -232,7 +232,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "opacity".to_string(),
-      EnvValue::Function(EnvFunction::new(|args: Vec<EnvValue>| {
+      EnvValue::Function(JSFunction::new(|args: Vec<EnvValue>| {
         let color = args
           .first()
           .and_then(|v| v.to_css_string())

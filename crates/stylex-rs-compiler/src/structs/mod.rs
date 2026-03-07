@@ -55,6 +55,9 @@ pub struct StyleXOptions {
   /// Compile-time constants and functions accessible via `stylex.env`.
   #[napi(ts_type = "Record<string, any>")]
   pub env: Option<JsObject>,
+  /// Optional function or string to transform file paths used in debug class names / source maps.
+  #[napi(ts_type = "((filePath: string) => string) | string | undefined")]
+  pub debug_file_path: Option<JsObject>,
 }
 
 #[napi(object)]
@@ -137,7 +140,8 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       aliases: val.aliases,
       unstable_module_resolution,
       property_validation_mode,
-      env: None, // Parsed separately via parse_env_object since it needs napi::Env
+      env: None,          // Parsed separately via parse_env_object since it needs napi::Env
+      debug_file_path: None, // Parsed separately via parse_debug_file_path since it needs napi::Env
     })
   }
 }

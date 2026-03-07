@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use napi::{JsNumber, JsObject, JsString, JsValue, Unknown, ValueType};
-use stylex_shared::shared::structures::stylex_env::{EnvFunction, EnvValue};
+use napi::{JsNumber, JsObject, JsString, JsValue, NapiRaw, Unknown, ValueType};
+use stylex_shared::shared::structures::stylex_env::{JSFunction, EnvValue};
 
 thread_local! {
   static NAPI_ENV_RAW: std::cell::Cell<Option<napi::sys::napi_env>> =
@@ -90,7 +90,7 @@ fn parse_env_function(env: &napi::Env, js_fn_raw: napi::sys::napi_value) -> napi
   // Wrap in Rc so the closure can be Fn (not just FnOnce)
   let ref_ptr = Rc::new(EnvFnRef(ref_ptr));
 
-  Ok(EnvValue::Function(EnvFunction::new(
+  Ok(EnvValue::Function(JSFunction::new(
     move |args: Vec<EnvValue>| {
       let raw_env = NAPI_ENV_RAW
         .get()
@@ -182,6 +182,56 @@ fn env_value_to_napi_value(
     },
   }
   result
+}
+
+/// Parses a JS string or function into an `EnvFunction` for use as `debugFilePath`.
+///
+/// - If the value is a string, returns an `EnvFunction` that always returns that string.
+/// - If the value is a function `(filePath: string) => string`, wraps it as an `EnvFunction`.
+pub(crate) fn parse_debug_file_path(
+  env: &napi::Env,
+  js_obj: &JsObject,
+) -> napi::Result<JSFunction> {
+  let raw_val = unsafe { js_obj.raw() };
+  let raw_env = env.raw();
+
+  let mut val_type: napi::sys::napi_valuetype = napi::sys::ValueType::napi_undefined;
+  unsafe { napi::sys::napi_typeof(raw_env, raw_val, &mut val_type) };
+
+  match val_type {
+    napi::sys::ValueType::napi_string => {
+      // Static string: wrap as a constant-returning function
+      let mut len = 0;
+      unsafe {
+        napi::sys::napi_get_value_string_utf8(raw_env, raw_val, std::ptr::null_mut(), 0, &mut len);
+      }
+      let mut buf = vec![0u8; len + 1];
+      let mut written = 0;
+      unsafe {
+        napi::sys::napi_get_value_string_utf8(
+          raw_env,
+          raw_val,
+          buf.as_mut_ptr() as *mut i8,
+          len + 1,
+          &mut written,
+        );
+      }
+      buf.truncate(written);
+      let s = String::from_utf8(buf).unwrap_or_default();
+      Ok(JSFunction::new(move |_args| s.clone()))
+    }
+    napi::sys::ValueType::napi_function => parse_env_function(env, raw_val).and_then(|ev| {
+      match ev {
+        EnvValue::Function(f) => Ok(f),
+        _ => Err(napi::Error::from_reason(
+          "Expected function from parse_env_function",
+        )),
+      }
+    }),
+    _ => Err(napi::Error::from_reason(
+      "debugFilePath must be a string or function",
+    )),
+  }
 }
 
 /// Wrapper for a raw napi_ref to allow sharing via Rc.

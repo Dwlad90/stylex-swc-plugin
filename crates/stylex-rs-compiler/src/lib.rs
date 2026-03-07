@@ -86,7 +86,14 @@ pub fn transform(
   let parsed_env = options
     .env
     .take()
-    .map(|ref env_obj| utils::env_parser::parse_env_object(&env, env_obj))
+    .map(|ref env_obj| utils::fn_parser::parse_env_object(&env, env_obj))
+    .transpose()?;
+
+  // Parse debugFilePath separately since it needs the napi::Env for JS function references.
+  let parsed_debug_file_path = options
+    .debug_file_path
+    .take()
+    .map(|ref js_obj| utils::fn_parser::parse_debug_file_path(&env, js_obj))
     .transpose()?;
 
   if !utils::should_transform_file(&filename, &include_patterns, &exclude_patterns) {
@@ -119,8 +126,9 @@ pub fn transform(
 
     let mut config: StyleXOptionsParams = options.try_into()?;
 
-    // Set the parsed env on the config
+    // Set the parsed env and debugFilePath on the config
     config.env = parsed_env;
+    config.debug_file_path = parsed_debug_file_path;
 
     let mut parser = Parser::new_from(Lexer::new(
       Syntax::Typescript(TsSyntax {
@@ -143,7 +151,7 @@ pub fn transform(
     let globals = Globals::default();
     GLOBALS.set(&globals, || {
       // Set the NAPI env in thread-local storage so env functions can call back to JS
-      utils::env_parser::with_napi_env(&env, || {
+      utils::fn_parser::with_napi_env(&env, || {
         let unresolved_mark = Mark::new();
         let top_level_mark = Mark::new();
 

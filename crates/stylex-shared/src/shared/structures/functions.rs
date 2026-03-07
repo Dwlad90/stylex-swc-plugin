@@ -14,7 +14,7 @@ use crate::shared::{
 
 use super::{
   state_manager::StateManager,
-  stylex_env::EnvFunction,
+  stylex_env::JSFunction,
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
@@ -41,7 +41,7 @@ pub enum FunctionType {
   DefaultMarker(Arc<IndexMap<String, StylexExprFn>>),
   /// An env function from the `env` config option.
   /// Takes evaluated arguments as `EnvValue`s and returns a CSS string.
-  EnvFunction(EnvFunction),
+  EnvFunction(JSFunction),
 }
 
 impl Clone for FunctionType {

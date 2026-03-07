@@ -6,7 +6,7 @@ use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection},
-  stylex_env::EnvValue,
+  stylex_env::{JSFunction, EnvValue},
 };
 
 #[derive(Deserialize, Clone, Debug)]
@@ -39,6 +39,8 @@ pub struct StyleXOptionsParams {
   pub unstable_module_resolution: Option<ModuleResolution>,
   #[serde(skip)]
   pub env: Option<IndexMap<String, EnvValue>>,
+  #[serde(skip)]
+  pub debug_file_path: Option<JSFunction>,
 }
 
 impl Default for StyleXOptionsParams {
@@ -69,6 +71,7 @@ impl Default for StyleXOptionsParams {
       aliases: None,
       unstable_module_resolution: None,
       env: None,
+      debug_file_path: None,
     }
   }
 }
@@ -140,6 +143,7 @@ pub struct StyleXOptions {
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
   pub env: IndexMap<String, EnvValue>,
+  pub debug_file_path: Option<JSFunction>,
 }
 
 impl StyleXOptions {
@@ -190,6 +194,7 @@ impl Default for StyleXOptions {
         StyleXOptions::get_common_js_module_resolution(None),
       ),
       env: IndexMap::new(),
+      debug_file_path: None,
     }
   }
 }
@@ -253,6 +258,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       aliases: options.aliases,
       unstable_module_resolution,
       env: options.env.unwrap_or_default(),
+      debug_file_path: options.debug_file_path,
     }
   }
 }

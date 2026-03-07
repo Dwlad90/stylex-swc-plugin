@@ -13,7 +13,10 @@ use crate::shared::{
   constants::{common::COMPILED_KEY, messages::illegal_argument_length},
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{
-    state_manager::StateManager, stylex_options::CheckModuleResolution, types::StylesObjectMap,
+    state_manager::StateManager,
+    stylex_env::EnvValue,
+    stylex_options::CheckModuleResolution,
+    types::StylesObjectMap,
   },
   utils::{
     ast::convertors::key_value_to_str, common::get_key_values_from_object,
@@ -90,8 +93,13 @@ pub(crate) fn add_source_map_data(
                 } else {
                   let original_line_number = code_frame.get_span_line_number(span);
                   let filename = state.get_filename().to_string();
-                  let short_filename =
+                  let raw_short_filename =
                     create_short_filename(filename.as_ref(), state, package_json_seen);
+                  let short_filename = if let Some(ref f) = state.options.debug_file_path {
+                    f.call(vec![EnvValue::String(raw_short_filename.clone())])
+                  } else {
+                    raw_short_filename
+                  };
 
                   if !short_filename.is_empty() && original_line_number > 0 {
                     let source_map = format!("{}:{}", short_filename, original_line_number);

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use napi::{JsNumber, JsObject, JsString, JsValue, NapiRaw, Unknown, ValueType};
+use napi::{JsNumber, JsObject, JsString, JsValue, Unknown, ValueType};
 use stylex_shared::shared::structures::stylex_env::{EnvValue, JSFunction};
 
 thread_local! {
@@ -88,7 +88,11 @@ fn parse_env_function(env: &napi::Env, js_fn_raw: napi::sys::napi_value) -> napi
   }
 
   // Wrap in Rc so the closure can be Fn (not just FnOnce)
-  let ref_ptr = Rc::new(EnvFnRef(ref_ptr));
+  // Store the env so we can clean up the reference later
+  let ref_ptr = Rc::new(EnvFnRef {
+    ref_ptr,
+    env: raw_env,
+  });
 
   Ok(EnvValue::Function(JSFunction::new(
     move |args: Vec<EnvValue>| {
@@ -99,7 +103,7 @@ fn parse_env_function(env: &napi::Env, js_fn_raw: napi::sys::napi_value) -> napi
       // Get the function from reference
       let mut js_fn_raw: napi::sys::napi_value = std::ptr::null_mut();
       unsafe {
-        napi::sys::napi_get_reference_value(raw_env, ref_ptr.0, &mut js_fn_raw);
+        napi::sys::napi_get_reference_value(raw_env, ref_ptr.ref_ptr, &mut js_fn_raw);
       }
 
       // Convert args to JS values
@@ -190,9 +194,9 @@ fn env_value_to_napi_value(
 /// - If the value is a function `(filePath: string) => string`, wraps it as an `EnvFunction`.
 pub(crate) fn parse_debug_file_path(
   env: &napi::Env,
-  js_obj: &JsObject,
+  unknown_val: Unknown,
 ) -> napi::Result<JSFunction> {
-  let raw_val = unsafe { js_obj.raw() };
+  let raw_val = unknown_val.raw();
   let raw_env = env.raw();
 
   let mut val_type: napi::sys::napi_valuetype = napi::sys::ValueType::napi_undefined;
@@ -234,10 +238,24 @@ pub(crate) fn parse_debug_file_path(
   }
 }
 
-/// Wrapper for a raw napi_ref to allow sharing via Rc.
-struct EnvFnRef(napi::sys::napi_ref);
+/// Wrapper for a raw napi_ref with its associated environment.
+///
+/// Stores both the napi_ref and the napi_env so the reference can be properly
+/// cleaned up when the Rc is dropped.
+struct EnvFnRef {
+  ref_ptr: napi::sys::napi_ref,
+  env: napi::sys::napi_env,
+}
 
-// Safety: EnvFnRef is only used single-threaded within NAPI calls.
-// The raw pointer is never sent across threads.
-unsafe impl Send for EnvFnRef {}
-unsafe impl Sync for EnvFnRef {}
+impl Drop for EnvFnRef {
+  fn drop(&mut self) {
+    // Clean up the napi_ref using the stored environment
+    let status = unsafe { napi::sys::napi_delete_reference(self.env, self.ref_ptr) };
+    if status != napi::sys::Status::napi_ok {
+      log::warn!(
+        "Failed to delete napi_ref during cleanup (status: {:?})",
+        status
+      );
+    }
+  }
+}

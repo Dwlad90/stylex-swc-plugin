@@ -5,6 +5,6 @@ _inject2({
     ltr: ".x1e2nbdu{color:red}",
     priority: 3000
 });
-({
+export default {
     className: "x1e2nbdu"
-});
+};

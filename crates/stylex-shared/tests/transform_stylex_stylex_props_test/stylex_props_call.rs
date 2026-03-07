@@ -45,7 +45,7 @@ test!(
                 color: 'red',
             }
         });
-        stylex.props(styles.red);
+        export default stylex.props(styles.red);
     "#
 );
 

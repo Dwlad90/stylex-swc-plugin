@@ -93,7 +93,10 @@ pub fn transform(
   let parsed_debug_file_path = options
     .debug_file_path
     .take()
-    .map(|ref js_obj| utils::fn_parser::parse_debug_file_path(&env, js_obj))
+    .map(|unknown_ref| {
+      let value = unknown_ref.get_value(&env)?;
+      utils::fn_parser::parse_debug_file_path(&env, value)
+    })
     .transpose()?;
 
   if !utils::should_transform_file(&filename, &include_patterns, &exclude_patterns) {

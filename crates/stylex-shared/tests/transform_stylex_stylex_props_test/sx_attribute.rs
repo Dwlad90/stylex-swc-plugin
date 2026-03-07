@@ -108,7 +108,7 @@ test!(
       unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
         "/js".to_string()
       ))),
-      sx_prop_name: Some(SxPropNameParam::Disabled(false)),
+      sx_prop_name: Some(SxPropNameParam::Disabled),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -491,6 +491,53 @@ const styles = stylex.create({
 });
 function App() {
   _$setAttribute(_el$, "sx", [styles.card, styles.blueBg]);
+}
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      dev: Some(true),
+      enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  sx_attr_and_props_calls_are_equivalent,
+  r#"
+import stylex from 'stylex';
+const styles = stylex.create({
+  red: {
+    color: 'red',
+  },
+  blueBg: {
+    backgroundColor: 'blue',
+  }
+});
+function Foo() {
+  return (
+    <>
+      <div id="test" sx={styles.red}>Hello World</div>
+      <div id="test" {...stylex.props(styles.red)}>Hello World</div>
+      <div className="test" sx={[styles.red, color && styles.blueBg]} id="test">Hello World</div>
+      <div className="test" {...stylex.props(styles.red, color && styles.blueBg)} id="test">Hello World</div>
+      <div id="test" sx={styles.blueBg} className="test">Hello World</div>
+      <div id="test" {...stylex.props(styles.blueBg)} className="test">Hello World</div>
+    </>
+  );
 }
   "#
 );

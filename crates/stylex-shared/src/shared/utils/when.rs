@@ -42,11 +42,63 @@ fn validate_pseudo_selector(pseudo: &str) -> Result<(), String> {
     );
   }
 
-  if pseudo.starts_with("[") && !pseudo.ends_with("]") {
-    return Err("Attribute selector must end with \"]\"".to_string());
+  if pseudo.starts_with("[") {
+    if !pseudo.ends_with("]") {
+      return Err("Attribute selector must end with \"]\"".to_string());
+    }
+
+    // Validate proper bracket matching and quote pairing
+    if !is_valid_attribute_selector(pseudo) {
+      return Err(
+        "Attribute selector has invalid format (mismatched brackets or quotes)".to_string(),
+      );
+    }
   }
 
   Ok(())
+}
+
+/// Validates that an attribute selector has proper bracket and quote matching
+fn is_valid_attribute_selector(selector: &str) -> bool {
+  let chars: Vec<char> = selector.chars().collect();
+  if chars.is_empty() || chars[0] != '[' || chars[chars.len() - 1] != ']' {
+    return false;
+  }
+
+  let mut in_single_quote = false;
+  let mut in_double_quote = false;
+  let mut bracket_count = 0;
+
+  for i in 0..chars.len() {
+    let c = chars[i];
+
+    // Track quote state
+    if c == '\'' && (i == 0 || chars[i - 1] != '\\') {
+      in_single_quote = !in_single_quote;
+    } else if c == '"' && (i == 0 || chars[i - 1] != '\\') {
+      in_double_quote = !in_double_quote;
+    }
+
+    // Track brackets only outside quotes
+    if !in_single_quote && !in_double_quote {
+      if c == '[' {
+        bracket_count += 1;
+        // CSS attribute selectors can only have one opening bracket (at the start)
+        if bracket_count > 1 {
+          return false;
+        }
+      } else if c == ']' {
+        bracket_count -= 1;
+        // Closing bracket should only reach 0 at the end
+        if bracket_count < 0 || (bracket_count == 0 && i < chars.len() - 1) {
+          return false;
+        }
+      }
+    }
+  }
+
+  // Should end with exactly one bracket pair and no unclosed quotes
+  bracket_count == 0 && !in_single_quote && !in_double_quote
 }
 
 /// Creates selector that observes if the given pseudo-class is
@@ -178,6 +230,42 @@ mod tests {
     let result = validate_pseudo_selector("::before");
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("pseudo-elements"));
+  }
+
+  #[test]
+  fn test_validate_pseudo_selector_valid_attribute() {
+    assert!(validate_pseudo_selector("[data-state=\"open\"]").is_ok());
+    assert!(validate_pseudo_selector("[data-state='open']").is_ok());
+    assert!(validate_pseudo_selector("[disabled]").is_ok());
+    assert!(validate_pseudo_selector("[aria-label*=\"test\"]").is_ok());
+  }
+
+  #[test]
+  fn test_validate_pseudo_selector_invalid_attribute_missing_bracket() {
+    let result = validate_pseudo_selector("[data-state=\"open\"");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("must end with"));
+  }
+
+  #[test]
+  fn test_validate_pseudo_selector_invalid_attribute_mismatched_quotes() {
+    let result = validate_pseudo_selector("[data-state=\"open']");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("invalid format"));
+  }
+
+  #[test]
+  fn test_validate_pseudo_selector_invalid_attribute_unclosed_quotes() {
+    let result = validate_pseudo_selector("[data-state=\"open]");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("invalid format"));
+  }
+
+  #[test]
+  fn test_validate_pseudo_selector_invalid_attribute_nested_bracket() {
+    let result = validate_pseudo_selector("[data-[nested]=\"open\"]");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("invalid format"));
   }
 
   #[test]

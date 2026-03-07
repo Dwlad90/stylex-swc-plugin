@@ -416,10 +416,12 @@ impl StateManager {
       let relative_package_path = relative_path(file_path, package_dir_path);
 
       if let Some(package_dir) = relative_package_path.to_str() {
+        // Normalize path separators to forward slashes for consistency across platforms
+        let normalized_path = package_dir.replace('\\', "/");
         return format!(
           "{}:{}",
           package_name.unwrap_or_else(|| "_unknown_name_".to_string()),
-          package_dir
+          normalized_path
         );
       }
     }
@@ -434,8 +436,10 @@ impl StateManager {
       let file_path = Path::new(file_path);
       let root_dir = Path::new(root_dir);
 
-      if let Some(root_dir) = relative_path(file_path, root_dir).to_str() {
-        return root_dir.to_string();
+      if let Some(rel_path) = relative_path(file_path, root_dir).to_str() {
+        // Normalize path separators to forward slashes for consistency across platforms
+        let normalized_path = rel_path.replace('\\', "/");
+        return normalized_path;
       }
     };
 

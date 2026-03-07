@@ -13,8 +13,8 @@ use super::{
 #[derive(Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum SxPropNameParam {
-  /// `false` — disables the `sx` prop feature
-  Disabled(bool),
+  /// Disables the `sx` prop feature
+  Disabled,
   /// A string name for the sx prop (e.g. `"sx"` or `"css"`)
   Enabled(String),
 }
@@ -273,7 +273,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       unstable_module_resolution,
       sx_prop_name: match options.sx_prop_name {
         None => Some("sx".to_string()),
-        Some(SxPropNameParam::Disabled(_)) => None,
+        Some(SxPropNameParam::Disabled) => None,
         Some(SxPropNameParam::Enabled(name)) => Some(name),
       },
       env: options.env.unwrap_or_default(),

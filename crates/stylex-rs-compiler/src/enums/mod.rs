@@ -248,8 +248,8 @@ pub enum PropertyValidationMode {
 /// Represents the `sxPropName` option: a string name for the sx prop, or `false` to disable.
 #[derive(Debug, Clone)]
 pub enum SxPropNameUnion {
-  /// `false` — disables the `sx` prop feature
-  Disabled(bool),
+  /// Disables the `sx` prop feature
+  Disabled,
   /// A string name for the sx prop (e.g. `"sx"` or `"css"`)
   Name(String),
 }
@@ -258,7 +258,13 @@ impl FromNapiValue for SxPropNameUnion {
   unsafe fn from_napi_value(env: napi_env, value: napi::sys::napi_value) -> Result<Self, Error> {
     // Try to parse as boolean first
     if let Ok(bool_value) = unsafe { bool::from_napi_value(env, value) } {
-      return Ok(SxPropNameUnion::Disabled(bool_value));
+      // Only allow `false` to disable the feature - `true` is an error
+      if bool_value {
+        return Err(Error::from_reason(
+          "sxPropName does not accept `true` - use `false` to disable or provide a string prop name",
+        ));
+      }
+      return Ok(SxPropNameUnion::Disabled);
     }
 
     // Fall back to string
@@ -273,7 +279,7 @@ impl FromNapiValue for SxPropNameUnion {
 impl ToNapiValue for SxPropNameUnion {
   unsafe fn to_napi_value(env: napi_env, value: Self) -> Result<napi_value, Error> {
     match value {
-      SxPropNameUnion::Disabled(b) => unsafe { bool::to_napi_value(env, b) },
+      SxPropNameUnion::Disabled => unsafe { bool::to_napi_value(env, false) },
       SxPropNameUnion::Name(s) => {
         let env = Env::from_raw(env);
         let js_str = env.create_string(&s)?;

@@ -150,7 +150,7 @@ fn parse_env_function(env: &napi::Env, js_fn_raw: napi::sys::napi_value) -> napi
         napi::sys::napi_get_value_string_utf8(
           raw_env,
           str_result,
-          buf.as_mut_ptr() as *mut i8,
+          buf.as_mut_ptr() as *mut _,
           len + 1,
           &mut written,
         );
@@ -170,7 +170,7 @@ fn env_value_to_napi_value(
     EnvValue::String(s) => unsafe {
       napi::sys::napi_create_string_utf8(
         raw_env,
-        s.as_ptr() as *const i8,
+        s.as_ptr() as *const _,
         s.len() as isize,
         &mut result,
       );
@@ -215,7 +215,7 @@ pub(crate) fn parse_debug_file_path(
         napi::sys::napi_get_value_string_utf8(
           raw_env,
           raw_val,
-          buf.as_mut_ptr() as *mut i8,
+          buf.as_mut_ptr() as *mut _,
           len + 1,
           &mut written,
         );

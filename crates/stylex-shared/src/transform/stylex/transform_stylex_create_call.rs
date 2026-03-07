@@ -8,15 +8,15 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      BinExpr, Bool, Decl, KeyValueProp, Lit, ModuleItem, ParenExpr, Stmt, UnaryOp, VarDecl,
-      VarDeclKind, VarDeclarator,
+      BinExpr, Bool, Decl, Lit, ModuleItem, ParenExpr, Stmt, UnaryOp, VarDecl, VarDeclKind,
+      VarDeclarator,
     },
     utils::drop_span,
   },
 };
 use swc_core::{
   common::SyntaxContext,
-  ecma::ast::{ArrowExpr, BinaryOp, BlockStmtOrExpr, CondExpr, ExprOrSpread, Pat, Prop, PropName},
+  ecma::ast::{ArrowExpr, BinaryOp, BlockStmtOrExpr, CondExpr, Pat, Prop, PropName},
 };
 use swc_core::{
   common::comments::Comments,
@@ -52,7 +52,12 @@ use crate::shared::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::{dynamic_style::DynamicStyle, stylex_options::StyleResolution},
   utils::{
-    ast::{convertors::null_to_expression, factories::array_expression_factory},
+    ast::{
+      convertors::null_to_expression,
+      factories::{
+        array_expression_factory, expr_or_spread_factory, prop_or_spread_prop_name_factory,
+      },
+    },
     core::js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
   },
 };
@@ -659,19 +664,15 @@ where
                               };
 
                               if is_static {
-                                static_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
-                                  KeyValueProp {
-                                    key: obj_prop.key.clone(),
-                                    value: Box::new(joined),
-                                  },
-                                ))));
+                                static_props.push(prop_or_spread_prop_name_factory(
+                                  obj_prop.key.clone(),
+                                  joined,
+                                ));
                               } else {
-                                conditional_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(
-                                  KeyValueProp {
-                                    key: obj_prop.key.clone(),
-                                    value: Box::new(joined),
-                                  },
-                                ))));
+                                conditional_props.push(prop_or_spread_prop_name_factory(
+                                  obj_prop.key.clone(),
+                                  joined,
+                                ));
                               }
                             }
                           } else {
@@ -739,23 +740,17 @@ where
                       let mut array_elements = Vec::new();
 
                       if let Some(static_obj) = static_obj {
-                        array_elements.push(Some(ExprOrSpread {
-                          spread: None,
-                          expr: Box::new(hoist_expression(static_obj, &mut self.state)),
-                        }));
+                        array_elements.push(Some(expr_or_spread_factory(hoist_expression(
+                          static_obj,
+                          &mut self.state,
+                        ))));
                       }
 
                       if let Some(conditional_obj) = conditional_obj {
-                        array_elements.push(Some(ExprOrSpread {
-                          spread: None,
-                          expr: Box::new(conditional_obj),
-                        }));
+                        array_elements.push(Some(expr_or_spread_factory(conditional_obj)));
                       }
 
-                      array_elements.push(Some(ExprOrSpread {
-                        spread: None,
-                        expr: Box::new(final_fn_value),
-                      }));
+                      array_elements.push(Some(expr_or_spread_factory(final_fn_value)));
 
                       final_fn_value = array_expression_factory(array_elements);
                     }

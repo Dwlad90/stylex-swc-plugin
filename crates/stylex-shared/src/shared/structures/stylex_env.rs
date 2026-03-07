@@ -1,12 +1,13 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::ast::{
-    Bool, Expr, IdentName, KeyValueProp, Lit, Null, Number, ObjectLit, Prop, PropName,
-    PropOrSpread, Str,
+use swc_core::ecma::ast::{Expr, Lit};
+
+use crate::shared::utils::ast::{
+  convertors::{
+    bool_to_expression, null_to_expression, number_to_expression, string_to_expression,
   },
+  factories::{object_expression_factory, prop_or_spread_expression_factory},
 };
 
 /// Represents a JavaScript value passed via the `env` configuration option.
@@ -74,38 +75,21 @@ impl EnvValue {
   /// Functions are not convertible and return `None`.
   pub fn to_expr(&self) -> Option<Expr> {
     match self {
-      EnvValue::String(s) => Some(Expr::Lit(Lit::Str(Str {
-        span: DUMMY_SP,
-        value: s.as_str().into(),
-        raw: None,
-      }))),
-      EnvValue::Number(n) => Some(Expr::Lit(Lit::Num(Number {
-        span: DUMMY_SP,
-        value: *n,
-        raw: None,
-      }))),
-      EnvValue::Bool(b) => Some(Expr::Lit(Lit::Bool(Bool {
-        span: DUMMY_SP,
-        value: *b,
-      }))),
-      EnvValue::Null => Some(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))),
+      EnvValue::String(s) => Some(string_to_expression(s.as_str())),
+      EnvValue::Number(n) => Some(number_to_expression(*n)),
+      EnvValue::Bool(b) => Some(bool_to_expression(*b)),
+      EnvValue::Null => Some(null_to_expression()),
       EnvValue::Object(map) => {
-        let props: Vec<PropOrSpread> = map
+        let props = map
           .iter()
           .filter_map(|(key, val)| {
-            val.to_expr().map(|expr| {
-              PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                key: PropName::Ident(IdentName::new(key.as_str().into(), DUMMY_SP)),
-                value: Box::new(expr),
-              })))
-            })
+            val
+              .to_expr()
+              .map(|expr| prop_or_spread_expression_factory(key.as_str(), expr))
           })
           .collect();
 
-        Some(Expr::Object(ObjectLit {
-          span: DUMMY_SP,
-          props,
-        }))
+        Some(object_expression_factory(props))
       }
       EnvValue::Function(_) => None,
     }
@@ -128,9 +112,12 @@ impl EnvValue {
 /// Converts an `Expr` (from evaluated arguments) back to an `EnvValue` for passing to env functions.
 pub fn expr_to_env_value(expr: &Expr) -> EnvValue {
   match expr {
-    Expr::Lit(Lit::Str(s)) => {
-      EnvValue::String(s.value.as_str().map(|s| s.to_string()).unwrap_or_default())
-    }
+    Expr::Lit(Lit::Str(s)) => EnvValue::String(
+      s.value
+        .as_str()
+        .expect("String contains invalid UTF-8")
+        .to_string(),
+    ),
     Expr::Lit(Lit::Num(n)) => EnvValue::Number(n.value),
     Expr::Lit(Lit::Bool(b)) => EnvValue::Bool(b.value),
     Expr::Lit(Lit::Null(_)) => EnvValue::Null,

@@ -1,12 +1,12 @@
 use log::warn;
-use swc_core::ecma::ast::{Expr, ExprOrSpread};
+use swc_core::ecma::ast::Expr;
 
 use crate::shared::{
   regex::IS_CSS_VAR,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::ast::{
     convertors::{expr_to_str, string_to_expression},
-    factories::array_expression_factory,
+    factories::{array_expression_factory, expr_or_spread_factory},
   },
 };
 
@@ -35,12 +35,7 @@ pub(crate) fn stylex_first_that_works(
       let elems = args
         .into_iter()
         .rev()
-        .map(|arg| {
-          Some(ExprOrSpread {
-            spread: None,
-            expr: Box::new(arg),
-          })
-        })
+        .map(|arg| Some(expr_or_spread_factory(arg)))
         .collect();
 
       array_expression_factory(elems)
@@ -94,12 +89,7 @@ pub(crate) fn stylex_first_that_works(
 
       let return_value = return_value
         .into_iter()
-        .map(|expr| {
-          Some(ExprOrSpread {
-            spread: None,
-            expr: Box::new(expr),
-          })
-        })
+        .map(|expr| Some(expr_or_spread_factory(expr)))
         .collect();
 
       array_expression_factory(return_value)

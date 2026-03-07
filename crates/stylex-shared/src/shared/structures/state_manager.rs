@@ -16,7 +16,7 @@ use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
-    ast::{ExprOrSpread, JSXAttrOrSpread, Module, NamedExport, Program},
+    ast::{JSXAttrOrSpread, Module, NamedExport, Program},
     utils::drop_span,
   },
 };
@@ -35,8 +35,9 @@ use crate::shared::{
   utils::ast::{
     convertors::number_to_expression,
     factories::{
-      expr_or_spread_number_expression_factory, expr_or_spread_string_expression_factory,
-      object_expression_factory, prop_or_spread_expression_factory, prop_or_spread_string_factory,
+      expr_or_spread_factory, expr_or_spread_number_expression_factory,
+      expr_or_spread_string_expression_factory, object_expression_factory,
+      prop_or_spread_expression_factory, prop_or_spread_string_factory,
     },
   },
 };
@@ -718,10 +719,7 @@ impl StateManager {
       span: DUMMY_SP,
       type_args: None,
       callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
-      args: vec![ExprOrSpread {
-        expr: Box::new(stylex_inject_obj),
-        spread: None,
-      }],
+      args: vec![expr_or_spread_factory(stylex_inject_obj)],
       ctxt: SyntaxContext::empty(),
     };
 

@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use napi::{JsNumber, JsObject, JsString, JsValue, NapiRaw, Unknown, ValueType};
-use stylex_shared::shared::structures::stylex_env::{JSFunction, EnvValue};
+use stylex_shared::shared::structures::stylex_env::{EnvValue, JSFunction};
 
 thread_local! {
   static NAPI_ENV_RAW: std::cell::Cell<Option<napi::sys::napi_env>> =
@@ -220,14 +220,14 @@ pub(crate) fn parse_debug_file_path(
       let s = String::from_utf8(buf).unwrap_or_default();
       Ok(JSFunction::new(move |_args| s.clone()))
     }
-    napi::sys::ValueType::napi_function => parse_env_function(env, raw_val).and_then(|ev| {
-      match ev {
+    napi::sys::ValueType::napi_function => {
+      parse_env_function(env, raw_val).and_then(|ev| match ev {
         EnvValue::Function(f) => Ok(f),
         _ => Err(napi::Error::from_reason(
           "Expected function from parse_env_function",
         )),
-      }
-    }),
+      })
+    }
     _ => Err(napi::Error::from_reason(
       "debugFilePath must be a string or function",
     )),

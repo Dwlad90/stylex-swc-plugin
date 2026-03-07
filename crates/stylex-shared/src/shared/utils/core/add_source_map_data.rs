@@ -13,9 +13,7 @@ use crate::shared::{
   constants::{common::COMPILED_KEY, messages::illegal_argument_length},
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{
-    state_manager::StateManager,
-    stylex_env::EnvValue,
-    stylex_options::CheckModuleResolution,
+    state_manager::StateManager, stylex_env::EnvValue, stylex_options::CheckModuleResolution,
     types::StylesObjectMap,
   },
   utils::{

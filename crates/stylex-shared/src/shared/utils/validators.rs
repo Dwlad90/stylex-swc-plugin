@@ -1,7 +1,7 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, VarDeclarator},
+  ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
 use crate::shared::{
@@ -21,7 +21,8 @@ use crate::shared::{
   structures::state_manager::StateManager,
   utils::{
     ast::{
-      convertors::string_to_expression, factories::key_value_ident_factory,
+      convertors::string_to_expression,
+      factories::{expr_or_spread_factory, key_value_ident_factory},
       helpers::is_variable_named_exported,
     },
     common::get_import_from,
@@ -355,10 +356,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| ExprOrSpread {
-          spread: None,
-          expr: Box::new(call_expr.clone()),
-        })
+        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
         .expr,
       &unbound_call_value("defineVars"),
       state,
@@ -372,10 +370,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| ExprOrSpread {
-          spread: None,
-          expr: Box::new(call_expr.clone()),
-        })
+        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
         .expr,
       &illegal_argument_length("defineVars", 1),
       state,
@@ -418,10 +413,7 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| ExprOrSpread {
-          spread: None,
-          expr: Box::new(call_expr.clone()),
-        })
+        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
         .expr,
       &unbound_call_value("defineMarker"),
       state,
@@ -456,10 +448,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| ExprOrSpread {
-          spread: None,
-          expr: Box::new(call_expr.clone()),
-        })
+        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
         .expr,
       &unbound_call_value("defineConsts"),
       state,
@@ -473,10 +462,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| ExprOrSpread {
-          spread: None,
-          expr: Box::new(call_expr.clone()),
-        })
+        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
         .expr,
       &illegal_argument_length("defineConsts", 1),
       state,

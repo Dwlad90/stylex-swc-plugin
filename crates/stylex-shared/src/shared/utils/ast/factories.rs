@@ -103,11 +103,34 @@ pub fn prop_or_spread_expr_factory(key: &str, values: Vec<PropOrSpread>) -> Prop
   prop_or_spread_expression_factory(key, Expr::Object(object))
 }
 
+/// Creates a `PropOrSpread` from an already-constructed `PropName` and an expression value.
+///
+/// Use this when the key is an existing `PropName` (e.g. cloned from another prop),
+/// avoiding the need to re-stringify it.
+pub(crate) fn prop_or_spread_prop_name_factory(key: PropName, value: Expr) -> PropOrSpread {
+  PropOrSpread::from(Prop::from(KeyValueProp {
+    key,
+    value: Box::new(value),
+  }))
+}
+
 pub fn key_value_ident_factory(key: &str, value: Expr) -> KeyValueProp {
   KeyValueProp {
     key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
     value: Box::new(value),
   }
+}
+
+/// Creates a `PropOrSpread` with an unconditional `PropName::Ident` key.
+///
+/// Unlike `prop_or_spread_expression_factory`, this bypasses identifier validation,
+/// preserving keys that contain special characters (e.g. `@media …`) as ident nodes.
+/// Use this wherever downstream code calls `.as_ident()` on the resulting key.
+pub(crate) fn prop_or_spread_ident_factory(key: &str, value: Expr) -> PropOrSpread {
+  PropOrSpread::from(Prop::from(KeyValueProp {
+    key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
+    value: Box::new(value),
+  }))
 }
 
 pub(crate) fn prop_or_spread_string_factory(key: &str, value: &str) -> PropOrSpread {
@@ -137,16 +160,22 @@ pub(crate) fn _prop_or_spread_boolean_factory(key: &str, value: Option<bool>) ->
   }
 }
 
-pub(crate) fn expr_or_spread_string_expression_factory(value: &str) -> ExprOrSpread {
-  let expr = Box::new(string_to_expression(value));
+/// Wraps an arbitrary expression in `ExprOrSpread` with no spread.
+/// This is the generic counterpart to the typed `expr_or_spread_*_factory` helpers
+/// and eliminates the common boilerplate `ExprOrSpread { spread: None, expr: Box::new(e) }`.
+pub(crate) fn expr_or_spread_factory(expr: Expr) -> ExprOrSpread {
+  ExprOrSpread {
+    expr: Box::new(expr),
+    spread: None,
+  }
+}
 
-  ExprOrSpread { expr, spread: None }
+pub(crate) fn expr_or_spread_string_expression_factory(value: &str) -> ExprOrSpread {
+  expr_or_spread_factory(string_to_expression(value))
 }
 
 pub(crate) fn expr_or_spread_number_expression_factory(value: f64) -> ExprOrSpread {
-  let expr = Box::new(number_to_expression(value));
-
-  ExprOrSpread { expr, spread: None }
+  expr_or_spread_factory(number_to_expression(value))
 }
 
 // NOTE: Tests only using this function

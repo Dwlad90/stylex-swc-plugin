@@ -13,7 +13,7 @@ use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, EqIgnoreSpan, SyntaxContext},
+  common::{EqIgnoreSpan, SyntaxContext},
   ecma::{
     ast::{
       ArrayLit, AssignTarget, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr,
@@ -65,8 +65,8 @@ use crate::shared::{
         tpl_element_cooked_to_string, transform_shorthand_to_key_values,
       },
       factories::{
-        array_expression_factory, lit_str_factory, object_expression_factory,
-        prop_or_spread_expression_factory,
+        array_expression_factory, expr_or_spread_factory, lit_str_factory,
+        object_expression_factory, object_lit_factory, prop_or_spread_ident_factory,
       },
     },
     common::{
@@ -80,6 +80,32 @@ use crate::shared::{
 };
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
+
+/// Resolves an `EnvValue` to an `EvaluateResultValue`.
+///
+/// For primitives/null/bool, returns `Expr`. For nested objects, returns `EnvObject`.
+/// For functions, returns the parent `EnvObject` map so callers can resolve the function at the
+/// call-expression site.
+///
+/// Returns `None` if the value cannot be represented as an evaluate result (should not happen in
+/// well-formed configurations).
+#[inline]
+fn resolve_env_val_to_result(
+  env_val: &EnvValue,
+  env_map: &IndexMap<String, EnvValue>,
+) -> Option<EvaluateResultValue> {
+  if let Some(expr) = env_val.to_expr() {
+    return Some(EvaluateResultValue::Expr(expr));
+  }
+  if let EnvValue::Object(nested) = env_val {
+    return Some(EvaluateResultValue::EnvObject(nested.clone()));
+  }
+  if env_val.is_function() {
+    // Functions are handled at the call-expression level; return parent map as context
+    return Some(EvaluateResultValue::EnvObject(env_map.clone()));
+  }
+  None
+}
 
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
 /// This reduces code duplication for operations that convert an expression to a number,
@@ -670,42 +696,22 @@ fn _evaluate(
               )));
             }
             EvaluateResultValue::EnvObject(env_map) => {
-              let key = match property {
-                Some(property) => match property {
-                  EvaluateResultValue::Expr(expr) => match expr {
-                    Expr::Ident(Ident { sym, .. }) => sym.to_string(),
-                    Expr::Lit(lit) => lit_to_string(&lit).expect("Property must be a string"),
-                    _ => panic_with_context!(path, traversal_state, "Env property not found"),
-                  },
-                  _ => panic_with_context!(
-                    path,
-                    traversal_state,
-                    "Env object property not implemented"
-                  ),
-                },
-                None => {
+              let key = property
+                .as_ref()
+                .and_then(|prop| prop.as_string_key())
+                .unwrap_or_else(|| {
                   panic_with_context!(path, traversal_state, "Env object property not found")
-                }
-              };
+                });
 
               match env_map.get(&key) {
-                Some(env_val) => {
-                  if let Some(expr) = env_val.to_expr() {
-                    return Some(EvaluateResultValue::Expr(expr));
-                  }
-                  if let EnvValue::Object(nested) = env_val {
-                    return Some(EvaluateResultValue::EnvObject(nested.clone()));
-                  }
-                  if env_val.is_function() {
-                    // Functions are handled at the call expression level
-                    return Some(EvaluateResultValue::EnvObject(env_map.clone()));
-                  }
-                  panic_with_context!(
+                Some(env_val) => match resolve_env_val_to_result(env_val, &env_map) {
+                  Some(result) => return Some(result),
+                  None => panic_with_context!(
                     path,
                     traversal_state,
                     "Env value cannot be converted to expression"
-                  );
-                }
+                  ),
+                },
                 None => {
                   panic_with_context!(
                     path,
@@ -931,18 +937,11 @@ fn _evaluate(
                                   .iter()
                                   .flatten()
                                   .map(|item| {
-                                    let item = item.as_expr().unwrap();
-                                    Some(ExprOrSpread {
-                                      spread: None,
-                                      expr: Box::new(item.clone()),
-                                    })
+                                    Some(expr_or_spread_factory(item.as_expr().unwrap().clone()))
                                   })
                                   .collect();
 
-                                Expr::Array(ArrayLit {
-                                  span: DUMMY_SP,
-                                  elems,
-                                })
+                                array_expression_factory(elems)
                               })
                               .or_else(|| entry.as_expr().cloned())
                           })
@@ -957,17 +956,11 @@ fn _evaluate(
                           }
                         };
 
-                        Some(ExprOrSpread {
-                          spread: None,
-                          expr: Box::new(expr),
-                        })
+                        Some(expr_or_spread_factory(expr))
                       })
                       .collect();
 
-                    Some(Expr::Array(ArrayLit {
-                      span: DUMMY_SP,
-                      elems,
-                    }))
+                    Some(array_expression_factory(elems))
                   }
                   EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
                     Expr::Call(call_expr) => {
@@ -999,10 +992,7 @@ fn _evaluate(
                 };
 
                 if let Some(value) = value {
-                  props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                    key: PropName::Ident(quote_ident!(key.unwrap())),
-                    value: Box::new(value),
-                  }))));
+                  props.push(prop_or_spread_ident_factory(&key.unwrap(), value));
                 }
               }
               _ => panic_with_context!(
@@ -1015,12 +1005,9 @@ fn _evaluate(
         }
       }
 
-      let obj = ObjectLit {
-        props: remove_duplicates(props),
-        span: DUMMY_SP,
-      };
-
-      return Some(EvaluateResultValue::Expr(Expr::Object(obj)));
+      return Some(EvaluateResultValue::Expr(Expr::Object(object_lit_factory(
+        remove_duplicates(props),
+      ))));
     }
     Expr::Bin(bin) => unwrap_or_panic!(
       binary_expr_to_num(bin, state, traversal_state, fns)
@@ -1330,19 +1317,15 @@ fn _evaluate(
 
                             let key = key_value_to_str(key_values);
 
-                            keys.push(Some(ExprOrSpread {
-                              spread: None,
-                              expr: Box::new(string_to_expression(key.as_str())),
-                            }));
+                            keys.push(Some(expr_or_spread_factory(string_to_expression(
+                              key.as_str(),
+                            ))));
                           }
                         }
 
-                        context = Some(vec![Some(EvaluateResultValue::Expr(Expr::Array(
-                          ArrayLit {
-                            span: DUMMY_SP,
-                            elems: keys,
-                          },
-                        )))]);
+                        context = Some(vec![Some(EvaluateResultValue::Expr(
+                          array_expression_factory(keys),
+                        ))]);
                       }
                       "values" => {
                         func = Some(Box::new(FunctionConfig {
@@ -1364,19 +1347,13 @@ fn _evaluate(
                               .as_key_value()
                               .expect("Object.values requires an object");
 
-                            values.push(Some(ExprOrSpread {
-                              spread: None,
-                              expr: key_values.value.clone(),
-                            }));
+                            values.push(Some(expr_or_spread_factory(*key_values.value.clone())));
                           }
                         }
 
-                        context = Some(vec![Some(EvaluateResultValue::Expr(Expr::Array(
-                          ArrayLit {
-                            span: DUMMY_SP,
-                            elems: values,
-                          },
-                        )))]);
+                        context = Some(vec![Some(EvaluateResultValue::Expr(
+                          array_expression_factory(values),
+                        ))]);
                       }
                       "entries" => {
                         func = Some(Box::new(FunctionConfig {
@@ -1664,14 +1641,9 @@ fn _evaluate(
                           fn_ptr: FunctionType::EnvFunction(env_fn.clone()),
                           takes_path: false,
                         }));
-                      } else {
+                      } else if let Some(result) = resolve_env_val_to_result(env_val, &env_map) {
                         // It's a value, not a function - return it directly
-                        if let Some(expr) = env_val.to_expr() {
-                          return Some(EvaluateResultValue::Expr(expr));
-                        }
-                        if let EnvValue::Object(nested) = env_val {
-                          return Some(EvaluateResultValue::EnvObject(nested.clone()));
-                        }
+                        return Some(result);
                       }
                     } else {
                       panic_with_context!(
@@ -1878,20 +1850,12 @@ fn _evaluate(
                   let mut entry_elems: Vec<Option<ExprOrSpread>> = vec![];
 
                   for (key, value) in entries {
-                    let key: ExprOrSpread = ExprOrSpread {
-                      spread: None,
-                      expr: Box::new(Expr::from(key.clone())),
-                    };
+                    let key_spread = expr_or_spread_factory(Expr::from(key.clone()));
+                    let value_spread = expr_or_spread_factory(*value.clone());
 
-                    let value: ExprOrSpread = ExprOrSpread {
-                      spread: None,
-                      expr: value.clone(),
-                    };
-
-                    entry_elems.push(Some(ExprOrSpread {
-                      spread: None,
-                      expr: Box::new(array_expression_factory(vec![Some(key), Some(value)])),
-                    }));
+                    entry_elems.push(Some(expr_or_spread_factory(array_expression_factory(
+                      vec![Some(key_spread), Some(value_spread)],
+                    ))));
                   }
 
                   return Some(EvaluateResultValue::Expr(array_expression_factory(
@@ -1924,18 +1888,13 @@ fn _evaluate(
                   let mut entry_elems = vec![];
 
                   for (key, value) in entries {
-                    let ident_name = if let Lit::Str(lit_str) = key {
-                      quote_ident!(atom_to_str(&lit_str.value))
+                    let key_str = if let Lit::Str(lit_str) = key {
+                      atom_to_str(&lit_str.value)
                     } else {
                       panic_with_context!(path, traversal_state, "Expected a string literal")
                     };
 
-                    let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                      key: PropName::Ident(ident_name),
-                      value: value.clone(),
-                    })));
-
-                    entry_elems.push(prop);
+                    entry_elems.push(prop_or_spread_ident_factory(key_str, *value.clone()));
                   }
 
                   return Some(EvaluateResultValue::Expr(object_expression_factory(
@@ -2346,14 +2305,11 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
           .chars()
           .enumerate()
           .map(|(i, c)| {
-            prop_or_spread_expression_factory(&i.to_string(), string_to_expression(&c.to_string()))
+            prop_or_spread_ident_factory(&i.to_string(), string_to_expression(&c.to_string()))
           })
           .collect::<Vec<PropOrSpread>>();
 
-        Some(ObjectLit {
-          props: keys,
-          span: DUMMY_SP,
-        })
+        Some(object_lit_factory(keys))
       } else {
         None
       }
@@ -2371,15 +2327,12 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
               _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             };
 
-            prop_or_spread_expression_factory(&index.to_string(), expr)
+            prop_or_spread_ident_factory(&index.to_string(), expr)
           })
         })
         .collect();
 
-      Some(ObjectLit {
-        props,
-        span: DUMMY_SP,
-      })
+      Some(object_lit_factory(props))
     }
 
     _ => None,
@@ -2400,35 +2353,20 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValu
               let nested_elems = nested_vec
                 .iter()
                 .flatten()
-                .map(|item| {
-                  let item = item.as_expr().unwrap();
-                  Some(ExprOrSpread {
-                    spread: None,
-                    expr: Box::new(item.clone()),
-                  })
-                })
+                .map(|item| Some(expr_or_spread_factory(item.as_expr().unwrap().clone())))
                 .collect();
 
-              Expr::Array(ArrayLit {
-                span: DUMMY_SP,
-                elems: nested_elems,
-              })
+              array_expression_factory(nested_elems)
             })
             .or_else(|| entry.as_expr().cloned())
         })
         .expect(ILLEGAL_PROP_ARRAY_VALUE);
 
-      Some(ExprOrSpread {
-        spread: None,
-        expr: Box::new(expr),
-      })
+      Some(expr_or_spread_factory(expr))
     })
     .collect();
 
-  Expr::Array(ArrayLit {
-    span: DUMMY_SP,
-    elems,
-  })
+  array_expression_factory(elems)
 }
 
 fn evaluate_func_call_args(

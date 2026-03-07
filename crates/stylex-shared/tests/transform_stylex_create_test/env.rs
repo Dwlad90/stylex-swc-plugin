@@ -3,7 +3,7 @@ use stylex_shared::{
   StyleXTransform,
   shared::structures::{
     plugin_pass::PluginPass,
-    stylex_env::{JSFunction, EnvValue},
+    stylex_env::{EnvValue, JSFunction},
     stylex_options::StyleXOptionsParams,
   },
 };

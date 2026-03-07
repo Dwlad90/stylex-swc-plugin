@@ -3,14 +3,11 @@ use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::ast::{
     convertors::{expr_to_str, lit_to_num, string_to_expression},
-    factories::array_expression_factory,
+    factories::{array_expression_factory, expr_or_spread_factory},
   },
 };
 use std::rc::Rc;
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::ast::{ArrayLit, Expr, ExprOrSpread},
-};
+use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
 pub(crate) fn evaluate_map(
   funcs: &[EvaluateResultValue],
@@ -39,12 +36,7 @@ pub(crate) fn evaluate_map(
 
           let elems = func_result
             .into_iter()
-            .map(|item| {
-              Some(ExprOrSpread {
-                spread: None,
-                expr: Box::new(item.as_expr()?.clone()),
-              })
-            })
+            .map(|item| Some(expr_or_spread_factory(item.as_expr()?.clone())))
             .collect::<Vec<Option<ExprOrSpread>>>();
 
           Some(array_expression_factory(elems))
@@ -59,12 +51,7 @@ pub(crate) fn evaluate_map(
     _ => Some(EvaluateResultValue::Expr(array_expression_factory(
       func_result
         .into_iter()
-        .map(|expr| {
-          Some(ExprOrSpread {
-            spread: None,
-            expr: Box::new(expr),
-          })
-        })
+        .map(|expr| Some(expr_or_spread_factory(expr)))
         .collect(),
     ))),
   }
@@ -124,18 +111,10 @@ pub(crate) fn evaluate_filter(
 
           let elems = func_result
             .into_iter()
-            .map(|item| {
-              Some(ExprOrSpread {
-                spread: None,
-                expr: Box::new(item.as_expr()?.clone()),
-              })
-            })
+            .map(|item| Some(expr_or_spread_factory(item.as_expr()?.clone())))
             .collect::<Vec<Option<ExprOrSpread>>>();
 
-          Some(Expr::Array(ArrayLit {
-            span: DUMMY_SP,
-            elems,
-          }))
+          Some(array_expression_factory(elems))
         }
         _ => unimplemented!(),
       }
@@ -144,18 +123,12 @@ pub(crate) fn evaluate_filter(
 
   match func_result.first() {
     Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::from(array.clone()))),
-    _ => Some(EvaluateResultValue::Expr(Expr::from(ArrayLit {
-      span: DUMMY_SP,
-      elems: func_result
+    _ => Some(EvaluateResultValue::Expr(array_expression_factory(
+      func_result
         .into_iter()
-        .map(|expr| {
-          Some(ExprOrSpread {
-            spread: None,
-            expr: Box::new(expr),
-          })
-        })
+        .map(|expr| Some(expr_or_spread_factory(expr)))
         .collect(),
-    }))),
+    ))),
   }
 }
 

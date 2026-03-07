@@ -4,7 +4,7 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, CondExpr,
-      Expr, ExprOrSpread, KeyValueProp, ObjectLit, Pat, Prop, PropOrSpread, UnaryExpr, UnaryOp,
+      Expr, KeyValueProp, ObjectLit, Pat, Prop, PropOrSpread, UnaryExpr, UnaryOp,
     },
     utils::quote_ident,
   },
@@ -28,7 +28,9 @@ use crate::shared::{
         expr_to_str, ident_to_expression, null_to_expression, string_to_expression,
         transform_shorthand_to_key_values,
       },
-      factories::{object_expression_factory, prop_or_spread_expression_factory},
+      factories::{
+        expr_or_spread_factory, object_expression_factory, prop_or_spread_expression_factory,
+      },
     },
     common::{create_hash, normalize_expr},
     css::common::get_number_suffix,
@@ -383,10 +385,7 @@ fn evaluate_partial_object_recursively(
                         return_type: None,
                         ctxt: SyntaxContext::empty(),
                       }))),
-                      args: vec![ExprOrSpread {
-                        spread: None,
-                        expr: value_path.clone(),
-                      }],
+                      args: vec![expr_or_spread_factory(*value_path.clone())],
                       type_args: None,
                       ctxt: SyntaxContext::empty(),
                     })

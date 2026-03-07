@@ -161,4 +161,31 @@ impl EvaluateResultValue {
       _ => None,
     }
   }
+
+  /// Extracts a string key from an `EvaluateResultValue::Expr` variant.
+  ///
+  /// Handles the common pattern of resolving a property name from an evaluated expression:
+  /// - `Expr::Ident` → symbol name as string
+  /// - `Expr::Lit(Str)` → string value
+  /// - `Expr::Lit(Num)` → number formatted as string
+  /// - `Expr::Lit(BigInt)` → bigint formatted as string
+  /// - All other variants → `None`
+  ///
+  /// # Example
+  /// ```ignore
+  /// let key = property.as_string_key().expect("Property must be a string key");
+  /// ```
+  #[inline]
+  pub fn as_string_key(&self) -> Option<String> {
+    match self {
+      Self::Expr(expr) => match expr {
+        Expr::Ident(ident) => Some(ident.sym.to_string()),
+        Expr::Lit(Lit::Str(s)) => s.value.as_str().map(str::to_string),
+        Expr::Lit(Lit::Num(n)) => Some(n.value.to_string()),
+        Expr::Lit(Lit::BigInt(bi)) => Some(bi.value.to_string()),
+        _ => None,
+      },
+      _ => None,
+    }
+  }
 }

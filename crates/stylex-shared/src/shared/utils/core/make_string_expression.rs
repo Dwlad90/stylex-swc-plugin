@@ -85,7 +85,6 @@ pub(crate) fn make_string_expression(
           key: PropName::Ident(quote_ident!(key.to_string())),
           value: Box::new(result),
         })));
-
         return Some(prop);
       }
 

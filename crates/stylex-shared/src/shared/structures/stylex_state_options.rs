@@ -6,7 +6,7 @@ use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
-  stylex_env::{JSFunction, EnvValue},
+  stylex_env::{EnvValue, JSFunction},
   stylex_options::{CheckModuleResolution, PropertyValidationMode, StyleResolution, StyleXOptions},
 };
 

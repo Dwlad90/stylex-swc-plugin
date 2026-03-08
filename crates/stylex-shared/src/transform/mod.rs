@@ -46,8 +46,6 @@ where
 
     let mut state = StateManager::new(config.clone().into());
 
-    state.stylex_import.clone_from(&stylex_imports);
-
     state.options.import_sources = stylex_imports.into_iter().collect();
 
     state._state = plugin_pass;

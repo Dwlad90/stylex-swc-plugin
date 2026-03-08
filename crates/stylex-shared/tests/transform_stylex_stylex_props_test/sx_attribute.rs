@@ -541,3 +541,143 @@ function Foo() {
 }
   "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      dev: Some(true),
+      enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  sx_attr_import_name_as_default,
+  r#"
+  import sx from '@stylexjs/stylex';
+  const styles = sx.create({
+    red: {
+      color: 'red',
+    }
+  });
+  function Foo({overrideProps= []}) {
+    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
+  }
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      dev: Some(true),
+      enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  sx_attr_import_name_as_namespace,
+  r#"
+  import * as sx from '@stylexjs/stylex';
+  const styles = sx.create({
+    red: {
+      color: 'red',
+    }
+  });
+  function Foo({overrideProps= []}) {
+    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
+  }
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      dev: Some(true),
+      enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  sx_attr_import_name_as_named,
+  r#"
+  import {create, props as sx} from '@stylexjs/stylex';
+  const styles = create({
+    red: {
+      color: 'red',
+    }
+  });
+  function Foo({overrideProps= []}) {
+    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
+  }
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass {
+      cwd: None,
+      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
+    },
+    Some(&mut StyleXOptionsParams {
+      debug: Some(true),
+      dev: Some(true),
+      enable_debug_class_names: Some(true),
+      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string()
+      ))),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  sx_attr_import_name_as_props,
+  r#"
+  import {create, props} from '@stylexjs/stylex';
+  const styles = create({
+    red: {
+      color: 'red',
+    }
+  });
+  function Foo({overrideProps= []}) {
+    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
+  }
+  "#
+);

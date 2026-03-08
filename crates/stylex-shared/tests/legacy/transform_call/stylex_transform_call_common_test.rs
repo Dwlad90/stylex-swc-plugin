@@ -126,8 +126,8 @@ test!(
   ),
   stylex_call_with_computed_number_without_declaration,
   r#"
-      import {create} from '@stylexjs/stylex';
-      const styles = create({
+      import stylex from 'stylex';
+      const styles = stylex.create({
         [0]: {
           color: 'red',
         },
@@ -135,7 +135,7 @@ test!(
           backgroundColor: 'blue',
         }
       });
-      stylex(styles[0], styles[1]);
+      export default stylex(styles[0], styles[1]);
 "#
 );
 

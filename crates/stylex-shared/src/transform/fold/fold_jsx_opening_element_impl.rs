@@ -74,10 +74,15 @@ where
           if let JSXExpr::Expr(expr) = &container.expr {
             let value_expr = *expr.clone();
             let stylex_ident_name = self.get_stylex_ident_name();
+            let props_ident_name = self.get_props_ident_name();
 
             // sx={[styles.a, styles.b]} → {...stylex.props(styles.a, styles.b)}
             let args = sx_value_to_props_args(value_expr);
-            let call = Expr::Call(build_stylex_props_call(stylex_ident_name, args));
+            let call = Expr::Call(build_stylex_props_call(
+              stylex_ident_name,
+              props_ident_name,
+              args,
+            ));
 
             Some(jsx_attr_or_spread_spread_factory(call))
           } else {
@@ -143,11 +148,16 @@ where
     // Extract the sx value and build args
     let sx_value = extract_prop_value(&obj_lit.props[sx_prop_idx])?;
     let stylex_ident_name = self.get_stylex_ident_name();
+    let props_ident_name = self.get_props_ident_name();
     let args = sx_value_to_props_args(sx_value);
 
     // Replace the sx prop with: ...stylex.props(...args)
     let mut new_props = obj_lit.props.clone();
-    let call_expr = Expr::Call(build_stylex_props_call(stylex_ident_name, args));
+    let call_expr = Expr::Call(build_stylex_props_call(
+      stylex_ident_name,
+      props_ident_name,
+      args,
+    ));
     new_props[sx_prop_idx] = prop_or_spread_spread_factory(call_expr);
 
     let mut new_call = call.clone();
@@ -201,10 +211,15 @@ where
     let value_expr = *call.args[2].expr.clone();
 
     let stylex_ident_name = self.get_stylex_ident_name();
+    let props_ident_name = self.get_props_ident_name();
     let args = sx_value_to_props_args(value_expr);
 
     // Build: () => stylex.props(args...)
-    let props_call = Expr::Call(build_stylex_props_call(stylex_ident_name, args));
+    let props_call = Expr::Call(build_stylex_props_call(
+      stylex_ident_name,
+      props_ident_name,
+      args,
+    ));
     let arrow_fn = arrow_expr_factory(props_call);
 
     // Build: _$mergeProps(() => stylex.props(...))
@@ -235,13 +250,21 @@ where
     )))
   }
 
-  fn get_stylex_ident_name(&self) -> String {
+  /// Get the stylex ident name from the import paths.
+  /// Returns the first stylex import name from the import paths.
+  fn get_stylex_ident_name(&self) -> Option<String> {
+    self.state.stylex_import_stringified().into_iter().next()
+  }
+
+  /// Get the props ident name from the import paths.
+  /// Returns the first props import name from the import paths.
+  fn get_props_ident_name(&self) -> Option<String> {
     self
       .state
-      .stylex_import_stringified()
-      .into_iter()
+      .stylex_props_import
+      .iter()
       .next()
-      .unwrap_or_else(|| "stylex".to_string())
+      .map(|ident| ident.to_string())
   }
 }
 
@@ -262,14 +285,26 @@ fn sx_value_to_props_args(value_expr: Expr) -> Vec<ExprOrSpread> {
   }
 }
 
-/// Build `stylex.props(args...)` call expression.
-fn build_stylex_props_call(stylex_ident_name: String, args: Vec<ExprOrSpread>) -> CallExpr {
-  let member = MemberExpr {
-    span: DUMMY_SP,
-    obj: Box::new(Expr::Ident(ident_factory(&stylex_ident_name))),
-    prop: MemberProp::Ident(ident_name_factory("props")),
-  };
-  call_expr_member_factory(member, args)
+/// Build a call expression for stylex props:
+/// - `stylex.props(args...)` when `stylex_ident_name` is available
+/// - `<props_ident_name>(args...)` (e.g. `props(args...)` or `sx(args...)`) otherwise
+fn build_stylex_props_call(
+  stylex_ident_name: Option<String>,
+  props_ident_name: Option<String>,
+  args: Vec<ExprOrSpread>,
+) -> CallExpr {
+  if let Some(stylex_ident_name) = stylex_ident_name {
+    let member = MemberExpr {
+      span: DUMMY_SP,
+      obj: Box::new(Expr::Ident(ident_factory(&stylex_ident_name))),
+      prop: MemberProp::Ident(ident_name_factory("props")),
+    };
+    call_expr_member_factory(member, args)
+  } else if let Some(props_ident_name) = props_ident_name {
+    call_expr_ident_factory(&props_ident_name, args)
+  } else {
+    panic!("Check if you have imported stylex or props");
+  }
 }
 
 /// Find the index of the prop with key matching `sx_prop_name` in a props list.

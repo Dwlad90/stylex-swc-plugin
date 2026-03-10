@@ -779,7 +779,7 @@ pub fn string_to_expression(value: &str) -> Expr {
 }
 
 #[inline]
-pub(crate) fn bool_to_expression(value: bool) -> Expr {
+pub fn bool_to_expression(value: bool) -> Expr {
   Expr::Lit(lit_boolean_factory(value))
 }
 
@@ -789,7 +789,7 @@ pub fn ident_to_expression(value: &str) -> Expr {
 }
 
 #[inline]
-pub(crate) fn null_to_expression() -> Expr {
+pub fn null_to_expression() -> Expr {
   Expr::Lit(lit_null_factory())
 }
 
@@ -819,7 +819,7 @@ pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
   }
 }
 
-pub(crate) fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
+pub fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
   match expr {
     Expr::Lit(lit) => match lit {
       Lit::Bool(b) => b.value,
@@ -940,7 +940,7 @@ pub(crate) fn atom_to_str(atom: &swc_core::atoms::Wtf8Atom) -> &str {
 }
 
 #[inline]
-pub(crate) fn lit_to_string(value: &Lit) -> Option<String> {
+pub fn lit_to_string(value: &Lit) -> Option<String> {
   match value {
     Lit::Str(strng) => Some(lit_str_to_string(strng)),
     Lit::Num(num) => Some(format!("{}", num.value)),

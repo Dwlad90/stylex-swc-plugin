@@ -20,7 +20,7 @@ pub(crate) mod property_specificity;
 pub(crate) mod property_specificity_order;
 pub(crate) mod seen_value;
 pub(crate) mod shorthands_of_shorthands;
-pub(crate) mod state;
+pub mod state;
 pub mod state_manager;
 pub mod stylex_env;
 pub mod stylex_options;

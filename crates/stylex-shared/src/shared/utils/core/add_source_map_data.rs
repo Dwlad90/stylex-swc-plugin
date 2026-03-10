@@ -13,11 +13,12 @@ use crate::shared::{
   constants::{common::COMPILED_KEY, messages::illegal_argument_length},
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{
-    state_manager::StateManager, stylex_env::EnvValue, stylex_options::CheckModuleResolution,
+    functions::FunctionMap, state_manager::StateManager, stylex_options::CheckModuleResolution,
     types::StylesObjectMap,
   },
   utils::{
-    ast::convertors::key_value_to_str, common::get_key_values_from_object,
+    ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
+    common::get_key_values_from_object,
     log::build_code_frame_error::get_span_from_source_code,
   },
 };
@@ -35,6 +36,7 @@ pub(crate) fn add_source_map_data(
   call_expr: &CallExpr,
   state: &mut StateManager,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+  functions: &FunctionMap,
 ) -> StylesObjectMap {
   let mut result: StylesObjectMap = IndexMap::new();
 
@@ -93,13 +95,18 @@ pub(crate) fn add_source_map_data(
                   let filename = state.get_filename().to_string();
                   let raw_short_filename =
                     create_short_filename(filename.as_ref(), state, package_json_seen);
-                  let short_filename = if let Some(ref f) = state.options.debug_file_path {
-                    f.call(vec![EnvValue::String(raw_short_filename.clone())])
+                  let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
+                    f.call(vec![string_to_expression(&raw_short_filename)])
                   } else {
-                    raw_short_filename
+                    string_to_expression(&raw_short_filename)
                   };
 
-                  if !short_filename.is_empty() && original_line_number > 0 {
+                  let short_filename = expr_to_str(&short_filename_expr, state, functions);
+
+                  if original_line_number > 0
+                    && let Some(short_filename) = short_filename
+                    && !short_filename.is_empty()
+                  {
                     let source_map = format!("{}:{}", short_filename, original_line_number);
                     inner_map.insert(
                       COMPILED_KEY.to_owned(),

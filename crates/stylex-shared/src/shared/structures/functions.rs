@@ -40,7 +40,7 @@ pub enum FunctionType {
   Callback(Box<CallbackType>),
   DefaultMarker(Arc<IndexMap<String, StylexExprFn>>),
   /// An env function from the `env` config option.
-  /// Takes evaluated arguments as `EnvValue`s and returns a CSS string.
+  /// Takes evaluated arguments as `Expr`s and returns an `Expr`.
   EnvFunction(JSFunction),
 }
 
@@ -107,7 +107,7 @@ pub enum FunctionConfigType {
   Map(FxHashMap<Atom, FunctionConfig>),
   IndexMap(FlatCompiledStyles),
   /// An env object from the `env` config option. Contains both values and functions.
-  EnvObject(IndexMap<String, super::stylex_env::EnvValue>),
+  EnvObject(IndexMap<String, super::stylex_env::EnvEntry>),
 }
 
 impl std::fmt::Debug for FunctionConfigType {

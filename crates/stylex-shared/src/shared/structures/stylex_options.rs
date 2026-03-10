@@ -6,7 +6,7 @@ use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection},
-  stylex_env::{EnvValue, JSFunction},
+  stylex_env::{EnvEntry, JSFunction},
 };
 
 /// Represents the `sxPropName` option: either a string name or `false` (disabled).
@@ -49,7 +49,7 @@ pub struct StyleXOptionsParams {
   pub unstable_module_resolution: Option<ModuleResolution>,
   pub sx_prop_name: Option<SxPropNameParam>,
   #[serde(skip)]
-  pub env: Option<IndexMap<String, EnvValue>>,
+  pub env: Option<IndexMap<String, EnvEntry>>,
   #[serde(skip)]
   pub debug_file_path: Option<JSFunction>,
 }
@@ -155,7 +155,7 @@ pub struct StyleXOptions {
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
   pub sx_prop_name: Option<String>,
-  pub env: IndexMap<String, EnvValue>,
+  pub env: IndexMap<String, EnvEntry>,
   pub debug_file_path: Option<JSFunction>,
 }
 

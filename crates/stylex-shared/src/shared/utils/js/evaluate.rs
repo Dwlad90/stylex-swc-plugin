@@ -51,7 +51,7 @@ use crate::shared::{
     seen_value::SeenValue,
     state::EvaluationState,
     state_manager::{SeenValueWithVarDeclCount, StateManager, add_import_expression},
-    stylex_env::{EnvValue, expr_to_env_value},
+    stylex_env::EnvEntry,
     theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
@@ -81,30 +81,19 @@ use crate::shared::{
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
 
-/// Resolves an `EnvValue` to an `EvaluateResultValue`.
+/// Resolves an `EnvEntry` to an `EvaluateResultValue`.
 ///
-/// For primitives/null/bool, returns `Expr`. For nested objects, returns `EnvObject`.
-/// For functions, returns the parent `EnvObject` map so callers can resolve the function at the
-/// call-expression site.
-///
-/// Returns `None` if the value cannot be represented as an evaluate result (should not happen in
-/// well-formed configurations).
+/// - `Expr` → `EvaluateResultValue::Expr`
+/// - `Function` → returns the parent map so callers resolve the function at the call-expression site
 #[inline]
-fn resolve_env_val_to_result(
-  env_val: &EnvValue,
-  env_map: &IndexMap<String, EnvValue>,
+fn resolve_env_entry_to_result(
+  entry: &EnvEntry,
+  parent_map: &IndexMap<String, EnvEntry>,
 ) -> Option<EvaluateResultValue> {
-  if let Some(expr) = env_val.to_expr() {
-    return Some(EvaluateResultValue::Expr(expr));
+  match entry {
+    EnvEntry::Expr(expr) => Some(EvaluateResultValue::Expr(expr.clone())),
+    EnvEntry::Function(_) => Some(EvaluateResultValue::EnvObject(parent_map.clone())),
   }
-  if let EnvValue::Object(nested) = env_val {
-    return Some(EvaluateResultValue::EnvObject(nested.clone()));
-  }
-  if env_val.is_function() {
-    // Functions are handled at the call-expression level; return parent map as context
-    return Some(EvaluateResultValue::EnvObject(env_map.clone()));
-  }
-  None
 }
 
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
@@ -704,7 +693,7 @@ fn _evaluate(
                 });
 
               match env_map.get(&key) {
-                Some(env_val) => match resolve_env_val_to_result(env_val, &env_map) {
+                Some(entry) => match resolve_env_entry_to_result(entry, &env_map) {
                   Some(result) => return Some(result),
                   None => panic_with_context!(
                     path,
@@ -1641,7 +1630,7 @@ fn _evaluate(
                           fn_ptr: FunctionType::EnvFunction(env_fn.clone()),
                           takes_path: false,
                         }));
-                      } else if let Some(result) = resolve_env_val_to_result(env_val, &env_map) {
+                      } else if let Some(result) = resolve_env_entry_to_result(env_val, &env_map) {
                         // It's a value, not a function - return it directly
                         return Some(result);
                       }
@@ -2083,17 +2072,17 @@ fn _evaluate(
             }
             FunctionType::EnvFunction(env_fn) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
-              let env_args: Vec<EnvValue> = args
+              let env_args: Vec<Expr> = args
                 .iter()
                 .map(|arg| {
-                  let expr = arg
+                  arg
                     .as_expr()
-                    .expect("Env function argument must be an expression");
-                  expr_to_env_value(expr)
+                    .expect("Env function argument must be an expression")
+                    .clone()
                 })
                 .collect();
               let result = env_fn.call(env_args);
-              return Some(EvaluateResultValue::Expr(string_to_expression(&result)));
+              return Some(EvaluateResultValue::Expr(result));
             }
             _ => panic_with_context!(path, traversal_state, "Function type"),
           }

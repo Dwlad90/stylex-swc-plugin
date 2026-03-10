@@ -1,14 +1,18 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
-import { env } from '@stylexjs/stylex';
 _inject2({
-    ltr: ".xa6cz37{color:#654321}",
-    priority: 3000
+    ltr: ".x1tamke2{padding:16px}",
+    priority: 1000
+});
+_inject2({
+    ltr: ".x167g77z{gap:8px}",
+    priority: 2000
 });
 export const styles = {
     root: {
-        kMwMTN: "xa6cz37",
+        kmVPX3: "x1tamke2",
+        kOIVth: "x167g77z",
         $$css: true
     }
 };

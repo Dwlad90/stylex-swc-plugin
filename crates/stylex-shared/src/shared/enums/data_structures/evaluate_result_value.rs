@@ -13,7 +13,7 @@ use swc_core::{
 
 use crate::shared::{
   structures::{
-    functions::FunctionConfig, stylex_env::EnvValue, theme_ref::ThemeRef, types::EvaluationCallback,
+    functions::FunctionConfig, stylex_env::EnvEntry, theme_ref::ThemeRef, types::EvaluationCallback,
   },
   utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
 };
@@ -28,7 +28,7 @@ pub enum EvaluateResultValue {
   FunctionConfigMap(FxHashMap<Atom, FunctionConfig>),
   ThemeRef(ThemeRef),
   /// An env object from the `env` config option.
-  EnvObject(IndexMap<String, EnvValue>),
+  EnvObject(IndexMap<String, EnvEntry>),
 }
 
 impl Serialize for EvaluateResultValue {

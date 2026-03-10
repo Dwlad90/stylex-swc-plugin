@@ -418,6 +418,7 @@ where
           call,
           &mut self.state,
           &mut package_json_seen,
+          &function_map,
         );
       }
 

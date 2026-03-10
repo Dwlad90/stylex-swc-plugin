@@ -1,4 +1,4 @@
-use swc_core::ecma::ast::{ExportSpecifier, ModuleExportName};
+use swc_core::ecma::ast::{ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread};
 
 use crate::shared::{
   enums::data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
@@ -27,4 +27,27 @@ pub(crate) fn is_variable_named_exported(
     }
   }
   false
+}
+
+pub fn get_property_by_key<'a>(expr: &'a Expr, key: &str) -> Option<&'a Expr> {
+  match expr {
+    Expr::Object(obj) => {
+      for prop in &obj.props {
+        if let PropOrSpread::Prop(prop) = prop
+          && let Some(kv) = prop.as_key_value()
+        {
+          let k = match &kv.key {
+            PropName::Ident(id) => Some(id.sym.as_ref()),
+            PropName::Str(s) => s.value.as_str(),
+            _ => None,
+          };
+          if k == Some(key) {
+            return Some(&kv.value);
+          }
+        }
+      }
+      None
+    }
+    _ => None,
+  }
 }

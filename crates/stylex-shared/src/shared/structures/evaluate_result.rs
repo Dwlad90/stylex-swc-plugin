@@ -80,7 +80,7 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_env_object(&self) -> Option<&indexmap::IndexMap<String, super::stylex_env::EnvValue>> {
+  pub fn as_env_object(&self) -> Option<&indexmap::IndexMap<String, super::stylex_env::EnvEntry>> {
     match self {
       EvaluateResultValue::EnvObject(value) => Some(value),
       _ => None,

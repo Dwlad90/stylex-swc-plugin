@@ -6,7 +6,7 @@ use crate::shared::constants::common::DEFAULT_INJECT_PATH;
 
 use super::{
   named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
-  stylex_env::{EnvValue, JSFunction},
+  stylex_env::{EnvEntry, JSFunction},
   stylex_options::{CheckModuleResolution, PropertyValidationMode, StyleResolution, StyleXOptions},
 };
 
@@ -39,7 +39,7 @@ pub struct StyleXStateOptions {
   pub unstable_module_resolution: CheckModuleResolution,
   pub sx_prop_name: Option<String>,
   #[serde(skip)]
-  pub env: IndexMap<String, EnvValue>,
+  pub env: IndexMap<String, EnvEntry>,
   #[serde(skip)]
   pub debug_file_path: Option<JSFunction>,
 }

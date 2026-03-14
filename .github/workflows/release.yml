@@ -4,10 +4,10 @@ run-name:
   inputs.prerelease-type) || 'stable' }} | ${{ github.ref_name }} | @${{ github.actor }}
 
 permissions:
-      contents: write
-      statuses: write
-      repository-projects: write
-      actions: write
+  contents: write
+  statuses: write
+  repository-projects: write
+  actions: write
 
 on:
   workflow_dispatch:
@@ -354,8 +354,6 @@ jobs:
 
       - name: 🔀 Merge to develop
         run: |
-          git config --global user.name "${GITHUB_ACTOR}"
-          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           git checkout develop
           git pull origin develop
           git merge ${{ needs.calculate-version.outputs.new_version }}
@@ -376,8 +374,6 @@ jobs:
 
       - name: 🔀 Merge to master
         run: |
-          git config --global user.name "${GITHUB_ACTOR}"
-          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           git checkout master
           git pull origin master
           git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}

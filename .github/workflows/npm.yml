@@ -129,16 +129,13 @@ jobs:
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-          architecture: ${{ matrix.settings.architecture }}
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          node-architecture: ${{ matrix.settings.architecture }}
+          install-recursive: 'false'
+          frozen-lockfile: 'true'
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -163,15 +160,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          install-recursive: 'false'
+          frozen-lockfile: 'true'
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -200,15 +194,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          install-recursive: 'false'
+          frozen-lockfile: 'true'
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -262,16 +253,13 @@ jobs:
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-          architecture: ${{ matrix.settings.architecture }}
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          node-architecture: ${{ matrix.settings.architecture }}
+          install-recursive: 'false'
+          frozen-lockfile: 'true'
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:

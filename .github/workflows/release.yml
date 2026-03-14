@@ -148,6 +148,8 @@ jobs:
 
       - name: 🛠️ Setup environment
         uses: ./.github/actions/setup
+        with:
+          setup-pnpm: 'false'
 
       - name: 🔄 Update Cargo lock
         run: |

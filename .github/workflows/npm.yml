@@ -66,6 +66,8 @@ jobs:
       - uses: actions/checkout@v6
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          rust-target: ${{ matrix.settings.target }}
       - uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2.2.1
         if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' }}
         with:

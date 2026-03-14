@@ -3,9 +3,9 @@
   "globalDependencies": [
     ".eslintrc.js",
     ".prettierrc.js",
-    "package.json",
     "Cargo.toml",
     "clippy.toml",
+    "package.json",
     "turbo.json",
     "typings/**"
   ],

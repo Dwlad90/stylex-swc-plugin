@@ -120,8 +120,8 @@ jobs:
               || github.event.ref
             }}
           restore-keys: |
-            ${{ matrix.settings.target }}-benchmark-22.13.0-
-            ${{ matrix.settings.target }}-benchmark-22.13.0
+            ${{ matrix.settings.target }}-benchmark-24.14.0-
+            ${{ matrix.settings.target }}-benchmark-24.14.0
             ${{ matrix.settings.target }}-benchmark-pr-
             ${{ matrix.settings.target }}-benchmark-pr
             ${{ matrix.settings.target }}-benchmark-

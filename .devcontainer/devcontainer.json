@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22.13.0",
+      "version": "24.14.0",
       "pnpmVersion": "10.30.3"
     },
     "ghcr.io/devcontainers/features/rust:1": {

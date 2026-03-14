@@ -1,6 +1,6 @@
 {
   "name": "exports-app",
-  "version": "0.15.1-dev.1",
+  "version": "0.15.1-dev.2",
   "dependencies": {
     "stylex-lib-dist-exports": "*",
     "stylex-lib-dist-exports-commonjs-esm": "*",

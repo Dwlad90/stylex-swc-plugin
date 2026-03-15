@@ -24,12 +24,12 @@ jobs:
         settings:
           - host: macos-latest
             target: x86_64-apple-darwin
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-apple-darwin
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-apple-darwin
           - host: windows-latest
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-pc-windows-msvc
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: windows-latest
-            build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-pc-windows-msvc
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -37,24 +37,24 @@ jobs:
             dockerfile: .github/docker/debian.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: stylex-alpine-builder
             dockerfile: .github/docker/alpine.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-musl
+              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
-            build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-apple-darwin
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: stylex-debian-aarch64-builder
             dockerfile: .github/docker/debian-aarch64.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
           - '24.14.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
@@ -165,7 +165,7 @@ jobs:
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
       - name: Test bindings
-        run: pnpm run --filter @stylexswc/rs-compiler test
+        run: pnpm run test --filter @stylexswc/rs-compiler
       - name: Save turbo build cache
         if: always()
         uses: ./.github/actions/turbo-save
@@ -209,7 +209,7 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
             npm install -g pnpm &&
-            pnpm run --filter @stylexswc/rs-compiler test
+            pnpm run test --filter @stylexswc/rs-compiler
           "
       - name: Save turbo build cache
         if: always()
@@ -255,7 +255,7 @@ jobs:
           docker run --rm -e CI=true -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
             npm install -g pnpm &&
             pnpm install --frozen-lockfile &&
-            pnpm run --filter @stylexswc/rs-compiler test
+            pnpm run test --filter @stylexswc/rs-compiler
           "
       - name: Save turbo build cache
         if: always()
@@ -329,7 +329,7 @@ jobs:
             ${{ matrix.settings.target }}-benchmark-
             ${{ matrix.settings.target }}-benchmark
       - name: Run benchmarks
-        run: pnpm run --filter @stylexswc/rs-compiler bench
+        run: pnpm run bench --filter @stylexswc/rs-compiler
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@4bdcce38c94cec68da58d012ac24b7b1155efe8b # v1.20.7
         with:
@@ -380,7 +380,7 @@ jobs:
         with:
           path: crates/stylex-rs-compiler/artifacts
       - name: Move artifacts
-        run: pnpm run --filter @stylexswc/rs-compiler artifacts
+        run: pnpm exec turbo run artifacts --filter @stylexswc/rs-compiler --continue
       - name: Move and list artifacts
         run: |
           mkdir -p crates/stylex-rs-compiler/dist

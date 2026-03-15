@@ -30,6 +30,12 @@
     "clean": {
       "cache": false
     },
+    "artifacts": {
+      "cache": false,
+      "outputs": [
+        "dist/**/*"
+      ]
+    },
     "check:artifacts": {
       "dependsOn": [
         "^build",

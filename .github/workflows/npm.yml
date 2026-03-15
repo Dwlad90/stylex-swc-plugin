@@ -24,15 +24,19 @@ jobs:
         settings:
           - host: macos-latest
             target: x86_64-apple-darwin
+            rust-target: x86_64-apple-darwin
             build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-apple-darwin
           - host: windows-latest
+            rust-target: x86_64-pc-windows-msvc
             build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: windows-latest
+            rust-target: aarch64-pc-windows-msvc
             build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            rust-target: x86_64-unknown-linux-gnu
             docker: stylex-debian-builder
             dockerfile: .github/docker/debian.Dockerfile
             build: |
@@ -40,6 +44,7 @@ jobs:
               pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            rust-target: x86_64-unknown-linux-musl
             docker: stylex-alpine-builder
             dockerfile: .github/docker/alpine.Dockerfile
             build: |
@@ -47,12 +52,16 @@ jobs:
               pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
+            rust-target: aarch64-apple-darwin
             build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            rust-target: aarch64-unknown-linux-gnu
             docker: stylex-debian-aarch64-builder
             dockerfile: .github/docker/debian-aarch64.Dockerfile
             build: |
+              apt-get update
+              apt-get install -y gcc-aarch64-linux-gnu
               corepack prepare pnpm@10.30.3 --activate
               pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
@@ -67,7 +76,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          rust-target: ${{ matrix.settings.target }}
+          rust-target: ${{ matrix.settings.rust-target }}
       - name: Cache turbo build setup
         id: turbo-cache
         uses: ./.github/actions/turbo
@@ -122,6 +131,7 @@ jobs:
         settings:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
+            rust-target: x86_64-pc-windows-msvc
             architecture: x64
           # Skip testing for aarch64-pc-windows-msvc as ARM64 binaries cannot run on x64 Windows runners
           # - host: windows-latest
@@ -129,9 +139,11 @@ jobs:
           #   architecture: arm64
           - host: macos-latest
             target: aarch64-apple-darwin
+            rust-target: aarch64-apple-darwin
             architecture: arm64
           - host: macos-latest
             target: x86_64-apple-darwin
+            rust-target: x86_64-apple-darwin
             architecture: x64
         node:
           - '20.18.1'
@@ -143,9 +155,10 @@ jobs:
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v6
-      - name: Setup pnpm and Node.js
-        uses: ./.github/actions/setup-pnpm
+      - name: Setup environment
+        uses: ./.github/actions/setup
         with:
+          rust-target: ${{ matrix.settings.rust-target }}
           node-version: ${{ matrix.node }}
           node-architecture: ${{ matrix.settings.architecture }}
           install-recursive: 'false'
@@ -178,6 +191,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        settings:
+          - target: x86_64-unknown-linux-gnu
+            rust-target: x86_64-unknown-linux-gnu
         node:
           - '20.18.1'
           - '22.22.1'
@@ -185,9 +201,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Setup pnpm and Node.js
-        uses: ./.github/actions/setup-pnpm
+      - name: Setup environment
+        uses: ./.github/actions/setup
         with:
+          rust-target: ${{ matrix.settings.rust-target }}
           node-version: ${{ matrix.node }}
           install-recursive: 'false'
           frozen-lockfile: 'false'
@@ -195,12 +212,12 @@ jobs:
         id: turbo-cache
         uses: ./.github/actions/turbo
         with:
-          cache-scope: npm-test-bindings-x86_64-unknown-linux-gnu-node-${{ matrix.node }}
-          restore-cache-scope: npm-build-x86_64-unknown-linux-gnu
+          cache-scope: npm-test-bindings-${{ matrix.settings.target }}-node-${{ matrix.node }}
+          restore-cache-scope: npm-build-${{ matrix.settings.target }}
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
-          name: bindings-x86_64-unknown-linux-gnu
+          name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist
       - name: List artifacts
         run: ls -R crates/stylex-rs-compiler/dist
@@ -223,6 +240,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        settings:
+          - target: x86_64-unknown-linux-musl
+            rust-target: x86_64-unknown-linux-musl
         node:
           - '20.18.1'
           - '22.22.1'
@@ -230,9 +250,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Setup pnpm and Node.js
-        uses: ./.github/actions/setup-pnpm
+      - name: Setup environment
+        uses: ./.github/actions/setup
         with:
+          rust-target: ${{ matrix.settings.rust-target }}
           node-version: ${{ matrix.node }}
           install-recursive: 'false'
           frozen-lockfile: 'false'
@@ -240,12 +261,12 @@ jobs:
         id: turbo-cache
         uses: ./.github/actions/turbo
         with:
-          cache-scope: npm-test-bindings-x86_64-unknown-linux-musl-node-${{ matrix.node }}
-          restore-cache-scope: npm-build-x86_64-unknown-linux-musl
+          cache-scope: npm-test-bindings-${{ matrix.settings.target }}-node-${{ matrix.node }}
+          restore-cache-scope: npm-build-${{ matrix.settings.target }}
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
-          name: bindings-x86_64-unknown-linux-musl
+          name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist
       - name: List artifacts
         run: ls -R crates/stylex-rs-compiler/dist
@@ -272,6 +293,7 @@ jobs:
         settings:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
+            rust-target: x86_64-pc-windows-msvc
             architecture: x64
           # Skip benchmarking for aarch64-pc-windows-msvc as ARM64 binaries cannot run on x64 Windows runners
           # - host: windows-latest
@@ -279,12 +301,15 @@ jobs:
           #   architecture: arm64
           - host: macos-latest
             target: aarch64-apple-darwin
+            rust-target: aarch64-apple-darwin
             architecture: arm64
           - host: macos-latest
             target: x86_64-apple-darwin
+            rust-target: x86_64-apple-darwin
             architecture: x64
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            rust-target: x86_64-unknown-linux-gnu
             architecture: x64
         node:
           - '20.18.1'
@@ -300,9 +325,10 @@ jobs:
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v6
-      - name: Setup pnpm and Node.js
-        uses: ./.github/actions/setup-pnpm
+      - name: Setup environment
+        uses: ./.github/actions/setup
         with:
+          rust-target: ${{ matrix.settings.rust-target }}
           node-version: ${{ matrix.node }}
           node-architecture: ${{ matrix.settings.architecture }}
           install-recursive: 'false'

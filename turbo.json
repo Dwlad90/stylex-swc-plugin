@@ -37,11 +37,11 @@
       ]
     },
     "check:artifacts": {
+      "cache": false,
       "dependsOn": [
         "^build",
         "build"
       ],
-      "outputs": []
     },
     "lint": {
       "dependsOn": [

@@ -24,46 +24,43 @@ jobs:
         settings:
           - host: macos-latest
             target: x86_64-apple-darwin
-            rust-target: x86_64-apple-darwin
-            build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-apple-darwin
+            build:
+              pnpm run build --filter @stylexswc/rs-compiler --only -- --target x86_64-apple-darwin
           - host: windows-latest
-            rust-target: x86_64-pc-windows-msvc
-            build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-pc-windows-msvc
+            build:
+              pnpm run build --filter @stylexswc/rs-compiler --only -- --target
+              x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: windows-latest
-            rust-target: aarch64-pc-windows-msvc
-            build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-pc-windows-msvc
+            build:
+              pnpm run build --filter @stylexswc/rs-compiler --only -- --target
+              aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            rust-target: x86_64-unknown-linux-gnu
             docker: stylex-debian-builder
             dockerfile: .github/docker/debian.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler --only -- --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            rust-target: x86_64-unknown-linux-musl
             docker: stylex-alpine-builder
             dockerfile: .github/docker/alpine.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-musl
+              pnpm run build --filter @stylexswc/rs-compiler --only -- --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
-            rust-target: aarch64-apple-darwin
-            build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-apple-darwin
+            build:
+              pnpm run build --filter @stylexswc/rs-compiler --only -- --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            rust-target: aarch64-unknown-linux-gnu
             docker: stylex-debian-aarch64-builder
             dockerfile: .github/docker/debian-aarch64.Dockerfile
             build: |
-              apt-get update
-              apt-get install -y gcc-aarch64-linux-gnu
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler --only -- --target aarch64-unknown-linux-gnu
         node:
           - '24.14.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
@@ -76,7 +73,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          rust-target: ${{ matrix.settings.rust-target }}
+          setup-rust: ${{ !matrix.settings.docker }}
+          rust-target: ${{ matrix.settings.target }}
       - name: Cache turbo build setup
         id: turbo-cache
         uses: ./.github/actions/turbo
@@ -131,7 +129,6 @@ jobs:
         settings:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
-            rust-target: x86_64-pc-windows-msvc
             architecture: x64
           # Skip testing for aarch64-pc-windows-msvc as ARM64 binaries cannot run on x64 Windows runners
           # - host: windows-latest
@@ -139,11 +136,9 @@ jobs:
           #   architecture: arm64
           - host: macos-latest
             target: aarch64-apple-darwin
-            rust-target: aarch64-apple-darwin
             architecture: arm64
           - host: macos-latest
             target: x86_64-apple-darwin
-            rust-target: x86_64-apple-darwin
             architecture: x64
         node:
           - '20.18.1'
@@ -158,7 +153,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          rust-target: ${{ matrix.settings.rust-target }}
+          rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
           node-architecture: ${{ matrix.settings.architecture }}
           install-recursive: 'false'
@@ -178,7 +173,7 @@ jobs:
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
       - name: Test bindings
-        run: pnpm run test --filter @stylexswc/rs-compiler
+        run: pnpm run test --filter @stylexswc/rs-compiler --only
       - name: Save turbo build cache
         if: always()
         uses: ./.github/actions/turbo-save
@@ -193,7 +188,6 @@ jobs:
       matrix:
         settings:
           - target: x86_64-unknown-linux-gnu
-            rust-target: x86_64-unknown-linux-gnu
         node:
           - '20.18.1'
           - '22.22.1'
@@ -204,7 +198,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          rust-target: ${{ matrix.settings.rust-target }}
+          rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
           install-recursive: 'false'
           frozen-lockfile: 'false'
@@ -226,7 +220,7 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
             npm install -g pnpm &&
-            pnpm run test --filter @stylexswc/rs-compiler
+            pnpm run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
         if: always()
@@ -242,7 +236,6 @@ jobs:
       matrix:
         settings:
           - target: x86_64-unknown-linux-musl
-            rust-target: x86_64-unknown-linux-musl
         node:
           - '20.18.1'
           - '22.22.1'
@@ -253,7 +246,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          rust-target: ${{ matrix.settings.rust-target }}
+          rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
           install-recursive: 'false'
           frozen-lockfile: 'false'
@@ -276,7 +269,7 @@ jobs:
           docker run --rm -e CI=true -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
             npm install -g pnpm &&
             pnpm install --frozen-lockfile &&
-            pnpm run test --filter @stylexswc/rs-compiler
+            pnpm run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
         if: always()
@@ -293,7 +286,6 @@ jobs:
         settings:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
-            rust-target: x86_64-pc-windows-msvc
             architecture: x64
           # Skip benchmarking for aarch64-pc-windows-msvc as ARM64 binaries cannot run on x64 Windows runners
           # - host: windows-latest
@@ -301,15 +293,12 @@ jobs:
           #   architecture: arm64
           - host: macos-latest
             target: aarch64-apple-darwin
-            rust-target: aarch64-apple-darwin
             architecture: arm64
           - host: macos-latest
             target: x86_64-apple-darwin
-            rust-target: x86_64-apple-darwin
             architecture: x64
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            rust-target: x86_64-unknown-linux-gnu
             architecture: x64
         node:
           - '20.18.1'
@@ -328,7 +317,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          rust-target: ${{ matrix.settings.rust-target }}
+          setup-rust: 'false'
+          rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
           node-architecture: ${{ matrix.settings.architecture }}
           install-recursive: 'false'
@@ -355,7 +345,7 @@ jobs:
             ${{ matrix.settings.target }}-benchmark-
             ${{ matrix.settings.target }}-benchmark
       - name: Run benchmarks
-        run: pnpm run bench --filter @stylexswc/rs-compiler
+        run: pnpm run bench --filter @stylexswc/rs-compiler --only
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@4bdcce38c94cec68da58d012ac24b7b1155efe8b # v1.20.7
         with:
@@ -399,7 +389,7 @@ jobs:
         uses: ./.github/actions/turbo
         with:
           cache-scope: npm-publish-build-public-packages
-          restore-cache-scope: npm-publish-build-public-packages
+          restore-cache-scope: npm-build-x86_64-unknown-linux-gnu
           allow-global-fallback: 'false'
       - name: Download all artifacts
         uses: actions/download-artifact@v8
@@ -435,7 +425,7 @@ jobs:
       - name: Check artifacts
         run:
           pnpm run check:artifacts --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter
-          "!{./crates/*}" --continue
+          "!{./crates/*}"
       - name: Save turbo build cache (public packages check)
         if: always()
         uses: ./.github/actions/turbo-save

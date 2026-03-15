@@ -24,12 +24,12 @@ jobs:
         settings:
           - host: macos-latest
             target: x86_64-apple-darwin
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-apple-darwin
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-apple-darwin
           - host: windows-latest
-            build: pnpm run --filter @stylexswc/rs-compiler build --target x86_64-pc-windows-msvc
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: windows-latest
-            build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-pc-windows-msvc
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -37,24 +37,24 @@ jobs:
             dockerfile: .github/docker/debian.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: stylex-alpine-builder
             dockerfile: .github/docker/alpine.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target x86_64-unknown-linux-musl
+              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
-            build: pnpm run --filter @stylexswc/rs-compiler build --target aarch64-apple-darwin
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: stylex-debian-aarch64-builder
             dockerfile: .github/docker/debian-aarch64.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run --filter @stylexswc/rs-compiler build --target aarch64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
           - '24.14.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
@@ -66,6 +66,15 @@ jobs:
       - uses: actions/checkout@v6
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          rust-target: ${{ matrix.settings.target }}
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-build-${{ matrix.settings.target }}
+          restore-cache-scope: npm-build-${{ matrix.settings.target }}
+          allow-global-fallback: 'false'
       - uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2.2.1
         if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' }}
         with:
@@ -92,6 +101,11 @@ jobs:
         run: ${{ matrix.settings.build }}
         if: ${{ !matrix.settings.docker }}
         shell: bash
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
@@ -129,16 +143,19 @@ jobs:
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-          architecture: ${{ matrix.settings.architecture }}
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          node-architecture: ${{ matrix.settings.architecture }}
+          install-recursive: 'false'
+          frozen-lockfile: 'false'
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-test-bindings-${{ matrix.settings.target }}-node-${{ matrix.node }}
+          restore-cache-scope: npm-build-${{ matrix.settings.target }}
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -148,7 +165,12 @@ jobs:
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
       - name: Test bindings
-        run: pnpm run --filter @stylexswc/rs-compiler test
+        run: pnpm run test --filter @stylexswc/rs-compiler
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
   test-linux-x64-gnu-binding:
     name: 🧪 Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
     needs:
@@ -163,15 +185,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          install-recursive: 'false'
+          frozen-lockfile: 'false'
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-test-bindings-x86_64-unknown-linux-gnu-node-${{ matrix.node }}
+          restore-cache-scope: npm-build-x86_64-unknown-linux-gnu
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -184,8 +209,13 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
             npm install -g pnpm &&
-            pnpm run --filter @stylexswc/rs-compiler test
+            pnpm run test --filter @stylexswc/rs-compiler
           "
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
   test-linux-x64-musl-binding:
     name: 🧪 Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
     needs:
@@ -200,15 +230,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          install-recursive: 'false'
+          frozen-lockfile: 'false'
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-test-bindings-x86_64-unknown-linux-musl-node-${{ matrix.node }}
+          restore-cache-scope: npm-build-x86_64-unknown-linux-musl
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -222,8 +255,13 @@ jobs:
           docker run --rm -e CI=true -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
             npm install -g pnpm &&
             pnpm install --frozen-lockfile &&
-            pnpm run --filter @stylexswc/rs-compiler test
+            pnpm run test --filter @stylexswc/rs-compiler
           "
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
   benchmark:
     name: 📊 Benchmark on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
@@ -262,16 +300,19 @@ jobs:
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v6
-      - name: Setup environment
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/setup-pnpm
-      - name: Setup node
-        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-          architecture: ${{ matrix.settings.architecture }}
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          node-architecture: ${{ matrix.settings.architecture }}
+          install-recursive: 'false'
+          frozen-lockfile: 'false'
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-benchmark-${{ matrix.settings.target }}-node-${{ matrix.node }}
+          restore-cache-scope: npm-build-${{ matrix.settings.target }}
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -288,7 +329,7 @@ jobs:
             ${{ matrix.settings.target }}-benchmark-
             ${{ matrix.settings.target }}-benchmark
       - name: Run benchmarks
-        run: pnpm run --filter @stylexswc/rs-compiler bench
+        run: pnpm run bench --filter @stylexswc/rs-compiler
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@4bdcce38c94cec68da58d012ac24b7b1155efe8b # v1.20.7
         with:
@@ -304,6 +345,11 @@ jobs:
           fail-threshold: '175%'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
   publish:
     name: 📦 Publish
     runs-on: ubuntu-latest
@@ -322,12 +368,19 @@ jobs:
       - uses: actions/checkout@v6
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
+      - name: Cache turbo build setup (public packages build)
+        id: turbo-cache-build-public-packages
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-publish-build-public-packages
+          restore-cache-scope: npm-publish-build-public-packages
+          allow-global-fallback: 'false'
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
           path: crates/stylex-rs-compiler/artifacts
       - name: Move artifacts
-        run: pnpm run --filter @stylexswc/rs-compiler artifacts
+        run: pnpm exec turbo run artifacts --filter @stylexswc/rs-compiler --continue
       - name: Move and list artifacts
         run: |
           mkdir -p crates/stylex-rs-compiler/dist
@@ -337,10 +390,31 @@ jobs:
           ls -R crates/stylex-rs-compiler/dist/*
       - name: Build all public packages
         run: |
-          pnpm run --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" build
+          pnpm run build --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" --continue
+
+      - name: Save turbo build cache (public packages build)
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache-build-public-packages.outputs.cache-key }}
+
+      - name: Cache turbo build setup (public packages check)
+        id: turbo-cache-check-artifacts
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-publish-check-artifacts
+          restore-cache-scope: npm-publish-build-public-packages
+          allow-global-fallback: 'false'
 
       - name: Check artifacts
-        run: pnpm run --filter "{./packages/*}" --filter "!@stylexswc/*swc*"  check:artifacts
+        run:
+          pnpm run check:artifacts --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter
+          "!{./crates/*}" --continue
+      - name: Save turbo build cache (public packages check)
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache-check-artifacts.outputs.cache-key }}
       - name: Publish
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

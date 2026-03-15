@@ -1,26 +1,81 @@
 name: Setup pnpm
 description: Install pnpm package manager
+inputs:
+  node-version:
+    description: Node.js version to install
+    required: false
+    default: '24.14.0'
+  node-architecture:
+    description: Optional Node.js architecture
+    required: false
+    default: ''
+  install-dependencies:
+    description: Whether to run pnpm install
+    required: false
+    default: 'true'
+  install-recursive:
+    description: Whether pnpm install should be recursive
+    required: false
+    default: 'true'
+  frozen-lockfile:
+    description: Lockfile mode (auto, true, false)
+    required: false
+    default: 'auto'
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@v4.4.0
+    - uses: pnpm/action-setup@v4
       name: Install pnpm
       id: pnpm-install
       with:
         version: 10.30.3
 
-    - uses: actions/setup-node@v6.3.0
+    - uses: actions/setup-node@v6
+      if: ${{ inputs['node-architecture'] == '' }}
       name: Install Node.js
       with:
-        node-version: 24.14.0
+        node-version: ${{ inputs['node-version'] }}
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'pnpm'
+
+    - uses: actions/setup-node@v6
+      if: ${{ inputs['node-architecture'] != '' }}
+      name: Install Node.js (custom arch)
+      with:
+        node-version: ${{ inputs['node-version'] }}
+        architecture: ${{ inputs['node-architecture'] }}
         registry-url: 'https://registry.npmjs.org'
         cache: 'pnpm'
 
     - name: Install dependencies
+      if: ${{ inputs['install-dependencies'] == 'true' }}
       shell: bash
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          pnpm install --recursive --link-workspace-packages --no-frozen-lockfile
-        else
-          pnpm install --recursive --frozen-lockfile --link-workspace-packages
+        install_args=(--link-workspace-packages)
+
+        if [ "${{ inputs['install-recursive'] }}" = "true" ]; then
+          install_args+=(--recursive)
         fi
+
+        lockfile_mode='${{ inputs['frozen-lockfile'] }}'
+        case "$lockfile_mode" in
+          true)
+            install_args+=(--frozen-lockfile)
+            ;;
+          false)
+            install_args+=(--no-frozen-lockfile)
+            ;;
+          auto)
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              install_args+=(--no-frozen-lockfile)
+            else
+              install_args+=(--frozen-lockfile)
+            fi
+            ;;
+          *)
+            echo "::error::Invalid frozen-lockfile input '$lockfile_mode'. Expected auto, true, or false."
+            exit 1
+            ;;
+        esac
+
+        pnpm install "${install_args[@]}"

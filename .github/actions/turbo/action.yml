@@ -1,14 +1,90 @@
 name: 'Turbo cache'
-description: 'Cache Turbo build setup'
+description: 'Restore Turbo build cache'
+inputs:
+  cache-scope:
+    description: 'Additional cache scope to avoid key collisions between jobs'
+    required: false
+    default: ''
+  restore-cache-scope:
+    description: 'Optional secondary scope restored after the primary scope'
+    required: false
+    default: ''
+  allow-global-fallback:
+    description: 'Allow broad branch-level fallback after scope-specific restore keys'
+    required: false
+    default: 'true'
+  cache-path:
+    description: 'Cache path(s) for Turbo artifacts'
+    required: false
+    default: .turbo
+outputs:
+  cache-key:
+    description: 'Primary cache key used for saving after job steps'
+    value: ${{ steps.turbo-cache-key.outputs.cache_key }}
 runs:
   using: 'composite'
   steps:
-    - name: Cache turbo build setup
-      uses: actions/cache@v4
+    - name: Resolve turbo cache key
+      id: turbo-cache-key
+      shell: bash
+      env:
+        CACHE_PREFIX: ${{ format('{0}-turbo', runner.os) }}
+        CACHE_SCOPE: ${{ inputs['cache-scope'] != '' && inputs['cache-scope'] || github.job }}
+        RESTORE_SCOPE_INPUT: ${{ inputs['restore-cache-scope'] }}
+        CACHE_SHA: ${{ github.sha }}
+      run: |
+        preferred_restore_scope="$CACHE_SCOPE"
+        if [[ -n "$RESTORE_SCOPE_INPUT" ]]; then
+          preferred_restore_scope="$RESTORE_SCOPE_INPUT"
+        fi
+
+        secondary_restore_scope=''
+        if [[ "$preferred_restore_scope" != "$CACHE_SCOPE" ]]; then
+          secondary_restore_scope="$preferred_restore_scope"
+        fi
+
+        echo "cache_prefix=$CACHE_PREFIX" >> "$GITHUB_OUTPUT"
+        echo "cache_scope=$CACHE_SCOPE" >> "$GITHUB_OUTPUT"
+        echo "secondary_restore_scope=$secondary_restore_scope" >> "$GITHUB_OUTPUT"
+        echo "cache_key=$CACHE_PREFIX-$CACHE_SCOPE-$CACHE_SHA" >> "$GITHUB_OUTPUT"
+
+    - name: Restore turbo build cache (primary scope)
+      id: turbo-cache-restore-primary
+      uses: actions/cache/restore@v5
       with:
-        path: |
-          .turbo
-          **/.turbo
-        key: ${{ runner.os }}-turbo-${{ github.sha }}
+        path: ${{ inputs['cache-path'] }}
+        key: ${{ steps.turbo-cache-key.outputs.cache_key }}
         restore-keys: |
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.cache_scope }}-${{ github.sha }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.cache_scope }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ github.sha }}-${{ steps.turbo-cache-key.outputs.cache_scope }}-
+
+    - name: Restore turbo build cache (secondary scope)
+      if: ${{ steps.turbo-cache-key.outputs.secondary_restore_scope != '' }}
+      id: turbo-cache-restore-secondary
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ inputs['cache-path'] }}
+        key:
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{
+          steps.turbo-cache-key.outputs.secondary_restore_scope }}-${{ github.sha }}
+        restore-keys: |
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.secondary_restore_scope }}-${{ github.sha }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.secondary_restore_scope }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ github.sha }}-${{ steps.turbo-cache-key.outputs.secondary_restore_scope }}-
+
+    - name: Restore turbo build cache (global fallback)
+      if:
+        ${{ inputs['allow-global-fallback'] == 'true' &&
+        steps.turbo-cache-restore-primary.outputs.cache-matched-key == '' &&
+        (steps.turbo-cache-key.outputs.secondary_restore_scope == '' ||
+        steps.turbo-cache-restore-secondary.outputs.cache-matched-key == '') }}
+      id: turbo-cache-restore-global
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ inputs['cache-path'] }}
+        key: ${{ steps.turbo-cache-key.outputs.cache_key }}
+        restore-keys: |
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ github.sha }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-
           ${{ runner.os }}-turbo-

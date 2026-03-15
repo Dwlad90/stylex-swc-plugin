@@ -43,6 +43,7 @@ jobs:
           pnpm syncpack fix
 
       - name: Commit changes if needed
+        id: commit-changes
         run: |
           if git diff --quiet -- '**/package.json'; then
             echo "No dependency changes detected"

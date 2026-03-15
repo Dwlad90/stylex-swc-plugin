@@ -3,9 +3,9 @@
   "globalDependencies": [
     ".eslintrc.js",
     ".prettierrc.js",
-    "package.json",
     "Cargo.toml",
     "clippy.toml",
+    "package.json",
     "turbo.json",
     "typings/**"
   ],
@@ -17,8 +17,7 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "^build",
-        "clean"
+        "^build"
       ],
       "outputs": [
         "dist/**/*",
@@ -30,6 +29,19 @@
     },
     "clean": {
       "cache": false
+    },
+    "artifacts": {
+      "cache": false,
+      "outputs": [
+        "dist/**/*"
+      ]
+    },
+    "check:artifacts": {
+      "dependsOn": [
+        "^build",
+        "build"
+      ],
+      "outputs": []
     },
     "lint": {
       "dependsOn": [
@@ -44,36 +56,31 @@
     "@stylexswc/rs-compiler#lint:check": {
       "dependsOn": [
         "^build",
-        "build",
-        "clean"
+        "build"
       ]
     },
     "@stylexswc/rs-compiler#test": {
       "dependsOn": [
         "^build",
-        "build",
-        "clean"
+        "build"
       ]
     },
     "@stylexswc/path-resolver#lint:check": {
       "dependsOn": [
         "^build",
-        "build",
-        "clean"
+        "build"
       ]
     },
     "@stylexswc/shared#lint:check": {
       "dependsOn": [
         "^build",
-        "build",
-        "clean"
+        "build"
       ]
     },
     "@stylexswc/test-parser#lint:check": {
       "dependsOn": [
         "^build",
-        "build",
-        "clean"
+        "build"
       ]
     },
     "dev": {
@@ -82,15 +89,13 @@
     },
     "typecheck": {
       "dependsOn": [
-        "^build",
-        "clean"
+        "^build"
       ],
       "outputs": []
     },
     "test": {
       "dependsOn": [
-        "^build",
-        "clean"
+        "^build"
       ],
       "outputs": [
         "**/__swc_snapshots__",
@@ -107,16 +112,14 @@
     "bench": {
       "dependsOn": [
         "^build",
-        "build",
-        "clean"
+        "build"
       ],
       "cache": false
     },
     "test:visual": {
       "dependsOn": [
         "^build",
-        "build",
-        "clean"
+        "build"
       ],
       "outputs": [
         "**/.playwright-snapshots"

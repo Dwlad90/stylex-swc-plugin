@@ -22,6 +22,14 @@ on:
 env:
   APP_NAME: 'rs-compiler'
   CI: true
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+  CHECKOUT_REF: >-
+    ${{
+      github.event.pull_request.number != null
+      && format('refs/pull/{0}/merge', github.event.pull_request.number)
+      || github.ref
+    }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.ref }}
@@ -34,101 +42,233 @@ permissions:
   repository-projects: write
 
 jobs:
-  pr-validation:
-    name: PR Validation
+  build-public-packages:
+    name: Build all public packages
     if: github.event.pull_request.number == null || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-
     steps:
-      - uses: actions/github-script@v8
-        if: github.event.pull_request.number != null
-        id: pr
-        with:
-          script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
-              ...context.repo,
-              pull_number: context.payload.pull_request.number,
-            });
-            return pullRequest
-      - name: Checkout PR code
-        if: github.event.pull_request.number != null
+      - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{fromJSON(steps.pr.outputs.result).merge_commit_sha}}
+          ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
           fetch-tags: false
 
-      - name: Checkout branch code
-        if: github.event.pull_request.number == null
-        uses: actions/checkout@v6
-
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          rust-target: 'wasm32-wasip1'
 
       - name: Cache turbo build setup
+        id: turbo-cache
         uses: ./.github/actions/turbo
-
-      - name: Validate commit messages
-        if: github.event.pull_request.number != null
-        run: pnpm exec commitlint --from=$(git merge-base origin/develop HEAD)
-
-      - name: Version mismatch check
-        run: ./scripts/git/version-mismatch-check.sh
-
-      - name: Format code
-        run: pnpm run format:check
-
-      - name: Lint code
-        run: pnpm run lint:check
-
-      - name: Typecheck code
-        run: pnpm run typecheck
-
-      - name: Run tests
-        run: pnpm run test
+        with:
+          cache-scope: build-public-packages
+          restore-cache-scope: build-public-packages
+          allow-global-fallback: 'false'
 
       - name: Build all public packages
         run: pnpm run build --filter "{./packages/*}..." --filter "{./crates/*}..." --continue
 
-      - name: Install Playwright browsers
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+
+  basic-checks:
+    name: ${{ matrix.check.name }}
+    if: github.event.pull_request.number != null && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check:
+          - id: conventional-commits
+            name: Validate conventional commits
+            command: pnpm exec commitlint --from=$(git merge-base origin/develop HEAD)
+          - id: version-mismatch
+            name: Version mismatch check
+            command: ./scripts/git/version-mismatch-check.sh
+          - id: format-check
+            name: Check formatting
+            command: pnpm run format:check
+      fail-fast: false
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+          fetch-depth: 0
+          fetch-tags: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          setup-rust: ${{ matrix.check.id == 'format-check' }}
+
+      - name: ${{ matrix.check.name }}
+        run: ${{ matrix.check.command }}
+
+  checks:
+    name: ${{ matrix.check.name }}
+    if: github.event.pull_request.number == null || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    needs:
+      - build-public-packages
+      - basic-checks
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - id: lint-check
+            name: Lint code
+            command: pnpm run lint:check
+          - id: typecheck
+            name: Typecheck code
+            command: pnpm run typecheck
+          - id: tests
+            name: Run tests
+            command: pnpm run test
+          - id: check-artifacts
+            name: Check artifacts
+            command: pnpm run check:artifacts --filter "{./packages/*}" --filter "{./crates/*}"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+          fetch-depth: 0
+          fetch-tags: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          rust-target: 'wasm32-wasip1'
+
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: checks-${{ matrix.check.id }}
+          restore-cache-scope: build-public-packages
+
+      - name: ${{ matrix.check.name }}
+        run: ${{ matrix.check.command }}
+
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+
+  visual-tests:
+    name: Run visual comparison tests
+    if: github.event.pull_request.number == null || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    needs:
+      - build-public-packages
+      - basic-checks
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+          fetch-depth: 0
+          fetch-tags: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          setup-rust: 'false'
+
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: visual-tests
+          restore-cache-scope: build-public-packages
+
+      - name: Get Playwright version
+        id: playwright-version
+        run:
+          echo "PLAYWRIGHT_VERSION=$(pnpm list playwright --depth=0 | grep playwright | awk '{print
+          $2}' |  sed 's/playwright@//')" >> $GITHUB_ENV
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v5
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm playwright install --with-deps chromium webkit --only-shell
 
+      - name: Install Playwright OS Dependencies (Always)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm playwright install-deps chromium webkit
+
       - name: Run visual comparison tests
-        id: visual-tests
         run:
           pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-large-example"
           --filter="!@stylexswc/webpack-example" --continue
 
-      - name: Check artifacts
-        run: pnpm run --filter "{./packages/*}" --filter "{./crates/*}" check:artifacts
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+
+  benchmark:
+    name: Run benchmarks
+    if: github.event.pull_request.number == null || !github.event.pull_request.draft
+    needs:
+      - build-public-packages
+      - basic-checks
+    runs-on: ubuntu-latest
+    env:
+      BENCHMARK_CACHE_KEY_PREFIX: >-
+        x86_64-unknown-linux-gnu-benchmark-${{
+          github.event.pull_request.number != null
+          && format('pr-{0}', github.event.pull_request.number)
+          || github.ref_name
+        }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+          fetch-depth: 0
+          fetch-tags: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          setup-rust: 'false'
+
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: benchmark
+          restore-cache-scope: build-public-packages
 
       - name: Download previous benchmark data
-        uses: actions/cache@v5
+        id: benchmark-cache-restore
+        uses: actions/cache/restore@v5
         with:
           path: ./cache
-          key: >-
-            ${{ matrix.settings.target }}-benchmark-${{
-              github.event.pull_request.number != null
-              && format('pr-{0}', github.event.pull_request.number)
-              || github.event.ref
-            }}
+          key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ matrix.settings.target }}-benchmark-24.14.0-
-            ${{ matrix.settings.target }}-benchmark-24.14.0
-            ${{ matrix.settings.target }}-benchmark-pr-
-            ${{ matrix.settings.target }}-benchmark-pr
-            ${{ matrix.settings.target }}-benchmark-
-            ${{ matrix.settings.target }}-benchmark
+            ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-
+            x86_64-unknown-linux-gnu-benchmark-pr-
+            x86_64-unknown-linux-gnu-benchmark-
 
       - name: Run benchmarks
-        run: pnpm run --filter @stylexswc/rs-compiler bench
+        run: pnpm run bench --filter @stylexswc/rs-compiler
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@4bdcce38c94cec68da58d012ac24b7b1155efe8b # v1.20.7
@@ -145,6 +285,49 @@ jobs:
           fail-threshold: '175%'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Save benchmark cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: ./cache
+          key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_attempt }}
+
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+
+  pr-validation:
+    name: PR Validation
+    if:
+      ${{ always() && (github.event.pull_request.number == null || !github.event.pull_request.draft)
+      }}
+    needs:
+      - build-public-packages
+      - basic-checks
+      - checks
+      - visual-tests
+      - benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify validation jobs
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS_JSON" | jq .
+
+          for job in basic-checks checks build-public-packages visual-tests benchmark; do
+            result=$(echo "$NEEDS_JSON" | jq -r --arg job "$job" '.[$job].result')
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "::error::Validation job '$job' finished with status '$result'."
+              exit 1
+            fi
+          done
+
+          echo "All validation jobs passed"
+
   dependabot:
     runs-on: ubuntu-latest
     needs: [pr-validation]
@@ -193,13 +376,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Configure Git
+        if: |
+          (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+            steps.metadata.outputs.update-type == 'version-update:semver-minor')
+        uses: ./.github/actions/gitconfig
+
       - name: Auto-merge for safe updates
         if: |
           (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
             steps.metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
-          git config --global user.name "${GITHUB_ACTOR}"
-          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           echo "Auto-merging PR..."
           git checkout develop
           git pull origin develop

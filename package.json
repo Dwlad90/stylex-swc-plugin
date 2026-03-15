@@ -3,7 +3,9 @@
   "version": "0.15.1-dev.2",
   "private": true,
   "scripts": {
+    "bench": "turbo run bench --continue",
     "build": "turbo run build",
+    "check:artifacts": "turbo run check:artifacts --continue",
     "clean": "turbo clean",
     "dev": "turbo dev",
     "docs": "scripty  --rust",

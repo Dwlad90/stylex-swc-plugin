@@ -1,7 +1,71 @@
 name: Rust Setup
 description: Install Rust toolchain and dependencies
+inputs:
+  target:
+    description: Optional Rust target(s) to install (comma-separated)
+    required: false
+    default: ''
 runs:
   using: composite
   steps:
     - name: Setup Rust toolchain
+      if: ${{ inputs['target'] == '' }}
       uses: actions-rust-lang/setup-rust-toolchain@v1
+
+    - name: Resolve Rust toolchain defaults
+      if: ${{ inputs['target'] != '' }}
+      id: rust-toolchain
+      shell: bash
+      run: |
+        python - <<'PY' >> "$GITHUB_OUTPUT"
+        import pathlib
+        import re
+        import sys
+
+        toolchain_path = pathlib.Path("rust-toolchain.toml")
+        if not toolchain_path.exists():
+            print("::error::rust-toolchain.toml not found at repository root.", file=sys.stderr)
+            sys.exit(1)
+
+        raw = toolchain_path.read_text()
+        channel = ""
+        components = []
+
+        try:
+            import tomllib  # type: ignore
+
+            toolchain_data = tomllib.loads(raw).get("toolchain", {})
+            channel = toolchain_data.get("channel", "")
+            components = toolchain_data.get("components", [])
+        except Exception:
+            channel_match = re.search(r'(?m)^\\s*channel\\s*=\\s*"([^"]+)"\\s*$', raw)
+            if channel_match:
+                channel = channel_match.group(1)
+
+            components_match = re.search(r'(?ms)^\\s*components\\s*=\\s*\\[(.*?)\\]\\s*$', raw)
+            if components_match:
+                components = [
+                    item.strip().strip('"')
+                    for item in components_match.group(1).split(",")
+                    if item.strip().strip('"')
+                ]
+
+        if not channel:
+            print("::error::Missing toolchain.channel in rust-toolchain.toml.", file=sys.stderr)
+            sys.exit(1)
+
+        if not isinstance(components, list):
+            print("::error::Expected toolchain.components to be an array in rust-toolchain.toml.", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"channel={channel}")
+        print(f"components={','.join(components)}")
+        PY
+
+    - name: Setup Rust toolchain (target-limited)
+      if: ${{ inputs['target'] != '' }}
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: ${{ steps.rust-toolchain.outputs.channel }}
+        components: ${{ steps.rust-toolchain.outputs.components }}
+        target: ${{ inputs['target'] }}

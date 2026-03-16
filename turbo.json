@@ -14,6 +14,9 @@
     "STYLEX_DEBUG",
     "PORT"
   ],
+  "futureFlags": {
+    "errorsOnlyShowHash": true
+  },
   "tasks": {
     "build": {
       "dependsOn": [
@@ -25,16 +28,19 @@
         ".next/**",
         "!.next/cache/**",
         "storybook-static/**/*"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "clean": {
-      "cache": false
+      "cache": false,
+      "outputLogs": "errors-only"
     },
     "artifacts": {
       "cache": false,
       "outputs": [
         "dist/**/*"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "check:artifacts": {
       "cache": false,
@@ -42,46 +48,54 @@
         "^build",
         "build"
       ],
+      "outputLogs": "errors-only"
     },
     "lint": {
       "dependsOn": [
         "^lint"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "lint:check": {
       "outputs": [
         "dist/eslint_report.json"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "@stylexswc/rs-compiler#lint:check": {
       "dependsOn": [
         "^build",
         "build"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "@stylexswc/rs-compiler#test": {
       "dependsOn": [
         "^build",
         "build"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "@stylexswc/path-resolver#lint:check": {
       "dependsOn": [
         "^build",
         "build"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "@stylexswc/shared#lint:check": {
       "dependsOn": [
         "^build",
         "build"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "@stylexswc/test-parser#lint:check": {
       "dependsOn": [
         "^build",
         "build"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "dev": {
       "cache": false,
@@ -91,7 +105,8 @@
       "dependsOn": [
         "^build"
       ],
-      "outputs": []
+      "outputs": [],
+      "outputLogs": "errors-only"
     },
     "test": {
       "dependsOn": [
@@ -100,9 +115,12 @@
       "outputs": [
         "**/__swc_snapshots__",
         "**/__snapshots__"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
-    "format:check": {},
+    "format:check": {
+      "outputLogs": "errors-only"
+    },
     "format": {
       "cache": false,
       "outputs": [
@@ -114,7 +132,8 @@
         "^build",
         "build"
       ],
-      "cache": false
+      "cache": false,
+      "outputLogs": "errors-only"
     },
     "test:visual": {
       "dependsOn": [
@@ -123,7 +142,8 @@
       ],
       "outputs": [
         "**/.playwright-snapshots"
-      ]
+      ],
+      "outputLogs": "errors-only"
     }
   }
 }

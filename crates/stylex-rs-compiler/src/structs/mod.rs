@@ -51,6 +51,7 @@ pub struct StyleXOptions {
   pub exclude: Option<Vec<UnknownRef>>,
   #[napi(ts_type = "Array<[string, Record<string, any>]>")]
   pub swc_plugins: Option<Vec<UnknownRef>>,
+  #[napi(ts_type = "'throw' | 'warn' | 'silent'")]
   pub property_validation_mode: Option<PropertyValidationMode>,
   /// Compile-time constants and functions accessible via `stylex.env`.
   #[napi(ts_type = "Record<string, any>")]

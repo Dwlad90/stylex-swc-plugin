@@ -16,7 +16,10 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   workers: isCI ? 1 : undefined,
-  reporter: [['html', { outputFolder: 'visual-tests/playwright-report' }], ['list']],
+  reporter: [
+    ['html', { outputFolder: 'visual-tests/playwright-report', open: 'never' }],
+    ['list', { printSteps: true }],
+  ],
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: isCI ? 'on-first-retry' : 'on',

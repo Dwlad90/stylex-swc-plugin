@@ -54,7 +54,7 @@
     "@stylexswc/typescript-config": "0.15.1-dev.3",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^25.3.3",
-    "next": "^16.1.6",
+    "next": "^16.1.7",
     "postcss": "^8.5.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

@@ -18,6 +18,9 @@ on:
   push:
     branches:
       - develop
+  schedule:
+    # Keep develop branch Turbo cache warm so PR runs can restore from it.
+    - cron: '0 3 * * *'
 
 env:
   APP_NAME: 'rs-compiler'
@@ -26,13 +29,15 @@ env:
   DO_NOT_TRACK: 1
   CHECKOUT_REF: >-
     ${{
-      github.event.pull_request.number != null
+      github.event_name == 'schedule'
+      && 'refs/heads/develop'
+      || github.event.pull_request.number != null
       && format('refs/pull/{0}/merge', github.event.pull_request.number)
       || github.ref
     }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 # Add restricted permissions to GITHUB_TOKEN
@@ -44,7 +49,9 @@ permissions:
 jobs:
   build-public-packages:
     name: Build all public packages
-    if: github.event.pull_request.number == null || !github.event.pull_request.draft
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null || !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -78,7 +85,10 @@ jobs:
 
   basic-checks:
     name: ${{ matrix.check.name }}
-    if: github.event.pull_request.number != null && !github.event.pull_request.draft
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null ||
+      !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -111,7 +121,10 @@ jobs:
 
   checks:
     name: ${{ matrix.check.name }}
-    if: github.event.pull_request.number == null || !github.event.pull_request.draft
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null ||
+      !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     needs:
       - build-public-packages
@@ -163,7 +176,10 @@ jobs:
 
   visual-tests:
     name: Run visual comparison tests
-    if: github.event.pull_request.number == null || !github.event.pull_request.draft
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null ||
+      !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     needs:
       - build-public-packages
@@ -224,7 +240,10 @@ jobs:
 
   benchmark:
     name: Run benchmarks
-    if: github.event.pull_request.number == null || !github.event.pull_request.draft
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null ||
+      !github.event.pull_request.draft)
     needs:
       - build-public-packages
       - basic-checks
@@ -302,8 +321,8 @@ jobs:
   pr-validation:
     name: PR Validation
     if:
-      ${{ always() && (github.event.pull_request.number == null || !github.event.pull_request.draft)
-      }}
+      ${{ always() && (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null || !github.event.pull_request.draft) }}
     needs:
       - build-public-packages
       - basic-checks
@@ -332,8 +351,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pr-validation]
     if:
-      github.event.pull_request.number != null && github.event.pull_request.user.login ==
-      'dependabot[bot]'
+      github.event_name != 'schedule' && github.event.pull_request.number != null &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

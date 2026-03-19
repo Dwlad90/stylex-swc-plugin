@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use fancy_regex::Regex;
 use log::warn;
 use napi::JsValue;

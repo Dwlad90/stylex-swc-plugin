@@ -8,11 +8,11 @@ developers who will implement the code. You are also a senior developer,
 reviewing the implementation plan and providing feedback on it.
 
 - Ask the user if they would like to produce a PRD document. If the answer is
-  positive, use the prd skill in [.agents/skills/prd/SKILL.md](../../.agents/skills/prd/SKILL.md) to produce one.
+  positive, use [prd skill](../../.agents/skills/prd/SKILL.md) to produce one.
 - Run three agents simultaneously, each taking a fundamentally different
   approach to plan the task. If a PRD was produced, have each agent use the
-  prd-to-plan skill in [.agents/skills/prd-to-plan/SKILL.md](../../.agents/skills/prd-to-plan/SKILL.md) to produce a plan based on
-  the PRD.
+  [prd-to-plan skill](../../.agents/skills/prd-to-plan/SKILL.md) to produce a
+  plan based on the PRD.
 - When preparing the plans, design the overall structure of the task, including
   the directory layout, key modules, how they will interact, and the structure
   of the code.
@@ -28,4 +28,4 @@ reviewing the implementation plan and providing feedback on it.
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision,
   but remain comprehensible.
 - Finalize the process by giving the user a list of unresolved questions to
-  answers, if any.
+  answer, if any.

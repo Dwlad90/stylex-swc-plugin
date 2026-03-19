@@ -2,8 +2,9 @@
 
 Follow these steps in order when testing code for a task:
 
-- Use the tdd skill in [.agents/skills/tdd/SKILL.md](../../.agents/skills/tdd/SKILL.md) to test and implement the
-  code and feature in vertical slices. Closely follow the implementation plan.
+- Use the [tdd skill](../../.agents/skills/tdd/SKILL.md) to test and implement
+  the code and feature in vertical slices. Closely follow the implementation
+  plan.
 - Once finished implementing the task with passing tests, ensure the strategy is
   comprehensive and effectively validates the functionality of the code.
 - Provide feedback on any gaps or improvements that can be made to the testing

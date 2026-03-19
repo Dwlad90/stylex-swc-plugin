@@ -32,5 +32,6 @@
   automatically.
 - Never amend commits unless you have explicit written approval in the task
   thread.
-- Never use git merge --no-ff to merge branches. Always use the `merge` strategy
-  with the `--ff-only` flag to ensure a fast-forward merge.
+- Never use git merge --no-ff to merge branches. Always perform
+  fast-forward-only merges (for example, use `git merge --ff-only` or the
+  equivalent setting in your Git hosting platform).

@@ -7,10 +7,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{
-      BinExpr, Bool, Decl, Lit, ModuleItem, ParenExpr, Stmt, UnaryOp, VarDecl, VarDeclKind,
-      VarDeclarator,
-    },
+    ast::{BinExpr, Bool, Decl, Lit, ModuleItem, ParenExpr, Stmt, UnaryOp, VarDecl, VarDeclKind},
     utils::drop_span,
   },
 };
@@ -38,7 +35,7 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{atom_to_string, expr_to_str, key_value_to_str, lit_to_string},
-      factories::binding_ident_factory,
+      factories::var_declarator_string_init_factory,
     },
     common::normalize_expr,
     core::{
@@ -56,6 +53,7 @@ use crate::shared::{
       convertors::null_to_expression,
       factories::{
         array_expression_factory, expr_or_spread_factory, prop_or_spread_prop_name_factory,
+        var_declarator_factory,
       },
     },
     core::js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
@@ -469,7 +467,7 @@ where
       {
         let key_values = get_key_values_from_object(object);
 
-        let props = key_values
+        let props: Vec<PropOrSpread> = key_values
             .iter()
             .map(|key_value| {
               let orig_key = key_value_to_str(key_value);
@@ -741,10 +739,19 @@ where
                       let mut array_elements = Vec::new();
 
                       if let Some(static_obj) = static_obj {
-                        array_elements.push(Some(expr_or_spread_factory(hoist_expression(
+                        let hoist_ident = expr_or_spread_factory(hoist_expression(
                           static_obj,
                           &mut self.state,
-                        ))));
+                        ));
+
+                        self.state.declarations.push(
+                          var_declarator_string_init_factory(
+                            hoist_ident.expr.as_ident().unwrap().clone(),
+                            "hoisted variable"
+                          ),
+                        );
+
+                        array_elements.push(Some(hoist_ident));
                       }
 
                       if let Some(conditional_obj) = conditional_obj {
@@ -777,7 +784,7 @@ where
                 prop_or_spread_expression_factory(orig_key.as_str(), *value.clone())
               })
             })
-            .collect::<Vec<PropOrSpread>>();
+            .collect();
 
         result_ast = path_replace_hoisted(
           object_expression_factory(props),
@@ -939,12 +946,10 @@ pub(crate) fn hoist_expression(
     span: DUMMY_SP,
     kind: VarDeclKind::Const,
     declare: false,
-    decls: vec![VarDeclarator {
-      span: DUMMY_SP,
-      name: Pat::Ident(binding_ident_factory(hoisted_ident.clone())),
-      init: Some(Box::new(ast_expression)),
-      definite: false,
-    }],
+    decls: vec![var_declarator_factory(
+      hoisted_ident.clone(),
+      ast_expression,
+    )],
     ctxt: swc_core::common::SyntaxContext::empty(),
   };
 
@@ -970,12 +975,7 @@ pub(crate) fn path_replace_hoisted(
     span: DUMMY_SP,
     kind: VarDeclKind::Const,
     declare: false,
-    decls: vec![VarDeclarator {
-      span: DUMMY_SP,
-      name: Pat::Ident(binding_ident_factory(name_ident.clone())),
-      init: Some(Box::new(ast_expression)),
-      definite: false,
-    }],
+    decls: vec![var_declarator_factory(name_ident.clone(), ast_expression)],
     ctxt: swc_core::common::SyntaxContext::empty(),
   };
 

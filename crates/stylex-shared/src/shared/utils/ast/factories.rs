@@ -3,13 +3,15 @@ use swc_core::{
   ecma::ast::{
     ArrowExpr, BigInt, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Ident, IdentName, JSXAttr,
     JSXAttrName, JSXAttrOrSpread, JSXAttrValue, KeyValueProp, Lit, MemberExpr, Null, ParenExpr,
-    Prop, PropName, SpreadElement,
+    Pat, Prop, PropName, SpreadElement, VarDeclarator,
   },
 };
 use swc_core::{
   common::{DUMMY_SP, Span},
   ecma::ast::{ArrayLit, Expr, ExprOrSpread, ObjectLit, PropOrSpread},
 };
+
+use crate::shared::utils::ast::convertors::null_to_expression;
 
 use super::convertors::{
   bool_to_expression, number_to_expression, string_to_expression, string_to_prop_name,
@@ -519,4 +521,53 @@ pub(crate) fn jsx_attr_factory(name: &str, value: JSXAttrValue) -> JSXAttr {
     name: JSXAttrName::Ident(IdentName::from(name)),
     value: Some(value),
   }
+}
+
+/// Creates a `VarDeclarator` with an identifier name and an expression initializer.
+///
+/// # Arguments
+/// * `ident` - The identifier for the variable name
+/// * `init` - The initializer expression
+///
+/// # Example
+/// ```ignore
+/// let decl = var_declarator_factory(my_ident, some_expr);
+/// ```
+pub(crate) fn var_declarator_factory(ident: Ident, init: Expr) -> VarDeclarator {
+  VarDeclarator {
+    span: DUMMY_SP,
+    name: Pat::Ident(binding_ident_factory(ident)),
+    init: Some(Box::new(init)),
+    definite: false,
+  }
+}
+
+/// Creates a `VarDeclarator` initialized to `null`.
+///
+/// Useful when hoisting a variable declaration ahead of its actual assignment,
+/// e.g. `var x = null;` before the value is set later.
+///
+/// # Arguments
+/// * `ident` - The identifier for the variable name
+///
+/// # Example
+/// ```ignore
+/// let decl = var_declarator_null_init_factory(my_ident);
+/// ```
+pub(crate) fn _var_declarator_null_init_factory(ident: Ident) -> VarDeclarator {
+  var_declarator_factory(ident, null_to_expression())
+}
+
+/// Creates a `VarDeclarator` initialized to a string.
+///
+/// # Arguments
+/// * `ident` - The identifier for the variable name
+/// * `value` - The string value
+///
+/// # Example
+/// ```ignore
+/// let decl = var_declarator_string_init_factory(my_ident, "value");
+/// ```
+pub(crate) fn var_declarator_string_init_factory(ident: Ident, value: &str) -> VarDeclarator {
+  var_declarator_factory(ident, string_to_expression(value))
 }

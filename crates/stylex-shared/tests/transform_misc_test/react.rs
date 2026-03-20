@@ -321,3 +321,41 @@ test!(
     };
 "#
 );
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    Some(&mut StyleXOptionsParams {
+      enable_inlined_conditional_merge: Some(true),
+      style_resolution: Some(StyleResolution::ApplicationOrder),
+      ..StyleXOptionsParams::default()
+    })
+  ),
+  transform_math_round_with_dynamic_value,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+      const styles = stylex.create({
+        round: (size) => ({
+          fontSize: `${Math.round(size * (2 / 3))}px`,
+        }),
+        min: (size) => ({
+          fontSize: `${Math.min(size * (2 / 3), 12)}px`,
+        }),
+        abs: (size) => ({
+          fontSize: Math.abs(size * (2 / 3)) + "px",
+        }),
+        pow: (size) => ({
+          fontSize: Math.pow(size * (2 / 3), 2) + "px",
+        }),
+      });
+
+      export default function Component({round, min, abs, pow}) {
+        return <div {...stylex.props(round && styles.round(12), min && styles.min(12), abs && styles.abs(12), pow && styles.pow(12))} />;
+      }
+"#
+);

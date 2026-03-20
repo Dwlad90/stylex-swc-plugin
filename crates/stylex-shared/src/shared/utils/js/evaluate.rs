@@ -96,6 +96,40 @@ fn resolve_env_entry_to_result(
   }
 }
 
+/// Converts `EvaluateResultValue::Vec` items into an `Expr::Array`.
+///
+/// Each item may itself be a nested `Vec` (converted to a sub-array) or a plain `Expr`.
+/// Only `Array`, `Object`, `Lit`, and `Ident` expressions are allowed as element values;
+/// any other variant panics with [`ILLEGAL_PROP_ARRAY_VALUE`].
+fn evaluate_result_vec_to_array_expr(items: &[Option<EvaluateResultValue>]) -> Expr {
+  let elems = items
+    .iter()
+    .map(|entry| {
+      let expr = entry
+        .as_ref()
+        .and_then(|entry| {
+          entry
+            .as_vec()
+            .map(|vec| evaluate_result_vec_to_array_expr(vec))
+            .or_else(|| entry.as_expr().cloned())
+        })
+        .expect(ILLEGAL_PROP_ARRAY_VALUE);
+
+      let expr = match expr {
+        Expr::Array(array) => Expr::Array(array),
+        Expr::Object(obj) => Expr::Object(obj),
+        Expr::Lit(lit) => Expr::Lit(lit),
+        Expr::Ident(ident) => Expr::Ident(ident),
+        _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+      };
+
+      Some(expr_or_spread_factory(expr))
+    })
+    .collect();
+
+  array_expression_factory(elems)
+}
+
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
 /// This reduces code duplication for operations that convert an expression to a number,
 /// apply a transformation, and return the result as an expression.
@@ -311,11 +345,12 @@ fn _evaluate(
                   let value = result.value;
 
                   match value {
-                    Some(res) => res
-                      .as_expr()
-                      .expect("Evaluation result must be an expression")
-                      .clone(),
-                    None => unreachable!("Evaluation result must be non optional"),
+                    Some(res) => match res {
+                      EvaluateResultValue::Expr(expr) => expr.clone(),
+                      EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(&items),
+                      _ => unimplemented!("Evaluation result must be an expression"),
+                    },
+                    None => *body_expr.clone(),
                   }
                 }
               };
@@ -913,43 +948,7 @@ fn _evaluate(
                 let value = match value {
                   EvaluateResultValue::Expr(expr) => Some(expr),
                   EvaluateResultValue::Vec(items) => {
-                    let elems = items
-                      .iter()
-                      .map(|entry| {
-                        let expr = entry
-                          .as_ref()
-                          .and_then(|entry| {
-                            entry
-                              .as_vec()
-                              .map(|vec| {
-                                let elems = vec
-                                  .iter()
-                                  .flatten()
-                                  .map(|item| {
-                                    Some(expr_or_spread_factory(item.as_expr().unwrap().clone()))
-                                  })
-                                  .collect();
-
-                                array_expression_factory(elems)
-                              })
-                              .or_else(|| entry.as_expr().cloned())
-                          })
-                          .expect(ILLEGAL_PROP_ARRAY_VALUE);
-
-                        let expr = match expr {
-                          Expr::Array(array) => Expr::Array(array),
-                          Expr::Object(obj) => Expr::Object(obj),
-                          Expr::Lit(lit) => Expr::Lit(lit),
-                          _ => {
-                            panic!("{}", ILLEGAL_PROP_ARRAY_VALUE)
-                          }
-                        };
-
-                        Some(expr_or_spread_factory(expr))
-                      })
-                      .collect();
-
-                    Some(array_expression_factory(elems))
+                    Some(evaluate_result_vec_to_array_expr(&items))
                   }
                   EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
                     Expr::Call(call_expr) => {
@@ -1115,10 +1114,14 @@ fn _evaluate(
                         let cached_second_arg =
                           evaluate_cached(&second_arg.expr, state, traversal_state, fns);
 
-                        context = Some(vec![Some(EvaluateResultValue::Vec(vec![
-                          cached_first_arg,
-                          cached_second_arg,
-                        ]))]);
+                        if let Some(cached_first_arg) = cached_first_arg
+                          && let Some(cached_second_arg) = cached_second_arg
+                        {
+                          context = Some(vec![Some(EvaluateResultValue::Vec(vec![
+                            Some(cached_first_arg),
+                            Some(cached_second_arg),
+                          ]))]);
+                        }
                       }
                       "round" | "ceil" | "floor" => {
                         func = Some(Box::new(FunctionConfig {
@@ -1136,11 +1139,14 @@ fn _evaluate(
                         let cached_first_arg =
                           evaluate_cached(&first_arg.expr, state, traversal_state, fns);
 
-                        context = Some(vec![Some(EvaluateResultValue::Expr(
-                          cached_first_arg
-                            .and_then(|arg| arg.as_expr().cloned())
-                            .expect("First argument should be an expression"),
-                        ))]);
+                        if let Some(cached_first_arg) = cached_first_arg {
+                          context = Some(vec![Some(EvaluateResultValue::Expr(
+                            cached_first_arg
+                              .as_expr()
+                              .expect("First argument should be an expression")
+                              .clone(),
+                          ))]);
+                        }
                       }
                       "min" | "max" => {
                         func = Some(Box::new(FunctionConfig {
@@ -1157,24 +1163,27 @@ fn _evaluate(
                         let cached_first_arg =
                           evaluate_cached(&first_arg.expr, state, traversal_state, fns);
 
-                        let mut result = vec![cached_first_arg];
+                        if let Some(cached_first_arg) = cached_first_arg {
+                          let mut result = vec![Some(cached_first_arg)];
 
-                        result.extend(
-                          call
-                            .args
-                            .iter()
-                            .skip(1)
-                            .map(|arg| evaluate_cached(&arg.expr, state, traversal_state, fns))
-                            .collect::<Vec<Option<EvaluateResultValue>>>(),
-                        );
+                          result.extend(
+                            call
+                              .args
+                              .iter()
+                              .skip(1)
+                              .map(|arg| evaluate_cached(&arg.expr, state, traversal_state, fns))
+                              .collect::<Vec<Option<EvaluateResultValue>>>(),
+                          );
 
-                        context = Some(vec![Some(EvaluateResultValue::Vec(
-                          result.into_iter().collect(),
-                        ))]);
+                          context = Some(vec![Some(EvaluateResultValue::Vec(
+                            result.into_iter().collect(),
+                          ))]);
+                        }
                       }
                       "abs" => {
                         let cached_first_arg =
                           evaluate_cached(&first_arg.expr, state, traversal_state, fns);
+
                         if let Some(cached_first_arg) = cached_first_arg {
                           func = Some(Box::new(FunctionConfig {
                             fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(

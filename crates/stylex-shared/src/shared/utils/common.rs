@@ -35,7 +35,9 @@ use crate::shared::{
   utils::ast::convertors::{lit_str_to_atom, wtf8_atom_to_atom},
 };
 
-use super::ast::{convertors::transform_shorthand_to_key_values, factories::binding_ident_factory};
+use super::ast::{
+  convertors::transform_shorthand_to_key_values, factories::var_declarator_factory,
+};
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
@@ -145,12 +147,7 @@ pub fn get_var_decl_by_ident<'a>(
         FunctionType::Mapper(func) => {
           let result = func();
 
-          let var_decl = VarDeclarator {
-            span: DUMMY_SP,
-            name: Pat::from(binding_ident_factory(ident.clone())),
-            init: Some(Box::new(result)),
-            definite: false,
-          };
+          let var_decl = var_declarator_factory(ident.clone(), result);
 
           return Some(var_decl);
         }

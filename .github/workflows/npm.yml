@@ -25,15 +25,15 @@ jobs:
           - host: macos-latest
             target: x86_64-apple-darwin
             build:
-              pnpm run build --filter @stylexswc/rs-compiler --only -- --target x86_64-apple-darwin
+              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-apple-darwin
           - host: windows-latest
             build:
-              pnpm run build --filter @stylexswc/rs-compiler --only -- --target
+              pnpm run build --filter @stylexswc/rs-compiler -- --target
               x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: windows-latest
             build:
-              pnpm run build --filter @stylexswc/rs-compiler --only -- --target
+              pnpm run build --filter @stylexswc/rs-compiler -- --target
               aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
@@ -42,25 +42,25 @@ jobs:
             dockerfile: .github/docker/debian.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run build --filter @stylexswc/rs-compiler --only -- --target x86_64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: stylex-alpine-builder
             dockerfile: .github/docker/alpine.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run build --filter @stylexswc/rs-compiler --only -- --target x86_64-unknown-linux-musl
+              pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
             build:
-              pnpm run build --filter @stylexswc/rs-compiler --only -- --target aarch64-apple-darwin
+              pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: stylex-debian-aarch64-builder
             dockerfile: .github/docker/debian-aarch64.Dockerfile
             build: |
               corepack prepare pnpm@10.30.3 --activate
-              pnpm run build --filter @stylexswc/rs-compiler --only -- --target aarch64-unknown-linux-gnu
+              pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
           - '24.14.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
@@ -384,7 +384,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
-      - name: Cache turbo build setup (public packages build)
+      - name: Cache turbo build setup
         id: turbo-cache-build-public-packages
         uses: ./.github/actions/turbo
         with:
@@ -406,31 +406,17 @@ jobs:
           ls -R crates/stylex-rs-compiler/dist/*
       - name: Build all public packages
         run: |
-          pnpm run build --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" --continue
+          pnpm run build --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" --only --continue
 
-      - name: Save turbo build cache (public packages build)
+      - name: Save turbo build cache
         if: always()
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache-build-public-packages.outputs.cache-key }}
-
-      - name: Cache turbo build setup (public packages check)
-        id: turbo-cache-check-artifacts
-        uses: ./.github/actions/turbo
-        with:
-          cache-scope: npm-publish-check-artifacts
-          restore-cache-scope: npm-publish-build-public-packages
-          allow-global-fallback: 'false'
-
       - name: Check artifacts
         run:
           pnpm run check:artifacts --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter
           "!{./crates/*}"
-      - name: Save turbo build cache (public packages check)
-        if: always()
-        uses: ./.github/actions/turbo-save
-        with:
-          cache-key: ${{ steps.turbo-cache-check-artifacts.outputs.cache-key }}
       - name: Publish
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

@@ -11,6 +11,8 @@ on:
       - edited
     paths-ignore:
       - '**/*.md'
+      - '**/*.yml'
+      - '**/*.yaml'
       - LICENSE
       - '**/*.gitignore'
       - .editorconfig

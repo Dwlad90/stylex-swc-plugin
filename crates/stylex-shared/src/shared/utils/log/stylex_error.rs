@@ -3,11 +3,8 @@
 //! Provides `StyleXError` and helper functions/macros that produce clean,
 //! branded `[StyleX] <message>` output on both stderr and NAPI boundaries.
 
+use colored::*;
 use std::fmt;
-
-use super::formatter::{
-  ANSI_BOLD, ANSI_CYAN, ANSI_DIM, ANSI_ORANGE, ANSI_RED, ANSI_RESET, ANSI_YELLOW,
-};
 
 /// The branded prefix for all StyleX diagnostics.
 pub const STYLEX_PREFIX: &str = "[StyleX]";
@@ -18,7 +15,7 @@ pub const STYLEX_PREFIX: &str = "[StyleX]";
 /// ```text
 /// [StyleX] key > path > message
 ///   --> file:line
-/// [Stack trace]: source_location    (only when log level >= Info)
+/// [Stack trace]: source_location    (whenever source_location is set)
 /// ```
 #[derive(Debug, Clone)]
 pub struct StyleXError {
@@ -33,44 +30,38 @@ pub struct StyleXError {
 impl fmt::Display for StyleXError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Colored [StyleX] prefix
-    write!(
-      f,
-      "{}{}{}{}  ",
-      ANSI_RED, ANSI_BOLD, STYLEX_PREFIX, ANSI_RESET
-    )?;
+    write!(f, "{} ", "[StyleX]".bright_blue().bold())?;
 
     // Key path breadcrumbs (if any)
     if let Some(ref keys) = self.key_path {
       for key in keys {
-        write!(f, "{}{}{} > ", ANSI_CYAN, key, ANSI_RESET)?;
+        write!(f, "{} > ", key.dimmed().cyan())?;
       }
     }
 
     // Main error message
-    write!(f, "{}", self.message)?;
+    write!(f, "{}", self.message.red())?;
 
     // File location (when available)
     if let Some(ref file) = self.file {
       match (self.line, self.col) {
         (Some(line), Some(col)) => {
-          write!(f, "\n  --> {}:{}:{}", file, line, col)?;
+          write!(f, "\n  --> {file}:{line}:{col}")?;
         }
         (Some(line), None) => {
-          write!(f, "\n  --> {}:{}", file, line)?;
+          write!(f, "\n  --> {file}:{line}")?;
         }
         _ => {
-          write!(f, "\n  --> {}", file)?;
+          write!(f, "\n  --> {file}")?;
         }
       }
     }
 
-    // Stack trace (only when STYLEX_DEBUG log level >= Info)
-    if let Some(ref src) = self.source_location {
-      write!(
-        f,
-        "\n{}{}[Stack trace]{}: {}",
-        ANSI_DIM, ANSI_YELLOW, ANSI_RESET, src
-      )?;
+    // Stack trace (printed whenever source_location is set)
+    if let Some(ref src) = self.source_location
+      && log::log_enabled!(log::Level::Info)
+    {
+      write!(f, "\n{}: {src}", "[Stack trace]".dimmed().yellow(),)?;
     }
 
     Ok(())
@@ -118,6 +109,7 @@ pub fn stylex_err_with_file(message: impl Into<String>, file: impl Into<String>)
 #[track_caller]
 pub fn __stylex_panic(mut err: StyleXError) -> ! {
   let caller = std::panic::Location::caller();
+
   if err.source_location.is_none() {
     err.source_location = Some(format!("{}:{}", caller.file(), caller.line()));
   }
@@ -132,9 +124,9 @@ pub fn __stylex_unimplemented(mut err: StyleXError) -> ! {
   if err.source_location.is_none() {
     err.source_location = Some(format!("{}:{}", caller.file(), caller.line()));
   }
-  err.message = format!("[UNIMPLEMENTED] {}", err.message);
+  err.message = format!("{} {}", "[UNIMPLEMENTED]".dimmed().magenta(), err.message);
 
-  unimplemented!("{}", err)
+  panic!("{}", err)
 }
 
 #[doc(hidden)]
@@ -144,9 +136,9 @@ pub fn __stylex_unreachable(mut err: StyleXError) -> ! {
   if err.source_location.is_none() {
     err.source_location = Some(format!("{}:{}", caller.file(), caller.line()));
   }
-  err.message = format!("[UNREACHABLE] {}", err.message);
+  err.message = format!("{} {}", "[UNREACHABLE]".dimmed().blue(), err.message);
 
-  unreachable!("{}", err)
+  panic!("{}", err)
 }
 
 // ---------------------------------------------------------------------------
@@ -296,7 +288,7 @@ pub fn is_panic_stderr_suppressed() -> bool {
 /// ```rust,ignore
 /// let _guard = SuppressPanicStderr::new();
 /// let result = std::panic::catch_unwind(|| { /* … */ });
-/// // guard dropped here → suppression lifted
+/// guard dropped here → suppression lifted
 /// ```
 pub struct SuppressPanicStderr;
 
@@ -323,11 +315,35 @@ impl Drop for SuppressPanicStderr {
 // Utilities for the NAPI boundary
 // ---------------------------------------------------------------------------
 
-/// Extract a clean error message from a caught panic payload.
+/// Strip ANSI escape sequences from a string.
+fn strip_ansi(s: &str) -> String {
+  let mut result = String::with_capacity(s.len());
+  let mut chars = s.chars().peekable();
+  while let Some(ch) = chars.next() {
+    if ch == '\x1B' && chars.peek() == Some(&'[') {
+      chars.next(); // consume '['
+      for c in chars.by_ref() {
+        if c == 'm' {
+          break;
+        }
+      }
+    } else {
+      result.push(ch);
+    }
+  }
+  result
+}
+
+/// Extract a plain-text error message from a caught panic payload.
 ///
-/// If the message starts with `[StyleX]`, it's returned as-is.
-/// Otherwise, it's wrapped as `[StyleX] Internal error: <message>`.
+/// ANSI codes are stripped before the prefix check so that colored
+/// `StyleXError` payloads are detected correctly.  The returned string
+/// is always plain text, safe to pass to the NAPI boundary or non-TTY logs.
+///
+/// If the stripped message contains `[StyleX]`, it is returned as-is.
+/// Otherwise, it is wrapped as `[StyleX] Internal error: <message>`.
 pub fn format_panic_message(error: &Box<dyn std::any::Any + Send>) -> String {
+  // How to get stack trace from the error?
   let raw = match error.downcast_ref::<String>() {
     Some(s) => s.clone(),
     None => match error.downcast_ref::<&str>() {
@@ -341,9 +357,8 @@ pub fn format_panic_message(error: &Box<dyn std::any::Any + Send>) -> String {
   if raw.contains(STYLEX_PREFIX) {
     raw
   } else {
-    format!(
-      "{}{}{}{} Internal error:{} {}",
-      ANSI_RED, ANSI_BOLD, STYLEX_PREFIX, ANSI_ORANGE, ANSI_RESET, raw
-    )
+    let plain = strip_ansi(&raw);
+
+    format!("{} {}", STYLEX_PREFIX, plain)
   }
 }

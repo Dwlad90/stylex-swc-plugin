@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use colored::{Color, Colorize};
 use env_logger::fmt::Formatter;
 
 use crate::shared::utils::log::stylex_error::STYLEX_PREFIX;
@@ -37,23 +38,19 @@ pub fn log_formatter(f: &mut Formatter, record: &log::Record) -> std::io::Result
   let max_width = max_target_width(target);
 
   let level_color = match record.level() {
-    log::Level::Error => ANSI_RED,
-    log::Level::Warn => ANSI_YELLOW,
-    log::Level::Info => ANSI_GREEN,
-    log::Level::Debug => ANSI_BLUE,
-    log::Level::Trace => ANSI_WHITE,
+    log::Level::Error => Color::Red,
+    log::Level::Warn => Color::Yellow,
+    log::Level::Info => Color::Green,
+    log::Level::Debug => Color::Blue,
+    log::Level::Trace => Color::White,
   };
 
   writeln!(
     f,
-    "{}{} {} {}{}{:width$}{} > {}",
-    level_color,
-    record.level(),
-    STYLEX_PREFIX,
-    ANSI_RESET,
-    ANSI_BOLD,
-    target,
-    ANSI_RESET,
+    "{} {} {:width$} > {}",
+    record.level().to_string().color(level_color).bold(),
+    STYLEX_PREFIX.bright_blue().bold(),
+    target.bold(),
     record.args(),
     width = max_width
   )

@@ -30,11 +30,12 @@ pub fn initialize() {
         format!("{} Unknown internal error", STYLEX_PREFIX).to_string()
       };
 
-      // StyleX errors are already emitted via log::error!() inside stylex_panic()
-      // / stylex_unimplemented() / stylex_unreachable() – skip them here to avoid
-      // printing the same message a second time.
-      if !msg.contains(STYLEX_PREFIX) {
-        eprintln!("{}{}", STYLEX_PREFIX, msg);
+      // StyleX panics already carry the branded prefix in their Display output;
+      // print them as-is.  For any other (unexpected) panic, wrap with the prefix.
+      if msg.contains(STYLEX_PREFIX) {
+        eprintln!("{}", msg);
+      } else {
+        eprintln!("{} {}", STYLEX_PREFIX, msg);
       }
     }));
   });

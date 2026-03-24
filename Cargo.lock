@@ -2852,7 +2852,6 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 name = "stylex_compiler_rs"
 version = "0.15.1-rc.1"
 dependencies = [
- "anyhow",
  "fancy-regex",
  "glob",
  "indexmap",
@@ -2868,7 +2867,6 @@ dependencies = [
  "swc_compiler_base",
  "swc_core",
  "swc_ecma_parser",
- "thiserror 2.0.18",
 ]
 
 [[package]]

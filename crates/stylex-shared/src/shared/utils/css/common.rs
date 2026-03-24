@@ -445,7 +445,7 @@ pub(crate) fn normalize_css_property_value(
   if !errors.is_empty() {
     let mut error_message = match errors.first() {
       Some(e) => e.message().to_string(),
-      None => stylex_panic!("CSS parsing error list is unexpectedly empty"),
+      None => stylex_panic!("CSS parsing failed but no error details were available."),
     };
 
     if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {

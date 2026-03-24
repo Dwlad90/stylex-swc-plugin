@@ -24,7 +24,9 @@ use crate::{
 };
 
 use crate::shared::{
-  constants::messages::{ILLEGAL_PROP_VALUE, INVALID_UTF8, non_static_value},
+  constants::messages::{
+    ILLEGAL_PROP_VALUE, INVALID_UTF8, VAR_DECL_INIT_REQUIRED, non_static_value,
+  },
   enums::{
     data_structures::evaluate_result_value::EvaluateResultValue,
     misc::{BinaryExprType, VarDeclAction},
@@ -548,7 +550,7 @@ pub fn handle_tpl_to_expression(
         // Swap the placeholder expression in the template with the variable declaration's initializer
         *expr = match var_decl.init.clone() {
           Some(init) => init,
-          None => stylex_panic!("Variable declaration has no initializer"),
+          None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),
         };
       }
     };

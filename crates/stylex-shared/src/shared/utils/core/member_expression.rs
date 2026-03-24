@@ -1,6 +1,8 @@
 use crate::{stylex_panic, stylex_unimplemented};
 
-use crate::shared::constants::messages::{MEMBER_OBJ_NOT_IDENT, SPREAD_NOT_SUPPORTED};
+use crate::shared::constants::messages::{
+  MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT_SUPPORTED,
+};
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},
@@ -87,7 +89,7 @@ pub(crate) fn member_expression(
                 Expr::Lit(Lit::Null(_)) => None,
                 _ => Some(match key_value.key.as_ident().map(|ident| &ident.sym) {
                   Some(sym) => sym,
-                  None => stylex_panic!("Object key must be a static identifier."),
+                  None => stylex_panic!("{}", OBJECT_KEY_MUST_BE_IDENT),
                 }),
               },
               _ => stylex_unimplemented!(

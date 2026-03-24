@@ -22,7 +22,9 @@ use swc_core::{
 
 use crate::{
   shared::{
-    constants::messages::{ILLEGAL_PROP_VALUE, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT},
+    constants::messages::{
+      ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
+    },
     enums::{
       data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
       misc::VarDeclAction,
@@ -47,11 +49,11 @@ pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
     FileName::Real(path_buf) => {
       let stem = match path_buf.file_stem() {
         Some(s) => s,
-        None => stylex_panic!("Path has no file stem"),
+        None => stylex_panic!("File path has no file stem component."),
       };
       match stem.to_str() {
         Some(s) => s.to_string(),
-        None => stylex_panic!("File stem contains invalid UTF-8"),
+        None => stylex_panic!("{}", INVALID_UTF8),
       }
     }
     _ => "".to_string(),
@@ -62,7 +64,7 @@ pub(crate) fn extract_path(path: &FileName) -> &str {
   match path {
     FileName::Real(path_buf) => match path_buf.to_str() {
       Some(s) => s,
-      None => stylex_panic!("Path contains invalid UTF-8"),
+      None => stylex_panic!("{}", INVALID_UTF8),
     },
     _ => "",
   }
@@ -73,11 +75,11 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
     FileName::Real(path_buf) => {
       let name = match path_buf.file_name() {
         Some(n) => n,
-        None => stylex_panic!("Path has no file name"),
+        None => stylex_panic!("File path has no file name component."),
       };
       Some(match name.to_str() {
         Some(s) => s,
-        None => stylex_panic!("File name contains invalid UTF-8"),
+        None => stylex_panic!("{}", INVALID_UTF8),
       })
     }
     _ => None,
@@ -262,7 +264,7 @@ pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   match &var_decl.init {
     Some(var_decl_init) => var_decl_init,
-    None => stylex_panic!("Variable declaration is not an expression"),
+    None => stylex_panic!("Variable declaration must be initialized with an expression."),
   }
 }
 

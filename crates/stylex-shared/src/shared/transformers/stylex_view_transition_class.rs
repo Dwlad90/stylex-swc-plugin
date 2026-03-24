@@ -39,7 +39,7 @@ pub(crate) fn stylex_view_transition_class(
   };
   let preprocessed_object = obj_map(ObjMapType::Object(styles.clone()), state, |style, state| {
     let Some((_, style, _)) = style.as_tuple() else {
-      stylex_panic!("Values must be an object")
+      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
     };
 
     let pipe_result = Pipe::create(style.clone())

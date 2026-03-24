@@ -169,7 +169,7 @@ fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> 
       ValueWithDefault::String(strng) => strng.clone(),
       ValueWithDefault::Map(map) => get_nitial_value_of_css_type(map),
     })
-    .unwrap_or_else(|| stylex_panic!("Default value is not defined"))
+    .unwrap_or_else(|| stylex_panic!("CSS type requires a default value but none was provided."))
 }
 
 pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {

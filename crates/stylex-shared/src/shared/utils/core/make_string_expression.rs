@@ -84,7 +84,9 @@ pub(crate) fn make_string_expression(
 
       if let Some(result) = fn_result_to_expression(match transform(&args) {
         Some(r) => r,
-        None => stylex_panic!("transform returned None for condition permutation"),
+        None => stylex_panic!(
+          "Style transformation returned no result for the given condition permutation."
+        ),
       }) {
         let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
           key: PropName::Ident(quote_ident!(key.to_string())),
@@ -145,7 +147,7 @@ fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
       })
     }) {
       Some(expr) => expr,
-      None => stylex_panic!("gen_bitwise_or_of_conditions: empty conditions list"),
+      None => stylex_panic!("Cannot generate condition mask from an empty conditions list."),
     },
   )
 }

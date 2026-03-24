@@ -15,7 +15,7 @@ use swc_core::{
 use crate::shared::{
   constants::{
     common::COMPILED_KEY,
-    messages::{EXPECTED_OBJECT_EXPRESSION, illegal_argument_length},
+    messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
   },
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{
@@ -227,7 +227,7 @@ fn create_short_filename(
 
   let cwd_str = match cwd.to_str() {
     Some(s) => s,
-    None => stylex_panic!("Current working directory path is not valid UTF-8"),
+    None => stylex_panic!("{}", INVALID_UTF8),
   };
   let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);
   let package_details = StateManager::get_package_name_and_path(absolute_path, package_json_seen);

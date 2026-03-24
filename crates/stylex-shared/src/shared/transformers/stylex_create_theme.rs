@@ -7,7 +7,9 @@ use crate::{
   shared::{
     constants::{
       common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
-      messages::{AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING},
+      messages::{
+        AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT,
+      },
     },
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
@@ -46,7 +48,7 @@ pub(crate) fn stylex_create_theme(
 
   let variables_obj = match variables.as_expr().and_then(|expr| expr.as_object()) {
     Some(obj) => obj,
-    None => stylex_panic!("Theme variables must be defined as a plain object."),
+    None => stylex_panic!("{}", THEME_VARS_MUST_BE_OBJECT),
   };
   let mut variables_key_values = Box::new(get_key_values_from_object(variables_obj));
 
@@ -60,7 +62,7 @@ pub(crate) fn stylex_create_theme(
     EvaluateResultValue::Expr(expr) => {
       let theme_obj = match expr.as_object() {
         Some(obj) => obj,
-        None => stylex_panic!("Theme vars must be an object"),
+        None => stylex_panic!("{}", THEME_VARS_MUST_BE_OBJECT),
       };
       theme_vars_key_values = get_key_values_from_object(theme_obj);
 
@@ -95,7 +97,9 @@ pub(crate) fn stylex_create_theme(
           key_value_to_str(key_value) == key
         }) {
           Some(item) => item,
-          None => stylex_panic!("Theme variable not found"),
+          None => stylex_panic!(
+            "The referenced theme variable was not found. Ensure it was declared in defineVars()."
+          ),
         };
 
         match expr_to_str(

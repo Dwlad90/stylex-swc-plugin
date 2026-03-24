@@ -1,4 +1,7 @@
-use crate::{shared::constants::messages::SPREAD_NOT_SUPPORTED, stylex_unimplemented};
+use crate::{
+  shared::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression},
+  stylex_unimplemented,
+};
 use std::rc::Rc;
 
 use indexmap::IndexMap;
@@ -42,7 +45,7 @@ where
 
       let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
         Some(call) => call,
-        None => stylex_panic!("keyframes: expected call expression"),
+        None => stylex_panic!("{}", expected_call_expression("keyframes")),
       };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {

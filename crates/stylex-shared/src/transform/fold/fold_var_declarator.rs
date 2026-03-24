@@ -13,7 +13,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    constants::messages::VAR_DECL_NAME_NOT_IDENT,
+    constants::messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT},
     enums::{
       core::TransformationCycle,
       data_structures::{
@@ -105,7 +105,9 @@ where
               |TopLevelExpression(_, expr, _)| match var_name.init.clone() {
                 Some(init) => init.eq_ignore_span(&Box::new(expr.clone())),
                 None => {
-                  stylex_panic!("VarDeclarator init is None during top_level_expressions lookup")
+                  stylex_panic!(
+                    "Variable declaration must have an initializer for top-level expression lookup."
+                  )
                 }
               },
             );
@@ -134,7 +136,9 @@ where
 
                 **match var_declarator.init.as_mut() {
                   Some(init) => init,
-                  None => stylex_panic!("VarDeclarator init is None when trying to update object"),
+                  None => stylex_panic!(
+                    "Variable declaration must have an initializer when updating an object."
+                  ),
                 } = Expr::Object(new_object);
               }
             }
@@ -161,7 +165,7 @@ where
 
       let prop = match object_prop.as_mut_prop() {
         Some(p) => p.as_mut(),
-        None => stylex_panic!("Property not found"),
+        None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
       };
 
       if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
@@ -214,7 +218,7 @@ where
 
             if let Some(style_object) = match prop.as_mut_key_value() {
               Some(kv) => kv,
-              None => stylex_panic!("Prop not a key value"),
+              None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
             }
             .value
             .as_mut_object()

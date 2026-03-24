@@ -146,3 +146,27 @@ pub(crate) static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a s
 pub(crate) static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result.";
 
 pub(crate) static VAR_DECL_NAME_NOT_IDENT: &str = "Variable declarator name must be an identifier.";
+
+pub(crate) static VAR_DECL_INIT_REQUIRED: &str = "Variable declaration must have an initializer.";
+
+pub(crate) static KEY_VALUE_EXPECTED: &str = "Expected a key-value property in the object.";
+
+pub(crate) static THEME_VAR_TUPLE: &str =
+  "Theme variable definition must be a [key, value, cssType] tuple.";
+
+pub(crate) static OBJECT_KEY_MUST_BE_IDENT: &str = "Object key must be a static identifier.";
+
+pub(crate) static COMPILED_KEY_MISSING: &str = "Style object does not contain a compiled key. Ensure the styles were created with stylex.create().";
+
+pub(crate) static THEME_VARS_MUST_BE_OBJECT: &str =
+  "Theme variables must be defined as a plain object.";
+
+pub(crate) static RULE_SET_EMPTY: &str =
+  "The style rule set is empty. At least one rule is required.";
+
+pub(crate) fn expected_call_expression(fn_name: &str) -> String {
+  format!(
+    "{}(): Expected a call expression. Ensure the value is a direct function call.",
+    fn_name
+  )
+}

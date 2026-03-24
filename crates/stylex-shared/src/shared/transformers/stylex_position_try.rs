@@ -5,7 +5,9 @@ use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::{
   shared::{
-    constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
+    constants::messages::{
+      ENTRY_MUST_BE_TUPLE, THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
+    },
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
       flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -87,7 +89,7 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        stylex_panic!("Theme variable definition must be a [key, value, cssType] tuple.")
+        stylex_panic!("{}", THEME_VAR_TUPLE)
       };
 
       let ltr_values = generate_ltr(
@@ -111,7 +113,7 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        stylex_panic!("Theme variable definition must be a [key, value, cssType] tuple.")
+        stylex_panic!("{}", THEME_VAR_TUPLE)
       };
 
       let value = lit_to_string(match tuple.1.clone().as_lit() {

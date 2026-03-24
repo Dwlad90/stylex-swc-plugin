@@ -268,7 +268,7 @@ where
 
         let member_expression = match member_expressions.get_mut(name) {
           Some(me) => me,
-          None => stylex_panic!("member expression not found for stylex import"),
+          None => stylex_panic!("Could not resolve the member expression for the StyleX import."),
         };
 
         member_expression.insert(
@@ -763,7 +763,7 @@ where
 
                         let hoist_ident_expr = match hoist_ident.expr.as_ident() {
                           Some(ident) => ident.clone(),
-                          None => stylex_panic!("Expected identifier for hoisted variable"),
+                          None => stylex_panic!("Expected an identifier for the hoisted style variable."),
                         };
                         self.state.declarations.push(
                           var_declarator_string_init_factory(hoist_ident_expr, "hoisted variable"),

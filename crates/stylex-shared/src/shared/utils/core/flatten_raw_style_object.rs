@@ -314,7 +314,9 @@ pub(crate) fn flatten_raw_style_object_logic(
                   } else {
                     let inner_map = match equivalent_pairs.get_mut(&property) {
                       Some(map) => map,
-                      None => stylex_panic!("Property not found in equivalent pairs map."),
+                      None => {
+                        stylex_panic!("Property not found in the equivalent style pairs map.")
+                      }
                     };
                     inner_map.insert(condition.clone(), pre_rule);
                   }

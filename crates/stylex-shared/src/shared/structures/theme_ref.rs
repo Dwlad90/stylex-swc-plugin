@@ -115,7 +115,7 @@ impl ThemeRef {
 
 impl PartialEq for ThemeRef {
   fn eq(&self, _other: &Self) -> bool {
-    stylex_panic!("ThemeRef cannot be compared");
+    stylex_panic!("Theme references cannot be compared directly.");
     // self.file_name == other.file_name && self.export_name == other.export_name
   }
 }

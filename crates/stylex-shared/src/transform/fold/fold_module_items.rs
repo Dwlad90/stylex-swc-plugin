@@ -10,6 +10,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
+    constants::messages::VAR_DECL_INIT_REQUIRED,
     enums::core::TransformationCycle,
     regex::STYLEX_CONSTS_IMPORT_REGEX,
     utils::{
@@ -128,7 +129,7 @@ where
             0,
             match module_items.first() {
               Some(item) => item.clone(),
-              None => stylex_panic!("module_items is unexpectedly empty"),
+              None => stylex_panic!("Module items list is unexpectedly empty."),
             },
           );
           items_to_skip = 1;
@@ -180,7 +181,7 @@ where
             for decl in decls {
               let key = match decl.init.clone() {
                 Some(k) => k,
-                None => stylex_panic!("VarDeclarator init is None"),
+                None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),
               };
 
               let key_hash = stable_hash(key.as_ref());

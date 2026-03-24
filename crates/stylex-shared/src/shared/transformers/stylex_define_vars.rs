@@ -116,7 +116,7 @@ pub(crate) fn stylex_define_vars(
     state,
     |item, _| match item.as_ref() {
       FlatCompiledStylesValue::InjectableStyle(_) => {
-        stylex_panic!("InjectableStyle is not supported")
+        stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
       }
       FlatCompiledStylesValue::Tuple(key, _, _) => {
         Rc::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))

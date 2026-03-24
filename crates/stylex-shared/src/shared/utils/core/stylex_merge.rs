@@ -62,7 +62,7 @@ pub(crate) fn stylex_merge(
 
     let member_expression = match member_expressions.get_mut(name) {
       Some(m) => m,
-      None => stylex_panic!("Member expression not found for import"),
+      None => stylex_panic!("Could not resolve the member expression for the import."),
     };
 
     let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {

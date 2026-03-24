@@ -7,7 +7,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::{
   shared::{
-    constants::common::COMPILED_KEY,
+    constants::{common::COMPILED_KEY, messages::COMPILED_KEY_MISSING},
     enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
     structures::types::FlatCompiledStyles,
     utils::core::parse_nullable_style::{ResolvedArg, StyleObject},
@@ -65,7 +65,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
       ResolvedArg::StyleObject(style, _, _) => match style {
         StyleObject::Style(style) => {
           let Some(compiled_key) = style.get(COMPILED_KEY) else {
-            stylex_panic!("Style object does not contain a compiled key")
+            stylex_panic!("{}", COMPILED_KEY_MISSING)
           };
 
           if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) =
@@ -173,7 +173,9 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
           }
         }
         StyleObject::Nullable => {}
-        StyleObject::Other => stylex_panic!("Other style object is not allowed in styleq"),
+        StyleObject::Other => {
+          stylex_panic!("Only compiled StyleX style objects are allowed in styleq().")
+        }
         StyleObject::Unreachable => {
           stylex_unreachable!(
             "Encountered an unexpected style object variant in styleq processing."

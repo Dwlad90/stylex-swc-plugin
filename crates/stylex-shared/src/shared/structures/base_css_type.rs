@@ -171,7 +171,7 @@ impl From<ObjectLit> for BaseCSSType {
       value: ValueWithDefault::Map(values),
       syntax: match syntax {
         Some(s) => s,
-        None => stylex_panic!("Syntax is required"),
+        None => stylex_panic!("CSS syntax definition is required for this type."),
       },
     }
   }

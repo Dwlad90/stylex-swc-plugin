@@ -11,6 +11,8 @@ mod test_css_property_transform {
 
   #[cfg(test)]
   mod single_functions {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -29,7 +31,7 @@ mod test_css_property_transform {
         assert_eq!(m.tx, 0.0);
         assert_eq!(m.ty, 0.0);
       } else {
-        panic!("Expected Matrix transform function");
+        stylex_panic!("Expected Matrix transform function");
       }
 
       // Test multiple matrices: 'matrix(1, 0, 0, 1, 0, 0) matrix(1, 0, 0.5, 1.5, 0, 0)'
@@ -65,7 +67,7 @@ mod test_css_property_transform {
         assert_eq!(m.args[10], 1.5);
         assert_eq!(m.args[15], 1.0);
       } else {
-        panic!("Expected Matrix3d transform function");
+        stylex_panic!("Expected Matrix3d transform function");
       }
     }
 
@@ -81,7 +83,7 @@ mod test_css_property_transform {
         assert_eq!(p.length.value, 100.0);
         assert_eq!(p.length.unit, "px");
       } else {
-        panic!("Expected Perspective transform function");
+        stylex_panic!("Expected Perspective transform function");
       }
     }
 
@@ -95,7 +97,7 @@ mod test_css_property_transform {
         assert_eq!(r.angle.value, 45.0);
         assert_eq!(r.angle.unit, "deg");
       } else {
-        panic!("Expected Rotate transform function");
+        stylex_panic!("Expected Rotate transform function");
       }
     }
 
@@ -114,7 +116,7 @@ mod test_css_property_transform {
         assert_eq!(r.angle.value, 45.0);
         assert_eq!(r.angle.unit, "deg");
       } else {
-        panic!("Expected Rotate3d transform function");
+        stylex_panic!("Expected Rotate3d transform function");
       }
     }
 
@@ -129,7 +131,7 @@ mod test_css_property_transform {
         assert_eq!(r.angle.unit, "deg");
         assert_eq!(r.axis, Axis::X);
       } else {
-        panic!("Expected RotateXYZ transform function for rotateX");
+        stylex_panic!("Expected RotateXYZ transform function for rotateX");
       }
     }
 
@@ -144,7 +146,7 @@ mod test_css_property_transform {
         assert_eq!(r.angle.unit, "deg");
         assert_eq!(r.axis, Axis::Y);
       } else {
-        panic!("Expected RotateXYZ transform function for rotateY");
+        stylex_panic!("Expected RotateXYZ transform function for rotateY");
       }
     }
 
@@ -159,13 +161,15 @@ mod test_css_property_transform {
         assert_eq!(r.angle.unit, "deg");
         assert_eq!(r.axis, Axis::Z);
       } else {
-        panic!("Expected RotateXYZ transform function for rotateZ");
+        stylex_panic!("Expected RotateXYZ transform function for rotateZ");
       }
     }
   }
 
   #[cfg(test)]
   mod multiple_functions {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -184,7 +188,7 @@ mod test_css_property_transform {
         assert_eq!(p.length.value, 100.0);
         assert_eq!(p.length.unit, "px");
       } else {
-        panic!("Expected Perspective transform function");
+        stylex_panic!("Expected Perspective transform function");
       }
 
       // Second function: matrix3d
@@ -194,7 +198,7 @@ mod test_css_property_transform {
         assert_eq!(m.args[9], 0.5);
         assert_eq!(m.args[10], 1.5);
       } else {
-        panic!("Expected Matrix3d transform function");
+        stylex_panic!("Expected Matrix3d transform function");
       }
     }
 
@@ -212,7 +216,7 @@ mod test_css_property_transform {
         assert_eq!(s.sx, 2.0);
         assert_eq!(s.sy, None);
       } else {
-        panic!("Expected Scale transform function");
+        stylex_panic!("Expected Scale transform function");
       }
 
       // Second function: rotate
@@ -220,7 +224,7 @@ mod test_css_property_transform {
         assert_eq!(r.angle.value, 45.0);
         assert_eq!(r.angle.unit, "deg");
       } else {
-        panic!("Expected Rotate transform function");
+        stylex_panic!("Expected Rotate transform function");
       }
     }
 
@@ -239,7 +243,7 @@ mod test_css_property_transform {
         assert_eq!(s.sy, 3.0);
         assert_eq!(s.sz, 4.0);
       } else {
-        panic!("Expected Scale3d transform function");
+        stylex_panic!("Expected Scale3d transform function");
       }
 
       // Second function: rotate3d
@@ -250,7 +254,7 @@ mod test_css_property_transform {
         assert_eq!(r.angle.value, 45.0);
         assert_eq!(r.angle.unit, "deg");
       } else {
-        panic!("Expected Rotate3d transform function");
+        stylex_panic!("Expected Rotate3d transform function");
       }
     }
 
@@ -268,7 +272,7 @@ mod test_css_property_transform {
         assert_eq!(s.sx, 2.0);
         assert_eq!(s.sy, None);
       } else {
-        panic!("Expected Scale transform function");
+        stylex_panic!("Expected Scale transform function");
       }
 
       // Second function: rotate
@@ -276,7 +280,7 @@ mod test_css_property_transform {
         assert_eq!(r.angle.value, 45.0);
         assert_eq!(r.angle.unit, "deg");
       } else {
-        panic!("Expected Rotate transform function");
+        stylex_panic!("Expected Rotate transform function");
       }
 
       // Third function: translate
@@ -284,7 +288,7 @@ mod test_css_property_transform {
         assert_eq!(t.tx.to_string(), "100px");
         assert_eq!(t.ty, None);
       } else {
-        panic!("Expected Translate transform function");
+        stylex_panic!("Expected Translate transform function");
       }
 
       // Fourth function: skew
@@ -293,7 +297,7 @@ mod test_css_property_transform {
         assert_eq!(sk.ax.unit, "deg");
         assert_eq!(sk.ay, None);
       } else {
-        panic!("Expected Skew transform function");
+        stylex_panic!("Expected Skew transform function");
       }
     }
   }

@@ -1,3 +1,5 @@
+use stylex_core::stylex_unreachable;
+
 use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
 /**
  * CSS Position Type Parser
@@ -135,10 +137,10 @@ impl Position {
               "left" => HorizontalKeyword::Left,
               "center" => HorizontalKeyword::Center,
               "right" => HorizontalKeyword::Right,
-              _ => unreachable!(),
+              _ => stylex_unreachable!(),
             }
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("to_horizontal_keyword"),
@@ -164,10 +166,10 @@ impl Position {
               "top" => VerticalKeyword::Top,
               "center" => VerticalKeyword::Center,
               "bottom" => VerticalKeyword::Bottom,
-              _ => unreachable!(),
+              _ => stylex_unreachable!(),
             }
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("to_vertical_keyword"),

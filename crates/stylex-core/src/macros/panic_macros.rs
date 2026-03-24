@@ -116,15 +116,21 @@ pub fn __stylex_unreachable(mut err: StyleXError) -> ! {
 ///
 /// Usage:
 /// ```ignore
+/// stylex_panic!();
 /// stylex_panic!("border is not supported");
 /// stylex_panic!("Invalid value: {}", val);
 /// ```
 #[macro_export]
 macro_rules! stylex_panic {
-  ($($arg:tt)*) => {
+  () => {
+    $crate::macros::panic_macros::__stylex_panic(
+      $crate::macros::panic_macros::stylex_err("explicit panic")
+    )
+  };
+  ($($arg:tt)+) => {
     $crate::macros::panic_macros::__stylex_panic(
       $crate::macros::panic_macros::stylex_err(
-        format!($($arg)*)
+        format!($($arg)+)
       )
     )
   };
@@ -145,10 +151,15 @@ macro_rules! stylex_panic_with_file {
 /// Like `unimplemented!()` but produces `[StyleX] [UNIMPLEMENTED] <message>`.
 #[macro_export]
 macro_rules! stylex_unimplemented {
-  ($($arg:tt)*) => {
+  () => {
+    $crate::macros::panic_macros::__stylex_unimplemented(
+      $crate::macros::panic_macros::stylex_err("not implemented")
+    )
+  };
+  ($($arg:tt)+) => {
     $crate::macros::panic_macros::__stylex_unimplemented(
       $crate::macros::panic_macros::stylex_err(
-        format!($($arg)*)
+        format!($($arg)+)
       )
     )
   };
@@ -157,10 +168,15 @@ macro_rules! stylex_unimplemented {
 /// Like `unreachable!()` but produces `[StyleX] [UNREACHABLE] <message>`.
 #[macro_export]
 macro_rules! stylex_unreachable {
-  ($($arg:tt)*) => {
+  () => {
+    $crate::macros::panic_macros::__stylex_unreachable(
+      $crate::macros::panic_macros::stylex_err("entered unreachable code")
+    )
+  };
+  ($($arg:tt)+) => {
     $crate::macros::panic_macros::__stylex_unreachable(
       $crate::macros::panic_macros::stylex_err(
-        format!($($arg)*)
+        format!($($arg)+)
       )
     )
   };

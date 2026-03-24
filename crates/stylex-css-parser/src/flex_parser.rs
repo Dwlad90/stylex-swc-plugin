@@ -365,6 +365,8 @@ pub fn parse_hsl() -> FlexParser {
 
 #[cfg(test)]
 mod tests {
+  use stylex_core::stylex_panic;
+
   use super::*;
 
   #[test]
@@ -388,7 +390,7 @@ mod tests {
       assert_eq!(seq[3].as_number(), Some(0.0));
       assert_eq!(seq[5].as_number(), Some(0.0));
     } else {
-      panic!("Expected sequence");
+      stylex_panic!("Expected sequence");
     }
   }
 

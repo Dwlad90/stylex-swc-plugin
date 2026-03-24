@@ -11,6 +11,8 @@ mod test_css_property_box_shadow {
 
   #[cfg(test)]
   mod box_shadow {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -33,7 +35,7 @@ mod test_css_property_box_shadow {
       if let Color::Hash(hash) = &result.color {
         assert_eq!(hash.value, "ff0000");
       } else {
-        panic!("Expected Hash color");
+        stylex_panic!("Expected Hash color");
       }
 
       assert!(!result.inset);
@@ -59,7 +61,7 @@ mod test_css_property_box_shadow {
       if let Color::Hash(hash) = &result.color {
         assert_eq!(hash.value, "ff0000");
       } else {
-        panic!("Expected Hash color");
+        stylex_panic!("Expected Hash color");
       }
 
       assert!(!result.inset);
@@ -86,7 +88,7 @@ mod test_css_property_box_shadow {
       if let Color::Hash(hash) = &result.color {
         assert_eq!(hash.value, "ff0000");
       } else {
-        panic!("Expected Hash color");
+        stylex_panic!("Expected Hash color");
       }
 
       assert!(!result.inset);
@@ -112,7 +114,7 @@ mod test_css_property_box_shadow {
       if let Color::Hash(hash) = &result.color {
         assert_eq!(hash.value, "ff0000");
       } else {
-        panic!("Expected Hash color");
+        stylex_panic!("Expected Hash color");
       }
 
       assert!(result.inset);
@@ -138,7 +140,7 @@ mod test_css_property_box_shadow {
       if let Color::Hash(hash) = &result.color {
         assert_eq!(hash.value, "ff0000");
       } else {
-        panic!("Expected Hash color");
+        stylex_panic!("Expected Hash color");
       }
 
       assert!(result.inset);
@@ -167,7 +169,7 @@ mod test_css_property_box_shadow {
         assert_eq!(rgba.b, 0);
         assert_eq!(rgba.a, 0.5);
       } else {
-        panic!("Expected Rgba color");
+        stylex_panic!("Expected Rgba color");
       }
 
       assert!(!result.inset);
@@ -196,7 +198,7 @@ mod test_css_property_box_shadow {
         assert_eq!(rgba.b, 0);
         assert_eq!(rgba.a, 0.5);
       } else {
-        panic!("Expected Rgba color");
+        stylex_panic!("Expected Rgba color");
       }
 
       assert!(!result.inset);
@@ -226,7 +228,7 @@ mod test_css_property_box_shadow {
         assert_eq!(hsla.l.value, 50.0);
         assert_eq!(hsla.a, 0.5);
       } else {
-        panic!("Expected Hsla color");
+        stylex_panic!("Expected Hsla color");
       }
 
       assert!(!result.inset);
@@ -235,6 +237,8 @@ mod test_css_property_box_shadow {
 
   #[cfg(test)]
   mod box_shadow_list {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -260,7 +264,7 @@ mod test_css_property_box_shadow {
       if let Color::Hash(hash) = &shadow.color {
         assert_eq!(hash.value, "ff0000");
       } else {
-        panic!("Expected Hash color");
+        stylex_panic!("Expected Hash color");
       }
 
       assert!(!shadow.inset);

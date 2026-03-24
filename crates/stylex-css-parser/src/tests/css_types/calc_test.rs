@@ -6,6 +6,8 @@ use crate::css_types::calc::{Calc, CalcValue};
 
 #[cfg(test)]
 mod test_css_type_calc {
+  use stylex_core::stylex_panic;
+
   use super::*;
 
   #[test]
@@ -15,7 +17,7 @@ mod test_css_type_calc {
       CalcValue::Number(num) => {
         assert_eq!(*num, 10.0);
       }
-      _ => panic!("Expected Number value"),
+      _ => stylex_panic!("Expected Number value"),
     }
     assert_eq!(calc1.to_string(), "calc(10)");
 
@@ -24,7 +26,7 @@ mod test_css_type_calc {
       CalcValue::Number(num) => {
         assert_eq!(*num, std::f32::consts::PI);
       }
-      _ => panic!("Expected Number value"),
+      _ => stylex_panic!("Expected Number value"),
     }
     assert_eq!(calc2.to_string(), "calc(3.1415927)");
 
@@ -33,7 +35,7 @@ mod test_css_type_calc {
       CalcValue::Number(num) => {
         assert_eq!(*num, -5.0);
       }
-      _ => panic!("Expected Number value"),
+      _ => stylex_panic!("Expected Number value"),
     }
     assert_eq!(calc3.to_string(), "calc(-5)");
   }
@@ -45,7 +47,7 @@ mod test_css_type_calc {
       CalcValue::Percentage(percent) => {
         assert_eq!(percent.value, 50.0);
       }
-      _ => panic!("Expected Percentage value"),
+      _ => stylex_panic!("Expected Percentage value"),
     }
     assert_eq!(calc1.to_string(), "calc(50%)");
 
@@ -54,7 +56,7 @@ mod test_css_type_calc {
       CalcValue::Percentage(percent) => {
         assert_eq!(percent.value, 100.0);
       }
-      _ => panic!("Expected Percentage value"),
+      _ => stylex_panic!("Expected Percentage value"),
     }
     assert_eq!(calc2.to_string(), "calc(100%)");
 
@@ -63,7 +65,7 @@ mod test_css_type_calc {
       CalcValue::Percentage(percent) => {
         assert_eq!(percent.value, -25.0);
       }
-      _ => panic!("Expected Percentage value"),
+      _ => stylex_panic!("Expected Percentage value"),
     }
     assert_eq!(calc3.to_string(), "calc(-25%)");
   }
@@ -76,7 +78,7 @@ mod test_css_type_calc {
         assert_eq!(dim.value, 20.0);
         assert_eq!(dim.unit, "px");
       }
-      _ => panic!("Expected Dimension value"),
+      _ => stylex_panic!("Expected Dimension value"),
     }
     assert_eq!(calc1.to_string(), "calc(20px)");
 
@@ -86,7 +88,7 @@ mod test_css_type_calc {
         assert_eq!(dim.value, 2.0);
         assert_eq!(dim.unit, "em");
       }
-      _ => panic!("Expected Dimension value"),
+      _ => stylex_panic!("Expected Dimension value"),
     }
     assert_eq!(calc2.to_string(), "calc(2em)");
 
@@ -96,7 +98,7 @@ mod test_css_type_calc {
         assert_eq!(dim.value, 1.5);
         assert_eq!(dim.unit, "rem");
       }
-      _ => panic!("Expected Dimension value"),
+      _ => stylex_panic!("Expected Dimension value"),
     }
     assert_eq!(calc3.to_string(), "calc(1.5rem)");
   }
@@ -114,7 +116,7 @@ mod test_css_type_calc {
             assert_eq!(dim.value, 10.0);
             assert_eq!(dim.unit, "px");
           }
-          _ => panic!("Expected Dimension for left operand"),
+          _ => stylex_panic!("Expected Dimension for left operand"),
         }
 
         // Verify right operand
@@ -123,10 +125,10 @@ mod test_css_type_calc {
             assert_eq!(dim.value, 5.0);
             assert_eq!(dim.unit, "px");
           }
-          _ => panic!("Expected Dimension for right operand"),
+          _ => stylex_panic!("Expected Dimension for right operand"),
         }
       }
-      _ => panic!("Expected Addition operation"),
+      _ => stylex_panic!("Expected Addition operation"),
     }
 
     assert_eq!(calc.to_string(), "calc(10px + 5px)");
@@ -144,7 +146,7 @@ mod test_css_type_calc {
           CalcValue::Percentage(percentage) => {
             assert_eq!(percentage.value, 100.0);
           }
-          _ => panic!("Expected Percentage for left operand"),
+          _ => stylex_panic!("Expected Percentage for left operand"),
         }
 
         // Verify right operand (length)
@@ -153,10 +155,10 @@ mod test_css_type_calc {
             assert_eq!(dim.value, 20.0);
             assert_eq!(dim.unit, "px");
           }
-          _ => panic!("Expected Dimension for right operand"),
+          _ => stylex_panic!("Expected Dimension for right operand"),
         }
       }
-      _ => panic!("Expected Subtraction operation"),
+      _ => stylex_panic!("Expected Subtraction operation"),
     }
 
     assert_eq!(calc.to_string(), "calc(100% - 20px)");
@@ -175,7 +177,7 @@ mod test_css_type_calc {
             assert_eq!(dim.value, 10.0);
             assert_eq!(dim.unit, "px");
           }
-          _ => panic!("Expected Dimension for left operand"),
+          _ => stylex_panic!("Expected Dimension for left operand"),
         }
 
         // Verify right operand
@@ -183,10 +185,10 @@ mod test_css_type_calc {
           CalcValue::Number(num) => {
             assert_eq!(*num, 2.0);
           }
-          _ => panic!("Expected Number for right operand"),
+          _ => stylex_panic!("Expected Number for right operand"),
         }
       }
-      _ => panic!("Expected Multiplication operation"),
+      _ => stylex_panic!("Expected Multiplication operation"),
     }
 
     assert_eq!(calc.to_string(), "calc(10px * 2)");
@@ -205,7 +207,7 @@ mod test_css_type_calc {
             assert_eq!(dim.value, 100.0);
             assert_eq!(dim.unit, "px");
           }
-          _ => panic!("Expected Dimension for left operand"),
+          _ => stylex_panic!("Expected Dimension for left operand"),
         }
 
         // Verify right operand
@@ -213,10 +215,10 @@ mod test_css_type_calc {
           CalcValue::Number(num) => {
             assert_eq!(*num, 4.0);
           }
-          _ => panic!("Expected Number for right operand"),
+          _ => stylex_panic!("Expected Number for right operand"),
         }
       }
-      _ => panic!("Expected Division operation"),
+      _ => stylex_panic!("Expected Division operation"),
     }
 
     assert_eq!(calc.to_string(), "calc(100px / 4)");

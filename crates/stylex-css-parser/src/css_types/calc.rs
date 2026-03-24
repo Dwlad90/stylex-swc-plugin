@@ -4,6 +4,8 @@ CSS Calc type parsing with full arithmetic support.
 Implements complete calc() expression parsing with operator precedence.
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{
   CssParseError,
   css_types::{calc_constant::CalcConstant, common_types::Percentage},
@@ -250,7 +252,7 @@ impl CalcValue {
       if let CalcValueOrOperator::Value(value) = &values_and_operators[0] {
         Ok(value.clone())
       } else {
-        unreachable!("First element should always be a value")
+        stylex_unreachable!("First element should always be a value")
       }
     } else {
       Self::split_by_multiplication_or_division(values_and_operators)

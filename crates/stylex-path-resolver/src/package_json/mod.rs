@@ -3,6 +3,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env};
 use std::{default::Default, fs::read_to_string};
+use stylex_core::stylex_panic;
 
 use package_json::{PackageDependencies, PackageJsonManager};
 use std::path::{Path, PathBuf};
@@ -40,12 +41,13 @@ pub fn get_package_json(
         data.ok().map(|package_json_raw| {
           let json = serde_json::from_str::<PackageJsonExtended>(package_json_raw.as_str())
             .unwrap_or_else(|error| {
-              panic!(
+              stylex_panic!(
                 "Failed to parse `{}` file. Error: {}.\n\nPossible reasons:\n\
                   - The JSON structure might be incorrect.\n\
                   - There might be a syntax error in the JSON.\n\
                   - Ensure all required fields are present and correctly formatted.",
-                file_path_string, error
+                file_path_string,
+                error
               );
             });
 
@@ -56,7 +58,7 @@ pub fn get_package_json(
 
       match data {
         Some(json) => (json, manager),
-        None => panic!(
+        None => stylex_panic!(
           "Failed to read package.json file: {}/{}",
           env::current_dir().unwrap().display(),
           file.display()
@@ -64,7 +66,7 @@ pub fn get_package_json(
       }
     }
     None => {
-      panic!("No package.json found for path: {:?}", path.display());
+      stylex_panic!("No package.json found for path: {:?}", path.display());
     }
   }
 }
@@ -75,7 +77,7 @@ pub(crate) fn get_package_json_path(path: &Path) -> (Option<PathBuf>, PackageJso
   match manager.locate_closest_from(path) {
     Ok(file) => (Option::Some(file), manager),
     Err(error) => {
-      panic!("Error: {}, path: {}", error, path.display());
+      stylex_panic!("Error: {}, path: {}", error, path.display());
     }
   }
 }

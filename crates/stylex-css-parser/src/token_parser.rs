@@ -14,6 +14,8 @@ This implementation provides a complete parsing API with:
 - Static methods return specialized parser types
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{
   CssParseError,
   token_types::{SimpleToken, TokenList},
@@ -744,7 +746,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           if let SimpleToken::Ident(value) = token {
             value
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some(".value"),
@@ -763,7 +765,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           if let SimpleToken::Function(value) = token {
             value
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some(".value"),

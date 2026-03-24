@@ -44,6 +44,7 @@ path-clean.workspace = true
 cssparser.workspace = true
 anyhow.workspace = true
 log.workspace = true
+pretty_env_logger.workspace = true
 ctor.workspace = true
 rustc-hash.workspace = true
 base62.workspace = true

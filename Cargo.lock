@@ -2895,6 +2895,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "stylex_core",
  "swc_core",
  "thiserror 2.0.18",
 ]
@@ -2918,6 +2919,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "stylex_core",
  "swc_core",
 ]
 
@@ -2941,6 +2943,7 @@ dependencies = [
  "once_cell",
  "path-clean 1.0.1",
  "phf 0.13.1",
+ "pretty_env_logger",
  "radix_fmt",
  "rustc-hash",
  "serde",

@@ -34,6 +34,8 @@ log.workspace = true
 indexmap.workspace = true
 rustc-hash.workspace = true
 
+stylex_core = { path = "../stylex-core" }
+
 [dev-dependencies]
 proptest = "1.10"
 criterion = { version = "0.8", features = ["html_reports"] }

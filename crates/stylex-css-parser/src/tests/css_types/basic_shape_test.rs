@@ -17,6 +17,8 @@ mod test_css_type_basic_shape {
 
   // Test Inset shapes
   mod inset {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -49,7 +51,7 @@ mod test_css_type_basic_shape {
         );
         assert_eq!(round, None);
       } else {
-        panic!("Expected Inset variant");
+        stylex_panic!("Expected Inset variant");
       }
 
       // inset(10px 20px) - two values
@@ -81,7 +83,7 @@ mod test_css_type_basic_shape {
           LengthPercentage::Length(Length::new(20.0, "px".to_string()))
         );
       } else {
-        panic!("Expected Inset variant");
+        stylex_panic!("Expected Inset variant");
       }
 
       // inset(10px 20px 30px) - three values
@@ -113,7 +115,7 @@ mod test_css_type_basic_shape {
           LengthPercentage::Length(Length::new(20.0, "px".to_string()))
         );
       } else {
-        panic!("Expected Inset variant");
+        stylex_panic!("Expected Inset variant");
       }
 
       // inset(10px 20px 30px 40px) - four values
@@ -145,7 +147,7 @@ mod test_css_type_basic_shape {
           LengthPercentage::Length(Length::new(40.0, "px".to_string()))
         );
       } else {
-        panic!("Expected Inset variant");
+        stylex_panic!("Expected Inset variant");
       }
     }
 
@@ -183,7 +185,7 @@ mod test_css_type_basic_shape {
           Some(LengthPercentage::Length(Length::new(5.0, "px".to_string())))
         );
       } else {
-        panic!("Expected Inset variant");
+        stylex_panic!("Expected Inset variant");
       }
     }
 
@@ -200,6 +202,8 @@ mod test_css_type_basic_shape {
 
   // Test Circle shapes
   mod circle {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -216,7 +220,7 @@ mod test_css_type_basic_shape {
         );
         assert_eq!(position, None);
       } else {
-        panic!("Expected Circle variant");
+        stylex_panic!("Expected Circle variant");
       }
 
       // circle(closest-side)
@@ -227,7 +231,7 @@ mod test_css_type_basic_shape {
         assert_eq!(radius, CircleRadius::ClosestSide);
         assert_eq!(position, None);
       } else {
-        panic!("Expected Circle variant");
+        stylex_panic!("Expected Circle variant");
       }
 
       // circle(farthest-side)
@@ -238,7 +242,7 @@ mod test_css_type_basic_shape {
         assert_eq!(radius, CircleRadius::FarthestSide);
         assert_eq!(position, None);
       } else {
-        panic!("Expected Circle variant");
+        stylex_panic!("Expected Circle variant");
       }
     }
 
@@ -271,6 +275,8 @@ mod test_css_type_basic_shape {
 
   // Test Ellipse shapes
   mod ellipse {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -301,7 +307,7 @@ mod test_css_type_basic_shape {
         );
         assert_eq!(position, None);
       } else {
-        panic!("Expected Ellipse variant");
+        stylex_panic!("Expected Ellipse variant");
       }
 
       // ellipse(closest-side farthest-side)
@@ -318,7 +324,7 @@ mod test_css_type_basic_shape {
         assert_eq!(radius_y, CircleRadius::FarthestSide);
         assert_eq!(position, None);
       } else {
-        panic!("Expected Ellipse variant");
+        stylex_panic!("Expected Ellipse variant");
       }
     }
 

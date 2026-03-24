@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use path_clean::PathClean;
+use stylex_core::stylex_panic;
 
 pub(crate) fn contains_subpath(path: &Path, sub_path: &Path) -> bool {
   path
@@ -13,7 +14,7 @@ pub(crate) fn contains_subpath(path: &Path, sub_path: &Path) -> bool {
 pub fn relative_path(file_path: &Path, root: &Path) -> PathBuf {
   pathdiff::diff_paths(file_path, root)
     .unwrap_or_else(|| {
-      panic!(
+      stylex_panic!(
         "Failed to get relative path for file {} based on root {}",
         file_path.display(),
         root.display()

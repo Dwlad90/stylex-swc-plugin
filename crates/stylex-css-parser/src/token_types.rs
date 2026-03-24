@@ -5,6 +5,7 @@ Token types and tokenization utilities for CSS parsing.
 use crate::CssResult;
 use cssparser::{Parser, ParserInput, Token as CssToken};
 use log::error;
+use stylex_core::stylex_panic;
 
 /// Simple token representation
 #[derive(Debug, Clone, PartialEq)]
@@ -115,7 +116,7 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
           Ok::<(), cssparser::ParseError<()>>(())
         }) {
           error!("Error parsing nested content: {:?}", e);
-          panic!("Error parsing nested content: {:?}", e); // Exit on error
+          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
         }
 
         // Add closing parenthesis
@@ -132,7 +133,7 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
           Ok::<(), cssparser::ParseError<()>>(())
         }) {
           error!("Error parsing nested content: {:?}", e);
-          panic!("Error parsing nested content: {:?}", e); // Exit on error
+          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
         }
 
         // Add closing paren token
@@ -167,7 +168,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
           Ok::<(), cssparser::ParseError<()>>(())
         }) {
           error!("Error parsing nested content: {:?}", e);
-          panic!("Error parsing nested content: {:?}", e); // Exit on error
+          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
         }
 
         // Add closing paren token (cssparser consumes it automatically)
@@ -185,7 +186,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
           Ok::<(), cssparser::ParseError<()>>(())
         }) {
           error!("Error parsing nested content: {:?}", e);
-          panic!("Error parsing nested content: {:?}", e); // Exit on error
+          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
         }
 
         // Add closing parenthesis (cssparser consumes it automatically)

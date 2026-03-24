@@ -5,6 +5,8 @@ This module implements the foundational types used across all CSS value parsing,
 providing essential shared utilities for CSS processing.
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{
   token_parser::{TokenParser, tokens},
   token_types::SimpleToken,
@@ -40,7 +42,7 @@ impl CssWideKeyword {
           if let SimpleToken::Ident(value) = token {
             value
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some(".value"),
@@ -55,7 +57,7 @@ impl CssWideKeyword {
           "initial" => CssWideKeyword::Initial,
           "unset" => CssWideKeyword::Unset,
           "revert" => CssWideKeyword::Revert,
-          _ => unreachable!(),
+          _ => stylex_unreachable!(),
         },
         Some("to_keyword"),
       )
@@ -174,7 +176,7 @@ impl Percentage {
 
           Percentage::new((value * 100.0) as f32)
         } else {
-          unreachable!()
+          stylex_unreachable!()
         }
       },
       Some("to_percentage"),
@@ -206,7 +208,7 @@ impl Number {
         if let SimpleToken::Number(value) = token {
           Number::new(value as f32)
         } else {
-          unreachable!()
+          stylex_unreachable!()
         }
       },
       Some("to_number"),

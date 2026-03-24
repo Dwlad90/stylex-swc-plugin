@@ -10,6 +10,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod keywords {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -24,7 +26,7 @@ mod style_value_parser_at_queries {
             assert!(!keyword.not);
             assert!(!keyword.only);
           }
-          _ => panic!("Expected MediaKeyword rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media screen");
@@ -41,7 +43,7 @@ mod style_value_parser_at_queries {
             assert!(!keyword.not);
             assert!(!keyword.only);
           }
-          _ => panic!("Expected MediaKeyword rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media print");
@@ -58,7 +60,7 @@ mod style_value_parser_at_queries {
             assert!(!keyword.not);
             assert!(!keyword.only);
           }
-          _ => panic!("Expected MediaKeyword rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media all");
@@ -77,7 +79,7 @@ mod style_value_parser_at_queries {
             assert!(!keyword.not);
             assert!(keyword.only);
           }
-          _ => panic!("Expected MediaKeyword rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media only screen");
@@ -102,7 +104,7 @@ mod style_value_parser_at_queries {
                 assert!(!keyword.not);
                 assert!(keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule for print"),
+              _ => stylex_panic!("Expected MediaKeyword rule for print"),
             }
 
             // Second rule should be the word rule
@@ -111,10 +113,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(word_rule.r#type, "word-rule");
                 assert_eq!(word_rule.key_value, "color");
               }
-              _ => panic!("Expected WordRule for color"),
+              _ => stylex_panic!("Expected WordRule for color"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media only (print) and (color)");
@@ -133,7 +135,7 @@ mod style_value_parser_at_queries {
             assert!(keyword.not);
             assert!(!keyword.only);
           }
-          _ => panic!("Expected MediaKeyword rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media not screen");
@@ -158,7 +160,7 @@ mod style_value_parser_at_queries {
                 assert!(keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule for not all"),
+              _ => stylex_panic!("Expected MediaKeyword rule for not all"),
             }
 
             // Second rule should be the word rule
@@ -167,10 +169,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(word_rule.r#type, "word-rule");
                 assert_eq!(word_rule.key_value, "monochrome");
               }
-              _ => panic!("Expected WordRule for monochrome"),
+              _ => stylex_panic!("Expected WordRule for monochrome"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media not (all) and (monochrome)");
@@ -179,6 +181,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod pair_rule {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -195,10 +199,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 100.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (width: 100px)");
@@ -218,10 +222,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 50.0);
                 assert_eq!(length.unit, "em");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-width: 50em)");
@@ -240,10 +244,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "landscape");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (orientation: landscape)");
@@ -262,10 +266,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "fast");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (update: fast)");
@@ -284,10 +288,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "scroll");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (overflow-block: scroll)");
@@ -306,10 +310,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "fullscreen");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (display-mode: fullscreen)");
@@ -328,10 +332,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "enabled");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (scripting: enabled)");
@@ -350,10 +354,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "hover");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (hover: hover)");
@@ -372,10 +376,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (any-hover: none)");
@@ -394,10 +398,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "coarse");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (pointer: coarse)");
@@ -416,10 +420,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "fine");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (any-pointer: fine)");
@@ -438,10 +442,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "dim");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (light-level: dim)");
@@ -460,10 +464,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "inverted");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (inverted-colors: inverted)");
@@ -482,10 +486,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "reduce");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(
@@ -507,10 +511,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "more");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (prefers-contrast: more)");
@@ -529,10 +533,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "active");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (forced-colors: active)");
@@ -551,10 +555,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "reduce");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(
@@ -576,10 +580,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "calc(300px + 5em)");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: calc(300px + 5em))");
@@ -598,10 +602,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "calc(100vh - 50px)");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(
@@ -624,10 +628,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(fraction.numerator, 16);
                 assert_eq!(fraction.denominator, 9);
               }
-              _ => panic!("Expected Fraction value"),
+              _ => stylex_panic!("Expected Fraction value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (aspect-ratio: 16 / 9)");
@@ -647,10 +651,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(fraction.numerator, 16);
                 assert_eq!(fraction.denominator, 9);
               }
-              _ => panic!("Expected Fraction value"),
+              _ => stylex_panic!("Expected Fraction value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (device-aspect-ratio: 16 / 9)");
@@ -670,10 +674,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 150.0);
                 assert_eq!(length.unit, "dpi");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-resolution: 150dpi)");
@@ -693,10 +697,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 600.0);
                 assert_eq!(length.unit, "dppx");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-resolution: 600dppx)");
@@ -715,10 +719,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "srgb");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (color-gamut: srgb)");
@@ -737,10 +741,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "standalone");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (display-mode: standalone)");
@@ -759,10 +763,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "dark");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (prefers-color-scheme: dark)");
@@ -781,10 +785,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (scripting: none)");
@@ -803,10 +807,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "slow");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (update: slow)");
@@ -825,10 +829,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (overflow-inline: none)");
@@ -847,10 +851,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "minimal-ui");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (display-mode: minimal-ui)");
@@ -869,10 +873,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (hover: none)");
@@ -891,10 +895,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "hover");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (any-hover: hover)");
@@ -913,10 +917,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (pointer: none)");
@@ -935,10 +939,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (any-pointer: none)");
@@ -957,10 +961,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "washed");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (light-level: washed)");
@@ -979,10 +983,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (inverted-colors: none)");
@@ -1001,10 +1005,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "no-preference");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(
@@ -1026,10 +1030,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "no-preference");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(
@@ -1051,10 +1055,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "none");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (forced-colors: none)");
@@ -1073,10 +1077,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "no-preference");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(
@@ -1098,10 +1102,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "calc(300px + 5em)");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: calc(300px + 5em))");
@@ -1120,10 +1124,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "calc(100vh - 50px)");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(
@@ -1135,6 +1139,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod word_rule {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -1147,7 +1153,7 @@ mod style_value_parser_at_queries {
             assert_eq!(word_rule.r#type, "word-rule");
             assert_eq!(word_rule.key_value, "color");
           }
-          _ => panic!("Expected WordRule"),
+          _ => stylex_panic!("Expected WordRule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (color)");
@@ -1163,7 +1169,7 @@ mod style_value_parser_at_queries {
             assert_eq!(word_rule.r#type, "word-rule");
             assert_eq!(word_rule.key_value, "monochrome");
           }
-          _ => panic!("Expected WordRule"),
+          _ => stylex_panic!("Expected WordRule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (monochrome)");
@@ -1179,7 +1185,7 @@ mod style_value_parser_at_queries {
             assert_eq!(word_rule.r#type, "word-rule");
             assert_eq!(word_rule.key_value, "grid");
           }
-          _ => panic!("Expected WordRule"),
+          _ => stylex_panic!("Expected WordRule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (grid)");
@@ -1195,7 +1201,7 @@ mod style_value_parser_at_queries {
             assert_eq!(word_rule.r#type, "word-rule");
             assert_eq!(word_rule.key_value, "color-index");
           }
-          _ => panic!("Expected WordRule"),
+          _ => stylex_panic!("Expected WordRule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (color-index)");
@@ -1204,6 +1210,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod and_combinator {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -1223,7 +1231,7 @@ mod style_value_parser_at_queries {
                 assert!(keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule for not all"),
+              _ => stylex_panic!("Expected MediaKeyword rule for not all"),
             }
 
             match &and_rules.rules[1] {
@@ -1231,10 +1239,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(word_rule.r#type, "word-rule");
                 assert_eq!(word_rule.key_value, "monochrome");
               }
-              _ => panic!("Expected WordRule for monochrome"),
+              _ => stylex_panic!("Expected WordRule for monochrome"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media not (all) and (monochrome)");
@@ -1257,7 +1265,7 @@ mod style_value_parser_at_queries {
                 assert!(!keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule"),
+              _ => stylex_panic!("Expected MediaKeyword rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1269,13 +1277,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (screen) and (min-width: 400px)");
@@ -1300,10 +1308,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 600.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1314,13 +1322,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1346,7 +1354,7 @@ mod style_value_parser_at_queries {
                 assert!(!keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule"),
+              _ => stylex_panic!("Expected MediaKeyword rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1358,13 +1366,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(fraction.numerator, 16);
                     assert_eq!(fraction.denominator, 9);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1392,10 +1400,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(fraction.numerator, 3);
                     assert_eq!(fraction.denominator, 2);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1407,13 +1415,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(fraction.numerator, 16);
                     assert_eq!(fraction.denominator, 9);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1441,10 +1449,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 300.0);
                     assert_eq!(length.unit, "dpi");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1456,13 +1464,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 600.0);
                     assert_eq!(length.unit, "dpi");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1490,10 +1498,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 768.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1505,13 +1513,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 991.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1539,10 +1547,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 1200.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1553,13 +1561,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1587,10 +1595,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 992.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1602,10 +1610,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 1199.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -1616,13 +1624,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "fine");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1650,10 +1658,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 576.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1665,10 +1673,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 767.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -1679,13 +1687,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "none");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1712,10 +1720,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1726,13 +1734,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "fine");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1759,10 +1767,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "reduce");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1773,13 +1781,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "slow");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1806,10 +1814,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1820,13 +1828,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "fast");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1852,7 +1860,7 @@ mod style_value_parser_at_queries {
                 assert!(!keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule"),
+              _ => stylex_panic!("Expected MediaKeyword rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1864,13 +1872,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(frac.numerator, 16);
                     assert_eq!(frac.denominator, 9);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1898,10 +1906,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(frac.numerator, 3);
                     assert_eq!(frac.denominator, 2);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -1913,13 +1921,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(frac.numerator, 16);
                     assert_eq!(frac.denominator, 9);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -1931,6 +1939,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod or_combinator {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -1951,10 +1961,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "portrait");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &or_rules.rules[1] {
@@ -1965,13 +1975,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected Or rule"),
+          _ => stylex_panic!("Expected Or rule"),
         }
 
         assert_eq!(
@@ -1999,10 +2009,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 500.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &or_rules.rules[1] {
@@ -2014,13 +2024,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 600.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected Or rule"),
+          _ => stylex_panic!("Expected Or rule"),
         }
 
         assert_eq!(
@@ -2048,10 +2058,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 500.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &or_rules.rules[1] {
@@ -2063,13 +2073,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected Or rule"),
+          _ => stylex_panic!("Expected Or rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (width: 500px), (height: 400px)");
@@ -2094,10 +2104,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 576.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &or_rules.rules[1] {
@@ -2113,10 +2123,10 @@ mod style_value_parser_at_queries {
                       crate::at_queries::media_query::MediaRuleValue::String(s) => {
                         assert_eq!(s, "portrait");
                       }
-                      _ => panic!("Expected String value"),
+                      _ => stylex_panic!("Expected String value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
 
                 match &and_rules.rules[1] {
@@ -2128,16 +2138,16 @@ mod style_value_parser_at_queries {
                         assert_eq!(length.value, 767.0);
                         assert_eq!(length.unit, "px");
                       }
-                      _ => panic!("Expected Length value"),
+                      _ => stylex_panic!("Expected Length value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
               }
-              _ => panic!("Expected And rule"),
+              _ => stylex_panic!("Expected And rule"),
             }
           }
-          _ => panic!("Expected Or rule"),
+          _ => stylex_panic!("Expected Or rule"),
         }
 
         assert_eq!(
@@ -2170,10 +2180,10 @@ mod style_value_parser_at_queries {
                         assert_eq!(length.value, 768.0);
                         assert_eq!(length.unit, "px");
                       }
-                      _ => panic!("Expected Length value"),
+                      _ => stylex_panic!("Expected Length value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
 
                 match &and_rules.rules[1] {
@@ -2185,13 +2195,13 @@ mod style_value_parser_at_queries {
                         assert_eq!(length.value, 991.0);
                         assert_eq!(length.unit, "px");
                       }
-                      _ => panic!("Expected Length value"),
+                      _ => stylex_panic!("Expected Length value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
               }
-              _ => panic!("Expected And rule"),
+              _ => stylex_panic!("Expected And rule"),
             }
 
             match &or_rules.rules[1] {
@@ -2202,13 +2212,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected Or rule"),
+          _ => stylex_panic!("Expected Or rule"),
         }
 
         assert_eq!(
@@ -2242,10 +2252,10 @@ mod style_value_parser_at_queries {
                         assert_eq!(length.value, 992.0);
                         assert_eq!(length.unit, "px");
                       }
-                      _ => panic!("Expected Length value"),
+                      _ => stylex_panic!("Expected Length value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
 
                 match &and_rules.rules[1] {
@@ -2257,13 +2267,13 @@ mod style_value_parser_at_queries {
                         assert_eq!(length.value, 1199.0);
                         assert_eq!(length.unit, "px");
                       }
-                      _ => panic!("Expected Length value"),
+                      _ => stylex_panic!("Expected Length value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
               }
-              _ => panic!("Expected And rule"),
+              _ => stylex_panic!("Expected And rule"),
             }
 
             match &or_rules.rules[1] {
@@ -2279,10 +2289,10 @@ mod style_value_parser_at_queries {
                       crate::at_queries::media_query::MediaRuleValue::String(s) => {
                         assert_eq!(s, "fine");
                       }
-                      _ => panic!("Expected String value"),
+                      _ => stylex_panic!("Expected String value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
 
                 match &and_rules.rules[1] {
@@ -2293,16 +2303,16 @@ mod style_value_parser_at_queries {
                       crate::at_queries::media_query::MediaRuleValue::String(s) => {
                         assert_eq!(s, "hover");
                       }
-                      _ => panic!("Expected String value"),
+                      _ => stylex_panic!("Expected String value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
               }
-              _ => panic!("Expected And rule"),
+              _ => stylex_panic!("Expected And rule"),
             }
           }
-          _ => panic!("Expected Or rule"),
+          _ => stylex_panic!("Expected Or rule"),
         }
 
         assert_eq!(
@@ -2378,6 +2388,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod not_combinator {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -2397,13 +2409,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule inside Not"),
+              _ => stylex_panic!("Expected Pair rule inside Not"),
             }
           }
-          _ => panic!("Expected Not rule"),
+          _ => stylex_panic!("Expected Not rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (not (min-width: 400px))");
@@ -2421,7 +2433,7 @@ mod style_value_parser_at_queries {
             assert!(!keyword.not);
             assert!(!keyword.only);
           }
-          _ => panic!("Expected MediaKeyword rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media all");
@@ -2444,7 +2456,7 @@ mod style_value_parser_at_queries {
                 assert!(keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule"),
+              _ => stylex_panic!("Expected MediaKeyword rule"),
             }
 
             match &and_rules.rules[1] {
@@ -2452,7 +2464,7 @@ mod style_value_parser_at_queries {
                 assert_eq!(word_rule.r#type, "word-rule");
                 assert_eq!(word_rule.key_value, "monochrome");
               }
-              _ => panic!("Expected WordRule for monochrome"),
+              _ => stylex_panic!("Expected WordRule for monochrome"),
             }
 
             match &and_rules.rules[2] {
@@ -2464,13 +2476,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 600.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -2499,10 +2511,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 1024.01);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -2514,13 +2526,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 1440.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -2532,6 +2544,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod inequality_rule_tests {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -2548,10 +2562,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 400.01);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 400.01px)");
@@ -2571,10 +2585,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 400.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 400px)");
@@ -2594,10 +2608,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 400.01);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 400.01px)");
@@ -2617,10 +2631,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 400.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 400px)");
@@ -2645,10 +2659,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -2660,13 +2674,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 700.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -2689,10 +2703,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 399.99);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-width: 399.99px)");
@@ -2712,10 +2726,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 400.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-width: 400px)");
@@ -2735,10 +2749,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 399.99);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-width: 399.99px)");
@@ -2758,10 +2772,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 400.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-width: 400px)");
@@ -2781,10 +2795,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 999.99);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-width: 999.99px)");
@@ -2804,10 +2818,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 1000.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (max-width: 1000px)");
@@ -2827,10 +2841,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 1000.01);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 1000.01px)");
@@ -2850,10 +2864,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 1000.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 1000px)");
@@ -2877,10 +2891,10 @@ mod style_value_parser_at_queries {
                 assert!(keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule inside And"),
+              _ => stylex_panic!("Expected MediaKeyword rule inside And"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media not (all)");
@@ -2905,10 +2919,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.01);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -2920,13 +2934,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 699.99);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -2954,10 +2968,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 700.01);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -2969,13 +2983,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 999.99);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3003,10 +3017,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 700.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3018,13 +3032,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 1000.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3052,13 +3066,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 100.01);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule inside And"),
+              _ => stylex_panic!("Expected Pair rule inside And"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 100.01px)");
@@ -3084,13 +3098,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 100.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule inside And"),
+              _ => stylex_panic!("Expected Pair rule inside And"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 100px)");
@@ -3115,10 +3129,10 @@ mod style_value_parser_at_queries {
                 assert!(keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule inside And"),
+              _ => stylex_panic!("Expected MediaKeyword rule inside And"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media not (all)");
@@ -3145,13 +3159,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 100.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule inside And"),
+              _ => stylex_panic!("Expected Pair rule inside And"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 100px)");
@@ -3177,10 +3191,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 100.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3192,13 +3206,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 500.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3227,10 +3241,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 200.01);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3242,13 +3256,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 500.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3277,10 +3291,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 100.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3291,13 +3305,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3325,10 +3339,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "calc(100px + 2em)");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3340,13 +3354,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 500.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3374,10 +3388,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(frac.numerator, 3);
                     assert_eq!(frac.denominator, 2);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3389,13 +3403,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(frac.numerator, 16);
                     assert_eq!(frac.denominator, 9);
                   }
-                  _ => panic!("Expected Fraction value"),
+                  _ => stylex_panic!("Expected Fraction value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3423,10 +3437,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 300.0);
                     assert_eq!(length.unit, "dpi");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3438,13 +3452,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 600.0);
                     assert_eq!(length.unit, "dpi");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3472,10 +3486,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 768.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3487,13 +3501,13 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 991.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3521,10 +3535,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 1200.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3535,13 +3549,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3569,10 +3583,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 992.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3584,10 +3598,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 1199.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -3598,13 +3612,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "fine");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3632,10 +3646,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 576.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3647,10 +3661,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 767.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -3661,13 +3675,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "none");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3694,10 +3708,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3708,13 +3722,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "fine");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3741,10 +3755,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "reduce");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3755,13 +3769,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "slow");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3788,10 +3802,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3802,13 +3816,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "fast");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3825,6 +3839,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod flatten_and_combinator_logic {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -3847,10 +3863,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3862,10 +3878,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 700.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -3876,13 +3892,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3911,10 +3927,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3926,10 +3942,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 700.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -3940,13 +3956,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -3974,10 +3990,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 400.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[1] {
@@ -3989,10 +4005,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 700.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -4003,10 +4019,10 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "landscape");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[3] {
@@ -4017,13 +4033,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "hover");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -4049,7 +4065,7 @@ mod style_value_parser_at_queries {
                 assert!(!keyword.not);
                 assert!(!keyword.only);
               }
-              _ => panic!("Expected MediaKeyword rule"),
+              _ => stylex_panic!("Expected MediaKeyword rule"),
             }
 
             match &and_rules.rules[1] {
@@ -4061,10 +4077,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 500.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[2] {
@@ -4076,10 +4092,10 @@ mod style_value_parser_at_queries {
                     assert_eq!(length.value, 800.0);
                     assert_eq!(length.unit, "px");
                   }
-                  _ => panic!("Expected Length value"),
+                  _ => stylex_panic!("Expected Length value"),
                 }
               }
-              _ => panic!("Expected Pair rule"),
+              _ => stylex_panic!("Expected Pair rule"),
             }
 
             match &and_rules.rules[3] {
@@ -4087,10 +4103,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(word_rule.r#type, "word-rule");
                 assert_eq!(word_rule.key_value, "color");
               }
-              _ => panic!("Expected WordRule"),
+              _ => stylex_panic!("Expected WordRule"),
             }
           }
-          _ => panic!("Expected And rule"),
+          _ => stylex_panic!("Expected And rule"),
         }
 
         assert_eq!(
@@ -4102,6 +4118,8 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod simplify_not_combinator_logic {
+      use stylex_core::stylex_panic;
+
       use super::*;
 
       #[test]
@@ -4118,10 +4136,10 @@ mod style_value_parser_at_queries {
                 assert_eq!(length.value, 400.0);
                 assert_eq!(length.unit, "px");
               }
-              _ => panic!("Expected Length value"),
+              _ => stylex_panic!("Expected Length value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (min-width: 400px)");
@@ -4143,13 +4161,13 @@ mod style_value_parser_at_queries {
                   crate::at_queries::media_query::MediaRuleValue::String(s) => {
                     assert_eq!(s, "hover");
                   }
-                  _ => panic!("Expected String value"),
+                  _ => stylex_panic!("Expected String value"),
                 }
               }
-              _ => panic!("Expected Pair rule inside Not"),
+              _ => stylex_panic!("Expected Pair rule inside Not"),
             }
           }
-          _ => panic!("Expected Not rule"),
+          _ => stylex_panic!("Expected Not rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (not (hover: hover))");
@@ -4177,10 +4195,10 @@ mod style_value_parser_at_queries {
                         assert_eq!(length.value, 600.0);
                         assert_eq!(length.unit, "px");
                       }
-                      _ => panic!("Expected Length value"),
+                      _ => stylex_panic!("Expected Length value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
 
                 match &and_rules.rules[1] {
@@ -4192,16 +4210,16 @@ mod style_value_parser_at_queries {
                         assert_eq!(length.value, 900.0);
                         assert_eq!(length.unit, "px");
                       }
-                      _ => panic!("Expected Length value"),
+                      _ => stylex_panic!("Expected Length value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
               }
-              _ => panic!("Expected And rule inside Not"),
+              _ => stylex_panic!("Expected And rule inside Not"),
             }
           }
-          _ => panic!("Expected Not rule"),
+          _ => stylex_panic!("Expected Not rule"),
         }
 
         assert_eq!(
@@ -4223,10 +4241,10 @@ mod style_value_parser_at_queries {
               crate::at_queries::media_query::MediaRuleValue::String(s) => {
                 assert_eq!(s, "fast");
               }
-              _ => panic!("Expected String value"),
+              _ => stylex_panic!("Expected String value"),
             }
           }
-          _ => panic!("Expected Pair rule"),
+          _ => stylex_panic!("Expected Pair rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media (update: fast)");
@@ -4253,10 +4271,10 @@ mod style_value_parser_at_queries {
                       crate::at_queries::media_query::MediaRuleValue::String(s) => {
                         assert_eq!(s, "fine");
                       }
-                      _ => panic!("Expected String value"),
+                      _ => stylex_panic!("Expected String value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
 
                 match &and_rules.rules[1] {
@@ -4267,16 +4285,16 @@ mod style_value_parser_at_queries {
                       crate::at_queries::media_query::MediaRuleValue::String(s) => {
                         assert_eq!(s, "hover");
                       }
-                      _ => panic!("Expected String value"),
+                      _ => stylex_panic!("Expected String value"),
                     }
                   }
-                  _ => panic!("Expected Pair rule"),
+                  _ => stylex_panic!("Expected Pair rule"),
                 }
               }
-              _ => panic!("Expected And rule inside Not"),
+              _ => stylex_panic!("Expected And rule inside Not"),
             }
           }
-          _ => panic!("Expected Not rule"),
+          _ => stylex_panic!("Expected Not rule"),
         }
 
         assert_eq!(
@@ -4289,6 +4307,8 @@ mod style_value_parser_at_queries {
 
   #[cfg(test)]
   mod simplify_range_intervals {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -4310,13 +4330,13 @@ mod style_value_parser_at_queries {
                   assert_eq!(length.value, 200.01);
                   assert_eq!(length.unit, "px");
                 }
-                _ => panic!("Expected Length value"),
+                _ => stylex_panic!("Expected Length value"),
               }
             }
-            _ => panic!("Expected Pair rule inside And"),
+            _ => stylex_panic!("Expected Pair rule inside And"),
           }
         }
-        _ => panic!("Expected And rule"),
+        _ => stylex_panic!("Expected And rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (min-width: 200.01px)");
@@ -4341,13 +4361,13 @@ mod style_value_parser_at_queries {
                   assert_eq!(length.value, 200.0);
                   assert_eq!(length.unit, "px");
                 }
-                _ => panic!("Expected Length value"),
+                _ => stylex_panic!("Expected Length value"),
               }
             }
-            _ => panic!("Expected Pair rule inside And"),
+            _ => stylex_panic!("Expected Pair rule inside And"),
           }
         }
-        _ => panic!("Expected And rule"),
+        _ => stylex_panic!("Expected And rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (min-width: 200px)");
@@ -4424,6 +4444,8 @@ mod style_value_parser_at_queries {
 
   #[cfg(test)]
   mod additional_media_query_features {
+    use stylex_core::stylex_panic;
+
     use super::*;
 
     #[test]
@@ -4439,10 +4461,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::Number(n) => {
               assert_eq!(*n, 2.0);
             }
-            _ => panic!("Expected Number value"),
+            _ => stylex_panic!("Expected Number value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(
@@ -4464,10 +4486,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::Number(n) => {
               assert_eq!(*n, 256.0);
             }
-            _ => panic!("Expected Number value"),
+            _ => stylex_panic!("Expected Number value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (color-index: 256)");
@@ -4487,10 +4509,10 @@ mod style_value_parser_at_queries {
               assert_eq!(length.value, 300.0);
               assert_eq!(length.unit, "dpi");
             }
-            _ => panic!("Expected Length value"),
+            _ => stylex_panic!("Expected Length value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (resolution: 300dpi)");
@@ -4509,10 +4531,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::String(s) => {
               assert_eq!(s, "srgb");
             }
-            _ => panic!("Expected String value"),
+            _ => stylex_panic!("Expected String value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (color-gamut: srgb)");
@@ -4531,10 +4553,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::Number(n) => {
               assert_eq!(*n, 1.5);
             }
-            _ => panic!("Expected Number value"),
+            _ => stylex_panic!("Expected Number value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(
@@ -4556,10 +4578,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::Number(n) => {
               assert_eq!(*n, 256.0);
             }
-            _ => panic!("Expected Number value"),
+            _ => stylex_panic!("Expected Number value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (min-color-index: 256)");
@@ -4578,10 +4600,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::Number(n) => {
               assert_eq!(*n, 65536.0);
             }
-            _ => panic!("Expected Number value"),
+            _ => stylex_panic!("Expected Number value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (max-color-index: 65536)");
@@ -4601,10 +4623,10 @@ mod style_value_parser_at_queries {
               assert_eq!(length.value, 2.0);
               assert_eq!(length.unit, "dppx");
             }
-            _ => panic!("Expected Length value"),
+            _ => stylex_panic!("Expected Length value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (resolution: 2dppx)");
@@ -4624,10 +4646,10 @@ mod style_value_parser_at_queries {
               assert_eq!(length.value, 1.5);
               assert_eq!(length.unit, "dpcm");
             }
-            _ => panic!("Expected Length value"),
+            _ => stylex_panic!("Expected Length value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (resolution: 1.5dpcm)");
@@ -4646,10 +4668,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::String(s) => {
               assert_eq!(s, "p3");
             }
-            _ => panic!("Expected String value"),
+            _ => stylex_panic!("Expected String value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (color-gamut: p3)");
@@ -4668,10 +4690,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::String(s) => {
               assert_eq!(s, "rec2020");
             }
-            _ => panic!("Expected String value"),
+            _ => stylex_panic!("Expected String value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (color-gamut: rec2020)");
@@ -4690,10 +4712,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::String(s) => {
               assert_eq!(s, "srgb");
             }
-            _ => panic!("Expected String value"),
+            _ => stylex_panic!("Expected String value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (video-color-gamut: srgb)");
@@ -4712,10 +4734,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::String(s) => {
               assert_eq!(s, "p3");
             }
-            _ => panic!("Expected String value"),
+            _ => stylex_panic!("Expected String value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (video-color-gamut: p3)");
@@ -4734,10 +4756,10 @@ mod style_value_parser_at_queries {
             crate::at_queries::media_query::MediaRuleValue::String(s) => {
               assert_eq!(s, "rec2020");
             }
-            _ => panic!("Expected String value"),
+            _ => stylex_panic!("Expected String value"),
           }
         }
-        _ => panic!("Expected Pair rule"),
+        _ => stylex_panic!("Expected Pair rule"),
       }
 
       assert_eq!(parsed.to_string(), "@media (video-color-gamut: rec2020)");

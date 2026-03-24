@@ -1366,6 +1366,9 @@ importers:
 
   crates/stylex-css-parser:
     devDependencies:
+      '@stylexswc/core':
+        specifier: 0.15.1-rc.1
+        version: link:../stylex-core
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -1377,6 +1380,10 @@ importers:
         version: 3.8.1
 
   crates/stylex-path-resolver:
+    dependencies:
+      '@stylexswc/core':
+        specifier: 0.15.1-rc.1
+        version: link:../stylex-core
     devDependencies:
       '@taplo/cli':
         specifier: ^0.7.0

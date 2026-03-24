@@ -6,6 +6,8 @@ Test CSS angle-percentage type that accepts both angles and percentages.
 
 #[cfg(test)]
 mod test_css_type_angle_percentage {
+  use stylex_core::stylex_panic;
+
   use crate::css_types::angle_percentage::{AnglePercentage, angle_percentage_parser};
 
   #[test]
@@ -16,7 +18,7 @@ mod test_css_type_angle_percentage {
         assert_eq!(angle.value, 45.0);
         assert_eq!(angle.unit, "deg");
       }
-      _ => panic!("Expected angle"),
+      _ => stylex_panic!("Expected angle"),
     }
 
     let result = angle_percentage_parser().parse_to_end("1rad").unwrap();
@@ -25,7 +27,7 @@ mod test_css_type_angle_percentage {
         assert_eq!(angle.value, 1.0);
         assert_eq!(angle.unit, "rad");
       }
-      _ => panic!("Expected angle"),
+      _ => stylex_panic!("Expected angle"),
     }
 
     let result = angle_percentage_parser().parse_to_end("0.5turn").unwrap();
@@ -34,7 +36,7 @@ mod test_css_type_angle_percentage {
         assert_eq!(angle.value, 0.5);
         assert_eq!(angle.unit, "turn");
       }
-      _ => panic!("Expected angle"),
+      _ => stylex_panic!("Expected angle"),
     }
 
     let result = angle_percentage_parser().parse_to_end("100grad").unwrap();
@@ -43,7 +45,7 @@ mod test_css_type_angle_percentage {
         assert_eq!(angle.value, 100.0);
         assert_eq!(angle.unit, "grad");
       }
-      _ => panic!("Expected angle"),
+      _ => stylex_panic!("Expected angle"),
     }
   }
 
@@ -54,7 +56,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 50.0);
       }
-      _ => panic!("Expected percentage"),
+      _ => stylex_panic!("Expected percentage"),
     }
 
     let result = angle_percentage_parser().parse_to_end("100%").unwrap();
@@ -62,7 +64,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 100.0);
       }
-      _ => panic!("Expected percentage"),
+      _ => stylex_panic!("Expected percentage"),
     }
 
     let result = angle_percentage_parser().parse_to_end("0%").unwrap();
@@ -70,7 +72,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 0.0);
       }
-      _ => panic!("Expected percentage"),
+      _ => stylex_panic!("Expected percentage"),
     }
 
     let result = angle_percentage_parser().parse_to_end("25%").unwrap();
@@ -78,7 +80,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 25.0);
       }
-      _ => panic!("Expected percentage"),
+      _ => stylex_panic!("Expected percentage"),
     }
   }
 

@@ -4,6 +4,8 @@ CSS Color type parsing.
 Handles all CSS color formats: named colors, hex, rgb, rgba, hsl, hsla, and modern color spaces.
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{
   CssParseError,
   css_types::{Angle, Percentage},
@@ -567,7 +569,7 @@ impl NamedColor {
           if let SimpleToken::Ident(value) = token {
             value
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("extract_ident"),
@@ -667,7 +669,7 @@ impl HashColor {
           if let SimpleToken::Hash(value) = token {
             value
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("extract_hash"),

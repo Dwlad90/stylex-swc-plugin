@@ -4,6 +4,8 @@ CSS Angle type parsing.
 Handles angle values with 'deg' (degrees), 'grad' (gradians), 'rad' (radians), and 'turn' (turns) units.
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -58,7 +60,7 @@ impl Angle {
         if let SimpleToken::Dimension { value, unit } = token {
           Angle::new(value as f32, unit)
         } else {
-          unreachable!()
+          stylex_unreachable!()
         }
       },
       Some("to_angle"),

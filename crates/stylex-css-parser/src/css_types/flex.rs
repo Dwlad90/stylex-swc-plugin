@@ -4,6 +4,8 @@ CSS Flex type parsing.
 Handles flex grid fraction values (e.g., 1fr, 2.5fr).
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -49,7 +51,7 @@ impl Flex {
         if let SimpleToken::Dimension { value, unit: _ } = token {
           Flex::new(value as f32)
         } else {
-          unreachable!()
+          stylex_unreachable!()
         }
       },
       Some("to_flex"),

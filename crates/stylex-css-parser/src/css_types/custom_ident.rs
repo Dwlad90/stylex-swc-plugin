@@ -4,6 +4,8 @@ CSS Custom Identifier type parsing.
 Handles custom identifiers that exclude CSS reserved keywords.
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -57,7 +59,7 @@ impl CustomIdentifier {
           if let SimpleToken::Ident(value) = token {
             value
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("extract_ident"),

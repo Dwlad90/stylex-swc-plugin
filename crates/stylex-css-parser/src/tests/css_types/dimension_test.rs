@@ -7,6 +7,8 @@ Tests parsing of dimensional values (length, time, frequency, resolution).
 
 #[cfg(test)]
 mod test_css_type_dimension {
+  use stylex_core::stylex_panic;
+
   use crate::css_types::dimension::{Dimension, dimension};
   use crate::css_types::{
     frequency::Frequency, length::Length, resolution::Resolution, time::Time,
@@ -20,7 +22,7 @@ mod test_css_type_dimension {
       assert_eq!(length.value, 16.0);
       assert_eq!(length.unit, "px");
     } else {
-      panic!("Expected Length dimension");
+      stylex_panic!("Expected Length dimension");
     }
 
     let result = dimension().parse_to_end("2.5em").unwrap();
@@ -28,7 +30,7 @@ mod test_css_type_dimension {
       assert_eq!(length.value, 2.5);
       assert_eq!(length.unit, "em");
     } else {
-      panic!("Expected Length dimension");
+      stylex_panic!("Expected Length dimension");
     }
 
     let result = dimension().parse_to_end("100vh").unwrap();
@@ -36,7 +38,7 @@ mod test_css_type_dimension {
       assert_eq!(length.value, 100.0);
       assert_eq!(length.unit, "vh");
     } else {
-      panic!("Expected Length dimension");
+      stylex_panic!("Expected Length dimension");
     }
   }
 
@@ -48,7 +50,7 @@ mod test_css_type_dimension {
       assert_eq!(time.value, 1.5);
       assert_eq!(time.unit, "s");
     } else {
-      panic!("Expected Time dimension");
+      stylex_panic!("Expected Time dimension");
     }
 
     let result = dimension().parse_to_end("300ms").unwrap();
@@ -56,7 +58,7 @@ mod test_css_type_dimension {
       assert_eq!(time.value, 300.0);
       assert_eq!(time.unit, "ms");
     } else {
-      panic!("Expected Time dimension");
+      stylex_panic!("Expected Time dimension");
     }
   }
 
@@ -68,7 +70,7 @@ mod test_css_type_dimension {
       assert_eq!(freq.value, 440.0);
       assert_eq!(freq.unit, "Hz");
     } else {
-      panic!("Expected Frequency dimension");
+      stylex_panic!("Expected Frequency dimension");
     }
 
     let result = dimension().parse_to_end("20KHz").unwrap();
@@ -76,7 +78,7 @@ mod test_css_type_dimension {
       assert_eq!(freq.value, 20.0);
       assert_eq!(freq.unit, "KHz");
     } else {
-      panic!("Expected Frequency dimension");
+      stylex_panic!("Expected Frequency dimension");
     }
   }
 
@@ -88,7 +90,7 @@ mod test_css_type_dimension {
       assert_eq!(res.value, 96.0);
       assert_eq!(res.unit, "dpi");
     } else {
-      panic!("Expected Resolution dimension");
+      stylex_panic!("Expected Resolution dimension");
     }
 
     let result = dimension().parse_to_end("2dppx").unwrap();
@@ -96,7 +98,7 @@ mod test_css_type_dimension {
       assert_eq!(res.value, 2.0);
       assert_eq!(res.unit, "dppx");
     } else {
-      panic!("Expected Resolution dimension");
+      stylex_panic!("Expected Resolution dimension");
     }
 
     let result = dimension().parse_to_end("38dpcm").unwrap();
@@ -104,7 +106,7 @@ mod test_css_type_dimension {
       assert_eq!(res.value, 38.0);
       assert_eq!(res.unit, "dpcm");
     } else {
-      panic!("Expected Resolution dimension");
+      stylex_panic!("Expected Resolution dimension");
     }
   }
 

@@ -2,6 +2,8 @@
 CSS easing function parser.
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{CssParseError, token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -337,11 +339,11 @@ impl CubicBezierKeyword {
               "ease-in" => CubicBezierKeywordType::EaseIn,
               "ease-out" => CubicBezierKeywordType::EaseOut,
               "ease-in-out" => CubicBezierKeywordType::EaseInOut,
-              _ => unreachable!(),
+              _ => stylex_unreachable!(),
             };
             CubicBezierKeyword::new(keyword)
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("to_keyword"),
@@ -519,11 +521,11 @@ impl StepsKeyword {
             let keyword = match value.as_str() {
               "step-start" => StepsKeywordType::StepStart,
               "step-end" => StepsKeywordType::StepEnd,
-              _ => unreachable!(),
+              _ => stylex_unreachable!(),
             };
             StepsKeyword::new(keyword)
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("to_steps_keyword"),

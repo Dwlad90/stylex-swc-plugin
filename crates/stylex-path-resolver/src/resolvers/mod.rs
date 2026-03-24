@@ -1,4 +1,3 @@
-use core::panic;
 use fancy_regex::Regex;
 use log::{debug, warn};
 use once_cell::sync::Lazy;
@@ -7,6 +6,7 @@ use path_clean::PathClean;
 use rustc_hash::FxHashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use stylex_core::stylex_panic;
 
 use crate::{
   package_json::{PackageJsonExtended, get_package_json_deps},
@@ -46,7 +46,7 @@ pub fn resolve_path(
       processing_file.to_path_buf()
     };
 
-    panic!(
+    stylex_panic!(
       r#"Resolve path must be a file, but got: {}"#,
       processing_path.display()
     );

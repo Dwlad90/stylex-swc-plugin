@@ -4,6 +4,8 @@ CSS Blend Mode type parsing.
 Handles blend mode values for properties like mix-blend-mode and background-blend-mode.
 */
 
+use stylex_core::stylex_unreachable;
+
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -111,7 +113,7 @@ impl BlendMode {
           if let SimpleToken::Ident(value) = token {
             value
           } else {
-            unreachable!()
+            stylex_unreachable!()
           }
         },
         Some("extract_ident_value"),

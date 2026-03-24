@@ -103,7 +103,7 @@ pub(crate) static INJECTABLE_STYLE_NOT_SUPPORTED: &str =
   "InjectableStyle is not supported in this context.";
 
 pub(crate) static ONLY_OVERRIDE_DEFINE_VARS: &str =
-  "Can only override variables theme created with defineVars()";
+  "Can only override variables theme created with defineVars().";
 
 pub(crate) static MEMBER_NOT_RESOLVED: &str =
   "Could not resolve the member expression. Ensure the object and property are statically known.";

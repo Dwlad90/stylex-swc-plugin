@@ -1861,6 +1861,8 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
 
 #[cfg(test)]
 mod tests {
+  use stylex_core::stylex_panic;
+
   use super::*;
 
   #[test]
@@ -2012,9 +2014,9 @@ mod tests {
           assert_eq!(pair.key, "min-width");
           println!("✅ Triple NOT correctly normalized to single NOT");
         }
-        _ => panic!("Expected Pair rule inside NOT, got: {:?}", not_rule.rule),
+        _ => stylex_panic!("Expected Pair rule inside NOT, got: {:?}", not_rule.rule),
       },
-      _ => panic!("Expected NOT rule at top level, got: {:?}", parsed.queries),
+      _ => stylex_panic!("Expected NOT rule at top level, got: {:?}", parsed.queries),
     }
 
     // Test quadruple NOT normalization (should cancel out completely)
@@ -2029,7 +2031,7 @@ mod tests {
         assert_eq!(pair.key, "max-width");
         println!("✅ Quadruple NOT correctly canceled out");
       }
-      _ => panic!(
+      _ => stylex_panic!(
         "Expected Pair rule (no NOT), got: {:?}",
         parsed_quad.queries
       ),

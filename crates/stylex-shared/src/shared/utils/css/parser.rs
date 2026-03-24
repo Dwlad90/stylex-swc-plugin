@@ -272,7 +272,9 @@ pub fn parse_css_inner<'a>(
       }
       // url()
       Token::UnquotedUrl(ref _value) => {
-        stylex_unimplemented!("UnquotedUrl");
+        stylex_unimplemented!(
+          "Unquoted URL values in CSS are not supported. Use url(\"...\") with quotes instead."
+        );
         //   let is_import: bool = curr_rule == "import";
 
         //   if is_import {

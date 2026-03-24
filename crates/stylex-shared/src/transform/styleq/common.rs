@@ -167,12 +167,18 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
               };
             }
           } else {
-            stylex_unimplemented!("DYNAMIC: Process inline style object")
+            stylex_unimplemented!(
+              "Processing dynamic inline style objects is not yet supported in styleq."
+            )
           }
         }
         StyleObject::Nullable => {}
         StyleObject::Other => stylex_panic!("Other style object is not allowed in styleq"),
-        StyleObject::Unreachable => stylex_unreachable!("StyleObject::Unreachable in styleq"),
+        StyleObject::Unreachable => {
+          stylex_unreachable!(
+            "Encountered an unexpected style object variant in styleq processing."
+          )
+        }
       },
       _ => stylex_unreachable!("Unexpected ResolvedArg variant in styleq loop"),
     };

@@ -24,7 +24,7 @@ use crate::{
 };
 
 use crate::shared::{
-  constants::messages::{ILLEGAL_PROP_VALUE, non_static_value},
+  constants::messages::{ILLEGAL_PROP_VALUE, INVALID_UTF8, non_static_value},
   enums::{
     data_structures::evaluate_result_value::EvaluateResultValue,
     misc::{BinaryExprType, VarDeclAction},
@@ -583,9 +583,9 @@ pub fn simple_tpl_to_string(tpl: &Tpl) -> Option<Lit> {
     let value = match quasi.cooked.as_ref() {
       Some(cooked) => match cooked.as_str() {
         Some(s) => s,
-        None => stylex_panic!("Failed to get string value"),
+        None => stylex_panic!("Failed to extract a string value from the expression."),
       },
-      None => stylex_panic!("Failed to get cooked value"),
+      None => stylex_panic!("Failed to extract cooked value from template literal element."),
     };
 
     return Some(lit_str_factory(value));
@@ -838,7 +838,7 @@ pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
     **prop = Prop::from(KeyValueProp {
       key: match string_to_prop_name(ident.sym.as_ref()) {
         Some(k) => k,
-        None => stylex_panic!("Failed to convert string to prop name"),
+        None => stylex_panic!("Failed to convert string to a valid property name."),
       },
       value: Box::new(Expr::Ident(ident.clone())),
     });
@@ -904,7 +904,7 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
     PropName::Computed(computed) => match computed.expr.as_lit() {
       Some(lit) => match lit_to_string(lit) {
         Some(s) => s,
-        None => stylex_panic!("Computed key is not a valid literal"),
+        None => stylex_panic!("Computed property key must be a string or number literal."),
       },
       None => stylex_unimplemented!("Computed key is not a literal"),
     },
@@ -919,14 +919,14 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
 pub(crate) fn atom_to_string(atom: &Wtf8Atom) -> String {
   match atom.as_str() {
     Some(s) => s.to_string(),
-    None => stylex_panic!("String contains invalid UTF-8"),
+    None => stylex_panic!("{}", INVALID_UTF8),
   }
 }
 
 pub(crate) fn wtf8_atom_to_atom(atom: &Wtf8Atom) -> Atom {
   match atom.as_atom() {
     Some(a) => a.clone(),
-    None => stylex_panic!("String contains invalid UTF-8"),
+    None => stylex_panic!("{}", INVALID_UTF8),
   }
 }
 
@@ -935,7 +935,7 @@ pub(crate) fn wtf8_atom_to_atom(atom: &Wtf8Atom) -> Atom {
 pub(crate) fn lit_str_to_string(str_lit: &Str) -> String {
   match str_lit.value.as_str() {
     Some(s) => s.to_string(),
-    None => stylex_panic!("String contains invalid UTF-8"),
+    None => stylex_panic!("{}", INVALID_UTF8),
   }
 }
 
@@ -943,7 +943,7 @@ pub(crate) fn lit_str_to_string(str_lit: &Str) -> String {
 pub(crate) fn lit_str_to_atom(str_lit: &Str) -> Atom {
   match str_lit.value.as_atom() {
     Some(a) => a.clone(),
-    None => stylex_panic!("String contains invalid UTF-8"),
+    None => stylex_panic!("{}", INVALID_UTF8),
   }
 }
 
@@ -953,9 +953,11 @@ pub(crate) fn tpl_element_cooked_to_string(elem: &TplElement) -> String {
   match elem.cooked.as_ref() {
     Some(cooked) => match cooked.as_str() {
       Some(s) => s.to_string(),
-      None => stylex_panic!("String contains invalid UTF-8"),
+      None => stylex_panic!("{}", INVALID_UTF8),
     },
-    None => stylex_panic!("Cooked should be some"),
+    None => stylex_panic!(
+      "Template literal element has no cooked value (contains an invalid escape sequence)."
+    ),
   }
 }
 
@@ -965,7 +967,7 @@ pub(crate) fn tpl_element_cooked_to_string(elem: &TplElement) -> String {
 pub(crate) fn atom_to_str(atom: &swc_core::atoms::Wtf8Atom) -> &str {
   match atom.as_str() {
     Some(s) => s,
-    None => stylex_panic!("Failed to convert Wtf8Atom to &str"),
+    None => stylex_panic!("Failed to convert SWC Atom to string (invalid WTF-8 encoding)."),
   }
 }
 

@@ -33,7 +33,9 @@ pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
   }
 
   if let Some(_inline_style) = inline_style {
-    stylex_unimplemented!("Inline style");
+    stylex_unimplemented!(
+      "Inline style objects from dynamic style functions are not yet supported in props()."
+    );
   }
 
   if let Some(data_style_src) = data_style_src

@@ -68,17 +68,22 @@ pub(crate) fn evaluate_join(
 ) -> Option<EvaluateResultValue> {
   let join_arg = funcs.first()?;
 
-  let join_arg =
-    expr_to_str(join_arg.as_expr()?, state, functions).expect("Join argument is not a string");
+  let join_arg = match expr_to_str(join_arg.as_expr()?, state, functions) {
+    Some(s) => s,
+    None => stylex_panic!("The join() separator argument must be a string value."),
+  };
 
   let result = args
     .iter()
     .map(|arg_ref| {
-      arg_ref
-        .as_ref()
-        .and_then(|arg| arg.as_expr())
-        .map(|arg| expr_to_str(arg, state, functions).expect("Argument is not a string"))
-        .expect("Failed parsing \"join\" argument to string")
+      let arg_expr = match arg_ref.as_ref().and_then(|arg| arg.as_expr()) {
+        Some(expr) => expr,
+        None => stylex_panic!("Array element must evaluate to a string for join()."),
+      };
+      match expr_to_str(arg_expr, state, functions) {
+        Some(s) => s,
+        None => stylex_panic!("Array element must evaluate to a string for join()."),
+      }
     })
     .collect::<Vec<String>>()
     .join(&join_arg);

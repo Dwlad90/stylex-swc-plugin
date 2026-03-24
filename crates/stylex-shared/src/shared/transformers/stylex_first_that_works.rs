@@ -4,6 +4,7 @@ use swc_core::ecma::ast::Expr;
 use crate::stylex_panic;
 
 use crate::shared::{
+  constants::messages::EXPRESSION_IS_NOT_A_STRING,
   regex::IS_CSS_VAR,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::ast::{
@@ -15,7 +16,7 @@ use crate::shared::{
 fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
   let str_arg = match expr_to_str(arg, state, functions) {
     Some(s) => s,
-    None => stylex_panic!("Expression is not a string"),
+    None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
   };
 
   IS_CSS_VAR.is_match(&str_arg).unwrap_or_else(|err| {
@@ -76,7 +77,7 @@ pub(crate) fn stylex_first_that_works(
         for var_name in vars.iter() {
           let var_name_str = match expr_to_str(var_name, state, functions) {
             Some(s) => s,
-            None => stylex_panic!("Expression is not a string"),
+            None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
           };
 
           so_far = if !so_far.is_empty() {

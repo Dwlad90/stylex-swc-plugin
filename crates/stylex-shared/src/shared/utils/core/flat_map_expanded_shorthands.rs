@@ -42,7 +42,10 @@ pub(crate) fn flat_map_expanded_shorthands(
       }
     }
     PreRuleValue::Expr(expr) => match expr {
-      Expr::Lit(lit) => Some(lit_to_string(&lit).expect("Failed to convert lit to string")),
+      Expr::Lit(lit) => Some(match lit_to_string(&lit) {
+        Some(s) => s,
+        None => stylex_panic!("Failed to convert literal value to string in shorthand expansion."),
+      }),
       _ => {
         let msg = "Cannot use expressions for shorthands. Use the expansion instead.";
         match options.property_validation_mode {

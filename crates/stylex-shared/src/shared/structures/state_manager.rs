@@ -512,7 +512,7 @@ impl StateManager {
         ImportPathResolutionType::ThemeNameRef,
         add_file_extension(import_path, source_file_path),
       ),
-      _ => crate::stylex_unimplemented!("Module resolution is not supported"),
+      _ => crate::stylex_unimplemented!("This module resolution strategy is not yet supported."),
     }
   }
 

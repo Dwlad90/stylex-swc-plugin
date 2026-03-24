@@ -5,7 +5,10 @@ use swc_core::ecma::ast::{KeyValueProp, PropName};
 
 use crate::{
   shared::{
-    constants::common::VAR_GROUP_HASH_KEY,
+    constants::{
+      common::VAR_GROUP_HASH_KEY,
+      messages::{EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT},
+    },
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
       flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -34,14 +37,14 @@ pub(crate) fn stylex_define_vars(
     state.options.class_name_prefix,
     create_hash(match state.export_id.as_ref() {
       Some(id) => id,
-      None => stylex_panic!("Export ID is not set"),
+      None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
     })
   );
 
   let mut typed_variables: FlatCompiledStyles = IndexMap::new();
 
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("Values must be an object")
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   let variables_map = obj_map(
@@ -50,14 +53,14 @@ pub(crate) fn stylex_define_vars(
     |item, state| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
-          stylex_panic!("InjectableStyle is not supported")
+          stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         }
         FlatCompiledStylesValue::Tuple(key, value, _) => {
           let str_to_hash = format!(
             "{}.{}",
             match state.export_id.as_ref() {
               Some(id) => id,
-              None => stylex_panic!("Export ID is not set"),
+              None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
             },
             key
           );

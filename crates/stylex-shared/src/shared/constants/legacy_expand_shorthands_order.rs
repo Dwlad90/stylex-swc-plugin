@@ -299,7 +299,10 @@ impl Shorthands {
       ]);
     }
 
-    let raw_value_str = raw_value.as_ref().unwrap();
+    let raw_value_str = match raw_value.as_ref() {
+      Some(v) => v,
+      None => return Err("listStyle requires a value.".into()),
+    };
     let parts: Vec<String> = parse_css(raw_value_str);
 
     // Global values that must be the only value

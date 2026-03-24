@@ -1,4 +1,7 @@
-use crate::stylex_unimplemented;
+use crate::{
+  shared::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED},
+  stylex_unimplemented,
+};
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -51,7 +54,7 @@ where
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("Spread"),
+        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
 
@@ -59,7 +62,7 @@ where
         .args
         .get(1)
         .map(|second_arg| match &second_arg.spread {
-          Some(_) => stylex_unimplemented!("Spread"),
+          Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           None => second_arg.expr.clone(),
         })?;
 
@@ -160,7 +163,7 @@ where
             &evaluated_arg1
               .deopt
               .unwrap_or_else(|| *first_arg.to_owned()),
-            "Can only override variables theme created with defineVars().",
+            ONLY_OVERRIDE_DEFINE_VARS,
             &mut self.state,
           )
         ),

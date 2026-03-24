@@ -2,26 +2,32 @@ use std::{collections::VecDeque, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
 
-use crate::shared::{
-  constants::common::COMPILED_KEY,
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-  },
-  structures::{
-    functions::FunctionMap,
-    pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
-    state::EvaluationState,
-    state_manager::StateManager,
-    types::{
-      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap,
-      StylesObjectMap,
+use crate::{
+  shared::{
+    constants::{
+      common::COMPILED_KEY,
+      messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT},
+    },
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    },
+    structures::{
+      functions::FunctionMap,
+      pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
+      state::EvaluationState,
+      state_manager::StateManager,
+      types::{
+        ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap,
+        StylesObjectMap,
+      },
+    },
+    utils::{
+      ast::convertors::expr_to_str, common::create_short_hash,
+      core::flatten_raw_style_object::flatten_raw_style_object, validators::validate_namespace,
     },
   },
-  utils::{
-    ast::convertors::expr_to_str, common::create_short_hash,
-    core::flatten_raw_style_object::flatten_raw_style_object, validators::validate_namespace,
-  },
+  stylex_panic,
 };
 
 pub(crate) fn stylex_create_set(
@@ -34,7 +40,10 @@ pub(crate) fn stylex_create_set(
   let mut injected_styles_map = IndexMap::new();
   let mut namespace_to_class_paths = IndexMap::new();
 
-  for (namespace_name, namespace) in namespaces.as_map().unwrap() {
+  for (namespace_name, namespace) in match namespaces.as_map() {
+    Some(map) => map,
+    None => stylex_panic!("{}", VALUES_MUST_BE_OBJECT),
+  } {
     validate_namespace(namespace, &[], traversal_state);
 
     let mut class_paths_in_namespace: ClassPathsInNamespace = IndexMap::new();
@@ -115,8 +124,10 @@ pub(crate) fn stylex_create_set(
       }
     }
 
-    let resolved_namespace_name =
-      expr_to_str(namespace_name, traversal_state, functions).expect("Expression is not a string");
+    let resolved_namespace_name = match expr_to_str(namespace_name, traversal_state, functions) {
+      Some(s) => s,
+      None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
+    };
 
     namespace_obj.insert(
       COMPILED_KEY.to_owned(),

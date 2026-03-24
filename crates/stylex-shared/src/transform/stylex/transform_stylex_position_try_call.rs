@@ -1,4 +1,4 @@
-use crate::stylex_unimplemented;
+use crate::{shared::constants::messages::SPREAD_NOT_SUPPORTED, stylex_unimplemented};
 use std::rc::Rc;
 
 use indexmap::IndexMap;
@@ -53,7 +53,7 @@ where
       };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("Spread"),
+        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
 

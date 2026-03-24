@@ -21,7 +21,10 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::{common::COMPILED_KEY, messages::non_static_value},
+  constants::{
+    common::COMPILED_KEY,
+    messages::{EXPECTED_COMPILED_STYLES, non_static_value},
+  },
   enums::data_structures::top_level_expression::TopLevelExpression,
   regex::VAR_EXTRACTION_REGEX,
   structures::{
@@ -244,7 +247,7 @@ where
           Box::new(FunctionConfigType::IndexMap(
             stylex_default_maker::stylex_default_marker(&self.state.options)
               .as_values()
-              .unwrap_or_else(|| stylex_panic!("Expected FlatCompiledStylesValues"))
+              .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
               .clone(),
           )),
         );
@@ -288,7 +291,7 @@ where
           Box::new(FunctionConfigType::IndexMap(
             stylex_default_maker::stylex_default_marker(&self.state.options)
               .as_values()
-              .unwrap_or_else(|| stylex_panic!("Expected FlatCompiledStylesValues"))
+              .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
               .clone(),
           )),
         );
@@ -669,7 +672,11 @@ where
                                       right: Box::new(curr),
                                     })
                                   })
-                                  .unwrap()
+                                  .unwrap_or_else(|| {
+                                    stylex_panic!(
+                                      "Expected at least one expression to reduce in class name concatenation."
+                                    )
+                                  })
                               };
 
                               if is_static {

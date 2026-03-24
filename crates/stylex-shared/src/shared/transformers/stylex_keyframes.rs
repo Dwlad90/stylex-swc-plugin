@@ -5,6 +5,7 @@ use swc_core::ecma::ast::Expr;
 
 use crate::{
   shared::{
+    constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
       flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -43,12 +44,12 @@ pub(crate) fn stylex_keyframes(
   }
 
   let Some(frames) = frames.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("Values must be an object")
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   let expanded_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
     let Some((_, frame, _)) = frame.as_tuple() else {
-      stylex_panic!("Values must be an object")
+      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
     };
 
     let pipe_result = Pipe::create(frame)
@@ -65,7 +66,7 @@ pub(crate) fn stylex_keyframes(
                 transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
               )))
             }
-            _ => stylex_panic!("Entry must be a tuple of key and value"),
+            _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
       })
@@ -86,7 +87,7 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("Values must be an object")
+        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
       };
 
       let ltr_values = pairs
@@ -103,7 +104,7 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("Values must be an object")
+        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
       };
 
       let ltr_values = pairs
@@ -122,7 +123,7 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("Values must be an object")
+        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
       };
 
       let rtl_values = pairs
@@ -196,7 +197,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
       let key = key_value_to_str(pair);
       let value = match expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
         Some(v) => v,
-        None => stylex_panic!("Value is not a string"),
+        None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       };
 
       flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)

@@ -9,6 +9,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
+    constants::messages::EXPRESSION_IS_NOT_A_STRING,
     enums::core::TransformationCycle,
     utils::{ast::convertors::expr_to_str, common::increase_ident_count},
   },
@@ -39,7 +40,7 @@ where
         &Ident::from(
           match expt_str {
             Some(s) => s,
-            None => stylex_panic!("Expression is not a string"),
+            None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
           }
           .as_str(),
         ),

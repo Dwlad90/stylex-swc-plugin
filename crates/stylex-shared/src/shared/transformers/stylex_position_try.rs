@@ -5,6 +5,7 @@ use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::{
   shared::{
+    constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
       flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -43,7 +44,7 @@ pub(crate) fn stylex_position_try(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("Values must be an object")
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   let extended_object = {
@@ -58,7 +59,7 @@ pub(crate) fn stylex_position_try(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
-            _ => stylex_panic!("Entry must be a tuple of key and value"),
+            _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
       })
@@ -68,7 +69,10 @@ pub(crate) fn stylex_position_try(
       pipe_result
         .into_iter()
         .map(|(key, value)| {
-          let value = value.as_string().expect("Value must be a string").clone();
+          let value = match value.as_string() {
+            Some(s) => s.clone(),
+            None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+          };
 
           prop_or_spread_string_factory(&key, &value)
         })
@@ -83,19 +87,16 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        stylex_panic!("Values must be a tuple of key, value, and css type")
+        stylex_panic!("Theme variable definition must be a [key, value, cssType] tuple.")
       };
 
       let ltr_values = generate_ltr(
         &Pair {
           key: tuple.0.clone(),
-          value: lit_to_string(
-            tuple
-              .1
-              .clone()
-              .as_lit()
-              .expect("Value must be a string literal"),
-          )
+          value: lit_to_string(match tuple.1.clone().as_lit() {
+            Some(lit) => lit,
+            None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+          })
           .unwrap_or_default(),
         },
         &options,
@@ -110,16 +111,13 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        stylex_panic!("Values must be a tuple of key, value, and css type")
+        stylex_panic!("Theme variable definition must be a [key, value, cssType] tuple.")
       };
 
-      let value = lit_to_string(
-        tuple
-          .1
-          .clone()
-          .as_lit()
-          .expect("Value must be a string literal"),
-      )
+      let value = lit_to_string(match tuple.1.clone().as_lit() {
+        Some(lit) => lit,
+        None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+      })
       .unwrap_or_default();
 
       let key = tuple.0.clone();
@@ -188,7 +186,10 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
   sorted_keys
     .into_iter()
     .map(|k| {
-      let v = styles.get(&k).expect("Key must exist");
+      let v = match styles.get(&k) {
+        Some(v) => v,
+        None => stylex_panic!("Expected property key to exist in compiled styles."),
+      };
       match v.as_ref() {
         FlatCompiledStylesValue::String(val) => format!("{}:{};", k, val),
         FlatCompiledStylesValue::KeyValue(pair) => {

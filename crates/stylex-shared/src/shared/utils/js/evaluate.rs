@@ -32,7 +32,12 @@ use crate::shared::{
       IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE,
       UNEXPECTED_MEMBER_LOOKUP, unsupported_expression, unsupported_operator,
     },
-    messages::{BUILT_IN_FUNCTION, ILLEGAL_PROP_ARRAY_VALUE, THEME_IMPORT_KEY_AS_OBJECT_KEY},
+    messages::{
+      ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
+      ILLEGAL_PROP_ARRAY_VALUE, MEMBER_NOT_RESOLVED, MEMBER_OBJ_NOT_IDENT, PROPERTY_NOT_FOUND,
+      SPREAD_MUST_BE_OBJECT, SPREAD_NOT_SUPPORTED, THEME_IMPORT_KEY_AS_OBJECT_KEY,
+      VALUE_MUST_BE_LITERAL,
+    },
   },
   enums::{
     core::TransformationCycle,
@@ -309,7 +314,7 @@ fn _evaluate(
                       let expr = arg
                         .as_ref()
                         .and_then(|arg| arg.as_expr())
-                        .unwrap_or_else(|| stylex_panic!("Argument is not an expression"));
+                        .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION));
 
                       let cl = |arg: Expr| move || arg.clone();
 
@@ -348,7 +353,9 @@ fn _evaluate(
                     Some(res) => match res {
                       EvaluateResultValue::Expr(expr) => expr.clone(),
                       EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(&items),
-                      _ => stylex_unimplemented!("Evaluation result must be an expression"),
+                      _ => stylex_unimplemented!(
+                        "The evaluation result must resolve to a static expression."
+                      ),
                     },
                     None => *body_expr.clone(),
                   }
@@ -395,7 +402,7 @@ fn _evaluate(
             return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
           }
           FunctionConfigType::IndexMap(_func_map) => {
-            stylex_unimplemented!("IndexMap not implemented");
+            stylex_unimplemented!("IndexMap values are not supported in this context.");
           }
           FunctionConfigType::EnvObject(env_map) => {
             return Some(EvaluateResultValue::EnvObject(env_map.clone()));
@@ -435,7 +442,11 @@ fn _evaluate(
       fns,
     ),
     Expr::TaggedTpl(_tagged_tpl) => {
-      stylex_panic_with_context!(path, traversal_state, "TaggedTpl not implemented")
+      stylex_panic_with_context!(
+        path,
+        traversal_state,
+        "Tagged template literals are not supported in static evaluation."
+      )
       // TODO: Uncomment this for implementation of TaggedTpl
       // evaluate_quasis(
       //   &Expr::TaggedTpl(_tagged_tpl.clone()),
@@ -476,7 +487,7 @@ fn _evaluate(
     Expr::Paren(_) => stylex_panic_with_context!(
       path,
       traversal_state,
-      "Paren must be normalized before evaluation"
+      "Parenthesized expressions should be unwrapped before evaluation."
     ),
     Expr::Member(member) => {
       let parent_is_call_expr = traversal_state
@@ -524,23 +535,23 @@ fn _evaluate(
               Expr::Array(ArrayLit { elems, .. }) => {
                 let eval_res = match property {
                   Some(p) => p,
-                  None => stylex_panic!("Property not found"),
+                  None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
                 };
 
                 let expr = match eval_res {
                   EvaluateResultValue::Expr(expr) => expr,
-                  _ => stylex_panic_with_context!(path, traversal_state, "Property not found"),
+                  _ => stylex_panic_with_context!(path, traversal_state, PROPERTY_NOT_FOUND),
                 };
 
                 let value = match expr {
                   Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
-                  _ => stylex_panic_with_context!(path, traversal_state, "Member not found"),
+                  _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
                 };
 
                 let property = elems.get(value)?;
 
                 let Some(expr) = property.as_ref() else {
-                  stylex_panic_with_context!(path, traversal_state, "Member not found")
+                  stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED)
                 };
 
                 let expr = expr.expr.clone();
@@ -550,7 +561,7 @@ fn _evaluate(
               Expr::Object(ObjectLit { props, .. }) => {
                 let eval_res = match property {
                   Some(p) => p,
-                  None => stylex_panic!("Property not found"),
+                  None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
                 };
 
                 let ident = match eval_res {
@@ -602,7 +613,7 @@ fn _evaluate(
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
-                      "Member property not implemented"
+                      "Computed member properties are not supported in static evaluation."
                     )
                   }
                 };
@@ -628,7 +639,7 @@ fn _evaluate(
                         stylex_panic_with_context!(
                           path,
                           traversal_state,
-                          "Property not implemented"
+                          "Computed property keys are not supported in static evaluation."
                         );
                       }
                     }
@@ -645,7 +656,7 @@ fn _evaluate(
                     .clone(),
                   ));
                 } else {
-                  stylex_panic_with_context!(path, traversal_state, "Member not found");
+                  stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED);
                 }
               }
               Expr::Member(member_expr) => evaluate_cached(
@@ -676,7 +687,7 @@ fn _evaluate(
                 Some(property) => match property {
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Ident(ident) => Box::new(ident.clone()),
-                    _ => stylex_panic_with_context!(path, traversal_state, "Member not found"),
+                    _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
                   },
                   _ => stylex_panic_with_context!(
                     path,
@@ -684,7 +695,7 @@ fn _evaluate(
                     "Function config map property not implemented"
                   ),
                 },
-                None => stylex_panic_with_context!(path, traversal_state, "Member not found"),
+                None => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
               };
 
               if let Some(fc) = fc_map.get(&key.sym) {
@@ -721,7 +732,7 @@ fn _evaluate(
                       Some(s) => s,
                       None => stylex_panic!("Property must be a string"),
                     },
-                    _ => stylex_panic_with_context!(path, traversal_state, "Member not found"),
+                    _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
                   },
                   _ => stylex_panic_with_context!(
                     path,
@@ -733,7 +744,7 @@ fn _evaluate(
                   stylex_panic_with_context!(
                     path,
                     traversal_state,
-                    "Theme reference property not found"
+                    "The referenced property was not found on the theme object. Ensure it was declared in defineVars()."
                   )
                 }
               };
@@ -743,7 +754,7 @@ fn _evaluate(
               return Some(EvaluateResultValue::Expr(string_to_expression(
                 match value.as_css_var() {
                   Some(css_var) => css_var,
-                  None => stylex_panic!("Expected CSS variable"),
+                  None => stylex_panic!("{}", EXPECTED_CSS_VAR),
                 }
                 .as_str(),
               )));
@@ -753,7 +764,11 @@ fn _evaluate(
                 .as_ref()
                 .and_then(|prop| prop.as_string_key())
                 .unwrap_or_else(|| {
-                  stylex_panic_with_context!(path, traversal_state, "Env object property not found")
+                  stylex_panic_with_context!(
+                    path,
+                    traversal_state,
+                    "The referenced property was not found in the stylex.env configuration."
+                  )
                 });
 
               match env_map.get(&key) {
@@ -803,11 +818,15 @@ fn _evaluate(
 
       let arg = match match arg {
         Some(v) => v,
-        None => stylex_panic!("Unary argument is not an expression"),
+        None => stylex_panic!("The operand of a unary expression must be a static expression."),
       } {
         EvaluateResultValue::Expr(expr) => expr,
         _ => {
-          stylex_panic_with_context!(path, traversal_state, "Unary argument is not an expression")
+          stylex_panic_with_context!(
+            path,
+            traversal_state,
+            "The operand of a unary expression must be a static expression."
+          )
         }
       };
 
@@ -834,7 +853,11 @@ fn _evaluate(
             Expr::Object(_) => "object",
             Expr::Array(_) => "object",
             _ => {
-              stylex_panic_with_context!(path, traversal_state, "Unary expression not implemented")
+              stylex_panic_with_context!(
+                path,
+                traversal_state,
+                "This unary operator is not supported in static evaluation."
+              )
             }
           };
 
@@ -874,7 +897,7 @@ fn _evaluate(
             }
 
             let Some(new_props) = spread_expression.and_then(|s| s.into_object()) else {
-              stylex_panic_with_context!(path, traversal_state, "Spread must be an object");
+              stylex_panic_with_context!(path, traversal_state, SPREAD_MUST_BE_OBJECT);
             };
 
             let merged_object = deep_merge_props(props, new_props.props);
@@ -937,7 +960,7 @@ fn _evaluate(
                         state,
                         traversal_state,
                         &state.functions,
-                        "Expression is not a string"
+                        EXPRESSION_IS_NOT_A_STRING
                       ))
                     } else {
                       stylex_panic_with_context!(
@@ -1012,7 +1035,7 @@ fn _evaluate(
                     _ => stylex_panic_with_context!(
                       path,
                       traversal_state,
-                      "Callback type not supported"
+                      "This callback type is not supported in static evaluation."
                     ),
                   },
                   EvaluateResultValue::ThemeRef(_) => None,
@@ -1090,7 +1113,9 @@ fn _evaluate(
                 "FunctionConfigType::Map not implemented"
               ),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
-              FunctionConfigType::IndexMap(_) => stylex_unimplemented!("IndexMap not implemented"),
+              FunctionConfigType::IndexMap(_) => {
+                stylex_unimplemented!("IndexMap values are not supported in this context.")
+              }
               FunctionConfigType::EnvObject(_) => {
                 // EnvObject is not directly callable; access is done via member expressions
                 return deopt(path, state, NON_CONSTANT);
@@ -1122,7 +1147,9 @@ fn _evaluate(
           if object.is_ident() {
             let obj_ident = match object.as_ident() {
               Some(ident) => ident,
-              None => stylex_panic!("Object is not an identifier"),
+              None => {
+                stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT)
+              }
             };
 
             if property.is_ident() {
@@ -1141,7 +1168,7 @@ fn _evaluate(
                     });
 
                     if first_arg.spread.is_some() {
-                      stylex_panic_with_context!(path, traversal_state, "Spread not implemented");
+                      stylex_panic_with_context!(path, traversal_state, SPREAD_NOT_SUPPORTED);
                     }
 
                     match method_name {
@@ -1198,9 +1225,7 @@ fn _evaluate(
                           context = Some(vec![Some(EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
-                              .unwrap_or_else(|| {
-                                stylex_panic!("First argument should be an expression")
-                              })
+                              .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION))
                               .clone(),
                           ))]);
                         }
@@ -1252,9 +1277,7 @@ fn _evaluate(
                           context = Some(vec![Some(EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
-                              .unwrap_or_else(|| {
-                                stylex_panic!("First argument should be an expression")
-                              })
+                              .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION))
                               .clone(),
                           ))]);
                         }
@@ -1272,7 +1295,7 @@ fn _evaluate(
                     });
 
                     if arg.spread.is_some() {
-                      stylex_panic_with_context!(path, traversal_state, "Spread not implemented");
+                      stylex_panic_with_context!(path, traversal_state, SPREAD_NOT_SUPPORTED);
                     }
 
                     let cached_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
@@ -1294,7 +1317,9 @@ fn _evaluate(
                         } {
                           EvaluateResultValue::Expr(expr) => {
                             let array = expr.as_array().cloned().unwrap_or_else(|| {
-                              stylex_panic!("Object.fromEntries requires an object")
+                              stylex_panic!(
+                                "Object.fromEntries() requires an array of [key, value] entries."
+                              )
                             });
 
                             let entries = array
@@ -1304,25 +1329,32 @@ fn _evaluate(
                               .collect::<Vec<ExprOrSpread>>();
 
                             for entry in entries {
-                              assert!(entry.spread.is_none(), "Spread");
+                              assert!(entry.spread.is_none(), "{}", SPREAD_NOT_SUPPORTED);
 
                               let array = match entry.expr.as_array() {
                                 Some(a) => a,
-                                None => stylex_panic!("Entry must be an array"),
+                                None => stylex_panic!(
+                                  "Each entry in Object.fromEntries() must be a [key, value] array."
+                                ),
                               };
 
                               let elems =
                                 array.elems.iter().flatten().collect::<Vec<&ExprOrSpread>>();
 
-                              let key = elems
-                                .first()
-                                .and_then(|e| e.expr.as_lit())
-                                .unwrap_or_else(|| stylex_panic!("Key must be a literal"));
+                              let key =
+                                elems
+                                  .first()
+                                  .and_then(|e| e.expr.as_lit())
+                                  .unwrap_or_else(|| {
+                                    stylex_panic!(
+                                      "Object key must be a static literal (identifier or string)."
+                                    )
+                                  });
 
                               let value = elems
                                 .get(1)
                                 .map(|e| e.expr.clone())
-                                .unwrap_or_else(|| stylex_panic!("Value must be a literal"));
+                                .unwrap_or_else(|| stylex_panic!("{}", VALUE_MUST_BE_LITERAL));
 
                               from_entries_result.insert(key.clone(), value.clone());
                             }
@@ -1331,26 +1363,36 @@ fn _evaluate(
                             for entry in vec {
                               let entry = entry
                                 .and_then(|entry| entry.as_vec().cloned())
-                                .unwrap_or_else(|| stylex_panic!("Entry must be some"));
+                                .unwrap_or_else(|| {
+                                  stylex_panic!(
+                                    "Expected an array element but found a hole (empty slot)."
+                                  )
+                                });
 
                               let key = entry
                                 .first()
                                 .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
                                 .and_then(|expr| expr.as_lit().cloned())
-                                .unwrap_or_else(|| stylex_panic!("Key must be a literal"));
+                                .unwrap_or_else(|| {
+                                  stylex_panic!(
+                                    "Object key must be a static literal (identifier or string)."
+                                  )
+                                });
 
                               let value = entry
                                 .get(1)
                                 .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
-                                .unwrap_or_else(|| stylex_panic!("Value must be a literal"));
+                                .unwrap_or_else(|| stylex_panic!("{}", VALUE_MUST_BE_LITERAL));
 
                               from_entries_result.insert(key.clone(), Box::new(value.clone()));
                             }
                           }
                           _ => {
-                            stylex_panic!("Object.fromEntries requires an object")
+                            stylex_panic!(
+                              "Object.fromEntries() requires an array of [key, value] entries."
+                            )
                           }
                         };
 
@@ -1374,7 +1416,7 @@ fn _evaluate(
                           for prop in &object.props {
                             let expr = match prop.as_prop().cloned() {
                               Some(p) => p,
-                              None => stylex_panic!("Spread"),
+                              None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                             };
 
                             let key_values = match expr.as_key_value() {
@@ -1410,7 +1452,7 @@ fn _evaluate(
                           for prop in &object.props {
                             let prop = match prop.as_prop().cloned() {
                               Some(p) => p,
-                              None => stylex_panic!("Spread"),
+                              None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                             };
 
                             let key_values = match prop.as_key_value() {
@@ -1442,7 +1484,7 @@ fn _evaluate(
                           for prop in &object.props {
                             let expr = match prop.as_prop().map(|prop| *prop.clone()) {
                               Some(p) => p,
-                              None => stylex_panic!("Spread"),
+                              None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                             };
 
                             let key_values = match expr.as_key_value() {
@@ -1470,7 +1512,9 @@ fn _evaluate(
               } else {
                 let prop_ident = match property.as_ident() {
                   Some(ident) => ident,
-                  None => stylex_panic!("Property is not an identifier"),
+                  None => stylex_panic!(
+                    "Property key must be a static identifier, not a computed expression."
+                  ),
                 };
 
                 let obj_name = obj_ident.sym.to_string();
@@ -1492,7 +1536,7 @@ fn _evaluate(
                       "FunctionConfigType::Map not implemented"
                     ),
                     FunctionConfigType::IndexMap(_) => {
-                      stylex_unimplemented!("IndexMap not implemented")
+                      stylex_unimplemented!("IndexMap values are not supported in this context.")
                     }
                     FunctionConfigType::EnvObject(_) => {
                       // This shouldn't happen - env object isn't directly callable.
@@ -1513,7 +1557,11 @@ fn _evaluate(
                 .get(&ImportSources::Regular(obj_name))
                 && member_expr.contains_key(prop_id)
               {
-                stylex_panic_with_context!(path, traversal_state, "Check what's happening here");
+                stylex_panic_with_context!(
+                  path,
+                  traversal_state,
+                  "Unexpected expression encountered during static evaluation."
+                );
 
                 // context = Some(member_expr.clone());
 
@@ -1537,7 +1585,11 @@ fn _evaluate(
             if property.is_ident()
               && let Lit::Bool(_) = obj_lit
             {
-              stylex_panic_with_context!(path, traversal_state, "Boolean object not implemented");
+              stylex_panic_with_context!(
+                path,
+                traversal_state,
+                "Boolean object methods are not supported in static evaluation."
+              );
             }
           }
 
@@ -1548,7 +1600,9 @@ fn _evaluate(
               if property.is_ident() {
                 let prop_ident = match property.as_ident() {
                   Some(ident) => ident,
-                  None => stylex_panic!("Property is not an identifier"),
+                  None => stylex_panic!(
+                    "Property key must be a static identifier, not a computed expression."
+                  ),
                 };
                 let prop_name = prop_ident.sym.to_string();
 
@@ -1659,7 +1713,7 @@ fn _evaluate(
                           });
 
                       let Some(key_value) = key_value else {
-                        stylex_panic_with_context!(path, traversal_state, "Property not found");
+                        stylex_panic_with_context!(path, traversal_state, PROPERTY_NOT_FOUND);
                       };
 
                       func = Some(Box::new(FunctionConfig {
@@ -1722,7 +1776,7 @@ fn _evaluate(
                     _ => stylex_panic_with_context!(
                       path,
                       traversal_state,
-                      "FunctionType::StylexFnsFactory not implemented"
+                      "StyleX function factories are not supported in this context."
                     ),
                   },
                   EvaluateResultValue::EnvObject(env_map) => {
@@ -1787,7 +1841,11 @@ fn _evaluate(
 
                 func = match result_fn {
                   Some(_) => {
-                    stylex_panic_with_context!(path, traversal_state, "Result function is some")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "Unexpected function result during member expression evaluation."
+                    )
                   }
                   None => None,
                 };
@@ -1823,17 +1881,37 @@ fn _evaluate(
               return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::StylexTypeFn(_) => {
-              stylex_panic_with_context!(path, traversal_state, "StylexFnsFactory not implemented")
+              stylex_panic_with_context!(
+                path,
+                traversal_state,
+                "StyleX function factories are not supported in this context."
+              )
             }
             FunctionType::StylexFnsFactory(_) => {
-              stylex_panic_with_context!(path, traversal_state, "StylexFnsFactory")
+              stylex_panic_with_context!(
+                path,
+                traversal_state,
+                "StyleX function factories are not supported in this context."
+              )
             }
             FunctionType::Callback(_) => {
-              stylex_panic_with_context!(path, traversal_state, "Arrow function")
+              stylex_panic_with_context!(
+                path,
+                traversal_state,
+                "Arrow function expressions are not supported in this context."
+              )
             }
-            FunctionType::Mapper(_) => stylex_panic_with_context!(path, traversal_state, "Mapper"),
+            FunctionType::Mapper(_) => stylex_panic_with_context!(
+              path,
+              traversal_state,
+              "Mapper functions are not supported in static evaluation."
+            ),
             FunctionType::DefaultMarker(_) => {
-              stylex_panic_with_context!(path, traversal_state, "DefaultMarker")
+              stylex_panic_with_context!(
+                path,
+                traversal_state,
+                "defaultMarker() cannot be called with arguments in this context."
+              )
             }
             FunctionType::EnvFunction(_) => {
               stylex_panic_with_context!(
@@ -1856,7 +1934,7 @@ fn _evaluate(
                   .into_iter()
                   .map(|arg| match arg.as_expr().cloned() {
                     Some(e) => e,
-                    None => stylex_panic!("Argument is not an expression"),
+                    None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
                   })
                   .collect(),
                 traversal_state,
@@ -1881,7 +1959,7 @@ fn _evaluate(
               let expr = args
                 .first()
                 .and_then(|expr| expr.as_expr())
-                .unwrap_or_else(|| stylex_panic!("Argument is not an expression"));
+                .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION));
 
               match expr {
                 Expr::Object(obj) => {
@@ -1897,12 +1975,12 @@ fn _evaluate(
 
                     let key = match key_value.key.as_ident() {
                       Some(ident) => ident.sym.to_string(),
-                      None => stylex_panic!("Key not an ident"),
+                      None => stylex_panic!("Object key must be a static identifier."),
                     };
 
                     let value = match key_value.value.as_lit() {
                       Some(lit) => lit,
-                      None => stylex_panic!("Value not a literal"),
+                      None => stylex_panic!("{}", VALUE_MUST_BE_LITERAL),
                     };
 
                     fn_args.insert(
@@ -2042,7 +2120,7 @@ fn _evaluate(
                         .map(|expr| {
                           unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
-                        .unwrap_or_else(|| stylex_panic!("All arguments must be a number"))
+                        .unwrap_or_else(|| stylex_panic!("All arguments must be numeric values."))
                     })
                     .collect::<Vec<f64>>();
 
@@ -2136,7 +2214,7 @@ fn _evaluate(
                           state,
                           traversal_state,
                           fns,
-                          "Expression is not a string"
+                          EXPRESSION_IS_NOT_A_STRING
                         ));
                       }
                       None => {
@@ -2152,7 +2230,7 @@ fn _evaluate(
                     state,
                     traversal_state,
                     fns,
-                    "Expression is not a string"
+                    EXPRESSION_IS_NOT_A_STRING
                   );
 
                   return Some(EvaluateResultValue::Expr(string_to_expression(
@@ -2173,7 +2251,7 @@ fn _evaluate(
                     state,
                     traversal_state,
                     fns,
-                    "Expression is not a string"
+                    EXPRESSION_IS_NOT_A_STRING
                   );
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
@@ -2186,7 +2264,9 @@ fn _evaluate(
                         .map(|expr| {
                           unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
-                        .unwrap_or_else(|| stylex_panic!("First argument must be a number"))
+                        .unwrap_or_else(|| {
+                          stylex_panic!("The first argument must be a numeric value.")
+                        })
                     })
                     .collect::<Vec<f64>>();
 
@@ -2211,7 +2291,11 @@ fn _evaluate(
                       cb(args.into_iter().map(Some).collect())
                     }
                     _ => {
-                      stylex_panic_with_context!(path, traversal_state, "Arrow function not found")
+                      stylex_panic_with_context!(
+                        path,
+                        traversal_state,
+                        "Could not resolve the arrow function reference."
+                      )
                     }
                   };
 
@@ -2240,7 +2324,11 @@ fn _evaluate(
               let result = env_fn.call(env_args);
               return Some(EvaluateResultValue::Expr(result));
             }
-            _ => stylex_panic_with_context!(path, traversal_state, "Function type"),
+            _ => stylex_panic_with_context!(
+              path,
+              traversal_state,
+              "Unsupported function type in static evaluation."
+            ),
           }
         }
       }
@@ -2313,7 +2401,11 @@ fn _evaluate(
 
   if result.is_none() && normalized_path.is_ident() {
     let Some(ident) = normalized_path.as_ident() else {
-      stylex_panic_with_context!(path, traversal_state, "Identifier not foun")
+      stylex_panic_with_context!(
+        path,
+        traversal_state,
+        "Could not resolve the identifier. Ensure it is defined and in scope."
+      )
     };
 
     let binding = get_var_decl_by_ident(
@@ -2576,7 +2668,7 @@ fn is_valid_callee(callee: &Expr) -> bool {
 fn get_callee_name(callee: &Expr) -> &str {
   match callee {
     Expr::Ident(ident) => &ident.sym,
-    _ => stylex_panic!("Callee is not an identifier"),
+    _ => stylex_panic!("The function being called must be a static identifier."),
   }
 }
 

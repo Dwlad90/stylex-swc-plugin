@@ -3,6 +3,7 @@ use std::rc::Rc;
 
 use crate::{
   shared::{
+    constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
       flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -34,7 +35,7 @@ pub(crate) fn stylex_view_transition_class(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("Values must be an object")
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
   let preprocessed_object = obj_map(ObjMapType::Object(styles.clone()), state, |style, state| {
     let Some((_, style, _)) = style.as_tuple() else {
@@ -52,7 +53,7 @@ pub(crate) fn stylex_view_transition_class(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
-            _ => stylex_panic!("Entry must be a tuple of key and value"),
+            _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
       })
@@ -119,7 +120,7 @@ fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_nam
   for (key, value) in styles.iter() {
     let style_str = match value.as_ref() {
       FlatCompiledStylesValue::String(s) => s,
-      _ => stylex_panic!("Expected FlatCompiledStylesValue::String"),
+      _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     };
     let _ = write!(result, "{}(*.{}){{{}}}", key, class_name, style_str);
   }
@@ -136,7 +137,7 @@ fn concat_view_transition_class_style_str(
     let style_str_val = construct_view_transition_class_style_str(Rc::clone(v), state);
     let style_str = match style_str_val.as_ref() {
       FlatCompiledStylesValue::String(s) => s,
-      _ => stylex_panic!("Expected FlatCompiledStylesValue::String"),
+      _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     };
     let _ = write!(result, "{}:{};", k, style_str);
   });

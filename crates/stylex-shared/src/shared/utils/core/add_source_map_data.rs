@@ -13,7 +13,10 @@ use swc_core::{
 };
 
 use crate::shared::{
-  constants::{common::COMPILED_KEY, messages::illegal_argument_length},
+  constants::{
+    common::COMPILED_KEY,
+    messages::{EXPECTED_OBJECT_EXPRESSION, illegal_argument_length},
+  },
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{
     functions::FunctionMap, state_manager::StateManager, stylex_options::CheckModuleResolution,
@@ -62,7 +65,7 @@ pub(crate) fn add_source_map_data(
               }
             }
           }
-          _ => stylex_panic!("Expected object expression"),
+          _ => stylex_panic!("{}", EXPECTED_OBJECT_EXPRESSION),
         };
         let mut inner_map = IndexMap::new();
 

@@ -10,6 +10,9 @@ use swc_core::{
   },
 };
 
+use crate::shared::constants::messages::{
+  EVAL_RESULT_EXPECTED, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
+};
 use crate::{
   shared::{
     constants::{
@@ -60,7 +63,7 @@ pub fn evaluate_stylex_create_arg(
 
       for prop in &style_object.props {
         match prop {
-          PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
+          PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           PropOrSpread::Prop(prop) => {
             let mut prop = prop.clone();
 
@@ -81,8 +84,14 @@ pub fn evaluate_stylex_create_arg(
                   });
                 }
 
-                let key = key_result.value.as_ref().unwrap();
-                let key_expr = key.as_expr().unwrap();
+                let key = match key_result.value.as_ref() {
+                  Some(val) => val,
+                  None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
+                };
+                let key_expr = match key.as_expr() {
+                  Some(expr) => expr,
+                  None => stylex_panic!("Expected an expression from evaluation result."),
+                };
                 let value_path = &mut key_value_prop.value;
 
                 match value_path.as_mut() {
@@ -122,15 +131,22 @@ pub fn evaluate_stylex_create_arg(
                             });
                           }
 
-                          let value = eval_result
+                          let value = match eval_result
                             .value
                             .as_ref()
                             .and_then(|value| value.as_expr())
                             .and_then(|expr| expr.as_object())
-                            .expect("Value not an object");
+                          {
+                            Some(obj) => obj,
+                            None => stylex_panic!(
+                              "Expected an object value in style evaluation, but received a different type."
+                            ),
+                          };
 
-                          let key = expr_to_str(key_expr, traversal_state, functions)
-                            .expect("Key is not a string");
+                          let key = match expr_to_str(key_expr, traversal_state, functions) {
+                            Some(k) => k,
+                            None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
+                          };
 
                           fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
 
@@ -173,7 +189,10 @@ pub fn evaluate_stylex_create_arg(
                       return val;
                     }
 
-                    let value_to_insert = match val.value.as_ref().unwrap() {
+                    let value_to_insert = match match val.value.as_ref() {
+                      Some(v) => v,
+                      None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
+                    } {
                       EvaluateResultValue::Expr(Expr::Object(obj_expr)) => obj_expr
                         .props
                         .iter()
@@ -227,7 +246,7 @@ fn evaluate_partial_object_recursively(
         if !result.confident {
           return result;
         }
-        stylex_unimplemented!("Spread in style object is not supported");
+        stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);
       }
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
@@ -249,14 +268,15 @@ fn evaluate_partial_object_recursively(
               });
             }
 
-            let key = key_result
-              .value
-              .as_ref()
-              .and_then(|v| v.as_expr())
-              .expect("Evaluated key value is not a string");
+            let key = match key_result.value.as_ref().and_then(|v| v.as_expr()) {
+              Some(expr) => expr,
+              None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
+            };
 
-            let mut key_str =
-              expr_to_str(key, traversal_state, functions).expect("Key is not a string");
+            let mut key_str = match expr_to_str(key, traversal_state, functions) {
+              Some(s) => s,
+              None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
+            };
 
             if key_str.starts_with("var(") && key_str.ends_with(')') {
               let inner = key_str[4..key_str.len() - 1].to_string();
@@ -294,10 +314,10 @@ fn evaluate_partial_object_recursively(
 
                 let new_prop = prop_or_spread_expression_factory(
                   &key_str,
-                  result
-                    .value
-                    .and_then(|v| v.as_expr().cloned())
-                    .expect("Value not an expression"),
+                  match result.value.and_then(|v| v.as_expr().cloned()) {
+                    Some(expr) => expr,
+                    None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
+                  },
                 );
                 obj.push(new_prop);
 
@@ -421,10 +441,10 @@ fn evaluate_partial_object_recursively(
                 } else {
                   let new_prop = prop_or_spread_expression_factory(
                     &key_str,
-                    result
-                      .value
-                      .and_then(|v| v.as_expr().cloned())
-                      .expect("Value not an expression"),
+                    match result.value.and_then(|v| v.as_expr().cloned()) {
+                      Some(expr) => expr,
+                      None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
+                    },
                   );
                   obj.push(new_prop);
                 }

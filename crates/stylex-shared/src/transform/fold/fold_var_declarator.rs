@@ -13,6 +13,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
+    constants::messages::VAR_DECL_NAME_NOT_IDENT,
     enums::{
       core::TransformationCycle,
       data_structures::{
@@ -118,7 +119,7 @@ where
             {
               let namespaces_to_keep = match vars_to_keep.get(&match var_name.name.as_ident() {
                 Some(i) => i.sym.clone(),
-                None => stylex_panic!("VarDeclarator name is not an ident"),
+                None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
               }) {
                 Some(NonNullProps::Vec(vec)) => vec.clone(),
                 _ => Vec::new(),
@@ -174,7 +175,7 @@ where
         {
           let var_id = &match var_name.name.as_ident() {
             Some(i) => i,
-            None => stylex_panic!("VarDeclarator name is not an ident"),
+            None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
           }
           .sym;
           let key_id = NonNullProp::Atom(

@@ -5,7 +5,10 @@ use swc_core::ecma::ast::{Expr, Lit};
 
 use crate::{
   shared::{
-    constants::common::SPLIT_TOKEN,
+    constants::{
+      common::SPLIT_TOKEN,
+      messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT},
+    },
     enums::data_structures::{
       flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
     },
@@ -73,7 +76,7 @@ pub(crate) fn collect_vars_by_at_rules(
   typed_variables: &mut FlatCompiledStyles,
 ) {
   let Some((hash_name, value, css_type)) = value.as_tuple() else {
-    stylex_panic!("Props must be an key value pair")
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   if let Some(css_type) = css_type {
@@ -95,7 +98,9 @@ pub(crate) fn collect_vars_by_at_rules(
   }
 
   match value {
-    Expr::Array(_) => stylex_panic!("Array is not supported in defineVars"),
+    Expr::Array(_) => stylex_panic!(
+      "Array values are not supported in defineVars(). Use a string, number, or nested object."
+    ),
     Expr::Lit(lit) => {
       if let Lit::Null(_) = lit {
         return;
@@ -103,7 +108,7 @@ pub(crate) fn collect_vars_by_at_rules(
 
       let val = match lit_to_string(lit) {
         Some(v) => v,
-        None => stylex_panic!("Value must be a string"),
+        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       };
 
       let key = if at_rules.is_empty() {

@@ -2,6 +2,9 @@ use std::rc::Rc;
 
 use crate::{
   shared::{
+    constants::messages::{
+      EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
+    },
     enums::data_structures::{
       evaluate_result_value::EvaluateResultValue,
       flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
@@ -25,7 +28,7 @@ pub(crate) fn stylex_define_consts(
   state: &mut StateManager,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let Some(constants) = constants.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("Values must be an object")
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   let class_name_prefix = state.options.class_name_prefix.clone();
@@ -33,7 +36,7 @@ pub(crate) fn stylex_define_consts(
   let enable_debug_class_names = state.options.enable_debug_class_names;
   let export_id = match state.export_id.clone() {
     Some(id) => id,
-    None => stylex_panic!("Export ID must be set"),
+    None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
   };
 
   let js_output = obj_map(
@@ -42,7 +45,7 @@ pub(crate) fn stylex_define_consts(
     |item, _| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
-          stylex_panic!("InjectableStyle is not supported")
+          stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         }
         FlatCompiledStylesValue::Tuple(_key, value, _) => {
           let serialized_value =

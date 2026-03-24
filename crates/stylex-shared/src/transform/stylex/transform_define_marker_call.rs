@@ -47,7 +47,9 @@ where
 
     let export_name = match var_name {
       Some(name) => name,
-      None => stylex_panic!("defineMarker: var_name must be present"),
+      None => stylex_panic!(
+        "defineMarker(): The variable name could not be determined. Ensure the call is bound to a named variable."
+      ),
     };
     let export_id = gen_file_based_identifier(&file_name, &export_name, None);
 

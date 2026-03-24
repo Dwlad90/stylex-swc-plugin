@@ -10,6 +10,7 @@ use swc_core::ecma::{
 
 use crate::{
   shared::{
+    constants::messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT},
     enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
     structures::{
       functions::{FunctionConfigType, FunctionMap},
@@ -51,7 +52,7 @@ pub(crate) fn stylex_merge(
   for name in &state.stylex_default_marker_import {
     let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
       Some(v) => v.clone(),
-      None => stylex_panic!("Expected FlatCompiledStylesValues"),
+      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
     };
     identifiers.insert(name.clone(), Box::new(FunctionConfigType::IndexMap(values)));
   }
@@ -66,7 +67,7 @@ pub(crate) fn stylex_merge(
 
     let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
       Some(v) => v.clone(),
-      None => stylex_panic!("Expected FlatCompiledStylesValues"),
+      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
     };
     member_expression.insert(
       "defaultMarker".into(),
@@ -128,7 +129,7 @@ pub(crate) fn stylex_merge(
           StyleObject::Style(_) | StyleObject::Nullable => {
             let ident = match member.obj.as_ident() {
               Some(i) => i.clone(),
-              None => stylex_panic!("Member obj is not an ident"),
+              None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
             };
 
             resolved_args.push(ResolvedArg::style_object_full(
@@ -193,7 +194,7 @@ pub(crate) fn stylex_merge(
             Expr::Ident(ident) => ident,
             Expr::Member(member) => match member.obj.as_ident() {
               Some(i) => i,
-              None => stylex_panic!("Member obj is not an ident"),
+              None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
             },
             _ => stylex_panic!(
               "Illegal argument: {:?}",
@@ -320,7 +321,7 @@ pub(crate) fn stylex_merge(
                 let attr_value = key_value.value.as_lit().map(|lit| {
                   let s = match lit_to_string(&lit.clone()) {
                     Some(s) => s,
-                    None => stylex_panic!("Failed to get string value"),
+                    None => stylex_panic!("Expected a string class name in compiled styles."),
                   };
                   JSXAttrValue::Str(s.into())
                 });
@@ -368,7 +369,7 @@ fn get_conditional_expr_idents(alternate: &Expr) -> Option<Vec<Ident>> {
     }
     Expr::Member(member) => Some(vec![match member.obj.as_ident() {
       Some(i) => i.clone(),
-      None => stylex_panic!("Member obj is not an ident"),
+      None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
     }]),
     Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => None,
     Expr::Array(array) => {

@@ -1,5 +1,6 @@
 use crate::{stylex_panic, stylex_unimplemented};
 
+use crate::shared::constants::messages::{MEMBER_OBJ_NOT_IDENT, SPREAD_NOT_SUPPORTED};
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},
@@ -80,16 +81,18 @@ pub(crate) fn member_expression(
         let namespaces = props
           .iter()
           .filter_map(|item| match item {
-            PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
+            PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
             PropOrSpread::Prop(prop) => match prop.as_ref() {
               Prop::KeyValue(key_value) => match key_value.value.as_ref() {
                 Expr::Lit(Lit::Null(_)) => None,
                 _ => Some(match key_value.key.as_ident().map(|ident| &ident.sym) {
                   Some(sym) => sym,
-                  None => stylex_panic!("Key not an ident"),
+                  None => stylex_panic!("Object key must be a static identifier."),
                 }),
               },
-              _ => stylex_unimplemented!("Prop variant not supported in member_expression"),
+              _ => stylex_unimplemented!(
+                "This property variant is not supported in member expression evaluation."
+              ),
             },
           })
           .collect::<Vec<&Atom>>();
@@ -104,7 +107,7 @@ pub(crate) fn member_expression(
       state,
       match object.as_ident() {
         Some(i) => i,
-        None => stylex_panic!("Object not an ident"),
+        None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
       },
     );
 

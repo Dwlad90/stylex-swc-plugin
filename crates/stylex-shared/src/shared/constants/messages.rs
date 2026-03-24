@@ -87,3 +87,62 @@ pub(crate) static POSITION_TRY_INVALID_PROPERTY: &str = "Invalid property in `po
 pub(crate) static VIEW_TRANSITION_CLASS_INVALID_PROPERTY: &str = "Invalid property in `viewTransitionClass()` call. It may only contain group, imagePair, old, and new properties";
 
 pub(crate) static INVALID_MEDIA_QUERY_SYNTAX: &str = "Invalid media query syntax.";
+
+pub(crate) static SPREAD_NOT_SUPPORTED: &str =
+  "The spread operator (...) is not supported in this context. Declare each property explicitly.";
+
+pub(crate) static SPREAD_MUST_BE_OBJECT: &str =
+  "The spread argument must be a static object expression.";
+
+pub(crate) static EXPRESSION_IS_NOT_A_STRING: &str =
+  "Expected a string value but received a non-string expression.";
+
+pub(crate) static VALUES_MUST_BE_OBJECT: &str = "The values argument must be a plain object.";
+
+pub(crate) static INJECTABLE_STYLE_NOT_SUPPORTED: &str =
+  "InjectableStyle is not supported in this context.";
+
+pub(crate) static ONLY_OVERRIDE_DEFINE_VARS: &str =
+  "Can only override variables theme created with defineVars()";
+
+pub(crate) static MEMBER_NOT_RESOLVED: &str =
+  "Could not resolve the member expression. Ensure the object and property are statically known.";
+
+pub(crate) static PROPERTY_NOT_FOUND: &str =
+  "Property not found on the object. Ensure the key exists and is spelled correctly.";
+
+pub(crate) static EXPECTED_OBJECT_EXPRESSION: &str = "Expected an object expression.";
+
+pub(crate) static VALUE_MUST_BE_STRING: &str =
+  "Expected a string value but received a different type.";
+
+pub(crate) static VALUE_MUST_BE_LITERAL: &str =
+  "Expected a static literal value (string, number, or boolean).";
+
+pub(crate) static ENTRY_MUST_BE_TUPLE: &str = "Each entry must be a [key, value] tuple.";
+
+pub(crate) static ARGUMENT_NOT_EXPRESSION: &str = "Function argument must be a static expression.";
+
+pub(crate) static EXPORT_ID_NOT_SET: &str =
+  "Export identifier is not set. The variable must be bound to a named export.";
+
+pub(crate) static INVALID_UTF8: &str = "String value contains invalid UTF-8 encoding.";
+
+pub(crate) static EXPECTED_CSS_VAR: &str = "Expected a CSS custom property (variable) reference.";
+
+pub(crate) static KEY_MUST_EVAL_TO_STRING: &str = "Style property key must evaluate to a string.";
+
+pub(crate) static MEMBER_OBJ_NOT_IDENT: &str =
+  "The object in a member expression must be a static identifier.";
+
+pub(crate) static AT_RULE_NOT_FOUND: &str =
+  "At-rule not found in the rules map. Ensure the at-rule is declared correctly.";
+
+pub(crate) static EXPECTED_COMPILED_STYLES: &str =
+  "Expected compiled style values from the style object.";
+
+pub(crate) static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static expression.";
+
+pub(crate) static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result.";
+
+pub(crate) static VAR_DECL_NAME_NOT_IDENT: &str = "Variable declarator name must be an identifier.";

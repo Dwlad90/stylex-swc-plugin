@@ -1,4 +1,4 @@
-use crate::stylex_unimplemented;
+use crate::{shared::constants::messages::SPREAD_NOT_SUPPORTED, stylex_unimplemented};
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::comments::Comments,
@@ -34,13 +34,15 @@ where
       let top_level_expr_defined_consts =
         match find_and_validate_stylex_define_consts(call, &mut self.state) {
           Some(expr) => expr,
-          None => stylex_panic!("defineConsts: could not find top-level variable declaration"),
+          None => {
+            stylex_panic!("defineConsts(): Could not find the top-level variable declaration.")
+          }
         };
 
       let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("Spread"),
+        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
 
@@ -99,7 +101,9 @@ where
 
       let export_name = match var_id {
         Some(name) => name,
-        None => stylex_panic!("defineConsts: export variable not found"),
+        None => stylex_panic!(
+          "defineConsts(): The export variable could not be found. Ensure the call is bound to a named export."
+        ),
       };
 
       let export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));

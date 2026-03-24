@@ -216,7 +216,15 @@ pub(crate) fn flatten_raw_style_object_logic(
       }
       Expr::Tpl(tpl) => {
         let handled_tpl = handle_tpl_to_expression(tpl, traversal_state, fns);
-        let result = expr_tpl_to_string(handled_tpl.as_tpl().unwrap(), state, traversal_state, fns);
+        let result = expr_tpl_to_string(
+          match handled_tpl.as_tpl() {
+            Some(tpl) => tpl,
+            None => stylex_panic!("Expected a template literal expression."),
+          },
+          state,
+          traversal_state,
+          fns,
+        );
 
         let normalized_key_path =
           normalize_key_path(key_path.clone(), key.as_str(), css_property_key.clone());
@@ -304,7 +312,10 @@ pub(crate) fn flatten_raw_style_object_logic(
                     inner_map.insert(condition.clone(), pre_rule);
                     equivalent_pairs.insert(property, inner_map);
                   } else {
-                    let inner_map = equivalent_pairs.get_mut(&property).unwrap();
+                    let inner_map = match equivalent_pairs.get_mut(&property) {
+                      Some(map) => map,
+                      None => stylex_panic!("Property not found in equivalent pairs map."),
+                    };
                     inner_map.insert(condition.clone(), pre_rule);
                   }
                 }

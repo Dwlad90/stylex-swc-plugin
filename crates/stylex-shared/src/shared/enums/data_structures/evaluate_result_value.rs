@@ -58,21 +58,27 @@ impl Serialize for EvaluateResultValue {
 
         serializer.serialize_str(&printed_module)
       }
-      Self::Map(_) => stylex_unimplemented!("map serialization is not implemented yet"),
-      Self::Entries(_) => stylex_unimplemented!("entries serialization is not implemented yet"),
-      Self::Callback(_) => stylex_unimplemented!("callback serialization is not implemented yet"),
+      Self::Map(_) => stylex_unimplemented!("Serialization of Map values is not yet supported."),
+      Self::Entries(_) => {
+        stylex_unimplemented!("Serialization of Entries values is not yet supported.")
+      }
+      Self::Callback(_) => {
+        stylex_unimplemented!("Serialization of Callback values is not yet supported.")
+      }
       Self::FunctionConfig(_) => {
-        stylex_unimplemented!("function_config serialization is not implemented yet")
+        stylex_unimplemented!("Serialization of FunctionConfig values is not yet supported.")
       }
       Self::FunctionConfigMap(_) => {
-        stylex_unimplemented!("function_config_map serialization is not implemented yet")
+        stylex_unimplemented!("Serialization of FunctionConfigMap values is not yet supported.")
       }
-      Self::ThemeRef(_) => stylex_unimplemented!("theme_ref serialization is not implemented yet"),
+      Self::ThemeRef(_) => {
+        stylex_unimplemented!("Serialization of ThemeRef values is not yet supported.")
+      }
       Self::Vec(_) => {
-        stylex_unimplemented!("Vec serialization is not implemented yet")
+        stylex_unimplemented!("Serialization of Vec values is not yet supported.")
       }
       Self::EnvObject(_) => {
-        stylex_unimplemented!("EnvObject serialization is not implemented yet")
+        stylex_unimplemented!("Serialization of EnvObject values is not yet supported.")
       }
     }
   }

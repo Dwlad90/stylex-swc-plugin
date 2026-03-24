@@ -9,11 +9,11 @@ use crate::{
     constants::{
       common::VAR_GROUP_HASH_KEY,
       messages::{
-        DUPLICATE_CONDITIONAL, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-        INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+        DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+        INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
         NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-        illegal_argument_length, non_export_named_declaration, non_static_value, non_style_object,
-        unbound_call_value,
+        ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
+        non_static_value, non_style_object, unbound_call_value,
       },
     },
     enums::data_structures::{
@@ -592,12 +592,12 @@ pub(crate) fn is_target_call(
         && member.prop.as_ident().is_some_and(|ident| {
           ident.sym == call_name
             && state.stylex_import_stringified().contains(
-              &member
-                .obj
-                .as_ident()
-                .expect("Member expression is not an ident")
-                .sym
-                .to_string(),
+              &match member.obj.as_ident() {
+                Some(ident) => ident,
+                None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
+              }
+              .sym
+              .to_string(),
             )
         })
     });
@@ -821,14 +821,20 @@ pub(crate) fn validate_theme_variables(
 
     let key_value = key_value_ident_factory(
       VAR_GROUP_HASH_KEY,
-      string_to_expression(value.as_css_var().expect("Expected CSS variable").as_str()),
+      string_to_expression(
+        match value.as_css_var() {
+          Some(v) => v,
+          None => stylex_panic!("{}", EXPECTED_CSS_VAR),
+        }
+        .as_str(),
+      ),
     );
 
     return key_value;
   }
 
   if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    stylex_panic!("Can only override variables theme created with defineVars().");
+    stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS);
   }
 
   match variables
@@ -858,6 +864,6 @@ pub(crate) fn validate_theme_variables(
       None
     }) {
     Some(key_value) => key_value,
-    None => stylex_panic!("Can only override variables theme created with defineVars()."),
+    None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
   }
 }

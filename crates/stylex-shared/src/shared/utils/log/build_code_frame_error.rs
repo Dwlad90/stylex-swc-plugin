@@ -19,13 +19,16 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  regex::URL_REGEX,
-  structures::state_manager::StateManager,
-  utils::{
-    ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
-    log::stylex_error::__stylex_panic,
+use crate::{
+  shared::{
+    regex::URL_REGEX,
+    structures::state_manager::StateManager,
+    utils::{
+      ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+      log::stylex_error::__stylex_panic,
+    },
   },
+  stylex_panic,
 };
 
 pub(crate) struct CodeFrame {
@@ -220,7 +223,10 @@ fn get_memoized_frame_source_code(
   )?;
 
   state.set_seen_module_source_code(
-    program.as_module().expect("Program must be a module"),
+    match program.as_module() {
+      Some(module) => module,
+      None => stylex_panic!("Expected a module program for source code caching."),
+    },
     Some(source_code),
   );
 

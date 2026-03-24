@@ -6,6 +6,7 @@ use swc_core::ecma::{
 
 use crate::{
   shared::{
+    constants::messages::VALUE_MUST_BE_STRING,
     enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
     swc::get_default_expr_ctx,
     utils::{
@@ -93,7 +94,7 @@ impl From<ObjectLit> for BaseCSSType {
             Expr::Lit(obj) => {
               let value = match lit_to_string(obj) {
                 Some(v) => v,
-                None => stylex_panic!("Value must be a string"),
+                None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
               };
 
               let prop = prop_or_spread_string_factory("default", value.as_str());
@@ -122,7 +123,7 @@ impl From<ObjectLit> for BaseCSSType {
                     Expr::Lit(lit) => {
                       let value = match lit_to_string(lit) {
                         Some(v) => v,
-                        None => stylex_panic!("Value must be a string"),
+                        None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                       };
 
                       obj_map.insert(key, ValueWithDefault::String(value));
@@ -141,7 +142,7 @@ impl From<ObjectLit> for BaseCSSType {
               Expr::Lit(lit) => {
                 let value = match lit_to_string(lit) {
                   Some(v) => v,
-                  None => stylex_panic!("Value must be a string"),
+                  None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                 };
 
                 values.insert(key, ValueWithDefault::String(value));
@@ -163,7 +164,7 @@ impl From<ObjectLit> for BaseCSSType {
 
     assert!(
       values.contains_key("default"),
-      "Default value is not defined for variable."
+      "CSS type requires a default value but none was provided."
     );
 
     BaseCSSType {

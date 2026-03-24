@@ -22,7 +22,7 @@ use swc_core::{
 
 use crate::{
   shared::{
-    constants::messages::ILLEGAL_PROP_VALUE,
+    constants::messages::{ILLEGAL_PROP_VALUE, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT},
     enums::{
       data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
       misc::VarDeclAction,
@@ -177,8 +177,12 @@ pub fn get_var_decl_by_ident<'a>(
         }
         _ => stylex_panic!("Function type not supported: {:?}", func),
       },
-      FunctionConfigType::Map(_) => stylex_unimplemented!("Map not implemented"),
-      FunctionConfigType::IndexMap(_) => stylex_unimplemented!("IndexMap not implemented"),
+      FunctionConfigType::Map(_) => {
+        stylex_unimplemented!("Map values are not supported in this context.")
+      }
+      FunctionConfigType::IndexMap(_) => {
+        stylex_unimplemented!("IndexMap values are not supported in this context.")
+      }
       FunctionConfigType::EnvObject(_) => return None,
     }
   }
@@ -433,7 +437,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
   for prop in obj.props.clone().into_iter() {
     match prop {
-      PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
+      PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
       PropOrSpread::Prop(mut prop) => {
         transform_shorthand_to_key_values(&mut prop);
 
@@ -444,7 +448,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
             {
               let value = obj.props.iter().find(|prop| {
                 match prop {
-                  PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
+                  PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
                     transform_shorthand_to_key_values(&mut prop);
@@ -487,7 +491,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
 
   for prop in object.props.iter() {
     match prop {
-      PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
+      PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
 
@@ -513,7 +517,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           if let Some(decl_init) = decl.init.as_ref() {
             let ident_sym = match decl.name.as_ident() {
               Some(i) => i.sym.clone(),
-              None => stylex_panic!("Variable declarator name is not an identifier"),
+              None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
             };
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
@@ -550,7 +554,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
         {
           let stmt_ident_sym = match decl.name.as_ident() {
             Some(i) => i.sym.clone(),
-            None => stylex_panic!("Variable declarator name is not an identifier"),
+            None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
           };
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::Stmt,

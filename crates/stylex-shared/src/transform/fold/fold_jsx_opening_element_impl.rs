@@ -304,7 +304,9 @@ fn build_stylex_props_call(
   } else if let Some(props_ident_name) = props_ident_name {
     call_expr_ident_factory(&props_ident_name, args)
   } else {
-    stylex_panic!("Check if you have imported stylex or props");
+    stylex_panic!(
+      "Could not resolve StyleX import. Ensure you have imported stylex or the props function."
+    );
   }
 }
 

@@ -1,5 +1,6 @@
-use crate::{shared::constants::messages::SPREAD_NOT_SUPPORTED, stylex_unimplemented};
+use crate::shared::constants::messages::SPREAD_NOT_SUPPORTED;
 use rustc_hash::FxHashMap;
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -21,7 +22,7 @@ use crate::shared::{
   },
 };
 
-use crate::{StyleXTransform, stylex_panic};
+use crate::StyleXTransform;
 
 impl<C> StyleXTransform<C>
 where

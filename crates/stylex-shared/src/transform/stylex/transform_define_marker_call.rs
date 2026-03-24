@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::CallExpr;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
@@ -14,9 +15,7 @@ use crate::shared::{
     validators::{is_define_marker_call, validate_stylex_define_marker_indent},
   },
 };
-use crate::{
-  StyleXTransform, shared::utils::core::js_to_expr::convert_object_to_ast, stylex_panic,
-};
+use crate::{StyleXTransform, shared::utils::core::js_to_expr::convert_object_to_ast};
 
 impl<C> StyleXTransform<C>
 where

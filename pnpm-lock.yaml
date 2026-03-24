@@ -1352,6 +1352,18 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(webpack-cli@6.0.1)(webpack@5.105.3)
 
+  crates/stylex-core:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
   crates/stylex-css-parser:
     devDependencies:
       '@taplo/cli':
@@ -1387,6 +1399,9 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.18.1
         version: 0.18.1
+      '@stylexswc/core':
+        specifier: 0.15.1-rc.1
+        version: link:../stylex-core
       '@stylexswc/shared':
         specifier: 0.15.1-rc.1
         version: link:../stylex-shared
@@ -1432,6 +1447,9 @@ importers:
 
   crates/stylex-shared:
     devDependencies:
+      '@stylexswc/core':
+        specifier: 0.15.1-rc.1
+        version: link:../stylex-core
       '@stylexswc/path-resolver':
         specifier: 0.15.1-rc.1
         version: link:../stylex-path-resolver

@@ -35,6 +35,7 @@ use crate::shared::{
   },
 };
 
+use stylex_core::stylex_panic;
 use swc_core::{
   common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{
@@ -46,8 +47,6 @@ use swc_core::{
     parser::{error::Error, parse_string_input, parser::ParserConfig},
   },
 };
-
-use crate::stylex_panic;
 
 use super::parser::parse_css;
 

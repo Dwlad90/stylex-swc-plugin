@@ -83,6 +83,13 @@
       ],
       "outputLogs": "errors-only"
     },
+    "@stylexswc/core#lint:check": {
+      "dependsOn": [
+        "^build",
+        "build"
+      ],
+      "outputLogs": "errors-only"
+    },
     "@stylexswc/shared#lint:check": {
       "dependsOn": [
         "^build",

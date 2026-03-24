@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 
 use rustc_hash::FxHashMap;
+use stylex_core::stylex_panic;
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, comments::Comments},
@@ -23,7 +24,6 @@ use crate::{
     },
     utils::{ast::convertors::transform_shorthand_to_key_values, common::fill_state_declarations},
   },
-  stylex_panic,
 };
 
 impl<C> StyleXTransform<C>

@@ -1,27 +1,25 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::{Expr, Lit};
 
-use crate::{
-  shared::{
-    constants::{
-      common::SPLIT_TOKEN,
-      messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT},
-    },
-    enums::data_structures::{
-      flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
-    },
-    structures::{
-      injectable_style::InjectableStyle,
-      types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
-    },
-    utils::{
-      ast::convertors::{key_value_to_str, lit_to_string},
-      common::{create_hash, get_key_values_from_object, round_to_decimal_places},
-    },
+use crate::shared::{
+  constants::{
+    common::SPLIT_TOKEN,
+    messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT},
   },
-  stylex_panic,
+  enums::data_structures::{
+    flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
+  },
+  structures::{
+    injectable_style::InjectableStyle,
+    types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
+  },
+  utils::{
+    ast::convertors::{key_value_to_str, lit_to_string},
+    common::{create_hash, get_key_values_from_object, round_to_decimal_places},
+  },
 };
 
 pub(crate) fn construct_css_variables_string(

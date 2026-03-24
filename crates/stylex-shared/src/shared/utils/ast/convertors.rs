@@ -1,4 +1,9 @@
 use anyhow::anyhow;
+// Import error handling macros from shared utilities
+use stylex_core::{
+  as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, expr_to_str_or_err, stylex_panic,
+  stylex_unimplemented, unwrap_or_panic,
+};
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -15,12 +20,6 @@ use swc_core::{
     ast::BigInt,
     utils::{ExprExt, quote_ident, quote_str},
   },
-};
-
-// Import error handling macros from shared utilities
-use crate::{
-  as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, expr_to_str_or_err, stylex_panic,
-  stylex_unimplemented, unwrap_or_panic,
 };
 
 use crate::shared::{

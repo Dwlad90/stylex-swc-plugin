@@ -1,3 +1,4 @@
+use stylex_core::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::{
@@ -13,7 +14,6 @@ use crate::{
     enums::core::TransformationCycle,
     utils::{ast::convertors::expr_to_str, common::increase_ident_count},
   },
-  stylex_panic,
 };
 
 impl<C> StyleXTransform<C>

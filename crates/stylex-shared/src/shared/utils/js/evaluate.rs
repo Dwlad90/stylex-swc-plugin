@@ -2,15 +2,17 @@ use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
 use crate::{
-  collect_confident, expr_to_str_or_deopt,
+  expr_to_str_or_deopt,
   shared::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS},
-  stylex_panic, stylex_panic_with_context, stylex_unimplemented, stylex_unreachable,
-  unwrap_or_panic,
+  stylex_panic_with_context,
 };
 
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
+use stylex_core::{
+  collect_confident, stylex_panic, stylex_unimplemented, stylex_unreachable, unwrap_or_panic,
+};
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, SyntaxContext},

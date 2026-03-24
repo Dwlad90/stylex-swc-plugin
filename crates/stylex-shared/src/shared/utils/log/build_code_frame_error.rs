@@ -3,6 +3,9 @@ use log::{debug, warn};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{fs, path::Path, sync::Arc};
+use stylex_core::{
+  macros::panic_macros::__stylex_panic, macros::stylex_error::StyleXError, stylex_panic,
+};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_config::is_module::IsModule;
 use swc_core::{
@@ -19,16 +22,10 @@ use swc_core::{
   },
 };
 
-use crate::{
-  shared::{
-    regex::URL_REGEX,
-    structures::state_manager::StateManager,
-    utils::{
-      ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
-      log::stylex_error::__stylex_panic,
-    },
-  },
-  stylex_panic,
+use crate::shared::{
+  regex::URL_REGEX,
+  structures::state_manager::StateManager,
+  utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
 };
 
 pub(crate) struct CodeFrame {
@@ -476,7 +473,7 @@ pub(crate) fn build_code_frame_error_and_panic(
     }
   };
 
-  let err = super::stylex_error::StyleXError {
+  let err = StyleXError {
     message: error_message.to_string(),
     file,
     key_path: None,
@@ -489,5 +486,5 @@ pub(crate) fn build_code_frame_error_and_panic(
     )),
   };
 
-  __stylex_panic(err);
+  __stylex_panic(err)
 }

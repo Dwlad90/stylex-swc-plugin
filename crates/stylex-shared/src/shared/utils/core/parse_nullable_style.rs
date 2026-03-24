@@ -1,22 +1,19 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp, ObjectLit};
 
-use crate::{
-  shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
-    },
-    structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
-    utils::{
-      ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, lit_to_string},
-      common::reduce_ident_count,
-      js::evaluate::evaluate,
-    },
+use crate::shared::{
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
   },
-  stylex_panic, stylex_unimplemented,
+  structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
+  utils::{
+    ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, lit_to_string},
+    common::reduce_ident_count,
+    js::evaluate::evaluate,
+  },
 };
 
 #[derive(Debug, PartialEq, Clone)]

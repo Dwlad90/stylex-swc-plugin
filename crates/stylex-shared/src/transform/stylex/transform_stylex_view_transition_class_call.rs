@@ -1,14 +1,13 @@
-use crate::{
-  shared::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression},
-  stylex_unimplemented,
-};
+use crate::shared::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
 use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
+use crate::StyleXTransform;
 use crate::shared::structures::{
   functions::{FunctionConfig, FunctionMap, FunctionType},
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
@@ -38,7 +37,6 @@ use crate::shared::{
     validators::{is_view_transition_class_call, validate_stylex_view_transition_class_indent},
   },
 };
-use crate::{StyleXTransform, stylex_panic};
 
 impl<C> StyleXTransform<C>
 where

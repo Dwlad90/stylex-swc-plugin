@@ -8,8 +8,7 @@ mod tests {
   use ctor::ctor;
 
   #[ctor]
-  fn init_color_backtrace() {
+  fn init_logger() {
     pretty_env_logger::formatted_builder().init();
-    color_backtrace::install();
   }
 }

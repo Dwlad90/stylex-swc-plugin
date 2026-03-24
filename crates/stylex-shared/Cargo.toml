@@ -39,22 +39,19 @@ murmur2.workspace = true
 radix_fmt.workspace = true
 phf = { workspace = true, features = ["macros"] }
 once_cell.workspace = true
-colored.workspace = true
 node-resolve.workspace = true
 path-clean.workspace = true
 cssparser.workspace = true
 anyhow.workspace = true
 log.workspace = true
-pretty_env_logger.workspace = true
-color-backtrace.workspace = true
 ctor.workspace = true
-env_logger.workspace = true
 rustc-hash.workspace = true
 base62.workspace = true
 md5.workspace = true
 
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_core = { path = "../stylex-core" }
 
 
 [dev-dependencies]

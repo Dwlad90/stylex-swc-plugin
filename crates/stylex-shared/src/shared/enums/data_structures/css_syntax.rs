@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::stylex_panic;
+use stylex_core::stylex_panic;
 
 #[derive(Debug, PartialEq, Clone, Hash, Copy)]
 pub enum CSSSyntax {

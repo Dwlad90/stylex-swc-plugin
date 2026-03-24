@@ -1,8 +1,7 @@
-use crate::{stylex_panic, stylex_unimplemented};
-
 use crate::shared::constants::messages::{
   MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT_SUPPORTED,
 };
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},

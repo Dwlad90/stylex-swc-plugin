@@ -1,4 +1,5 @@
 use rustc_hash::FxHashMap;
+use stylex_core::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
     BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
@@ -8,31 +9,28 @@ use swc_core::ecma::{
   visit::FoldWith,
 };
 
-use crate::{
-  shared::{
-    constants::messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT},
-    enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
-    structures::{
-      functions::{FunctionConfigType, FunctionMap},
-      member_transform::MemberTransform,
-      state_manager::StateManager,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+use crate::shared::{
+  constants::messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT},
+  enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
+  structures::{
+    functions::{FunctionConfigType, FunctionMap},
+    member_transform::MemberTransform,
+    state_manager::StateManager,
+    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+  },
+  swc::get_default_expr_ctx,
+  transformers::stylex_default_maker,
+  utils::{
+    ast::{
+      convertors::{key_value_to_str, lit_to_string},
+      factories::{jsx_attr_factory, jsx_attr_or_spread_attr_factory},
     },
-    swc::get_default_expr_ctx,
-    transformers::stylex_default_maker,
-    utils::{
-      ast::{
-        convertors::{key_value_to_str, lit_to_string},
-        factories::{jsx_attr_factory, jsx_attr_or_spread_attr_factory},
-      },
-      common::{reduce_ident_count, reduce_member_expression_count},
-      core::{
-        make_string_expression::make_string_expression,
-        parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
-      },
+    common::{reduce_ident_count, reduce_member_expression_count},
+    core::{
+      make_string_expression::make_string_expression,
+      parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
     },
   },
-  stylex_panic, stylex_unreachable,
 };
 
 pub(crate) fn stylex_merge(

@@ -1,7 +1,6 @@
 use log::warn;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::Expr;
-
-use crate::stylex_panic;
 
 use crate::shared::{
   constants::messages::EXPRESSION_IS_NOT_A_STRING,

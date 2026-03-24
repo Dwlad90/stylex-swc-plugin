@@ -1,33 +1,31 @@
 use std::{collections::VecDeque, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
+use stylex_core::stylex_panic;
 
-use crate::{
-  shared::{
-    constants::{
-      common::COMPILED_KEY,
-      messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT},
-    },
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-    },
-    structures::{
-      functions::FunctionMap,
-      pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
-      state::EvaluationState,
-      state_manager::StateManager,
-      types::{
-        ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap,
-        StylesObjectMap,
-      },
-    },
-    utils::{
-      ast::convertors::expr_to_str, common::create_short_hash,
-      core::flatten_raw_style_object::flatten_raw_style_object, validators::validate_namespace,
+use crate::shared::{
+  constants::{
+    common::COMPILED_KEY,
+    messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT},
+  },
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+  },
+  structures::{
+    functions::FunctionMap,
+    pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
+    state::EvaluationState,
+    state_manager::StateManager,
+    types::{
+      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap,
+      StylesObjectMap,
     },
   },
-  stylex_panic,
+  utils::{
+    ast::convertors::expr_to_str, common::create_short_hash,
+    core::flatten_raw_style_object::flatten_raw_style_object, validators::validate_namespace,
+  },
 };
 
 pub(crate) fn stylex_create_set(

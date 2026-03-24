@@ -3,9 +3,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 use rustc_hash::FxHashMap;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::Ident;
 
-use crate::{shared::utils::ast::factories::ident_factory, stylex_panic};
+use crate::shared::utils::ast::factories::ident_factory;
 
 // Add once_cell for global static
 use once_cell::sync::Lazy;

@@ -1,9 +1,7 @@
-use crate::{
-  shared::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED},
-  stylex_unimplemented,
-};
+use crate::shared::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED};
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -37,9 +35,7 @@ use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
   utils::core::dev_class_name::convert_theme_to_test_styles,
 };
-use crate::{
-  StyleXTransform, shared::transformers::stylex_position_try::get_position_try_fn, stylex_panic,
-};
+use crate::{StyleXTransform, shared::transformers::stylex_position_try::get_position_try_fn};
 
 impl<C> StyleXTransform<C>
 where

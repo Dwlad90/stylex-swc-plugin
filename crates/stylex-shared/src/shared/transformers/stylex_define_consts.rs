@@ -1,26 +1,23 @@
 use std::rc::Rc;
 
-use crate::{
-  shared::{
-    constants::messages::{
-      EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
-    },
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-      obj_map_type::ObjMapType,
-    },
-    structures::{
-      injectable_style::InjectableConstStyle,
-      state_manager::StateManager,
-      types::{FlatCompiledStyles, InjectableStylesMap},
-    },
-    utils::{
-      common::{create_hash, serialize_value_to_json_string},
-      object::obj_map,
-    },
+use stylex_core::{stylex_panic, stylex_unimplemented};
+
+use crate::shared::{
+  constants::messages::{EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT},
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    obj_map_type::ObjMapType,
   },
-  stylex_panic, stylex_unimplemented,
+  structures::{
+    injectable_style::InjectableConstStyle,
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, InjectableStylesMap},
+  },
+  utils::{
+    common::{create_hash, serialize_value_to_json_string},
+    object::obj_map,
+  },
 };
 
 pub(crate) fn stylex_define_consts(

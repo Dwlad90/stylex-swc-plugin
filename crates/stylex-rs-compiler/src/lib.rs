@@ -9,17 +9,17 @@ use napi::{Env, Result};
 use std::panic;
 use std::{env, sync::Arc};
 use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
-use stylex_shared::shared::utils::log::stylex_error::{SuppressPanicStderr, format_panic_message};
+use stylex_core::{
+  logger::initializer::initialize as initialize_logger,
+  macros::stylex_error::{SuppressPanicStderr, format_panic_message},
+};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_shared::{
   StyleXTransform,
-  shared::{
-    structures::{
-      plugin_pass::PluginPass,
-      stylex_options::{StyleResolution, StyleXOptionsParams},
-    },
-    utils::log::logger,
+  shared::structures::{
+    plugin_pass::PluginPass,
+    stylex_options::{StyleResolution, StyleXOptionsParams},
   },
 };
 use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
@@ -73,7 +73,7 @@ pub fn transform(
   code: String,
   mut options: StyleXOptions,
 ) -> Result<StyleXTransformResult> {
-  logger::initialize();
+  initialize_logger();
 
   info!("Transforming source file: {}", filename);
 

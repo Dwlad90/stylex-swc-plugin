@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use std::{rc::Rc, sync::Arc};
+use stylex_core::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use indexmap::IndexMap;
@@ -94,7 +95,6 @@ use crate::shared::{
 };
 use crate::{
   StyleXTransform, shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic,
-  stylex_panic,
 };
 
 /// Lazily-initialized Arc-wrapped map of stylex.when helper functions.

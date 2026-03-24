@@ -1,17 +1,15 @@
-use crate::{
-  shared::{
-    enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
-    structures::{
-      base_css_type::BaseCSSType,
-      functions::{FunctionConfig, FunctionType},
-    },
-    utils::ast::factories::{object_expression_factory, prop_or_spread_string_factory},
+use crate::shared::{
+  enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
+  structures::{
+    base_css_type::BaseCSSType,
+    functions::{FunctionConfig, FunctionType},
   },
-  stylex_panic,
+  utils::ast::factories::{object_expression_factory, prop_or_spread_string_factory},
 };
 use indexmap::IndexMap;
 use phf::phf_map;
 use std::rc::Rc;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
 pub trait HasBase {

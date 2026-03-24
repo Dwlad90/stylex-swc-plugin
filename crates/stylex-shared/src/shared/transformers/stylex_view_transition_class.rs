@@ -1,27 +1,26 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
-use crate::{
-  shared::{
-    constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-      obj_map_type::ObjMapType,
-    },
-    structures::{
-      injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
-      types::FlatCompiledStyles,
-    },
-    utils::{
-      common::{create_hash, dashify},
-      css::common::transform_value_cached,
-      object::{
-        Pipe, obj_map, obj_map_keys_key_value, obj_map_keys_string, preprocess_object_properties,
-      },
+use stylex_core::stylex_panic;
+
+use crate::shared::{
+  constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    obj_map_type::ObjMapType,
+  },
+  structures::{
+    injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
+    types::FlatCompiledStyles,
+  },
+  utils::{
+    common::{create_hash, dashify},
+    css::common::transform_value_cached,
+    object::{
+      Pipe, obj_map, obj_map_keys_key_value, obj_map_keys_string, preprocess_object_properties,
     },
   },
-  stylex_panic,
 };
 
 pub(crate) fn stylex_view_transition_class(

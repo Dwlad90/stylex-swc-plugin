@@ -1,11 +1,9 @@
-use crate::{
-  shared::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression},
-  stylex_unimplemented,
-};
+use crate::shared::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
 use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
@@ -35,7 +33,7 @@ use crate::shared::{
     validators::{assert_valid_position_try, assert_valid_properties},
   },
 };
-use crate::{StyleXTransform, shared::utils::validators::is_position_try_call, stylex_panic};
+use crate::{StyleXTransform, shared::utils::validators::is_position_try_call};
 
 impl<C> StyleXTransform<C>
 where

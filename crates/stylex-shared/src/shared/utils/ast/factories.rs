@@ -1,3 +1,4 @@
+use stylex_core::stylex_panic;
 use swc_core::{
   common::SyntaxContext,
   ecma::ast::{
@@ -11,7 +12,7 @@ use swc_core::{
   ecma::ast::{ArrayLit, Expr, ExprOrSpread, ObjectLit, PropOrSpread},
 };
 
-use crate::{shared::utils::ast::convertors::null_to_expression, stylex_panic};
+use crate::shared::utils::ast::convertors::null_to_expression;
 
 use super::convertors::{
   bool_to_expression, number_to_expression, string_to_expression, string_to_prop_name,

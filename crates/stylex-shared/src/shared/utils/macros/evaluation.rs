@@ -1,38 +1,7 @@
-//! Error handling macros for consistent error handling across the workspace.
+//! Evaluation macros for consistent error handling across the workspace.
 //!
 //! These macros provide standardized patterns for handling common error cases
 //! when working with expressions, conversions, and evaluations.
-
-/// Macro to unwrap a Result or panic with the error message.
-/// This is a cleaner replacement for `.unwrap_or_else(|error| panic!("{}", error))`.
-///
-/// # Usage
-/// ```ignore
-/// let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns));
-/// // Or with additional context:
-/// let value = unwrap_or_panic!(expr_to_num(&arg, state, traversal_state, fns), "Converting to number");
-/// ```
-///
-/// # Arguments
-/// - `$result`: A Result type to unwrap
-/// - `$context` (optional): Additional context string to prepend to the error message
-#[macro_export]
-macro_rules! unwrap_or_panic {
-  ($result:expr) => {
-    $result.unwrap_or_else(|error| {
-      $crate::shared::utils::log::stylex_error::__stylex_panic(
-        $crate::shared::utils::log::stylex_error::stylex_err(format!("{}", error)),
-      )
-    })
-  };
-  ($result:expr, $context:expr) => {
-    $result.unwrap_or_else(|error| {
-      $crate::shared::utils::log::stylex_error::__stylex_panic(
-        $crate::shared::utils::log::stylex_error::stylex_err(format!("{}: {}", $context, error)),
-      )
-    })
-  };
-}
 
 /// Panic with a `[StyleX]`-prefixed code frame error.
 ///

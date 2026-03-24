@@ -1,8 +1,7 @@
 use std::{path::Path, rc::Rc};
 
-use crate::stylex_panic;
-
 use indexmap::IndexMap;
+use stylex_core::stylex_panic;
 
 use crate::shared::{
   constants::common::COMPILED_KEY,

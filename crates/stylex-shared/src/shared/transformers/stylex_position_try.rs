@@ -1,38 +1,34 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-use crate::{
-  shared::{
-    constants::messages::{
-      ENTRY_MUST_BE_TUPLE, THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
-    },
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-      obj_map_type::ObjMapType,
-    },
-    structures::{
-      functions::{FunctionConfig, FunctionType},
-      injectable_style::InjectableStyle,
-      pair::Pair,
-      state_manager::StateManager,
-      types::FlatCompiledStyles,
-    },
-    utils::{
-      ast::{
-        convertors::{lit_to_string, string_to_expression},
-        factories::{object_lit_factory, prop_or_spread_string_factory},
-      },
-      common::{create_hash, dashify},
-      css::{
-        common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl,
-      },
-      object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
-    },
+use crate::shared::{
+  constants::messages::{
+    ENTRY_MUST_BE_TUPLE, THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
   },
-  stylex_panic,
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    obj_map_type::ObjMapType,
+  },
+  structures::{
+    functions::{FunctionConfig, FunctionType},
+    injectable_style::InjectableStyle,
+    pair::Pair,
+    state_manager::StateManager,
+    types::FlatCompiledStyles,
+  },
+  utils::{
+    ast::{
+      convertors::{lit_to_string, string_to_expression},
+      factories::{object_lit_factory, prop_or_spread_string_factory},
+    },
+    common::{create_hash, dashify},
+    css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
+    object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
+  },
 };
 
 pub(crate) fn stylex_position_try(

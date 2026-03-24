@@ -7,6 +7,7 @@ use std::{
   ops::Deref,
   path::PathBuf,
 };
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
@@ -20,24 +21,21 @@ use swc_core::{
   },
 };
 
-use crate::{
-  shared::{
-    constants::messages::{
-      ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
-    },
-    enums::{
-      data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-      misc::VarDeclAction,
-    },
-    regex::{DASHIFY_REGEX, JSON_REGEX},
-    structures::{
-      base_css_type::BaseCSSType,
-      functions::{FunctionConfigType, FunctionMap, FunctionType},
-      state_manager::StateManager,
-    },
-    utils::ast::convertors::{lit_str_to_atom, wtf8_atom_to_atom},
+use crate::shared::{
+  constants::messages::{
+    ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
   },
-  stylex_panic, stylex_unimplemented,
+  enums::{
+    data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+    misc::VarDeclAction,
+  },
+  regex::{DASHIFY_REGEX, JSON_REGEX},
+  structures::{
+    base_css_type::BaseCSSType,
+    functions::{FunctionConfigType, FunctionMap, FunctionType},
+    state_manager::StateManager,
+  },
+  utils::ast::convertors::{lit_str_to_atom, wtf8_atom_to_atom},
 };
 
 use super::ast::{

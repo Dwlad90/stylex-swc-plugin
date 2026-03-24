@@ -2,9 +2,9 @@ use env_logger::{Builder, WriteStyle};
 use log::LevelFilter;
 use std::{panic, sync::Once};
 
-use crate::shared::utils::log::stylex_error::STYLEX_PREFIX;
+use crate::{constants::STYLEX_PREFIX, macros::stylex_error::is_panic_stderr_suppressed};
 
-use super::{formatter::log_formatter, stylex_error::is_panic_stderr_suppressed};
+use super::formatter::log_formatter;
 
 static INIT: Once = Once::new();
 

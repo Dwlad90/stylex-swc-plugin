@@ -1,9 +1,8 @@
-use crate::{
-  shared::{
-    constants::messages::RULE_SET_EMPTY,
-    structures::pre_rule::{CompiledResult, ComputedStyle},
-  },
-  stylex_panic,
+use stylex_core::stylex_panic;
+
+use crate::shared::{
+  constants::messages::RULE_SET_EMPTY,
+  structures::pre_rule::{CompiledResult, ComputedStyle},
 };
 
 use super::{

@@ -1,16 +1,15 @@
-use crate::{
-  shared::{
-    constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},
-    structures::{
-      injectable_style::InjectableStyle, pre_rule::PreRuleValue, state_manager::StateManager,
-    },
-    utils::{
-      common::{create_hash, dashify},
-      css::common::{generate_css_rule, transform_value_cached},
-      pre_rule::{sort_at_rules, sort_pseudos},
-    },
+use stylex_core::stylex_panic;
+
+use crate::shared::{
+  constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},
+  structures::{
+    injectable_style::InjectableStyle, pre_rule::PreRuleValue, state_manager::StateManager,
   },
-  stylex_panic,
+  utils::{
+    common::{create_hash, dashify},
+    css::common::{generate_css_rule, transform_value_cached},
+    pre_rule::{sort_at_rules, sort_pseudos},
+  },
 };
 
 pub(crate) fn convert_style_to_class_name(

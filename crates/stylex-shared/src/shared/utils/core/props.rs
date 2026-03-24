@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_core::stylex_unimplemented;
 
 use crate::{
   shared::{
@@ -10,7 +11,6 @@ use crate::{
     structures::types::FlatCompiledStyles,
     utils::core::js_to_expr::NestedStringObject,
   },
-  stylex_unimplemented,
   transform::styleq::common::{StyleQResult, styleq},
 };
 

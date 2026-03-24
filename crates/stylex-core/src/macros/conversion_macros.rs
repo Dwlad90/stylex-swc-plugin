@@ -21,7 +21,7 @@
 #[macro_export]
 macro_rules! expr_to_str_or_err {
   ($expr:expr, $traversal_state:expr, $fns:expr, $error_msg:expr) => {
-    match $crate::shared::utils::ast::convertors::expr_to_str($expr, $traversal_state, $fns) {
+    match expr_to_str($expr, $traversal_state, $fns) {
       Some(s) => s,
       None => return Err(anyhow!($error_msg)),
     }
@@ -93,8 +93,8 @@ macro_rules! as_expr_or_panic {
   ($opt:expr, $error_msg:expr) => {
     match $opt.as_expr() {
       Some(expr) => expr,
-      None => $crate::shared::utils::log::stylex_error::__stylex_panic(
-        $crate::shared::utils::log::stylex_error::stylex_err(format!("{}", $error_msg)),
+      None => $crate::macros::panic_macros::__stylex_panic(
+        $crate::macros::panic_macros::stylex_err(format!("{}", $error_msg)),
       ),
     }
   };

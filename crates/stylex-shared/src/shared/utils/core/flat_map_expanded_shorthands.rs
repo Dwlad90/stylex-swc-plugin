@@ -1,21 +1,19 @@
 use log::warn;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
-use crate::{
-  shared::{
-    structures::{
-      application_order::ApplicationOrder,
-      legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
-      order::Order,
-      order_pair::OrderPair,
-      pre_rule::PreRuleValue,
-      property_specificity_order::PropertySpecificityOrder,
-      stylex_options::{PropertyValidationMode, StyleResolution},
-      stylex_state_options::StyleXStateOptions,
-    },
-    utils::ast::convertors::lit_to_string,
+use crate::shared::{
+  structures::{
+    application_order::ApplicationOrder,
+    legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
+    order::Order,
+    order_pair::OrderPair,
+    pre_rule::PreRuleValue,
+    property_specificity_order::PropertySpecificityOrder,
+    stylex_options::{PropertyValidationMode, StyleResolution},
+    stylex_state_options::StyleXStateOptions,
   },
-  stylex_panic,
+  utils::ast::convertors::lit_to_string,
 };
 
 pub(crate) fn flat_map_expanded_shorthands(

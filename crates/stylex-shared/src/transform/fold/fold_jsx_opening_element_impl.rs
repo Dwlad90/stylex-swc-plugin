@@ -1,3 +1,4 @@
+use stylex_core::stylex_panic;
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::{
@@ -21,7 +22,6 @@ use crate::{
       prop_or_spread_spread_factory,
     },
   },
-  stylex_panic,
 };
 
 impl<C> StyleXTransform<C>

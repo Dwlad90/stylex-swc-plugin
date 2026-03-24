@@ -1,37 +1,35 @@
 use indexmap::IndexMap;
 use log::warn;
+use stylex_core::stylex_panic;
 use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
 use swc_core::ecma::{
   ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},
   utils::quote_str,
 };
 
-use crate::{
-  shared::{
-    constants::messages::{
-      ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
-    },
-    enums::misc::VarDeclAction,
-    regex::CSS_PROPERTY_KEY,
-    structures::{
-      functions::FunctionMap,
-      null_pre_rule::NullPreRule,
-      order_pair::OrderPair,
-      pre_rule::{PreRuleValue, PreRules, StylesPreRule},
-      pre_rule_set::PreRuleSet,
-      state::EvaluationState,
-      state_manager::StateManager,
-      types::ClassesToOriginalPaths,
-    },
-    utils::{
-      ast::convertors::{
-        expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, lit_to_string,
-        number_to_expression, transform_bin_expr_to_number, transform_shorthand_to_key_values,
-      },
-      common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
-    },
+use crate::shared::{
+  constants::messages::{
+    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
   },
-  stylex_panic,
+  enums::misc::VarDeclAction,
+  regex::CSS_PROPERTY_KEY,
+  structures::{
+    functions::FunctionMap,
+    null_pre_rule::NullPreRule,
+    order_pair::OrderPair,
+    pre_rule::{PreRuleValue, PreRules, StylesPreRule},
+    pre_rule_set::PreRuleSet,
+    state::EvaluationState,
+    state_manager::StateManager,
+    types::ClassesToOriginalPaths,
+  },
+  utils::{
+    ast::convertors::{
+      expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, lit_to_string,
+      number_to_expression, transform_bin_expr_to_number, transform_shorthand_to_key_values,
+    },
+    common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
+  },
 };
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;

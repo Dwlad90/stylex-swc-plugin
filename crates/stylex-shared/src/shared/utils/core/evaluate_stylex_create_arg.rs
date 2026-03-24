@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use stylex_core::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::{DUMMY_SP, SyntaxContext},
   ecma::{
@@ -13,36 +14,33 @@ use swc_core::{
 use crate::shared::constants::messages::{
   EVAL_RESULT_EXPECTED, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
 };
-use crate::{
-  shared::{
-    constants::{
-      length_units::LENGTH_UNITS, messages::ILLEGAL_NAMESPACE_VALUE, time_units::get_time_units,
-    },
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::{
-      evaluate_result::EvaluateResult,
-      functions::FunctionMap,
-      inline_style::InlineStyle,
-      state_manager::StateManager,
-      types::{DynamicFns, TInlineStyles},
-    },
-    utils::{
-      ast::{
-        convertors::{
-          expr_to_str, ident_to_expression, null_to_expression, string_to_expression,
-          transform_shorthand_to_key_values,
-        },
-        factories::{
-          expr_or_spread_factory, object_expression_factory, prop_or_spread_expression_factory,
-        },
-      },
-      common::{create_hash, normalize_expr},
-      css::common::get_number_suffix,
-      js::evaluate::{evaluate, evaluate_obj_key},
-      validators::validate_dynamic_style_params,
-    },
+use crate::shared::{
+  constants::{
+    length_units::LENGTH_UNITS, messages::ILLEGAL_NAMESPACE_VALUE, time_units::get_time_units,
   },
-  stylex_panic, stylex_unimplemented,
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{
+    evaluate_result::EvaluateResult,
+    functions::FunctionMap,
+    inline_style::InlineStyle,
+    state_manager::StateManager,
+    types::{DynamicFns, TInlineStyles},
+  },
+  utils::{
+    ast::{
+      convertors::{
+        expr_to_str, ident_to_expression, null_to_expression, string_to_expression,
+        transform_shorthand_to_key_values,
+      },
+      factories::{
+        expr_or_spread_factory, object_expression_factory, prop_or_spread_expression_factory,
+      },
+    },
+    common::{create_hash, normalize_expr},
+    css::common::get_number_suffix,
+    js::evaluate::{evaluate, evaluate_obj_key},
+    validators::validate_dynamic_style_params,
+  },
 };
 
 /// Prepends a key name to an existing error reason to provide context

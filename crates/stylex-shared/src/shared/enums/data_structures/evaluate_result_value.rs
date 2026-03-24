@@ -3,6 +3,7 @@ use std::{fmt, rc::Rc};
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use serde::{Serialize, ser::Serializer};
+use stylex_core::stylex_unimplemented;
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -11,15 +12,11 @@ use swc_core::{
   },
 };
 
-use crate::{
-  shared::{
-    structures::{
-      functions::FunctionConfig, stylex_env::EnvEntry, theme_ref::ThemeRef,
-      types::EvaluationCallback,
-    },
-    utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
+use crate::shared::{
+  structures::{
+    functions::FunctionConfig, stylex_env::EnvEntry, theme_ref::ThemeRef, types::EvaluationCallback,
   },
-  stylex_unimplemented,
+  utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
 };
 
 pub enum EvaluateResultValue {

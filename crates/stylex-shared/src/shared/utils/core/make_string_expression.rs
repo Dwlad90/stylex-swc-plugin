@@ -1,5 +1,4 @@
-use crate::stylex_panic;
-
+use stylex_core::stylex_panic;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{

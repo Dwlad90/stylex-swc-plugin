@@ -2,6 +2,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
 use std::path::Path;
 use std::{option::Option, rc::Rc};
+use stylex_core::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
 use log::debug;
@@ -60,8 +61,6 @@ use crate::shared::{
   },
   utils::common::stable_hash,
 };
-
-use crate::stylex_panic;
 
 use super::plugin_pass::PluginPass;
 use super::stylex_options::ModuleResolution;
@@ -512,7 +511,7 @@ impl StateManager {
         ImportPathResolutionType::ThemeNameRef,
         add_file_extension(import_path, source_file_path),
       ),
-      _ => crate::stylex_unimplemented!("This module resolution strategy is not yet supported."),
+      _ => stylex_unimplemented!("This module resolution strategy is not yet supported."),
     }
   }
 

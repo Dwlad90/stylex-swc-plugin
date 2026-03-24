@@ -1,36 +1,34 @@
 use rustc_hash::FxHashSet;
+use stylex_core::stylex_panic;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
-use crate::{
-  shared::{
-    constants::{
-      common::VAR_GROUP_HASH_KEY,
-      messages::{
-        DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-        INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
-        NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-        ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
-        non_static_value, non_style_object, unbound_call_value,
-      },
-    },
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue, top_level_expression::TopLevelExpression,
-    },
-    structures::state_manager::StateManager,
-    utils::{
-      ast::{
-        convertors::string_to_expression,
-        factories::{expr_or_spread_factory, key_value_ident_factory},
-        helpers::is_variable_named_exported,
-      },
-      common::get_import_from,
-      log::build_code_frame_error::build_code_frame_error_and_panic,
+use crate::shared::{
+  constants::{
+    common::VAR_GROUP_HASH_KEY,
+    messages::{
+      DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+      INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
+      ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
+      non_static_value, non_style_object, unbound_call_value,
     },
   },
-  stylex_panic,
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue, top_level_expression::TopLevelExpression,
+  },
+  structures::state_manager::StateManager,
+  utils::{
+    ast::{
+      convertors::string_to_expression,
+      factories::{expr_or_spread_factory, key_value_ident_factory},
+      helpers::is_variable_named_exported,
+    },
+    common::get_import_from,
+    log::build_code_frame_error::build_code_frame_error_and_panic,
+  },
 };
 
 use super::{

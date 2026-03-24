@@ -1,36 +1,32 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
-use crate::{
-  shared::{
-    constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-      obj_map_type::ObjMapType,
-    },
-    structures::{
-      functions::{FunctionConfig, FunctionMap, FunctionType},
-      injectable_style::InjectableStyle,
-      order_pair::OrderPair,
-      pair::Pair,
-      pre_rule::PreRuleValue,
-      state_manager::StateManager,
-      types::FlatCompiledStyles,
-    },
-    utils::{
-      ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
-      common::{create_hash, dashify},
-      core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-      css::{
-        common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl,
-      },
-      object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
-    },
+use crate::shared::{
+  constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+    obj_map_type::ObjMapType,
   },
-  stylex_panic,
+  structures::{
+    functions::{FunctionConfig, FunctionMap, FunctionType},
+    injectable_style::InjectableStyle,
+    order_pair::OrderPair,
+    pair::Pair,
+    pre_rule::PreRuleValue,
+    state_manager::StateManager,
+    types::FlatCompiledStyles,
+  },
+  utils::{
+    ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
+    common::{create_hash, dashify},
+    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
+    css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
+    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
+  },
 };
 
 pub(crate) fn stylex_keyframes(

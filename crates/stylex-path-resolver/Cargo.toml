@@ -21,7 +21,6 @@ fancy-regex.workspace = true
 anyhow.workspace = true
 log.workspace = true
 pretty_env_logger.workspace = true
-color-backtrace.workspace = true
 ctor.workspace = true
 env_logger.workspace = true
 rustc-hash.workspace = true

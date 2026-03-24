@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 
-use crate::stylex_panic;
+use stylex_core::stylex_panic;
 use swc_core::ecma::ast::{Expr, KeyValueProp};
 
 use crate::shared::{

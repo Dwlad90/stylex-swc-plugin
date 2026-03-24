@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use colored::{Color, Colorize};
 use env_logger::fmt::Formatter;
 
-use crate::shared::utils::log::stylex_error::STYLEX_PREFIX;
+use crate::constants::STYLEX_PREFIX;
 
 // Shared ANSI escape sequences – single source of truth for the whole log module.
 pub const ANSI_RED: &str = "\x1B[31m";

@@ -1,4 +1,4 @@
-use crate::stylex_unimplemented;
+use stylex_core::stylex_unimplemented;
 
 use super::{order::Order, order_pair::OrderPair};
 

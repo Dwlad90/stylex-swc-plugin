@@ -4,30 +4,33 @@ use swc_core::{
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
-use crate::shared::{
-  constants::{
-    common::VAR_GROUP_HASH_KEY,
-    messages::{
-      DUPLICATE_CONDITIONAL, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-      INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
-      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-      illegal_argument_length, non_export_named_declaration, non_static_value, non_style_object,
-      unbound_call_value,
+use crate::{
+  shared::{
+    constants::{
+      common::VAR_GROUP_HASH_KEY,
+      messages::{
+        DUPLICATE_CONDITIONAL, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+        INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+        NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
+        illegal_argument_length, non_export_named_declaration, non_static_value, non_style_object,
+        unbound_call_value,
+      },
+    },
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue, top_level_expression::TopLevelExpression,
+    },
+    structures::state_manager::StateManager,
+    utils::{
+      ast::{
+        convertors::string_to_expression,
+        factories::{expr_or_spread_factory, key_value_ident_factory},
+        helpers::is_variable_named_exported,
+      },
+      common::get_import_from,
+      log::build_code_frame_error::build_code_frame_error_and_panic,
     },
   },
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, top_level_expression::TopLevelExpression,
-  },
-  structures::state_manager::StateManager,
-  utils::{
-    ast::{
-      convertors::string_to_expression,
-      factories::{expr_or_spread_factory, key_value_ident_factory},
-      helpers::is_variable_named_exported,
-    },
-    common::get_import_from,
-    log::build_code_frame_error::build_code_frame_error_and_panic,
-  },
+  stylex_panic,
 };
 
 use super::{
@@ -102,7 +105,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
-    None => panic!("{}", non_static_value("keyframes")),
+    None => stylex_panic!("{}", non_static_value("keyframes")),
   };
 
   let init_call = init_expr.as_call().unwrap_or_else(|| {
@@ -154,7 +157,7 @@ pub(crate) fn validate_stylex_position_try_indent(
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
-    None => panic!("{}", non_static_value("positionTry")),
+    None => stylex_panic!("{}", non_static_value("positionTry")),
   };
 
   let init_call = init_expr.as_call().unwrap_or_else(|| {
@@ -223,7 +226,7 @@ pub(crate) fn validate_stylex_view_transition_class_indent(
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
-    None => panic!("{}", non_static_value("viewTransitionClass")),
+    None => stylex_panic!("{}", non_static_value("viewTransitionClass")),
   };
 
   let init_call = init_expr.as_call().unwrap_or_else(|| {
@@ -623,11 +626,14 @@ pub(crate) fn validate_namespace(
       }
       Expr::Array(array) => {
         for elem in array.elems.iter().flatten() {
-          assert!(
-            elem.spread.is_none(),
-            "{}",
-            "Spread operator not implemented"
-          );
+          if elem.spread.is_some() {
+            build_code_frame_error_and_panic(
+              &Expr::Array(array.clone()),
+              &Expr::Array(array.clone()),
+              "Spread operator not implemented",
+              state,
+            );
+          }
 
           if !matches!(elem.expr.as_ref(), Expr::Lit(_)) {
             build_code_frame_error_and_panic(
@@ -703,11 +709,11 @@ pub(crate) fn validate_conditional_styles(
       || inner_key.starts_with("var(--")
       || inner_key == "default")
   {
-    panic!("{}", INVALID_PSEUDO_OR_AT_RULE);
+    stylex_panic!("{}", INVALID_PSEUDO_OR_AT_RULE);
   }
 
   if conditions.contains(&inner_key) {
-    panic!("{}", DUPLICATE_CONDITIONAL);
+    stylex_panic!("{}", DUPLICATE_CONDITIONAL);
   }
 
   match inner_value.as_ref() {
@@ -759,7 +765,7 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
         build_code_frame_error_and_panic(expr, expr, &non_style_object("keyframes"), state);
       }
     },
-    _ => panic!("{}", non_static_value("keyframes")),
+    _ => stylex_panic!("{}", non_static_value("keyframes")),
   }
 }
 
@@ -789,7 +795,7 @@ fn assert_stylex_arg(value: &EvaluateResultValue, state: &mut StateManager, fn_n
       build_code_frame_error_and_panic(expr, expr, &non_style_object(fn_name), state);
     }
   } else {
-    panic!("{}", non_static_value(fn_name));
+    stylex_panic!("{}", non_static_value(fn_name));
   }
 }
 
@@ -822,10 +828,10 @@ pub(crate) fn validate_theme_variables(
   }
 
   if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    panic!("Can only override variables theme created with defineVars().");
+    stylex_panic!("Can only override variables theme created with defineVars().");
   }
 
-  variables
+  match variables
     .as_expr()
     .and_then(|expr| expr.as_object())
     .map(get_key_values_from_object)
@@ -850,6 +856,8 @@ pub(crate) fn validate_theme_variables(
       }
 
       None
-    })
-    .expect("Can only override variables theme created with defineVars().")
+    }) {
+    Some(key_value) => key_value,
+    None => stylex_panic!("Can only override variables theme created with defineVars()."),
+  }
 }

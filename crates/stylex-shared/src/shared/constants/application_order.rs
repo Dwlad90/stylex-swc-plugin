@@ -4,10 +4,10 @@ use crate::shared::structures::order_pair::OrderPair;
 pub(crate) struct Shorthands;
 
 impl Shorthands {
-  fn all(_: Option<String>) -> Vec<OrderPair> {
-    panic!("all is not supported")
+  fn all(_: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Err("all is not supported".into())
   }
-  fn animation(value: Option<String>) -> Vec<OrderPair> {
+  fn animation(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![
       OrderPair("animation".to_string(), value),
       OrderPair("animationComposition".to_string(), None),
@@ -22,22 +22,22 @@ impl Shorthands {
       OrderPair("animationTimeline".to_string(), None),
     ];
 
-    result.extend(Shorthands::animation_range(None));
+    result.extend(Shorthands::animation_range(None)?);
 
-    result
+    Ok(result)
   }
 
-  fn animation_range(value: Option<String>) -> Vec<OrderPair> {
+  fn animation_range(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("animationRange".to_string(), value),
       OrderPair("animationRangeEnd".to_string(), None),
       OrderPair("animationRangeStart".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn background(value: Option<String>) -> Vec<OrderPair> {
+  fn background(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![
       OrderPair("background".to_string(), value),
       OrderPair("backgroundAttachment".to_string(), None),
@@ -49,52 +49,52 @@ impl Shorthands {
       OrderPair("backgroundSize".to_string(), None),
     ];
 
-    result.extend(Shorthands::background_position(None));
+    result.extend(Shorthands::background_position(None)?);
 
-    result
+    Ok(result)
   }
 
-  fn background_position(value: Option<String>) -> Vec<OrderPair> {
+  fn background_position(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("backgroundPosition".to_string(), value),
       OrderPair("backgroundPositionX".to_string(), None),
       OrderPair("backgroundPositionY".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
   // These will be removed later, matching the properties with React Native.
   // For now, we're compiling them to the React Native properties.
-  fn border(value: Option<String>) -> Vec<OrderPair> {
+  fn border(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("border".to_string(), value)];
 
-    result.extend(Shorthands::border_width(None));
-    result.extend(Shorthands::border_style(None));
-    result.extend(Shorthands::border_color(None));
+    result.extend(Shorthands::border_width(None)?);
+    result.extend(Shorthands::border_style(None)?);
+    result.extend(Shorthands::border_color(None)?);
 
-    result
+    Ok(result)
   }
-  fn border_inline(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderInline".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_width(None));
-    result.extend(Shorthands::border_inline_style(None));
-    result.extend(Shorthands::border_inline_color(None));
+    result.extend(Shorthands::border_inline_width(None)?);
+    result.extend(Shorthands::border_inline_style(None)?);
+    result.extend(Shorthands::border_inline_color(None)?);
 
-    result
+    Ok(result)
   }
-  fn border_block(value: Option<String>) -> Vec<OrderPair> {
+  fn border_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderBlock".to_string(), value)];
 
-    result.extend(Shorthands::border_block_width(None));
-    result.extend(Shorthands::border_block_style(None));
-    result.extend(Shorthands::border_block_color(None));
+    result.extend(Shorthands::border_block_width(None)?);
+    result.extend(Shorthands::border_block_style(None)?);
+    result.extend(Shorthands::border_block_color(None)?);
 
-    result
+    Ok(result)
   }
 
-  fn border_top(value: Option<String>) -> Vec<OrderPair> {
+  fn border_top(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderTop".to_string(), value),
       OrderPair("borderTopWidth".to_string(), None),
@@ -102,30 +102,30 @@ impl Shorthands {
       OrderPair("borderTopColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
   // @Deprecated
-  fn border_inline_end(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderInlineEnd".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_end_width(None));
-    result.extend(Shorthands::border_inline_end_style(None));
-    result.extend(Shorthands::border_inline_end_color(None));
+    result.extend(Shorthands::border_inline_end_width(None)?);
+    result.extend(Shorthands::border_inline_end_style(None)?);
+    result.extend(Shorthands::border_inline_end_color(None)?);
 
-    result
+    Ok(result)
   }
   // @Deprecated
-  fn border_right(value: Option<String>) -> Vec<OrderPair> {
+  fn border_right(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderRight".to_string(), value)];
 
-    result.extend(Shorthands::border_right_width(None));
-    result.extend(Shorthands::border_right_style(None));
-    result.extend(Shorthands::border_right_color(None));
+    result.extend(Shorthands::border_right_width(None)?);
+    result.extend(Shorthands::border_right_style(None)?);
+    result.extend(Shorthands::border_right_color(None)?);
 
-    result
+    Ok(result)
   }
   // @Deprecated
-  fn border_bottom(value: Option<String>) -> Vec<OrderPair> {
+  fn border_bottom(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderBottom".to_string(), value),
       OrderPair("borderBottomWidth".to_string(), None),
@@ -133,29 +133,29 @@ impl Shorthands {
       OrderPair("borderBottomColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
   // @Deprecated
-  fn border_inline_start(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderInlineStart".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_start_width(None));
-    result.extend(Shorthands::border_inline_start_style(None));
-    result.extend(Shorthands::border_inline_start_color(None));
+    result.extend(Shorthands::border_inline_start_width(None)?);
+    result.extend(Shorthands::border_inline_start_style(None)?);
+    result.extend(Shorthands::border_inline_start_color(None)?);
 
-    result
+    Ok(result)
   }
   // @Deprecated
-  fn border_left(value: Option<String>) -> Vec<OrderPair> {
+  fn border_left(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderLeft".to_string(), value)];
 
-    result.extend(Shorthands::border_left_width(None));
-    result.extend(Shorthands::border_left_style(None));
-    result.extend(Shorthands::border_left_color(None));
+    result.extend(Shorthands::border_left_width(None)?);
+    result.extend(Shorthands::border_left_style(None)?);
+    result.extend(Shorthands::border_left_color(None)?);
 
-    result
+    Ok(result)
   }
-  fn border_inline_width(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineWidth".to_string(), value),
       OrderPair("borderInlineStartWidth".to_string(), None),
@@ -164,9 +164,9 @@ impl Shorthands {
       OrderPair("borderRightWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_inline_style(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineStyle".to_string(), value),
       OrderPair("borderInlineStartStyle".to_string(), None),
@@ -175,9 +175,9 @@ impl Shorthands {
       OrderPair("borderRightStyle".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_inline_color(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineColor".to_string(), value),
       OrderPair("borderInlineStartColor".to_string(), None),
@@ -186,169 +186,169 @@ impl Shorthands {
       OrderPair("borderRightColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_block_width(value: Option<String>) -> Vec<OrderPair> {
+  fn border_block_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderBlockWidth".to_string(), value),
       OrderPair("borderTopWidth".to_string(), None),
       OrderPair("borderBottomWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_block_style(value: Option<String>) -> Vec<OrderPair> {
+  fn border_block_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderBlockStyle".to_string(), value),
       OrderPair("borderTopStyle".to_string(), None),
       OrderPair("borderBottomStyle".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_block_color(value: Option<String>) -> Vec<OrderPair> {
+  fn border_block_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderBlockColor".to_string(), value),
       OrderPair("borderTopColor".to_string(), None),
       OrderPair("borderBottomColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_color(value: Option<String>) -> Vec<OrderPair> {
+  fn border_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderColor".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_color(None));
-    result.extend(Shorthands::border_block_color(None));
+    result.extend(Shorthands::border_inline_color(None)?);
+    result.extend(Shorthands::border_block_color(None)?);
 
-    result
+    Ok(result)
   }
-  fn border_style(value: Option<String>) -> Vec<OrderPair> {
+  fn border_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderStyle".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_style(None));
-    result.extend(Shorthands::border_block_style(None));
+    result.extend(Shorthands::border_inline_style(None)?);
+    result.extend(Shorthands::border_block_style(None)?);
 
-    result
+    Ok(result)
   }
-  fn border_width(value: Option<String>) -> Vec<OrderPair> {
+  fn border_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderWidth".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_width(None));
-    result.extend(Shorthands::border_block_width(None));
+    result.extend(Shorthands::border_inline_width(None)?);
+    result.extend(Shorthands::border_block_width(None)?);
 
-    result
+    Ok(result)
   }
-  fn border_inline_start_color(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_start_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineStartColor".to_string(), value),
       OrderPair("borderLeftColor".to_string(), None),
       OrderPair("borderRightColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_inline_end_color(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_end_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineEndColor".to_string(), value),
       OrderPair("borderLeftColor".to_string(), None),
       OrderPair("borderRightColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_inline_start_style(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_start_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineStartStyle".to_string(), value),
       OrderPair("borderLeftStyle".to_string(), None),
       OrderPair("borderRightStyle".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_inline_end_style(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_end_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineEndStyle".to_string(), value),
       OrderPair("borderLeftStyle".to_string(), None),
       OrderPair("borderRightStyle".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_inline_start_width(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_start_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineStartWidth".to_string(), value),
       OrderPair("borderLeftWidth".to_string(), None),
       OrderPair("borderRightWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_inline_end_width(value: Option<String>) -> Vec<OrderPair> {
+  fn border_inline_end_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderInlineEndWidth".to_string(), value),
       OrderPair("borderLeftWidth".to_string(), None),
       OrderPair("borderRightWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_left_color(value: Option<String>) -> Vec<OrderPair> {
+  fn border_left_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderLeftColor".to_string(), value),
       OrderPair("borderInlineStartColor".to_string(), None),
       OrderPair("borderInlineEndColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_right_color(value: Option<String>) -> Vec<OrderPair> {
+  fn border_right_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderRightColor".to_string(), value),
       OrderPair("borderInlineStartColor".to_string(), None),
       OrderPair("borderInlineEndColor".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_left_style(value: Option<String>) -> Vec<OrderPair> {
+  fn border_left_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderLeftStyle".to_string(), value),
       OrderPair("borderInlineStartStyle".to_string(), None),
       OrderPair("borderInlineEndStyle".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_right_style(value: Option<String>) -> Vec<OrderPair> {
+  fn border_right_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderRightStyle".to_string(), value),
       OrderPair("borderInlineStartStyle".to_string(), None),
       OrderPair("borderInlineEndStyle".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_left_width(value: Option<String>) -> Vec<OrderPair> {
+  fn border_left_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderLeftWidth".to_string(), value),
       OrderPair("borderInlineStartWidth".to_string(), None),
       OrderPair("borderInlineEndWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_right_width(value: Option<String>) -> Vec<OrderPair> {
+  fn border_right_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderRightWidth".to_string(), value),
       OrderPair("borderInlineStartWidth".to_string(), None),
       OrderPair("borderInlineEndWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn border_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderRadius".to_string(), value),
       // // logical constituents
@@ -363,83 +363,83 @@ impl Shorthands {
       OrderPair("borderBottomRightRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn border_start_start_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_start_start_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderStartStartRadius".to_string(), value),
       OrderPair("borderTopLeftRadius".to_string(), None),
       OrderPair("borderTopRightRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_start_end_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_start_end_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderStartEndRadius".to_string(), value),
       OrderPair("borderTopLeftRadius".to_string(), None),
       OrderPair("borderTopRightRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_end_start_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_end_start_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderEndStartRadius".to_string(), value),
       OrderPair("borderBottomLeftRadius".to_string(), None),
       OrderPair("borderBottomRightRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_end_end_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_end_end_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderEndEndRadius".to_string(), value),
       OrderPair("borderBottomLeftRadius".to_string(), None),
       OrderPair("borderBottomRightRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_top_left_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_top_left_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderTopLeftRadius".to_string(), value),
       OrderPair("borderStartStartRadius".to_string(), None),
       OrderPair("borderStartEndRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_top_right_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_top_right_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderTopRightRadius".to_string(), value),
       OrderPair("borderStartStartRadius".to_string(), None),
       OrderPair("borderStartEndRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_bottom_left_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_bottom_left_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderBottomLeftRadius".to_string(), value),
       OrderPair("borderEndStartRadius".to_string(), None),
       OrderPair("borderEndEndRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn border_bottom_right_radius(value: Option<String>) -> Vec<OrderPair> {
+  fn border_bottom_right_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderBottomRightRadius".to_string(), value),
       OrderPair("borderEndStartRadius".to_string(), None),
       OrderPair("borderEndEndRadius".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerShape".to_string(), value),
       OrderPair("cornerStartStartShape".to_string(), None),
@@ -452,90 +452,90 @@ impl Shorthands {
       OrderPair("cornerBottomRightShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_start_start_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_start_start_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerStartStartShape".to_string(), value),
       OrderPair("cornerTopLeftShape".to_string(), None),
       OrderPair("cornerTopRightShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_start_end_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_start_end_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerStartEndShape".to_string(), value),
       OrderPair("cornerTopLeftShape".to_string(), None),
       OrderPair("cornerTopRightShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_end_start_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_end_start_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerEndStartShape".to_string(), value),
       OrderPair("cornerBottomLeftShape".to_string(), None),
       OrderPair("cornerBottomRightShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_end_end_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_end_end_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerEndEndShape".to_string(), value),
       OrderPair("cornerBottomLeftShape".to_string(), None),
       OrderPair("cornerBottomRightShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_top_left_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_top_left_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerTopLeftShape".to_string(), value),
       OrderPair("cornerStartStartShape".to_string(), None),
       OrderPair("cornerStartEndShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_top_right_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_top_right_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerTopRightShape".to_string(), value),
       OrderPair("cornerStartStartShape".to_string(), None),
       OrderPair("cornerStartEndShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_bottom_left_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_bottom_left_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerBottomLeftShape".to_string(), value),
       OrderPair("cornerEndStartShape".to_string(), None),
       OrderPair("cornerEndEndShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn corner_bottom_right_shape(value: Option<String>) -> Vec<OrderPair> {
+  fn corner_bottom_right_shape(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("cornerBottomRightShape".to_string(), value),
       OrderPair("cornerEndStartShape".to_string(), None),
       OrderPair("cornerEndEndShape".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn border_image(value: Option<String>) -> Vec<OrderPair> {
+  fn border_image(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("borderImage".to_string(), value),
       OrderPair("borderImageOutset".to_string(), None),
@@ -545,10 +545,10 @@ impl Shorthands {
       OrderPair("borderImageWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn column_rule(value: Option<String>) -> Vec<OrderPair> {
+  fn column_rule(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("columnRule".to_string(), value),
       OrderPair("columnRuleColor".to_string(), None),
@@ -556,39 +556,39 @@ impl Shorthands {
       OrderPair("columnRuleWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn columns(value: Option<String>) -> Vec<OrderPair> {
+  fn columns(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("columns".to_string(), value),
       OrderPair("columnCount".to_string(), None),
       OrderPair("columnWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn container(value: Option<String>) -> Vec<OrderPair> {
+  fn container(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("container".to_string(), value),
       OrderPair("containerName".to_string(), None),
       OrderPair("containerType".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn contain_intrinsic_size(value: Option<String>) -> Vec<OrderPair> {
+  fn contain_intrinsic_size(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("containIntrinsicSize".to_string(), value),
       OrderPair("containIntrinsicWidth".to_string(), None),
       OrderPair("containIntrinsicHeight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn flex(value: Option<String>) -> Vec<OrderPair> {
+  fn flex(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("flex".to_string(), value),
       OrderPair("flexGrow".to_string(), None),
@@ -596,19 +596,19 @@ impl Shorthands {
       OrderPair("flexBasis".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn flex_flow(value: Option<String>) -> Vec<OrderPair> {
+  fn flex_flow(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("flexFlow".to_string(), value),
       OrderPair("flexDirection".to_string(), None),
       OrderPair("flexWrap".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
   // @Deprecated ?
-  fn font(value: Option<String>) -> Vec<OrderPair> {
+  fn font(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![
       OrderPair("font".to_string(), value),
       OrderPair("fontFamily".to_string(), None),
@@ -619,11 +619,11 @@ impl Shorthands {
       OrderPair("lineHeight".to_string(), None),
     ];
 
-    result.extend(Shorthands::font_variant(None));
+    result.extend(Shorthands::font_variant(None)?);
 
-    result
+    Ok(result)
   }
-  fn font_variant(value: Option<String>) -> Vec<OrderPair> {
+  fn font_variant(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("fontVariant".to_string(), value),
       OrderPair("fontVariantAlternates".to_string(), None),
@@ -635,18 +635,18 @@ impl Shorthands {
       OrderPair("fontVariantPosition".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn gap(value: Option<String>) -> Vec<OrderPair> {
+  fn gap(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("gap".to_string(), value),
       OrderPair("rowGap".to_string(), None),
       OrderPair("columnGap".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn grid(value: Option<String>) -> Vec<OrderPair> {
+  fn grid(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![
       OrderPair("grid".to_string(), value),
       OrderPair("gridAutoRows".to_string(), None),
@@ -654,11 +654,11 @@ impl Shorthands {
       OrderPair("gridAutoFlow".to_string(), None),
     ];
 
-    result.extend(Shorthands::grid_template(None));
+    result.extend(Shorthands::grid_template(None)?);
 
-    result
+    Ok(result)
   }
-  fn grid_area(value: Option<String>) -> Vec<OrderPair> {
+  fn grid_area(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("gridArea".to_string(), value),
       OrderPair("gridRow".to_string(), None),
@@ -669,27 +669,27 @@ impl Shorthands {
       OrderPair("gridColumnEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn grid_row(value: Option<String>) -> Vec<OrderPair> {
+  fn grid_row(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("gridRow".to_string(), value),
       OrderPair("gridRowStart".to_string(), None),
       OrderPair("gridRowEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn grid_column(value: Option<String>) -> Vec<OrderPair> {
+  fn grid_column(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("gridColumn".to_string(), value),
       OrderPair("gridColumnStart".to_string(), None),
       OrderPair("gridColumnEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn grid_template(value: Option<String>) -> Vec<OrderPair> {
+  fn grid_template(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("gridTemplate".to_string(), value),
       OrderPair("gridTemplateAreas".to_string(), None),
@@ -697,17 +697,17 @@ impl Shorthands {
       OrderPair("gridTemplateRows".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn inset(value: Option<String>) -> Vec<OrderPair> {
+  fn inset(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("inset".to_string(), value)];
 
-    result.extend(Shorthands::inset_inline(None));
-    result.extend(Shorthands::inset_block(None));
+    result.extend(Shorthands::inset_inline(None)?);
+    result.extend(Shorthands::inset_block(None)?);
 
-    result
+    Ok(result)
   }
-  fn inset_inline(value: Option<String>) -> Vec<OrderPair> {
+  fn inset_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("insetInline".to_string(), value),
       OrderPair("insetInlineStart".to_string(), None),
@@ -716,55 +716,55 @@ impl Shorthands {
       OrderPair("right".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn inset_block(value: Option<String>) -> Vec<OrderPair> {
+  fn inset_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("insetBlock".to_string(), value),
       OrderPair("top".to_string(), None),
       OrderPair("bottom".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn inset_inline_start(value: Option<String>) -> Vec<OrderPair> {
+  fn inset_inline_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("insetInlineStart".to_string(), value),
       OrderPair("left".to_string(), None),
       OrderPair("right".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn inset_inline_end(value: Option<String>) -> Vec<OrderPair> {
+  fn inset_inline_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("insetInlineEnd".to_string(), value),
       OrderPair("left".to_string(), None),
       OrderPair("right".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn left(value: Option<String>) -> Vec<OrderPair> {
+  fn left(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("left".to_string(), value),
       OrderPair("insetInlineStart".to_string(), None),
       OrderPair("insetInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn right(value: Option<String>) -> Vec<OrderPair> {
+  fn right(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("right".to_string(), value),
       OrderPair("insetInlineStart".to_string(), None),
       OrderPair("insetInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn list_style(value: Option<String>) -> Vec<OrderPair> {
+  fn list_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("listStyle".to_string(), value),
       OrderPair("listStyleImage".to_string(), None),
@@ -772,18 +772,18 @@ impl Shorthands {
       OrderPair("listStyleType".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn margin(value: Option<String>) -> Vec<OrderPair> {
+  fn margin(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("margin".to_string(), value)];
 
-    result.extend(Shorthands::margin_inline(None));
-    result.extend(Shorthands::margin_block(None));
+    result.extend(Shorthands::margin_inline(None)?);
+    result.extend(Shorthands::margin_block(None)?);
 
-    result
+    Ok(result)
   }
-  fn margin_inline(value: Option<String>) -> Vec<OrderPair> {
+  fn margin_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("marginInline".to_string(), value),
       OrderPair("marginInlineStart".to_string(), None),
@@ -792,55 +792,55 @@ impl Shorthands {
       OrderPair("marginRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn margin_block(value: Option<String>) -> Vec<OrderPair> {
+  fn margin_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("marginBlock".to_string(), value),
       OrderPair("marginTop".to_string(), None),
       OrderPair("marginBottom".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn margin_inline_start(value: Option<String>) -> Vec<OrderPair> {
+  fn margin_inline_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("marginInlineStart".to_string(), value),
       OrderPair("marginLeft".to_string(), None),
       OrderPair("marginRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn margin_inline_end(value: Option<String>) -> Vec<OrderPair> {
+  fn margin_inline_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("marginInlineEnd".to_string(), value),
       OrderPair("marginLeft".to_string(), None),
       OrderPair("marginRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn margin_left(value: Option<String>) -> Vec<OrderPair> {
+  fn margin_left(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("marginLeft".to_string(), value),
       OrderPair("marginInlineStart".to_string(), None),
       OrderPair("marginInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn margin_right(value: Option<String>) -> Vec<OrderPair> {
+  fn margin_right(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("marginRight".to_string(), value),
       OrderPair("marginInlineStart".to_string(), None),
       OrderPair("marginInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn mask(value: Option<String>) -> Vec<OrderPair> {
+  fn mask(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("mask".to_string(), value),
       OrderPair("maskClip".to_string(), None),
@@ -853,10 +853,10 @@ impl Shorthands {
       OrderPair("maskSize".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn mask_border(value: Option<String>) -> Vec<OrderPair> {
+  fn mask_border(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("maskBorder".to_string(), value),
       OrderPair("maskBorderMode".to_string(), None),
@@ -867,10 +867,10 @@ impl Shorthands {
       OrderPair("maskBorderWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn offset(value: Option<String>) -> Vec<OrderPair> {
+  fn offset(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("offset".to_string(), value),
       OrderPair("offsetAnchor".to_string(), None),
@@ -880,10 +880,10 @@ impl Shorthands {
       OrderPair("offsetRotate".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn outline(value: Option<String>) -> Vec<OrderPair> {
+  fn outline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("outline".to_string(), value),
       OrderPair("outlineColor".to_string(), None),
@@ -892,29 +892,29 @@ impl Shorthands {
       OrderPair("outlineWidth".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn overflow(value: Option<String>) -> Vec<OrderPair> {
+  fn overflow(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("overflow".to_string(), value),
       OrderPair("overflowX".to_string(), None),
       OrderPair("overflowY".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  fn padding(value: Option<String>) -> Vec<OrderPair> {
+  fn padding(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("padding".to_string(), value)];
 
-    result.extend(Shorthands::padding_inline(None));
-    result.extend(Shorthands::padding_block(None));
+    result.extend(Shorthands::padding_inline(None)?);
+    result.extend(Shorthands::padding_block(None)?);
 
-    result
+    Ok(result)
   }
 
-  fn padding_inline(value: Option<String>) -> Vec<OrderPair> {
+  fn padding_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("paddingInline".to_string(), value),
       OrderPair("paddingStart".to_string(), None),
@@ -923,98 +923,98 @@ impl Shorthands {
       OrderPair("paddingRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn padding_block(value: Option<String>) -> Vec<OrderPair> {
+  fn padding_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("paddingBlock".to_string(), value),
       OrderPair("paddingTop".to_string(), None),
       OrderPair("paddingBottom".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn padding_inline_start(value: Option<String>) -> Vec<OrderPair> {
+  fn padding_inline_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("paddingInlineStart".to_string(), value),
       OrderPair("paddingLeft".to_string(), None),
       OrderPair("paddingRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn padding_inline_end(value: Option<String>) -> Vec<OrderPair> {
+  fn padding_inline_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("paddingInlineEnd".to_string(), value),
       OrderPair("paddingLeft".to_string(), None),
       OrderPair("paddingRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn padding_left(value: Option<String>) -> Vec<OrderPair> {
+  fn padding_left(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("paddingLeft".to_string(), value),
       OrderPair("paddingInlineStart".to_string(), None),
       OrderPair("paddingInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn padding_right(value: Option<String>) -> Vec<OrderPair> {
+  fn padding_right(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("paddingRight".to_string(), value),
       OrderPair("paddingInlineStart".to_string(), None),
       OrderPair("paddingInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn place_content(value: Option<String>) -> Vec<OrderPair> {
+  fn place_content(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("placeContent".to_string(), value),
       OrderPair("alignContent".to_string(), None),
       OrderPair("justifyContent".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn place_items(value: Option<String>) -> Vec<OrderPair> {
+  fn place_items(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("placeItems".to_string(), value),
       OrderPair("alignItems".to_string(), None),
       OrderPair("justifyItems".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn place_self(value: Option<String>) -> Vec<OrderPair> {
+  fn place_self(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("placeSelf".to_string(), value),
       OrderPair("alignSelf".to_string(), None),
       OrderPair("justifySelf".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_margin(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_margin(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("scrollMargin".to_string(), value)];
 
-    result.extend(Shorthands::scroll_margin_inline(None));
-    result.extend(Shorthands::scroll_margin_block(None));
+    result.extend(Shorthands::scroll_margin_inline(None)?);
+    result.extend(Shorthands::scroll_margin_block(None)?);
 
-    result
+    Ok(result)
   }
-  fn scroll_margin_block(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_margin_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollMarginBlock".to_string(), value),
       OrderPair("scrollMarginTop".to_string(), None),
       OrderPair("scrollMarginBottom".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_margin_inline(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_margin_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollMarginInline".to_string(), value),
       OrderPair("scrollMarginInlineStart".to_string(), None),
@@ -1023,62 +1023,62 @@ impl Shorthands {
       OrderPair("scrollMarginRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_margin_inline_start(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_margin_inline_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollMarginInlineStart".to_string(), value),
       OrderPair("scrollMarginLeft".to_string(), None),
       OrderPair("scrollMarginRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_margin_inline_end(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_margin_inline_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollMarginInlineEnd".to_string(), value),
       OrderPair("scrollMarginLeft".to_string(), None),
       OrderPair("scrollMarginRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_margin_left(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_margin_left(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollMarginLeft".to_string(), value),
       OrderPair("scrollMarginInlineStart".to_string(), None),
       OrderPair("scrollMarginInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_margin_right(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_margin_right(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollMarginRight".to_string(), value),
       OrderPair("scrollMarginInlineStart".to_string(), None),
       OrderPair("scrollMarginInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_padding(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_padding(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("scrollPadding".to_string(), value)];
 
-    result.extend(Shorthands::scroll_padding_block(None));
-    result.extend(Shorthands::scroll_padding_inline(None));
+    result.extend(Shorthands::scroll_padding_block(None)?);
+    result.extend(Shorthands::scroll_padding_inline(None)?);
 
-    result
+    Ok(result)
   }
-  fn scroll_padding_block(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_padding_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollPaddingBlock".to_string(), value),
       OrderPair("scrollPaddingTop".to_string(), None),
       OrderPair("scrollPaddingBottom".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_padding_inline(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_padding_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollPaddingInline".to_string(), value),
       OrderPair("scrollPaddingInlineStart".to_string(), None),
@@ -1087,63 +1087,63 @@ impl Shorthands {
       OrderPair("scrollPaddingRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_padding_inline_start(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_padding_inline_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollPaddingInlineStart".to_string(), value),
       OrderPair("scrollPaddingLeft".to_string(), None),
       OrderPair("scrollPaddingRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_padding_inline_end(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_padding_inline_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollPaddingInlineEnd".to_string(), value),
       OrderPair("scrollPaddingLeft".to_string(), None),
       OrderPair("scrollPaddingRight".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_padding_left(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_padding_left(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollPaddingLeft".to_string(), value),
       OrderPair("scrollPaddingInlineStart".to_string(), None),
       OrderPair("scrollPaddingInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_padding_right(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_padding_right(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollPaddingRight".to_string(), value),
       OrderPair("scrollPaddingInlineStart".to_string(), None),
       OrderPair("scrollPaddingInlineEnd".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_snap_type(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_snap_type(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollSnapType".to_string(), value),
       OrderPair("scrollSnapTypeX".to_string(), None),
       OrderPair("scrollSnapTypeY".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn scroll_timeline(value: Option<String>) -> Vec<OrderPair> {
+  fn scroll_timeline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("scrollTimeline".to_string(), value),
       OrderPair("scrollTimelineName".to_string(), None),
       OrderPair("scrollTimelineAxis".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn text_decoration(value: Option<String>) -> Vec<OrderPair> {
+  fn text_decoration(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("textDecoration".to_string(), value),
       OrderPair("textDecorationColor".to_string(), None),
@@ -1152,18 +1152,18 @@ impl Shorthands {
       OrderPair("textDecorationThickness".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn text_emphasis(value: Option<String>) -> Vec<OrderPair> {
+  fn text_emphasis(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("textEmphasis".to_string(), value),
       OrderPair("textEmphasisColor".to_string(), None),
       OrderPair("textEmphasisStyle".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
-  fn transition(value: Option<String>) -> Vec<OrderPair> {
+  fn transition(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let result = vec![
       OrderPair("transition".to_string(), value),
       OrderPair("transitionBehavior".to_string(), None),
@@ -1173,10 +1173,10 @@ impl Shorthands {
       OrderPair("transitionTimingFunction".to_string(), None),
     ];
 
-    result
+    Ok(result)
   }
 
-  pub(crate) fn get(name: &str) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
+  pub(crate) fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
     match name {
       "all" => Some(Shorthands::all),
       "animation" => Some(Shorthands::animation),
@@ -1305,193 +1305,131 @@ pub(crate) struct Aliases;
 
 impl Aliases {
   #[allow(dead_code)]
-  fn block_size(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("height".to_string(), value)];
-
-    result
+  fn block_size(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("height".to_string(), value)])
   }
 
-  fn height(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("height".to_string(), value)];
-
-    result
+  fn height(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("height".to_string(), value)])
   }
 
-  fn width(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("width".to_string(), value)];
-
-    result
+  fn width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("width".to_string(), value)])
   }
 
-  fn min_height(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("minHeight".to_string(), value)];
-
-    result
+  fn min_height(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("minHeight".to_string(), value)])
   }
 
-  fn min_width(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("minWidth".to_string(), value)];
-
-    result
+  fn min_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("minWidth".to_string(), value)])
   }
 
-  fn max_height(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("maxHeight".to_string(), value)];
-
-    result
+  fn max_height(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("maxHeight".to_string(), value)])
   }
 
-  fn max_width(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("maxWidth".to_string(), value)];
-
-    result
+  fn max_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("maxWidth".to_string(), value)])
   }
 
-  fn border_top_color(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderTopColor".to_string(), value)];
-
-    result
+  fn border_top_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderTopColor".to_string(), value)])
   }
 
-  fn border_bottom_color(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderBottomColor".to_string(), value)];
-
-    result
+  fn border_bottom_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderBottomColor".to_string(), value)])
   }
 
-  fn border_top_style(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderTopStyle".to_string(), value)];
-
-    result
+  fn border_top_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderTopStyle".to_string(), value)])
   }
 
-  fn border_bottom_style(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderBottomStyle".to_string(), value)];
-
-    result
+  fn border_bottom_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderBottomStyle".to_string(), value)])
   }
 
-  fn border_top_width(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderTopWidth".to_string(), value)];
-
-    result
+  fn border_top_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderTopWidth".to_string(), value)])
   }
 
-  fn border_bottom_width(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderBottomWidth".to_string(), value)];
-
-    result
+  fn border_bottom_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderBottomWidth".to_string(), value)])
   }
 
-  fn border_start_start_radius(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderStartStartRadius".to_string(), value)];
-
-    result
+  fn border_start_start_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderStartStartRadius".to_string(), value)])
   }
 
-  fn border_start_end_radius(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderStartEndRadius".to_string(), value)];
-
-    result
+  fn border_start_end_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderStartEndRadius".to_string(), value)])
   }
 
-  fn border_end_start_radius(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderEndStartRadius".to_string(), value)];
-
-    result
+  fn border_end_start_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderEndStartRadius".to_string(), value)])
   }
 
-  fn border_end_end_radius(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("borderEndEndRadius".to_string(), value)];
-
-    result
+  fn border_end_end_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderEndEndRadius".to_string(), value)])
   }
 
-  fn contain_intrinsic_height(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("containIntrinsicHeight".to_string(), value)];
-
-    result
+  fn contain_intrinsic_height(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("containIntrinsicHeight".to_string(), value)])
   }
 
-  fn contain_intrinsic_width(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("containIntrinsicWidth".to_string(), value)];
-
-    result
+  fn contain_intrinsic_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("containIntrinsicWidth".to_string(), value)])
   }
 
-  fn row_gap(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("rowGap".to_string(), value)];
-
-    result
+  fn row_gap(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("rowGap".to_string(), value)])
   }
 
-  fn column_gap(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("columnGap".to_string(), value)];
-
-    result
+  fn column_gap(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("columnGap".to_string(), value)])
   }
 
-  fn margin_top(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("marginTop".to_string(), value)];
-
-    result
+  fn margin_top(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("marginTop".to_string(), value)])
   }
 
-  fn margin_bottom(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("marginBottom".to_string(), value)];
-
-    result
+  fn margin_bottom(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("marginBottom".to_string(), value)])
   }
 
-  fn overflow_y(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("overflowY".to_string(), value)];
-
-    result
+  fn overflow_y(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("overflowY".to_string(), value)])
   }
 
-  fn overflow_x(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("overflowX".to_string(), value)];
-
-    result
+  fn overflow_x(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("overflowX".to_string(), value)])
   }
 
-  fn padding_top(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("paddingTop".to_string(), value)];
-
-    result
+  fn padding_top(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("paddingTop".to_string(), value)])
   }
 
-  fn padding_bottom(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("paddingBottom".to_string(), value)];
-
-    result
+  fn padding_bottom(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("paddingBottom".to_string(), value)])
   }
 
-  fn scroll_margin_top(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("scrollMarginTop".to_string(), value)];
-
-    result
+  fn scroll_margin_top(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("scrollMarginTop".to_string(), value)])
   }
 
-  fn scroll_margin_bottom(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("scrollMarginBottom".to_string(), value)];
-
-    result
+  fn scroll_margin_bottom(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("scrollMarginBottom".to_string(), value)])
   }
 
-  fn top(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("top".to_string(), value)];
-
-    result
+  fn top(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("top".to_string(), value)])
   }
 
-  fn bottom(value: Option<String>) -> Vec<OrderPair> {
-    let result = vec![OrderPair("bottom".to_string(), value)];
-
-    result
+  fn bottom(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("bottom".to_string(), value)])
   }
 
-  pub(crate) fn get(name: &str) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
+  pub(crate) fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
     match name {
       // @Deprecated
       "borderHorizontal" => Shorthands::get("borderInline"),

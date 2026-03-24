@@ -11,7 +11,7 @@ use swc_core::{
   ecma::ast::{ArrayLit, Expr, ExprOrSpread, ObjectLit, PropOrSpread},
 };
 
-use crate::shared::utils::ast::convertors::null_to_expression;
+use crate::{shared::utils::ast::convertors::null_to_expression, stylex_panic};
 
 use super::convertors::{
   bool_to_expression, number_to_expression, string_to_expression, string_to_prop_name,
@@ -104,7 +104,10 @@ pub fn array_expression_factory(elems: Vec<Option<ExprOrSpread>>) -> Expr {
 /// let prop_or_spread = prop_or_spread_expression_factory("key", value);
 pub fn prop_or_spread_expression_factory(key: &str, value: Expr) -> PropOrSpread {
   PropOrSpread::from(Prop::from(KeyValueProp {
-    key: string_to_prop_name(key).unwrap(),
+    key: match string_to_prop_name(key) {
+      Some(k) => k,
+      None => stylex_panic!("Failed to create prop name from key: {}", key),
+    },
     value: Box::new(value),
   }))
 }
@@ -284,7 +287,7 @@ pub(crate) fn prop_or_spread_array_string_factory(key: &str, value: &[&str]) -> 
 pub(crate) fn _prop_or_spread_boolean_factory(key: &str, value: Option<bool>) -> PropOrSpread {
   match value {
     Some(value) => prop_or_spread_expression_factory(key, bool_to_expression(value)),
-    None => panic!("Value is not a boolean"),
+    None => stylex_panic!("Value is not a boolean"),
   }
 }
 

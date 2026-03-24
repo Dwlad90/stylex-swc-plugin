@@ -1,3 +1,5 @@
+use crate::stylex_panic;
+
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
@@ -80,7 +82,10 @@ pub(crate) fn make_string_expression(
         .iter()
         .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
 
-      if let Some(result) = fn_result_to_expression(transform(&args).unwrap()) {
+      if let Some(result) = fn_result_to_expression(match transform(&args) {
+        Some(r) => r,
+        None => stylex_panic!("transform returned None for condition permutation"),
+      }) {
         let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
           key: PropName::Ident(quote_ident!(key.to_string())),
           value: Box::new(result),
@@ -131,17 +136,17 @@ fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
     .collect::<Vec<Expr>>();
 
   Box::new(
-    binary_expressions
-      .into_iter()
-      .reduce(|acc, expr| {
-        Expr::from(BinExpr {
-          span: DUMMY_SP,
-          op: BinaryOp::BitOr,
-          left: Box::new(acc),
-          right: Box::new(expr),
-        })
+    match binary_expressions.into_iter().reduce(|acc, expr| {
+      Expr::from(BinExpr {
+        span: DUMMY_SP,
+        op: BinaryOp::BitOr,
+        left: Box::new(acc),
+        right: Box::new(expr),
       })
-      .unwrap(),
+    }) {
+      Some(expr) => expr,
+      None => stylex_panic!("gen_bitwise_or_of_conditions: empty conditions list"),
+    },
   )
 }
 

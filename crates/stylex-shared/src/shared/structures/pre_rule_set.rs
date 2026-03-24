@@ -1,4 +1,7 @@
-use crate::shared::structures::pre_rule::{CompiledResult, ComputedStyle};
+use crate::{
+  shared::structures::pre_rule::{CompiledResult, ComputedStyle},
+  stylex_panic,
+};
 
 use super::{
   null_pre_rule::NullPreRule,
@@ -25,10 +28,10 @@ impl PreRuleSet {
 
     match flat_rules.len() {
       0 => PreRules::NullPreRule(NullPreRule::new()),
-      1 => flat_rules
-        .first()
-        .expect("First rule item not exist")
-        .to_owned(),
+      1 => match flat_rules.first() {
+        Some(rule) => rule.to_owned(),
+        None => stylex_panic!("First rule item not exist"),
+      },
       _ => PreRules::PreRuleSet(PreRuleSet { rules: flat_rules }),
     }
   }
@@ -59,7 +62,10 @@ impl PreRule for PreRuleSet {
     CompiledResult::ComputedStyles(style_tuple)
   }
   fn get_value(&self) -> Option<PreRuleValue> {
-    let rule = self.rules.first().unwrap();
+    let rule = match self.rules.first() {
+      Some(r) => r,
+      None => stylex_panic!("PreRuleSet rules list is empty"),
+    };
 
     match &rule {
       PreRules::PreRuleSet(rule_set) => rule_set.get_value(),

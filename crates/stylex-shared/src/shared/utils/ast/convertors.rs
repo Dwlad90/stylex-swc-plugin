@@ -19,7 +19,8 @@ use swc_core::{
 
 // Import error handling macros from shared utilities
 use crate::{
-  as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, expr_to_str_or_err, unwrap_or_panic,
+  as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, expr_to_str_or_err, stylex_panic,
+  stylex_unimplemented, unwrap_or_panic,
 };
 
 use crate::shared::{
@@ -57,16 +58,16 @@ pub fn expr_to_num(
       let mut state = Box::new(EvaluationState::new());
 
       match binary_expr_to_num(lit, &mut state, traversal_state, fns)
-        .unwrap_or_else(|error| panic!("{}", error))
+        .unwrap_or_else(|error| stylex_panic!("{}", error))
       {
         BinaryExprType::Number(number) => number,
-        _ => panic!(
+        _ => stylex_panic!(
           "Binary expression is not a number: {:?}",
           expr_num.get_type(get_default_expr_ctx())
         ),
       }
     }
-    _ => panic!(
+    _ => stylex_panic!(
       "Expression in not a number: {:?}",
       expr_num.get_type(get_default_expr_ctx())
     ),
@@ -83,12 +84,15 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
       let var_decl_expr = get_expr_from_var_decl(var_decl);
 
       match &var_decl_expr {
-        Expr::Lit(lit) => lit_to_string(lit).expect(ILLEGAL_PROP_VALUE),
+        Expr::Lit(lit) => match lit_to_string(lit) {
+          Some(s) => s,
+          None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
+        },
         Expr::Ident(ident) => ident_to_string(ident, state, functions),
-        _ => panic!("{}", ILLEGAL_PROP_VALUE),
+        _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
       }
     }
-    None => panic!("{}", ILLEGAL_PROP_VALUE),
+    None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   }
 }
 
@@ -97,7 +101,7 @@ pub fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &Functi
   match get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
     Some(var_decl) => get_expr_from_var_decl(&var_decl).clone(),
     _ => {
-      panic!("{}", ILLEGAL_PROP_VALUE)
+      stylex_panic!("{}", ILLEGAL_PROP_VALUE)
     }
   }
 }
@@ -110,7 +114,7 @@ pub fn expr_to_str(
   match &expr_string {
     Expr::Ident(ident) => Some(ident_to_string(ident, state, functions)),
     Expr::Lit(lit) => lit_to_string(lit),
-    _ => panic!(
+    _ => stylex_panic!(
       "Expression in not a string, got {:?}",
       expr_string.get_type(get_default_expr_ctx())
     ),
@@ -129,13 +133,13 @@ pub fn unari_to_num(
   match &op {
     UnaryOp::Minus => match expr_to_num(arg, state, traversal_state, fns) {
       Ok(result) => -result,
-      Err(error) => panic!("{}", error),
+      Err(error) => stylex_panic!("{}", error),
     },
     UnaryOp::Plus => match expr_to_num(arg, state, traversal_state, fns) {
       Ok(result) => result,
-      Err(error) => panic!("{}", error),
+      Err(error) => stylex_panic!("{}", error),
     },
-    _ => panic!(
+    _ => stylex_panic!(
       "Union operation '{:?}' is invalid",
       Expr::from(unary_expr.clone()).get_type(get_default_expr_ctx())
     ),
@@ -154,7 +158,7 @@ pub fn binary_expr_to_num(
       return Result::Err(anyhow::anyhow!("Left expression is not a number"));
     }
 
-    panic!("Left expression is not a number")
+    stylex_panic!("Left expression is not a number")
   };
 
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
@@ -171,7 +175,7 @@ pub fn binary_expr_to_num(
       return Result::Err(anyhow::anyhow!("Right expression is not a number"));
     }
 
-    panic!("Right expression is not a number")
+    stylex_panic!("Right expression is not a number")
   };
 
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
@@ -314,7 +318,7 @@ pub fn binary_expr_to_string(
       return Result::Err(anyhow::anyhow!("Left expression is not a string"));
     }
 
-    panic!("Left expression is not a string")
+    stylex_panic!("Left expression is not a string")
   };
 
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
@@ -336,7 +340,7 @@ pub fn binary_expr_to_string(
       return Result::Err(anyhow::anyhow!("Right expression is not a string"));
     }
 
-    panic!("Right expression is not a string")
+    stylex_panic!("Right expression is not a string")
   };
 
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
@@ -351,7 +355,7 @@ pub fn binary_expr_to_string(
     BinaryOp::Add => {
       format!("{}{}", left_str, right_str)
     }
-    _ => panic!(
+    _ => stylex_panic!(
       "For string expressions, only addition is supported, got {:?}",
       op
     ),
@@ -388,22 +392,34 @@ fn evaluate_left_and_right_expression(
 
   if left_result.is_err() || right_result.is_err() {
     let left_str = match left_expr {
-      Expr::Lit(Lit::Str(_)) => lit_to_string(left_expr.as_lit().unwrap()).unwrap_or_else(|| {
-        panic!(
+      Expr::Lit(Lit::Str(_)) => match left_expr.as_lit() {
+        Some(lit) => lit_to_string(lit).unwrap_or_else(|| {
+          stylex_panic!(
+            "Left is not a string: {:?}",
+            left_expr.get_type(get_default_expr_ctx())
+          )
+        }),
+        None => stylex_panic!(
           "Left is not a string: {:?}",
           left_expr.get_type(get_default_expr_ctx())
-        )
-      }),
+        ),
+      },
       _ => String::default(),
     };
 
     let right_str = match right_expr {
-      Expr::Lit(Lit::Str(_)) => lit_to_string(right_expr.as_lit().unwrap()).unwrap_or_else(|| {
-        panic!(
+      Expr::Lit(Lit::Str(_)) => match right_expr.as_lit() {
+        Some(lit) => lit_to_string(lit).unwrap_or_else(|| {
+          stylex_panic!(
+            "Right is not a string: {:?}",
+            left_expr.get_type(get_default_expr_ctx())
+          )
+        }),
+        None => stylex_panic!(
           "Right is not a string: {:?}",
           left_expr.get_type(get_default_expr_ctx())
-        )
-      }),
+        ),
+      },
       _ => String::default(),
     };
 
@@ -457,25 +473,25 @@ pub fn ident_to_number(
       match &var_decl_expr {
         Expr::Bin(bin_expr) => {
           match binary_expr_to_num(bin_expr, state, traversal_state, fns)
-            .unwrap_or_else(|error| panic!("{}", error))
+            .unwrap_or_else(|error| stylex_panic!("{}", error))
           {
             BinaryExprType::Number(number) => number,
-            _ => panic!(
+            _ => stylex_panic!(
               "Binary expression is not a number: {:?}",
               var_decl_expr.get_type(get_default_expr_ctx())
             ),
           }
         }
         Expr::Unary(unary_expr) => unari_to_num(unary_expr, state, traversal_state, fns),
-        Expr::Lit(lit) => lit_to_num(lit).unwrap_or_else(|error| panic!("{}", error)),
-        _ => panic!(
+        Expr::Lit(lit) => lit_to_num(lit).unwrap_or_else(|error| stylex_panic!("{}", error)),
+        _ => stylex_panic!(
           "Varable {:?} is not a number",
           var_decl_expr.get_type(get_default_expr_ctx())
         ),
       }
     }
     None => {
-      panic!("Variable {} is not declared", ident.sym)
+      stylex_panic!("Variable {} is not declared", ident.sym)
     }
   }
 }
@@ -530,10 +546,10 @@ pub fn handle_tpl_to_expression(
       // If a variable declaration was found
       if let Some(var_decl) = &var_decl {
         // Swap the placeholder expression in the template with the variable declaration's initializer
-        *expr = var_decl
-          .init
-          .clone()
-          .expect("Variable declaration has no initializer");
+        *expr = match var_decl.init.clone() {
+          Some(init) => init,
+          None => stylex_panic!("Variable declaration has no initializer"),
+        };
       }
     };
   }
@@ -564,12 +580,13 @@ pub fn simple_tpl_to_string(tpl: &Tpl) -> Option<Lit> {
     let quasi = &tpl.quasis[0];
 
     // Get the string value (prefer cooked if available, otherwise use raw)
-    let value = quasi
-      .cooked
-      .as_ref()
-      .expect("Failed to get cooked value")
-      .as_str()
-      .expect("Failed to get string value");
+    let value = match quasi.cooked.as_ref() {
+      Some(cooked) => match cooked.as_str() {
+        Some(s) => s,
+        None => stylex_panic!("Failed to get string value"),
+      },
+      None => stylex_panic!("Failed to get cooked value"),
+    };
 
     return Some(lit_str_factory(value));
   }
@@ -707,13 +724,16 @@ pub fn expr_tpl_to_string(
               let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
               let value = match &var_decl_expr {
-                Expr::Lit(lit) => lit_to_string(lit).expect(ILLEGAL_PROP_VALUE),
-                _ => panic!("{}", ILLEGAL_PROP_VALUE),
+                Expr::Lit(lit) => match lit_to_string(lit) {
+                  Some(s) => s,
+                  None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
+                },
+                _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
               };
 
               tpl_str.push_str(value.as_str());
             }
-            None => panic!("{}", non_static_value("expr_tpl_to_string")),
+            None => stylex_panic!("{}", non_static_value("expr_tpl_to_string")),
           }
         }
         Expr::Bin(bin) => tpl_str.push_str(
@@ -721,8 +741,11 @@ pub fn expr_tpl_to_string(
             .to_string()
             .as_str(),
         ),
-        Expr::Lit(lit) => tpl_str.push_str(&lit_to_string(lit).expect(ILLEGAL_PROP_VALUE)),
-        _ => unimplemented!(
+        Expr::Lit(lit) => tpl_str.push_str(&match lit_to_string(lit) {
+          Some(s) => s,
+          None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
+        }),
+        _ => stylex_unimplemented!(
           "TPL expression: {:?}",
           tpl.exprs[i].get_type(get_default_expr_ctx())
         ),
@@ -741,14 +764,14 @@ pub fn transform_bin_expr_to_number(
 ) -> f64 {
   let op = bin.op;
   let Some(left) = evaluate_cached(&bin.left, state, traversal_state, fns) else {
-    panic!(
+    stylex_panic!(
       "Left expression is not a number: {:?}",
       bin.left.get_type(get_default_expr_ctx())
     )
   };
 
   let Some(right) = evaluate_cached(&bin.right, state, traversal_state, fns) else {
-    panic!(
+    stylex_panic!(
       "Left expression is not a number: {:?}",
       bin.right.get_type(get_default_expr_ctx())
     )
@@ -813,7 +836,10 @@ pub(crate) fn string_to_prop_name(value: &str) -> Option<PropName> {
 pub(crate) fn transform_shorthand_to_key_values(prop: &mut Box<Prop>) {
   if let Some(ident) = prop.as_shorthand() {
     **prop = Prop::from(KeyValueProp {
-      key: string_to_prop_name(ident.sym.as_ref()).expect("Failed to convert string to prop name"),
+      key: match string_to_prop_name(ident.sym.as_ref()) {
+        Some(k) => k,
+        None => stylex_panic!("Failed to convert string to prop name"),
+      },
       value: Box::new(Expr::Ident(ident.clone())),
     });
   }
@@ -826,7 +852,7 @@ pub fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionM
       Lit::Num(n) => n.value != 0.0,
       Lit::Str(s) => !s.value.is_empty(),
       Lit::Null(_) => false,
-      _ => unimplemented!(
+      _ => stylex_unimplemented!(
         "Conversion {:?} expression to boolean",
         expr.get_type(get_default_expr_ctx())
       ),
@@ -842,13 +868,13 @@ pub fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionM
       UnaryOp::Minus => !expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Plus => !expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Tilde => !expr_to_bool(&unary.arg, state, functions),
-      _ => unimplemented!(
+      _ => stylex_unimplemented!(
         "Conversion {:?} expression to boolean",
         expr.get_type(get_default_expr_ctx())
       ),
     },
     _ => {
-      unimplemented!(
+      stylex_unimplemented!(
         "Conversion {:?} expression to boolean",
         expr.get_type(get_default_expr_ctx())
       )
@@ -876,8 +902,11 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
       big_int.value.to_string()
     }
     PropName::Computed(computed) => match computed.expr.as_lit() {
-      Some(lit) => lit_to_string(lit).expect("Computed key is not a valid literal"),
-      None => unimplemented!("Computed key is not a literal"),
+      Some(lit) => match lit_to_string(lit) {
+        Some(s) => s,
+        None => stylex_panic!("Computed key is not a valid literal"),
+      },
+      None => stylex_unimplemented!("Computed key is not a literal"),
     },
   };
 
@@ -888,55 +917,56 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
 /// Note: `.as_str()` returns an `Option<&str>` that only fails when the string contains invalid UTF-8
 #[inline]
 pub(crate) fn atom_to_string(atom: &Wtf8Atom) -> String {
-  atom
-    .as_str()
-    .expect("String contains invalid UTF-8")
-    .to_string()
+  match atom.as_str() {
+    Some(s) => s.to_string(),
+    None => stylex_panic!("String contains invalid UTF-8"),
+  }
 }
 
 pub(crate) fn wtf8_atom_to_atom(atom: &Wtf8Atom) -> Atom {
-  atom
-    .as_atom()
-    .expect("String contains invalid UTF-8")
-    .clone()
+  match atom.as_atom() {
+    Some(a) => a.clone(),
+    None => stylex_panic!("String contains invalid UTF-8"),
+  }
 }
 
 /// Helper function to safely get string from Lit::Str
 #[inline]
 pub(crate) fn lit_str_to_string(str_lit: &Str) -> String {
-  str_lit
-    .value
-    .as_str()
-    .expect("String contains invalid UTF-8")
-    .to_string()
+  match str_lit.value.as_str() {
+    Some(s) => s.to_string(),
+    None => stylex_panic!("String contains invalid UTF-8"),
+  }
 }
 
 /// Helper function to safely get Atom from Lit::Str
 pub(crate) fn lit_str_to_atom(str_lit: &Str) -> Atom {
-  str_lit
-    .value
-    .as_atom()
-    .expect("String contains invalid UTF-8")
-    .clone()
+  match str_lit.value.as_atom() {
+    Some(a) => a.clone(),
+    None => stylex_panic!("String contains invalid UTF-8"),
+  }
 }
 
 /// Helper function to safely get cooked string from TplElement
 #[inline]
 pub(crate) fn tpl_element_cooked_to_string(elem: &TplElement) -> String {
-  elem
-    .cooked
-    .as_ref()
-    .expect("Cooked should be some")
-    .as_str()
-    .expect("String contains invalid UTF-8")
-    .to_string()
+  match elem.cooked.as_ref() {
+    Some(cooked) => match cooked.as_str() {
+      Some(s) => s.to_string(),
+      None => stylex_panic!("String contains invalid UTF-8"),
+    },
+    None => stylex_panic!("Cooked should be some"),
+  }
 }
 
 /// Helper function to convert Atom to &str (reference, not owned String)
 /// Useful when you need a reference instead of an owned String
 #[inline]
 pub(crate) fn atom_to_str(atom: &swc_core::atoms::Wtf8Atom) -> &str {
-  atom.as_str().expect("Failed to convert Wtf8Atom to &str")
+  match atom.as_str() {
+    Some(s) => s,
+    None => stylex_panic!("Failed to convert Wtf8Atom to &str"),
+  }
 }
 
 #[inline]

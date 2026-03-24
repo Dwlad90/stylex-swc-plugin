@@ -4,19 +4,22 @@ use swc_core::ecma::{
   utils::ExprExt,
 };
 
-use crate::shared::{
-  enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
-  swc::get_default_expr_ctx,
-  utils::{
-    ast::{
-      convertors::{key_value_to_str, lit_to_string},
-      factories::{
-        object_expression_factory, object_lit_factory, prop_or_spread_expression_factory,
-        prop_or_spread_string_factory,
+use crate::{
+  shared::{
+    enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
+    swc::get_default_expr_ctx,
+    utils::{
+      ast::{
+        convertors::{key_value_to_str, lit_to_string},
+        factories::{
+          object_expression_factory, object_lit_factory, prop_or_spread_expression_factory,
+          prop_or_spread_string_factory,
+        },
       },
+      common::get_key_values_from_object,
     },
-    common::get_key_values_from_object,
   },
+  stylex_panic,
 };
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -88,13 +91,16 @@ impl From<ObjectLit> for BaseCSSType {
           let obj_value = match key_value.value.as_ref() {
             Expr::Object(obj) => obj,
             Expr::Lit(obj) => {
-              let value = lit_to_string(obj).expect("Value must be a string");
+              let value = match lit_to_string(obj) {
+                Some(v) => v,
+                None => stylex_panic!("Value must be a string"),
+              };
 
               let prop = prop_or_spread_string_factory("default", value.as_str());
 
               &object_lit_factory(vec![prop])
             }
-            _ => panic!(
+            _ => stylex_panic!(
               "Value must be an object or string, but got: {:?}",
               key_value.value.get_type(get_default_expr_ctx())
             ),
@@ -114,11 +120,14 @@ impl From<ObjectLit> for BaseCSSType {
 
                   match key_value.value.as_ref() {
                     Expr::Lit(lit) => {
-                      let value = lit_to_string(lit).expect("Value must be a string");
+                      let value = match lit_to_string(lit) {
+                        Some(v) => v,
+                        None => stylex_panic!("Value must be a string"),
+                      };
 
                       obj_map.insert(key, ValueWithDefault::String(value));
                     }
-                    _ => panic!(
+                    _ => stylex_panic!(
                       "Value must be a string, but got: {:?}",
                       key_value.value.get_type(get_default_expr_ctx())
                     ),
@@ -130,11 +139,14 @@ impl From<ObjectLit> for BaseCSSType {
                 values.insert(key, value);
               }
               Expr::Lit(lit) => {
-                let value = lit_to_string(lit).expect("Value must be a string");
+                let value = match lit_to_string(lit) {
+                  Some(v) => v,
+                  None => stylex_panic!("Value must be a string"),
+                };
 
                 values.insert(key, ValueWithDefault::String(value));
               }
-              _ => panic!(
+              _ => stylex_panic!(
                 "Value must be a string or object, but got: {:?}",
                 key_value.value.get_type(get_default_expr_ctx())
               ),
@@ -142,7 +154,7 @@ impl From<ObjectLit> for BaseCSSType {
           }
         }
         _ => {
-          panic!(r#"Key "{}" not support by BaseCSSType"#, key)
+          stylex_panic!(r#"Key "{}" not support by BaseCSSType"#, key)
         }
       }
     }
@@ -156,7 +168,10 @@ impl From<ObjectLit> for BaseCSSType {
 
     BaseCSSType {
       value: ValueWithDefault::Map(values),
-      syntax: syntax.expect("Syntax is required"),
+      syntax: match syntax {
+        Some(s) => s,
+        None => stylex_panic!("Syntax is required"),
+      },
     }
   }
 }

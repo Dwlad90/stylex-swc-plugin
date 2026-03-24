@@ -1,5 +1,4 @@
-use core::panic;
-
+use crate::stylex_unimplemented;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -35,7 +34,9 @@ use crate::shared::{
   transformers::stylex_create_theme::stylex_create_theme,
   utils::core::dev_class_name::convert_theme_to_test_styles,
 };
-use crate::{StyleXTransform, shared::transformers::stylex_position_try::get_position_try_fn};
+use crate::{
+  StyleXTransform, shared::transformers::stylex_position_try::get_position_try_fn, stylex_panic,
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -50,7 +51,7 @@ where
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => unimplemented!("Spread"),
+        Some(_) => stylex_unimplemented!("Spread"),
         None => first_arg.expr.clone(),
       })?;
 
@@ -58,7 +59,7 @@ where
         .args
         .get(1)
         .map(|second_arg| match &second_arg.spread {
-          Some(_) => unimplemented!("Spread"),
+          Some(_) => stylex_unimplemented!("Spread"),
           None => second_arg.expr.clone(),
         })?;
 
@@ -152,7 +153,7 @@ where
           validate_theme_variables(value, &self.state);
           value.clone()
         }
-        None => panic!(
+        None => stylex_panic!(
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),
@@ -184,7 +185,7 @@ where
           );
           value.clone()
         }
-        None => panic!(
+        None => stylex_panic!(
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),

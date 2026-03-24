@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+
+use crate::stylex_panic;
 use swc_core::ecma::ast::{Expr, KeyValueProp};
 
 use crate::shared::{
@@ -88,7 +90,10 @@ impl<T> Pipe<T> {
 }
 
 pub(crate) fn obj_entries(obj: &Expr) -> Vec<KeyValueProp> {
-  let object = obj.as_object().expect("Object expected");
+  let object = match obj.as_object() {
+    Some(o) => o,
+    None => stylex_panic!("Object expected"),
+  };
 
   get_key_values_from_object(object)
 }
@@ -99,7 +104,10 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
   for OrderPair(key, value) in entries {
     map.insert(
       key.clone(),
-      value.as_ref().expect("Value is not a string").clone(),
+      match value.as_ref() {
+        Some(v) => v.clone(),
+        None => stylex_panic!("Value is not a string"),
+      },
     );
   }
 
@@ -136,9 +144,10 @@ pub(crate) fn obj_map_keys_key_value(
   for (key, value) in entries {
     let obejct_key = mapper(key);
 
-    let key_values = value
-      .as_key_values()
-      .expect("Value must be a key-value pairs");
+    let key_values = match value.as_key_values() {
+      Some(kv) => kv,
+      None => stylex_panic!("Value must be a key-value pairs"),
+    };
 
     let object_key_values = key_values
       .iter()

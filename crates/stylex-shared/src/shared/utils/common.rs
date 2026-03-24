@@ -20,19 +20,22 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  constants::messages::ILLEGAL_PROP_VALUE,
-  enums::{
-    data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-    misc::VarDeclAction,
+use crate::{
+  shared::{
+    constants::messages::ILLEGAL_PROP_VALUE,
+    enums::{
+      data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
+      misc::VarDeclAction,
+    },
+    regex::{DASHIFY_REGEX, JSON_REGEX},
+    structures::{
+      base_css_type::BaseCSSType,
+      functions::{FunctionConfigType, FunctionMap, FunctionType},
+      state_manager::StateManager,
+    },
+    utils::ast::convertors::{lit_str_to_atom, wtf8_atom_to_atom},
   },
-  regex::{DASHIFY_REGEX, JSON_REGEX},
-  structures::{
-    base_css_type::BaseCSSType,
-    functions::{FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::StateManager,
-  },
-  utils::ast::convertors::{lit_str_to_atom, wtf8_atom_to_atom},
+  stylex_panic, stylex_unimplemented,
 };
 
 use super::ast::{
@@ -41,21 +44,42 @@ use super::ast::{
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
-    FileName::Real(path_buf) => path_buf.file_stem().unwrap().to_str().unwrap().to_string(),
+    FileName::Real(path_buf) => {
+      let stem = match path_buf.file_stem() {
+        Some(s) => s,
+        None => stylex_panic!("Path has no file stem"),
+      };
+      match stem.to_str() {
+        Some(s) => s.to_string(),
+        None => stylex_panic!("File stem contains invalid UTF-8"),
+      }
+    }
     _ => "".to_string(),
   }
 }
 
 pub(crate) fn extract_path(path: &FileName) -> &str {
   match path {
-    FileName::Real(path_buf) => path_buf.to_str().unwrap(),
+    FileName::Real(path_buf) => match path_buf.to_str() {
+      Some(s) => s,
+      None => stylex_panic!("Path contains invalid UTF-8"),
+    },
     _ => "",
   }
 }
 
 pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&str> {
   match path {
-    FileName::Real(path_buf) => Some(path_buf.file_name().unwrap().to_str().unwrap()),
+    FileName::Real(path_buf) => {
+      let name = match path_buf.file_name() {
+        Some(n) => n,
+        None => stylex_panic!("Path has no file name"),
+      };
+      Some(match name.to_str() {
+        Some(s) => s,
+        None => stylex_panic!("File name contains invalid UTF-8"),
+      })
+    }
     _ => None,
   }
 }
@@ -151,10 +175,10 @@ pub fn get_var_decl_by_ident<'a>(
 
           return Some(var_decl);
         }
-        _ => panic!("Function type not supported: {:?}", func),
+        _ => stylex_panic!("Function type not supported: {:?}", func),
       },
-      FunctionConfigType::Map(_) => unimplemented!("Map not implemented"),
-      FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
+      FunctionConfigType::Map(_) => stylex_unimplemented!("Map not implemented"),
+      FunctionConfigType::IndexMap(_) => stylex_unimplemented!("IndexMap not implemented"),
       FunctionConfigType::EnvObject(_) => return None,
     }
   }
@@ -234,7 +258,7 @@ pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   match &var_decl.init {
     Some(var_decl_init) => var_decl_init,
-    None => panic!("Variable declaration is not an expression"),
+    None => stylex_panic!("Variable declaration is not an expression"),
   }
 }
 
@@ -244,7 +268,7 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
     BinaryOp::Sub => left - right,
     BinaryOp::Mul => left * right,
     BinaryOp::Div => left / right,
-    _ => panic!("Operator '{}' is not supported", op),
+    _ => stylex_panic!("Operator '{}' is not supported", op),
   }
 }
 
@@ -409,7 +433,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
   for prop in obj.props.clone().into_iter() {
     match prop {
-      PropOrSpread::Spread(_) => unimplemented!("Spread"),
+      PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
       PropOrSpread::Prop(mut prop) => {
         transform_shorthand_to_key_values(&mut prop);
 
@@ -420,7 +444,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
             {
               let value = obj.props.iter().find(|prop| {
                 match prop {
-                  PropOrSpread::Spread(_) => unimplemented!("Spread"),
+                  PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
                     transform_shorthand_to_key_values(&mut prop);
@@ -431,7 +455,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                           return ident.sym == "value";
                         }
                       }
-                      _ => unimplemented!(),
+                      _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
                     }
                   }
                 }
@@ -440,16 +464,16 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               });
 
               if let Some(value) = value {
-                let result_key_value = value
-                  .as_prop()
-                  .and_then(|prop| prop.as_key_value())
-                  .unwrap();
+                let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
+                  Some(kv) => kv,
+                  None => stylex_panic!("Expected key-value property"),
+                };
 
                 return (result_key_value.value.clone(), Some(obj.clone().into()));
               }
             }
           }
-          _ => unimplemented!(),
+          _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
         }
       }
     }
@@ -463,7 +487,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
 
   for prop in object.props.iter() {
     match prop {
-      PropOrSpread::Spread(_) => unimplemented!("Spread"),
+      PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
 
@@ -473,7 +497,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
           Prop::KeyValue(key_value) => {
             key_values.push(key_value.clone());
           }
-          _ => panic!("{}", ILLEGAL_PROP_VALUE),
+          _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
         }
       }
     }
@@ -487,10 +511,14 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
       if let Decl::Var(decl_var) = &export_decl.decl {
         for decl in &decl_var.decls {
           if let Some(decl_init) = decl.init.as_ref() {
+            let ident_sym = match decl.name.as_ident() {
+              Some(i) => i.sym.clone(),
+              None => stylex_panic!("Variable declarator name is not an identifier"),
+            };
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
               *drop_span(decl_init.clone()),
-              Some(decl.name.as_ident().unwrap().sym.clone()),
+              Some(ident_sym),
             ));
             fill_state_declarations(state, decl);
           }
@@ -520,10 +548,14 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
         if let Some(decl_init) = decl.init.as_ref()
           && decl.name.as_ident().is_some()
         {
+          let stmt_ident_sym = match decl.name.as_ident() {
+            Some(i) => i.sym.clone(),
+            None => stylex_panic!("Variable declarator name is not an identifier"),
+          };
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::Stmt,
             *drop_span(decl_init.clone()),
-            Some(decl.name.as_ident().unwrap().sym.clone()),
+            Some(stmt_ident_sym),
           ));
 
           fill_state_declarations(state, decl);
@@ -705,7 +737,7 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
       }
     }
     Err(err) => {
-      panic!("Failed to serialize value. Error: {}", err)
+      stylex_panic!("Failed to serialize value. Error: {}", err)
     }
   }
 }

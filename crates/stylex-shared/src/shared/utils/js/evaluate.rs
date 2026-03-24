@@ -1,10 +1,10 @@
-use core::panic;
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
 use crate::{
-  collect_confident, expr_to_str_or_deopt, panic_with_context,
+  collect_confident, expr_to_str_or_deopt,
   shared::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS},
+  stylex_panic, stylex_panic_with_context, stylex_unimplemented, stylex_unreachable,
   unwrap_or_panic,
 };
 
@@ -113,14 +113,14 @@ fn evaluate_result_vec_to_array_expr(items: &[Option<EvaluateResultValue>]) -> E
             .map(|vec| evaluate_result_vec_to_array_expr(vec))
             .or_else(|| entry.as_expr().cloned())
         })
-        .expect(ILLEGAL_PROP_ARRAY_VALUE);
+        .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
 
       let expr = match expr {
         Expr::Array(array) => Expr::Array(array),
         Expr::Object(obj) => Expr::Object(obj),
         Expr::Lit(lit) => Expr::Lit(lit),
         Expr::Ident(ident) => Expr::Ident(ident),
-        _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+        _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
       };
 
       Some(expr_or_spread_factory(expr))
@@ -174,7 +174,7 @@ pub(crate) fn evaluate_obj_key(
       if computed_result.confident {
         match computed_result.value {
           Some(EvaluateResultValue::Expr(ref value)) => value.clone(),
-          _ => panic!("Expected expression value"),
+          _ => stylex_panic!("Expected expression value"),
         }
       } else {
         return EvaluateResult {
@@ -309,7 +309,7 @@ fn _evaluate(
                       let expr = arg
                         .as_ref()
                         .and_then(|arg| arg.as_expr())
-                        .expect("Argument is not an expression");
+                        .unwrap_or_else(|| stylex_panic!("Argument is not an expression"));
 
                       let cl = |arg: Expr| move || arg.clone();
 
@@ -348,7 +348,7 @@ fn _evaluate(
                     Some(res) => match res {
                       EvaluateResultValue::Expr(expr) => expr.clone(),
                       EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(&items),
-                      _ => unimplemented!("Evaluation result must be an expression"),
+                      _ => stylex_unimplemented!("Evaluation result must be an expression"),
                     },
                     None => *body_expr.clone(),
                   }
@@ -395,7 +395,7 @@ fn _evaluate(
             return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
           }
           FunctionConfigType::IndexMap(_func_map) => {
-            unimplemented!("IndexMap not implemented");
+            stylex_unimplemented!("IndexMap not implemented");
           }
           FunctionConfigType::EnvObject(env_map) => {
             return Some(EvaluateResultValue::EnvObject(env_map.clone()));
@@ -418,10 +418,10 @@ fn _evaluate(
       evaluate_cached(&ts_instantiation.expr, state, traversal_state, fns)
     }
     Expr::Seq(sec) => {
-      let expr = sec
-        .exprs
-        .last()
-        .expect("Sequence must have at least one expression");
+      let expr = match sec.exprs.last() {
+        Some(e) => e,
+        None => stylex_panic!("Sequence must have at least one expression"),
+      };
 
       evaluate_cached(expr, state, traversal_state, fns)
     }
@@ -435,7 +435,7 @@ fn _evaluate(
       fns,
     ),
     Expr::TaggedTpl(_tagged_tpl) => {
-      panic_with_context!(path, traversal_state, "TaggedTpl not implemented")
+      stylex_panic_with_context!(path, traversal_state, "TaggedTpl not implemented")
       // TODO: Uncomment this for implementation of TaggedTpl
       // evaluate_quasis(
       //   &Expr::TaggedTpl(_tagged_tpl.clone()),
@@ -451,9 +451,12 @@ fn _evaluate(
         return None;
       }
 
-      let test_result = match test_result.expect("Test of condition must be an expression") {
+      let test_result = match match test_result {
+        Some(v) => v,
+        None => stylex_panic!("Test of condition must be an expression"),
+      } {
         EvaluateResultValue::Expr(ref expr) => expr_to_bool(expr, traversal_state, fns),
-        _ => panic_with_context!(
+        _ => stylex_panic_with_context!(
           path,
           traversal_state,
           "Test of condition must be an expression"
@@ -470,7 +473,7 @@ fn _evaluate(
         evaluate_cached(&cond.alt, state, traversal_state, fns)
       }
     }
-    Expr::Paren(_) => panic_with_context!(
+    Expr::Paren(_) => stylex_panic_with_context!(
       path,
       traversal_state,
       "Paren must be normalized before evaluation"
@@ -519,22 +522,25 @@ fn _evaluate(
           match object {
             EvaluateResultValue::Expr(expr) => match &expr {
               Expr::Array(ArrayLit { elems, .. }) => {
-                let eval_res = property.expect("Property not found");
+                let eval_res = match property {
+                  Some(p) => p,
+                  None => stylex_panic!("Property not found"),
+                };
 
                 let expr = match eval_res {
                   EvaluateResultValue::Expr(expr) => expr,
-                  _ => panic_with_context!(path, traversal_state, "Property not found"),
+                  _ => stylex_panic_with_context!(path, traversal_state, "Property not found"),
                 };
 
                 let value = match expr {
                   Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
-                  _ => panic_with_context!(path, traversal_state, "Member not found"),
+                  _ => stylex_panic_with_context!(path, traversal_state, "Member not found"),
                 };
 
                 let property = elems.get(value)?;
 
                 let Some(expr) = property.as_ref() else {
-                  panic_with_context!(path, traversal_state, "Member not found")
+                  stylex_panic_with_context!(path, traversal_state, "Member not found")
                 };
 
                 let expr = expr.expr.clone();
@@ -542,7 +548,10 @@ fn _evaluate(
                 Some(EvaluateResultValue::Expr(*expr))
               }
               Expr::Object(ObjectLit { props, .. }) => {
-                let eval_res = property.expect("Property not found");
+                let eval_res = match property {
+                  Some(p) => p,
+                  None => stylex_panic!("Property not found"),
+                };
 
                 let ident = match eval_res {
                   EvaluateResultValue::Expr(ident) => ident,
@@ -569,7 +578,7 @@ fn _evaluate(
                     debug!("Evaluation result: {:?}", eval_res);
                     debug!("Original property: {:?}", prop_path);
 
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "Property not found. For additional details, please recompile using debug mode."
@@ -583,19 +592,23 @@ fn _evaluate(
                 let ident_string_name = match normalized_ident {
                   Expr::Ident(ident) => ident.sym.to_string(),
                   Expr::Lit(lit) => lit_to_string(lit).unwrap_or_else(|| {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "Property must be convertable to string"
                     )
                   }),
                   _ => {
-                    panic_with_context!(path, traversal_state, "Member property not implemented")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "Member property not implemented"
+                    )
                   }
                 };
 
                 let property = props.iter().find(|prop| match prop {
-                  PropOrSpread::Spread(_) => panic_with_context!(
+                  PropOrSpread::Spread(_) => stylex_panic_with_context!(
                     path,
                     traversal_state,
                     "Spread properties are not implemented"
@@ -612,7 +625,11 @@ fn _evaluate(
                         ident_string_name == key
                       }
                       _ => {
-                        panic_with_context!(path, traversal_state, "Property not implemented");
+                        stylex_panic_with_context!(
+                          path,
+                          traversal_state,
+                          "Property not implemented"
+                        );
                       }
                     }
                   }
@@ -620,14 +637,15 @@ fn _evaluate(
 
                 if let PropOrSpread::Prop(prop) = property {
                   return Some(EvaluateResultValue::Expr(
-                    *prop
-                      .as_key_value()
-                      .expect("Expression is not a key value")
-                      .value
-                      .clone(),
+                    *match prop.as_key_value() {
+                      Some(kv) => kv,
+                      None => stylex_panic!("Expression is not a key value"),
+                    }
+                    .value
+                    .clone(),
                   ));
                 } else {
-                  panic_with_context!(path, traversal_state, "Member not found");
+                  stylex_panic_with_context!(path, traversal_state, "Member not found");
                 }
               }
               Expr::Member(member_expr) => evaluate_cached(
@@ -646,7 +664,7 @@ fn _evaluate(
                 fns,
               ),
               _ => {
-                panic_with_context!(
+                stylex_panic_with_context!(
                   path,
                   traversal_state,
                   "Unimplemented case for object member access"
@@ -658,15 +676,15 @@ fn _evaluate(
                 Some(property) => match property {
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Ident(ident) => Box::new(ident.clone()),
-                    _ => panic_with_context!(path, traversal_state, "Member not found"),
+                    _ => stylex_panic_with_context!(path, traversal_state, "Member not found"),
                   },
-                  _ => panic_with_context!(
+                  _ => stylex_panic_with_context!(
                     path,
                     traversal_state,
                     "Function config map property not implemented"
                   ),
                 },
-                None => panic_with_context!(path, traversal_state, "Member not found"),
+                None => stylex_panic_with_context!(path, traversal_state, "Member not found"),
               };
 
               if let Some(fc) = fc_map.get(&key.sym) {
@@ -676,7 +694,7 @@ fn _evaluate(
               // Check if this is an "env" property access on a stylex import
               if key.sym.as_ref() == "env" {
                 if traversal_state.options.env.is_empty() {
-                  panic_with_context!(
+                  stylex_panic_with_context!(
                     path,
                     traversal_state,
                     "Check if `env` object is available in the options"
@@ -688,7 +706,7 @@ fn _evaluate(
                 ));
               }
 
-              panic_with_context!(
+              stylex_panic_with_context!(
                 path,
                 traversal_state,
                 format!("Property '{}' not found in function config map", key.sym).as_str()
@@ -699,24 +717,35 @@ fn _evaluate(
                 Some(property) => match property {
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Ident(Ident { sym, .. }) => sym.to_string(),
-                    Expr::Lit(lit) => lit_to_string(&lit).expect("Property must be a string"),
-                    _ => panic_with_context!(path, traversal_state, "Member not found"),
+                    Expr::Lit(lit) => match lit_to_string(&lit) {
+                      Some(s) => s,
+                      None => stylex_panic!("Property must be a string"),
+                    },
+                    _ => stylex_panic_with_context!(path, traversal_state, "Member not found"),
                   },
-                  _ => panic_with_context!(
+                  _ => stylex_panic_with_context!(
                     path,
                     traversal_state,
                     "Theme reference property not implemented"
                   ),
                 },
                 None => {
-                  panic_with_context!(path, traversal_state, "Theme reference property not found")
+                  stylex_panic_with_context!(
+                    path,
+                    traversal_state,
+                    "Theme reference property not found"
+                  )
                 }
               };
 
               let value = theme_ref.get(&key, traversal_state);
 
               return Some(EvaluateResultValue::Expr(string_to_expression(
-                value.as_css_var().expect("Expected CSS variable").as_str(),
+                match value.as_css_var() {
+                  Some(css_var) => css_var,
+                  None => stylex_panic!("Expected CSS variable"),
+                }
+                .as_str(),
               )));
             }
             EvaluateResultValue::EnvObject(env_map) => {
@@ -724,20 +753,20 @@ fn _evaluate(
                 .as_ref()
                 .and_then(|prop| prop.as_string_key())
                 .unwrap_or_else(|| {
-                  panic_with_context!(path, traversal_state, "Env object property not found")
+                  stylex_panic_with_context!(path, traversal_state, "Env object property not found")
                 });
 
               match env_map.get(&key) {
                 Some(entry) => match resolve_env_entry_to_result(entry, &env_map) {
                   Some(result) => return Some(result),
-                  None => panic_with_context!(
+                  None => stylex_panic_with_context!(
                     path,
                     traversal_state,
                     "Env value cannot be converted to expression"
                   ),
                 },
                 None => {
-                  panic_with_context!(
+                  stylex_panic_with_context!(
                     path,
                     traversal_state,
                     format!("Env property '{}' not found", key).as_str()
@@ -745,7 +774,7 @@ fn _evaluate(
                 }
               }
             }
-            _ => panic_with_context!(
+            _ => stylex_panic_with_context!(
               path,
               traversal_state,
               "Evaluation result value not implemented"
@@ -772,9 +801,14 @@ fn _evaluate(
         return None;
       }
 
-      let arg = match arg.expect("Unary argument is not an expression") {
+      let arg = match match arg {
+        Some(v) => v,
+        None => stylex_panic!("Unary argument is not an expression"),
+      } {
         EvaluateResultValue::Expr(expr) => expr,
-        _ => panic_with_context!(path, traversal_state, "Unary argument is not an expression"),
+        _ => {
+          stylex_panic_with_context!(path, traversal_state, "Unary argument is not an expression")
+        }
       };
 
       match unary.op {
@@ -799,7 +833,9 @@ fn _evaluate(
             Expr::Ident(ident) if ident.sym == *"undefined" => "undefined",
             Expr::Object(_) => "object",
             Expr::Array(_) => "object",
-            _ => panic_with_context!(path, traversal_state, "Unary expression not implemented"),
+            _ => {
+              stylex_panic_with_context!(path, traversal_state, "Unary expression not implemented")
+            }
           };
 
           Some(EvaluateResultValue::Expr(string_to_expression(arg_type)))
@@ -838,7 +874,7 @@ fn _evaluate(
             }
 
             let Some(new_props) = spread_expression.and_then(|s| s.into_object()) else {
-              panic_with_context!(path, traversal_state, "Spread must be an object");
+              stylex_panic_with_context!(path, traversal_state, "Spread must be an object");
             };
 
             let merged_object = deep_merge_props(props, new_props.props);
@@ -904,7 +940,11 @@ fn _evaluate(
                         "Expression is not a string"
                       ))
                     } else {
-                      panic_with_context!(path, traversal_state, "Property must be an expression");
+                      stylex_panic_with_context!(
+                        path,
+                        traversal_state,
+                        "Property must be an expression"
+                      );
                     }
                   }
                   PropName::BigInt(big_int) => Some(big_int.value.to_string()),
@@ -933,7 +973,7 @@ fn _evaluate(
                 }
 
                 let Some(value) = eval_value.value else {
-                  panic_with_context!(
+                  stylex_panic_with_context!(
                     path,
                     traversal_state,
                     format!(
@@ -969,10 +1009,14 @@ fn _evaluate(
                       Some(cb(cb_args))
                     }
                     Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
-                    _ => panic_with_context!(path, traversal_state, "Callback type not supported"),
+                    _ => stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "Callback type not supported"
+                    ),
                   },
                   EvaluateResultValue::ThemeRef(_) => None,
-                  _ => panic_with_context!(
+                  _ => stylex_panic_with_context!(
                     path,
                     traversal_state,
                     "Property value must be an expression"
@@ -980,10 +1024,16 @@ fn _evaluate(
                 };
 
                 if let Some(value) = value {
-                  props.push(prop_or_spread_ident_factory(&key.unwrap(), value));
+                  props.push(prop_or_spread_ident_factory(
+                    &match key {
+                      Some(k) => k,
+                      None => stylex_panic!("Property key must be present"),
+                    },
+                    value,
+                  ));
                 }
               }
-              _ => panic_with_context!(
+              _ => stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "Evaluation result value not implemented"
@@ -1028,20 +1078,19 @@ fn _evaluate(
           let ident_id = ident.to_id();
 
           if state.functions.identifiers.contains_key(&ident_id.0) {
-            match state
-              .functions
-              .identifiers
-              .get(&ident_id.0)
-              .unwrap()
-              .as_ref()
+            match match state.functions.identifiers.get(&ident_id.0) {
+              Some(v) => v,
+              None => stylex_panic!("Function identifier not found"),
+            }
+            .as_ref()
             {
-              FunctionConfigType::Map(_) => panic_with_context!(
+              FunctionConfigType::Map(_) => stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "FunctionConfigType::Map not implemented"
               ),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
-              FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
+              FunctionConfigType::IndexMap(_) => stylex_unimplemented!("IndexMap not implemented"),
               FunctionConfigType::EnvObject(_) => {
                 // EnvObject is not directly callable; access is done via member expressions
                 return deopt(path, state, NON_CONSTANT);
@@ -1071,7 +1120,10 @@ fn _evaluate(
           let property = &member.prop;
 
           if object.is_ident() {
-            let obj_ident = object.as_ident().expect("Object is not an identifier");
+            let obj_ident = match object.as_ident() {
+              Some(ident) => ident,
+              None => stylex_panic!("Object is not an identifier"),
+            };
 
             if property.is_ident() {
               if is_mutating_object_method(property) {
@@ -1084,13 +1136,12 @@ fn _evaluate(
 
                 match callee_name {
                   "Math" => {
-                    let first_arg = call
-                      .args
-                      .first()
-                      .unwrap_or_else(|| panic!("Math.{} requires an argument", method_name));
+                    let first_arg = call.args.first().unwrap_or_else(|| {
+                      stylex_panic!("Math.{} requires an argument", method_name)
+                    });
 
                     if first_arg.spread.is_some() {
-                      panic_with_context!(path, traversal_state, "Spread not implemented");
+                      stylex_panic_with_context!(path, traversal_state, "Spread not implemented");
                     }
 
                     match method_name {
@@ -1100,13 +1151,17 @@ fn _evaluate(
                           takes_path: false,
                         }));
 
-                        let second_arg = call
-                          .args
-                          .get(1)
-                          .expect("Math.pow requires a second argument");
+                        let second_arg = match call.args.get(1) {
+                          Some(arg) => arg,
+                          None => stylex_panic!("Math.pow requires a second argument"),
+                        };
 
                         if second_arg.spread.is_some() {
-                          panic_with_context!(path, traversal_state, "Spread not implemented");
+                          stylex_panic_with_context!(
+                            path,
+                            traversal_state,
+                            "Spread not implemented"
+                          );
                         }
 
                         let cached_first_arg =
@@ -1130,7 +1185,7 @@ fn _evaluate(
                               "round" => MathJS::Round,
                               "ceil" => MathJS::Ceil,
                               "floor" => MathJS::Floor,
-                              _ => unreachable!("Invalid method: {}", method_name),
+                              _ => stylex_unreachable!("Invalid method: {}", method_name),
                             },
                           ))),
                           takes_path: false,
@@ -1143,7 +1198,9 @@ fn _evaluate(
                           context = Some(vec![Some(EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
-                              .expect("First argument should be an expression")
+                              .unwrap_or_else(|| {
+                                stylex_panic!("First argument should be an expression")
+                              })
                               .clone(),
                           ))]);
                         }
@@ -1154,7 +1211,7 @@ fn _evaluate(
                             match method_name {
                               "min" => MathJS::Min,
                               "max" => MathJS::Max,
-                              _ => unreachable!("Invalid method: {}", method_name),
+                              _ => stylex_unreachable!("Invalid method: {}", method_name),
                             },
                           ))),
                           takes_path: false,
@@ -1195,25 +1252,27 @@ fn _evaluate(
                           context = Some(vec![Some(EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
-                              .expect("First argument should be an expression")
+                              .unwrap_or_else(|| {
+                                stylex_panic!("First argument should be an expression")
+                              })
                               .clone(),
                           ))]);
                         }
                       }
                       _ => {
-                        panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
+                        stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
                       }
                     }
                   }
                   "Object" => {
                     let args = &call.args;
 
-                    let arg = args
-                      .first()
-                      .unwrap_or_else(|| panic!("Object.{} requires an argument", method_name));
+                    let arg = args.first().unwrap_or_else(|| {
+                      stylex_panic!("Object.{} requires an argument", method_name)
+                    });
 
                     if arg.spread.is_some() {
-                      panic_with_context!(path, traversal_state, "Spread not implemented");
+                      stylex_panic_with_context!(path, traversal_state, "Spread not implemented");
                     }
 
                     let cached_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
@@ -1229,12 +1288,14 @@ fn _evaluate(
 
                         let mut from_entries_result = IndexMap::new();
 
-                        match cached_arg.expect("Object.fromEntries requires an argument") {
+                        match match cached_arg {
+                          Some(v) => v,
+                          None => stylex_panic!("Object.fromEntries requires an argument"),
+                        } {
                           EvaluateResultValue::Expr(expr) => {
-                            let array = expr
-                              .as_array()
-                              .cloned()
-                              .expect("Object.fromEntries requires an object");
+                            let array = expr.as_array().cloned().unwrap_or_else(|| {
+                              stylex_panic!("Object.fromEntries requires an object")
+                            });
 
                             let entries = array
                               .elems
@@ -1245,7 +1306,10 @@ fn _evaluate(
                             for entry in entries {
                               assert!(entry.spread.is_none(), "Spread");
 
-                              let array = entry.expr.as_array().expect("Entry must be an array");
+                              let array = match entry.expr.as_array() {
+                                Some(a) => a,
+                                None => stylex_panic!("Entry must be an array"),
+                              };
 
                               let elems =
                                 array.elems.iter().flatten().collect::<Vec<&ExprOrSpread>>();
@@ -1253,12 +1317,12 @@ fn _evaluate(
                               let key = elems
                                 .first()
                                 .and_then(|e| e.expr.as_lit())
-                                .expect("Key must be a literal");
+                                .unwrap_or_else(|| stylex_panic!("Key must be a literal"));
 
                               let value = elems
                                 .get(1)
                                 .map(|e| e.expr.clone())
-                                .expect("Value must be a literal");
+                                .unwrap_or_else(|| stylex_panic!("Value must be a literal"));
 
                               from_entries_result.insert(key.clone(), value.clone());
                             }
@@ -1267,26 +1331,26 @@ fn _evaluate(
                             for entry in vec {
                               let entry = entry
                                 .and_then(|entry| entry.as_vec().cloned())
-                                .expect("Entry must be some");
+                                .unwrap_or_else(|| stylex_panic!("Entry must be some"));
 
                               let key = entry
                                 .first()
                                 .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
                                 .and_then(|expr| expr.as_lit().cloned())
-                                .expect("Key must be a literal");
+                                .unwrap_or_else(|| stylex_panic!("Key must be a literal"));
 
                               let value = entry
                                 .get(1)
                                 .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
-                                .expect("Value must be a literal");
+                                .unwrap_or_else(|| stylex_panic!("Value must be a literal"));
 
                               from_entries_result.insert(key.clone(), Box::new(value.clone()));
                             }
                           }
                           _ => {
-                            panic!("Object.fromEntries requires an object")
+                            stylex_panic!("Object.fromEntries requires an object")
                           }
                         };
 
@@ -1308,10 +1372,15 @@ fn _evaluate(
 
                         if let Some(object) = object {
                           for prop in &object.props {
-                            let expr = prop.as_prop().cloned().expect("Spread");
+                            let expr = match prop.as_prop().cloned() {
+                              Some(p) => p,
+                              None => stylex_panic!("Spread"),
+                            };
 
-                            let key_values =
-                              expr.as_key_value().expect("Object.keys requires an object");
+                            let key_values = match expr.as_key_value() {
+                              Some(kv) => kv,
+                              None => stylex_panic!("Object.keys requires an object"),
+                            };
 
                             let key = key_value_to_str(key_values);
 
@@ -1339,11 +1408,15 @@ fn _evaluate(
 
                         if let Some(object) = object {
                           for prop in &object.props {
-                            let prop = prop.as_prop().cloned().expect("Spread");
+                            let prop = match prop.as_prop().cloned() {
+                              Some(p) => p,
+                              None => stylex_panic!("Spread"),
+                            };
 
-                            let key_values = prop
-                              .as_key_value()
-                              .expect("Object.values requires an object");
+                            let key_values = match prop.as_key_value() {
+                              Some(kv) => kv,
+                              None => stylex_panic!("Object.values requires an object"),
+                            };
 
                             values.push(Some(expr_or_spread_factory(*key_values.value.clone())));
                           }
@@ -1367,11 +1440,15 @@ fn _evaluate(
 
                         if let Some(object) = object {
                           for prop in &object.props {
-                            let expr = prop.as_prop().map(|prop| *prop.clone()).expect("Spread");
+                            let expr = match prop.as_prop().map(|prop| *prop.clone()) {
+                              Some(p) => p,
+                              None => stylex_panic!("Spread"),
+                            };
 
-                            let key_values = expr
-                              .as_key_value()
-                              .expect("Object.entries requires an object");
+                            let key_values = match expr.as_key_value() {
+                              Some(kv) => kv,
+                              None => stylex_panic!("Object.entries requires an object"),
+                            };
 
                             let value = key_values.value.clone();
 
@@ -1384,14 +1461,17 @@ fn _evaluate(
                         context = Some(vec![Some(EvaluateResultValue::Entries(entries))]);
                       }
                       _ => {
-                        panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
+                        stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
                       }
                     }
                   }
-                  _ => panic!("{} - {}", BUILT_IN_FUNCTION, callee_name),
+                  _ => stylex_panic!("{} - {}", BUILT_IN_FUNCTION, callee_name),
                 }
               } else {
-                let prop_ident = property.as_ident().unwrap();
+                let prop_ident = match property.as_ident() {
+                  Some(ident) => ident,
+                  None => stylex_panic!("Property is not an identifier"),
+                };
 
                 let obj_name = obj_ident.sym.to_string();
                 let prop_id = prop_ident.sym.to_id();
@@ -1406,12 +1486,14 @@ fn _evaluate(
                     FunctionConfigType::Regular(fc) => {
                       func = Some(Box::new(fc.clone()));
                     }
-                    FunctionConfigType::Map(_) => panic_with_context!(
+                    FunctionConfigType::Map(_) => stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "FunctionConfigType::Map not implemented"
                     ),
-                    FunctionConfigType::IndexMap(_) => unimplemented!("IndexMap not implemented"),
+                    FunctionConfigType::IndexMap(_) => {
+                      stylex_unimplemented!("IndexMap not implemented")
+                    }
                     FunctionConfigType::EnvObject(_) => {
                       // This shouldn't happen - env object isn't directly callable.
                       // But if it does, try to evaluate it as a member expression call.
@@ -1431,7 +1513,7 @@ fn _evaluate(
                 .get(&ImportSources::Regular(obj_name))
                 && member_expr.contains_key(prop_id)
               {
-                panic_with_context!(path, traversal_state, "Check what's happening here");
+                stylex_panic_with_context!(path, traversal_state, "Check what's happening here");
 
                 // context = Some(member_expr.clone());
 
@@ -1447,12 +1529,15 @@ fn _evaluate(
           }
 
           if object.is_lit() {
-            let obj_lit = object.as_lit().unwrap();
+            let obj_lit = match object.as_lit() {
+              Some(lit) => lit,
+              None => stylex_panic!("Object is not a literal"),
+            };
 
             if property.is_ident()
               && let Lit::Bool(_) = obj_lit
             {
-              panic_with_context!(path, traversal_state, "Boolean object not implemented");
+              stylex_panic_with_context!(path, traversal_state, "Boolean object not implemented");
             }
           }
 
@@ -1461,7 +1546,10 @@ fn _evaluate(
 
             if parsed_obj.confident {
               if property.is_ident() {
-                let prop_ident = property.as_ident().expect("Property is not an identifier");
+                let prop_ident = match property.as_ident() {
+                  Some(ident) => ident,
+                  None => stylex_panic!("Property is not an identifier"),
+                };
                 let prop_name = prop_ident.sym.to_string();
 
                 if is_mutating_array_method(property) {
@@ -1471,7 +1559,7 @@ fn _evaluate(
                 let value = match parsed_obj.value {
                   Some(v) => v,
                   None => {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       format!(
@@ -1488,7 +1576,7 @@ fn _evaluate(
                     let result_fn = map.get(&Expr::from(prop_ident.clone()));
 
                     func = match result_fn {
-                      Some(_) => panic_with_context!(
+                      Some(_) => stylex_panic_with_context!(
                         path,
                         traversal_state,
                         "EvaluateResultValue::Map not implemented"
@@ -1503,7 +1591,7 @@ fn _evaluate(
                         "filter" => CallbackType::Array(ArrayJS::Filter),
                         "join" => CallbackType::Array(ArrayJS::Join),
                         "entries" => CallbackType::Object(ObjectJS::Entries),
-                        _ => panic_with_context!(
+                        _ => stylex_panic_with_context!(
                           path,
                           traversal_state,
                           format!("Array method '{}' not implemented yet", prop_name).as_str()
@@ -1521,7 +1609,7 @@ fn _evaluate(
                           "map" => CallbackType::Array(ArrayJS::Map),
                           "filter" => CallbackType::Array(ArrayJS::Filter),
                           "entries" => CallbackType::Object(ObjectJS::Entries),
-                          _ => panic_with_context!(
+                          _ => stylex_panic_with_context!(
                             path,
                             traversal_state,
                             format!("Method '{}' not implemented yet", prop_name).as_str()
@@ -1532,7 +1620,13 @@ fn _evaluate(
 
                       let expr = elems
                         .iter()
-                        .map(|elem| Some(EvaluateResultValue::Expr(*elem.clone().unwrap().expr)))
+                        .map(|elem| {
+                          let elem = match elem.clone() {
+                            Some(e) => e,
+                            None => stylex_panic!("Array element must be present"),
+                          };
+                          Some(EvaluateResultValue::Expr(*elem.expr))
+                        })
                         .collect::<Vec<Option<EvaluateResultValue>>>();
 
                       context = Some(vec![Some(EvaluateResultValue::Vec(expr))]);
@@ -1542,7 +1636,7 @@ fn _evaluate(
                         fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
                           "concat" => CallbackType::String(StringJS::Concat),
                           "charCodeAt" => CallbackType::String(StringJS::CharCodeAt),
-                          _ => panic_with_context!(
+                          _ => stylex_panic_with_context!(
                             path,
                             traversal_state,
                             format!("Method '{}' not implemented yet", prop_name).as_str()
@@ -1565,7 +1659,7 @@ fn _evaluate(
                           });
 
                       let Some(key_value) = key_value else {
-                        panic_with_context!(path, traversal_state, "Property not found");
+                        stylex_panic_with_context!(path, traversal_state, "Property not found");
                       };
 
                       func = Some(Box::new(FunctionConfig {
@@ -1597,7 +1691,7 @@ fn _evaluate(
                       return deopt(path, state, "Regex methods cannot be statically evaluated");
                     }
                     _ => {
-                      panic_with_context!(
+                      stylex_panic_with_context!(
                         path,
                         traversal_state,
                         "Expression evaluation not implemented"
@@ -1625,7 +1719,7 @@ fn _evaluate(
                         context = Some(vec![Some(value)]);
                       };
                     }
-                    _ => panic_with_context!(
+                    _ => stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "FunctionType::StylexFnsFactory not implemented"
@@ -1644,14 +1738,14 @@ fn _evaluate(
                         return Some(result);
                       }
                     } else {
-                      panic_with_context!(
+                      stylex_panic_with_context!(
                         path,
                         traversal_state,
                         format!("Env property '{}' not found", prop_name).as_str()
                       );
                     }
                   }
-                  _ => panic_with_context!(
+                  _ => stylex_panic_with_context!(
                     path,
                     traversal_state,
                     "Evaluation result value not implemented"
@@ -1663,7 +1757,7 @@ fn _evaluate(
                 let value = match parsed_obj.value {
                   Some(v) => v,
                   None => {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       format!(
@@ -1677,7 +1771,7 @@ fn _evaluate(
                 let map = match value.as_map() {
                   Some(m) => m,
                   None => {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       format!(
@@ -1692,7 +1786,9 @@ fn _evaluate(
                 let result_fn = map.get(&string_to_expression(&prop_id_owned));
 
                 func = match result_fn {
-                  Some(_) => panic_with_context!(path, traversal_state, "Result function is some"),
+                  Some(_) => {
+                    stylex_panic_with_context!(path, traversal_state, "Result function is some")
+                  }
                   None => None,
                 };
               }
@@ -1715,25 +1811,32 @@ fn _evaluate(
               return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::StylexExprFn(func) => {
-              let func_result = (func)((**args.first().unwrap()).clone(), traversal_state);
+              let func_result = (func)(
+                (**match args.first() {
+                  Some(a) => a,
+                  None => stylex_panic!("StylexExprFn requires at least one argument"),
+                })
+                .clone(),
+                traversal_state,
+              );
 
               return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::StylexTypeFn(_) => {
-              panic_with_context!(path, traversal_state, "StylexFnsFactory not implemented")
+              stylex_panic_with_context!(path, traversal_state, "StylexFnsFactory not implemented")
             }
             FunctionType::StylexFnsFactory(_) => {
-              panic_with_context!(path, traversal_state, "StylexFnsFactory")
+              stylex_panic_with_context!(path, traversal_state, "StylexFnsFactory")
             }
             FunctionType::Callback(_) => {
-              panic_with_context!(path, traversal_state, "Arrow function")
+              stylex_panic_with_context!(path, traversal_state, "Arrow function")
             }
-            FunctionType::Mapper(_) => panic_with_context!(path, traversal_state, "Mapper"),
+            FunctionType::Mapper(_) => stylex_panic_with_context!(path, traversal_state, "Mapper"),
             FunctionType::DefaultMarker(_) => {
-              panic_with_context!(path, traversal_state, "DefaultMarker")
+              stylex_panic_with_context!(path, traversal_state, "DefaultMarker")
             }
             FunctionType::EnvFunction(_) => {
-              panic_with_context!(
+              stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "EnvFunction with takes_path not supported"
@@ -1751,11 +1854,9 @@ fn _evaluate(
               let func_result = (func)(
                 args
                   .into_iter()
-                  .map(|arg| {
-                    arg
-                      .as_expr()
-                      .cloned()
-                      .expect("Argument is not an expression")
+                  .map(|arg| match arg.as_expr().cloned() {
+                    Some(e) => e,
+                    None => stylex_panic!("Argument is not an expression"),
                   })
                   .collect(),
                 traversal_state,
@@ -1766,7 +1867,10 @@ fn _evaluate(
             FunctionType::StylexExprFn(func) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
               let func_result = (func)(
-                args.first().and_then(|arg| arg.as_expr().cloned()).unwrap(),
+                args
+                  .first()
+                  .and_then(|arg| arg.as_expr().cloned())
+                  .unwrap_or_else(|| stylex_panic!("StylexExprFn requires an expression argument")),
                 traversal_state,
               );
               return Some(EvaluateResultValue::Expr(func_result));
@@ -1777,30 +1881,40 @@ fn _evaluate(
               let expr = args
                 .first()
                 .and_then(|expr| expr.as_expr())
-                .expect("Argument is not an expression");
+                .unwrap_or_else(|| stylex_panic!("Argument is not an expression"));
 
               match expr {
                 Expr::Object(obj) => {
                   for prop in &obj.props {
-                    let prop = prop.as_prop().unwrap();
-                    let key_value = prop.as_key_value().unwrap();
+                    let prop = match prop.as_prop() {
+                      Some(p) => p,
+                      None => stylex_panic!("Spread property not supported"),
+                    };
+                    let key_value = match prop.as_key_value() {
+                      Some(kv) => kv,
+                      None => stylex_panic!("Property is not a key-value pair"),
+                    };
 
-                    let key = key_value
-                      .key
-                      .as_ident()
-                      .expect("Key not an ident")
-                      .sym
-                      .to_string();
+                    let key = match key_value.key.as_ident() {
+                      Some(ident) => ident.sym.to_string(),
+                      None => stylex_panic!("Key not an ident"),
+                    };
 
-                    let value = key_value.value.as_lit().expect("Value not a literal");
+                    let value = match key_value.value.as_lit() {
+                      Some(lit) => lit,
+                      None => stylex_panic!("Value not a literal"),
+                    };
 
-                    fn_args.insert(key, ValueWithDefault::String(lit_to_string(value).unwrap()));
+                    fn_args.insert(
+                      key,
+                      ValueWithDefault::String(lit_to_string(value).unwrap_or_default()),
+                    );
                   }
                 }
                 Expr::Lit(lit) => {
                   fn_args.insert(
                     "default".to_string(),
-                    ValueWithDefault::String(lit_to_string(lit).unwrap()),
+                    ValueWithDefault::String(lit_to_string(lit).unwrap_or_default()),
                   );
                 }
                 _ => {}
@@ -1810,7 +1924,10 @@ fn _evaluate(
               return Some(EvaluateResultValue::Expr(func_result));
             }
             FunctionType::Callback(func) => {
-              let context = context.expect("Object.entries requires a context");
+              let context = match context {
+                Some(c) => c,
+                None => stylex_panic!("Object.entries requires a context"),
+              };
 
               match func.as_ref() {
                 CallbackType::Array(ArrayJS::Map) => {
@@ -1830,7 +1947,7 @@ fn _evaluate(
                 }
                 CallbackType::Object(ObjectJS::Entries) => {
                   let Some(Some(eval_result)) = context.first() else {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "Object.entries requires an argument"
@@ -1838,7 +1955,7 @@ fn _evaluate(
                   };
 
                   let EvaluateResultValue::Entries(entries) = eval_result else {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "Object.entries requires an argument"
@@ -1862,21 +1979,29 @@ fn _evaluate(
                 }
                 CallbackType::Object(ObjectJS::Keys) => {
                   let Some(Some(EvaluateResultValue::Expr(keys))) = context.first() else {
-                    panic_with_context!(path, traversal_state, "Object.keys requires an argument")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "Object.keys requires an argument"
+                    )
                   };
 
                   return Some(EvaluateResultValue::Expr(keys.clone()));
                 }
                 CallbackType::Object(ObjectJS::Values) => {
                   let Some(Some(EvaluateResultValue::Expr(values))) = context.first() else {
-                    panic_with_context!(path, traversal_state, "Object.keys requires an argument")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "Object.keys requires an argument"
+                    )
                   };
 
                   return Some(EvaluateResultValue::Expr(values.clone()));
                 }
                 CallbackType::Object(ObjectJS::FromEntries) => {
                   let Some(Some(EvaluateResultValue::Entries(entries))) = context.first() else {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "Object.fromEntries requires an argument"
@@ -1889,7 +2014,7 @@ fn _evaluate(
                     let key_str = if let Lit::Str(lit_str) = key {
                       atom_to_str(&lit_str.value)
                     } else {
-                      panic_with_context!(path, traversal_state, "Expected a string literal")
+                      stylex_panic_with_context!(path, traversal_state, "Expected a string literal")
                     };
 
                     entry_elems.push(prop_or_spread_ident_factory(key_str, *value.clone()));
@@ -1901,7 +2026,11 @@ fn _evaluate(
                 }
                 CallbackType::Math(MathJS::Pow) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
-                    panic_with_context!(path, traversal_state, "Math.pow requires an argument")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "Math.pow requires an argument"
+                    )
                   };
 
                   let num_args = args
@@ -1913,17 +2042,20 @@ fn _evaluate(
                         .map(|expr| {
                           unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
-                        .expect("All arguments must be a number")
+                        .unwrap_or_else(|| stylex_panic!("All arguments must be a number"))
                     })
                     .collect::<Vec<f64>>();
 
-                  let result = num_args.first().unwrap().powf(*num_args.get(1).unwrap());
+                  let result = match (num_args.first(), num_args.get(1)) {
+                    (Some(base), Some(exp)) => base.powf(*exp),
+                    _ => stylex_panic!("Math.pow requires two arguments"),
+                  };
 
                   return Some(EvaluateResultValue::Expr(number_to_expression(result)));
                 }
                 CallbackType::Math(MathJS::Round | MathJS::Floor | MathJS::Ceil) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "Math.(round | ceil | floor) requires an argument"
@@ -1932,21 +2064,21 @@ fn _evaluate(
 
                   let num =
                     expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
-                      panic_with_context!(path, traversal_state, error.to_string().as_str())
+                      stylex_panic_with_context!(path, traversal_state, error.to_string().as_str())
                     });
 
                   let result = match func.as_ref() {
                     CallbackType::Math(MathJS::Round) => num.round(),
                     CallbackType::Math(MathJS::Ceil) => num.ceil(),
                     CallbackType::Math(MathJS::Floor) => num.floor(),
-                    _ => unreachable!("Invalid function type"),
+                    _ => stylex_unreachable!("Invalid function type"),
                   };
 
                   return Some(EvaluateResultValue::Expr(number_to_expression(result)));
                 }
                 CallbackType::Math(MathJS::Min | MathJS::Max) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
-                    panic_with_context!(
+                    stylex_panic_with_context!(
                       path,
                       traversal_state,
                       "Math.(min | max) requires an argument"
@@ -1962,27 +2094,35 @@ fn _evaluate(
                     CallbackType::Math(MathJS::Max) => {
                       num_args.iter().cloned().max_by(sort_numbers_factory())
                     }
-                    _ => unreachable!("Invalid function type"),
+                    _ => stylex_unreachable!("Invalid function type"),
                   }
-                  .unwrap();
+                  .unwrap_or_else(|| stylex_panic!("Math.min/max returned no result"));
 
                   return Some(EvaluateResultValue::Expr(number_to_expression(result)));
                 }
                 CallbackType::Math(MathJS::Abs) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
-                    panic_with_context!(path, traversal_state, "Math.abs requires an argument")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "Math.abs requires an argument"
+                    )
                   };
 
                   let num =
                     expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
-                      panic_with_context!(path, traversal_state, error.to_string().as_str())
+                      stylex_panic_with_context!(path, traversal_state, error.to_string().as_str())
                     });
 
                   return Some(EvaluateResultValue::Expr(number_to_expression(num.abs())));
                 }
                 CallbackType::String(StringJS::Concat) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
-                    panic_with_context!(path, traversal_state, "String concat requires an argument")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "String concat requires an argument"
+                    )
                   };
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
@@ -2021,7 +2161,11 @@ fn _evaluate(
                 }
                 CallbackType::String(StringJS::CharCodeAt) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
-                    panic_with_context!(path, traversal_state, "String concat requires an argument")
+                    stylex_panic_with_context!(
+                      path,
+                      traversal_state,
+                      "String concat requires an argument"
+                    )
                   };
 
                   let base_str = expr_to_str_or_deopt!(
@@ -2042,16 +2186,16 @@ fn _evaluate(
                         .map(|expr| {
                           unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
-                        .expect("First argument must be a number")
+                        .unwrap_or_else(|| stylex_panic!("First argument must be a number"))
                     })
                     .collect::<Vec<f64>>();
 
-                  let char_index = num_args
-                    .first()
-                    .expect("First argument of 'charCodeAt' method must be a number");
+                  let char_index = num_args.first().unwrap_or_else(|| {
+                    stylex_panic!("First argument of 'charCodeAt' method must be a number")
+                  });
 
                   let char_code = char_code_at(&base_str, *char_index as usize)
-                    .expect("Char code not found for index");
+                    .unwrap_or_else(|| stylex_panic!("Char code not found for index"));
 
                   return Some(EvaluateResultValue::Expr(number_to_expression(
                     char_code as f64,
@@ -2066,7 +2210,9 @@ fn _evaluate(
                     Some(EvaluateResultValue::Callback(cb)) => {
                       cb(args.into_iter().map(Some).collect())
                     }
-                    _ => panic_with_context!(path, traversal_state, "Arrow function not found"),
+                    _ => {
+                      stylex_panic_with_context!(path, traversal_state, "Arrow function not found")
+                    }
                   };
 
                   return Some(EvaluateResultValue::Expr(expr_result));
@@ -2084,16 +2230,17 @@ fn _evaluate(
               let env_args: Vec<Expr> = args
                 .iter()
                 .map(|arg| {
-                  arg
-                    .as_expr()
-                    .expect("Env function argument must be an expression")
-                    .clone()
+                  match arg.as_expr() {
+                    Some(e) => e,
+                    None => stylex_panic!("Env function argument must be an expression"),
+                  }
+                  .clone()
                 })
                 .collect();
               let result = env_fn.call(env_args);
               return Some(EvaluateResultValue::Expr(result));
             }
-            _ => panic_with_context!(path, traversal_state, "Function type"),
+            _ => stylex_panic_with_context!(path, traversal_state, "Function type"),
           }
         }
       }
@@ -2166,7 +2313,7 @@ fn _evaluate(
 
   if result.is_none() && normalized_path.is_ident() {
     let Some(ident) = normalized_path.as_ident() else {
-      panic_with_context!(path, traversal_state, "Identifier not foun")
+      stylex_panic_with_context!(path, traversal_state, "Identifier not foun")
     };
 
     let binding = get_var_decl_by_ident(
@@ -2216,7 +2363,7 @@ fn _evaluate(
             None
           }
         })
-        .expect("Import specifier not found");
+        .unwrap_or_else(|| stylex_panic!("Import specifier not found"));
 
       let imported = imported
         .clone()
@@ -2322,7 +2469,7 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
             let expr = match elem_value {
               EvaluateResultValue::Expr(expr) => expr.clone(),
               EvaluateResultValue::Vec(vec) => normalize_js_object_method_nested_vector_arg(vec),
-              _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+              _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             };
 
             prop_or_spread_ident_factory(&index.to_string(), expr)
@@ -2351,14 +2498,20 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValu
               let nested_elems = nested_vec
                 .iter()
                 .flatten()
-                .map(|item| Some(expr_or_spread_factory(item.as_expr().unwrap().clone())))
+                .map(|item| {
+                  let expr = match item.as_expr() {
+                    Some(e) => e,
+                    None => stylex_panic!("Item must be an expression"),
+                  };
+                  Some(expr_or_spread_factory(expr.clone()))
+                })
                 .collect();
 
               array_expression_factory(nested_elems)
             })
             .or_else(|| entry.as_expr().cloned())
         })
-        .expect(ILLEGAL_PROP_ARRAY_VALUE);
+        .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
 
       Some(expr_or_spread_factory(expr))
     })
@@ -2393,12 +2546,12 @@ fn args_to_numbers(
         EvaluateResultValue::Expr(expr) => {
           vec![
             expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
-              panic_with_context!(expr, traversal_state, error.to_string().as_str())
+              stylex_panic_with_context!(expr, traversal_state, error.to_string().as_str())
             }),
           ]
         }
         EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, traversal_state, fns),
-        _ => unreachable!("Math.min/max requires a number"),
+        _ => stylex_unreachable!("Math.min/max requires a number"),
       },
       None => vec![],
     })
@@ -2423,7 +2576,7 @@ fn is_valid_callee(callee: &Expr) -> bool {
 fn get_callee_name(callee: &Expr) -> &str {
   match callee {
     Expr::Ident(ident) => &ident.sym,
-    _ => panic!("Callee is not an identifier"),
+    _ => stylex_panic!("Callee is not an identifier"),
   }
 }
 
@@ -2489,7 +2642,7 @@ fn is_mutation_expr(expr: &Expr) -> bool {
 fn get_method_name(prop: &MemberProp) -> &str {
   match prop {
     MemberProp::Ident(ident_prop) => &ident_prop.sym,
-    _ => panic!("Method is not an identifier"),
+    _ => stylex_panic!("Method is not an identifier"),
   }
 }
 
@@ -2497,12 +2650,10 @@ fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
   if let MemberProp::Computed(comp_prop) = prop
     && let Expr::Lit(Lit::Str(strng)) = comp_prop.expr.as_ref()
   {
-    return Some(
-      strng
-        .value
-        .as_atom()
-        .expect("Failed to convert Str to Atom"),
-    );
+    return Some(match strng.value.as_atom() {
+      Some(a) => a,
+      None => stylex_panic!("Failed to convert Str to Atom"),
+    });
   }
 
   None
@@ -2521,7 +2672,7 @@ pub(crate) fn evaluate_quasis(
   let exprs = match tpl_expr {
     Expr::Tpl(tpl) => &tpl.exprs,
     Expr::TaggedTpl(tagged_tpl) => &tagged_tpl.tpl.exprs,
-    _ => panic_with_context!(
+    _ => stylex_panic_with_context!(
       tpl_expr,
       traversal_state,
       "The expression is not a template"

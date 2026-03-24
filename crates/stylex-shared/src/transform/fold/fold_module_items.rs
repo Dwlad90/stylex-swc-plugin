@@ -17,6 +17,7 @@ use crate::{
       common::{fill_state_declarations, stable_hash},
     },
   },
+  stylex_panic,
 };
 
 impl<C> StyleXTransform<C>
@@ -123,7 +124,13 @@ where
           .and_then(|stmp| stmp.as_expr())
           && let Some(Lit::Str(_)) = first.expr.as_lit()
         {
-          result_module_items.insert(0, module_items.first().unwrap().clone());
+          result_module_items.insert(
+            0,
+            match module_items.first() {
+              Some(item) => item.clone(),
+              None => stylex_panic!("module_items is unexpectedly empty"),
+            },
+          );
           items_to_skip = 1;
         }
 
@@ -171,7 +178,10 @@ where
             _ => None,
           } {
             for decl in decls {
-              let key = decl.init.clone().unwrap();
+              let key = match decl.init.clone() {
+                Some(k) => k,
+                None => stylex_panic!("VarDeclarator init is None"),
+              };
 
               let key_hash = stable_hash(key.as_ref());
 

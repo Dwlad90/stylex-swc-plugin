@@ -5,7 +5,9 @@ use super::{order::Order, order_pair::OrderPair};
 pub(crate) struct ApplicationOrder {}
 
 impl Order for ApplicationOrder {
-  fn get_expansion_fn(property: &str) -> Option<fn(Option<String>) -> Vec<OrderPair>> {
+  fn get_expansion_fn(
+    property: &str,
+  ) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
     let alias_fn = Aliases::get(property);
 
     if let Some(alias_fn) = alias_fn {

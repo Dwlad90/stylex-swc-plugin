@@ -22,7 +22,10 @@ use swc_core::{
 use crate::shared::{
   regex::URL_REGEX,
   structures::state_manager::StateManager,
-  utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+  utils::{
+    ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+    log::stylex_error::__stylex_panic,
+  },
 };
 
 pub(crate) struct CodeFrame {
@@ -43,7 +46,8 @@ impl CodeFrame {
   }
 
   pub(crate) fn create_error<'a>(&'a self, span: Span, message: &str) -> DiagnosticBuilder<'a> {
-    let mut diagnostic = self.handler.struct_span_err(span, message);
+    let prefixed_message = format!("[StyleX] {}", message);
+    let mut diagnostic = self.handler.struct_span_err(span, &prefixed_message);
 
     let urls = URL_REGEX
       .find_iter(message)
@@ -440,19 +444,44 @@ pub(crate) fn build_code_frame_error_and_panic(
 ) -> ! {
   let caller_location = std::panic::Location::caller();
 
-  let enhanced_message = format!(
-    "{} (called from {}:{})",
-    error_message,
-    caller_location.file(),
-    caller_location.line()
-  );
+  // Emit the code frame diagnostic to stderr (already [StyleX]-prefixed)
+  let (file, line) = match get_span_from_source_code(wrapped_expression, fault_expression, state) {
+    Ok((code_frame, span)) => {
+      code_frame.create_error(span, error_message).emit();
+      let line_num = code_frame.get_span_line_number(span);
+      (Some(state.get_filename().to_owned()), Some(line_num))
+    }
+    Err(error) => {
+      if log::log_enabled!(log::Level::Debug) {
+        debug!(
+          "Failed to generate code frame error: {:?}. File: {}. Expression: {:?}.",
+          error,
+          state.get_filename(),
+          fault_expression,
+        );
+      } else {
+        warn!(
+          "Failed to generate code frame error: {:?}. File: {}. For more information enable debug logging.",
+          error,
+          state.get_filename(),
+        );
+      }
+      (Some(state.get_filename().to_owned()), None)
+    }
+  };
 
-  build_code_frame_error(
-    wrapped_expression,
-    fault_expression,
-    &enhanced_message,
-    state,
-  );
+  let err = super::stylex_error::StyleXError {
+    message: error_message.to_string(),
+    file,
+    key_path: None,
+    line,
+    col: None,
+    source_location: Some(format!(
+      "{}:{}",
+      caller_location.file(),
+      caller_location.line()
+    )),
+  };
 
-  panic!("{}", enhanced_message);
+  __stylex_panic(err);
 }

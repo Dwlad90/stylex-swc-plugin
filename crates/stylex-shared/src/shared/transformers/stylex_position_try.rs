@@ -3,28 +3,33 @@ use std::rc::Rc;
 
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-    obj_map_type::ObjMapType,
-  },
-  structures::{
-    functions::{FunctionConfig, FunctionType},
-    injectable_style::InjectableStyle,
-    pair::Pair,
-    state_manager::StateManager,
-    types::FlatCompiledStyles,
-  },
-  utils::{
-    ast::{
-      convertors::{lit_to_string, string_to_expression},
-      factories::{object_lit_factory, prop_or_spread_string_factory},
+use crate::{
+  shared::{
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+      obj_map_type::ObjMapType,
     },
-    common::{create_hash, dashify},
-    css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
-    object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
+    structures::{
+      functions::{FunctionConfig, FunctionType},
+      injectable_style::InjectableStyle,
+      pair::Pair,
+      state_manager::StateManager,
+      types::FlatCompiledStyles,
+    },
+    utils::{
+      ast::{
+        convertors::{lit_to_string, string_to_expression},
+        factories::{object_lit_factory, prop_or_spread_string_factory},
+      },
+      common::{create_hash, dashify},
+      css::{
+        common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl,
+      },
+      object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
+    },
   },
+  stylex_panic,
 };
 
 pub(crate) fn stylex_position_try(
@@ -38,7 +43,7 @@ pub(crate) fn stylex_position_try(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    panic!("Values must be an object")
+    stylex_panic!("Values must be an object")
   };
 
   let extended_object = {
@@ -53,7 +58,7 @@ pub(crate) fn stylex_position_try(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
-            _ => panic!("Entry must be a tuple of key and value"),
+            _ => stylex_panic!("Entry must be a tuple of key and value"),
           },
         )
       })
@@ -78,7 +83,7 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        panic!("Values must be a tuple of key, value, and css type")
+        stylex_panic!("Values must be a tuple of key, value, and css type")
       };
 
       let ltr_values = generate_ltr(
@@ -105,7 +110,7 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        panic!("Values must be a tuple of key, value, and css type")
+        stylex_panic!("Values must be a tuple of key, value, and css type")
       };
 
       let value = lit_to_string(

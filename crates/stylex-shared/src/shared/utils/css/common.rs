@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::shared::{
   constants::{
     common::{
@@ -48,6 +46,8 @@ use swc_core::{
     parser::{error::Error, parse_string_input, parser::ParserConfig},
   },
 };
+
+use crate::stylex_panic;
 
 use super::parser::parse_css;
 
@@ -443,13 +443,16 @@ pub(crate) fn normalize_css_property_value(
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
   if !errors.is_empty() {
-    let mut error_message = errors.first().unwrap().message().to_string();
+    let mut error_message = match errors.first() {
+      Some(e) => e.message().to_string(),
+      None => stylex_panic!("CSS parsing error list is unexpectedly empty"),
+    };
 
     if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {
       error_message = LINT_UNCLOSED_FUNCTION.to_string();
     }
 
-    panic!("{}, css rule: {}", error_message, css_rule)
+    stylex_panic!("{}, css rule: {}", error_message, css_rule)
   }
 
   match parsed_css {
@@ -485,7 +488,7 @@ pub(crate) fn normalize_css_property_value(
       convert_css_function_to_camel_case(result.as_str())
     }
     Err(err) => {
-      panic!("{}", err.message())
+      stylex_panic!("{}", err.message())
     }
   }
 }
@@ -529,7 +532,10 @@ pub fn stringify(node: &Stylesheet) -> String {
   let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
   let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
 
-  Emit::emit(&mut codegen, node).unwrap();
+  match Emit::emit(&mut codegen, node) {
+    Ok(_) => {}
+    Err(e) => stylex_panic!("CSS codegen emit failed: {}", e),
+  };
 
   let mut result = buf.replace('\'', "");
 

@@ -10,33 +10,36 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  constants::{
-    length_units::LENGTH_UNITS, messages::ILLEGAL_NAMESPACE_VALUE, time_units::get_time_units,
-  },
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    evaluate_result::EvaluateResult,
-    functions::FunctionMap,
-    inline_style::InlineStyle,
-    state_manager::StateManager,
-    types::{DynamicFns, TInlineStyles},
-  },
-  utils::{
-    ast::{
-      convertors::{
-        expr_to_str, ident_to_expression, null_to_expression, string_to_expression,
-        transform_shorthand_to_key_values,
-      },
-      factories::{
-        expr_or_spread_factory, object_expression_factory, prop_or_spread_expression_factory,
-      },
+use crate::{
+  shared::{
+    constants::{
+      length_units::LENGTH_UNITS, messages::ILLEGAL_NAMESPACE_VALUE, time_units::get_time_units,
     },
-    common::{create_hash, normalize_expr},
-    css::common::get_number_suffix,
-    js::evaluate::{evaluate, evaluate_obj_key},
-    validators::validate_dynamic_style_params,
+    enums::data_structures::evaluate_result_value::EvaluateResultValue,
+    structures::{
+      evaluate_result::EvaluateResult,
+      functions::FunctionMap,
+      inline_style::InlineStyle,
+      state_manager::StateManager,
+      types::{DynamicFns, TInlineStyles},
+    },
+    utils::{
+      ast::{
+        convertors::{
+          expr_to_str, ident_to_expression, null_to_expression, string_to_expression,
+          transform_shorthand_to_key_values,
+        },
+        factories::{
+          expr_or_spread_factory, object_expression_factory, prop_or_spread_expression_factory,
+        },
+      },
+      common::{create_hash, normalize_expr},
+      css::common::get_number_suffix,
+      js::evaluate::{evaluate, evaluate_obj_key},
+      validators::validate_dynamic_style_params,
+    },
   },
+  stylex_panic, stylex_unimplemented,
 };
 
 /// Prepends a key name to an existing error reason to provide context
@@ -57,7 +60,7 @@ pub fn evaluate_stylex_create_arg(
 
       for prop in &style_object.props {
         match prop {
-          PropOrSpread::Spread(_) => unimplemented!("Spread"),
+          PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
           PropOrSpread::Prop(prop) => {
             let mut prop = prop.clone();
 
@@ -177,7 +180,7 @@ pub fn evaluate_stylex_create_arg(
                         .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
                         .cloned()
                         .collect::<Vec<_>>(),
-                      _ => panic!("{}", ILLEGAL_NAMESPACE_VALUE),
+                      _ => stylex_panic!("{}", ILLEGAL_NAMESPACE_VALUE),
                     };
 
                     result_value.insert(key_expr.clone(), value_to_insert);
@@ -224,7 +227,7 @@ fn evaluate_partial_object_recursively(
         if !result.confident {
           return result;
         }
-        unimplemented!();
+        stylex_unimplemented!("Spread in style object is not supported");
       }
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();

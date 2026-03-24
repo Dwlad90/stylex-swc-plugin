@@ -8,27 +8,30 @@ use swc_core::ecma::{
   visit::FoldWith,
 };
 
-use crate::shared::{
-  enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
-  structures::{
-    functions::{FunctionConfigType, FunctionMap},
-    member_transform::MemberTransform,
-    state_manager::StateManager,
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
-  swc::get_default_expr_ctx,
-  transformers::stylex_default_maker,
-  utils::{
-    ast::{
-      convertors::{key_value_to_str, lit_to_string},
-      factories::{jsx_attr_factory, jsx_attr_or_spread_attr_factory},
+use crate::{
+  shared::{
+    enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
+    structures::{
+      functions::{FunctionConfigType, FunctionMap},
+      member_transform::MemberTransform,
+      state_manager::StateManager,
+      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
     },
-    common::{reduce_ident_count, reduce_member_expression_count},
-    core::{
-      make_string_expression::make_string_expression,
-      parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
+    swc::get_default_expr_ctx,
+    transformers::stylex_default_maker,
+    utils::{
+      ast::{
+        convertors::{key_value_to_str, lit_to_string},
+        factories::{jsx_attr_factory, jsx_attr_or_spread_attr_factory},
+      },
+      common::{reduce_ident_count, reduce_member_expression_count},
+      core::{
+        make_string_expression::make_string_expression,
+        parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
+      },
     },
   },
+  stylex_panic, stylex_unreachable,
 };
 
 pub(crate) fn stylex_merge(
@@ -46,30 +49,28 @@ pub(crate) fn stylex_merge(
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
   for name in &state.stylex_default_marker_import {
-    identifiers.insert(
-      name.clone(),
-      Box::new(FunctionConfigType::IndexMap(
-        stylex_default_maker::stylex_default_marker(&state.options)
-          .as_values()
-          .expect("Expected FlatCompiledStylesValues")
-          .clone(),
-      )),
-    );
+    let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
+      Some(v) => v.clone(),
+      None => stylex_panic!("Expected FlatCompiledStylesValues"),
+    };
+    identifiers.insert(name.clone(), Box::new(FunctionConfigType::IndexMap(values)));
   }
 
   for name in &state.stylex_import {
     member_expressions.entry(name.clone()).or_default();
 
-    let member_expression = member_expressions.get_mut(name).unwrap();
+    let member_expression = match member_expressions.get_mut(name) {
+      Some(m) => m,
+      None => stylex_panic!("Member expression not found for import"),
+    };
 
+    let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
+      Some(v) => v.clone(),
+      None => stylex_panic!("Expected FlatCompiledStylesValues"),
+    };
     member_expression.insert(
       "defaultMarker".into(),
-      Box::new(FunctionConfigType::IndexMap(
-        stylex_default_maker::stylex_default_marker(&state.options)
-          .as_values()
-          .expect("Expected FlatCompiledStylesValues")
-          .clone(),
-      )),
+      Box::new(FunctionConfigType::IndexMap(values)),
     );
   }
 
@@ -125,11 +126,10 @@ pub(crate) fn stylex_merge(
             //  Already processed in the conditional block above; bail_out flag set if needed.
           }
           StyleObject::Style(_) | StyleObject::Nullable => {
-            let ident = member
-              .obj
-              .as_ident()
-              .expect("Member obj is not an ident")
-              .clone();
+            let ident = match member.obj.as_ident() {
+              Some(i) => i.clone(),
+              None => stylex_panic!("Member obj is not an ident"),
+            };
 
             resolved_args.push(ResolvedArg::style_object_full(
               resolved,
@@ -138,7 +138,7 @@ pub(crate) fn stylex_merge(
             ));
           }
           StyleObject::Unreachable => {
-            unreachable!("StyleObject::Unreachable");
+            stylex_unreachable!("StyleObject::Unreachable");
           }
         }
       }
@@ -191,8 +191,11 @@ pub(crate) fn stylex_merge(
         } else {
           let ident = match right_path.as_ref() {
             Expr::Ident(ident) => ident,
-            Expr::Member(member) => member.obj.as_ident().expect("Member obj is not an ident"),
-            _ => panic!(
+            Expr::Member(member) => match member.obj.as_ident() {
+              Some(i) => i,
+              None => stylex_panic!("Member obj is not an ident"),
+            },
+            _ => stylex_panic!(
               "Illegal argument: {:?}",
               right_path.get_type(get_default_expr_ctx())
             ),
@@ -200,7 +203,7 @@ pub(crate) fn stylex_merge(
 
           let member = match right_path.as_ref() {
             Expr::Member(member) => member,
-            _ => panic!(
+            _ => stylex_panic!(
               "Illegal argument: {:?}",
               right_path.get_type(get_default_expr_ctx())
             ),
@@ -315,11 +318,11 @@ pub(crate) fn stylex_merge(
                 // Create JSX attribute directly
                 let attr_name = key_value_to_str(key_value);
                 let attr_value = key_value.value.as_lit().map(|lit| {
-                  JSXAttrValue::Str(
-                    lit_to_string(&lit.clone())
-                      .expect("Failed to get string value")
-                      .into(),
-                  )
+                  let s = match lit_to_string(&lit.clone()) {
+                    Some(s) => s,
+                    None => stylex_panic!("Failed to get string value"),
+                  };
+                  JSXAttrValue::Str(s.into())
                 });
 
                 attr_value.map(|attr_value| {
@@ -363,13 +366,10 @@ fn get_conditional_expr_idents(alternate: &Expr) -> Option<Vec<Ident>> {
 
       Some(vec![ident.clone()])
     }
-    Expr::Member(member) => Some(vec![
-      member
-        .obj
-        .as_ident()
-        .expect("Member obj is not an ident")
-        .clone(),
-    ]),
+    Expr::Member(member) => Some(vec![match member.obj.as_ident() {
+      Some(i) => i.clone(),
+      None => stylex_panic!("Member obj is not an ident"),
+    }]),
     Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => None,
     Expr::Array(array) => {
       let mut idents = Vec::new();
@@ -402,7 +402,7 @@ fn get_conditional_expr_idents(alternate: &Expr) -> Option<Vec<Ident>> {
       Some(idents)
     }
     _ => {
-      panic!(
+      stylex_panic!(
         "Illegal argument: {:?}",
         alternate.get_type(get_default_expr_ctx())
       )
@@ -426,7 +426,7 @@ fn get_conditional_expr_members(alternate: &Expr) -> Option<Vec<MemberExpr>> {
     }
     Expr::Cond(cond_expr) => get_conditional_expr_members(&cond_expr.alt),
     _ => {
-      panic!(
+      stylex_panic!(
         "Illegal argument in get_conditional_expr_member: {:?}",
         alternate.get_type(get_default_expr_ctx())
       )

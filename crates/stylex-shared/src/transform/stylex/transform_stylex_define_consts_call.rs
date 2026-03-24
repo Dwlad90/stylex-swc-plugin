@@ -1,3 +1,4 @@
+use crate::stylex_unimplemented;
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::comments::Comments,
@@ -20,7 +21,7 @@ use crate::shared::{
   },
 };
 
-use crate::StyleXTransform;
+use crate::{StyleXTransform, stylex_panic};
 
 impl<C> StyleXTransform<C>
 where
@@ -31,12 +32,15 @@ where
 
     if is_define_consts {
       let top_level_expr_defined_consts =
-        find_and_validate_stylex_define_consts(call, &mut self.state).unwrap();
+        match find_and_validate_stylex_define_consts(call, &mut self.state) {
+          Some(expr) => expr,
+          None => stylex_panic!("defineConsts: could not find top-level variable declaration"),
+        };
 
       let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => unimplemented!("Spread"),
+        Some(_) => stylex_unimplemented!("Spread"),
         None => first_arg.expr.clone(),
       })?;
 
@@ -82,15 +86,21 @@ where
           );
           value
         }
-        None => panic!("{}", non_static_value("defineConsts")),
+        None => stylex_panic!("{}", non_static_value("defineConsts")),
       };
 
-      let file_name = self
+      let file_name = match self
         .state
         .get_filename_for_hashing(&mut FxHashMap::default())
-        .unwrap_or_else(|| panic!("{}", cannot_generate_hash("defineConsts")));
+      {
+        Some(name) => name,
+        None => stylex_panic!("{}", cannot_generate_hash("defineConsts")),
+      };
 
-      let export_name = var_id.expect("Export variable not found");
+      let export_name = match var_id {
+        Some(name) => name,
+        None => stylex_panic!("defineConsts: export variable not found"),
+      };
 
       let export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 

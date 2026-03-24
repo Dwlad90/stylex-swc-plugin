@@ -1,19 +1,21 @@
-use std::panic;
-
+use log::warn;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::{
-  structures::{
-    application_order::ApplicationOrder,
-    legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
-    order::Order,
-    order_pair::OrderPair,
-    pre_rule::PreRuleValue,
-    property_specificity_order::PropertySpecificityOrder,
-    stylex_options::{PropertyValidationMode, StyleResolution},
-    stylex_state_options::StyleXStateOptions,
+use crate::{
+  shared::{
+    structures::{
+      application_order::ApplicationOrder,
+      legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
+      order::Order,
+      order_pair::OrderPair,
+      pre_rule::PreRuleValue,
+      property_specificity_order::PropertySpecificityOrder,
+      stylex_options::{PropertyValidationMode, StyleResolution},
+      stylex_state_options::StyleXStateOptions,
+    },
+    utils::ast::convertors::lit_to_string,
   },
-  utils::ast::convertors::lit_to_string,
+  stylex_panic,
 };
 
 pub(crate) fn flat_map_expanded_shorthands(
@@ -25,12 +27,36 @@ pub(crate) fn flat_map_expanded_shorthands(
   let value = match raw_value {
     PreRuleValue::String(value) => Some(value),
     PreRuleValue::Vec(_) => {
-      panic!("Cannot use fallbacks for shorthands. Use the expansion instead.")
+      let msg = "Cannot use fallbacks for shorthands. Use the expansion instead.";
+      match options.property_validation_mode {
+        PropertyValidationMode::Throw => {
+          stylex_panic!("{}", msg);
+        }
+        PropertyValidationMode::Warn => {
+          warn!("{}", msg);
+          return vec![];
+        }
+        PropertyValidationMode::Silent => {
+          return vec![];
+        }
+      }
     }
     PreRuleValue::Expr(expr) => match expr {
       Expr::Lit(lit) => Some(lit_to_string(&lit).expect("Failed to convert lit to string")),
       _ => {
-        panic!("Cannot use expressions for shorthands. Use the expansion instead.")
+        let msg = "Cannot use expressions for shorthands. Use the expansion instead.";
+        match options.property_validation_mode {
+          PropertyValidationMode::Throw => {
+            stylex_panic!("{}", msg);
+          }
+          PropertyValidationMode::Warn => {
+            warn!("{}", msg);
+            return vec![];
+          }
+          PropertyValidationMode::Silent => {
+            return vec![];
+          }
+        }
       }
     },
     PreRuleValue::Null => None,
@@ -53,33 +79,20 @@ pub(crate) fn flat_map_expanded_shorthands(
   };
 
   if let Some(expansion_fn) = expansion_fn {
-    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| (expansion_fn)(value)));
-
-    return match result {
+    return match (expansion_fn)(value) {
       Ok(expanded) => expanded,
-      Err(err) => {
-        let error_message = if let Some(s) = err.downcast_ref::<String>() {
-          s.clone()
-        } else if let Some(s) = err.downcast_ref::<&str>() {
-          s.to_string()
-        } else {
-          format!("{} is not supported", key)
-        };
-
-        match options.property_validation_mode {
-          PropertyValidationMode::Throw => {
-            panic!("{}", error_message);
-          }
-          PropertyValidationMode::Warn => {
-            eprintln!("[stylex] {}", error_message);
-            vec![]
-          }
-          PropertyValidationMode::Silent => {
-            // silent mode - skip the property without any output
-            vec![]
-          }
+      Err(error_message) => match options.property_validation_mode {
+        PropertyValidationMode::Throw => {
+          stylex_panic!("{}", error_message);
         }
-      }
+        PropertyValidationMode::Warn => {
+          warn!("{}", error_message);
+          vec![]
+        }
+        PropertyValidationMode::Silent => {
+          vec![]
+        }
+      },
     };
   }
 

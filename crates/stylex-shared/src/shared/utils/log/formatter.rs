@@ -2,6 +2,21 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use env_logger::fmt::Formatter;
 
+use crate::shared::utils::log::stylex_error::STYLEX_PREFIX;
+
+// Shared ANSI escape sequences – single source of truth for the whole log module.
+pub const ANSI_RED: &str = "\x1B[31m";
+pub const ANSI_YELLOW: &str = "\x1B[33m";
+pub const ANSI_GREEN: &str = "\x1B[32m";
+pub const ANSI_BLUE: &str = "\x1B[34m";
+pub const ANSI_WHITE: &str = "\x1B[37m";
+pub const ANSI_CYAN: &str = "\x1B[36m";
+pub const ANSI_BOLD: &str = "\x1B[1m";
+pub const ANSI_DIM: &str = "\x1B[2m";
+pub const ANSI_RESET: &str = "\x1B[0m";
+
+pub const ANSI_ORANGE: &str = "\x1B[38;5;208m";
+
 static MAX_MODULE_WIDTH: AtomicUsize = AtomicUsize::new(0);
 
 fn max_target_width(target: &str) -> usize {
@@ -21,21 +36,25 @@ pub fn log_formatter(f: &mut Formatter, record: &log::Record) -> std::io::Result
   let target = record.target();
   let max_width = max_target_width(target);
 
-  let level = match record.level() {
-    log::Level::Error => "31", // Red
-    log::Level::Warn => "33",  // Yellow
-    log::Level::Info => "32",  // Green
-    log::Level::Debug => "34", // Blue
-    log::Level::Trace => "37", // White
+  let level_color = match record.level() {
+    log::Level::Error => ANSI_RED,
+    log::Level::Warn => ANSI_YELLOW,
+    log::Level::Info => ANSI_GREEN,
+    log::Level::Debug => ANSI_BLUE,
+    log::Level::Trace => ANSI_WHITE,
   };
 
   writeln!(
     f,
-    "\x1B[{}m{} \x1B[0m\x1B[1m{:width$}\x1B[0m > {}",
-    level,
-    record.level(),    // Log level
-    target,            // Target
-    record.args(),     // Log message
-    width = max_width  // Apply the maximum width
+    "{}{} {} {}{}{:width$}{} > {}",
+    level_color,
+    record.level(),
+    STYLEX_PREFIX,
+    ANSI_RESET,
+    ANSI_BOLD,
+    target,
+    ANSI_RESET,
+    record.args(),
+    width = max_width
   )
 }

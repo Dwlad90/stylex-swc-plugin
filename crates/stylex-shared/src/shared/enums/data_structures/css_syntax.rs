@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::stylex_panic;
+
 #[derive(Debug, PartialEq, Clone, Hash, Copy)]
 pub enum CSSSyntax {
   Length,
@@ -53,7 +55,7 @@ impl From<String> for CSSSyntax {
       "<transformFunction>" => CSSSyntax::TransformFunction,
       "<transformList>" => CSSSyntax::TransformList,
       "<url>" => CSSSyntax::Url,
-      _ => panic!(r#"CSSSyntax "{}" not found"#, value),
+      _ => stylex_panic!(r#"CSSSyntax "{}" not found"#, value),
     }
   }
 }

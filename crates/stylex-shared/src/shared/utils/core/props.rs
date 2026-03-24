@@ -10,6 +10,7 @@ use crate::{
     structures::types::FlatCompiledStyles,
     utils::core::js_to_expr::NestedStringObject,
   },
+  stylex_unimplemented,
   transform::styleq::common::{StyleQResult, styleq},
 };
 
@@ -32,7 +33,7 @@ pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
   }
 
   if let Some(_inline_style) = inline_style {
-    unimplemented!("Inline style");
+    stylex_unimplemented!("Inline style");
   }
 
   if let Some(data_style_src) = data_style_src

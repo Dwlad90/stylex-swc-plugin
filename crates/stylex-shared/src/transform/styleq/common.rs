@@ -5,13 +5,14 @@ use log::warn;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use crate::shared::{
-  constants::common::COMPILED_KEY,
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-};
-use crate::shared::{
-  structures::types::FlatCompiledStyles,
-  utils::core::parse_nullable_style::{ResolvedArg, StyleObject},
+use crate::{
+  shared::{
+    constants::common::COMPILED_KEY,
+    enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
+    structures::types::FlatCompiledStyles,
+    utils::core::parse_nullable_style::{ResolvedArg, StyleObject},
+  },
+  stylex_panic, stylex_unimplemented, stylex_unreachable,
 };
 
 pub(crate) struct StyleQResult {
@@ -64,7 +65,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
       ResolvedArg::StyleObject(style, _, _) => match style {
         StyleObject::Style(style) => {
           let Some(compiled_key) = style.get(COMPILED_KEY) else {
-            panic!("Style object does not contain a compiled key")
+            stylex_panic!("Style object does not contain a compiled key")
           };
 
           if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) =
@@ -107,7 +108,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                           let variant_name =
                             other_debug_info.split("::").last().unwrap_or("unknown");
 
-                          unimplemented!(
+                          stylex_unimplemented!(
                             "String conversion not implemented for FlatCompiledStylesValue::{}",
                             variant_name
                           )
@@ -166,14 +167,14 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
               };
             }
           } else {
-            unimplemented!("DYNAMIC: Process inline style object")
+            stylex_unimplemented!("DYNAMIC: Process inline style object")
           }
         }
         StyleObject::Nullable => {}
-        StyleObject::Other => panic!("Other style object is not allowed in styleq"),
-        StyleObject::Unreachable => unreachable!("StyleObject::Unreachable in styleq"),
+        StyleObject::Other => stylex_panic!("Other style object is not allowed in styleq"),
+        StyleObject::Unreachable => stylex_unreachable!("StyleObject::Unreachable in styleq"),
       },
-      _ => unreachable!(),
+      _ => stylex_unreachable!("Unexpected ResolvedArg variant in styleq loop"),
     };
   }
 

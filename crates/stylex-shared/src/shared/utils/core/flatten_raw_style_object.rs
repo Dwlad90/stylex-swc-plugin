@@ -6,29 +6,32 @@ use swc_core::ecma::{
   utils::quote_str,
 };
 
-use crate::shared::{
-  constants::messages::{
-    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
-  },
-  enums::misc::VarDeclAction,
-  regex::CSS_PROPERTY_KEY,
-  structures::{
-    functions::FunctionMap,
-    null_pre_rule::NullPreRule,
-    order_pair::OrderPair,
-    pre_rule::{PreRuleValue, PreRules, StylesPreRule},
-    pre_rule_set::PreRuleSet,
-    state::EvaluationState,
-    state_manager::StateManager,
-    types::ClassesToOriginalPaths,
-  },
-  utils::{
-    ast::convertors::{
-      expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, lit_to_string,
-      number_to_expression, transform_bin_expr_to_number, transform_shorthand_to_key_values,
+use crate::{
+  shared::{
+    constants::messages::{
+      ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
     },
-    common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
+    enums::misc::VarDeclAction,
+    regex::CSS_PROPERTY_KEY,
+    structures::{
+      functions::FunctionMap,
+      null_pre_rule::NullPreRule,
+      order_pair::OrderPair,
+      pre_rule::{PreRuleValue, PreRules, StylesPreRule},
+      pre_rule_set::PreRuleSet,
+      state::EvaluationState,
+      state_manager::StateManager,
+      types::ClassesToOriginalPaths,
+    },
+    utils::{
+      ast::convertors::{
+        expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, lit_to_string,
+        number_to_expression, transform_bin_expr_to_number, transform_shorthand_to_key_values,
+      },
+      common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
+    },
   },
+  stylex_panic,
 };
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
@@ -64,7 +67,7 @@ pub(crate) fn flatten_raw_style_object(
         processed_style = transformed;
       }
       Err(_) => {
-        panic!("{}", INVALID_MEDIA_QUERY_SYNTAX);
+        stylex_panic!("{}", INVALID_MEDIA_QUERY_SYNTAX);
       }
     }
   }
@@ -131,7 +134,7 @@ pub(crate) fn flatten_raw_style_object_logic(
                   }
                 }
               }
-              _ => panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+              _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             }
           }
         });
@@ -245,7 +248,7 @@ pub(crate) fn flatten_raw_style_object_logic(
             flattened.extend(inner_flattened);
           }
           _ => {
-            panic!("{}", non_static_value("stylex"));
+            stylex_panic!("{}", non_static_value("stylex"));
           }
         }
       }
@@ -260,7 +263,7 @@ pub(crate) fn flatten_raw_style_object_logic(
 
         flattened.extend(inner_flattened)
       }
-      Expr::Call(_) => panic!("{}", non_static_value("stylex")),
+      Expr::Call(_) => stylex_panic!("{}", non_static_value("stylex")),
       Expr::Object(obj) => {
         if !key.starts_with(':') && !key.starts_with('@') && !key.starts_with('[') {
           if obj.props.is_empty() {
@@ -306,10 +309,10 @@ pub(crate) fn flatten_raw_style_object_logic(
                   }
                 }
               } else {
-                panic!("{}", non_static_value("stylex"));
+                stylex_panic!("{}", non_static_value("stylex"));
               }
             } else {
-              panic!("{}", non_static_value("stylex"));
+              stylex_panic!("{}", non_static_value("stylex"));
             }
           }
 
@@ -347,7 +350,7 @@ pub(crate) fn flatten_raw_style_object_logic(
         }
       }
       _ => {
-        panic!("{}", ILLEGAL_PROP_VALUE)
+        stylex_panic!("{}", ILLEGAL_PROP_VALUE)
       }
     };
   }

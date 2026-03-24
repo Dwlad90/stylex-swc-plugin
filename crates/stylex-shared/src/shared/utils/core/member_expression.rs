@@ -1,3 +1,5 @@
+use crate::{stylex_panic, stylex_unimplemented};
+
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},
@@ -78,19 +80,16 @@ pub(crate) fn member_expression(
         let namespaces = props
           .iter()
           .filter_map(|item| match item {
-            PropOrSpread::Spread(_) => unimplemented!("Spread"),
+            PropOrSpread::Spread(_) => stylex_unimplemented!("Spread"),
             PropOrSpread::Prop(prop) => match prop.as_ref() {
               Prop::KeyValue(key_value) => match key_value.value.as_ref() {
                 Expr::Lit(Lit::Null(_)) => None,
-                _ => Some(
-                  key_value
-                    .key
-                    .as_ident()
-                    .map(|ident| &ident.sym)
-                    .expect("Key not an ident"),
-                ),
+                _ => Some(match key_value.key.as_ident().map(|ident| &ident.sym) {
+                  Some(sym) => sym,
+                  None => stylex_panic!("Key not an ident"),
+                }),
               },
-              _ => unimplemented!(),
+              _ => stylex_unimplemented!("Prop variant not supported in member_expression"),
             },
           })
           .collect::<Vec<&Atom>>();
@@ -101,7 +100,13 @@ pub(crate) fn member_expression(
   }
 
   if let Some(obj_name) = obj_name {
-    increase_ident_count(state, object.as_ident().expect("Object not an ident"));
+    increase_ident_count(
+      state,
+      match object.as_ident() {
+        Some(i) => i,
+        None => stylex_panic!("Object not an ident"),
+      },
+    );
 
     let style_var_to_keep = StyleVarsToKeep(
       obj_name.clone(),

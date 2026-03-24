@@ -93,7 +93,9 @@ macro_rules! as_expr_or_panic {
   ($opt:expr, $error_msg:expr) => {
     match $opt.as_expr() {
       Some(expr) => expr,
-      None => panic!("{}", $error_msg),
+      None => $crate::shared::utils::log::stylex_error::__stylex_panic(
+        $crate::shared::utils::log::stylex_error::stylex_err(format!("{}", $error_msg)),
+      ),
     }
   };
 }

@@ -12,6 +12,7 @@ use crate::{
     enums::core::TransformationCycle,
     utils::{ast::convertors::expr_to_str, common::increase_ident_count},
   },
+  stylex_panic,
 };
 
 impl<C> StyleXTransform<C>
@@ -35,7 +36,13 @@ where
 
       increase_ident_count(
         &mut self.state,
-        &Ident::from(expt_str.expect("Expression is not a string").as_str()),
+        &Ident::from(
+          match expt_str {
+            Some(s) => s,
+            None => stylex_panic!("Expression is not a string"),
+          }
+          .as_str(),
+        ),
       );
     }
 

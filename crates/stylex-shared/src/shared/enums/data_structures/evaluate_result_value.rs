@@ -11,11 +11,15 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  structures::{
-    functions::FunctionConfig, stylex_env::EnvEntry, theme_ref::ThemeRef, types::EvaluationCallback,
+use crate::{
+  shared::{
+    structures::{
+      functions::FunctionConfig, stylex_env::EnvEntry, theme_ref::ThemeRef,
+      types::EvaluationCallback,
+    },
+    utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
   },
-  utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
+  stylex_unimplemented,
 };
 
 pub enum EvaluateResultValue {
@@ -54,24 +58,21 @@ impl Serialize for EvaluateResultValue {
 
         serializer.serialize_str(&printed_module)
       }
-      Self::Map(_) => unimplemented!("map serialization is not implemented yet"),
-      Self::Entries(_) => unimplemented!("entries serialization is not implemented yet"),
-      Self::Callback(_) => unimplemented!("callback serialization is not implemented yet"),
+      Self::Map(_) => stylex_unimplemented!("map serialization is not implemented yet"),
+      Self::Entries(_) => stylex_unimplemented!("entries serialization is not implemented yet"),
+      Self::Callback(_) => stylex_unimplemented!("callback serialization is not implemented yet"),
       Self::FunctionConfig(_) => {
-        unimplemented!("function_config serialization is not implemented yet")
+        stylex_unimplemented!("function_config serialization is not implemented yet")
       }
       Self::FunctionConfigMap(_) => {
-        unimplemented!("function_config_map serialization is not implemented yet")
+        stylex_unimplemented!("function_config_map serialization is not implemented yet")
       }
-      Self::ThemeRef(_) => unimplemented!("theme_ref serialization is not implemented yet"),
+      Self::ThemeRef(_) => stylex_unimplemented!("theme_ref serialization is not implemented yet"),
       Self::Vec(_) => {
-        unimplemented!("Vec serialization is not implemented yet");
-        // let mut map = serializer.serialize_map(Some(1))?;
-        // map.serialize_entry("type", "vec")?;
-        // map.end()
+        stylex_unimplemented!("Vec serialization is not implemented yet")
       }
       Self::EnvObject(_) => {
-        unimplemented!("EnvObject serialization is not implemented yet")
+        stylex_unimplemented!("EnvObject serialization is not implemented yet")
       }
     }
   }

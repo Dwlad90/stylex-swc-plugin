@@ -22,6 +22,7 @@ use crate::{
     },
     utils::{ast::convertors::transform_shorthand_to_key_values, common::fill_state_declarations},
   },
+  stylex_panic,
 };
 
 impl<C> StyleXTransform<C>
@@ -100,12 +101,11 @@ where
             };
 
             let top_level_expression = self.state.top_level_expressions.clone().into_iter().find(
-              |TopLevelExpression(_, expr, _)| {
-                var_name
-                  .init
-                  .clone()
-                  .unwrap()
-                  .eq_ignore_span(&Box::new(expr.clone()))
+              |TopLevelExpression(_, expr, _)| match var_name.init.clone() {
+                Some(init) => init.eq_ignore_span(&Box::new(expr.clone())),
+                None => {
+                  stylex_panic!("VarDeclarator init is None during top_level_expressions lookup")
+                }
               },
             );
 
@@ -116,11 +116,13 @@ where
                 .as_mut()
                 .and_then(|var_decl| var_decl.as_object())
             {
-              let namespaces_to_keep =
-                match vars_to_keep.get(&var_name.name.as_ident().unwrap().sym) {
-                  Some(NonNullProps::Vec(vec)) => vec.clone(),
-                  _ => Vec::new(),
-                };
+              let namespaces_to_keep = match vars_to_keep.get(&match var_name.name.as_ident() {
+                Some(i) => i.sym.clone(),
+                None => stylex_panic!("VarDeclarator name is not an ident"),
+              }) {
+                Some(NonNullProps::Vec(vec)) => vec.clone(),
+                _ => Vec::new(),
+              };
 
               if !namespaces_to_keep.is_empty() {
                 let mut new_object = object.clone();
@@ -129,7 +131,10 @@ where
                   self.retain_object_props(&mut new_object, namespaces_to_keep, &var_name);
                 new_object.props = props;
 
-                **var_declarator.init.as_mut().unwrap() = Expr::Object(new_object);
+                **match var_declarator.init.as_mut() {
+                  Some(init) => init,
+                  None => stylex_panic!("VarDeclarator init is None when trying to update object"),
+                } = Expr::Object(new_object);
               }
             }
           }
@@ -153,10 +158,10 @@ where
     for object_prop in object.props.iter_mut() {
       assert!(object_prop.is_prop(), "Spread properties are not supported");
 
-      let prop = object_prop
-        .as_mut_prop()
-        .expect("Property not found")
-        .as_mut();
+      let prop = match object_prop.as_mut_prop() {
+        Some(p) => p.as_mut(),
+        None => stylex_panic!("Property not found"),
+      };
 
       if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
         let key_as_ident = match key {
@@ -167,8 +172,19 @@ where
         if let Some(key_as_string) = key_as_ident
           && namespace_to_keep.contains(&key_as_string.sym)
         {
-          let var_id = &var_name.name.as_ident().unwrap().sym;
-          let key_id = NonNullProp::Atom(key_as_ident.unwrap().clone().sym);
+          let var_id = &match var_name.name.as_ident() {
+            Some(i) => i,
+            None => stylex_panic!("VarDeclarator name is not an ident"),
+          }
+          .sym;
+          let key_id = NonNullProp::Atom(
+            match key_as_ident {
+              Some(i) => i,
+              None => stylex_panic!("key_as_ident is None"),
+            }
+            .clone()
+            .sym,
+          );
 
           let all_nulls_to_keep = self
             .state
@@ -195,11 +211,12 @@ where
               .flatten()
               .collect::<Vec<Atom>>();
 
-            if let Some(style_object) = prop
-              .as_mut_key_value()
-              .expect("Prop not a key value")
-              .value
-              .as_mut_object()
+            if let Some(style_object) = match prop.as_mut_key_value() {
+              Some(kv) => kv,
+              None => stylex_panic!("Prop not a key value"),
+            }
+            .value
+            .as_mut_object()
             {
               retain_style_props(style_object, nulls_to_keep);
             }

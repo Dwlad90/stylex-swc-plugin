@@ -14,7 +14,9 @@ use crate::shared::{
     validators::{is_define_marker_call, validate_stylex_define_marker_indent},
   },
 };
-use crate::{StyleXTransform, shared::utils::core::js_to_expr::convert_object_to_ast};
+use crate::{
+  StyleXTransform, shared::utils::core::js_to_expr::convert_object_to_ast, stylex_panic,
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -35,12 +37,18 @@ where
 
     parent_var_decl.name.as_ident()?;
 
-    let file_name = self
+    let file_name = match self
       .state
       .get_filename_for_hashing(&mut FxHashMap::default())
-      .unwrap_or_else(|| panic!("{}", cannot_generate_hash("defineMarker")));
+    {
+      Some(name) => name,
+      None => stylex_panic!("{}", cannot_generate_hash("defineMarker")),
+    };
 
-    let export_name = var_name.expect(" var_name must be present for defineMarker");
+    let export_name = match var_name {
+      Some(name) => name,
+      None => stylex_panic!("defineMarker: var_name must be present"),
+    };
     let export_id = gen_file_based_identifier(&file_name, &export_name, None);
 
     self.state.export_id = Some(export_id.clone());

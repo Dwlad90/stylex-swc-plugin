@@ -1,20 +1,23 @@
 use std::rc::Rc;
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-    obj_map_type::ObjMapType,
+use crate::{
+  shared::{
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+      obj_map_type::ObjMapType,
+    },
+    structures::{
+      injectable_style::InjectableConstStyle,
+      state_manager::StateManager,
+      types::{FlatCompiledStyles, InjectableStylesMap},
+    },
+    utils::{
+      common::{create_hash, serialize_value_to_json_string},
+      object::obj_map,
+    },
   },
-  structures::{
-    injectable_style::InjectableConstStyle,
-    state_manager::StateManager,
-    types::{FlatCompiledStyles, InjectableStylesMap},
-  },
-  utils::{
-    common::{create_hash, serialize_value_to_json_string},
-    object::obj_map,
-  },
+  stylex_panic, stylex_unimplemented,
 };
 
 pub(crate) fn stylex_define_consts(
@@ -22,13 +25,16 @@ pub(crate) fn stylex_define_consts(
   state: &mut StateManager,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let Some(constants) = constants.as_expr().and_then(|expr| expr.as_object()) else {
-    panic!("Values must be an object")
+    stylex_panic!("Values must be an object")
   };
 
   let class_name_prefix = state.options.class_name_prefix.clone();
   let debug = state.options.debug;
   let enable_debug_class_names = state.options.enable_debug_class_names;
-  let export_id = state.export_id.clone().expect("Export ID must be set");
+  let export_id = match state.export_id.clone() {
+    Some(id) => id,
+    None => stylex_panic!("Export ID must be set"),
+  };
 
   let js_output = obj_map(
     ObjMapType::Object(constants.clone()),
@@ -36,7 +42,7 @@ pub(crate) fn stylex_define_consts(
     |item, _| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
-          panic!("InjectableStyle is not supported")
+          stylex_panic!("InjectableStyle is not supported")
         }
         FlatCompiledStylesValue::Tuple(_key, value, _) => {
           let serialized_value =
@@ -44,7 +50,9 @@ pub(crate) fn stylex_define_consts(
 
           FlatCompiledStylesValue::String(serialized_value)
         }
-        _ => unimplemented!(),
+        _ => stylex_unimplemented!(
+          "FlatCompiledStylesValue variant not supported in stylex_define_consts"
+        ),
       };
 
       Rc::new(result)

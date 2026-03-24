@@ -91,6 +91,7 @@ use crate::shared::{
 };
 use crate::{
   StyleXTransform, shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic,
+  stylex_panic,
 };
 
 /// Lazily-initialized Arc-wrapped map of stylex.when helper functions.
@@ -105,12 +106,13 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "ancestor".to_string(),
     |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::ancestor(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
+      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+        Some(s) => s,
+        None => stylex_panic!("stylex.when ancestor: expression is not a string"),
+      };
+      let result = match stylex_when::ancestor(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        Err(e) => panic!("stylex_when::ancestor error: {}", e),
+        Err(e) => stylex_panic!("stylex.when ancestor error: {}", e),
       };
       string_to_expression(&result)
     },
@@ -119,12 +121,13 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "descendant".to_string(),
     |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::descendant(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
+      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+        Some(s) => s,
+        None => stylex_panic!("stylex.when descendant: expression is not a string"),
+      };
+      let result = match stylex_when::descendant(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        Err(e) => panic!("stylex_when::descendant error: {}", e),
+        Err(e) => stylex_panic!("stylex.when descendant error: {}", e),
       };
       string_to_expression(&result)
     },
@@ -133,12 +136,13 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "siblingBefore".to_string(),
     |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::sibling_before(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
+      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+        Some(s) => s,
+        None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
+      };
+      let result = match stylex_when::sibling_before(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        Err(e) => panic!("stylex_when::sibling_before error: {}", e),
+        Err(e) => stylex_panic!("stylex.when siblingBefore error: {}", e),
       };
       string_to_expression(&result)
     },
@@ -147,12 +151,13 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "siblingAfter".to_string(),
     |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::sibling_after(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
+      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+        Some(s) => s,
+        None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
+      };
+      let result = match stylex_when::sibling_after(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        Err(e) => panic!("stylex_when::sibling_after error: {}", e),
+        Err(e) => stylex_panic!("stylex.when siblingAfter error: {}", e),
       };
       string_to_expression(&result)
     },
@@ -161,12 +166,13 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "anySibling".to_string(),
     |expr: Expr, state: &mut StateManager| {
-      let result = match stylex_when::any_sibling(
-        &expr_to_str(&expr, state, &FunctionMap::default()).expect("Expression is not a string"),
-        Some(&state.options),
-      ) {
+      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+        Some(s) => s,
+        None => stylex_panic!("stylex.when anySibling: expression is not a string"),
+      };
+      let result = match stylex_when::any_sibling(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        Err(e) => panic!("stylex_when::any_sibling error: {}", e),
+        Err(e) => stylex_panic!("stylex.when anySibling error: {}", e),
       };
       string_to_expression(&result)
     },
@@ -238,7 +244,7 @@ where
           Box::new(FunctionConfigType::IndexMap(
             stylex_default_maker::stylex_default_marker(&self.state.options)
               .as_values()
-              .expect("Expected FlatCompiledStylesValues")
+              .unwrap_or_else(|| stylex_panic!("Expected FlatCompiledStylesValues"))
               .clone(),
           )),
         );
@@ -257,7 +263,10 @@ where
       for name in &self.state.stylex_import {
         member_expressions.entry(name.clone()).or_default();
 
-        let member_expression = member_expressions.get_mut(name).unwrap();
+        let member_expression = match member_expressions.get_mut(name) {
+          Some(me) => me,
+          None => stylex_panic!("member expression not found for stylex import"),
+        };
 
         member_expression.insert(
           "firstThatWorks".into(),
@@ -279,7 +288,7 @@ where
           Box::new(FunctionConfigType::IndexMap(
             stylex_default_maker::stylex_default_marker(&self.state.options)
               .as_values()
-              .expect("Expected FlatCompiledStylesValues")
+              .unwrap_or_else(|| stylex_panic!("Expected FlatCompiledStylesValues"))
               .clone(),
           )),
         );
@@ -337,9 +346,10 @@ where
         )
       );
 
-      let value = evaluated_arg
-        .value
-        .unwrap_or_else(|| panic!("{}", non_static_value("create")));
+      let value = match evaluated_arg.value {
+        Some(v) => v,
+        None => stylex_panic!("{}", non_static_value("create")),
+      };
 
       assert!(
         evaluated_arg.confident,
@@ -744,11 +754,12 @@ where
                           &mut self.state,
                         ));
 
+                        let hoist_ident_expr = match hoist_ident.expr.as_ident() {
+                          Some(ident) => ident.clone(),
+                          None => stylex_panic!("Expected identifier for hoisted variable"),
+                        };
                         self.state.declarations.push(
-                          var_declarator_string_init_factory(
-                            hoist_ident.expr.as_ident().unwrap().clone(),
-                            "hoisted variable"
-                          ),
+                          var_declarator_string_init_factory(hoist_ident_expr, "hoisted variable"),
                         );
 
                         array_elements.push(Some(hoist_ident));

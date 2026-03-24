@@ -776,7 +776,7 @@ mod tests {
     })
   }
 
-  // Helper: evaluate with SWC GLOBALS set (needed for panic_with_context! code paths)
+  // Helper: evaluate with SWC GLOBALS set (needed for stylex_panic_with_context! code paths)
   fn evaluate_expr_with_globals(expr: &Expr) -> (bool, bool) {
     let globals = Globals::default();
     GLOBALS.set(&globals, || evaluate_expr(expr))
@@ -786,7 +786,7 @@ mod tests {
   fn test_unsupported_array_method_panic_includes_method_name() {
     // Calling an unsupported method on an array literal (e.g., [1].unsupported())
     // should panic with a message that includes the method name.
-    // This validates that panic_with_context! is used in the member call evaluation path.
+    // This validates that stylex_panic_with_context! is used in the member call evaluation path.
     let array = make_array_expr(vec![number_to_expression(1.0)]);
     let member = make_member_expr(array, "unsupported");
     let call = make_call_expr(member, vec![]);

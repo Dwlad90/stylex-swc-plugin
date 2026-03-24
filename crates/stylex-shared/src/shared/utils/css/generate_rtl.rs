@@ -135,7 +135,7 @@ fn flip_sign(value: &str) -> String {
   if value == "0" {
     value.to_string()
   } else if value.starts_with('-') {
-    value.strip_prefix('-').unwrap().to_string()
+    value.strip_prefix('-').unwrap_or(value).to_string()
   } else {
     format!("-{}", value)
   }

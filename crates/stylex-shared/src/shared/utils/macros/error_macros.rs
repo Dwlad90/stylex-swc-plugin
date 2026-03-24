@@ -19,19 +19,30 @@
 #[macro_export]
 macro_rules! unwrap_or_panic {
   ($result:expr) => {
-    $result.unwrap_or_else(|error| panic!("{}", error))
+    $result.unwrap_or_else(|error| {
+      $crate::shared::utils::log::stylex_error::__stylex_panic(
+        $crate::shared::utils::log::stylex_error::stylex_err(format!("{}", error)),
+      )
+    })
   };
   ($result:expr, $context:expr) => {
-    $result.unwrap_or_else(|error| panic!("{}: {}", $context, error))
+    $result.unwrap_or_else(|error| {
+      $crate::shared::utils::log::stylex_error::__stylex_panic(
+        $crate::shared::utils::log::stylex_error::stylex_err(format!("{}: {}", $context, error)),
+      )
+    })
   };
 }
 
-/// Macro to create a ParenExpr-wrapped error and panic with a code frame.
-/// This is a common pattern when reporting errors with build_code_frame_error_and_panic.
+/// Panic with a `[StyleX]`-prefixed code frame error.
+///
+/// Wraps the expression in a `ParenExpr` and delegates to
+/// `build_code_frame_error_and_panic` which produces a source-located
+/// `[StyleX] <message>` diagnostic on stderr before panicking.
 ///
 /// # Usage
 /// ```ignore
-/// panic_with_context!(path, traversal_state, "Unary expression not implemented");
+/// stylex_panic_with_context!(path, traversal_state, "Unary expression not implemented");
 /// ```
 ///
 /// # Arguments
@@ -39,7 +50,7 @@ macro_rules! unwrap_or_panic {
 /// - `$state`: State manager for error context
 /// - `$msg`: Error message string
 #[macro_export]
-macro_rules! panic_with_context {
+macro_rules! stylex_panic_with_context {
   ($expr:expr, $state:expr, $msg:expr) => {{
     let paren_expr = $crate::shared::utils::ast::factories::wrap_in_paren_ref($expr);
     $crate::shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic(

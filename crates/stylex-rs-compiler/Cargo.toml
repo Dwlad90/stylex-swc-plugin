@@ -30,13 +30,14 @@ swc_core = { workspace = true, features = [
 ] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
 swc_compiler_base = { workspace = true, features = ["node"] }
-color-backtrace.workspace = true
 rustc-hash.workspace = true
 log.workspace = true
 glob.workspace = true
 fancy-regex.workspace = true
 
 stylex_shared = { path = "../stylex-shared" }
+anyhow.workspace = true
+thiserror.workspace = true
 indexmap.workspace = true
 napi = { version = "3", features = ["compat-mode"] }
 napi-derive = "3"

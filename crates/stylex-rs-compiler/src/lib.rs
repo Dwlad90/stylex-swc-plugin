@@ -9,6 +9,7 @@ use napi::{Env, Result};
 use std::panic;
 use std::{env, sync::Arc};
 use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
+use stylex_shared::shared::utils::log::stylex_error::{SuppressPanicStderr, format_panic_message};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_shared::{
@@ -72,7 +73,6 @@ pub fn transform(
   code: String,
   mut options: StyleXOptions,
 ) -> Result<StyleXTransformResult> {
-  color_backtrace::install();
   logger::initialize();
 
   info!("Transforming source file: {}", filename);
@@ -107,6 +107,7 @@ pub fn transform(
     });
   }
 
+  let _suppress = SuppressPanicStderr::new();
   let result = panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
     let cm: Arc<SourceMap> = Default::default();
     let filename = FileName::Real(filename.into());
@@ -179,7 +180,15 @@ pub fn transform(
           },
         );
 
-        let result = transformed_code.unwrap();
+        let result = match transformed_code {
+          Ok(output) => output,
+          Err(e) => {
+            return Err(napi::Error::from_reason(format!(
+              "[StyleX] Failed to print transformed code: {}",
+              e
+            )));
+          }
+        };
 
         let js_result = StyleXTransformResult {
           code: result.code,
@@ -197,13 +206,7 @@ pub fn transform(
   match result {
     Ok(res) => res,
     Err(error) => {
-      let error_msg = match error.downcast_ref::<String>() {
-        Some(s) => format!("Panic occurred during transformation: {}", s),
-        None => match error.downcast_ref::<&str>() {
-          Some(s) => format!("Panic occurred during transformation: {}", s),
-          None => "Unknown panic occurred during transformation".to_string(),
-        },
-      };
+      let error_msg = format_panic_message(&error);
 
       Err(napi::Error::from_reason(error_msg))
     }

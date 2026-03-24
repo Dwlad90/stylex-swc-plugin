@@ -3,23 +3,26 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
-use crate::shared::{
-  constants::common::VAR_GROUP_HASH_KEY,
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-    obj_map_type::ObjMapType,
+use crate::{
+  shared::{
+    constants::common::VAR_GROUP_HASH_KEY,
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
+      obj_map_type::ObjMapType,
+    },
+    structures::{
+      injectable_style::InjectableStyle,
+      state_manager::StateManager,
+      types::{FlatCompiledStyles, InjectableStylesMap},
+    },
+    utils::{
+      common::{create_hash, get_css_value},
+      core::define_vars_utils::construct_css_variables_string,
+      object::obj_map,
+    },
   },
-  structures::{
-    injectable_style::InjectableStyle,
-    state_manager::StateManager,
-    types::{FlatCompiledStyles, InjectableStylesMap},
-  },
-  utils::{
-    common::{create_hash, get_css_value},
-    core::define_vars_utils::construct_css_variables_string,
-    object::obj_map,
-  },
+  stylex_panic, stylex_unimplemented, stylex_unreachable,
 };
 
 pub(crate) fn stylex_define_vars(
@@ -29,13 +32,16 @@ pub(crate) fn stylex_define_vars(
   let var_group_hash = format!(
     "{}{}",
     state.options.class_name_prefix,
-    create_hash(state.export_id.as_ref().unwrap())
+    create_hash(match state.export_id.as_ref() {
+      Some(id) => id,
+      None => stylex_panic!("Export ID is not set"),
+    })
   );
 
   let mut typed_variables: FlatCompiledStyles = IndexMap::new();
 
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
-    panic!("Values must be an object")
+    stylex_panic!("Values must be an object")
   };
 
   let variables_map = obj_map(
@@ -44,10 +50,17 @@ pub(crate) fn stylex_define_vars(
     |item, state| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
-          panic!("InjectableStyle is not supported")
+          stylex_panic!("InjectableStyle is not supported")
         }
         FlatCompiledStylesValue::Tuple(key, value, _) => {
-          let str_to_hash = format!("{}.{}", state.export_id.as_ref().unwrap(), key);
+          let str_to_hash = format!(
+            "{}.{}",
+            match state.export_id.as_ref() {
+              Some(id) => id,
+              None => stylex_panic!("Export ID is not set"),
+            },
+            key
+          );
 
           let debug = state.options.debug;
           let enable_debug_class_names = state.options.enable_debug_class_names;
@@ -88,7 +101,7 @@ pub(crate) fn stylex_define_vars(
 
           FlatCompiledStylesValue::Tuple(name_hash.to_string(), css_value, css_type)
         }
-        _ => unimplemented!(),
+        _ => stylex_unimplemented!("Unsupported value type in define vars"),
       };
 
       Rc::new(result)
@@ -100,12 +113,12 @@ pub(crate) fn stylex_define_vars(
     state,
     |item, _| match item.as_ref() {
       FlatCompiledStylesValue::InjectableStyle(_) => {
-        panic!("InjectableStyle is not supported")
+        stylex_panic!("InjectableStyle is not supported")
       }
       FlatCompiledStylesValue::Tuple(key, _, _) => {
         Rc::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
       }
-      _ => unreachable!("Unsupported value type"),
+      _ => stylex_unreachable!("Unsupported value type"),
     },
   );
 
@@ -128,7 +141,7 @@ pub(crate) fn stylex_define_vars(
             ..Default::default()
           })
         }
-        _ => unreachable!("Unsupported value type"),
+        _ => stylex_unreachable!("Unsupported value type"),
       };
 
       Rc::new(result)

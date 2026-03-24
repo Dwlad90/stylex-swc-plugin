@@ -1,10 +1,13 @@
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::ast::{
-    convertors::{expr_to_str, lit_to_num, string_to_expression},
-    factories::{array_expression_factory, expr_or_spread_factory},
+use crate::{
+  shared::{
+    enums::data_structures::evaluate_result_value::EvaluateResultValue,
+    structures::{functions::FunctionMap, state_manager::StateManager},
+    utils::ast::{
+      convertors::{expr_to_str, lit_to_num, string_to_expression},
+      factories::{array_expression_factory, expr_or_spread_factory},
+    },
   },
+  stylex_panic, stylex_unimplemented,
 };
 use std::rc::Rc;
 use swc_core::ecma::ast::{Expr, ExprOrSpread};
@@ -41,7 +44,7 @@ pub(crate) fn evaluate_map(
 
           Some(array_expression_factory(elems))
         }
-        _ => unimplemented!(),
+        _ => stylex_unimplemented!("Unhandled EvaluateResultValue in map callback"),
       }
     })
     .collect::<Vec<Expr>>();
@@ -116,7 +119,7 @@ pub(crate) fn evaluate_filter(
 
           Some(array_expression_factory(elems))
         }
-        _ => unimplemented!(),
+        _ => stylex_unimplemented!("Unhandled EvaluateResultValue in filter callback"),
       }
     })
     .collect::<Vec<Expr>>();
@@ -147,10 +150,10 @@ pub(crate) fn evaluate_filter_cb(
   let result = evaluate_map_cb(cb, cb_arg);
 
   let Some(lit) = result.as_lit() else {
-    panic!("Expr is not a literal");
+    stylex_panic!("Expr is not a literal");
   };
 
-  if lit_to_num(lit).unwrap_or_else(|error| panic!("{}", error)) == 0.0 {
+  if lit_to_num(lit).unwrap_or_else(|error| stylex_panic!("{}", error)) == 0.0 {
     None
   } else {
     Some(item.clone())

@@ -1,3 +1,4 @@
+use crate::stylex_unimplemented;
 use std::rc::Rc;
 
 use indexmap::IndexMap;
@@ -5,7 +6,6 @@ use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use crate::StyleXTransform;
 use crate::shared::structures::{
   functions::{FunctionConfig, FunctionMap, FunctionType},
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
@@ -25,6 +25,7 @@ use crate::shared::{
 use crate::shared::{
   transformers::stylex_keyframes::stylex_keyframes, utils::js::evaluate::evaluate,
 };
+use crate::{StyleXTransform, stylex_panic};
 
 impl<C> StyleXTransform<C>
 where
@@ -39,14 +40,13 @@ where
     if is_keyframes_call {
       validate_stylex_keyframes_indent(var_decl, &mut self.state);
 
-      let call = var_decl
-        .init
-        .as_ref()
-        .and_then(|decl| decl.as_call())
-        .expect("Expected call expression");
+      let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
+        Some(call) => call,
+        None => stylex_panic!("keyframes: expected call expression"),
+      };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => unimplemented!("Spread"),
+        Some(_) => stylex_unimplemented!("Spread"),
         None => first_arg.expr.clone(),
       })?;
 
@@ -114,7 +114,7 @@ where
           );
           value
         }
-        None => panic!(
+        None => stylex_panic!(
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),

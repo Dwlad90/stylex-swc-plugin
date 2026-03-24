@@ -1,10 +1,13 @@
-use crate::shared::{
-  enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
-  structures::{
-    base_css_type::BaseCSSType,
-    functions::{FunctionConfig, FunctionType},
+use crate::{
+  shared::{
+    enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
+    structures::{
+      base_css_type::BaseCSSType,
+      functions::{FunctionConfig, FunctionType},
+    },
+    utils::ast::factories::{object_expression_factory, prop_or_spread_string_factory},
   },
-  utils::ast::factories::{object_expression_factory, prop_or_spread_string_factory},
+  stylex_panic,
 };
 use indexmap::IndexMap;
 use phf::phf_map;
@@ -464,7 +467,7 @@ pub(crate) fn get_types_fn() -> FunctionConfig {
         Rc::new(
           *FN_MAP
             .get(prop_name.as_str())
-            .unwrap_or_else(|| panic!(r#"Function "{}" not found"#, prop_name)),
+            .unwrap_or_else(|| stylex_panic!(r#"Function "{}" not found"#, prop_name)),
         )
       },
     ),

@@ -1,6 +1,8 @@
 use log::warn;
 use swc_core::ecma::ast::Expr;
 
+use crate::stylex_panic;
+
 use crate::shared::{
   regex::IS_CSS_VAR,
   structures::{functions::FunctionMap, state_manager::StateManager},
@@ -11,7 +13,10 @@ use crate::shared::{
 };
 
 fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
-  let str_arg = expr_to_str(arg, state, functions).expect("Expression is not a string");
+  let str_arg = match expr_to_str(arg, state, functions) {
+    Some(s) => s,
+    None => stylex_panic!("Expression is not a string"),
+  };
 
   IS_CSS_VAR.is_match(&str_arg).unwrap_or_else(|err| {
     warn!(
@@ -54,7 +59,10 @@ pub(crate) fn stylex_first_that_works(
         .into_iter()
         .map(|arg| {
           if is_var(arg, state, functions) {
-            let str_arg = expr_to_str(arg, state, functions).expect("Argument is not a string");
+            let str_arg = match expr_to_str(arg, state, functions) {
+              Some(s) => s,
+              None => stylex_panic!("Argument is not a string"),
+            };
             let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
             string_to_expression(cleared_str_arg)
           } else {
@@ -66,8 +74,10 @@ pub(crate) fn stylex_first_that_works(
       let return_value = {
         let mut so_far = String::new();
         for var_name in vars.iter() {
-          let var_name_str =
-            expr_to_str(var_name, state, functions).expect("Expression is not a string");
+          let var_name_str = match expr_to_str(var_name, state, functions) {
+            Some(s) => s,
+            None => stylex_panic!("Expression is not a string"),
+          };
 
           so_far = if !so_far.is_empty() {
             format!("var({}, {})", var_name_str, so_far)

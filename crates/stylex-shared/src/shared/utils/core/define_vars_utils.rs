@@ -3,19 +3,22 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Lit};
 
-use crate::shared::{
-  constants::common::SPLIT_TOKEN,
-  enums::data_structures::{
-    flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
+use crate::{
+  shared::{
+    constants::common::SPLIT_TOKEN,
+    enums::data_structures::{
+      flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
+    },
+    structures::{
+      injectable_style::InjectableStyle,
+      types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
+    },
+    utils::{
+      ast::convertors::{key_value_to_str, lit_to_string},
+      common::{create_hash, get_key_values_from_object, round_to_decimal_places},
+    },
   },
-  structures::{
-    injectable_style::InjectableStyle,
-    types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
-  },
-  utils::{
-    ast::convertors::{key_value_to_str, lit_to_string},
-    common::{create_hash, get_key_values_from_object, round_to_decimal_places},
-  },
+  stylex_panic,
 };
 
 pub(crate) fn construct_css_variables_string(
@@ -70,11 +73,14 @@ pub(crate) fn collect_vars_by_at_rules(
   typed_variables: &mut FlatCompiledStyles,
 ) {
   let Some((hash_name, value, css_type)) = value.as_tuple() else {
-    panic!("Props must be an key value pair")
+    stylex_panic!("Props must be an key value pair")
   };
 
   if let Some(css_type) = css_type {
-    let values = css_type.value.as_map().expect("Value must be an map");
+    let values = match css_type.value.as_map() {
+      Some(v) => v,
+      None => stylex_panic!("Value must be a map"),
+    };
 
     let initial_value = get_nitial_value_of_css_type(values);
 
@@ -89,13 +95,16 @@ pub(crate) fn collect_vars_by_at_rules(
   }
 
   match value {
-    Expr::Array(_) => panic!("Array is not supported in defineVars"),
+    Expr::Array(_) => stylex_panic!("Array is not supported in defineVars"),
     Expr::Lit(lit) => {
       if let Lit::Null(_) = lit {
         return;
       }
 
-      let val = lit_to_string(lit).expect("Value must be a string");
+      let val = match lit_to_string(lit) {
+        Some(v) => v,
+        None => stylex_panic!("Value must be a string"),
+      };
 
       let key = if at_rules.is_empty() {
         "default".to_string()
@@ -118,7 +127,7 @@ pub(crate) fn collect_vars_by_at_rules(
 
         key == "default"
       }) {
-        panic!(r#"Default value is not defined for "{}" variable."#, key);
+        stylex_panic!(r#"Default value is not defined for "{}" variable."#, key);
       }
 
       for key_value in key_values.iter() {
@@ -155,7 +164,7 @@ fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> 
       ValueWithDefault::String(strng) => strng.clone(),
       ValueWithDefault::Map(map) => get_nitial_value_of_css_type(map),
     })
-    .expect("Default value is not defined")
+    .unwrap_or_else(|| stylex_panic!("Default value is not defined"))
 }
 
 pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {

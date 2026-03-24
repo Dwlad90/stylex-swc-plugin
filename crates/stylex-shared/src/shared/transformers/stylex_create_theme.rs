@@ -3,26 +3,32 @@ use std::{cmp::Ordering, rc::Rc};
 use indexmap::IndexMap;
 use swc_core::ecma::ast::KeyValueProp;
 
-use crate::shared::{
-  constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  },
-  structures::{
-    functions::FunctionMap,
-    injectable_style::InjectableStyle,
-    state_manager::StateManager,
-    types::{FlatCompiledStyles, InjectableStylesMap},
-  },
-  utils::{
-    ast::convertors::{expr_to_str, key_value_to_str},
-    common::{
-      create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object,
-      round_to_decimal_places,
+use crate::{
+  shared::{
+    constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue,
     },
-    core::define_vars_utils::{collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules},
-    validators::validate_theme_variables,
+    structures::{
+      functions::FunctionMap,
+      injectable_style::InjectableStyle,
+      state_manager::StateManager,
+      types::{FlatCompiledStyles, InjectableStylesMap},
+    },
+    utils::{
+      ast::convertors::{expr_to_str, key_value_to_str},
+      common::{
+        create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object,
+        round_to_decimal_places,
+      },
+      core::define_vars_utils::{
+        collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules,
+      },
+      validators::validate_theme_variables,
+    },
   },
+  stylex_panic, stylex_unimplemented,
 };
 
 pub(crate) fn stylex_create_theme(
@@ -35,12 +41,11 @@ pub(crate) fn stylex_create_theme(
 
   let mut rules_by_at_rule = IndexMap::new();
 
-  let mut variables_key_values = Box::new(get_key_values_from_object(
-    variables
-      .as_expr()
-      .and_then(|expr| expr.as_object())
-      .expect("Variables must be an object"),
-  ));
+  let variables_obj = match variables.as_expr().and_then(|expr| expr.as_object()) {
+    Some(obj) => obj,
+    None => stylex_panic!("Variables must be an object"),
+  };
+  let mut variables_key_values = Box::new(get_key_values_from_object(variables_obj));
 
   variables_key_values.sort_by_key(key_value_to_str);
 
@@ -50,27 +55,31 @@ pub(crate) fn stylex_create_theme(
 
   match theme_vars {
     EvaluateResultValue::Expr(expr) => {
-      theme_vars_key_values =
-        get_key_values_from_object(expr.as_object().expect("Theme vars must be an object"));
+      let theme_obj = match expr.as_object() {
+        Some(obj) => obj,
+        None => stylex_panic!("Theme vars must be an object"),
+      };
+      theme_vars_key_values = get_key_values_from_object(theme_obj);
 
       var_group_hash = theme_vars_key_values
         .iter()
         .find(|key_value| key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
-        .map(|key_value| {
-          expr_to_str(&key_value.value, state, &FunctionMap::default())
-            .expect("Expression is not a string")
-        })
+        .map(
+          |key_value| match expr_to_str(&key_value.value, state, &FunctionMap::default()) {
+            Some(s) => s,
+            None => stylex_panic!("Expression is not a string"),
+          },
+        )
         .unwrap_or_default();
     }
     EvaluateResultValue::ThemeRef(theme_ref) => {
-      var_group_hash = theme_ref
-        .get(VAR_GROUP_HASH_KEY, state)
-        .as_css_var()
-        .expect("Expected CSS variable")
-        .to_owned();
+      var_group_hash = match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
+        Some(v) => v.to_owned(),
+        None => stylex_panic!("Expected CSS variable"),
+      };
     }
     _ => {
-      unimplemented!("Unsupported theme vars type {:?}", theme_vars)
+      stylex_unimplemented!("Unsupported theme vars type {:?}", theme_vars)
     }
   }
 
@@ -79,24 +88,29 @@ pub(crate) fn stylex_create_theme(
 
     let theme_vars_str_value = match theme_vars {
       EvaluateResultValue::Expr(_) => {
-        let theme_vars_item = find_and_swap_remove(&mut theme_vars_key_values, |key_value| {
+        let theme_vars_item = match find_and_swap_remove(&mut theme_vars_key_values, |key_value| {
           key_value_to_str(key_value) == key
-        })
-        .expect("Theme variable not found");
+        }) {
+          Some(item) => item,
+          None => stylex_panic!("Theme variable not found"),
+        };
 
-        expr_to_str(
+        match expr_to_str(
           theme_vars_item.value.as_ref(),
           state,
           &FunctionMap::default(),
-        )
-        .expect("Expression is not a string")
+        ) {
+          Some(s) => s,
+          None => stylex_panic!("Expression is not a string"),
+        }
       }
-      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref
-        .get(key.as_str(), state)
-        .as_css_var()
-        .expect("Expected CSS variable")
-        .clone(),
-      _ => unimplemented!("Unsupported theme vars type"),
+      EvaluateResultValue::ThemeRef(theme_ref) => {
+        match theme_ref.get(key.as_str(), state).as_css_var() {
+          Some(v) => v.clone(),
+          None => stylex_panic!("Expected CSS variable"),
+        }
+      }
+      _ => stylex_unimplemented!("Unsupported theme vars type"),
     };
 
     let name_hash = theme_vars_str_value[6..theme_vars_str_value.len() - 1].to_string();
@@ -125,7 +139,10 @@ pub(crate) fn stylex_create_theme(
   let at_rules_string_for_hash = sorted_at_rules
     .iter()
     .map(|at_rule| {
-      let rule_by_at_rule = rules_by_at_rule.get(*at_rule).unwrap().join("");
+      let rule_by_at_rule = match rules_by_at_rule.get(*at_rule) {
+        Some(v) => v.join(""),
+        None => stylex_panic!("At-rule not found in rules map"),
+      };
 
       wrap_with_at_rules(rule_by_at_rule.as_str(), at_rule)
     })
@@ -143,7 +160,10 @@ pub(crate) fn stylex_create_theme(
   let mut styles_to_inject = IndexMap::new();
 
   for at_rule in sorted_at_rules.into_iter() {
-    let decls = rules_by_at_rule.get(at_rule).unwrap().join("");
+    let decls = match rules_by_at_rule.get(at_rule) {
+      Some(v) => v.join(""),
+      None => stylex_panic!("At-rule not found in rules map"),
+    };
     let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
 
     let priority = round_to_decimal_places(0.4 + priority_for_at_rule(at_rule) / 10.0, 1);
@@ -164,18 +184,23 @@ pub(crate) fn stylex_create_theme(
   }
 
   let theme_name_str_value = match theme_vars {
-    EvaluateResultValue::Expr(_) => expr_to_str(
-      theme_name_key_value.value.as_ref(),
-      state,
-      &FunctionMap::default(),
-    )
-    .expect("Expression is not a string"),
-    EvaluateResultValue::ThemeRef(theme_ref) => theme_ref
-      .get(VAR_GROUP_HASH_KEY, state)
-      .as_css_var()
-      .expect("Expected CSS variable")
-      .to_owned(),
-    _ => unimplemented!("Unsupported theme vars type"),
+    EvaluateResultValue::Expr(_) => {
+      match expr_to_str(
+        theme_name_key_value.value.as_ref(),
+        state,
+        &FunctionMap::default(),
+      ) {
+        Some(s) => s,
+        None => stylex_panic!("Expression is not a string"),
+      }
+    }
+    EvaluateResultValue::ThemeRef(theme_ref) => {
+      match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
+        Some(v) => v.to_owned(),
+        None => stylex_panic!("Expected CSS variable"),
+      }
+    }
+    _ => stylex_unimplemented!("Unsupported theme vars type"),
   };
 
   let theme_class = format!("{override_class_name} {var_group_hash}");

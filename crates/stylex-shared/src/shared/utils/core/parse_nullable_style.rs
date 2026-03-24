@@ -3,16 +3,20 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp, ObjectLit};
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+use crate::{
+  shared::{
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue,
+    },
+    structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
+    utils::{
+      ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, lit_to_string},
+      common::reduce_ident_count,
+      js::evaluate::evaluate,
+    },
   },
-  structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
-  utils::{
-    ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, lit_to_string},
-    common::reduce_ident_count,
-    js::evaluate::evaluate,
-  },
+  stylex_panic, stylex_unimplemented,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -209,7 +213,7 @@ fn parse_compiled_styles(
             parse_compiled_styles(compiled_styles, &EvaluateResultValue::Vec(arr.clone()));
           }
           _ => {
-            unimplemented!("Unhandled EvaluateResultValue in nullable style parsing array");
+            stylex_unimplemented!("Unhandled EvaluateResultValue in nullable style parsing array");
           }
         };
       }
@@ -228,7 +232,7 @@ fn parse_compiled_styles(
       return Some(StyleObject::Other);
     }
     _ => {
-      unimplemented!("Unhandled EvaluateResultValue in nullable style parsing");
+      stylex_unimplemented!("Unhandled EvaluateResultValue in nullable style parsing");
     }
   }
   None
@@ -247,14 +251,14 @@ fn parse_nullable_object(
             Expr::Lit(lit) => parse_nullable_key_value(compiled_styles, key, lit),
 
             _ => {
-              unimplemented!("Unhandled Expr type in nullable style parsing array");
+              stylex_unimplemented!("Unhandled Expr type in nullable style parsing array");
             }
           };
         }
       }
     }
     _ => {
-      unimplemented!("Unhandled Expr type in nullable style parsing array");
+      stylex_unimplemented!("Unhandled Expr type in nullable style parsing array");
     }
   }
 }
@@ -278,7 +282,7 @@ fn parse_nullable_key_value(
       compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Null));
     }
     _ => {
-      panic!("Unhandled literal type in nullable style parsing array",);
+      stylex_panic!("Unhandled literal type in nullable style parsing array");
     }
   }
 }

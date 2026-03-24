@@ -1,9 +1,12 @@
 use rustc_hash::FxHashMap;
 
-use crate::shared::{
-  constants::common::VAR_GROUP_HASH_KEY,
-  enums::theme_ref::ThemeRefResult,
-  utils::common::{create_hash, gen_file_based_identifier},
+use crate::{
+  shared::{
+    constants::common::VAR_GROUP_HASH_KEY,
+    enums::theme_ref::ThemeRefResult,
+    utils::common::{create_hash, gen_file_based_identifier},
+  },
+  stylex_panic,
 };
 
 use super::state_manager::StateManager;
@@ -101,16 +104,18 @@ impl ThemeRef {
   }
 
   fn _set(&self, key: &str, value: &str) {
-    panic!(
+    stylex_panic!(
       "Cannot set value {} to key {} in theme {}",
-      value, key, self.file_name
+      value,
+      key,
+      self.file_name
     );
   }
 }
 
 impl PartialEq for ThemeRef {
   fn eq(&self, _other: &Self) -> bool {
-    panic!("ThemeRef cannot be compared");
+    stylex_panic!("ThemeRef cannot be compared");
     // self.file_name == other.file_name && self.export_name == other.export_name
   }
 }

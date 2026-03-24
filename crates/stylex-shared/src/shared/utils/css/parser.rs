@@ -1,3 +1,5 @@
+use crate::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+
 use cssparser::{
   ParseError, Parser, ParserInput, SourcePosition, Token, serialize_identifier, serialize_string,
 };
@@ -91,21 +93,22 @@ pub fn parse_css_inner<'a>(
           closure = "}";
         }
 
-        let block_css: Vec<String> = parser
-          .parse_nested_block(|parser| {
-            parse_css_inner(
-              // cache,
-              // client,
-              // document_url,
-              parser,
-              // options,
-              // depth,
-              rule_name,
-              curr_prop.as_str(),
-              // func_name,
-            )
-          })
-          .unwrap();
+        let block_css: Vec<String> = match parser.parse_nested_block(|parser| {
+          parse_css_inner(
+            // cache,
+            // client,
+            // document_url,
+            parser,
+            // options,
+            // depth,
+            rule_name,
+            curr_prop.as_str(),
+            // func_name,
+          )
+        }) {
+          Ok(css) => css,
+          Err(e) => stylex_panic!("Failed to parse nested CSS block: {:?}", e),
+        };
 
         iter_result.push_str(join_css(&block_css).as_str());
 
@@ -269,7 +272,7 @@ pub fn parse_css_inner<'a>(
       }
       // url()
       Token::UnquotedUrl(ref _value) => {
-        unimplemented!("UnquotedUrl");
+        stylex_unimplemented!("UnquotedUrl");
         //   let is_import: bool = curr_rule == "import";
 
         //   if is_import {
@@ -344,11 +347,12 @@ pub fn parse_css_inner<'a>(
         iter_result.push_str(name);
         iter_result.push('(');
 
-        let block_css: Vec<String> = parser
-          .parse_nested_block(|parser| {
-            parse_css_inner(parser, curr_rule.as_str(), curr_prop.as_str())
-          })
-          .unwrap();
+        let block_css: Vec<String> = match parser.parse_nested_block(|parser| {
+          parse_css_inner(parser, curr_rule.as_str(), curr_prop.as_str())
+        }) {
+          Ok(css) => css,
+          Err(e) => stylex_panic!("Failed to parse CSS function block: {:?}", e),
+        };
 
         iter_result.push_str(join_css(&block_css).as_str());
 
@@ -388,7 +392,7 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
         }
       })
       .collect::<Vec<String>>(),
-    Err(_) => unreachable!(),
+    Err(_) => stylex_unreachable!("parse_css_inner returned Err, which should not happen"),
   }
 }
 

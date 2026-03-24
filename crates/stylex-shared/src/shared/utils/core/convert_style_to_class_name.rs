@@ -1,13 +1,16 @@
-use crate::shared::{
-  constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},
-  structures::{
-    injectable_style::InjectableStyle, pre_rule::PreRuleValue, state_manager::StateManager,
+use crate::{
+  shared::{
+    constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},
+    structures::{
+      injectable_style::InjectableStyle, pre_rule::PreRuleValue, state_manager::StateManager,
+    },
+    utils::{
+      common::{create_hash, dashify},
+      css::common::{generate_css_rule, transform_value_cached},
+      pre_rule::{sort_at_rules, sort_pseudos},
+    },
   },
-  utils::{
-    common::{create_hash, dashify},
-    css::common::{generate_css_rule, transform_value_cached},
-    pre_rule::{sort_at_rules, sort_pseudos},
-  },
+  stylex_panic,
 };
 
 pub(crate) fn convert_style_to_class_name(
@@ -59,7 +62,7 @@ pub(crate) fn convert_style_to_class_name(
         .map(|each_value| transform_value_cached(key, each_value.as_str(), state))
         .collect(),
     ),
-    PreRuleValue::Expr(_) | PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
+    PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
   let value = match value {
@@ -74,7 +77,7 @@ pub(crate) fn convert_style_to_class_name(
         values
       }
     }
-    PreRuleValue::Expr(_) | PreRuleValue::Null => panic!("{}", ILLEGAL_PROP_VALUE),
+    PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
   let string_to_hash = format!(

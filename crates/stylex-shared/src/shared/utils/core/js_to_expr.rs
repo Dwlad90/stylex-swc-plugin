@@ -1,3 +1,4 @@
+use crate::stylex_unreachable;
 use indexmap::IndexMap;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
@@ -75,7 +76,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           FlatCompiledStylesValue::Bool(value) => {
             prop_or_spread_expression_factory(key.as_str(), bool_to_expression(*value))
           }
-          _ => unreachable!("Unsupported value type"),
+          _ => stylex_unreachable!("Unsupported value type"),
         };
 
         props.push(prop);

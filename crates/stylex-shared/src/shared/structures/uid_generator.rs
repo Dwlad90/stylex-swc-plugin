@@ -5,7 +5,7 @@ use std::thread;
 use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::Ident;
 
-use crate::shared::utils::ast::factories::ident_factory;
+use crate::{shared::utils::ast::factories::ident_factory, stylex_panic};
 
 // Add once_cell for global static
 use once_cell::sync::Lazy;
@@ -50,7 +50,10 @@ impl UidGenerator {
     match mode {
       CounterMode::_Global => {
         // Ensure the counter for this prefix exists in global counters
-        let mut counters = GLOBAL_COUNTERS.lock().unwrap();
+        let mut counters = match GLOBAL_COUNTERS.lock() {
+          Ok(c) => c,
+          Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
+        };
         counters
           .entry(prefix.to_string())
           .or_insert_with(|| AtomicUsize::new(1));
@@ -71,7 +74,10 @@ impl UidGenerator {
   pub fn _clear(&mut self) {
     match self.mode {
       CounterMode::_Global => {
-        let mut counters = GLOBAL_COUNTERS.lock().unwrap();
+        let mut counters = match GLOBAL_COUNTERS.lock() {
+          Ok(c) => c,
+          Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
+        };
         counters.remove(&self.prefix);
       }
       CounterMode::Local => {
@@ -91,8 +97,17 @@ impl UidGenerator {
   pub fn generate(&self) -> String {
     match self.mode {
       CounterMode::_Global => {
-        let counters = GLOBAL_COUNTERS.lock().unwrap();
-        let counter = counters.get(&self.prefix).unwrap();
+        let counters = match GLOBAL_COUNTERS.lock() {
+          Ok(c) => c,
+          Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
+        };
+        let counter = match counters.get(&self.prefix) {
+          Some(c) => c,
+          None => stylex_panic!(
+            "Counter for prefix '{}' not found in GLOBAL_COUNTERS",
+            self.prefix
+          ),
+        };
         let count = counter.fetch_add(1, Ordering::SeqCst);
 
         let count_string = if count < 2 {

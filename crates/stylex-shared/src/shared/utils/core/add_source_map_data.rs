@@ -4,6 +4,9 @@ use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap;
 use std::{env, path::Path, rc::Rc};
 use stylex_path_resolver::package_json::PackageJsonExtended;
+
+use crate::stylex_panic;
+
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{CallExpr, Expr, KeyValueProp},
@@ -59,7 +62,7 @@ pub(crate) fn add_source_map_data(
               }
             }
           }
-          _ => panic!("Expected object expression"),
+          _ => stylex_panic!("Expected object expression"),
         };
         let mut inner_map = IndexMap::new();
 
@@ -157,7 +160,7 @@ pub(crate) fn add_source_map_data(
         };
       }
       _ => {
-        panic!("{}", illegal_argument_length("add_source_map_data", 1));
+        stylex_panic!("{}", illegal_argument_length("add_source_map_data", 1));
       }
     };
   }
@@ -219,8 +222,11 @@ fn create_short_filename(
   let path = Path::new(absolute_path);
   let cwd = env::current_dir().unwrap_or_default();
 
-  let cwd_package =
-    StateManager::get_package_name_and_path(cwd.to_str().unwrap(), package_json_seen);
+  let cwd_str = match cwd.to_str() {
+    Some(s) => s,
+    None => stylex_panic!("Current working directory path is not valid UTF-8"),
+  };
+  let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);
   let package_details = StateManager::get_package_name_and_path(absolute_path, package_json_seen);
 
   // If package details exist, use package-relative path

@@ -207,6 +207,7 @@ const { code, metadata, map } = transform(
 #### Plugin Configuration
 
 Each plugin in the `swcPlugins` array is a tuple of:
+
 - **Plugin Path** (string): Can be:
   - An absolute path to a `.wasm` file: `/path/to/plugin.wasm`
   - An npm package name: `@swc/plugin-emotion`
@@ -380,7 +381,6 @@ const styles = {
 > [!TIP]
 > This option is automatically enabled when using `@stylexswc/webpack-plugin` with `loaderOrder: 'first'` (the default).
 
-
 ### `useRealFileForSource`
 
 **Type:** `boolean`
@@ -410,12 +410,14 @@ transform(filename, code, {
 #### Use Cases
 
 **Use `true` (recommended for development):**
+
 - Local development with files on disk
 - Accurate error messages with real line numbers
 - Better debugging experience
 - Source maps match your actual files
 
 **Use `false` (for special cases):**
+
 - In-memory transformations without disk access
 - Virtual file systems
 - Performance optimization when error accuracy is less critical
@@ -426,6 +428,7 @@ transform(filename, code, {
 
 > [!WARNING]
 > When `useRealFileForSource` is set to `false`, error messages may report **incorrect line numbers**. The compiler will use the transformed AST representation instead of the original source code, which can lead to line number mismatches. This happens because:
+>
 > - The AST may have been modified by previous transformations
 > - Comments and whitespace are normalized in the AST
 > - The structure may differ from what's in your actual source file
@@ -469,6 +472,30 @@ For PowerShell:
 ```powershell
 $env:STYLEX_DEBUG="debug"; npm run build
 ```
+
+## Error Handling
+
+The compiler produces clean, structured error messages with a branded `[StyleX]`
+prefix, replacing Rust's default panic boilerplate with user-friendly diagnostics
+in both the terminal and at the NAPI boundary.
+
+### Error Format
+
+All StyleX errors follow this format in the terminal:
+
+```bash
+[StyleX] message
+  --> file:line:col
+[Stack trace]: internal/source/location #shown only when STYLEX_DEBUG >= info
+```
+
+Errors are color-coded for readability:
+
+| Category | Label | Color |
+|---|---|---|
+| Regular error | _(none)_ | Red prefix |
+| Unimplemented feature | `[UNIMPLEMENTED]` | Magenta label |
+| Internal unreachable state | `[UNREACHABLE]` | Blue label |
 
 ## License
 

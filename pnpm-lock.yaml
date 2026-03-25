@@ -1366,9 +1366,6 @@ importers:
 
   crates/stylex-css-parser:
     devDependencies:
-      '@stylexswc/core':
-        specifier: 0.15.1-rc.1
-        version: link:../stylex-core
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -1380,10 +1377,6 @@ importers:
         version: 3.8.1
 
   crates/stylex-path-resolver:
-    dependencies:
-      '@stylexswc/core':
-        specifier: 0.15.1-rc.1
-        version: link:../stylex-core
     devDependencies:
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1406,12 +1399,6 @@ importers:
       '@stylexjs/stylex':
         specifier: ^0.18.1
         version: 0.18.1
-      '@stylexswc/core':
-        specifier: 0.15.1-rc.1
-        version: link:../stylex-core
-      '@stylexswc/shared':
-        specifier: 0.15.1-rc.1
-        version: link:../stylex-shared
       '@swc-node/register':
         specifier: ^1.11.1
         version: 1.11.1(@swc/core@1.15.11(@swc/helpers@0.5.19))(@swc/types@0.1.25)(typescript@5.9.3)
@@ -1454,12 +1441,6 @@ importers:
 
   crates/stylex-shared:
     devDependencies:
-      '@stylexswc/core':
-        specifier: 0.15.1-rc.1
-        version: link:../stylex-core
-      '@stylexswc/path-resolver':
-        specifier: 0.15.1-rc.1
-        version: link:../stylex-path-resolver
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0

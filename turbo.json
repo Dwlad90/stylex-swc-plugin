@@ -62,48 +62,6 @@
       ],
       "outputLogs": "errors-only"
     },
-    "@stylexswc/rs-compiler#lint:check": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "outputLogs": "errors-only"
-    },
-    "@stylexswc/rs-compiler#test": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "outputLogs": "errors-only"
-    },
-    "@stylexswc/path-resolver#lint:check": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "outputLogs": "errors-only"
-    },
-    "@stylexswc/core#lint:check": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "outputLogs": "errors-only"
-    },
-    "@stylexswc/shared#lint:check": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "outputLogs": "errors-only"
-    },
-    "@stylexswc/test-parser#lint:check": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "outputLogs": "errors-only"
-    },
     "dev": {
       "cache": false,
       "persistent": true

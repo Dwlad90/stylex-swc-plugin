@@ -1,7 +1,7 @@
 pub mod constants;
 pub mod enums;
-pub mod regex;
+pub use stylex_regex::regex;
 pub mod structures;
-pub mod swc;
+pub use stylex_misc::swc;
 pub(crate) mod transformers;
 pub mod utils;

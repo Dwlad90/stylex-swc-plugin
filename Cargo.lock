@@ -2895,6 +2895,7 @@ dependencies = [
  "once_cell",
  "phf 0.13.1",
  "pretty_env_logger",
+ "rustc-hash",
  "swc_core",
 ]
 
@@ -2994,6 +2995,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_misc"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "pretty_env_logger",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_path_resolver"
 version = "0.15.1"
 dependencies = [
@@ -3014,6 +3024,16 @@ dependencies = [
  "serde_json",
  "stylex_core",
  "swc_core",
+]
+
+[[package]]
+name = "stylex_regex"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "fancy-regex",
+ "once_cell",
+ "pretty_env_logger",
 ]
 
 [[package]]
@@ -3041,9 +3061,12 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "stylex_constants",
  "stylex_core",
  "stylex_css_parser",
+ "stylex_misc",
  "stylex_path_resolver",
+ "stylex_regex",
  "swc_compiler_base",
  "swc_config",
  "swc_core",

@@ -1,3 +1,6 @@
+pub mod enums;
+pub mod structures;
+
 #[cfg(test)]
 mod tests {
   use ctor::ctor;

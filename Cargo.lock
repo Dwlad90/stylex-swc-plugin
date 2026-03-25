@@ -3067,6 +3067,7 @@ dependencies = [
  "stylex_misc",
  "stylex_path_resolver",
  "stylex_regex",
+ "stylex_types",
  "swc_compiler_base",
  "swc_config",
  "swc_core",
@@ -3161,6 +3162,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_constants",
+ "stylex_core",
  "stylex_macros",
  "swc_core",
 ]

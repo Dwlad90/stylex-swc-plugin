@@ -32,7 +32,7 @@ log.workspace = true
 
 stylex_constants = { path = "../stylex-constants" }
 stylex_types = { path = "../stylex-types" }
-stylex_ast_utils = { path = "../stylex-ast-utils" }
+stylex_ast = { path = "../stylex-ast" }
 stylex_evaluator = { path = "../stylex-evaluator" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_css_parser = { path = "../stylex-css-parser" }

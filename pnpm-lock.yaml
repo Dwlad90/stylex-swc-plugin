@@ -1352,7 +1352,7 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(webpack-cli@6.0.1)(webpack@5.105.3)
 
-  crates/stylex-ast-utils:
+  crates/stylex-ast:
     devDependencies:
       '@taplo/cli':
         specifier: ^0.7.0

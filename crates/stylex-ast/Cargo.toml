@@ -1,5 +1,5 @@
 [package]
-name = "stylex_ast_utils"
+name = "stylex_ast"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

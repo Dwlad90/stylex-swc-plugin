@@ -2849,7 +2849,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
-name = "stylex_ast_utils"
+name = "stylex_ast"
 version = "0.15.1-rc.1"
 dependencies = [
  "anyhow",
@@ -2921,7 +2921,7 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "rustc-hash",
- "stylex_ast_utils",
+ "stylex_ast",
  "stylex_constants",
  "stylex_css_parser",
  "stylex_evaluator",
@@ -2963,7 +2963,7 @@ dependencies = [
  "pretty_env_logger",
  "radix_fmt",
  "rustc-hash",
- "stylex_ast_utils",
+ "stylex_ast",
  "stylex_constants",
  "stylex_macros",
  "stylex_path_resolver",
@@ -3112,7 +3112,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "stylex_ast_utils",
+ "stylex_ast",
  "stylex_constants",
  "stylex_css",
  "stylex_css_parser",
@@ -3138,7 +3138,7 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "rustc-hash",
- "stylex_ast_utils",
+ "stylex_ast",
  "stylex_constants",
  "stylex_css",
  "stylex_evaluator",

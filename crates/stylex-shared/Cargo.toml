@@ -54,6 +54,7 @@ stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_css_parser = { path = "../stylex-css-parser" }
 stylex_core = { path = "../stylex-core" }
 stylex_constants = { path = "../stylex-constants" }
+stylex_types = { path = "../stylex-types" }
 stylex_regex = { path = "../stylex-regex" }
 stylex_misc = { path = "../stylex-misc" }
 

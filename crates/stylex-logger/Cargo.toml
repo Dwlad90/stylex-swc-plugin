@@ -1,0 +1,22 @@
+[package]
+name = "stylex_logger"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Logger for StyleX NAPI-RS compiler"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+ctor.workspace = true
+colored.workspace = true
+log.workspace = true
+pretty_env_logger.workspace = true
+env_logger.workspace = true
+
+stylex_macros = { path = "../stylex-macros" }

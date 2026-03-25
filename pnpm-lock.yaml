@@ -1352,6 +1352,30 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(webpack-cli@6.0.1)(webpack@5.105.3)
 
+  crates/stylex-ast-utils:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-constants:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
   crates/stylex-core:
     devDependencies:
       '@taplo/cli':
@@ -1364,7 +1388,55 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
 
+  crates/stylex-css:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
   crates/stylex-css-parser:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-evaluator:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-logs:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-macros:
     devDependencies:
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1452,6 +1524,42 @@ importers:
         version: 3.8.1
 
   crates/stylex-test-parser:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-transform:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-transformers:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-types:
     devDependencies:
       '@taplo/cli':
         specifier: ^0.7.0

@@ -2849,6 +2849,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
+name = "stylex_ast_utils"
+version = "0.15.1-rc.1"
+dependencies = [
+ "anyhow",
+ "ctor",
+ "log",
+ "pretty_env_logger",
+ "stylex_constants",
+ "stylex_macros",
+ "stylex_types",
+ "swc_compiler_base",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_compiler_rs"
 version = "0.15.1"
 dependencies = [
@@ -2871,6 +2886,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_constants"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "fancy-regex",
+ "lazy_static",
+ "once_cell",
+ "phf 0.13.1",
+ "pretty_env_logger",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_core"
 version = "0.15.1"
 dependencies = [
@@ -2879,6 +2907,26 @@ dependencies = [
  "env_logger 0.11.9",
  "log",
  "pretty_env_logger",
+]
+
+[[package]]
+name = "stylex_css"
+version = "0.15.1-rc.1"
+dependencies = [
+ "cssparser",
+ "ctor",
+ "fancy-regex",
+ "indexmap",
+ "log",
+ "pretty_env_logger",
+ "rustc-hash",
+ "stylex_ast_utils",
+ "stylex_constants",
+ "stylex_css_parser",
+ "stylex_evaluator",
+ "stylex_macros",
+ "stylex_types",
+ "swc_core",
 ]
 
 [[package]]
@@ -2898,6 +2946,51 @@ dependencies = [
  "stylex_core",
  "swc_core",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "stylex_evaluator"
+version = "0.15.1-rc.1"
+dependencies = [
+ "anyhow",
+ "base62",
+ "ctor",
+ "indexmap",
+ "log",
+ "md5",
+ "murmur2",
+ "pretty_env_logger",
+ "radix_fmt",
+ "rustc-hash",
+ "stylex_ast_utils",
+ "stylex_constants",
+ "stylex_macros",
+ "stylex_path_resolver",
+ "stylex_types",
+ "swc_core",
+]
+
+[[package]]
+name = "stylex_logs"
+version = "0.15.1-rc.1"
+dependencies = [
+ "colored",
+ "ctor",
+ "env_logger 0.11.9",
+ "log",
+ "pretty_env_logger",
+ "stylex_macros",
+]
+
+[[package]]
+name = "stylex_macros"
+version = "0.15.1-rc.1"
+dependencies = [
+ "colored",
+ "ctor",
+ "log",
+ "pretty_env_logger",
+ "stylex_constants",
 ]
 
 [[package]]
@@ -2977,6 +3070,76 @@ dependencies = [
  "swc_core",
  "swc_ecma_parser",
  "walkdir",
+]
+
+[[package]]
+name = "stylex_transform"
+version = "0.15.1-rc.1"
+dependencies = [
+ "anyhow",
+ "ctor",
+ "indexmap",
+ "insta",
+ "log",
+ "node-resolve",
+ "once_cell",
+ "path-clean 1.0.1",
+ "pretty_env_logger",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "stylex_ast_utils",
+ "stylex_constants",
+ "stylex_css",
+ "stylex_css_parser",
+ "stylex_evaluator",
+ "stylex_logs",
+ "stylex_macros",
+ "stylex_path_resolver",
+ "stylex_transformers",
+ "stylex_types",
+ "swc_compiler_base",
+ "swc_config",
+ "swc_core",
+ "swc_ecma_parser",
+ "testing",
+]
+
+[[package]]
+name = "stylex_transformers"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "indexmap",
+ "log",
+ "pretty_env_logger",
+ "rustc-hash",
+ "stylex_ast_utils",
+ "stylex_constants",
+ "stylex_css",
+ "stylex_evaluator",
+ "stylex_macros",
+ "stylex_types",
+ "swc_core",
+]
+
+[[package]]
+name = "stylex_types"
+version = "0.15.1-rc.1"
+dependencies = [
+ "anyhow",
+ "ctor",
+ "derive_more",
+ "indexmap",
+ "log",
+ "once_cell",
+ "pretty_env_logger",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "stylex_constants",
+ "stylex_macros",
+ "swc_core",
 ]
 
 [[package]]

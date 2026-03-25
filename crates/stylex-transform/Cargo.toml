@@ -1,0 +1,61 @@
+[package]
+name = "stylex_transform"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "SWC Fold implementation, StateManager and transform orchestration for StyleX"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+  "css_codegen",
+  "css_visit",
+  "css_parser",
+  "css_ast",
+  "ecma_transforms_typescript",
+] }
+swc_ecma_parser = { workspace = true, features = ["verify"] }
+swc_compiler_base = { workspace = true, features = ["node"] }
+swc_config.workspace = true
+indexmap.workspace = true
+rustc-hash.workspace = true
+once_cell.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
+node-resolve.workspace = true
+path-clean.workspace = true
+anyhow.workspace = true
+ctor.workspace = true
+pretty_env_logger.workspace = true
+
+stylex_constants = { path = "../stylex-constants" }
+stylex_types = { path = "../stylex-types" }
+stylex_ast_utils = { path = "../stylex-ast-utils" }
+stylex_evaluator = { path = "../stylex-evaluator" }
+stylex_css = { path = "../stylex-css" }
+stylex_transformers = { path = "../stylex-transformers" }
+stylex_macros = { path = "../stylex-macros" }
+stylex_logs = { path = "../stylex-logs" }
+stylex_path_resolver = { path = "../stylex-path-resolver" }
+stylex_css_parser = { path = "../stylex-css-parser" }
+
+[dev-dependencies]
+swc_core = { workspace = true, features = [
+  "testing_transform",
+  "ecma_parser",
+  "ecma_utils",
+] }
+testing.workspace = true
+insta = { workspace = true, features = ["yaml"] }

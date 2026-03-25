@@ -1,0 +1,37 @@
+[package]
+name = "stylex_types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Type definitions, enums, structs and traits for StyleX SWC plugin"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+] }
+indexmap.workspace = true
+rustc-hash.workspace = true
+derive_more.workspace = true
+anyhow.workspace = true
+log.workspace = true
+once_cell.workspace = true
+
+stylex_constants = { path = "../stylex-constants" }
+stylex_macros = { path = "../stylex-macros" }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true

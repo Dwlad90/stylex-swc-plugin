@@ -1,0 +1,36 @@
+[package]
+name = "stylex_transformers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "StyleX API transformer implementations (create, defineVars, keyframes, etc.)"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+] }
+indexmap.workspace = true
+rustc-hash.workspace = true
+log.workspace = true
+
+stylex_constants = { path = "../stylex-constants" }
+stylex_types = { path = "../stylex-types" }
+stylex_ast_utils = { path = "../stylex-ast-utils" }
+stylex_evaluator = { path = "../stylex-evaluator" }
+stylex_css = { path = "../stylex-css" }
+stylex_macros = { path = "../stylex-macros" }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true

@@ -1,5 +1,5 @@
 [package]
-name = "stylex_logger"
+name = "stylex_logs"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

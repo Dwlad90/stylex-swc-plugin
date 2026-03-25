@@ -1,0 +1,42 @@
+[package]
+name = "stylex_css"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CSS generation, normalization and validation for StyleX SWC plugin"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+  "css_codegen",
+  "css_visit",
+  "css_parser",
+  "css_ast",
+] }
+cssparser.workspace = true
+fancy-regex.workspace = true
+indexmap.workspace = true
+rustc-hash.workspace = true
+log.workspace = true
+
+stylex_constants = { path = "../stylex-constants" }
+stylex_types = { path = "../stylex-types" }
+stylex_ast_utils = { path = "../stylex-ast-utils" }
+stylex_evaluator = { path = "../stylex-evaluator" }
+stylex_macros = { path = "../stylex-macros" }
+stylex_css_parser = { path = "../stylex-css-parser" }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true

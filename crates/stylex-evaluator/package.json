@@ -1,6 +1,6 @@
 {
-  "name": "@stylexswc/logger",
-  "description": "Logger for StyleX NAPI-RS compiler",
+  "name": "@stylexswc/evaluator",
+  "description": "JS expression evaluation engine for StyleX SWC plugin",
   "version": "0.15.1-rc.1",
   "private": true,
   "sideEffects": false,

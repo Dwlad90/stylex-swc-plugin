@@ -1,0 +1,33 @@
+[package]
+name = "stylex_ast_utils"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "AST factories, convertors and helpers for StyleX SWC plugin"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_parser",
+  "ecma_codegen",
+] }
+swc_compiler_base = { workspace = true, features = ["node"] }
+anyhow.workspace = true
+log.workspace = true
+
+stylex_constants = { path = "../stylex-constants" }
+stylex_types = { path = "../stylex-types" }
+stylex_macros = { path = "../stylex-macros" }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true

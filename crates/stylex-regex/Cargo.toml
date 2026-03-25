@@ -1,11 +1,11 @@
 [package]
-name = "stylex_constants"
+name = "stylex_regex"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Constants, regex patterns and static data for StyleX SWC plugin"
+description = "Compiled regex patterns for StyleX SWC plugin"
 
 
 [lib]
@@ -13,12 +13,8 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-phf = { workspace = true, features = ["macros"] }
-once_cell.workspace = true
 fancy-regex.workspace = true
-lazy_static.workspace = true
-swc_core = { workspace = true, features = ["common"] }
-rustc-hash.workspace = true
+once_cell.workspace = true
 
 [dev-dependencies]
 ctor.workspace = true

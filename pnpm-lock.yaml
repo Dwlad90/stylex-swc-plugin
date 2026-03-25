@@ -1448,7 +1448,31 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
 
+  crates/stylex-misc:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
   crates/stylex-path-resolver:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-regex:
     devDependencies:
       '@taplo/cli':
         specifier: ^0.7.0

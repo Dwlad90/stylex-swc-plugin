@@ -1,0 +1,20 @@
+[package]
+name = "stylex_misc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Miscellaneous SWC utilities for StyleX plugin"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = ["common", "ecma_utils"] }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true

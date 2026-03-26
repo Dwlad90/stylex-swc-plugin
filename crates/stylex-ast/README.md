@@ -2,64 +2,37 @@
 
 ## Overview
 
-This package provides SWC AST manipulation utilities for the StyleX compiler. Includes AST factories, convertors, helpers, code frame error infrastructure, and logging utilities.
+SWC AST manipulation utilities for the StyleX compiler. Contains factory
+functions for creating AST nodes and pure convertor functions.
 
-## Architecture
+## Contents
 
-Layer 0 crate providing AST construction and error reporting primitives for downstream layers.
+### Factories (`ast/factories`)
+- `object_expression_factory`, `array_expression_factory` -- Collection
+  literals
+- `prop_or_spread_expression_factory`, `prop_or_spread_string_factory` --
+  Object properties
+- `lit_str_factory`, `lit_number_factory`, `lit_boolean_factory`,
+  `lit_null_factory` -- Literal factories
+- `ident_factory`, `ident_name_factory`, `binding_ident_factory` --
+  Identifier factories
+- `spread_element_factory`, `call_expr_member_factory`,
+  `arrow_expr_factory` -- Expression factories
+- `jsx_attr_factory`, `jsx_attr_or_spread_*` -- JSX attribute factories
+- `var_declarator_factory` -- Variable declaration factory
 
-## Key Modules
+### Pure Convertors (`ast/convertors`)
+- `number_to_expression`, `string_to_expression`, `bool_to_expression`,
+  `null_to_expression`, `ident_to_expression` -- Value-to-AST conversion
+- `lit_to_num`, `lit_to_string`, `lit_str_to_string`, `lit_str_to_atom`
+  -- Literal extraction
+- `atom_to_string`, `wtf8_atom_to_atom`, `atom_to_str` -- Atom conversion
+- `simple_tpl_to_string`, `convert_simple_tpl_to_str_expr`,
+  `convert_concat_to_tpl_expr` -- Template literal conversion
+- `string_to_prop_name`, `transform_shorthand_to_key_values` -- Property
+  helpers
 
-- **`ast/factories.rs`** — AST factory functions for common patterns
-  - `spread_element_factory()` — `...expr` spread syntax
-  - `call_expr_member_factory()` — `obj.method(...args)` calls
-  - `arrow_expr_factory()` — `() => expr` arrow functions
-  - Plus 8 more factories for common AST construction patterns
+## Layer
 
-- **`ast/convertors.rs`** — Expression-to-value conversions
-  - `expr_to_string()` — convert Expr to string
-  - `expr_to_bool()` — convert Expr to boolean
-  - Full AST traversal and type conversions
-
-- **`log/build_code_frame_error.rs`** — Error reporting with source context
-  - Generic over `<T: EvaluationContext>` for context-aware errors
-  - `build_code_frame_error()` — creates detailed error messages with line/column
-  - `panic_with_context()` — panics with formatted error context
-
-## Dependencies
-
-- `stylex-constants` — CSS metadata
-- `stylex-types` — Type definitions and traits
-- `swc_core` — SWC AST types and utilities
-- `swc_compiler_base` — SWC base utilities
-- `anyhow` — error handling
-
-## Usage
-
-```rust
-use stylex_ast::factories::*;
-use stylex_ast::log::build_code_frame_error;
-use stylex_types::traits::EvaluationContext;
-
-// Create AST nodes using factories
-let call = call_expr_ident_factory(
-  Atom::from("getValue"),
-  vec![],
-);
-
-// Build detailed error messages with source context
-fn validate<T: EvaluationContext>(
-  expr: &Expr,
-  ctx: &mut T,
-) -> Result<()> {
-  if !is_valid(expr) {
-    build_code_frame_error(
-      expr,
-      "Invalid expression format",
-      ctx.get_filename(),
-      ctx,
-    );
-  }
-  Ok(())
-}
-```
+Layer 0. Dependencies: `stylex-constants`, `stylex-types`, `stylex-macros`,
+`stylex-core`, `stylex-misc`.

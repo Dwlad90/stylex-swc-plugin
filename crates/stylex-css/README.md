@@ -2,82 +2,31 @@
 
 ## Overview
 
-This package provides CSS generation, normalization and validation for the StyleX SWC plugin. Includes class name generation, LTR/RTL support, shorthand expansion, CSS property validation and style merging. ~5,000 lines.
+CSS generation, normalization, and utility functions for the StyleX SWC
+plugin.
 
-## Architecture
+## Contents
 
-Layer 1 processing engine crate. Depends on all Layer 0 crates + `stylex-evaluator`.
+### CSS Utilities (`css/`)
+- `parser` -- CSS value parsing using `cssparser` (format_ident, parse_css)
+- `generate_ltr` -- LTR style generation with logical property mapping
+- `normalizers/whitespace_normalizer` -- CSS whitespace normalization
+  (math signs, brackets, functions, URLs)
 
-## Key Modules
+### General Utilities (`utils/`)
+- `pre_rule` -- Pseudo-class and at-rule sorting (sort_pseudos,
+  sort_at_rules)
+- `vector` -- Vector intersection utility
+- `when` -- Relational selector functions (ancestor, descendant,
+  sibling_before, sibling_after, any_sibling) with 15 inline tests
 
-- **`css/`** — CSS class name generation and manipulation
-  - `class_name_generation.rs` — hashing and class name assignment
-  - LTR/RTL style pair generation
-  - Media query and pseudo-class handling
+## Note
 
-- **`core/`** — Core CSS processing
-  - `flatten_raw_style_object.rs` — flatten nested style objects
-  - `evaluate_stylex_create_arg.rs` — evaluate style arguments
-  - `stylex_merge.rs` — merge style objects
-  - `parse_nullable_style.rs` — handle optional/conditional styles
-  - `member_expression.rs` — resolve member access patterns
-  - `convert_style_to_class_name.rs` — style object → class names
+CSS generation code that references `StateManager` (`css/common.rs`,
+`generate_rtl.rs`, `core/*` utils) remains in `stylex-transform`. This
+crate contains only the pure functions extractable without code changes.
 
-- **`object.rs`** — Object manipulation utilities
-  - `obj_map()` — map over object properties with context
-  - Working with `<T: StyleOptions>` and `<T: EvaluationContext>`
+## Layer
 
-- **`pre_rule.rs`** — CSS rule generation
-  - `PreRule::compiled()` — compile to final CSS rules
-  - Works with `&mut dyn StyleOptions` for context-agnostic compilation
-
-- **`validators.rs`** — Style validation
-  - Validate CSS property values
-  - Check import requirements (`<T: TransformState>`)
-  - Media query and pseudo-class validation
-
-- **`when.rs`** — Conditional style handling
-- **`vector.rs`** — Utility functions for vector/array operations
-
-## Dependencies
-
-- All Layer 0 crates: `stylex-constants`, `stylex-types`, `stylex-ast`
-- `stylex-evaluator` — expression evaluation
-- `stylex-css-parser` — CSS parsing
-- `swc_core` — SWC AST types
-- `cssparser` — CSS specification parsing
-- `fancy-regex` — pattern matching
-- `indexmap`, `rustc-hash` — fast, ordered maps
-- `log` — logging
-
-## Usage
-
-```rust
-use stylex_css::core::*;
-use stylex_types::traits::TransformState;
-
-// Flatten nested style objects
-fn process_styles<T: EvaluationContext + Clone>(
-  raw_object: &Expr,
-  context: &mut T,
-) -> Result<StylesObjectMap> {
-  flatten_raw_style_object(raw_object, context)
-}
-
-// Merge style objects with precedence
-fn merge_styles<T: TransformState + Clone>(
-  base: &Expr,
-  overrides: &Expr,
-  context: &mut T,
-) -> Result<Expr> {
-  stylex_merge(base, overrides, context)
-}
-
-// Convert to class names
-fn generate_classes<T: EvaluationContext + Clone>(
-  styles: &Expr,
-  context: &mut T,
-) -> Vec<String> {
-  convert_style_to_class_name(styles, context)
-}
-```
+Layer 1. Dependencies: `stylex-constants`, `stylex-types`, `stylex-core`,
+`stylex-regex`, `cssparser`.

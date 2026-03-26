@@ -2,5 +2,13 @@
 
 ## Overview
 
-This package provides miscellaneous SWC utilities for the StyleX plugin,
-including SWC expression context helpers.
+Miscellaneous SWC utilities for the StyleX plugin.
+
+## Contents
+
+- `swc::get_default_expr_ctx` -- Creates a default `ExprCtx` for SWC
+  expression type checking
+
+## Layer
+
+Layer 0 leaf crate. Dependencies: `swc_core`.

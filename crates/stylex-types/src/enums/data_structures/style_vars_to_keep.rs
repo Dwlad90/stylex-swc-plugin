@@ -1,20 +1,2 @@
-use swc_core::atoms::Atom;
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub enum NonNullProp {
-  Atom(Atom),
-  True,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub enum NonNullProps {
-  Vec(Vec<Atom>),
-  True,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct StyleVarsToKeep(
-  pub Atom,
-  pub NonNullProp,
-  pub NonNullProps,
-);
+#[allow(unused_imports)]
+pub use stylex_enums::data_structures::style_vars_to_keep::*;

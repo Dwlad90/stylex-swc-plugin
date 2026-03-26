@@ -2957,6 +2957,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_enums"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "indexmap",
+ "pretty_env_logger",
+ "stylex_macros",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_evaluator"
 version = "0.15.1-rc.1"
 dependencies = [
@@ -3036,43 +3047,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylex_shared"
-version = "0.15.1"
+name = "stylex_structures"
+version = "0.15.1-rc.1"
 dependencies = [
- "anyhow",
- "base62",
- "cssparser",
  "ctor",
  "derive_more",
- "fancy-regex",
  "indexmap",
- "insta",
- "lazy_static",
  "log",
- "md5",
- "murmur2",
- "node-resolve",
  "once_cell",
- "path-clean 1.0.1",
- "phf 0.13.1",
  "pretty_env_logger",
- "radix_fmt",
  "rustc-hash",
  "serde",
  "serde_json",
- "stylex_ast",
  "stylex_constants",
- "stylex_core",
- "stylex_css_parser",
- "stylex_misc",
- "stylex_path_resolver",
- "stylex_regex",
- "stylex_types",
- "swc_compiler_base",
- "swc_config",
+ "stylex_macros",
  "swc_core",
- "swc_ecma_parser",
- "testing",
 ]
 
 [[package]]
@@ -3171,7 +3160,10 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_constants",
+ "stylex_enums",
  "stylex_macros",
+ "stylex_structures",
+ "stylex_utils",
  "swc_core",
 ]
 

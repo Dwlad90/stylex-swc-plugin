@@ -1,2 +1,2 @@
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct OrderPair(pub String, pub Option<String>);
+#[allow(unused_imports)]
+pub use stylex_structures::order_pair::*;

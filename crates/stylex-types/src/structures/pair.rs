@@ -1,12 +1,2 @@
-#[derive(Debug, PartialEq, Clone, Hash)]
-
-pub struct Pair {
-  pub key: String,
-  pub value: String,
-}
-
-impl Pair {
-  pub fn new(key: String, value: String) -> Self {
-    Self { key, value }
-  }
-}
+#[allow(unused_imports)]
+pub use stylex_structures::pair::*;

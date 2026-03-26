@@ -1,15 +1,2 @@
-use swc_core::{atoms::Atom, ecma::ast::Expr};
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
-pub enum TopLevelExpressionKind {
-  NamedExport,
-  DefaultExport,
-  Stmt,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct TopLevelExpression(
-  pub TopLevelExpressionKind,
-  pub Expr,
-  pub Option<Atom>,
-);
+#[allow(unused_imports)]
+pub use stylex_enums::data_structures::top_level_expression::*;

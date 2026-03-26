@@ -1,0 +1,22 @@
+[package]
+name = "stylex_enums"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Enum definitions for the StyleX compiler plugin"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+indexmap.workspace = true
+swc_core = { workspace = true, features = ["common", "ecma_utils", "ecma_ast", "swc_atoms"] }
+stylex_macros = { path = "../stylex-macros" }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true

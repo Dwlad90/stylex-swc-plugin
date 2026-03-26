@@ -1,11 +1,2 @@
-#[derive(Debug, PartialEq, Clone)]
-pub enum ImportPathResolution {
-  False,
-  Tuple(ImportPathResolutionType, String),
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ImportPathResolutionType {
-  ThemeNameRef,
-  // FilePath,
-}
+#[allow(unused_imports)]
+pub use stylex_enums::data_structures::import_path_resolution::*;

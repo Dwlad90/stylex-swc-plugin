@@ -15,7 +15,7 @@ use stylex_core::{
 };
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
-use stylex_shared::StyleXTransform;
+use stylex_transform::StyleXTransform;
 use stylex_types::structures::{
   plugin_pass::PluginPass,
   stylex_options::{StyleResolution, StyleXOptionsParams},

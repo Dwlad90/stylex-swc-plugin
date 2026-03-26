@@ -9,10 +9,12 @@ description = "SWC Fold implementation, StateManager and transform orchestration
 
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+## With this config build fails with error: `linking with `cc` failed: exit status: 1`
+# crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
+serde.workspace = true
 swc_core = { workspace = true, features = [
   "common",
   "ecma_plugin_transform",
@@ -25,31 +27,37 @@ swc_core = { workspace = true, features = [
   "css_ast",
   "ecma_transforms_typescript",
 ] }
+swc_config.workspace = true
 swc_ecma_parser = { workspace = true, features = ["verify"] }
 swc_compiler_base = { workspace = true, features = ["node"] }
-swc_config.workspace = true
-indexmap.workspace = true
-rustc-hash.workspace = true
-once_cell.workspace = true
-log.workspace = true
-serde.workspace = true
+lazy_static.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
+fancy-regex.workspace = true
+indexmap.workspace = true
+derive_more.workspace = true
+murmur2.workspace = true
+radix_fmt.workspace = true
+phf = { workspace = true, features = ["macros"] }
+once_cell.workspace = true
 node-resolve.workspace = true
 path-clean.workspace = true
+cssparser.workspace = true
 anyhow.workspace = true
-ctor.workspace = true
+log.workspace = true
 pretty_env_logger.workspace = true
+ctor.workspace = true
+rustc-hash.workspace = true
+base62.workspace = true
+md5.workspace = true
 
+stylex_path_resolver = { path = "../stylex-path-resolver" }
+stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_core = { path = "../stylex-core" }
 stylex_constants = { path = "../stylex-constants" }
 stylex_types = { path = "../stylex-types" }
 stylex_ast = { path = "../stylex-ast" }
-stylex_evaluator = { path = "../stylex-evaluator" }
-stylex_css = { path = "../stylex-css" }
-stylex_transformers = { path = "../stylex-transformers" }
-stylex_macros = { path = "../stylex-macros" }
-stylex_logs = { path = "../stylex-logs" }
-stylex_path_resolver = { path = "../stylex-path-resolver" }
-stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_regex = { path = "../stylex-regex" }
+stylex_misc = { path = "../stylex-misc" }
 
 [dev-dependencies]
 swc_core = { workspace = true, features = [

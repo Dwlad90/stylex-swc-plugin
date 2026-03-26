@@ -634,12 +634,8 @@ pub(crate) fn gen_file_based_identifier(
   format!("{}//{}{}", file_name, export_name, key)
 }
 
-pub(crate) fn hash_f64(value: f64) -> u64 {
-  let bits = value.to_bits();
-  let mut hasher = DefaultHasher::new();
-  bits.hash(&mut hasher);
-  hasher.finish()
-}
+#[allow(unused_imports)]
+pub(crate) use stylex_types::utils::hash_f64;
 
 pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
   let multiplier = 10f64.powi(decimal_places as i32);

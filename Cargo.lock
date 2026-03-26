@@ -3001,6 +3001,8 @@ dependencies = [
  "ctor",
  "indexmap",
  "pretty_env_logger",
+ "rustc-hash",
+ "serde",
  "stylex_macros",
  "swc_core",
 ]
@@ -3110,6 +3112,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_constants",
+ "stylex_enums",
  "stylex_macros",
  "swc_core",
 ]

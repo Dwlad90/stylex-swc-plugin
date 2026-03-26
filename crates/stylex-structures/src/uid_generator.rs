@@ -9,6 +9,8 @@ use swc_core::ecma::ast::Ident;
 // Add once_cell for global static
 use once_cell::sync::Lazy;
 
+pub use stylex_enums::counter_mode::CounterMode;
+
 // Global counters map, protected by Mutex for thread safety
 static GLOBAL_COUNTERS: Lazy<Mutex<FxHashMap<String, AtomicUsize>>> =
   Lazy::new(|| Mutex::new(FxHashMap::default()));
@@ -17,24 +19,6 @@ static GLOBAL_COUNTERS: Lazy<Mutex<FxHashMap<String, AtomicUsize>>> =
 thread_local! {
   static THREAD_LOCAL_COUNTERS: std::cell::RefCell<FxHashMap<String, usize>> =
     std::cell::RefCell::new(FxHashMap::default());
-}
-
-/// Counter mode for UidGenerator
-#[derive(Clone, Debug)]
-pub enum CounterMode {
-  /// Use global counters shared across all instances (default behavior).
-  /// This ensures unique identifiers across the entire application.
-  _Global,
-  /// Use local counters specific to each instance (legacy behavior).
-  /// Each UidGenerator instance maintains its own counter, which can lead to
-  /// duplicate identifiers across different instances with the same prefix.
-  Local,
-  /// Use thread-local counters for test isolation.
-  /// Each thread gets its own set of counters, perfect for parallel testing.
-  ThreadLocal,
-  /// Use a combination of thread ID and prefix for maximum uniqueness.
-  /// This mode uses thread ID as part of the identifier generation.
-  _ThreadUnique,
 }
 
 pub struct UidGenerator {

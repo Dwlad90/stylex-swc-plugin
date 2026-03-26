@@ -9,15 +9,10 @@ use crate::{
   stylex_env::{EnvEntry, JSFunction},
 };
 
-/// Represents the `sxPropName` option: either a string name or `false` (disabled).
-#[derive(Deserialize, Clone, Debug)]
-#[serde(untagged)]
-pub enum SxPropNameParam {
-  /// Disables the `sx` prop feature
-  Disabled,
-  /// A string name for the sx prop (e.g. `"sx"` or `"css"`)
-  Enabled(String),
-}
+pub use stylex_enums::aliases::Aliases;
+pub use stylex_enums::property_validation_mode::PropertyValidationMode;
+pub use stylex_enums::style_resolution::StyleResolution;
+pub use stylex_enums::sx_prop_name_param::SxPropNameParam;
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -86,30 +81,6 @@ impl Default for StyleXOptionsParams {
       debug_file_path: None,
     }
   }
-}
-
-#[derive(Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all(deserialize = "kebab-case", serialize = "PascalCase"))]
-pub enum StyleResolution {
-  ApplicationOrder,
-  PropertySpecificity,
-  LegacyExpandShorthands,
-}
-
-#[derive(Deserialize, Debug, Clone, PartialEq, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum PropertyValidationMode {
-  Throw,
-  Warn,
-  #[default]
-  Silent,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-
-pub enum Aliases {
-  String(FxHashMap<String, String>),
-  StringVec(FxHashMap<String, Vec<String>>),
 }
 
 #[derive(Deserialize, Debug, Clone)]

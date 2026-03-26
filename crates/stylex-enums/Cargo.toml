@@ -14,6 +14,8 @@ doctest = false
 
 [dependencies]
 indexmap.workspace = true
+rustc-hash.workspace = true
+serde.workspace = true
 swc_core = { workspace = true, features = ["common", "ecma_utils", "ecma_ast", "swc_atoms"] }
 stylex_macros = { path = "../stylex-macros" }
 

@@ -1,5 +1,6 @@
 pub mod dynamic_style;
 pub mod inline_style;
+pub mod injectable_style;
 pub mod named_import_source;
 pub mod order;
 pub mod order_pair;

@@ -111,7 +111,7 @@ ${chalk.bold.yellow('📊 Benchmark Environment:')}
 `;
 }
 
-const stylexFixturePath = path.join(rootDir, '../../crates/stylex-shared/tests/fixture');
+const stylexFixturePath = path.join(rootDir, '../../crates/stylex-transform/tests/fixture');
 const fixtureFilePaths = getFixtureFilePaths(stylexFixturePath);
 
 addFixtureBenchmarks(benchRegular, fixtureFilePaths);

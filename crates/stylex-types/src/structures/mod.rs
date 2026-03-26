@@ -1,6 +1,7 @@
 pub mod dynamic_style;
 pub mod inline_style;
 pub mod injectable_style;
+pub mod meta_data;
 pub mod named_import_source;
 pub mod order;
 pub mod order_pair;
@@ -11,3 +12,4 @@ pub mod shorthands_of_shorthands;
 pub mod stylex_env;
 pub mod stylex_options;
 pub mod stylex_state_options;
+pub mod uid_generator;

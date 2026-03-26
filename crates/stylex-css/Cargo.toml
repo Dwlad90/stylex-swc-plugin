@@ -35,6 +35,8 @@ stylex_types = { path = "../stylex-types" }
 stylex_ast = { path = "../stylex-ast" }
 stylex_evaluator = { path = "../stylex-evaluator" }
 stylex_macros = { path = "../stylex-macros" }
+stylex_core = { path = "../stylex-core" }
+stylex_regex = { path = "../stylex-regex" }
 stylex_css_parser = { path = "../stylex-css-parser" }
 
 [dev-dependencies]

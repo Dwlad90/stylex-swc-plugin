@@ -2925,9 +2925,11 @@ dependencies = [
  "rustc-hash",
  "stylex_ast",
  "stylex_constants",
+ "stylex_core",
  "stylex_css_parser",
  "stylex_evaluator",
  "stylex_macros",
+ "stylex_regex",
  "stylex_types",
  "swc_core",
 ]

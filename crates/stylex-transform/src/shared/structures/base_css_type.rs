@@ -11,10 +11,10 @@ use crate::shared::{
   swc::get_default_expr_ctx,
   utils::{
     ast::{
-      convertors::{key_value_to_str, lit_to_string},
+      convertors::{key_value_to_str, convert_lit_to_string},
       factories::{
-        object_expression_factory, object_lit_factory, prop_or_spread_expression_factory,
-        prop_or_spread_string_factory,
+        create_object_expression, create_object_lit, create_key_value_prop,
+        create_string_key_value_prop,
       },
     },
     common::get_key_values_from_object,
@@ -31,7 +31,7 @@ impl BaseCSSType {
   pub fn value_to_props(value: ValueWithDefault, top_key: Option<String>) -> Vec<PropOrSpread> {
     match value {
       ValueWithDefault::Number(n) => {
-        let value_prop = prop_or_spread_string_factory(
+        let value_prop = create_string_key_value_prop(
           top_key.unwrap_or(String::from("value")).as_str(),
           n.to_string().as_str(),
         );
@@ -39,7 +39,7 @@ impl BaseCSSType {
         props
       }
       ValueWithDefault::String(s) => {
-        let value_prop = prop_or_spread_string_factory(
+        let value_prop = create_string_key_value_prop(
           top_key.unwrap_or(String::from("value")).as_str(),
           s.as_str(),
         );
@@ -56,8 +56,8 @@ impl BaseCSSType {
           local_props.extend(props_to_extend);
         }
 
-        let object_expr = object_expression_factory(local_props);
-        let prop = prop_or_spread_expression_factory(
+        let object_expr = create_object_expression(local_props);
+        let prop = create_key_value_prop(
           top_key.unwrap_or("value".to_string()).as_str(),
           object_expr,
         );
@@ -83,21 +83,21 @@ impl From<ObjectLit> for BaseCSSType {
           syntax = key_value
             .value
             .as_lit()
-            .and_then(lit_to_string)
+            .and_then(convert_lit_to_string)
             .map(|str_val| str_val.into())
         }
         "value" => {
           let obj_value = match key_value.value.as_ref() {
             Expr::Object(obj) => obj,
             Expr::Lit(obj) => {
-              let value = match lit_to_string(obj) {
+              let value = match convert_lit_to_string(obj) {
                 Some(v) => v,
                 None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
               };
 
-              let prop = prop_or_spread_string_factory("default", value.as_str());
+              let prop = create_string_key_value_prop("default", value.as_str());
 
-              &object_lit_factory(vec![prop])
+              &create_object_lit(vec![prop])
             }
             _ => stylex_panic!(
               "Value must be an object or string, but got: {:?}",
@@ -119,7 +119,7 @@ impl From<ObjectLit> for BaseCSSType {
 
                   match key_value.value.as_ref() {
                     Expr::Lit(lit) => {
-                      let value = match lit_to_string(lit) {
+                      let value = match convert_lit_to_string(lit) {
                         Some(v) => v,
                         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                       };
@@ -138,7 +138,7 @@ impl From<ObjectLit> for BaseCSSType {
                 values.insert(key, value);
               }
               Expr::Lit(lit) => {
-                let value = match lit_to_string(lit) {
+                let value = match convert_lit_to_string(lit) {
                   Some(v) => v,
                   None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                 };

@@ -2,8 +2,8 @@ use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::ast::{
-    convertors::{expr_to_str, lit_to_num, string_to_expression},
-    factories::{array_expression_factory, expr_or_spread_factory},
+    convertors::{expr_to_str, coerce_lit_to_number, create_string_expr},
+    factories::{create_array_expression, create_expr_or_spread},
   },
 };
 use std::rc::Rc;
@@ -37,10 +37,10 @@ pub(crate) fn evaluate_map(
 
           let elems = func_result
             .into_iter()
-            .map(|item| Some(expr_or_spread_factory(item.as_expr()?.clone())))
+            .map(|item| Some(create_expr_or_spread(item.as_expr()?.clone())))
             .collect::<Vec<Option<ExprOrSpread>>>();
 
-          Some(array_expression_factory(elems))
+          Some(create_array_expression(elems))
         }
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in map callback"),
       }
@@ -49,10 +49,10 @@ pub(crate) fn evaluate_map(
 
   match func_result.first() {
     Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::from(array.clone()))),
-    _ => Some(EvaluateResultValue::Expr(array_expression_factory(
+    _ => Some(EvaluateResultValue::Expr(create_array_expression(
       func_result
         .into_iter()
-        .map(|expr| Some(expr_or_spread_factory(expr)))
+        .map(|expr| Some(create_expr_or_spread(expr)))
         .collect(),
     ))),
   }
@@ -86,7 +86,7 @@ pub(crate) fn evaluate_join(
     .collect::<Vec<String>>()
     .join(&join_arg);
 
-  Some(EvaluateResultValue::Expr(string_to_expression(&result)))
+  Some(EvaluateResultValue::Expr(create_string_expr(&result)))
 }
 
 pub(crate) fn evaluate_filter(
@@ -117,10 +117,10 @@ pub(crate) fn evaluate_filter(
 
           let elems = func_result
             .into_iter()
-            .map(|item| Some(expr_or_spread_factory(item.as_expr()?.clone())))
+            .map(|item| Some(create_expr_or_spread(item.as_expr()?.clone())))
             .collect::<Vec<Option<ExprOrSpread>>>();
 
-          Some(array_expression_factory(elems))
+          Some(create_array_expression(elems))
         }
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in filter callback"),
       }
@@ -129,10 +129,10 @@ pub(crate) fn evaluate_filter(
 
   match func_result.first() {
     Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::from(array.clone()))),
-    _ => Some(EvaluateResultValue::Expr(array_expression_factory(
+    _ => Some(EvaluateResultValue::Expr(create_array_expression(
       func_result
         .into_iter()
-        .map(|expr| Some(expr_or_spread_factory(expr)))
+        .map(|expr| Some(create_expr_or_spread(expr)))
         .collect(),
     ))),
   }
@@ -156,7 +156,7 @@ pub(crate) fn evaluate_filter_cb(
     stylex_panic!("Expr is not a literal");
   };
 
-  if lit_to_num(lit).unwrap_or_else(|error| stylex_panic!("{}", error)) == 0.0 {
+  if coerce_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error)) == 0.0 {
     None
   } else {
     Some(item.clone())

@@ -4,9 +4,9 @@ use stylex_transform::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
     ast::{
-      convertors::{expr_to_str, number_to_expression},
+      convertors::{expr_to_str, create_number_expr},
       factories::{
-        array_expression_factory, object_expression_factory, prop_or_spread_expression_factory,
+        create_array_expression, create_object_expression, create_key_value_prop,
       },
     },
     core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
@@ -75,7 +75,7 @@ impl Fold for ArgsStyleXTransform {
     match evaluate_result.value {
       Some(value) => match value {
         EvaluateResultValue::Expr(expr) => expr.clone(), //.fold_children_with(self),
-        EvaluateResultValue::Vec(vec) => array_expression_factory(
+        EvaluateResultValue::Vec(vec) => create_array_expression(
           vec
             .iter()
             .map(|value| match value {
@@ -88,18 +88,18 @@ impl Fold for ArgsStyleXTransform {
             .collect(),
         ),
         EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(number_to_expression(2.0))),
-          Some(EvaluateResultValue::Expr(number_to_expression(7.0))),
+          Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
+          Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
         ]),
         EvaluateResultValue::Map(map) => {
           let mut props = vec![];
 
           for (key, value) in map.iter() {
-            let prop = prop_or_spread_expression_factory(
+            let prop = create_key_value_prop(
               expr_to_str(key, &mut self.state, &FunctionMap::default())
                 .expect("Expression is not a string")
                 .as_str(),
-              object_expression_factory(
+              create_object_expression(
                 value
                   .iter()
                   .map(|key_value| PropOrSpread::from(Prop::from(key_value.clone())))
@@ -110,7 +110,7 @@ impl Fold for ArgsStyleXTransform {
             props.push(prop);
           }
 
-          object_expression_factory(props)
+          create_object_expression(props)
         }
         _ => panic!("Failed to evaluate expression"),
       },

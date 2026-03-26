@@ -5,10 +5,10 @@ use log::debug;
 use napi::{JsNumber, JsObject, JsString, JsValue, Unknown, ValueType};
 use stylex_ast::ast::{
   convertors::{
-    bool_to_expression, null_to_expression, number_to_expression, string_to_expression,
+    create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
   },
   factories::{
-    array_expression_factory, object_expression_factory, prop_or_spread_expression_factory,
+    create_array_expression, create_object_expression, create_key_value_prop,
   },
 };
 use stylex_utils::swc::get_default_expr_ctx;
@@ -58,13 +58,13 @@ fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
   match value.get_type()? {
     ValueType::String => {
       let s: JsString = unsafe { value.cast()? };
-      Ok(EnvEntry::Expr(string_to_expression(
+      Ok(EnvEntry::Expr(create_string_expr(
         s.into_utf8()?.as_str()?,
       )))
     }
     ValueType::Number => {
       let n: JsNumber = unsafe { value.cast()? };
-      Ok(EnvEntry::Expr(number_to_expression(n.get_double()?)))
+      Ok(EnvEntry::Expr(create_number_expr(n.get_double()?)))
     }
     ValueType::Boolean => {
       let raw_env = env.raw();
@@ -73,12 +73,12 @@ fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
       if status != napi::sys::Status::napi_ok {
         return Err(napi::Error::from_reason("Failed to get boolean value"));
       }
-      Ok(EnvEntry::Expr(bool_to_expression(b)))
+      Ok(EnvEntry::Expr(create_bool_expr(b)))
     }
-    ValueType::Null | ValueType::Undefined => Ok(EnvEntry::Expr(null_to_expression())),
+    ValueType::Null | ValueType::Undefined => Ok(EnvEntry::Expr(create_null_expr())),
     ValueType::Function => parse_env_function(env, value.raw()),
     ValueType::Object => Ok(EnvEntry::Expr(napi_value_to_expr(env.raw(), value.raw()))),
-    _ => Ok(EnvEntry::Expr(null_to_expression())),
+    _ => Ok(EnvEntry::Expr(create_null_expr())),
   }
 }
 
@@ -234,7 +234,7 @@ pub(crate) fn parse_debug_file_path(
       }
       buf.truncate(written);
       let s = String::from_utf8(buf).unwrap_or_default();
-      Ok(JSFunction::new(move |_args| string_to_expression(&s)))
+      Ok(JSFunction::new(move |_args| create_string_expr(&s)))
     }
     napi::sys::ValueType::napi_function => {
       parse_env_function(env, raw_val).and_then(|entry| match entry {
@@ -277,20 +277,20 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
   }
 
   match val_type {
-    napi::sys::ValueType::napi_string => string_to_expression(&read_napi_string(raw_env, value)),
+    napi::sys::ValueType::napi_string => create_string_expr(&read_napi_string(raw_env, value)),
     napi::sys::ValueType::napi_number => {
       let mut n: f64 = 0.0;
       unsafe {
         napi::sys::napi_get_value_double(raw_env, value, &mut n);
       }
-      number_to_expression(n)
+      create_number_expr(n)
     }
     napi::sys::ValueType::napi_boolean => {
       let mut b = false;
       unsafe {
         napi::sys::napi_get_value_bool(raw_env, value, &mut b);
       }
-      bool_to_expression(b)
+      create_bool_expr(b)
     }
     napi::sys::ValueType::napi_object => {
       let mut is_array = false;
@@ -317,7 +317,7 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
           })
           .collect();
 
-        array_expression_factory(elems)
+        create_array_expression(elems)
       } else {
         let mut props = Vec::new();
 
@@ -343,13 +343,13 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
             napi::sys::napi_get_property(raw_env, value, key_val, &mut prop_val);
           }
 
-          props.push(prop_or_spread_expression_factory(
+          props.push(create_key_value_prop(
             &key,
             napi_value_to_expr(raw_env, prop_val),
           ));
         }
 
-        object_expression_factory(props)
+        create_object_expression(props)
       }
     }
     _ => {

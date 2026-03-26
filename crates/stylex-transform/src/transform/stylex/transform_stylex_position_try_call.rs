@@ -29,7 +29,7 @@ use crate::shared::{
 use crate::shared::{
   transformers::stylex_position_try::stylex_position_try,
   utils::{
-    ast::convertors::string_to_expression,
+    ast::convertors::create_string_expr,
     validators::{assert_valid_position_try, assert_valid_properties},
   },
 };
@@ -148,7 +148,7 @@ where
 
       injected_styles.insert(position_try_name.clone(), Rc::new(injectable_style));
 
-      let result_ast = string_to_expression(position_try_name.as_str());
+      let result_ast = create_string_expr(position_try_name.as_str());
 
       self
         .state

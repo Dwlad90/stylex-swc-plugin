@@ -6,9 +6,9 @@ use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::types::{FlatCompiledStyles, StylesObjectMap},
   utils::ast::{
-    convertors::{bool_to_expression, null_to_expression, number_to_expression},
+    convertors::{create_bool_expr, create_null_expr, create_number_expr},
     factories::{
-      object_expression_factory, prop_or_spread_expression_factory, prop_or_spread_string_factory,
+      create_object_expression, create_key_value_prop, create_string_key_value_prop,
     },
   },
 };
@@ -55,7 +55,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
           (**value).clone(),
         ));
 
-        let prop = prop_or_spread_expression_factory(key.as_str(), expr);
+        let prop = create_key_value_prop(key.as_str(), expr);
 
         props.push(prop);
       }
@@ -65,16 +65,16 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
         let prop = match value.as_ref() {
           FlatCompiledStylesValue::String(value) => {
             if let Ok(num) = value.parse::<f64>() {
-              prop_or_spread_expression_factory(key.as_str(), number_to_expression(num))
+              create_key_value_prop(key.as_str(), create_number_expr(num))
             } else {
-              prop_or_spread_string_factory(key.as_str(), value.as_str())
+              create_string_key_value_prop(key.as_str(), value.as_str())
             }
           }
           FlatCompiledStylesValue::Null => {
-            prop_or_spread_expression_factory(key.as_str(), null_to_expression())
+            create_key_value_prop(key.as_str(), create_null_expr())
           }
           FlatCompiledStylesValue::Bool(value) => {
-            prop_or_spread_expression_factory(key.as_str(), bool_to_expression(*value))
+            create_key_value_prop(key.as_str(), create_bool_expr(*value))
           }
           _ => {
             stylex_unreachable!("Encountered an unsupported value type during AST conversion.")
@@ -86,5 +86,5 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
     }
   }
 
-  object_expression_factory(props)
+  create_object_expression(props)
 }

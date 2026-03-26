@@ -10,9 +10,9 @@ mod stylex_keyframes {
     structures::{injectable_style::InjectableStyle, state_manager::StateManager},
     transformers::stylex_keyframes::stylex_keyframes,
     utils::ast::{
-      convertors::string_to_expression,
+      convertors::create_string_expr,
       factories::{
-        object_expression_factory, prop_or_spread_expr_factory, prop_or_spread_expression_factory,
+        create_object_expression, create_nested_object_prop, create_key_value_prop,
       },
     },
   };
@@ -23,14 +23,14 @@ mod stylex_keyframes {
       .map(|(key, values)| {
         let props = values
           .iter()
-          .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
+          .map(|(key, value)| create_key_value_prop(key, create_string_expr(value)))
           .collect::<Vec<PropOrSpread>>();
 
-        prop_or_spread_expr_factory(key, props)
+        create_nested_object_prop(key, props)
       })
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(object_expression_factory(props))
+    EvaluateResultValue::Expr(create_object_expression(props))
   }
 
   fn expected_css_result_factory(

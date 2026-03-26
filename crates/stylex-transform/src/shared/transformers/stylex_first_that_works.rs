@@ -9,8 +9,8 @@ use crate::shared::{
   regex::IS_CSS_VAR,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::ast::{
-    convertors::{expr_to_str, string_to_expression},
-    factories::{array_expression_factory, expr_or_spread_factory},
+    convertors::{expr_to_str, create_string_expr},
+    factories::{create_array_expression, create_expr_or_spread},
   },
 };
 
@@ -47,10 +47,10 @@ pub(crate) fn stylex_first_that_works(
       let elems = args
         .into_iter()
         .rev()
-        .map(|arg| Some(expr_or_spread_factory(arg)))
+        .map(|arg| Some(create_expr_or_spread(arg)))
         .collect();
 
-      array_expression_factory(elems)
+      create_array_expression(elems)
     }
     Some(first_var) => {
       let priorities = args[..first_var].iter().rev().collect::<Vec<_>>();
@@ -71,7 +71,7 @@ pub(crate) fn stylex_first_that_works(
               None => stylex_panic!("Argument is not a string"),
             };
             let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
-            string_to_expression(cleared_str_arg)
+            create_string_expr(cleared_str_arg)
           } else {
             arg.clone()
           }
@@ -95,7 +95,7 @@ pub(crate) fn stylex_first_that_works(
           };
         }
 
-        let mut result = vec![string_to_expression(&so_far)];
+        let mut result = vec![create_string_expr(&so_far)];
         result.extend(priorities.iter().map(|&expr| expr.clone()));
         result
       };
@@ -106,10 +106,10 @@ pub(crate) fn stylex_first_that_works(
 
       let return_value = return_value
         .into_iter()
-        .map(|expr| Some(expr_or_spread_factory(expr)))
+        .map(|expr| Some(create_expr_or_spread(expr)))
         .collect();
 
-      array_expression_factory(return_value)
+      create_array_expression(return_value)
     }
   }
 }

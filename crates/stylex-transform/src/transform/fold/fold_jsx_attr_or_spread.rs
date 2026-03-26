@@ -7,7 +7,7 @@ use crate::{
   StyleXTransform,
   shared::{
     enums::core::TransformationCycle,
-    utils::ast::factories::{jsx_attr_or_spread_attr_factory, jsx_attr_or_spread_spread_factory},
+    utils::ast::factories::{create_jsx_attr_or_spread, create_jsx_spread_attr},
   },
 };
 
@@ -52,12 +52,12 @@ where
                   }
                 } else {
                   // If no replacement found, keep the original spread element
-                  vec![jsx_attr_or_spread_spread_factory(*spread.expr.clone())]
+                  vec![create_jsx_spread_attr(*spread.expr.clone())]
                 }
               }
               JSXAttrOrSpread::JSXAttr(attr) => {
                 // Keep regular attributes as-is (wrapped in vec for flat_map)
-                vec![jsx_attr_or_spread_attr_factory(attr.clone())]
+                vec![create_jsx_attr_or_spread(attr.clone())]
               }
             }
           })

@@ -66,14 +66,14 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{
-        atom_to_str, atom_to_string, big_int_to_expression, binary_expr_to_num,
-        binary_expr_to_string, bool_to_expression, expr_to_bool, expr_to_num, expr_to_str,
-        key_value_to_str, lit_to_string, number_to_expression, string_to_expression,
-        tpl_element_cooked_to_string, transform_shorthand_to_key_values,
+        convert_atom_to_str_ref, convert_atom_to_string, create_big_int_expr, binary_expr_to_num,
+        binary_expr_to_string, create_bool_expr, expr_to_bool, expr_to_num, expr_to_str,
+        key_value_to_str, convert_lit_to_string, create_number_expr, create_string_expr,
+        extract_tpl_cooked_value, expand_shorthand_prop,
       },
       factories::{
-        array_expression_factory, expr_or_spread_factory, lit_str_factory,
-        object_expression_factory, object_lit_factory, prop_or_spread_ident_factory,
+        create_array_expression, create_expr_or_spread, create_string_lit,
+        create_object_expression, create_object_lit, create_ident_key_value_prop,
       },
     },
     common::{
@@ -130,11 +130,11 @@ fn evaluate_result_vec_to_array_expr(items: &[Option<EvaluateResultValue>]) -> E
         _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
       };
 
-      Some(expr_or_spread_factory(expr))
+      Some(create_expr_or_spread(expr))
     })
     .collect();
 
-  array_expression_factory(elems)
+  create_array_expression(elems)
 }
 
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
@@ -162,7 +162,7 @@ fn evaluate_unary_numeric(
   transform: impl FnOnce(f64) -> f64,
 ) -> Option<EvaluateResultValue> {
   let value = unwrap_or_panic!(expr_to_num(arg, state, traversal_state, fns));
-  Some(EvaluateResultValue::Expr(number_to_expression(transform(
+  Some(EvaluateResultValue::Expr(create_number_expr(transform(
     value,
   ))))
 }
@@ -175,7 +175,7 @@ pub(crate) fn evaluate_obj_key(
   let key_path = &prop_kv.key;
 
   let key = match key_path {
-    PropName::Ident(ident) => string_to_expression(&ident.sym),
+    PropName::Ident(ident) => create_string_expr(&ident.sym),
     PropName::Computed(computed) => {
       let computed_result = evaluate(&computed.expr, state, functions);
       if computed_result.confident {
@@ -194,13 +194,13 @@ pub(crate) fn evaluate_obj_key(
         };
       }
     }
-    PropName::Str(strng) => string_to_expression(&atom_to_string(&strng.value)),
-    PropName::Num(num) => number_to_expression(num.value),
-    PropName::BigInt(big_int) => big_int_to_expression(big_int.clone()),
+    PropName::Str(strng) => create_string_expr(&convert_atom_to_string(&strng.value)),
+    PropName::Num(num) => create_number_expr(num.value),
+    PropName::BigInt(big_int) => create_big_int_expr(big_int.clone()),
   };
 
   let key_expr = match expr_to_str(&key, state, functions) {
-    Some(ref s) => string_to_expression(s),
+    Some(ref s) => create_string_expr(s),
     None => {
       return EvaluateResult {
         confident: false,
@@ -606,7 +606,7 @@ fn _evaluate(
 
                 let ident_string_name = match normalized_ident {
                   Expr::Ident(ident) => ident.sym.to_string(),
-                  Expr::Lit(lit) => lit_to_string(lit).unwrap_or_else(|| {
+                  Expr::Lit(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -631,7 +631,7 @@ fn _evaluate(
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
 
-                    transform_shorthand_to_key_values(&mut prop);
+                    expand_shorthand_prop(&mut prop);
 
                     match prop.as_ref() {
                       Prop::KeyValue(key_value) => {
@@ -736,7 +736,7 @@ fn _evaluate(
                 Some(property) => match property {
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Ident(Ident { sym, .. }) => sym.to_string(),
-                    Expr::Lit(lit) => match lit_to_string(&lit) {
+                    Expr::Lit(lit) => match convert_lit_to_string(&lit) {
                       Some(s) => s,
                       None => stylex_panic!("Property key must be a string value."),
                     },
@@ -759,7 +759,7 @@ fn _evaluate(
 
               let value = theme_ref.get(&key, traversal_state);
 
-              return Some(EvaluateResultValue::Expr(string_to_expression(
+              return Some(EvaluateResultValue::Expr(create_string_expr(
                 match value.as_css_var() {
                   Some(css_var) => css_var,
                   None => stylex_panic!("{}", EXPECTED_CSS_VAR),
@@ -819,7 +819,7 @@ fn _evaluate(
       let argument = &unary.arg;
 
       if unary.op == UnaryOp::TypeOf && (argument.is_fn_expr() || argument.is_class()) {
-        return Some(EvaluateResultValue::Expr(string_to_expression("function")));
+        return Some(EvaluateResultValue::Expr(create_string_expr("function")));
       }
 
       let arg = evaluate_cached(argument, state, traversal_state, fns);
@@ -846,7 +846,7 @@ fn _evaluate(
         UnaryOp::Bang => {
           let value = expr_to_bool(&arg, traversal_state, fns);
 
-          Some(EvaluateResultValue::Expr(bool_to_expression(!value)))
+          Some(EvaluateResultValue::Expr(create_bool_expr(!value)))
         }
         UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
         UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
@@ -873,7 +873,7 @@ fn _evaluate(
             }
           };
 
-          Some(EvaluateResultValue::Expr(string_to_expression(arg_type)))
+          Some(EvaluateResultValue::Expr(create_string_expr(arg_type)))
         }
         UnaryOp::Void => Some(EvaluateResultValue::Expr(Expr::Ident(quote_ident!(
           SyntaxContext::empty(),
@@ -931,13 +931,13 @@ fn _evaluate(
 
             let mut prop = prop.clone();
 
-            transform_shorthand_to_key_values(&mut prop);
+            expand_shorthand_prop(&mut prop);
 
             match prop.as_ref() {
               Prop::KeyValue(path_key_value) => {
                 let key = match &path_key_value.key {
                   PropName::Ident(ident) => Some(ident.sym.to_string()),
-                  PropName::Str(strng) => Some(atom_to_string(&strng.value)),
+                  PropName::Str(strng) => Some(convert_atom_to_string(&strng.value)),
                   PropName::Num(num) => Some(num.value.to_string()),
                   PropName::Computed(computed) => {
                     let evaluated_result =
@@ -1059,7 +1059,7 @@ fn _evaluate(
                 };
 
                 if let Some(value) = value {
-                  props.push(prop_or_spread_ident_factory(
+                  props.push(create_ident_key_value_prop(
                     &match key {
                       Some(k) => k,
                       None => stylex_panic!("Property key must be present in the style object."),
@@ -1078,7 +1078,7 @@ fn _evaluate(
         }
       }
 
-      return Some(EvaluateResultValue::Expr(Expr::Object(object_lit_factory(
+      return Some(EvaluateResultValue::Expr(Expr::Object(create_object_lit(
         remove_duplicates(props),
       ))));
     }
@@ -1095,9 +1095,9 @@ fn _evaluate(
           )
         })
         .map(|result| match result {
-          BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(number_to_expression(num))),
+          BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(create_number_expr(num))),
           BinaryExprType::String(strng) => {
-            Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
+            Some(EvaluateResultValue::Expr(create_string_expr(&strng)))
           }
           BinaryExprType::Null => None,
         })
@@ -1442,14 +1442,14 @@ fn _evaluate(
 
                             let key = key_value_to_str(key_values);
 
-                            keys.push(Some(expr_or_spread_factory(string_to_expression(
+                            keys.push(Some(create_expr_or_spread(create_string_expr(
                               key.as_str(),
                             ))));
                           }
                         }
 
                         context = Some(vec![Some(EvaluateResultValue::Expr(
-                          array_expression_factory(keys),
+                          create_array_expression(keys),
                         ))]);
                       }
                       "values" => {
@@ -1476,12 +1476,12 @@ fn _evaluate(
                               None => stylex_panic!("Object.values() requires an object argument."),
                             };
 
-                            values.push(Some(expr_or_spread_factory(*key_values.value.clone())));
+                            values.push(Some(create_expr_or_spread(*key_values.value.clone())));
                           }
                         }
 
                         context = Some(vec![Some(EvaluateResultValue::Expr(
-                          array_expression_factory(values),
+                          create_array_expression(values),
                         ))]);
                       }
                       "entries" => {
@@ -1514,7 +1514,7 @@ fn _evaluate(
 
                             let key = key_value_to_str(key_values);
 
-                            entries.insert(lit_str_factory(key.as_str()), value);
+                            entries.insert(create_string_lit(key.as_str()), value);
                           }
                         }
 
@@ -1873,7 +1873,7 @@ fn _evaluate(
                   }
                 };
 
-                let result_fn = map.get(&string_to_expression(&prop_id_owned));
+                let result_fn = map.get(&create_string_expr(&prop_id_owned));
 
                 func = match result_fn {
                   Some(_) => {
@@ -2025,14 +2025,14 @@ fn _evaluate(
 
                     fn_args.insert(
                       key,
-                      ValueWithDefault::String(lit_to_string(value).unwrap_or_default()),
+                      ValueWithDefault::String(convert_lit_to_string(value).unwrap_or_default()),
                     );
                   }
                 }
                 Expr::Lit(lit) => {
                   fn_args.insert(
                     "default".to_string(),
-                    ValueWithDefault::String(lit_to_string(lit).unwrap_or_default()),
+                    ValueWithDefault::String(convert_lit_to_string(lit).unwrap_or_default()),
                   );
                 }
                 _ => {}
@@ -2083,15 +2083,15 @@ fn _evaluate(
                   let mut entry_elems: Vec<Option<ExprOrSpread>> = vec![];
 
                   for (key, value) in entries {
-                    let key_spread = expr_or_spread_factory(Expr::from(key.clone()));
-                    let value_spread = expr_or_spread_factory(*value.clone());
+                    let key_spread = create_expr_or_spread(Expr::from(key.clone()));
+                    let value_spread = create_expr_or_spread(*value.clone());
 
-                    entry_elems.push(Some(expr_or_spread_factory(array_expression_factory(
+                    entry_elems.push(Some(create_expr_or_spread(create_array_expression(
                       vec![Some(key_spread), Some(value_spread)],
                     ))));
                   }
 
-                  return Some(EvaluateResultValue::Expr(array_expression_factory(
+                  return Some(EvaluateResultValue::Expr(create_array_expression(
                     entry_elems,
                   )));
                 }
@@ -2130,15 +2130,15 @@ fn _evaluate(
 
                   for (key, value) in entries {
                     let key_str = if let Lit::Str(lit_str) = key {
-                      atom_to_str(&lit_str.value)
+                      convert_atom_to_str_ref(&lit_str.value)
                     } else {
                       stylex_panic_with_context!(path, traversal_state, "Expected a string literal")
                     };
 
-                    entry_elems.push(prop_or_spread_ident_factory(key_str, *value.clone()));
+                    entry_elems.push(create_ident_key_value_prop(key_str, *value.clone()));
                   }
 
-                  return Some(EvaluateResultValue::Expr(object_expression_factory(
+                  return Some(EvaluateResultValue::Expr(create_object_expression(
                     entry_elems,
                   )));
                 }
@@ -2169,7 +2169,7 @@ fn _evaluate(
                     _ => stylex_panic!("Math.pow() requires two numeric arguments."),
                   };
 
-                  return Some(EvaluateResultValue::Expr(number_to_expression(result)));
+                  return Some(EvaluateResultValue::Expr(create_number_expr(result)));
                 }
                 CallbackType::Math(MathJS::Round | MathJS::Floor | MathJS::Ceil) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
@@ -2192,7 +2192,7 @@ fn _evaluate(
                     _ => stylex_unreachable!("Invalid function type"),
                   };
 
-                  return Some(EvaluateResultValue::Expr(number_to_expression(result)));
+                  return Some(EvaluateResultValue::Expr(create_number_expr(result)));
                 }
                 CallbackType::Math(MathJS::Min | MathJS::Max) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
@@ -2218,7 +2218,7 @@ fn _evaluate(
                     "Math.min()/Math.max() returned no result. Ensure numeric arguments are provided."
                   ));
 
-                  return Some(EvaluateResultValue::Expr(number_to_expression(result)));
+                  return Some(EvaluateResultValue::Expr(create_number_expr(result)));
                 }
                 CallbackType::Math(MathJS::Abs) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
@@ -2234,7 +2234,7 @@ fn _evaluate(
                       stylex_panic_with_context!(path, traversal_state, error.to_string().as_str())
                     });
 
-                  return Some(EvaluateResultValue::Expr(number_to_expression(num.abs())));
+                  return Some(EvaluateResultValue::Expr(create_number_expr(num.abs())));
                 }
                 CallbackType::String(StringJS::Concat) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
@@ -2275,7 +2275,7 @@ fn _evaluate(
                     EXPRESSION_IS_NOT_A_STRING
                   );
 
-                  return Some(EvaluateResultValue::Expr(string_to_expression(
+                  return Some(EvaluateResultValue::Expr(create_string_expr(
                     format!("{}{}", base_str, str_args).as_str(),
                   )));
                 }
@@ -2321,7 +2321,7 @@ fn _evaluate(
                       stylex_panic!("String.charCodeAt() returned no result for the given index.")
                     });
 
-                  return Some(EvaluateResultValue::Expr(number_to_expression(
+                  return Some(EvaluateResultValue::Expr(create_number_expr(
                     char_code as f64,
                   )));
                 }
@@ -2508,13 +2508,13 @@ fn _evaluate(
         .unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
 
       let abs_path = traversal_state.import_path_resolver(
-        atom_to_str(&import_path.src.value),
+        convert_atom_to_str_ref(&import_path.src.value),
         &mut FxHashMap::default(),
       );
 
       let imported_name = match imported {
         ModuleExportName::Ident(ident) => ident.sym.to_string(),
-        ModuleExportName::Str(strng) => atom_to_string(&strng.value),
+        ModuleExportName::Str(strng) => convert_atom_to_string(&strng.value),
       };
 
       let return_value = match abs_path {
@@ -2525,7 +2525,7 @@ fn _evaluate(
       };
 
       if state.confident {
-        let import_path_src = atom_to_string(&import_path.src.value);
+        let import_path_src = convert_atom_to_string(&import_path.src.value);
 
         if !state.added_imports.contains(&import_path_src)
           && traversal_state.get_treeshake_compensation()
@@ -2584,15 +2584,15 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
   cached_arg.and_then(|arg| match arg {
     EvaluateResultValue::Expr(expr) => expr.as_object().cloned().or_else(|| {
       if let Expr::Lit(Lit::Str(ref strng)) = expr {
-        let keys = atom_to_string(&strng.value)
+        let keys = convert_atom_to_string(&strng.value)
           .chars()
           .enumerate()
           .map(|(i, c)| {
-            prop_or_spread_ident_factory(&i.to_string(), string_to_expression(&c.to_string()))
+            create_ident_key_value_prop(&i.to_string(), create_string_expr(&c.to_string()))
           })
           .collect::<Vec<PropOrSpread>>();
 
-        Some(object_lit_factory(keys))
+        Some(create_object_lit(keys))
       } else {
         None
       }
@@ -2610,12 +2610,12 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
               _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             };
 
-            prop_or_spread_ident_factory(&index.to_string(), expr)
+            create_ident_key_value_prop(&index.to_string(), expr)
           })
         })
         .collect();
 
-      Some(object_lit_factory(props))
+      Some(create_object_lit(props))
     }
 
     _ => None,
@@ -2641,21 +2641,21 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValu
                     Some(e) => e,
                     None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
                   };
-                  Some(expr_or_spread_factory(expr.clone()))
+                  Some(create_expr_or_spread(expr.clone()))
                 })
                 .collect();
 
-              array_expression_factory(nested_elems)
+              create_array_expression(nested_elems)
             })
             .or_else(|| entry.as_expr().cloned())
         })
         .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
 
-      Some(expr_or_spread_factory(expr))
+      Some(create_expr_or_spread(expr))
     })
     .collect();
 
-  array_expression_factory(elems)
+  create_array_expression(elems)
 }
 
 fn evaluate_func_call_args(
@@ -2825,7 +2825,7 @@ pub(crate) fn evaluate_quasis(
     if raw {
       strng.push_str(&elem.raw);
     } else {
-      strng.push_str(&tpl_element_cooked_to_string(elem));
+      strng.push_str(&extract_tpl_cooked_value(elem));
     }
 
     if let Some(expr) = exprs.get(i)
@@ -2833,7 +2833,7 @@ pub(crate) fn evaluate_quasis(
       && let Some(lit_str) = evaluated_expr
         .as_expr()
         .and_then(|expr| expr.as_lit())
-        .and_then(lit_to_string)
+        .and_then(convert_lit_to_string)
     {
       strng.push_str(&lit_str);
     }
@@ -2843,7 +2843,7 @@ pub(crate) fn evaluate_quasis(
     return None;
   }
 
-  Some(EvaluateResultValue::Expr(string_to_expression(&strng)))
+  Some(EvaluateResultValue::Expr(create_string_expr(&strng)))
 }
 
 pub(crate) fn evaluate_cached(

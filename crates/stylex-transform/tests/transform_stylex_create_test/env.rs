@@ -12,10 +12,10 @@ use stylex_transform::{
     },
     utils::ast::{
       convertors::{
-        expr_to_bool, expr_to_num, expr_to_str, null_to_expression, number_to_expression,
-        string_to_expression,
+        expr_to_bool, expr_to_num, expr_to_str, create_null_expr, create_number_expr,
+        create_string_expr,
       },
-      factories::{object_expression_factory, prop_or_spread_expression_factory},
+      factories::{create_object_expression, create_key_value_prop},
       helpers::get_property_by_key,
     },
   },
@@ -64,7 +64,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "brandPrimary".to_string(),
-      EnvEntry::Expr(string_to_expression("#123456")),
+      EnvEntry::Expr(create_string_expr("#123456")),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
@@ -89,7 +89,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "brandPrimary".to_string(),
-      EnvEntry::Expr(string_to_expression("#654321")),
+      EnvEntry::Expr(create_string_expr("#654321")),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
@@ -115,7 +115,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "brandPrimary".to_string(),
-      EnvEntry::Expr(string_to_expression("#123456")),
+      EnvEntry::Expr(create_string_expr("#123456")),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
@@ -153,7 +153,7 @@ test!(
           .get(2)
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        string_to_expression(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
+        create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
@@ -192,7 +192,7 @@ test!(
           .get(2)
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        string_to_expression(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
+        create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
@@ -224,7 +224,7 @@ test!(
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
         let opacity = args.get(1).and_then(expr_to_num_wrapper).unwrap_or(0.0);
-        string_to_expression(&format!(
+        create_string_expr(&format!(
           "0 4px 4px 2px color-mix(in srgb, {} {}%, transparent)",
           color,
           (opacity * 100.0) as i64
@@ -260,7 +260,7 @@ test!(
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
         let pct = args.get(1).and_then(expr_to_num_wrapper).unwrap_or(0.0);
-        string_to_expression(&format!(
+        create_string_expr(&format!(
           "color-mix(in srgb, {} {}%, transparent)",
           color,
           (pct * 100.0) as i64
@@ -300,9 +300,9 @@ test!(
           .get(1)
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory("transitionProperty", string_to_expression(&prop)),
-          prop_or_spread_expression_factory("transitionDuration", string_to_expression(&duration)),
+        create_object_expression(vec![
+          create_key_value_prop("transitionProperty", create_string_expr(&prop)),
+          create_key_value_prop("transitionDuration", create_string_expr(&duration)),
         ])
       })),
     );
@@ -336,9 +336,9 @@ test!(
           .get(1)
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory("transitionProperty", string_to_expression(&prop)),
-          prop_or_spread_expression_factory("transitionDuration", string_to_expression(&duration)),
+        create_object_expression(vec![
+          create_key_value_prop("transitionProperty", create_string_expr(&prop)),
+          create_key_value_prop("transitionDuration", create_string_expr(&duration)),
         ])
       })),
     );
@@ -372,13 +372,13 @@ test!(
           .get(1)
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory("color", string_to_expression(&color)),
-          prop_or_spread_expression_factory(
+        create_object_expression(vec![
+          create_key_value_prop("color", create_string_expr(&color)),
+          create_key_value_prop(
             "fontSize",
-            string_to_expression(&format!("{}px", size)),
+            create_string_expr(&format!("{}px", size)),
           ),
-          prop_or_spread_expression_factory("padding", string_to_expression("8px 16px")),
+          create_key_value_prop("padding", create_string_expr("8px 16px")),
         ])
       })),
     );
@@ -412,7 +412,7 @@ test!(
           .get(1)
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        string_to_expression(&format!("color-mix(in srgb, {}, {})", c1, c2))
+        create_string_expr(&format!("color-mix(in srgb, {}, {})", c1, c2))
       })),
     );
     env.insert(
@@ -422,14 +422,14 @@ test!(
           .first()
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory(
+        create_object_expression(vec![
+          create_key_value_prop(
             "paddingTop",
-            string_to_expression(&format!("{}px", size)),
+            create_string_expr(&format!("{}px", size)),
           ),
-          prop_or_spread_expression_factory(
+          create_key_value_prop(
             "paddingBottom",
-            string_to_expression(&format!("{}px", size)),
+            create_string_expr(&format!("{}px", size)),
           ),
         ])
       })),
@@ -459,7 +459,7 @@ test!(
     env.insert(
       "getLineHeight".to_string(),
       EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| {
-        number_to_expression(1.5)
+        create_number_expr(1.5)
       })),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
@@ -487,7 +487,7 @@ test!(
       "direction".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let is_rtl = args.first().map(expr_to_bool_wrapper).unwrap_or(false);
-        string_to_expression(if is_rtl { "rtl" } else { "ltr" })
+        create_string_expr(if is_rtl { "rtl" } else { "ltr" })
       })),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
@@ -513,7 +513,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "getOptional".to_string(),
-      EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| null_to_expression())),
+      EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| create_null_expr())),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
@@ -541,18 +541,18 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let scale = args.first().and_then(expr_to_num_wrapper).unwrap_or(1.0);
         let bold = args.get(1).map(expr_to_bool_wrapper).unwrap_or(false);
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory(
+        create_object_expression(vec![
+          create_key_value_prop(
             "fontSize",
-            string_to_expression(&format!("{}px", (16.0 * scale) as i64)),
+            create_string_expr(&format!("{}px", (16.0 * scale) as i64)),
           ),
-          prop_or_spread_expression_factory(
+          create_key_value_prop(
             "lineHeight",
-            number_to_expression(if scale > 1.5 { 1.8 } else { 1.5 }),
+            create_number_expr(if scale > 1.5 { 1.8 } else { 1.5 }),
           ),
-          prop_or_spread_expression_factory(
+          create_key_value_prop(
             "fontWeight",
-            string_to_expression(if bold { "bold" } else { "normal" }),
+            create_string_expr(if bold { "bold" } else { "normal" }),
           ),
         ])
       })),
@@ -580,13 +580,13 @@ test!(
       "makeGrid".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let columns = args.first().and_then(expr_to_num_wrapper).unwrap_or(1.0) as i64;
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory("display", string_to_expression("grid")),
-          prop_or_spread_expression_factory(
+        create_object_expression(vec![
+          create_key_value_prop("display", create_string_expr("grid")),
+          create_key_value_prop(
             "gridTemplateColumns",
-            string_to_expression(&format!("repeat({}, 1fr)", columns)),
+            create_string_expr(&format!("repeat({}, 1fr)", columns)),
           ),
-          prop_or_spread_expression_factory("gap", number_to_expression(8.0)),
+          create_key_value_prop("gap", create_number_expr(8.0)),
         ])
       })),
     );
@@ -612,7 +612,7 @@ test!(
     env.insert(
       "colors".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
-        let null = null_to_expression();
+        let null = create_null_expr();
         let obj = args.first().unwrap_or(&null);
         let bg = get_property_by_key(obj, "backgroundColor")
           .and_then(expr_to_str_wrapper)
@@ -620,9 +620,9 @@ test!(
         let color = get_property_by_key(obj, "color")
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory("backgroundColor", string_to_expression(&bg)),
-          prop_or_spread_expression_factory("color", string_to_expression(&color)),
+        create_object_expression(vec![
+          create_key_value_prop("backgroundColor", create_string_expr(&bg)),
+          create_key_value_prop("color", create_string_expr(&color)),
         ])
       })),
     );
@@ -653,7 +653,7 @@ test!(
     env.insert(
       "colors".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
-        let null = null_to_expression();
+        let null = create_null_expr();
         let obj = args.first().unwrap_or(&null);
         let bg = get_property_by_key(obj, "backgroundColor")
           .and_then(expr_to_str_wrapper)
@@ -664,10 +664,10 @@ test!(
         let opacity = get_property_by_key(obj, "opacity")
           .and_then(expr_to_num_wrapper)
           .unwrap_or(1.0);
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory("backgroundColor", string_to_expression(&bg)),
-          prop_or_spread_expression_factory("color", string_to_expression(&color)),
-          prop_or_spread_expression_factory("opacity", number_to_expression(opacity)),
+        create_object_expression(vec![
+          create_key_value_prop("backgroundColor", create_string_expr(&bg)),
+          create_key_value_prop("color", create_string_expr(&color)),
+          create_key_value_prop("opacity", create_number_expr(opacity)),
         ])
       })),
     );
@@ -699,7 +699,7 @@ test!(
     env.insert(
       "theme".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
-        let null = null_to_expression();
+        let null = create_null_expr();
         let config = args.first().unwrap_or(&null);
         let mode = args
           .get(1)
@@ -711,14 +711,14 @@ test!(
         let size = get_property_by_key(config, "size")
           .and_then(expr_to_num_wrapper)
           .unwrap_or(16.0) as i64;
-        object_expression_factory(vec![
-          prop_or_spread_expression_factory(
+        create_object_expression(vec![
+          create_key_value_prop(
             "color",
-            string_to_expression(if mode == "dark" { "white" } else { &primary }),
+            create_string_expr(if mode == "dark" { "white" } else { &primary }),
           ),
-          prop_or_spread_expression_factory(
+          create_key_value_prop(
             "fontSize",
-            string_to_expression(&format!("{}px", size)),
+            create_string_expr(&format!("{}px", size)),
           ),
         ])
       })),
@@ -749,7 +749,7 @@ fn select_branch(args: &[Expr]) -> Expr {
     .first()
     .and_then(|e| get_property_by_key(e, &key))
     .cloned()
-    .unwrap_or_else(null_to_expression)
+    .unwrap_or_else(create_null_expr)
 }
 
 fn pick_default(args: &[Expr]) -> Expr {
@@ -757,7 +757,7 @@ fn pick_default(args: &[Expr]) -> Expr {
     .first()
     .and_then(|e| get_property_by_key(e, "default"))
     .cloned()
-    .unwrap_or_else(null_to_expression)
+    .unwrap_or_else(create_null_expr)
 }
 
 test!(

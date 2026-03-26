@@ -5,7 +5,7 @@ mod tests {
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::{
     enums::misc::BinaryExprType,
-    utils::ast::convertors::{binary_expr_to_num, binary_expr_to_string, string_to_prop_name},
+    utils::ast::convertors::{binary_expr_to_num, binary_expr_to_string, convert_string_to_prop_name},
   };
   use swc_core::{
     common::SyntaxContext,
@@ -41,7 +41,7 @@ mod tests {
 
     for key in keys_with_quotes {
       assert!(
-        string_to_prop_name(key).unwrap().is_str(),
+        convert_string_to_prop_name(key).unwrap().is_str(),
         "Key '{}' should be wrapped in quotes",
         key
       );
@@ -104,7 +104,7 @@ mod tests {
 
     for key in keys_without_quotes {
       assert!(
-        string_to_prop_name(key).unwrap().is_ident(),
+        convert_string_to_prop_name(key).unwrap().is_ident(),
         "Key '{}' should not be wrapped in quotes",
         key
       );
@@ -481,7 +481,7 @@ mod tests {
 
   #[test]
   fn test_simple_tpl_to_string_without_expressions() {
-    use crate::shared::utils::ast::convertors::simple_tpl_to_string;
+    use crate::shared::utils::ast::convertors::coerce_tpl_to_string_lit;
     use swc_core::ecma::ast::{Tpl, TplElement};
 
     // Create a simple template literal: `hello world`
@@ -496,7 +496,7 @@ mod tests {
       }],
     };
 
-    let result = simple_tpl_to_string(&tpl);
+    let result = coerce_tpl_to_string_lit(&tpl);
     assert!(result.is_some(), "Should convert simple template to string");
 
     if let Some(Lit::Str(str_lit)) = result {
@@ -511,7 +511,7 @@ mod tests {
 
   #[test]
   fn test_simple_tpl_to_string_with_expressions() {
-    use crate::shared::utils::ast::convertors::simple_tpl_to_string;
+    use crate::shared::utils::ast::convertors::coerce_tpl_to_string_lit;
     use swc_core::ecma::ast::{Tpl, TplElement};
 
     // Create a template literal with expressions: `hello ${name}`
@@ -534,7 +534,7 @@ mod tests {
       ],
     };
 
-    let result = simple_tpl_to_string(&tpl);
+    let result = coerce_tpl_to_string_lit(&tpl);
     assert!(
       result.is_none(),
       "Should not convert template with expressions"

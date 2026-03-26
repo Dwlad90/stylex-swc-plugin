@@ -15,8 +15,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     },
     utils::{
       ast::{
-        convertors::string_to_expression,
-        factories::{create_array, key_value_ident_factory},
+        convertors::create_string_expr,
+        factories::{create_array, create_key_value_prop_ident},
       },
       core::flatten_raw_style_object::flatten_raw_style_object,
     },
@@ -63,8 +63,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_create_pre_rule_objects_for_simple_style_values() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory("color", string_to_expression("red")),
-        key_value_ident_factory("marginStart", string_to_expression("10")),
+        create_key_value_prop_ident("color", create_string_expr("red")),
+        create_key_value_prop_ident("marginStart", create_string_expr("10")),
       ],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -92,7 +92,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_gap_values() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory("gap", string_to_expression("10"))],
+      &[create_key_value_prop_ident("gap", create_string_expr("10"))],
       &mut EvaluationState::new(),
       &mut get_state(),
       &FunctionMap::default(),
@@ -117,9 +117,9 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_contain_intrinsic_size_values() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "containIntrinsicSize",
-        string_to_expression("10"),
+        create_string_expr("10"),
       )],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -145,9 +145,9 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_gap_with_space_separated_values() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "gap",
-        string_to_expression("10px 20px"),
+        create_string_expr("10px 20px"),
       )],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -176,9 +176,9 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let h = "containIntrinsicHeight";
 
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "containIntrinsicSize",
-        string_to_expression("10px 20px"),
+        create_string_expr("10px 20px"),
       )],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -201,9 +201,9 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let h = "containIntrinsicHeight";
 
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "containIntrinsicSize",
-        string_to_expression("auto 10px 20px"),
+        create_string_expr("auto 10px 20px"),
       )],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -226,9 +226,9 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
     let h = "containIntrinsicHeight";
 
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "containIntrinsicSize",
-        string_to_expression("auto 10px auto 20px"),
+        create_string_expr("auto 10px auto 20px"),
       )],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -248,9 +248,9 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_simple_shorthands() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "margin",
-        string_to_expression("10"),
+        create_string_expr("10"),
       )],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -285,8 +285,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_simple_shorthands_extended() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory("margin", string_to_expression("10")),
-        key_value_ident_factory("marginBottom", string_to_expression("20")),
+        create_key_value_prop_ident("margin", create_string_expr("10")),
+        create_key_value_prop_ident("marginBottom", create_string_expr("20")),
       ],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -326,8 +326,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   fn should_expand_shorthands_with_space_separated_values() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory("margin", string_to_expression("10px 20px")),
-        key_value_ident_factory("borderColor", string_to_expression("red")),
+        create_key_value_prop_ident("margin", create_string_expr("10px 20px")),
+        create_key_value_prop_ident("borderColor", create_string_expr("red")),
       ],
       &mut EvaluationState::new(),
       &mut get_state(),
@@ -378,11 +378,11 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   #[test]
   fn should_expand_shorthands_with_fallbacks() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "margin",
         Expr::from(create_array(&[
-          string_to_expression("10vh 20px"),
-          string_to_expression("10dvh 20px"),
+          create_string_expr("10vh 20px"),
+          create_string_expr("10dvh 20px"),
         ])),
       )],
       &mut EvaluationState::new(),
@@ -426,7 +426,7 @@ mod nested_objects {
       }
     },
     utils::{
-      ast::{convertors::string_to_expression, factories::{key_value_ident_factory, object_expression_factory, prop_or_spread_string_factory}, }, core::flatten_raw_style_object::flatten_raw_style_object,
+      ast::{convertors::create_string_expr, factories::{create_key_value_prop_ident, create_object_expression, create_string_key_value_prop}, }, core::flatten_raw_style_object::flatten_raw_style_object,
     },
   };
 
@@ -434,13 +434,13 @@ mod nested_objects {
   fn legacy_pseudo_classes() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory("color", string_to_expression("blue")),
-        key_value_ident_factory("marginStart", string_to_expression("0")),
-        key_value_ident_factory(
+        create_key_value_prop_ident("color", create_string_expr("blue")),
+        create_key_value_prop_ident("marginStart", create_string_expr("0")),
+        create_key_value_prop_ident(
           ":hover",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("color", "red"),
-            prop_or_spread_string_factory("marginStart", "10"),
+          create_object_expression(vec![
+            create_string_key_value_prop("color", "red"),
+            create_string_key_value_prop("marginStart", "10"),
           ]),
         ),
       ],
@@ -484,18 +484,18 @@ mod nested_objects {
   fn modern_pseudo_classes() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "color",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "blue"),
-            prop_or_spread_string_factory(":hover", "red"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "blue"),
+            create_string_key_value_prop(":hover", "red"),
           ]),
         ),
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "marginStart",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "0"),
-            prop_or_spread_string_factory(":hover", "10"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "0"),
+            create_string_key_value_prop(":hover", "10"),
           ]),
         ),
       ],
@@ -541,18 +541,18 @@ mod nested_objects {
   fn modern_pseudo_classes_with_shorthands() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "color",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "blue"),
-            prop_or_spread_string_factory(":hover", "red"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "blue"),
+            create_string_key_value_prop(":hover", "red"),
           ]),
         ),
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "margin",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "0"),
-            prop_or_spread_string_factory(":hover", "10"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "0"),
+            create_string_key_value_prop(":hover", "10"),
           ]),
         ),
       ],
@@ -612,18 +612,18 @@ mod nested_objects {
   fn modern_pseudo_classes_with_complex_shorthands() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "color",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "blue"),
-            prop_or_spread_string_factory(":hover", "red"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "blue"),
+            create_string_key_value_prop(":hover", "red"),
           ]),
         ),
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "margin",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
-            prop_or_spread_string_factory(":hover", "10px 20px"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "1px 2px 3px 4px"),
+            create_string_key_value_prop(":hover", "10px 20px"),
           ]),
         ),
       ],
@@ -691,19 +691,19 @@ mod nested_objects {
   fn modern_pseudo_and_at_rules() {
     let result = flatten_raw_style_object(
       &[
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "color",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "blue"),
-            prop_or_spread_string_factory(":hover", "red"),
-            prop_or_spread_string_factory("@media (min-width: 300px)", "green"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "blue"),
+            create_string_key_value_prop(":hover", "red"),
+            create_string_key_value_prop("@media (min-width: 300px)", "green"),
           ]),
         ),
-        key_value_ident_factory(
+        create_key_value_prop_ident(
           "marginStart",
-          object_expression_factory(vec![
-            prop_or_spread_string_factory("default", "0"),
-            prop_or_spread_string_factory(":hover", "10"),
+          create_object_expression(vec![
+            create_string_key_value_prop("default", "0"),
+            create_string_key_value_prop(":hover", "10"),
           ]),
         ),
       ],
@@ -748,11 +748,11 @@ mod nested_objects {
   #[test]
   fn attribute_selector_conditions() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "color",
-        object_expression_factory(vec![
-          prop_or_spread_string_factory("default", "blue"),
-          prop_or_spread_string_factory("[data-panel-state=\"open\"]", "red"),
+        create_object_expression(vec![
+          create_string_key_value_prop("default", "blue"),
+          create_string_key_value_prop("[data-panel-state=\"open\"]", "red"),
         ]),
       )],
       &mut EvaluationState::new(),
@@ -787,18 +787,18 @@ mod multiple_levels_of_nesting {
       }
     },
     utils::{
-       ast::factories::{key_value_ident_factory, object_expression_factory, prop_or_spread_array_string_factory, prop_or_spread_expr_factory, prop_or_spread_string_factory}, core::flatten_raw_style_object::flatten_raw_style_object
+       ast::factories::{create_key_value_prop_ident, create_object_expression, create_string_array_prop, create_nested_object_prop, create_string_key_value_prop}, core::flatten_raw_style_object::flatten_raw_style_object
     },
   };
 
   #[test]
   fn fallback_styles_within_nested_objects() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "margin",
-        object_expression_factory(vec![
-          prop_or_spread_string_factory("default", "1px 2px 3px 4px"),
-          prop_or_spread_array_string_factory(":hover", &["10px 20px", "1dvh 2dvh"]),
+        create_object_expression(vec![
+          create_string_key_value_prop("default", "1px 2px 3px 4px"),
+          create_string_array_prop(":hover", &["10px 20px", "1dvh 2dvh"]),
         ]),
       )],
       &mut EvaluationState::new(),
@@ -864,11 +864,11 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_within_a_media_query_legacy_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "@media (min-width: 300px)",
-        object_expression_factory(vec![prop_or_spread_expr_factory(
+        create_object_expression(vec![create_nested_object_prop(
           ":hover",
-          vec![prop_or_spread_string_factory("color", "red")],
+          vec![create_string_key_value_prop("color", "red")],
         )]),
       )],
       &mut EvaluationState::new(),
@@ -895,15 +895,15 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_with_a_pseudo_within_a_media_query_legacy_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "@media (min-width: 300px)",
-        object_expression_factory(vec![prop_or_spread_expr_factory(
+        create_object_expression(vec![create_nested_object_prop(
           ":hover",
           vec![
-            prop_or_spread_string_factory("color", "pink"),
-            prop_or_spread_expr_factory(
+            create_string_key_value_prop("color", "pink"),
+            create_nested_object_prop(
               ":active",
-              vec![prop_or_spread_string_factory("color", "red")],
+              vec![create_string_key_value_prop("color", "red")],
             ),
           ],
         )]),
@@ -941,13 +941,13 @@ mod multiple_levels_of_nesting {
   #[test]
   fn pseudo_within_a_media_query_modern_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "color",
-        object_expression_factory(vec![
-          prop_or_spread_string_factory("default", "blue"),
-          prop_or_spread_expr_factory(
+        create_object_expression(vec![
+          create_string_key_value_prop("default", "blue"),
+          create_nested_object_prop(
             "@media (min-width: 300px)",
-            vec![prop_or_spread_string_factory(":hover", "red")],
+            vec![create_string_key_value_prop(":hover", "red")],
           ),
         ]),
       )],
@@ -978,17 +978,17 @@ mod multiple_levels_of_nesting {
   #[test]
   fn extra_deep_pseudo_within_a_media_query_modern_syntax() {
     let result = flatten_raw_style_object(
-      &[key_value_ident_factory(
+      &[create_key_value_prop_ident(
         "color",
-        object_expression_factory(vec![
-          prop_or_spread_string_factory("default", "blue"),
-          prop_or_spread_expr_factory(
+        create_object_expression(vec![
+          create_string_key_value_prop("default", "blue"),
+          create_nested_object_prop(
             "@media (min-width: 300px)",
-            vec![prop_or_spread_expr_factory(
+            vec![create_nested_object_prop(
               ":hover",
               vec![
-                prop_or_spread_string_factory("default", "red"),
-                prop_or_spread_string_factory(":active", "maroon"),
+                create_string_key_value_prop("default", "red"),
+                create_string_key_value_prop(":active", "maroon"),
               ],
             )],
           ),

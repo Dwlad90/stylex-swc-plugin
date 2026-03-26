@@ -7,15 +7,15 @@ mod stylex_first_that_works {
     structures::{functions::FunctionMap, state_manager::StateManager},
     transformers::stylex_first_that_works::stylex_first_that_works,
     utils::ast::{
-      convertors::string_to_expression,
-      factories::{array_expression_factory, expr_or_spread_string_expression_factory},
+      convertors::create_string_expr,
+      factories::{create_array_expression, create_string_expr_or_spread},
     },
   };
 
   #[test]
   fn reverses_simple_array_of_values() {
     first_that_works_transform(
-      vec![string_to_expression("a"), string_to_expression("b")],
+      vec![create_string_expr("a"), create_string_expr("b")],
       vec!["b", "a"],
       &mut StateManager::default(),
       &FunctionMap::default(),
@@ -23,9 +23,9 @@ mod stylex_first_that_works {
 
     first_that_works_transform(
       vec![
-        string_to_expression("a"),
-        string_to_expression("b"),
-        string_to_expression("c"),
+        create_string_expr("a"),
+        create_string_expr("b"),
+        create_string_expr("c"),
       ],
       vec!["c", "b", "a"],
       &mut StateManager::default(),
@@ -37,8 +37,8 @@ mod stylex_first_that_works {
   fn creates_fallbacks_for_variables() {
     first_that_works_transform_to_string(
       vec![
-        string_to_expression("var(--accent)"),
-        string_to_expression("blue"),
+        create_string_expr("var(--accent)"),
+        create_string_expr("blue"),
       ],
       "var(--accent, blue)",
       &mut StateManager::default(),
@@ -50,9 +50,9 @@ mod stylex_first_that_works {
   fn allow_variables_to_be_fallbacks_too() {
     first_that_works_transform(
       vec![
-        string_to_expression("color-mix(in srgb, currentColor 20%, transparent)"),
-        string_to_expression("var(--accent)"),
-        string_to_expression("blue"),
+        create_string_expr("color-mix(in srgb, currentColor 20%, transparent)"),
+        create_string_expr("var(--accent)"),
+        create_string_expr("blue"),
       ],
       vec![
         "var(--accent, blue)",
@@ -67,14 +67,14 @@ mod stylex_first_that_works {
   fn omit_all_but_first_fallback_after_the_last_variable() {
     first_that_works_transform(
       vec![
-        string_to_expression("color-mix(in oklch, currentColor 20%, transparent)"),
-        string_to_expression("color-mix(in srgb, currentColor 20%, transparent)"),
-        string_to_expression("var(--accent)"),
-        string_to_expression("var(--primary)"),
-        string_to_expression("var(--secondary)"),
-        string_to_expression("red"),
-        string_to_expression("blue"),
-        string_to_expression("green"),
+        create_string_expr("color-mix(in oklch, currentColor 20%, transparent)"),
+        create_string_expr("color-mix(in srgb, currentColor 20%, transparent)"),
+        create_string_expr("var(--accent)"),
+        create_string_expr("var(--primary)"),
+        create_string_expr("var(--secondary)"),
+        create_string_expr("red"),
+        create_string_expr("blue"),
+        create_string_expr("green"),
       ],
       vec![
         "var(--accent, var(--primary, var(--secondary, red)))",
@@ -93,11 +93,11 @@ mod stylex_first_that_works {
   ) {
     let expected_args = expected_values
       .into_iter()
-      .map(|val| Some(expr_or_spread_string_expression_factory(val)))
+      .map(|val| Some(create_string_expr_or_spread(val)))
       .collect::<Vec<Option<ExprOrSpread>>>();
 
     let result = stylex_first_that_works(args.into_iter().collect(), state, functions);
-    let expected_result = array_expression_factory(expected_args);
+    let expected_result = create_array_expression(expected_args);
 
     assert_eq!(result, expected_result);
   }
@@ -110,6 +110,6 @@ mod stylex_first_that_works {
   ) {
     let result = stylex_first_that_works(args.into_iter().collect(), state, functions);
 
-    assert_eq!(result, string_to_expression(expected_value));
+    assert_eq!(result, create_string_expr(expected_value));
   }
 }

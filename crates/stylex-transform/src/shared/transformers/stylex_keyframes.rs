@@ -21,7 +21,7 @@ use crate::shared::{
     types::FlatCompiledStyles,
   },
   utils::{
-    ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
+    ast::convertors::{expr_to_str, key_value_to_str, create_string_expr},
     common::{create_hash, dashify},
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
@@ -226,7 +226,7 @@ pub(crate) fn get_keyframes_fn() -> FunctionConfig {
         .other_injected_css_rules
         .insert(animation_name.clone(), Rc::new(injected_style));
 
-      string_to_expression(animation_name.as_str())
+      create_string_expr(animation_name.as_str())
     }),
     takes_path: false,
   }

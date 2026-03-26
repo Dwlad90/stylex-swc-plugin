@@ -11,10 +11,10 @@ mod stylex_create_theme {
     },
     transformers::stylex_create_theme::stylex_create_theme,
     utils::ast::{
-      convertors::string_to_expression,
+      convertors::create_string_expr,
       factories::{
-        object_expression_factory, prop_or_spread_expr_factory, prop_or_spread_expression_factory,
-        prop_or_spread_string_factory,
+        create_object_expression, create_nested_object_prop, create_key_value_prop,
+        create_string_key_value_prop,
       },
     },
   };
@@ -22,10 +22,10 @@ mod stylex_create_theme {
   fn default_vars_factory(args: &[(&str, &str)]) -> EvaluateResultValue {
     let props = args
       .iter()
-      .map(|(key, value)| prop_or_spread_string_factory(key, value))
+      .map(|(key, value)| create_string_key_value_prop(key, value))
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(object_expression_factory(props))
+    EvaluateResultValue::Expr(create_object_expression(props))
   }
 
   fn exprected_result_factory(injected_styles: &[(&str, (&str, f64))]) -> InjectableStylesMap {
@@ -56,7 +56,7 @@ mod stylex_create_theme {
       .map(|(key, values, nested_values)| {
         let mut props = values
           .iter()
-          .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
+          .map(|(key, value)| create_key_value_prop(key, create_string_expr(value)))
           .collect::<Vec<PropOrSpread>>();
 
         let nested_props = nested_values
@@ -66,25 +66,25 @@ mod stylex_create_theme {
               .1
               .iter()
               .map(|(key, value)| {
-                prop_or_spread_expression_factory(key, string_to_expression(value))
+                create_key_value_prop(key, create_string_expr(value))
               })
               .collect::<Vec<PropOrSpread>>();
 
-            prop_or_spread_expression_factory(val.0, object_expression_factory(props))
+            create_key_value_prop(val.0, create_object_expression(props))
           })
           .collect::<Vec<PropOrSpread>>();
 
         props.extend(nested_props);
 
-        prop_or_spread_expr_factory(key, props)
+        create_nested_object_prop(key, props)
       })
       .collect::<Vec<PropOrSpread>>();
 
     for (key, value) in str_args.iter() {
-      props.push(prop_or_spread_string_factory(key, value));
+      props.push(create_string_key_value_prop(key, value));
     }
 
-    EvaluateResultValue::Expr(object_expression_factory(props))
+    EvaluateResultValue::Expr(create_object_expression(props))
   }
 
   #[test]

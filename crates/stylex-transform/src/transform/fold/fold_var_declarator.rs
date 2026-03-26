@@ -22,7 +22,7 @@ use crate::{
         top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
       },
     },
-    utils::{ast::convertors::transform_shorthand_to_key_values, common::fill_state_declarations},
+    utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
   },
 };
 
@@ -241,7 +241,7 @@ fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Atom>) {
     PropOrSpread::Prop(prop) => {
       let mut prop = prop.clone();
 
-      transform_shorthand_to_key_values(&mut prop);
+      expand_shorthand_prop(&mut prop);
 
       if let Prop::KeyValue(key_value) = &*prop
         && key_value

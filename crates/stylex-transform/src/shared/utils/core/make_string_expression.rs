@@ -13,8 +13,8 @@ use swc_core::{
 use crate::shared::{
   enums::data_structures::fn_result::FnResult,
   utils::ast::{
-    convertors::{number_to_expression, string_to_expression},
-    factories::object_expression_factory,
+    convertors::{create_number_expr, create_string_expr},
+    factories::create_object_expression,
   },
 };
 
@@ -45,7 +45,7 @@ pub(crate) fn make_string_expression(
         return fn_result_to_expression(value);
       }
       _ => {
-        return Some(string_to_expression(""));
+        return Some(create_string_expr(""));
       }
     }
   }
@@ -98,7 +98,7 @@ pub(crate) fn make_string_expression(
     })
     .collect::<Vec<PropOrSpread>>();
 
-  let obj_expressions = object_expression_factory(obj_entries);
+  let obj_expressions = create_object_expression(obj_entries);
   let conditions_to_key =
     gen_bitwise_or_of_conditions(&conditions.into_iter().cloned().collect::<Vec<_>>());
 
@@ -130,7 +130,7 @@ fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
           })),
         })),
         op: BinaryOp::LShift,
-        right: Box::new(number_to_expression(shift as f64)),
+        right: Box::new(create_number_expr(shift as f64)),
         span: DUMMY_SP,
       })
     })

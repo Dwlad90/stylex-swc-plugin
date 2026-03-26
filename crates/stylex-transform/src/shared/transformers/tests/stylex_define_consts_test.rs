@@ -10,8 +10,8 @@ mod stylex_define_consts {
     transformers::stylex_define_consts::stylex_define_consts,
     utils::{
       ast::{
-        convertors::string_to_expression,
-        factories::{object_expression_factory, prop_or_spread_expression_factory},
+        convertors::create_string_expr,
+        factories::{create_object_expression, create_key_value_prop},
       },
       common::create_hash,
     },
@@ -31,10 +31,10 @@ mod stylex_define_consts {
   fn constants_factory(constants: &[(&str, &str)]) -> EvaluateResultValue {
     let props = constants
       .iter()
-      .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
+      .map(|(key, value)| create_key_value_prop(key, create_string_expr(value)))
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(object_expression_factory(props))
+    EvaluateResultValue::Expr(create_object_expression(props))
   }
 
   fn get_const_hash(export_id: &str, key: &str, class_name_prefix: &str) -> String {

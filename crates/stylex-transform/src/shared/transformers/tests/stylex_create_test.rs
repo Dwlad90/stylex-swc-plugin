@@ -21,11 +21,11 @@ mod stylex_create {
     },
     transformers::stylex_create::stylex_create_set,
     utils::ast::{
-      convertors::string_to_expression,
+      convertors::create_string_expr,
       factories::{
-        array_expression_factory, key_value_ident_factory, lit_null_factory,
-        object_expression_factory, prop_or_spread_expr_factory, prop_or_spread_expression_factory,
-        prop_or_spread_string_factory,
+        create_array_expression, create_key_value_prop_ident, create_null_lit,
+        create_object_expression, create_nested_object_prop, create_key_value_prop,
+        create_string_key_value_prop,
       },
     },
   };
@@ -35,10 +35,10 @@ mod stylex_create {
 
     for (key, value) in args {
       object.insert(
-        string_to_expression(key),
+        create_string_expr(key),
         value
           .iter()
-          .map(|(key, value)| key_value_ident_factory(key, string_to_expression(value)))
+          .map(|(key, value)| create_key_value_prop_ident(key, create_string_expr(value)))
           .collect(),
       );
     }
@@ -55,16 +55,16 @@ mod stylex_create {
 
     for (key, value) in args {
       object.insert(
-        string_to_expression(key),
+        create_string_expr(key),
         value
           .iter()
           .map(|(key, value)| {
-            key_value_ident_factory(
+            create_key_value_prop_ident(
               key,
-              object_expression_factory(
+              create_object_expression(
                 value
                   .iter()
-                  .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                  .map(|(key, value)| create_string_key_value_prop(key, value))
                   .collect(),
               ),
             )
@@ -100,59 +100,59 @@ mod stylex_create {
 
     for (key, value) in args {
       object.insert(
-        string_to_expression(key),
+        create_string_expr(key),
         value
           .iter()
           .map(|(key, value)| {
-            key_value_ident_factory(
+            create_key_value_prop_ident(
               key,
-              object_expression_factory(
+              create_object_expression(
                 value
                   .iter()
                   .map(|(key, values)| match values {
-                    DepthProps::One(strng) => prop_or_spread_string_factory(key, strng),
-                    DepthProps::Two(arr) => prop_or_spread_expr_factory(
+                    DepthProps::One(strng) => create_string_key_value_prop(key, strng),
+                    DepthProps::Two(arr) => create_nested_object_prop(
                       key,
                       arr
                         .iter()
                         .map(|(key, value)| match value {
-                          StringOrNull::String(strng) => prop_or_spread_string_factory(key, strng),
+                          StringOrNull::String(strng) => create_string_key_value_prop(key, strng),
                           StringOrNull::Null => {
-                            prop_or_spread_expression_factory(key, Expr::Lit(lit_null_factory()))
+                            create_key_value_prop(key, Expr::Lit(create_null_lit()))
                           }
                         })
                         .collect(),
                     ),
-                    DepthProps::Three(arr) => prop_or_spread_expr_factory(
+                    DepthProps::Three(arr) => create_nested_object_prop(
                       key,
                       arr
                         .iter()
                         .map(|(key, values)| {
-                          prop_or_spread_expr_factory(
+                          create_nested_object_prop(
                             key,
                             values
                               .iter()
-                              .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                              .map(|(key, value)| create_string_key_value_prop(key, value))
                               .collect(),
                           )
                         })
                         .collect(),
                     ),
-                    // DepthProps::Four(arr) => prop_or_spread_expr_factory(
+                    // DepthProps::Four(arr) => create_nested_object_prop(
                     //   key,
                     //   arr
                     //     .iter()
                     //     .map(|(key, values)| {
-                    //       prop_or_spread_expr_factory(
+                    //       create_nested_object_prop(
                     //         key,
                     //         values
                     //           .iter()
                     //           .map(|(key, values)| {
-                    //             prop_or_spread_expr_factory(
+                    //             create_nested_object_prop(
                     //               key,
                     //               values
                     //                 .iter()
-                    //                 .map(|(key, value)| prop_or_spread_string_factory(key, value))
+                    //                 .map(|(key, value)| create_string_key_value_prop(key, value))
                     //                 .collect(),
                     //             )
                     //           })
@@ -181,7 +181,7 @@ mod stylex_create {
 
     for (key, value) in args {
       object.insert(
-        string_to_expression(key),
+        create_string_expr(key),
         value
           .iter()
           .map(|(key, value)| {
@@ -190,12 +190,12 @@ mod stylex_create {
               .map(|arg| {
                 Some(ExprOrSpread {
                   spread: None,
-                  expr: Box::new(string_to_expression(arg)),
+                  expr: Box::new(create_string_expr(arg)),
                 })
               })
               .collect::<Vec<Option<ExprOrSpread>>>();
 
-            key_value_ident_factory(key, array_expression_factory(elems))
+            create_key_value_prop_ident(key, create_array_expression(elems))
           })
           .collect(),
       );
@@ -1121,11 +1121,11 @@ mod stylex_create {
       ],
     )]);
 
-    let def = object.get_mut(&string_to_expression("default")).unwrap();
+    let def = object.get_mut(&create_string_expr("default")).unwrap();
 
-    def.push(key_value_ident_factory(
+    def.push(create_key_value_prop_ident(
       "backgroundColor",
-      string_to_expression("red"),
+      create_string_expr("red"),
     ));
 
     let (resolved_namespaces, injected_styles, class_paths_in_namespace) = stylex_create(object);

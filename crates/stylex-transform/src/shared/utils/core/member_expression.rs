@@ -13,7 +13,7 @@ use crate::shared::{
     style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
   },
   structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{ast::convertors::lit_to_string, common::increase_ident_count, js::evaluate::evaluate},
+  utils::{ast::convertors::convert_lit_to_string, common::increase_ident_count, js::evaluate::evaluate},
 };
 
 pub(crate) fn member_expression(
@@ -42,7 +42,7 @@ pub(crate) fn member_expression(
         }
         MemberProp::Computed(computed) => {
           if let Expr::Lit(lit) = computed.expr.as_ref() {
-            prop_name = lit_to_string(lit).map(Atom::from);
+            prop_name = convert_lit_to_string(lit).map(Atom::from);
           }
         }
         _ => {}

@@ -10,7 +10,7 @@ use crate::shared::{
   },
   structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
   utils::{
-    ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, lit_to_string},
+    ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, convert_lit_to_string},
     common::reduce_ident_count,
     js::evaluate::evaluate,
   },
@@ -154,7 +154,7 @@ pub(crate) fn parse_nullable_style(
           MemberProp::Computed(computed) => {
             if let Some(lit) = computed.expr.as_lit() {
               obj_name = Some(obj_ident.sym.as_str().to_string());
-              prop_name = lit_to_string(lit);
+              prop_name = convert_lit_to_string(lit);
             }
           }
           MemberProp::PrivateName(_) => {}
@@ -275,7 +275,7 @@ fn parse_nullable_key_value(
 ) {
   match lit {
     Lit::Str(_) => {
-      let value = match lit_to_string(lit) {
+      let value = match convert_lit_to_string(lit) {
         Some(s) => s,
         None => stylex_panic!("Failed to convert literal value to string in style parsing."),
       };

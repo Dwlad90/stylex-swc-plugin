@@ -29,11 +29,11 @@ use crate::shared::{
   utils::{
     ast::{
       convertors::{
-        expr_to_str, ident_to_expression, null_to_expression, string_to_expression,
-        transform_shorthand_to_key_values,
+        expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
+        expand_shorthand_prop,
       },
       factories::{
-        expr_or_spread_factory, object_expression_factory, prop_or_spread_expression_factory,
+        create_expr_or_spread, create_object_expression, create_key_value_prop,
       },
     },
     common::{create_hash, normalize_expr},
@@ -65,7 +65,7 @@ pub fn evaluate_stylex_create_arg(
           PropOrSpread::Prop(prop) => {
             let mut prop = prop.clone();
 
-            transform_shorthand_to_key_values(&mut prop);
+            expand_shorthand_prop(&mut prop);
 
             match prop.as_mut() {
               Prop::KeyValue(key_value_prop) => {
@@ -249,7 +249,7 @@ fn evaluate_partial_object_recursively(
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
 
-        transform_shorthand_to_key_values(&mut prop);
+        expand_shorthand_prop(&mut prop);
 
         match prop.as_mut() {
           Prop::KeyValue(key_value) => {
@@ -310,7 +310,7 @@ fn evaluate_partial_object_recursively(
                   });
                 }
 
-                let new_prop = prop_or_spread_expression_factory(
+                let new_prop = create_key_value_prop(
                   &key_str,
                   match result.value.and_then(|v| v.as_expr().cloned()) {
                     Some(expr) => expr,
@@ -341,9 +341,9 @@ fn evaluate_partial_object_recursively(
                     format!("--x-{}", key_str)
                   };
 
-                  let new_prop = prop_or_spread_expression_factory(
+                  let new_prop = create_key_value_prop(
                     &key_str,
-                    string_to_expression(&format!("var({})", var_name)),
+                    create_string_expr(&format!("var({})", var_name)),
                   );
                   obj.push(new_prop);
 
@@ -364,7 +364,7 @@ fn evaluate_partial_object_recursively(
                   };
 
                   let inline_style_expression = if !unit.is_empty() {
-                    let val_ident = ident_to_expression("val");
+                    let val_ident = create_ident_expr("val");
                     Expr::from(CallExpr {
                       span: DUMMY_SP,
                       callee: Callee::Expr(Box::new(Expr::Arrow(ArrowExpr {
@@ -380,13 +380,13 @@ fn evaluate_partial_object_recursively(
                               op: UnaryOp::TypeOf,
                               arg: Box::new(val_ident.clone()),
                             })),
-                            right: Box::new(string_to_expression("number")),
+                            right: Box::new(create_string_expr("number")),
                           })),
                           cons: Box::new(Expr::from(BinExpr {
                             span: DUMMY_SP,
                             op: BinaryOp::Add,
                             left: Box::new(val_ident.clone()),
-                            right: Box::new(string_to_expression(&unit)),
+                            right: Box::new(create_string_expr(&unit)),
                           })),
                           alt: Box::new(Expr::from(CondExpr {
                             span: DUMMY_SP,
@@ -394,10 +394,10 @@ fn evaluate_partial_object_recursively(
                               span: DUMMY_SP,
                               op: BinaryOp::NotEq,
                               left: Box::new(val_ident.clone()),
-                              right: Box::new(null_to_expression()),
+                              right: Box::new(create_null_expr()),
                             })),
                             cons: Box::new(val_ident),
-                            alt: Box::new(ident_to_expression("undefined")),
+                            alt: Box::new(create_ident_expr("undefined")),
                           })),
                         })))),
                         is_async: false,
@@ -406,7 +406,7 @@ fn evaluate_partial_object_recursively(
                         return_type: None,
                         ctxt: SyntaxContext::empty(),
                       }))),
-                      args: vec![expr_or_spread_factory(*value_path.clone())],
+                      args: vec![create_expr_or_spread(*value_path.clone())],
                       type_args: None,
                       ctxt: SyntaxContext::empty(),
                     })
@@ -417,10 +417,10 @@ fn evaluate_partial_object_recursively(
                         span: DUMMY_SP,
                         op: BinaryOp::NotEq,
                         left: value_path.clone(),
-                        right: Box::new(null_to_expression()),
+                        right: Box::new(create_null_expr()),
                       })),
                       cons: value_path.clone(),
-                      alt: Box::new(ident_to_expression("undefined")),
+                      alt: Box::new(create_ident_expr("undefined")),
                     })
                   };
 
@@ -437,7 +437,7 @@ fn evaluate_partial_object_recursively(
                     }),
                   );
                 } else {
-                  let new_prop = prop_or_spread_expression_factory(
+                  let new_prop = create_key_value_prop(
                     &key_str,
                     match result.value.and_then(|v| v.as_expr().cloned()) {
                       Some(expr) => expr,
@@ -469,7 +469,7 @@ fn evaluate_partial_object_recursively(
     confident: true,
     deopt: None,
     reason: None,
-    value: Some(EvaluateResultValue::Expr(object_expression_factory(obj))),
+    value: Some(EvaluateResultValue::Expr(create_object_expression(obj))),
     inline_styles: Some(inline_styles),
     fns: None,
   })

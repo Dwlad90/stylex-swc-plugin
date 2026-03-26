@@ -5,7 +5,7 @@ mod class_methods {
   use crate::shared::{
     enums::data_structures::value_with_default::ValueWithDefault,
     transformers::stylex_types::FN_MAP,
-    utils::ast::factories::{object_expression_factory, prop_or_spread_string_factory},
+    utils::ast::factories::{create_object_expression, create_string_key_value_prop},
   };
 
   fn assert_type_factory(syntax: &str, value: ValueWithDefault, expected_value: &str) {
@@ -17,9 +17,9 @@ mod class_methods {
   }
 
   fn type_factory(syntax: &str, value: &str) -> Expr {
-    object_expression_factory(vec![
-      prop_or_spread_string_factory("syntax", format!("<{}>", syntax).as_str()),
-      prop_or_spread_string_factory("value", value),
+    create_object_expression(vec![
+      create_string_key_value_prop("syntax", format!("<{}>", syntax).as_str()),
+      create_string_key_value_prop("value", value),
     ])
   }
 

@@ -7,9 +7,9 @@ mod tests {
     utils::{
       ast::{
         convertors::{
-          bool_to_expression, null_to_expression, number_to_expression, string_to_expression,
+          create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
         },
-        factories::ident_factory,
+        factories::create_ident,
       },
       js::evaluate::evaluate,
     },
@@ -28,12 +28,12 @@ mod tests {
 
   // Helper: Create undefined expression
   fn make_undefined_expr() -> Expr {
-    Expr::Ident(ident_factory("undefined"))
+    Expr::Ident(create_ident("undefined"))
   }
 
   // Helper: Create identifier expression
   fn make_ident_expr(name: &str) -> Expr {
-    Expr::Ident(ident_factory(name))
+    Expr::Ident(create_ident(name))
   }
 
   // Helper: Create regular member expression
@@ -96,7 +96,7 @@ mod tests {
 
   #[test]
   fn test_optional_chaining_with_null_returns_none() {
-    let opt_chain = make_optional_member_expr(null_to_expression(), "prop");
+    let opt_chain = make_optional_member_expr(create_null_expr(), "prop");
     let (_confident, has_value) = evaluate_expr(&opt_chain);
     assert!(!has_value, "Optional chaining with null should return None");
   }
@@ -123,7 +123,7 @@ mod tests {
 
   #[test]
   fn test_optional_chaining_null_no_panic() {
-    let opt_chain = make_optional_member_expr(null_to_expression(), "nonexistent");
+    let opt_chain = make_optional_member_expr(create_null_expr(), "nonexistent");
     let (_confident, has_value) = evaluate_expr(&opt_chain);
     assert!(!has_value, "Should short-circuit without panic");
   }
@@ -137,7 +137,7 @@ mod tests {
 
   #[test]
   fn test_optional_chaining_null_short_circuit() {
-    let opt_chain = make_optional_member_expr(null_to_expression(), "complexProp");
+    let opt_chain = make_optional_member_expr(create_null_expr(), "complexProp");
     let (_confident, has_value) = evaluate_expr(&opt_chain);
     assert!(!has_value, "Should short-circuit on null");
   }
@@ -169,7 +169,7 @@ mod tests {
         obj: Box::new(make_ident_expr("obj")),
         prop: MemberProp::Computed(ComputedPropName {
           span: DUMMY_SP,
-          expr: Box::new(string_to_expression("prop")),
+          expr: Box::new(create_string_expr("prop")),
         }),
       })),
     });
@@ -206,28 +206,28 @@ mod tests {
 
   #[test]
   fn test_await_with_null() {
-    let await_expr = make_await_expr(null_to_expression());
+    let await_expr = make_await_expr(create_null_expr());
     let (_confident, has_value) = evaluate_expr(&await_expr);
     assert!(has_value, "Null literal should evaluate to a value");
   }
 
   #[test]
   fn test_await_with_number() {
-    let await_expr = make_await_expr(number_to_expression(42.0));
+    let await_expr = make_await_expr(create_number_expr(42.0));
     let (_confident, has_value) = evaluate_expr(&await_expr);
     assert!(has_value, "Number literal should evaluate to a value");
   }
 
   #[test]
   fn test_await_with_string() {
-    let await_expr = make_await_expr(string_to_expression("hello"));
+    let await_expr = make_await_expr(create_string_expr("hello"));
     let (_confident, has_value) = evaluate_expr(&await_expr);
     assert!(has_value, "String literal should evaluate to a value");
   }
 
   #[test]
   fn test_await_with_boolean() {
-    let await_expr = make_await_expr(bool_to_expression(true));
+    let await_expr = make_await_expr(create_bool_expr(true));
     let (_confident, has_value) = evaluate_expr(&await_expr);
     assert!(has_value, "Boolean literal should evaluate to a value");
   }
@@ -235,7 +235,7 @@ mod tests {
   #[test]
   fn test_await_removes_await_keyword() {
     // Test that await evaluates its argument (not the await keyword itself)
-    let await_expr = make_await_expr(number_to_expression(123.0));
+    let await_expr = make_await_expr(create_number_expr(123.0));
     let (_confident, has_value) = evaluate_expr(&await_expr);
     // Should have a value since we evaluate the number
     assert!(has_value, "Await should evaluate its argument");
@@ -253,7 +253,7 @@ mod tests {
   #[test]
   fn test_await_with_null_optional_chaining() {
     // Test: await null?.prop
-    let optional_member = make_optional_member_expr(null_to_expression(), "prop");
+    let optional_member = make_optional_member_expr(create_null_expr(), "prop");
     let await_expr = make_await_expr(optional_member);
     let (_confident, has_value) = evaluate_expr(&await_expr);
     assert!(!has_value, "Short-circuit should propagate through await");
@@ -263,7 +263,7 @@ mod tests {
 
   #[test]
   fn test_null_literal_evaluation() {
-    let null_expr = null_to_expression();
+    let null_expr = create_null_expr();
     let (confident, has_value) = evaluate_expr(&null_expr);
     assert!(confident, "Null literal should be confident");
     assert!(has_value, "Null literal should have a value");
@@ -279,7 +279,7 @@ mod tests {
 
   #[test]
   fn test_number_literal_evaluation() {
-    let num_expr = number_to_expression(42.0);
+    let num_expr = create_number_expr(42.0);
     let (confident, has_value) = evaluate_expr(&num_expr);
     assert!(confident, "Number literal should be confident");
     assert!(has_value, "Number literal should have a value");
@@ -287,7 +287,7 @@ mod tests {
 
   #[test]
   fn test_string_literal_evaluation() {
-    let str_expr = string_to_expression("test");
+    let str_expr = create_string_expr("test");
     let (confident, has_value) = evaluate_expr(&str_expr);
     assert!(confident, "String literal should be confident");
     assert!(has_value, "String literal should have a value");
@@ -295,7 +295,7 @@ mod tests {
 
   #[test]
   fn test_boolean_literal_evaluation() {
-    let bool_expr = bool_to_expression(true);
+    let bool_expr = create_bool_expr(true);
     let (confident, has_value) = evaluate_expr(&bool_expr);
     assert!(confident, "Boolean literal should be confident");
     assert!(has_value, "Boolean literal should have a value");
@@ -312,7 +312,7 @@ mod tests {
 
   #[test]
   fn test_unary_minus_number() {
-    let unary_expr = make_unary_expr(UnaryOp::Minus, number_to_expression(5.0));
+    let unary_expr = make_unary_expr(UnaryOp::Minus, create_number_expr(5.0));
     let (confident, has_value) = evaluate_expr(&unary_expr);
     assert!(confident, "Unary minus on number should be confident");
     assert!(has_value, "Unary minus should have a value");
@@ -320,7 +320,7 @@ mod tests {
 
   #[test]
   fn test_unary_plus_number() {
-    let unary_expr = make_unary_expr(UnaryOp::Plus, number_to_expression(5.0));
+    let unary_expr = make_unary_expr(UnaryOp::Plus, create_number_expr(5.0));
     let (confident, has_value) = evaluate_expr(&unary_expr);
     assert!(confident, "Unary plus on number should be confident");
     assert!(has_value, "Unary plus should have a value");
@@ -328,7 +328,7 @@ mod tests {
 
   #[test]
   fn test_unary_not_boolean() {
-    let unary_expr = make_unary_expr(UnaryOp::Bang, bool_to_expression(true));
+    let unary_expr = make_unary_expr(UnaryOp::Bang, create_bool_expr(true));
     let (confident, has_value) = evaluate_expr(&unary_expr);
     assert!(confident, "Unary not on boolean should be confident");
     assert!(has_value, "Unary not should have a value");
@@ -349,9 +349,9 @@ mod tests {
   #[test]
   fn test_binary_addition_numbers() {
     let bin_expr = make_binary_expr(
-      number_to_expression(5.0),
+      create_number_expr(5.0),
       BinaryOp::Add,
-      number_to_expression(3.0),
+      create_number_expr(3.0),
     );
     let (confident, has_value) = evaluate_expr(&bin_expr);
     assert!(confident, "Binary addition of numbers should be confident");
@@ -361,9 +361,9 @@ mod tests {
   #[test]
   fn test_binary_subtraction_numbers() {
     let bin_expr = make_binary_expr(
-      number_to_expression(5.0),
+      create_number_expr(5.0),
       BinaryOp::Sub,
-      number_to_expression(3.0),
+      create_number_expr(3.0),
     );
     let (confident, has_value) = evaluate_expr(&bin_expr);
     assert!(
@@ -376,9 +376,9 @@ mod tests {
   #[test]
   fn test_binary_multiplication_numbers() {
     let bin_expr = make_binary_expr(
-      number_to_expression(5.0),
+      create_number_expr(5.0),
       BinaryOp::Mul,
-      number_to_expression(3.0),
+      create_number_expr(3.0),
     );
     let (confident, has_value) = evaluate_expr(&bin_expr);
     assert!(
@@ -393,7 +393,7 @@ mod tests {
     let bin_expr = make_binary_expr(
       make_ident_expr("x"),
       BinaryOp::Add,
-      number_to_expression(5.0),
+      create_number_expr(5.0),
     );
     let (confident, _has_value) = evaluate_expr(&bin_expr);
     assert!(
@@ -405,9 +405,9 @@ mod tests {
   #[test]
   fn test_binary_logical_and() {
     let bin_expr = make_binary_expr(
-      bool_to_expression(true),
+      create_bool_expr(true),
       BinaryOp::LogicalAnd,
-      bool_to_expression(false),
+      create_bool_expr(false),
     );
     let (_confident, has_value) = evaluate_expr(&bin_expr);
     assert!(
@@ -419,9 +419,9 @@ mod tests {
   #[test]
   fn test_binary_logical_or() {
     let bin_expr = make_binary_expr(
-      bool_to_expression(true),
+      create_bool_expr(true),
       BinaryOp::LogicalOr,
-      bool_to_expression(false),
+      create_bool_expr(false),
     );
     let (_confident, has_value) = evaluate_expr(&bin_expr);
     assert!(
@@ -469,7 +469,7 @@ mod tests {
 
   #[test]
   fn test_await_then_optional_chain() {
-    let optional = make_optional_member_expr(null_to_expression(), "prop");
+    let optional = make_optional_member_expr(create_null_expr(), "prop");
     let await_expr = make_await_expr(optional);
     let (_confident, has_value) = evaluate_expr(&await_expr);
     assert!(
@@ -503,7 +503,7 @@ mod tests {
 
   #[test]
   fn test_multiple_levels_of_optional_chaining_with_null_at_end() {
-    let null_at_end = make_optional_member_expr(null_to_expression(), "prop");
+    let null_at_end = make_optional_member_expr(create_null_expr(), "prop");
     let (_confident, has_value) = evaluate_expr(&null_at_end);
     assert!(!has_value, "Should handle null at any level");
   }
@@ -536,7 +536,7 @@ mod tests {
   #[test]
   fn test_null_coalescing_like_pattern() {
     // Pattern: null?.prop (similar to nullish coalescing behavior)
-    let optional = make_optional_member_expr(null_to_expression(), "prop");
+    let optional = make_optional_member_expr(create_null_expr(), "prop");
     let (_confident, has_value) = evaluate_expr(&optional);
     assert!(!has_value, "Null coalescing pattern should short-circuit");
   }
@@ -546,7 +546,7 @@ mod tests {
   #[test]
   fn test_null_literal_member_access() {
     // When accessing a member on a literal, the literal itself is evaluated
-    let member_expr = make_member_expr(null_to_expression(), "prop");
+    let member_expr = make_member_expr(create_null_expr(), "prop");
     let (_confident, has_value) = evaluate_expr(&member_expr);
     // The literal is evaluable, so has_value should be true (the literal value)
     assert!(
@@ -558,7 +558,7 @@ mod tests {
   #[test]
   fn test_number_literal_member_access() {
     // When accessing a member on a number literal, the number itself is returned
-    let member_expr = make_member_expr(number_to_expression(42.0), "prop");
+    let member_expr = make_member_expr(create_number_expr(42.0), "prop");
     let (_confident, has_value) = evaluate_expr(&member_expr);
     // The literal is evaluable
     assert!(
@@ -570,7 +570,7 @@ mod tests {
   #[test]
   fn test_boolean_literal_member_access() {
     // When accessing a member on a boolean literal, the boolean itself is returned
-    let member_expr = make_member_expr(bool_to_expression(true), "prop");
+    let member_expr = make_member_expr(create_bool_expr(true), "prop");
     let (_confident, has_value) = evaluate_expr(&member_expr);
     // The literal is evaluable
     assert!(
@@ -582,7 +582,7 @@ mod tests {
   #[test]
   fn test_string_literal_member_access() {
     // When accessing a member on a string literal, the string itself is returned
-    let member_expr = make_member_expr(string_to_expression("test"), "prop");
+    let member_expr = make_member_expr(create_string_expr("test"), "prop");
     let (_confident, has_value) = evaluate_expr(&member_expr);
     // The literal is evaluable
     assert!(
@@ -594,7 +594,7 @@ mod tests {
   #[test]
   fn test_literal_with_optional_chaining() {
     // Optional chaining on a literal number: the number literal is returned
-    let opt_chain = make_optional_member_expr(number_to_expression(5.0), "prop");
+    let opt_chain = make_optional_member_expr(create_number_expr(5.0), "prop");
     let (_confident, has_value) = evaluate_expr(&opt_chain);
     // The number is a literal so it can be evaluated
     assert!(
@@ -687,7 +687,7 @@ mod tests {
     // Test: /regex/.test("literal")
     let regex_expr = make_regex_expr("test", "");
     let member_expr = make_member_expr(regex_expr, "test");
-    let call_expr = make_call_expr(member_expr, vec![string_to_expression("literal")]);
+    let call_expr = make_call_expr(member_expr, vec![create_string_expr("literal")]);
     let (confident, _has_value) = evaluate_expr(&call_expr);
     assert!(
       !confident,
@@ -746,7 +746,7 @@ mod tests {
     let nullish = make_binary_expr(
       make_ident_expr("pattern"),
       BinaryOp::NullishCoalescing,
-      string_to_expression(""),
+      create_string_expr(""),
     );
     let call_expr = make_call_expr(member_expr, vec![nullish]);
     let (confident, _has_value) = evaluate_expr(&call_expr);
@@ -787,7 +787,7 @@ mod tests {
     // Calling an unsupported method on an array literal (e.g., [1].unsupported())
     // should panic with a message that includes the method name.
     // This validates that stylex_panic_with_context! is used in the member call evaluation path.
-    let array = make_array_expr(vec![number_to_expression(1.0)]);
+    let array = make_array_expr(vec![create_number_expr(1.0)]);
     let member = make_member_expr(array, "unsupported");
     let call = make_call_expr(member, vec![]);
 
@@ -812,7 +812,7 @@ mod tests {
   fn test_unsupported_string_method_panic_includes_method_name() {
     // Calling an unsupported method on a string literal (e.g., "hello".unsupported())
     // should panic with a message that includes the method name.
-    let string = string_to_expression("hello");
+    let string = create_string_expr("hello");
     let member = make_member_expr(string, "unsupported");
     let call = make_call_expr(member, vec![]);
 
@@ -840,9 +840,9 @@ mod tests {
   fn test_supported_array_methods_no_panic() {
     // Calling supported methods like .join() should not panic during evaluation.
     // (.map() and .filter() need callback args, but .join() can work without)
-    let array = make_array_expr(vec![number_to_expression(1.0), number_to_expression(2.0)]);
+    let array = make_array_expr(vec![create_number_expr(1.0), create_number_expr(2.0)]);
     let member = make_member_expr(array, "join");
-    let call = make_call_expr(member, vec![string_to_expression(",")]);
+    let call = make_call_expr(member, vec![create_string_expr(",")]);
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
       evaluate_expr_with_globals(&call);

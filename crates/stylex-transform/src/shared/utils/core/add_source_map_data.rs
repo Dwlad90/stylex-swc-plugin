@@ -22,7 +22,7 @@ use crate::shared::{
     types::StylesObjectMap,
   },
   utils::{
-    ast::convertors::{expr_to_str, key_value_to_str, string_to_expression},
+    ast::convertors::{expr_to_str, key_value_to_str, create_string_expr},
     common::get_key_values_from_object,
     log::build_code_frame_error::get_span_from_source_code,
   },
@@ -101,9 +101,9 @@ pub(crate) fn add_source_map_data(
                   let raw_short_filename =
                     create_short_filename(filename.as_ref(), state, package_json_seen);
                   let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
-                    f.call(vec![string_to_expression(&raw_short_filename)])
+                    f.call(vec![create_string_expr(&raw_short_filename)])
                   } else {
-                    string_to_expression(&raw_short_filename)
+                    create_string_expr(&raw_short_filename)
                   };
 
                   let short_filename = expr_to_str(&short_filename_expr, state, functions);

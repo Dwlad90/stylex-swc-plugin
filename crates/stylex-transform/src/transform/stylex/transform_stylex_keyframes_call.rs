@@ -13,7 +13,7 @@ use crate::shared::structures::{
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 use crate::shared::utils::{
-  ast::convertors::string_to_expression,
+  ast::convertors::create_string_expr,
   validators::{assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent},
 };
 use crate::shared::{
@@ -134,7 +134,7 @@ where
 
       injected_styles.insert(animation_name.clone(), Rc::new(injectable_style));
 
-      let result_ast = string_to_expression(animation_name.as_str());
+      let result_ast = create_string_expr(animation_name.as_str());
 
       self
         .state

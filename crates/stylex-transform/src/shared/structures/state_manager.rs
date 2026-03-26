@@ -33,18 +33,18 @@ use crate::shared::{
   constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
   structures::{types::InjectableStylesMap, uid_generator::CounterMode},
   utils::ast::{
-    convertors::number_to_expression,
+    convertors::create_number_expr,
     factories::{
-      expr_or_spread_factory, expr_or_spread_number_expression_factory,
-      expr_or_spread_string_expression_factory, object_expression_factory,
-      prop_or_spread_expression_factory, prop_or_spread_string_factory,
+      create_expr_or_spread, create_number_expr_or_spread,
+      create_string_expr_or_spread, create_object_expression,
+      create_key_value_prop, create_string_key_value_prop,
     },
   },
 };
 use crate::shared::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   utils::{
-    ast::factories::binding_ident_factory,
+    ast::factories::create_binding_ident,
     common::{
       extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
     },
@@ -699,36 +699,36 @@ impl StateManager {
     let const_value = metadata.get_const_value();
 
     let mut stylex_inject_args = vec![
-      prop_or_spread_string_factory("ltr", css_ltr),
-      prop_or_spread_expression_factory("priority", number_to_expression(round_f64(*priority, 1))),
+      create_string_key_value_prop("ltr", css_ltr),
+      create_key_value_prop("priority", create_number_expr(round_f64(*priority, 1))),
     ];
 
     if let Some(const_key) = const_key
       && let Some(const_value) = const_value
     {
       let const_value_expr = match const_value.parse::<f64>() {
-        Ok(value) => expr_or_spread_number_expression_factory(value),
-        Err(_) => expr_or_spread_string_expression_factory(const_value),
+        Ok(value) => create_number_expr_or_spread(value),
+        Err(_) => create_string_expr_or_spread(const_value),
       };
 
-      stylex_inject_args.push(prop_or_spread_string_factory("constKey", const_key));
-      stylex_inject_args.push(prop_or_spread_expression_factory(
+      stylex_inject_args.push(create_string_key_value_prop("constKey", const_key));
+      stylex_inject_args.push(create_key_value_prop(
         "constVal",
         *const_value_expr.expr,
       ));
     }
 
     if let Some(rtl) = css_rtl {
-      stylex_inject_args.push(prop_or_spread_string_factory("rtl", rtl));
+      stylex_inject_args.push(create_string_key_value_prop("rtl", rtl));
     }
 
-    let stylex_inject_obj = object_expression_factory(stylex_inject_args);
+    let stylex_inject_obj = create_object_expression(stylex_inject_args);
 
     let stylex_call_expr = CallExpr {
       span: DUMMY_SP,
       type_args: None,
       callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
-      args: vec![expr_or_spread_factory(stylex_inject_obj)],
+      args: vec![create_expr_or_spread(stylex_inject_obj)],
       ctxt: SyntaxContext::empty(),
     };
 
@@ -903,7 +903,7 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
     decls: vec![VarDeclarator {
       definite: true,
       span: DUMMY_SP,
-      name: Pat::from(binding_ident_factory(decl_ident.clone())),
+      name: Pat::from(create_binding_ident(decl_ident.clone())),
       init: Some(Box::new(Expr::from(value_ident.clone()))),
     }],
     kind: VarDeclKind::Var,

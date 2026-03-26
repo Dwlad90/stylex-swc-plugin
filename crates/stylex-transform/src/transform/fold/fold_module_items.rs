@@ -15,7 +15,7 @@ use crate::{
     enums::core::TransformationCycle,
     regex::STYLEX_CONSTS_IMPORT_REGEX,
     utils::{
-      ast::{convertors::atom_to_string, factories::binding_ident_factory},
+      ast::{convertors::convert_atom_to_string, factories::create_binding_ident},
       common::{fill_state_declarations, stable_hash},
     },
   },
@@ -42,7 +42,7 @@ where
 
           for module_item in &transformed_module_items {
             if let ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) = module_item {
-              let source_path = atom_to_string(&import_decl.src.value);
+              let source_path = convert_atom_to_string(&import_decl.src.value);
               if STYLEX_CONSTS_IMPORT_REGEX
                 .is_match(&source_path)
                 .unwrap_or(false)
@@ -156,7 +156,7 @@ where
                   vec![VarDeclarator {
                     definite: true,
                     span: DUMMY_SP,
-                    name: Pat::Ident(binding_ident_factory(Ident::from("default"))),
+                    name: Pat::Ident(create_binding_ident(Ident::from("default"))),
                     init: Some(Box::new(Expr::from(obj.clone()))),
                   }]
                 })

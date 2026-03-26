@@ -17,9 +17,9 @@ use crate::{
     constants::common::RUNTIME_JSX_CALL_NAMES,
     enums::core::TransformationCycle,
     utils::ast::factories::{
-      arrow_expr_factory, call_expr_ident_factory, call_expr_member_factory, ident_factory,
-      ident_name_factory, jsx_attr_or_spread_spread_factory, object_lit_factory,
-      prop_or_spread_spread_factory,
+      create_arrow_expression, create_ident_call_expr, create_member_call_expr, create_ident,
+      create_ident_name, create_jsx_spread_attr, create_object_lit,
+      create_spread_prop,
     },
   },
 };
@@ -85,7 +85,7 @@ where
               args,
             ));
 
-            Some(jsx_attr_or_spread_spread_factory(call))
+            Some(create_jsx_spread_attr(call))
           } else {
             None
           }
@@ -159,12 +159,12 @@ where
       props_ident_name,
       args,
     ));
-    new_props[sx_prop_idx] = prop_or_spread_spread_factory(call_expr);
+    new_props[sx_prop_idx] = create_spread_prop(call_expr);
 
     let mut new_call = call.clone();
     new_call.args[1] = ExprOrSpread {
       spread: None,
-      expr: Box::new(Expr::Object(object_lit_factory(new_props))),
+      expr: Box::new(Expr::Object(create_object_lit(new_props))),
     };
 
     Some(Expr::Call(new_call))
@@ -221,10 +221,10 @@ where
       props_ident_name,
       args,
     ));
-    let arrow_fn = arrow_expr_factory(props_call);
+    let arrow_fn = create_arrow_expression(props_call);
 
     // Build: _$mergeProps(() => stylex.props(...))
-    let merge_props_call = Expr::Call(call_expr_ident_factory(
+    let merge_props_call = Expr::Call(create_ident_call_expr(
       "_$mergeProps",
       vec![ExprOrSpread {
         spread: None,
@@ -233,17 +233,17 @@ where
     ));
 
     // Build: _$spread(el, _$mergeProps(() => stylex.props(...)), false, true)
-    use crate::shared::utils::ast::factories::expr_or_spread_factory;
-    Some(Expr::Call(call_expr_ident_factory(
+    use crate::shared::utils::ast::factories::create_expr_or_spread;
+    Some(Expr::Call(create_ident_call_expr(
       "_$spread",
       vec![
         el_arg,
-        expr_or_spread_factory(merge_props_call),
-        expr_or_spread_factory(Expr::Lit(Lit::Bool(Bool {
+        create_expr_or_spread(merge_props_call),
+        create_expr_or_spread(Expr::Lit(Lit::Bool(Bool {
           span: DUMMY_SP,
           value: false,
         }))),
-        expr_or_spread_factory(Expr::Lit(Lit::Bool(Bool {
+        create_expr_or_spread(Expr::Lit(Lit::Bool(Bool {
           span: DUMMY_SP,
           value: true,
         }))),
@@ -297,12 +297,12 @@ fn build_stylex_props_call(
   if let Some(stylex_ident_name) = stylex_ident_name {
     let member = MemberExpr {
       span: DUMMY_SP,
-      obj: Box::new(Expr::Ident(ident_factory(&stylex_ident_name))),
-      prop: MemberProp::Ident(ident_name_factory("props")),
+      obj: Box::new(Expr::Ident(create_ident(&stylex_ident_name))),
+      prop: MemberProp::Ident(create_ident_name("props")),
     };
-    call_expr_member_factory(member, args)
+    create_member_call_expr(member, args)
   } else if let Some(props_ident_name) = props_ident_name {
-    call_expr_ident_factory(&props_ident_name, args)
+    create_ident_call_expr(&props_ident_name, args)
   } else {
     stylex_panic!(
       "Could not resolve StyleX import. Ensure you have imported stylex or the props function."

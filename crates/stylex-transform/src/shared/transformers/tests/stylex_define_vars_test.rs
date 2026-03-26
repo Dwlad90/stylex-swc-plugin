@@ -21,9 +21,9 @@ mod stylex_define_vars {
     transformers::{stylex_define_vars::stylex_define_vars, stylex_types::get_types_fn},
     utils::{
       ast::{
-        convertors::string_to_expression,
+        convertors::create_string_expr,
         factories::{
-          object_expression_factory, prop_or_spread_expr_factory, prop_or_spread_expression_factory,
+          create_object_expression, create_nested_object_prop, create_key_value_prop,
         },
       },
       common::create_hash,
@@ -46,12 +46,12 @@ mod stylex_define_vars {
       .iter()
       .map(|(key, values, nested_values, types_values)| match values {
         DefaultVarsFactoryValue::Simple(value) => {
-          prop_or_spread_expression_factory(key, string_to_expression(value))
+          create_key_value_prop(key, create_string_expr(value))
         }
         DefaultVarsFactoryValue::Nested(values) => {
           let mut props = values
             .iter()
-            .map(|(key, value)| prop_or_spread_expression_factory(key, string_to_expression(value)))
+            .map(|(key, value)| create_key_value_prop(key, create_string_expr(value)))
             .collect::<Vec<PropOrSpread>>();
 
           let nested_props = nested_values
@@ -61,11 +61,11 @@ mod stylex_define_vars {
                 .1
                 .iter()
                 .map(|(key, value)| {
-                  prop_or_spread_expression_factory(key, string_to_expression(value))
+                  create_key_value_prop(key, create_string_expr(value))
                 })
                 .collect::<Vec<PropOrSpread>>();
 
-              prop_or_spread_expression_factory(val.0, object_expression_factory(props))
+              create_key_value_prop(val.0, create_object_expression(props))
             })
             .collect::<Vec<PropOrSpread>>();
 
@@ -78,12 +78,12 @@ mod stylex_define_vars {
 
           props.extend(types_props);
 
-          prop_or_spread_expr_factory(key, props)
+          create_nested_object_prop(key, props)
         }
       })
       .collect::<Vec<PropOrSpread>>();
 
-    EvaluateResultValue::Expr(object_expression_factory(props))
+    EvaluateResultValue::Expr(create_object_expression(props))
   }
 
   fn expected_css_result_factory(injected_styles: &[(&str, (&str, f64))]) -> InjectableStylesMap {

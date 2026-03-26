@@ -3,7 +3,7 @@ use stylex_transform::shared::{
   enums::{core::TransformationCycle, data_structures::evaluate_result_value::EvaluateResultValue},
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    ast::convertors::number_to_expression,
+    ast::convertors::create_number_expr,
     common::{fill_state_declarations, fill_top_level_expressions, stable_hash},
     js::evaluate::evaluate,
   },
@@ -84,8 +84,8 @@ impl Fold for EvaluationStyleXFirstStatementTransform {
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(number_to_expression(2.0))),
-          Some(EvaluateResultValue::Expr(number_to_expression(7.0))),
+          Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
+          Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
         ]),
         _ => panic!("Failed to evaluate expression"),
       },
@@ -196,8 +196,8 @@ impl EvaluationStyleXLastStatementTransform {
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(number_to_expression(2.0))),
-          Some(EvaluateResultValue::Expr(number_to_expression(7.0))),
+          Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
+          Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
         ]),
         _ => panic!("Failed to evaluate expression"),
       },

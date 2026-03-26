@@ -17,7 +17,7 @@ use crate::shared::{
     types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
   },
   utils::{
-    ast::convertors::{key_value_to_str, lit_to_string},
+    ast::convertors::{key_value_to_str, convert_lit_to_string},
     common::{create_hash, get_key_values_from_object, round_to_decimal_places},
   },
 };
@@ -104,7 +104,7 @@ pub(crate) fn collect_vars_by_at_rules(
         return;
       }
 
-      let val = match lit_to_string(lit) {
+      let val = match convert_lit_to_string(lit) {
         Some(v) => v,
         None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       };

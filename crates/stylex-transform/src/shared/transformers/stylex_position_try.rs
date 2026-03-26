@@ -22,8 +22,8 @@ use crate::shared::{
   },
   utils::{
     ast::{
-      convertors::{lit_to_string, string_to_expression},
-      factories::{object_lit_factory, prop_or_spread_string_factory},
+      convertors::{convert_lit_to_string, create_string_expr},
+      factories::{create_object_lit, create_string_key_value_prop},
     },
     common::{create_hash, dashify},
     css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
@@ -63,7 +63,7 @@ pub(crate) fn stylex_position_try(
       })
       .done();
 
-    object_lit_factory(
+    create_object_lit(
       pipe_result
         .into_iter()
         .map(|(key, value)| {
@@ -72,7 +72,7 @@ pub(crate) fn stylex_position_try(
             None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
           };
 
-          prop_or_spread_string_factory(&key, &value)
+          create_string_key_value_prop(&key, &value)
         })
         .collect::<Vec<PropOrSpread>>(),
     )
@@ -91,7 +91,7 @@ pub(crate) fn stylex_position_try(
       let ltr_values = generate_ltr(
         &Pair {
           key: tuple.0.clone(),
-          value: lit_to_string(match tuple.1.clone().as_lit() {
+          value: convert_lit_to_string(match tuple.1.clone().as_lit() {
             Some(lit) => lit,
             None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
           })
@@ -112,7 +112,7 @@ pub(crate) fn stylex_position_try(
         stylex_panic!("{}", THEME_VAR_TUPLE)
       };
 
-      let value = lit_to_string(match tuple.1.clone().as_lit() {
+      let value = convert_lit_to_string(match tuple.1.clone().as_lit() {
         Some(lit) => lit,
         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       })
@@ -175,7 +175,7 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
         .other_injected_css_rules
         .insert(position_try_name.clone(), Rc::new(injected_style));
 
-      string_to_expression(position_try_name.as_str())
+      create_string_expr(position_try_name.as_str())
     }),
     takes_path: false,
   }

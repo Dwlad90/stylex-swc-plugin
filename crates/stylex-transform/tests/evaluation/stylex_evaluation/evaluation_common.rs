@@ -5,7 +5,7 @@ use stylex_transform::shared::{
     named_import_source::ImportSources,
     state_manager::StateManager,
   },
-  utils::ast::convertors::{ident_to_expression, string_to_expression},
+  utils::ast::convertors::{create_ident_expr, create_string_expr},
 };
 use swc_core::{
   atoms::Atom,
@@ -220,7 +220,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
         fn_ptr: FunctionType::StylexExprFn(|arg, _| {
           let new_expr = NewExpr {
             span: DUMMY_SP,
-            callee: Box::new(ident_to_expression("MyClass")),
+            callee: Box::new(create_ident_expr("MyClass")),
             args: Some(vec![ExprOrSpread {
               spread: None,
               expr: Box::new(arg),
@@ -324,7 +324,7 @@ fn evaluates_custom_functions_that_take_paths() {
             props: vec![
               PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
                 key: PropName::Ident(quote_ident!("type")),
-                value: Box::new(string_to_expression("StringLiteral")),
+                value: Box::new(create_string_expr("StringLiteral")),
               }))),
               PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
                 key: PropName::Ident(quote_ident!("value")),

@@ -16,8 +16,8 @@ mod tests {
     enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
     utils::{
       ast::{
-        convertors::{lit_to_string, string_to_expression},
-        factories::ident_factory,
+        convertors::{convert_lit_to_string, create_string_expr},
+        factories::create_ident,
       },
       core::{
         js_to_expr::NestedStringObject,
@@ -40,10 +40,10 @@ mod tests {
 
       result_args.push(ResolvedArg::StyleObject(
         StyleObject::Style(object),
-        vec![ident_factory("test")],
+        vec![create_ident("test")],
         vec![MemberExpr {
           span: DUMMY_SP,
-          obj: Box::new(string_to_expression("test")),
+          obj: Box::new(create_string_expr("test")),
           prop: MemberProp::Ident(quote_ident!("test")),
         }],
       ))
@@ -67,7 +67,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(lit_to_string)
+      .and_then(convert_lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "aaa bbb");
@@ -101,7 +101,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(lit_to_string)
+      .and_then(convert_lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "a aa b c cc");
@@ -134,7 +134,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(lit_to_string)
+      .and_then(convert_lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "gh25dzvf");
@@ -180,7 +180,7 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(lit_to_string)
+      .and_then(convert_lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, "abcdefg gofk2cf1 rse6dlih");
@@ -418,13 +418,13 @@ mod tests {
     let classname_string = result
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(lit_to_string)
+      .and_then(convert_lit_to_string)
       .expect("Expected classname_string to be Some");
 
     let repeat_classname_string = repeat
       .as_stylex()
       .and_then(|expr| expr.as_lit())
-      .and_then(lit_to_string)
+      .and_then(convert_lit_to_string)
       .expect("Expected classname_string to be Some");
 
     assert_eq!(classname_string, repeat_classname_string);

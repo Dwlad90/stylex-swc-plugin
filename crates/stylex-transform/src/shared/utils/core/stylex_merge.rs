@@ -22,8 +22,8 @@ use crate::shared::{
   transformers::stylex_default_maker,
   utils::{
     ast::{
-      convertors::{key_value_to_str, lit_to_string},
-      factories::{jsx_attr_factory, jsx_attr_or_spread_attr_factory},
+      convertors::{key_value_to_str, convert_lit_to_string},
+      factories::{create_jsx_attr, create_jsx_attr_or_spread},
     },
     common::{reduce_ident_count, reduce_member_expression_count},
     core::{
@@ -317,7 +317,7 @@ pub(crate) fn stylex_merge(
                 // Create JSX attribute directly
                 let attr_name = key_value_to_str(key_value);
                 let attr_value = key_value.value.as_lit().map(|lit| {
-                  let s = match lit_to_string(&lit.clone()) {
+                  let s = match convert_lit_to_string(&lit.clone()) {
                     Some(s) => s,
                     None => stylex_panic!("Expected a string class name in compiled styles."),
                   };
@@ -325,7 +325,7 @@ pub(crate) fn stylex_merge(
                 });
 
                 attr_value.map(|attr_value| {
-                  jsx_attr_or_spread_attr_factory(jsx_attr_factory(
+                  create_jsx_attr_or_spread(create_jsx_attr(
                     attr_name.as_str(),
                     attr_value.clone(),
                   ))

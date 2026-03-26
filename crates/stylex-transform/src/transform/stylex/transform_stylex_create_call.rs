@@ -38,8 +38,8 @@ use crate::shared::{
   transformers::{stylex_default_maker, stylex_position_try::get_position_try_fn},
   utils::{
     ast::{
-      convertors::{atom_to_string, expr_to_str, key_value_to_str, lit_to_string},
-      factories::var_declarator_string_init_factory,
+      convertors::{convert_atom_to_string, expr_to_str, key_value_to_str, convert_lit_to_string},
+      factories::create_string_var_declarator,
     },
     common::normalize_expr,
     core::{
@@ -54,10 +54,10 @@ use crate::shared::{
   structures::{dynamic_style::DynamicStyle, stylex_options::StyleResolution},
   utils::{
     ast::{
-      convertors::null_to_expression,
+      convertors::create_null_expr,
       factories::{
-        array_expression_factory, expr_or_spread_factory, prop_or_spread_prop_name_factory,
-        var_declarator_factory,
+        create_array_expression, create_expr_or_spread, create_prop_from_name,
+        create_var_declarator,
       },
     },
     core::js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
@@ -81,14 +81,14 @@ use crate::shared::{
 };
 use crate::shared::{
   structures::{functions::FunctionConfigType, types::FunctionMapIdentifiers},
-  utils::ast::factories::prop_or_spread_expression_factory,
+  utils::ast::factories::create_key_value_prop,
 };
 use crate::shared::{
   structures::{
     order_pair::OrderPair, pre_rule::PreRuleValue, stylex_state_options::StyleXStateOptions,
   },
   utils::{
-    ast::{convertors::string_to_expression, factories::object_expression_factory},
+    ast::{convertors::create_string_expr, factories::create_object_expression},
     common::get_key_values_from_object,
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
   },
@@ -121,7 +121,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
         Ok(v) => v,
         Err(e) => stylex_panic!("stylex.when ancestor error: {}", e),
       };
-      string_to_expression(&result)
+      create_string_expr(&result)
     },
   );
 
@@ -140,7 +140,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
         Ok(v) => v,
         Err(e) => stylex_panic!("stylex.when descendant error: {}", e),
       };
-      string_to_expression(&result)
+      create_string_expr(&result)
     },
   );
 
@@ -159,7 +159,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
         Ok(v) => v,
         Err(e) => stylex_panic!("stylex.when siblingBefore error: {}", e),
       };
-      string_to_expression(&result)
+      create_string_expr(&result)
     },
   );
 
@@ -178,7 +178,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
         Ok(v) => v,
         Err(e) => stylex_panic!("stylex.when siblingAfter error: {}", e),
       };
-      string_to_expression(&result)
+      create_string_expr(&result)
     },
   );
 
@@ -197,7 +197,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
         Ok(v) => v,
         Err(e) => stylex_panic!("stylex.when anySibling error: {}", e),
       };
-      string_to_expression(&result)
+      create_string_expr(&result)
     },
   );
 
@@ -508,7 +508,7 @@ where
 
               let key = match &key_value.key {
                 PropName::Ident(ident) => Some(ident.sym.to_string()),
-                PropName::Str(strng) => Some(atom_to_string(&strng.value)),
+                PropName::Str(strng) => Some(convert_atom_to_string(&strng.value)),
                 _ => None,
               };
 
@@ -576,7 +576,7 @@ where
                         if let Some(obj_prop) = prop.as_mut_key_value() {
                           let prop_key = match &obj_prop.key {
                             PropName::Ident(ident) => Some(ident.sym.to_string()),
-                            PropName::Str(strng) => Some(atom_to_string(&strng.value)),
+                            PropName::Str(strng) => Some(convert_atom_to_string(&strng.value)),
                             _ => None,
                           };
 
@@ -589,7 +589,7 @@ where
                             let class_list = obj_prop
                               .value
                               .as_lit()
-                              .and_then(lit_to_string)
+                              .and_then(convert_lit_to_string)
                               .map(|s| {
                                 s.split_whitespace()
                                   .map(str::to_owned)
@@ -669,18 +669,18 @@ where
                                       span: DUMMY_SP,
                                       op: BinaryOp::NotEq,
                                       left: Box::new(expr.clone()),
-                                      right: Box::new(null_to_expression()),
+                                      right: Box::new(create_null_expr()),
                                     })),
-                                    cons: Box::new(string_to_expression(cls_with_space)),
+                                    cons: Box::new(create_string_expr(cls_with_space)),
                                     alt: Box::new(expr),
                                   }));
                                 } else {
-                                  expr_list.push(string_to_expression(cls_with_space));
+                                  expr_list.push(create_string_expr(cls_with_space));
                                 }
                               }
 
                               let joined = if expr_list.is_empty() {
-                                string_to_expression("")
+                                create_string_expr("")
                               } else {
                                 expr_list
                                   .into_iter()
@@ -700,12 +700,12 @@ where
                               };
 
                               if is_static {
-                                static_props.push(prop_or_spread_prop_name_factory(
+                                static_props.push(create_prop_from_name(
                                   obj_prop.key.clone(),
                                   joined,
                                 ));
                               } else {
-                                conditional_props.push(prop_or_spread_prop_name_factory(
+                                conditional_props.push(create_prop_from_name(
                                   obj_prop.key.clone(),
                                   joined,
                                 ));
@@ -743,28 +743,28 @@ where
                     let mut conditional_obj = None;
 
                     if !static_props.is_empty(){
-                      static_props.push(prop_or_spread_expression_factory(
+                      static_props.push(create_key_value_prop(
                         COMPILED_KEY,
                         *css_tag_value.clone(),
                       ));
 
-                      static_obj = Some(object_expression_factory(static_props));
+                      static_obj = Some(create_object_expression(static_props));
                     }
 
                     if !conditional_props.is_empty(){
-                      conditional_props.push(prop_or_spread_expression_factory(
+                      conditional_props.push(create_key_value_prop(
                         COMPILED_KEY,
                         *css_tag_value.clone(),
                       ));
 
-                      conditional_obj = Some(object_expression_factory(conditional_props.clone()));
+                      conditional_obj = Some(create_object_expression(conditional_props.clone()));
                     }
 
-                    let mut final_fn_value = object_expression_factory(
+                    let mut final_fn_value = create_object_expression(
                       inline_styles
                         .iter()
                         .map(|(key, val)| {
-                          prop_or_spread_expression_factory(
+                          create_key_value_prop(
                             key.as_str(),
                             val.expression.clone(),
                           )
@@ -776,7 +776,7 @@ where
                       let mut array_elements = Vec::new();
 
                       if let Some(static_obj) = static_obj {
-                        let hoist_ident = expr_or_spread_factory(hoist_expression(
+                        let hoist_ident = create_expr_or_spread(hoist_expression(
                           static_obj,
                           &mut self.state,
                         ));
@@ -786,19 +786,19 @@ where
                           None => stylex_panic!("Expected an identifier for the hoisted style variable."),
                         };
                         self.state.declarations.push(
-                          var_declarator_string_init_factory(hoist_ident_expr, "hoisted variable"),
+                          create_string_var_declarator(hoist_ident_expr, "hoisted variable"),
                         );
 
                         array_elements.push(Some(hoist_ident));
                       }
 
                       if let Some(conditional_obj) = conditional_obj {
-                        array_elements.push(Some(expr_or_spread_factory(conditional_obj)));
+                        array_elements.push(Some(create_expr_or_spread(conditional_obj)));
                       }
 
-                      array_elements.push(Some(expr_or_spread_factory(final_fn_value)));
+                      array_elements.push(Some(create_expr_or_spread(final_fn_value)));
 
-                      final_fn_value = array_expression_factory(array_elements);
+                      final_fn_value = create_array_expression(array_elements);
                     }
 
                     value.props = conditional_props;
@@ -814,18 +814,18 @@ where
                       ctxt: SyntaxContext::empty(),
                     });
 
-                    prop = Some(prop_or_spread_expression_factory(orig_key.as_str(), value));
+                    prop = Some(create_key_value_prop(orig_key.as_str(), value));
                   }
                 }
 
               prop.unwrap_or_else(|| {
-                prop_or_spread_expression_factory(orig_key.as_str(), *value.clone())
+                create_key_value_prop(orig_key.as_str(), *value.clone())
               })
             })
             .collect();
 
         result_ast = path_replace_hoisted(
-          object_expression_factory(props),
+          create_object_expression(props),
           is_program_level,
           &mut self.state,
         );
@@ -984,7 +984,7 @@ pub(crate) fn hoist_expression(
     span: DUMMY_SP,
     kind: VarDeclKind::Const,
     declare: false,
-    decls: vec![var_declarator_factory(
+    decls: vec![create_var_declarator(
       hoisted_ident.clone(),
       ast_expression,
     )],
@@ -1013,7 +1013,7 @@ pub(crate) fn path_replace_hoisted(
     span: DUMMY_SP,
     kind: VarDeclKind::Const,
     declare: false,
-    decls: vec![var_declarator_factory(name_ident.clone(), ast_expression)],
+    decls: vec![create_var_declarator(name_ident.clone(), ast_expression)],
     ctxt: swc_core::common::SyntaxContext::empty(),
   };
 

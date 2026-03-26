@@ -10,7 +10,7 @@ use crate::{
   StyleXTransform,
   shared::{
     enums::core::TransformationCycle, structures::named_import_source::ImportSources,
-    utils::ast::convertors::atom_to_string,
+    utils::ast::convertors::convert_atom_to_string,
   },
 };
 
@@ -35,7 +35,7 @@ where
 
       self.state.top_imports.push(drop_span(import_decl.clone()));
 
-      let source_path = atom_to_string(&import_decl.src.value);
+      let source_path = convert_atom_to_string(&import_decl.src.value);
 
       for specifier in &import_decl.specifiers {
         match &specifier {
@@ -51,10 +51,10 @@ where
               self.state.import_specifiers.push(import_specifier_string);
             }
 
-            if import_sources.contains(&atom_to_string(declaration))
+            if import_sources.contains(&convert_atom_to_string(declaration))
               && self
                 .state
-                .import_as(&atom_to_string(&import_decl.src.value))
+                .import_as(&convert_atom_to_string(&import_decl.src.value))
                 .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();
@@ -80,10 +80,10 @@ where
               self.state.import_specifiers.push(import_specifier_string);
             }
 
-            if import_sources.contains(&atom_to_string(declaration))
+            if import_sources.contains(&convert_atom_to_string(declaration))
               && self
                 .state
-                .import_as(&atom_to_string(&import_decl.src.value))
+                .import_as(&convert_atom_to_string(&import_decl.src.value))
                 .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();
@@ -109,14 +109,14 @@ where
               self.state.import_specifiers.push(import_specifier_string);
             }
 
-            if import_sources.contains(&atom_to_string(declaration)) {
+            if import_sources.contains(&convert_atom_to_string(declaration)) {
               let local_name = import_specifier.local.sym.to_string();
 
               match &import_specifier.imported {
                 Some(imported) => {
                   let imported_name = match imported {
                     ModuleExportName::Ident(ident) => ident.sym.to_string(),
-                    ModuleExportName::Str(strng) => atom_to_string(&strng.value),
+                    ModuleExportName::Str(strng) => convert_atom_to_string(&strng.value),
                   };
 
                   self.fill_stylex_create_import(

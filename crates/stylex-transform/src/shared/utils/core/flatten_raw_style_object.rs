@@ -25,8 +25,8 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{
-      expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, lit_to_string,
-      number_to_expression, transform_bin_expr_to_number, transform_shorthand_to_key_values,
+      expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, convert_lit_to_string,
+      create_number_expr, transform_bin_expr_to_number, expand_shorthand_prop,
     },
     common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
   },
@@ -113,7 +113,7 @@ pub(crate) fn flatten_raw_style_object_logic(
                 let pairs = flat_map_expanded_shorthands(
                   (
                     css_property_key.clone(),
-                    match lit_to_string(property_lit) {
+                    match convert_lit_to_string(property_lit) {
                       Some(val) => PreRuleValue::String(val),
                       None => PreRuleValue::Null,
                     },
@@ -178,7 +178,7 @@ pub(crate) fn flatten_raw_style_object_logic(
           && !css_property_key.starts_with('@')
           && !css_property_key.starts_with('[')
         {
-          let value = lit_to_string(property_lit);
+          let value = convert_lit_to_string(property_lit);
 
           let pairs = flat_map_expanded_shorthands(
             (
@@ -262,7 +262,7 @@ pub(crate) fn flatten_raw_style_object_logic(
         let result = transform_bin_expr_to_number(bin, state, traversal_state, fns);
 
         let mut property_cloned = property.clone();
-        property_cloned.value = Box::new(number_to_expression(result));
+        property_cloned.value = Box::new(create_number_expr(result));
 
         let inner_flattened =
           flatten_raw_style_object_logic(&[property_cloned], key_path, state, traversal_state, fns);
@@ -279,7 +279,7 @@ pub(crate) fn flatten_raw_style_object_logic(
 
           for prop in obj.clone().props.iter_mut() {
             if let PropOrSpread::Prop(prop) = prop {
-              transform_shorthand_to_key_values(prop);
+              expand_shorthand_prop(prop);
 
               if let Prop::KeyValue(key_value) = prop.as_ref() {
                 let mut inner_key_value: KeyValueProp = key_value.clone();

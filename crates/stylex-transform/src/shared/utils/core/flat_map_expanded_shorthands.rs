@@ -13,7 +13,7 @@ use crate::shared::{
     stylex_options::{PropertyValidationMode, StyleResolution},
     stylex_state_options::StyleXStateOptions,
   },
-  utils::ast::convertors::lit_to_string,
+  utils::ast::convertors::convert_lit_to_string,
 };
 
 pub(crate) fn flat_map_expanded_shorthands(
@@ -40,7 +40,7 @@ pub(crate) fn flat_map_expanded_shorthands(
       }
     }
     PreRuleValue::Expr(expr) => match expr {
-      Expr::Lit(lit) => Some(match lit_to_string(&lit) {
+      Expr::Lit(lit) => Some(match convert_lit_to_string(&lit) {
         Some(s) => s,
         None => stylex_panic!("Failed to convert literal value to string in shorthand expansion."),
       }),

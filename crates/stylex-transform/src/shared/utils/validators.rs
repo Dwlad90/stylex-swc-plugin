@@ -22,8 +22,8 @@ use crate::shared::{
   structures::state_manager::StateManager,
   utils::{
     ast::{
-      convertors::string_to_expression,
-      factories::{expr_or_spread_factory, key_value_ident_factory},
+      convertors::create_string_expr,
+      factories::{create_expr_or_spread, create_key_value_prop_ident},
       helpers::is_variable_named_exported,
     },
     common::get_import_from,
@@ -32,7 +32,7 @@ use crate::shared::{
 };
 
 use super::{
-  ast::convertors::{key_value_to_str, lit_to_string},
+  ast::convertors::{key_value_to_str, convert_lit_to_string},
   common::get_key_values_from_object,
 };
 
@@ -357,7 +357,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
         .expr,
       &unbound_call_value("defineVars"),
       state,
@@ -371,7 +371,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
         .expr,
       &illegal_argument_length("defineVars", 1),
       state,
@@ -414,7 +414,7 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
         .expr,
       &unbound_call_value("defineMarker"),
       state,
@@ -449,7 +449,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
         .expr,
       &unbound_call_value("defineConsts"),
       state,
@@ -463,7 +463,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| expr_or_spread_factory(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
         .expr,
       &illegal_argument_length("defineConsts", 1),
       state,
@@ -817,9 +817,9 @@ pub(crate) fn validate_theme_variables(
 
     let value = cloned_theme_ref.get(VAR_GROUP_HASH_KEY, state);
 
-    let key_value = key_value_ident_factory(
+    let key_value = create_key_value_prop_ident(
       VAR_GROUP_HASH_KEY,
-      string_to_expression(
+      create_string_expr(
         match value.as_css_var() {
           Some(v) => v,
           None => stylex_panic!("{}", EXPECTED_CSS_VAR),
@@ -847,7 +847,7 @@ pub(crate) fn validate_theme_variables(
           let value = &key_value.value;
 
           if let Some(lit) = value.as_lit() {
-            let value = lit_to_string(lit);
+            let value = convert_lit_to_string(lit);
 
             if value
               .and_then(|value| if value.is_empty() { None } else { Some(value) })

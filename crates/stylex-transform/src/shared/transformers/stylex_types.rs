@@ -4,7 +4,7 @@ use crate::shared::{
     base_css_type::BaseCSSType,
     functions::{FunctionConfig, FunctionType},
   },
-  utils::ast::factories::{object_expression_factory, prop_or_spread_string_factory},
+  utils::ast::factories::{create_object_expression, create_string_key_value_prop},
 };
 use indexmap::IndexMap;
 use phf::phf_map;
@@ -354,13 +354,13 @@ impl From<Url> for BaseCSSType {
 impl From<BaseCSSType> for Expr {
   fn from(instance: BaseCSSType) -> Self {
     let syntax_prop =
-      prop_or_spread_string_factory("syntax", format!("{}", instance.syntax).as_str());
+      create_string_key_value_prop("syntax", format!("{}", instance.syntax).as_str());
 
     let mut props = vec![syntax_prop];
 
     props.extend(BaseCSSType::value_to_props(instance.value, None));
 
-    object_expression_factory(props)
+    create_object_expression(props)
   }
 }
 fn angle(value: ValueWithDefault) -> Expr {

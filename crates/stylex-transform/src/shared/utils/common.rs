@@ -35,11 +35,11 @@ use crate::shared::{
     functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::StateManager,
   },
-  utils::ast::convertors::{lit_str_to_atom, wtf8_atom_to_atom},
+  utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom},
 };
 
 use super::ast::{
-  convertors::transform_shorthand_to_key_values, factories::var_declarator_factory,
+  convertors::expand_shorthand_prop, factories::create_var_declarator,
 };
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
@@ -171,7 +171,7 @@ pub fn get_var_decl_by_ident<'a>(
         FunctionType::Mapper(func) => {
           let result = func();
 
-          let var_decl = var_declarator_factory(ident.clone(), result);
+          let var_decl = create_var_declarator(ident.clone(), result);
 
           return Some(var_decl);
         }
@@ -226,7 +226,7 @@ pub(crate) fn get_import_from<'a>(
           match &named_import.imported {
             Some(imported) => match imported {
               ModuleExportName::Ident(export_ident) => export_ident.eq_ignore_span(ident),
-              ModuleExportName::Str(strng) => lit_str_to_atom(strng) == ident.sym,
+              ModuleExportName::Str(strng) => convert_str_lit_to_atom(strng) == ident.sym,
             },
             _ => false,
           }
@@ -303,7 +303,7 @@ pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
         Prop::Shorthand(ident) => ident.sym.clone(),
         Prop::KeyValue(key_val) => match &key_val.key {
           PropName::Ident(ident) => ident.sym.clone(),
-          PropName::Str(strng) => wtf8_atom_to_atom(&strng.value),
+          PropName::Str(strng) => convert_wtf8_to_atom(&strng.value),
           _ => continue,
         },
         _ => continue,
@@ -439,7 +439,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
     match prop {
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
       PropOrSpread::Prop(mut prop) => {
-        transform_shorthand_to_key_values(&mut prop);
+        expand_shorthand_prop(&mut prop);
 
         match prop.deref() {
           Prop::KeyValue(key_value) => {
@@ -451,7 +451,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                   PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
-                    transform_shorthand_to_key_values(&mut prop);
+                    expand_shorthand_prop(&mut prop);
 
                     match prop.as_ref() {
                       Prop::KeyValue(key_value) => {
@@ -495,7 +495,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
 
-        transform_shorthand_to_key_values(&mut prop);
+        expand_shorthand_prop(&mut prop);
 
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {

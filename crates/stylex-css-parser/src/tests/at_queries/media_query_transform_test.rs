@@ -63,7 +63,7 @@ fn json_to_expr(value: Value) -> Expr {
 }
 
 /// Helper to convert Wtf8Atom to String
-fn atom_to_string(atom: &Wtf8Atom) -> String {
+fn convert_atom_to_string(atom: &Wtf8Atom) -> String {
   atom
     .as_str()
     .expect("Failed to convert Wtf8Atom to &str")
@@ -76,7 +76,7 @@ fn key_value_prop_to_json(props: &[KeyValueProp]) -> Value {
 
   for prop in props {
     let key = match &prop.key {
-      PropName::Str(s) => atom_to_string(&s.value),
+      PropName::Str(s) => convert_atom_to_string(&s.value),
       PropName::Ident(id) => id.sym.to_string(),
       _ => continue,
     };
@@ -92,7 +92,7 @@ fn key_value_prop_to_json(props: &[KeyValueProp]) -> Value {
 fn expr_to_json(expr: &Expr) -> Value {
   match expr {
     Expr::Lit(lit) => match lit {
-      swc_core::ecma::ast::Lit::Str(s) => Value::String(atom_to_string(&s.value)),
+      swc_core::ecma::ast::Lit::Str(s) => Value::String(convert_atom_to_string(&s.value)),
       _ => Value::String(format!("{:?}", lit)),
     },
     Expr::Object(obj) => {
@@ -102,7 +102,7 @@ fn expr_to_json(expr: &Expr) -> Value {
           && let Prop::KeyValue(kv) = &**p
         {
           let key = match &kv.key {
-            PropName::Str(s) => atom_to_string(&s.value),
+            PropName::Str(s) => convert_atom_to_string(&s.value),
             PropName::Ident(id) => id.sym.to_string(),
             _ => continue,
           };

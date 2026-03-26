@@ -2994,9 +2994,21 @@ dependencies = [
  "rustc-hash",
  "stylex_ast",
  "stylex_constants",
+ "stylex_js",
  "stylex_macros",
  "stylex_path_resolver",
  "stylex_types",
+ "swc_core",
+]
+
+[[package]]
+name = "stylex_js"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "pretty_env_logger",
+ "stylex_constants",
+ "stylex_macros",
  "swc_core",
 ]
 

@@ -1,0 +1,27 @@
+[package]
+name = "stylex_js"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "JavaScript runtime helpers for the StyleX compiler plugin"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_ast",
+  "swc_atoms",
+] }
+
+stylex_constants = { path = "../stylex-constants" }
+stylex_macros = { path = "../stylex-macros" }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true

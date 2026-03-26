@@ -2929,12 +2929,24 @@ dependencies = [
  "rustc-hash",
  "stylex_ast",
  "stylex_constants",
+ "stylex_css_order",
  "stylex_css_parser",
+ "stylex_css_utils",
+ "stylex_css_values",
  "stylex_evaluator",
  "stylex_macros",
  "stylex_regex",
  "stylex_types",
  "swc_core",
+]
+
+[[package]]
+name = "stylex_css_order"
+version = "0.15.1-rc.1"
+dependencies = [
+ "stylex_constants",
+ "stylex_css_values",
+ "stylex_types",
 ]
 
 [[package]]
@@ -2954,6 +2966,22 @@ dependencies = [
  "stylex_macros",
  "swc_core",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "stylex_css_utils"
+version = "0.15.1-rc.1"
+dependencies = [
+ "log",
+ "stylex_types",
+]
+
+[[package]]
+name = "stylex_css_values"
+version = "0.15.1-rc.1"
+dependencies = [
+ "cssparser",
+ "stylex_macros",
 ]
 
 [[package]]

@@ -1,0 +1,12 @@
+[package]
+name = "stylex_css_order"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+stylex_constants = { path = "../stylex-constants" }
+stylex_types = { path = "../stylex-types" }
+stylex_css_values = { path = "../stylex-css-values" }

@@ -1,0 +1,11 @@
+[package]
+name = "stylex_css_values"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+cssparser.workspace = true
+stylex_macros = { path = "../stylex-macros" }

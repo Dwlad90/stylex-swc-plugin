@@ -1,0 +1,11 @@
+[package]
+name = "stylex_css_utils"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+log.workspace = true
+stylex_types = { path = "../stylex-types" }

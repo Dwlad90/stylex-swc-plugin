@@ -37,6 +37,9 @@ stylex_evaluator = { path = "../stylex-evaluator" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_regex = { path = "../stylex-regex" }
 stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_css_values = { path = "../stylex-css-values" }
+stylex_css_order = { path = "../stylex-css-order" }
+stylex_css_utils = { path = "../stylex-css-utils" }
 
 [dev-dependencies]
 ctor.workspace = true

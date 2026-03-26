@@ -28,6 +28,9 @@ base62.workspace = true
 md5.workspace = true
 anyhow.workspace = true
 log.workspace = true
+node-resolve.workspace = true
+
+stylex_core = { path = "../stylex-core" }
 
 stylex_constants = { path = "../stylex-constants" }
 stylex_types = { path = "../stylex-types" }

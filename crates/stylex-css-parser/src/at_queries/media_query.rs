@@ -1861,7 +1861,7 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
 
 #[cfg(test)]
 mod tests {
-  use stylex_core::stylex_panic;
+  use stylex_macros::stylex_panic;
 
   use super::*;
 

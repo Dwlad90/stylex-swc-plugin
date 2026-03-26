@@ -4,7 +4,7 @@ CSS Blend Mode type parsing.
 Handles blend mode values for properties like mix-blend-mode and background-blend-mode.
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};

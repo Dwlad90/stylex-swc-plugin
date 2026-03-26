@@ -1,6 +1,6 @@
 use crate::shared::constants::messages::SPREAD_NOT_SUPPORTED;
 use rustc_hash::FxHashMap;
-use stylex_core::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},

@@ -1,7 +1,7 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{

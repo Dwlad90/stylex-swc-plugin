@@ -10,7 +10,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod keywords {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -181,7 +181,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod pair_rule {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -1139,7 +1139,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod word_rule {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -1210,7 +1210,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod and_combinator {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -1939,7 +1939,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod or_combinator {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -2388,7 +2388,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod not_combinator {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -2544,7 +2544,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod inequality_rule_tests {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -3839,7 +3839,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod flatten_and_combinator_logic {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -4118,7 +4118,7 @@ mod style_value_parser_at_queries {
 
     #[cfg(test)]
     mod simplify_not_combinator_logic {
-      use stylex_core::stylex_panic;
+      use stylex_macros::stylex_panic;
 
       use super::*;
 
@@ -4307,7 +4307,7 @@ mod style_value_parser_at_queries {
 
   #[cfg(test)]
   mod simplify_range_intervals {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 
@@ -4444,7 +4444,7 @@ mod style_value_parser_at_queries {
 
   #[cfg(test)]
   mod additional_media_query_features {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 

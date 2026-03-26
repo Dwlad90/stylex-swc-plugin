@@ -3,8 +3,8 @@ use log::{debug, warn};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{fs, path::Path, sync::Arc};
-use stylex_core::{
-  macros::panic_macros::__stylex_panic, macros::stylex_error::StyleXError, stylex_panic,
+use stylex_macros::{
+  panic_macros::__stylex_panic, stylex_error::StyleXError, stylex_panic,
 };
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_config::is_module::IsModule;

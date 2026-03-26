@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use stylex_core::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::{DUMMY_SP, SyntaxContext},
   ecma::{

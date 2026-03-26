@@ -11,7 +11,7 @@ mod test_css_property_box_shadow {
 
   #[cfg(test)]
   mod box_shadow {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 
@@ -237,7 +237,7 @@ mod test_css_property_box_shadow {
 
   #[cfg(test)]
   mod box_shadow_list {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 

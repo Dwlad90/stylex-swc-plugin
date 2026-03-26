@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::{
   ast::{Expr, ObjectLit, PropOrSpread},
   utils::ExprExt,

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stylex_core::stylex_unimplemented;
+use stylex_macros::stylex_unimplemented;
 
 use crate::{
   shared::{

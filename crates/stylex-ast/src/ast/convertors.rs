@@ -1,9 +1,8 @@
 use anyhow::anyhow;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use stylex_misc::swc::get_default_expr_ctx;
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
-  common::DUMMY_SP,
   ecma::{
     ast::{
       BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Str, Tpl,

@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env};
 use std::{default::Default, fs::read_to_string};
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 
 use package_json::{PackageDependencies, PackageJsonManager};
 use std::path::{Path, PathBuf};

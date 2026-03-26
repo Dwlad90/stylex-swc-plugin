@@ -27,7 +27,7 @@ rustc-hash.workspace = true
 once_cell.workspace = true
 indexmap.workspace = true
 
-stylex_core = { path = "../stylex-core" }
+stylex_macros = { path = "../stylex-macros" }
 
 package-json = "0.5.0"
 pathdiff = { version = "0.2.3" }

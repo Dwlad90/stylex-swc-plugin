@@ -5,7 +5,7 @@ Token types and tokenization utilities for CSS parsing.
 use crate::CssResult;
 use cssparser::{Parser, ParserInput, Token as CssToken};
 use log::error;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 
 /// Simple token representation
 #[derive(Debug, Clone, PartialEq)]

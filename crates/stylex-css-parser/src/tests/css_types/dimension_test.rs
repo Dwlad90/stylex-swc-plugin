@@ -7,7 +7,7 @@ Tests parsing of dimensional values (length, time, frequency, resolution).
 
 #[cfg(test)]
 mod test_css_type_dimension {
-  use stylex_core::stylex_panic;
+  use stylex_macros::stylex_panic;
 
   use crate::css_types::dimension::{Dimension, dimension};
   use crate::css_types::{

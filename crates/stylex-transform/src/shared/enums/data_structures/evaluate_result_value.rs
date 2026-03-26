@@ -3,7 +3,7 @@ use std::{fmt, rc::Rc};
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use serde::{Serialize, ser::Serializer};
-use stylex_core::stylex_unimplemented;
+use stylex_macros::stylex_unimplemented;
 use swc_core::{
   atoms::Atom,
   ecma::{

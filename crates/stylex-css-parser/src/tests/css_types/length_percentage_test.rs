@@ -6,7 +6,7 @@ Test CSS length-percentage type that accepts both lengths and percentages.
 
 #[cfg(test)]
 mod test_css_type_length_percentage {
-  use stylex_core::stylex_panic;
+  use stylex_macros::stylex_panic;
 
   use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
 

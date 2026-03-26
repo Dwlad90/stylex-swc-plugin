@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use path_clean::PathClean;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 
 pub(crate) fn contains_subpath(path: &Path, sub_path: &Path) -> bool {
   path

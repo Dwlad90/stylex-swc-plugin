@@ -1,5 +1,5 @@
 use rustc_hash::FxHashSet;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},

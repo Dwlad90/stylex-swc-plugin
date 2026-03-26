@@ -11,7 +11,7 @@ mod test_css_property_transform {
 
   #[cfg(test)]
   mod single_functions {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 
@@ -168,7 +168,7 @@ mod test_css_property_transform {
 
   #[cfg(test)]
   mod multiple_functions {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 

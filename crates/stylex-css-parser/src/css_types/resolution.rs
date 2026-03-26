@@ -4,7 +4,7 @@ CSS Resolution type parsing.
 Handles resolution values with 'dpi' (dots per inch), 'dpcm' (dots per cm), and 'dppx' (dots per px) units.
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};

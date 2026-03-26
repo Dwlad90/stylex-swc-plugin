@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use log::warn;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
 use swc_core::ecma::{
   ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},

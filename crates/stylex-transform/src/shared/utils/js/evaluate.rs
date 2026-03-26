@@ -10,7 +10,7 @@ use crate::{
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_core::{
+use stylex_macros::{
   collect_confident, stylex_panic, stylex_unimplemented, stylex_unreachable, unwrap_or_panic,
 };
 use swc_core::{

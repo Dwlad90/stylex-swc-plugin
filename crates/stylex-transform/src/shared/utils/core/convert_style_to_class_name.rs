@@ -1,4 +1,4 @@
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 
 use crate::shared::{
   constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},

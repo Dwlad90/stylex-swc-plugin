@@ -1,5 +1,5 @@
 use rustc_hash::FxHashMap;
-use stylex_core::{stylex_panic, stylex_unreachable};
+use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
     BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stylex_core::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
 use crate::shared::{

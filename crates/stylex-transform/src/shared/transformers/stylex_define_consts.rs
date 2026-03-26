@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use stylex_core::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use crate::shared::{
   constants::messages::{EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT},

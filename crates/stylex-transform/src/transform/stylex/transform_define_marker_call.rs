@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::CallExpr;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 

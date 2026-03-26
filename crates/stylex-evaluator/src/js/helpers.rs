@@ -2,7 +2,7 @@ use stylex_constants::constants::{
   common::{INVALID_METHODS, MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS, VALID_CALLEES},
   messages::INVALID_UTF8,
 };
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{

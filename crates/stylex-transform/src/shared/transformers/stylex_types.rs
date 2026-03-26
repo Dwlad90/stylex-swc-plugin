@@ -9,7 +9,7 @@ use crate::shared::{
 use indexmap::IndexMap;
 use phf::phf_map;
 use std::rc::Rc;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
 pub trait HasBase {

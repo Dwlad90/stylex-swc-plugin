@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use log::warn;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use stylex_core::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 
 use crate::shared::{
   constants::{common::COMPILED_KEY, messages::COMPILED_KEY_MISSING},

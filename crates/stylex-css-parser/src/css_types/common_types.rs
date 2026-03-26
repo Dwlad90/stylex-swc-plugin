@@ -5,7 +5,7 @@ This module implements the foundational types used across all CSS value parsing,
 providing essential shared utilities for CSS processing.
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{
   token_parser::{TokenParser, tokens},

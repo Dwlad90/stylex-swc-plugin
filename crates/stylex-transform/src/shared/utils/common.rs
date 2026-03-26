@@ -7,7 +7,7 @@ use std::{
   ops::Deref,
   path::PathBuf,
 };
-use stylex_core::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},

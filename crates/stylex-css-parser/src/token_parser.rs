@@ -14,7 +14,7 @@ This implementation provides a complete parsing API with:
 - Static methods return specialized parser types
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{
   CssParseError,

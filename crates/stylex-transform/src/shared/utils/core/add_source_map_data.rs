@@ -3,7 +3,7 @@ use log::{debug, info, warn};
 use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap;
 use std::{env, path::Path, rc::Rc};
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use swc_core::{

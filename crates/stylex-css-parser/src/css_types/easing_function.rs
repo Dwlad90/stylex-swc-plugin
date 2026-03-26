@@ -2,7 +2,7 @@
 CSS easing function parser.
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{CssParseError, token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};

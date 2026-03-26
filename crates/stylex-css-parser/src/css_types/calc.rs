@@ -4,7 +4,7 @@ CSS Calc type parsing with full arithmetic support.
 Implements complete calc() expression parsing with operator precedence.
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{
   CssParseError,

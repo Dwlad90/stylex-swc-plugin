@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{

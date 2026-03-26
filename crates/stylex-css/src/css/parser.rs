@@ -1,7 +1,7 @@
 use cssparser::{
   ParseError, Parser, ParserInput, SourcePosition, Token, serialize_identifier, serialize_string,
 };
-use stylex_core::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 
 pub fn format_ident(ident: &str) -> String {
   let mut res: String = String::default();

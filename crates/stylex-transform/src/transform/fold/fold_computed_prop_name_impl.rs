@@ -1,4 +1,4 @@
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::{

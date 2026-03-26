@@ -9,10 +9,8 @@ use napi::{Env, Result};
 use std::panic;
 use std::{env, sync::Arc};
 use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
-use stylex_core::{
-  logger::initializer::initialize as initialize_logger,
-  macros::stylex_error::{SuppressPanicStderr, format_panic_message},
-};
+use stylex_logs::initializer::initialize as initialize_logger;
+use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_transform::StyleXTransform;

@@ -1,4 +1,4 @@
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{ExportDecl, ImportDecl, Str};
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},

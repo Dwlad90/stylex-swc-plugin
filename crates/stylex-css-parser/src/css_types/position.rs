@@ -1,4 +1,4 @@
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
 /**

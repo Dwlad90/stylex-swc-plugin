@@ -2,7 +2,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
 use std::path::Path;
 use std::{option::Option, rc::Rc};
-use stylex_core::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
 use log::debug;

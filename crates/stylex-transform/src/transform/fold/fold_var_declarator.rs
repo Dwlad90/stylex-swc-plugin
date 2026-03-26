@@ -1,7 +1,7 @@
 use std::collections::hash_map::Entry;
 
 use rustc_hash::FxHashMap;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, comments::Comments},

@@ -1,7 +1,7 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 
 use crate::shared::{
   constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},

@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 use rustc_hash::FxHashMap;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Ident;
 
 use crate::shared::utils::ast::factories::ident_factory;

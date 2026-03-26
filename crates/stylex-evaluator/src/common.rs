@@ -3,13 +3,10 @@ use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
 use radix_fmt::radix;
-use stylex_core::stylex_panic;
-use swc_core::{
-  common::util::take::Take,
-  ecma::{
-    ast::{BinaryOp, Expr, VarDeclarator},
-    utils::drop_span,
-  },
+use stylex_macros::stylex_panic;
+use swc_core::ecma::{
+  ast::{BinaryOp, Expr, VarDeclarator},
+  utils::drop_span,
 };
 
 pub fn create_hash(value: &str) -> String {

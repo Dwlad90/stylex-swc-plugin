@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 // Import error handling macros from shared utilities
-use stylex_core::{
+use stylex_macros::{
   as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, expr_to_str_or_err, stylex_panic,
   stylex_unimplemented, unwrap_or_panic,
 };

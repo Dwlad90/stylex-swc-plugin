@@ -4,7 +4,7 @@ CSS Color type parsing.
 Handles all CSS color formats: named colors, hex, rgb, rgba, hsl, hsla, and modern color spaces.
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{
   CssParseError,

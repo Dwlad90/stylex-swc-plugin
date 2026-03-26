@@ -34,7 +34,7 @@ log.workspace = true
 indexmap.workspace = true
 rustc-hash.workspace = true
 
-stylex_core = { path = "../stylex-core" }
+stylex_macros = { path = "../stylex-macros" }
 
 [dev-dependencies]
 proptest = "1.10"

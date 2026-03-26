@@ -1,5 +1,5 @@
 use log::warn;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::{

@@ -17,7 +17,7 @@ mod test_css_type_basic_shape {
 
   // Test Inset shapes
   mod inset {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 
@@ -202,7 +202,7 @@ mod test_css_type_basic_shape {
 
   // Test Circle shapes
   mod circle {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 
@@ -275,7 +275,7 @@ mod test_css_type_basic_shape {
 
   // Test Ellipse shapes
   mod ellipse {
-    use stylex_core::stylex_panic;
+    use stylex_macros::stylex_panic;
 
     use super::*;
 

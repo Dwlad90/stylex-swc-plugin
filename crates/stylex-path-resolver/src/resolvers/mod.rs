@@ -6,7 +6,7 @@ use path_clean::PathClean;
 use rustc_hash::FxHashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 
 use crate::{
   package_json::{PackageJsonExtended, get_package_json_deps},

@@ -35,7 +35,7 @@ use crate::shared::{
   },
 };
 
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{

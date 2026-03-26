@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use stylex_core::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 

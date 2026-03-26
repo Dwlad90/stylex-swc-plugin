@@ -4,7 +4,7 @@ CSS Alpha value parsing.
 Handles alpha values for colors - numbers (0.0-1.0) and percentages (0%-100%).
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};

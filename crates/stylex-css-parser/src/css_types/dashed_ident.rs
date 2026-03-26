@@ -4,7 +4,7 @@ CSS Dashed Identifier type parsing.
 Handles dashed identifiers that start with '--' (CSS custom properties).
 */
 
-use stylex_core::stylex_unreachable;
+use stylex_macros::stylex_unreachable;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};

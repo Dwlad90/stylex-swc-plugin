@@ -31,7 +31,6 @@ once_cell.workspace = true
 
 stylex_constants = { path = "../stylex-constants" }
 stylex_macros = { path = "../stylex-macros" }
-stylex_core = { path = "../stylex-core" }
 
 [dev-dependencies]
 ctor.workspace = true

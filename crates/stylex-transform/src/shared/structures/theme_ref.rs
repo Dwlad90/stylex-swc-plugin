@@ -1,5 +1,5 @@
 use rustc_hash::FxHashMap;
-use stylex_core::stylex_panic;
+use stylex_macros::stylex_panic;
 
 use crate::shared::{
   constants::common::VAR_GROUP_HASH_KEY,

@@ -6,7 +6,7 @@ use crate::css_types::calc::{Calc, CalcValue};
 
 #[cfg(test)]
 mod test_css_type_calc {
-  use stylex_core::stylex_panic;
+  use stylex_macros::stylex_panic;
 
   use super::*;
 

@@ -36,11 +36,12 @@ glob.workspace = true
 fancy-regex.workspace = true
 
 stylex_transform = { path = "../stylex-transform" }
-stylex_core = { path = "../stylex-core" }
 stylex_types = { path = "../stylex-types" }
 stylex_ast = { path = "../stylex-ast" }
 stylex_regex = { path = "../stylex-regex" }
 stylex_misc = { path = "../stylex-misc" }
+stylex_macros = { path = "../stylex-macros" }
+stylex_logs = { path = "../stylex-logs" }
 indexmap.workspace = true
 napi = { version = "3", features = ["compat-mode"] }
 napi-derive = "3"

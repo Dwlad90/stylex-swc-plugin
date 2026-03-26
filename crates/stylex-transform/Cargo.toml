@@ -56,6 +56,7 @@ stylex_core = { path = "../stylex-core" }
 stylex_constants = { path = "../stylex-constants" }
 stylex_types = { path = "../stylex-types" }
 stylex_ast = { path = "../stylex-ast" }
+stylex_css = { path = "../stylex-css" }
 stylex_regex = { path = "../stylex-regex" }
 stylex_misc = { path = "../stylex-misc" }
 

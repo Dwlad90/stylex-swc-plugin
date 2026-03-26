@@ -1,3 +1,5 @@
 pub(crate) mod base;
 pub(crate) mod tests;
-pub(crate) mod whitespace_normalizer;
+
+// Re-exported from stylex_css
+pub use stylex_css::css::normalizers::whitespace_normalizer;

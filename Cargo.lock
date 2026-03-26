@@ -3135,6 +3135,7 @@ dependencies = [
  "stylex_ast",
  "stylex_constants",
  "stylex_core",
+ "stylex_css",
  "stylex_css_parser",
  "stylex_misc",
  "stylex_path_resolver",

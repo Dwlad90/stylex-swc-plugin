@@ -7,9 +7,8 @@ use napi::{
   sys::{napi_env, napi_value},
 };
 use napi_derive::napi;
-use stylex_shared::shared::{
-  regex::NPM_NAME_REGEX, structures::named_import_source::NamedImportSource,
-};
+use stylex_regex::regex::NPM_NAME_REGEX;
+use stylex_types::structures::named_import_source::NamedImportSource;
 
 #[napi(object)]
 #[derive(Debug, Clone)]

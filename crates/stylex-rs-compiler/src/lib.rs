@@ -15,12 +15,10 @@ use stylex_core::{
 };
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
-use stylex_shared::{
-  StyleXTransform,
-  shared::structures::{
-    plugin_pass::PluginPass,
-    stylex_options::{StyleResolution, StyleXOptionsParams},
-  },
+use stylex_shared::StyleXTransform;
+use stylex_types::structures::{
+  plugin_pass::PluginPass,
+  stylex_options::{StyleResolution, StyleXOptionsParams},
 };
 use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
 

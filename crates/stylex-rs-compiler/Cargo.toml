@@ -37,6 +37,10 @@ fancy-regex.workspace = true
 
 stylex_shared = { path = "../stylex-shared" }
 stylex_core = { path = "../stylex-core" }
+stylex_types = { path = "../stylex-types" }
+stylex_ast = { path = "../stylex-ast" }
+stylex_regex = { path = "../stylex-regex" }
+stylex_misc = { path = "../stylex-misc" }
 indexmap.workspace = true
 napi = { version = "3", features = ["compat-mode"] }
 napi-derive = "3"

@@ -1,7 +1,7 @@
 use napi::{JsObject, UnknownRef};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
-use stylex_shared::shared::structures::{
+use stylex_types::structures::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
   stylex_options::{self, ModuleResolution, StyleResolution, StyleXOptionsParams, SxPropNameParam},
 };

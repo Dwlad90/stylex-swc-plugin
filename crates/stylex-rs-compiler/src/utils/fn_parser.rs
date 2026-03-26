@@ -3,18 +3,16 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use log::debug;
 use napi::{JsNumber, JsObject, JsString, JsValue, Unknown, ValueType};
-use stylex_shared::shared::{
-  structures::stylex_env::{EnvEntry, JSFunction},
-  swc::get_default_expr_ctx,
-  utils::ast::{
-    convertors::{
-      bool_to_expression, null_to_expression, number_to_expression, string_to_expression,
-    },
-    factories::{
-      array_expression_factory, object_expression_factory, prop_or_spread_expression_factory,
-    },
+use stylex_ast::ast::{
+  convertors::{
+    bool_to_expression, null_to_expression, number_to_expression, string_to_expression,
+  },
+  factories::{
+    array_expression_factory, object_expression_factory, prop_or_spread_expression_factory,
   },
 };
+use stylex_misc::swc::get_default_expr_ctx;
+use stylex_types::structures::stylex_env::{EnvEntry, JSFunction};
 use swc_core::ecma::{
   ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread},
   utils::ExprExt,

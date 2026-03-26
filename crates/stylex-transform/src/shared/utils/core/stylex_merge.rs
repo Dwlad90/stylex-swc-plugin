@@ -17,7 +17,7 @@ use crate::shared::structures::functions::{FunctionConfigType, FunctionMap};
 use crate::shared::structures::member_transform::MemberTransform;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
-use crate::shared::swc::get_default_expr_ctx;
+use stylex_utils::swc::get_default_expr_ctx;
 use crate::shared::transformers::stylex_default_maker;
 use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
 use crate::shared::utils::common::{reduce_ident_count, reduce_member_expression_count};

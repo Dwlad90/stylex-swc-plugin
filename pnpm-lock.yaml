@@ -1388,6 +1388,18 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
 
+  crates/stylex-css-order:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
   crates/stylex-css-parser:
     devDependencies:
       '@taplo/cli':
@@ -1400,7 +1412,67 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
 
+  crates/stylex-css-utils:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-css-values:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-data-structures:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-enums:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
   crates/stylex-evaluator:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
+  crates/stylex-js:
     devDependencies:
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1510,6 +1582,18 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  crates/stylex-structures:
+    devDependencies:
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
 
   crates/stylex-test-parser:
     devDependencies:

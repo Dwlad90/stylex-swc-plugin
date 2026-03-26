@@ -15,7 +15,7 @@ use stylex_constants::constants::messages::{
 };
 use stylex_enums::misc::VarDeclAction;
 use stylex_structures::order_pair::OrderPair;
-use crate::shared::regex::CSS_PROPERTY_KEY;
+use stylex_regex::regex::CSS_PROPERTY_KEY;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::null_pre_rule::NullPreRule;
 use crate::shared::structures::pre_rule::{PreRuleValue, PreRules, StylesPreRule};

@@ -27,7 +27,7 @@ use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, non_static
 use stylex_enums::counter_mode::CounterMode;
 use stylex_structures::uid_generator::UidGenerator;
 use stylex_types::structures::injectable_style::InjectableStyle;
-use crate::shared::regex::VAR_EXTRACTION_REGEX;
+use stylex_regex::regex::VAR_EXTRACTION_REGEX;
 use crate::shared::structures::functions::StylexExprFn;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::InjectableStylesMap;

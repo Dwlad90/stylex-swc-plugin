@@ -87,7 +87,7 @@ use crate::shared::structures::state_manager::{
 };
 use crate::shared::structures::theme_ref::ThemeRef;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
-use crate::shared::swc::get_default_expr_ctx;
+use stylex_utils::swc::get_default_expr_ctx;
 use crate::shared::utils::ast::convertors::{
   binary_expr_to_num,
   binary_expr_to_string,

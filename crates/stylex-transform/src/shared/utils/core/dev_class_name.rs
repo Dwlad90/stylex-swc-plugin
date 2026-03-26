@@ -5,7 +5,7 @@ use stylex_macros::stylex_panic;
 
 use stylex_constants::constants::common::COMPILED_KEY;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::regex::SANITIZE_CLASS_NAME_REGEX;
+use stylex_regex::regex::SANITIZE_CLASS_NAME_REGEX;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, StylesObjectMap};
 

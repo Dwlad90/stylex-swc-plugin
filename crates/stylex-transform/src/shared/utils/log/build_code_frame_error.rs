@@ -22,7 +22,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::regex::URL_REGEX;
+use stylex_regex::regex::URL_REGEX;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::{
   convert_concat_to_tpl_expr,

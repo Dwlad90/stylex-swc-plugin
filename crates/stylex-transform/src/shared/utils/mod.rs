@@ -7,6 +7,3 @@ pub mod log;
 pub mod macros;
 pub mod object;
 pub(crate) mod validators;
-
-
-pub mod factories;

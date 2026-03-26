@@ -14,7 +14,7 @@ use stylex_ast::ast::factories::{
 use stylex_constants::constants::messages::VALUE_MUST_BE_STRING;
 use stylex_enums::css_syntax::CSSSyntax;
 use stylex_enums::value_with_default::ValueWithDefault;
-use crate::shared::swc::get_default_expr_ctx;
+use stylex_utils::swc::get_default_expr_ctx;
 use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
 use crate::shared::utils::common::get_key_values_from_object;
 

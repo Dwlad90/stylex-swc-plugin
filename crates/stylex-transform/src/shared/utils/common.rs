@@ -31,7 +31,7 @@ use stylex_constants::constants::messages::{
   VAR_DECL_NAME_NOT_IDENT,
 };
 use stylex_enums::misc::VarDeclAction;
-use crate::shared::regex::{DASHIFY_REGEX, JSON_REGEX};
+use stylex_regex::regex::{DASHIFY_REGEX, JSON_REGEX};
 use crate::shared::structures::base_css_type::BaseCSSType;
 use crate::shared::structures::functions::{FunctionConfigType, FunctionMap, FunctionType};
 use crate::shared::structures::state_manager::StateManager;

@@ -10,14 +10,12 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::{
-    regex::STYLEX_CONSTS_IMPORT_REGEX,
-    utils::{
-      ast::convertors::convert_atom_to_string,
-      common::{fill_state_declarations, stable_hash},
-    },
+  shared::utils::{
+    ast::convertors::convert_atom_to_string,
+    common::{fill_state_declarations, stable_hash},
   },
 };
+use stylex_regex::regex::STYLEX_CONSTS_IMPORT_REGEX;
 use stylex_ast::ast::factories::create_binding_ident;
 use stylex_constants::constants::messages::VAR_DECL_INIT_REQUIRED;
 use stylex_enums::core::TransformationCycle;

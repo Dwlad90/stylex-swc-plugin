@@ -23,7 +23,7 @@ use stylex_css::css::normalizers::whitespace_normalizer::whitespace_normalizer;
 use stylex_structures::pair::Pair;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 use stylex_types::structures::injectable_style::InjectableStyle;
-use crate::shared::regex::{
+use stylex_regex::regex::{
   ANCESTOR_SELECTOR,
   ANY_SIBLING_SELECTOR,
   CLEAN_CSS_VAR,

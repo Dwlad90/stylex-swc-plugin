@@ -1,11 +1,11 @@
 [package]
-name = "stylex_misc"
+name = "stylex_utils"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Miscellaneous SWC utilities for StyleX plugin"
+description = "Common SWC utilities for the StyleX compiler plugin"
 
 
 [lib]

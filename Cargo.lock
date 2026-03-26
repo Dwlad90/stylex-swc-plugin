@@ -2858,8 +2858,8 @@ dependencies = [
  "pretty_env_logger",
  "stylex_constants",
  "stylex_macros",
- "stylex_misc",
  "stylex_types",
+ "stylex_utils",
  "swc_compiler_base",
  "swc_core",
 ]
@@ -2882,10 +2882,10 @@ dependencies = [
  "stylex_ast",
  "stylex_logs",
  "stylex_macros",
- "stylex_misc",
  "stylex_regex",
  "stylex_transform",
  "stylex_types",
+ "stylex_utils",
  "swc_compiler_base",
  "swc_core",
  "swc_ecma_parser",
@@ -3000,15 +3000,6 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "stylex_constants",
-]
-
-[[package]]
-name = "stylex_misc"
-version = "0.15.1-rc.1"
-dependencies = [
- "ctor",
- "pretty_env_logger",
- "swc_core",
 ]
 
 [[package]]
@@ -3136,10 +3127,10 @@ dependencies = [
  "stylex_css_parser",
  "stylex_logs",
  "stylex_macros",
- "stylex_misc",
  "stylex_path_resolver",
  "stylex_regex",
  "stylex_types",
+ "stylex_utils",
  "swc_compiler_base",
  "swc_config",
  "swc_core",
@@ -3181,6 +3172,15 @@ dependencies = [
  "serde_json",
  "stylex_constants",
  "stylex_macros",
+ "swc_core",
+]
+
+[[package]]
+name = "stylex_utils"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "pretty_env_logger",
  "swc_core",
 ]
 

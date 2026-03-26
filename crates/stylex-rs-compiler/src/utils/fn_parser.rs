@@ -11,7 +11,7 @@ use stylex_ast::ast::{
     array_expression_factory, object_expression_factory, prop_or_spread_expression_factory,
   },
 };
-use stylex_misc::swc::get_default_expr_ctx;
+use stylex_utils::swc::get_default_expr_ctx;
 use stylex_types::structures::stylex_env::{EnvEntry, JSFunction};
 use swc_core::ecma::{
   ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread},

@@ -27,7 +27,7 @@ log.workspace = true
 stylex_constants = { path = "../stylex-constants" }
 stylex_types = { path = "../stylex-types" }
 stylex_macros = { path = "../stylex-macros" }
-stylex_misc = { path = "../stylex-misc" }
+stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 ctor.workspace = true

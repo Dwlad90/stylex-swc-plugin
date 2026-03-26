@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use stylex_macros::stylex_panic;
-use stylex_misc::swc::get_default_expr_ctx;
+use stylex_utils::swc::get_default_expr_ctx;
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{

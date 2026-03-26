@@ -1,6 +1,7 @@
 use rustc_hash::FxHashMap;
+use stylex_enums::core::TransformationCycle;
 use stylex_transform::shared::{
-  enums::{core::TransformationCycle, data_structures::evaluate_result_value::EvaluateResultValue},
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
     ast::convertors::create_number_expr,

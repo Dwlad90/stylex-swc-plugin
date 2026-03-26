@@ -1,10 +1,6 @@
-use stylex_transform::{
-  StyleXTransform,
-  shared::structures::{
-    plugin_pass::PluginPass,
-    stylex_options::{StyleResolution, StyleXOptionsParams},
-  },
-};
+use stylex_transform::StyleXTransform;
+use stylex_enums::style_resolution::StyleResolution;
+use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,

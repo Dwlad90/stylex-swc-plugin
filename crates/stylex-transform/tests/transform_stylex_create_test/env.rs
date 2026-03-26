@@ -1,21 +1,23 @@
 use indexmap::IndexMap;
+use stylex_ast::ast::factories::{create_object_expression, create_key_value_prop};
+use stylex_structures::{
+  plugin_pass::PluginPass,
+  stylex_env::{EnvEntry, JSFunction},
+  stylex_options::StyleXOptionsParams,
+};
 use stylex_transform::{
   StyleXTransform,
   shared::{
     structures::{
       functions::FunctionMap,
-      plugin_pass::PluginPass,
       state::EvaluationState,
       state_manager::StateManager,
-      stylex_env::{EnvEntry, JSFunction},
-      stylex_options::StyleXOptionsParams,
     },
     utils::ast::{
       convertors::{
         expr_to_bool, expr_to_num, expr_to_str, create_null_expr, create_number_expr,
         create_string_expr,
       },
-      factories::{create_object_expression, create_key_value_prop},
       helpers::get_property_by_key,
     },
   },

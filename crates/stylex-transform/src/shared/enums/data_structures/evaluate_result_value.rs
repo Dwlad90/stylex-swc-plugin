@@ -12,12 +12,11 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  structures::{
-    functions::FunctionConfig, stylex_env::EnvEntry, theme_ref::ThemeRef, types::EvaluationCallback,
-  },
-  utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
-};
+use stylex_structures::stylex_env::EnvEntry;
+use crate::shared::structures::functions::FunctionConfig;
+use crate::shared::structures::theme_ref::ThemeRef;
+use crate::shared::structures::types::EvaluationCallback;
+use crate::shared::utils::log::build_code_frame_error::{CodeFrame, create_module, print_module};
 
 pub enum EvaluateResultValue {
   Expr(Expr),

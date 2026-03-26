@@ -4,29 +4,34 @@ use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::{
-  constants::messages::{ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT},
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-    obj_map_type::ObjMapType,
-  },
-  structures::{
-    functions::{FunctionConfig, FunctionMap, FunctionType},
-    injectable_style::InjectableStyle,
-    order_pair::OrderPair,
-    pair::Pair,
-    pre_rule::PreRuleValue,
-    state_manager::StateManager,
-    types::FlatCompiledStyles,
-  },
-  utils::{
-    ast::convertors::{expr_to_str, key_value_to_str, create_string_expr},
-    common::{create_hash, dashify},
-    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-    css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
-    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
-  },
+use stylex_constants::constants::messages::{
+  ENTRY_MUST_BE_TUPLE,
+  VALUES_MUST_BE_OBJECT,
+  VALUE_MUST_BE_STRING,
+};
+use stylex_css::css::generate_ltr::generate_ltr;
+use stylex_css::css::generate_rtl::generate_rtl;
+use stylex_structures::order_pair::OrderPair;
+use stylex_structures::pair::Pair;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use stylex_types::structures::injectable_style::InjectableStyle;
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
+use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
+use crate::shared::structures::pre_rule::PreRuleValue;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::types::FlatCompiledStyles;
+use crate::shared::utils::ast::convertors::{create_string_expr, expr_to_str, key_value_to_str};
+use crate::shared::utils::common::{create_hash, dashify};
+use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
+use crate::shared::utils::css::common::transform_value_cached;
+use crate::shared::utils::object::{
+  Pipe,
+  obj_entries,
+  obj_from_entries,
+  obj_map,
+  obj_map_keys_string,
 };
 
 pub(crate) fn stylex_keyframes(

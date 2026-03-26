@@ -1,9 +1,8 @@
 use swc_core::ecma::ast::{ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread};
+use stylex_data_structures::top_level_expression::TopLevelExpression;
+use stylex_enums::top_level_expression::TopLevelExpressionKind;
 
-use crate::shared::{
-  enums::data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-  structures::state_manager::StateManager,
-};
+use crate::shared::structures::state_manager::StateManager;
 
 pub(crate) fn is_variable_named_exported(
   TopLevelExpression(kind, _, variable_name): &TopLevelExpression,

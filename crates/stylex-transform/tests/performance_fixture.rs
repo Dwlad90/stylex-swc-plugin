@@ -3,13 +3,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use stylex_transform::{
-  StyleXTransform,
-  shared::structures::{
-    plugin_pass::PluginPass,
-    stylex_options::{StyleXOptions, StyleXOptionsParams},
-  },
-};
+use stylex_transform::StyleXTransform;
+use stylex_structures::{plugin_pass::PluginPass, stylex_options::{StyleXOptions, StyleXOptionsParams}};
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test_fixture,

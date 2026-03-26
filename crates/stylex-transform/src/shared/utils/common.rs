@@ -21,26 +21,24 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  constants::messages::{
-    ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
-  },
-  enums::{
-    data_structures::top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-    misc::VarDeclAction,
-  },
-  regex::{DASHIFY_REGEX, JSON_REGEX},
-  structures::{
-    base_css_type::BaseCSSType,
-    functions::{FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::StateManager,
-  },
-  utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom},
-};
+use stylex_data_structures::top_level_expression::TopLevelExpression;
+use stylex_enums::top_level_expression::TopLevelExpressionKind;
 
-use super::ast::{
-  convertors::expand_shorthand_prop, factories::create_var_declarator,
+use stylex_constants::constants::messages::{
+  ILLEGAL_PROP_VALUE,
+  INVALID_UTF8,
+  SPREAD_NOT_SUPPORTED,
+  VAR_DECL_NAME_NOT_IDENT,
 };
+use stylex_enums::misc::VarDeclAction;
+use crate::shared::regex::{DASHIFY_REGEX, JSON_REGEX};
+use crate::shared::structures::base_css_type::BaseCSSType;
+use crate::shared::structures::functions::{FunctionConfigType, FunctionMap, FunctionType};
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom};
+
+use stylex_ast::ast::factories::create_var_declarator;
+use super::ast::convertors::expand_shorthand_prop;
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
@@ -635,7 +633,7 @@ pub(crate) fn gen_file_based_identifier(
 }
 
 #[allow(unused_imports)]
-pub(crate) use stylex_types::utils::hash_f64;
+pub(crate) use stylex_utils::hash::hash_f64;
 
 pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
   let multiplier = 10f64.powi(decimal_places as i32);

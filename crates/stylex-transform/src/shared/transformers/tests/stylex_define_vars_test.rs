@@ -5,30 +5,24 @@ mod stylex_define_vars {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue, value_with_default::ValueWithDefault,
-    },
-    structures::{
-      base_css_type::BaseCSSType,
-      functions::FunctionType,
-      injectable_style::InjectableStyle,
-      state_manager::StateManager,
-      stylex_state_options::StyleXStateOptions,
-      types::{FlatCompiledStyles, InjectableStylesMap},
-    },
-    transformers::{stylex_define_vars::stylex_define_vars, stylex_types::get_types_fn},
-    utils::{
-      ast::{
-        convertors::create_string_expr,
-        factories::{
-          create_object_expression, create_nested_object_prop, create_key_value_prop,
-        },
-      },
-      common::create_hash,
-    },
+  use stylex_ast::ast::factories::{
+    create_key_value_prop,
+    create_nested_object_prop,
+    create_object_expression,
   };
+  use stylex_enums::value_with_default::ValueWithDefault;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use stylex_types::structures::injectable_style::InjectableStyle;
+  use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+  use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
+  use crate::shared::structures::base_css_type::BaseCSSType;
+  use crate::shared::structures::functions::FunctionType;
+  use crate::shared::structures::state_manager::StateManager;
+  use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
+  use crate::shared::transformers::stylex_define_vars::stylex_define_vars;
+  use crate::shared::transformers::stylex_types::get_types_fn;
+  use crate::shared::utils::ast::convertors::create_string_expr;
+  use crate::shared::utils::common::create_hash;
 
   enum DefaultVarsFactoryValue<'a> {
     Simple(&'a str),

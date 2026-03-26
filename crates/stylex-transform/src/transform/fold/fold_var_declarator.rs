@@ -11,20 +11,17 @@ use swc_core::{
   },
 };
 
+use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
+use stylex_data_structures::top_level_expression::TopLevelExpression;
+use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
+use stylex_enums::top_level_expression::TopLevelExpressionKind;
+
 use crate::{
   StyleXTransform,
-  shared::{
-    constants::messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT},
-    enums::{
-      core::TransformationCycle,
-      data_structures::{
-        style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
-        top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-      },
-    },
-    utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
-  },
+  shared::utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
 };
+use stylex_constants::constants::messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT};
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

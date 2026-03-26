@@ -1,12 +1,13 @@
 use std::env;
 
 use insta::assert_snapshot;
-use stylex_transform::shared::structures::{
+use stylex_structures::{
   named_import_source::RuntimeInjection,
+  plugin_pass::PluginPass,
   stylex_options::{StyleXOptions, StyleXOptionsParams},
 };
 use stylex_transform::shared::utils::common::create_hash;
-use stylex_transform::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use stylex_transform::StyleXTransform;
 use swc_core::common::FileName;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},

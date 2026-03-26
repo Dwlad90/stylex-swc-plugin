@@ -1,6 +1,6 @@
 use log::debug;
 
-use stylex_types::structures::stylex_state_options::StyleXStateOptions;
+use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 pub fn from_proxy(_value: &StyleXStateOptions) -> Option<String> {
   debug!("from_proxy is not implemented");

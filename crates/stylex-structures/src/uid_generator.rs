@@ -3,13 +3,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 use rustc_hash::FxHashMap;
+use stylex_enums::counter_mode::CounterMode;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Ident;
 
-// Add once_cell for global static
 use once_cell::sync::Lazy;
 
-pub use stylex_enums::counter_mode::CounterMode;
 
 // Global counters map, protected by Mutex for thread safety
 static GLOBAL_COUNTERS: Lazy<Mutex<FxHashMap<String, AtomicUsize>>> =

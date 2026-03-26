@@ -11,37 +11,34 @@ use swc_core::{
   },
 };
 
-use crate::shared::constants::messages::{
+use stylex_constants::constants::messages::{
   EVAL_RESULT_EXPECTED, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
 };
-use crate::shared::{
-  constants::{
-    length_units::LENGTH_UNITS, messages::ILLEGAL_NAMESPACE_VALUE, time_units::get_time_units,
-  },
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    evaluate_result::EvaluateResult,
-    functions::FunctionMap,
-    inline_style::InlineStyle,
-    state_manager::StateManager,
-    types::{DynamicFns, TInlineStyles},
-  },
-  utils::{
-    ast::{
-      convertors::{
-        expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
-        expand_shorthand_prop,
-      },
-      factories::{
-        create_expr_or_spread, create_object_expression, create_key_value_prop,
-      },
-    },
-    common::{create_hash, normalize_expr},
-    css::common::get_number_suffix,
-    js::evaluate::{evaluate, evaluate_obj_key},
-    validators::validate_dynamic_style_params,
-  },
+use stylex_ast::ast::factories::{
+  create_expr_or_spread,
+  create_key_value_prop,
+  create_object_expression,
 };
+use stylex_constants::constants::length_units::LENGTH_UNITS;
+use stylex_constants::constants::messages::ILLEGAL_NAMESPACE_VALUE;
+use stylex_constants::constants::time_units::get_time_units;
+use stylex_structures::inline_style::InlineStyle;
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::structures::evaluate_result::EvaluateResult;
+use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::types::{DynamicFns, TInlineStyles};
+use crate::shared::utils::ast::convertors::{
+  create_ident_expr,
+  create_null_expr,
+  create_string_expr,
+  expand_shorthand_prop,
+  expr_to_str,
+};
+use crate::shared::utils::common::{create_hash, normalize_expr};
+use crate::shared::utils::css::common::get_number_suffix;
+use crate::shared::utils::js::evaluate::{evaluate, evaluate_obj_key};
+use crate::shared::utils::validators::validate_dynamic_style_params;
 
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.

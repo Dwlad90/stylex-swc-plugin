@@ -1,10 +1,10 @@
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::structures::{
-  base_css_type::BaseCSSType, injectable_style::InjectableStyle, pair::Pair,
-};
+use stylex_structures::pair::Pair;
+use stylex_types::structures::injectable_style::InjectableStyle;
+use crate::shared::structures::base_css_type::BaseCSSType;
 
-use super::css_syntax::CSSSyntax;
+use stylex_enums::css_syntax::CSSSyntax;
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub enum FlatCompiledStylesValue {

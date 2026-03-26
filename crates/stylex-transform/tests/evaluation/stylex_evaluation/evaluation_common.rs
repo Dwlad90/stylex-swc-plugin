@@ -1,8 +1,8 @@
 use rustc_hash::FxHashMap;
+use stylex_structures::named_import_source::ImportSources;
 use stylex_transform::shared::{
   structures::{
     functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    named_import_source::ImportSources,
     state_manager::StateManager,
   },
   utils::ast::convertors::{create_ident_expr, create_string_expr},

@@ -1,11 +1,8 @@
-use crate::shared::{
-  enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
-  structures::{
-    base_css_type::BaseCSSType,
-    functions::{FunctionConfig, FunctionType},
-  },
-  utils::ast::factories::{create_object_expression, create_string_key_value_prop},
-};
+use stylex_ast::ast::factories::{create_object_expression, create_string_key_value_prop};
+use stylex_enums::css_syntax::CSSSyntax;
+use stylex_enums::value_with_default::ValueWithDefault;
+use crate::shared::structures::base_css_type::BaseCSSType;
+use crate::shared::structures::functions::{FunctionConfig, FunctionType};
 use indexmap::IndexMap;
 use phf::phf_map;
 use std::rc::Rc;

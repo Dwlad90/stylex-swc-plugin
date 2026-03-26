@@ -29,49 +29,42 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
-  structures::{types::InjectableStylesMap, uid_generator::CounterMode},
-  utils::ast::{
-    convertors::create_number_expr,
-    factories::{
-      create_expr_or_spread, create_number_expr_or_spread,
-      create_string_expr_or_spread, create_object_expression,
-      create_key_value_prop, create_string_key_value_prop,
-    },
-  },
+use stylex_ast::ast::factories::{
+  create_expr_or_spread,
+  create_key_value_prop,
+  create_number_expr_or_spread,
+  create_object_expression,
+  create_string_expr_or_spread,
+  create_string_key_value_prop,
 };
-use crate::shared::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  utils::{
-    ast::factories::create_binding_ident,
-    common::{
-      extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
-    },
-  },
+use stylex_constants::constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH};
+use stylex_enums::counter_mode::CounterMode;
+use crate::shared::structures::types::InjectableStylesMap;
+use crate::shared::utils::ast::convertors::create_number_expr;
+use stylex_ast::ast::factories::create_binding_ident;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use crate::shared::utils::common::{
+  extract_filename_from_path,
+  extract_filename_with_ext_from_path,
+  extract_path,
+  round_f64,
 };
-use crate::shared::{
-  enums::{
-    core::TransformationCycle,
-    data_structures::{
-      import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
-      style_vars_to_keep::StyleVarsToKeep,
-      top_level_expression::{TopLevelExpression, TopLevelExpressionKind},
-    },
-  },
-  utils::common::stable_hash,
-};
+use stylex_enums::core::TransformationCycle;
+use stylex_enums::import_path_resolution::{ImportPathResolution, ImportPathResolutionType};
+use crate::shared::utils::common::stable_hash;
+use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
+use stylex_data_structures::top_level_expression::TopLevelExpression;
+use stylex_enums::top_level_expression::TopLevelExpressionKind;
 
-use super::plugin_pass::PluginPass;
-use super::stylex_options::ModuleResolution;
-use super::stylex_options::{CheckModuleResolution, StyleXOptions};
-use super::stylex_state_options::StyleXStateOptions;
-use super::uid_generator::UidGenerator;
-use super::{meta_data::MetaData, types::StylesObjectMap};
-use super::{
-  named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
-  seen_value::SeenValue,
-};
+use stylex_structures::plugin_pass::PluginPass;
+use stylex_structures::stylex_options::ModuleResolution;
+use stylex_structures::stylex_options::{CheckModuleResolution, StyleXOptions};
+use stylex_structures::stylex_state_options::StyleXStateOptions;
+use stylex_structures::uid_generator::UidGenerator;
+use stylex_types::structures::meta_data::MetaData;
+use super::types::StylesObjectMap;
+use stylex_structures::named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState};
+use super::seen_value::SeenValue;
 
 static TRANSFORMED_VARS_FILE_EXTENSION: Lazy<&'static str> = Lazy::new(|| ".transformed");
 

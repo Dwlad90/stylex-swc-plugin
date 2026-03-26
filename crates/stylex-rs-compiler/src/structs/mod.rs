@@ -1,9 +1,14 @@
 use napi::{JsObject, UnknownRef};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
-use stylex_types::structures::{
+use stylex_structures::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
-  stylex_options::{self, ModuleResolution, StyleResolution, StyleXOptionsParams, SxPropNameParam},
+  stylex_options::{ModuleResolution, StyleXOptionsParams},
+};
+use stylex_enums::{
+  property_validation_mode::PropertyValidationMode as StylexPropertyValidationMode,
+  style_resolution::StyleResolution,
+  sx_prop_name_param::SxPropNameParam,
 };
 
 use crate::enums::{
@@ -112,11 +117,11 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       RuntimeInjectionUnion::Regular(s) => RuntimeInjection::Regular(s),
     });
 
-    let property_validation_mode: Option<stylex_options::PropertyValidationMode> =
+    let property_validation_mode: Option<StylexPropertyValidationMode> =
       val.property_validation_mode.map(|pvm| match pvm {
-        PropertyValidationMode::Throw => stylex_options::PropertyValidationMode::Throw,
-        PropertyValidationMode::Warn => stylex_options::PropertyValidationMode::Warn,
-        PropertyValidationMode::Silent => stylex_options::PropertyValidationMode::Silent,
+        PropertyValidationMode::Throw => StylexPropertyValidationMode::Throw,
+        PropertyValidationMode::Warn => StylexPropertyValidationMode::Warn,
+        PropertyValidationMode::Silent => StylexPropertyValidationMode::Silent,
       });
 
     let sx_prop_name: Option<SxPropNameParam> = val.sx_prop_name.map(|spn| match spn {

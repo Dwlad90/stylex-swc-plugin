@@ -4,20 +4,18 @@ mod stylex_create_theme {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::{
-      injectable_style::InjectableStyle, state_manager::StateManager, types::InjectableStylesMap,
-    },
-    transformers::stylex_create_theme::stylex_create_theme,
-    utils::ast::{
-      convertors::create_string_expr,
-      factories::{
-        create_object_expression, create_nested_object_prop, create_key_value_prop,
-        create_string_key_value_prop,
-      },
-    },
+  use stylex_ast::ast::factories::{
+    create_key_value_prop,
+    create_nested_object_prop,
+    create_object_expression,
+    create_string_key_value_prop,
   };
+  use stylex_types::structures::injectable_style::InjectableStyle;
+  use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+  use crate::shared::structures::state_manager::StateManager;
+  use crate::shared::structures::types::InjectableStylesMap;
+  use crate::shared::transformers::stylex_create_theme::stylex_create_theme;
+  use crate::shared::utils::ast::convertors::create_string_expr;
 
   fn default_vars_factory(args: &[(&str, &str)]) -> EvaluateResultValue {
     let props = args

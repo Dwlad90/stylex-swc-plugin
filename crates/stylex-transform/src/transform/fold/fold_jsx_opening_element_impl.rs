@@ -11,18 +11,14 @@ use swc_core::{
   },
 };
 
-use crate::{
-  StyleXTransform,
-  shared::{
-    constants::common::RUNTIME_JSX_CALL_NAMES,
-    enums::core::TransformationCycle,
-    utils::ast::factories::{
-      create_arrow_expression, create_ident_call_expr, create_member_call_expr, create_ident,
-      create_ident_name, create_jsx_spread_attr, create_object_lit,
-      create_spread_prop,
-    },
-  },
+use crate::StyleXTransform;
+use stylex_ast::ast::factories::{
+  create_arrow_expression, create_ident_call_expr, create_member_call_expr, create_ident,
+  create_ident_name, create_jsx_spread_attr, create_object_lit,
+  create_spread_prop,
 };
+use stylex_constants::constants::common::RUNTIME_JSX_CALL_NAMES;
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where
@@ -233,7 +229,7 @@ where
     ));
 
     // Build: _$spread(el, _$mergeProps(() => stylex.props(...)), false, true)
-    use crate::shared::utils::ast::factories::create_expr_or_spread;
+    use stylex_ast::ast::factories::create_expr_or_spread;
     Some(Expr::Call(create_ident_call_expr(
       "_$spread",
       vec![

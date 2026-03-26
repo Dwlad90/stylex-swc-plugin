@@ -12,7 +12,7 @@ use stylex_ast::ast::{
   },
 };
 use stylex_utils::swc::get_default_expr_ctx;
-use stylex_types::structures::stylex_env::{EnvEntry, JSFunction};
+use stylex_structures::stylex_env::{EnvEntry, JSFunction};
 use swc_core::ecma::{
   ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread},
   utils::ExprExt,

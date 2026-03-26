@@ -1,9 +1,8 @@
 #![allow(deprecated)]
 
 use napi::{Env, Error, JsObject};
-use stylex_transform::{
-  StyleXTransform, shared::enums::data_structures::injectable_style::InjectableStyleBaseKind,
-};
+use stylex_transform::StyleXTransform;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleBaseKind;
 use swc_core::plugin::proxies::PluginCommentsProxy;
 
 /// Extracts StyleX metadata from the transformation state

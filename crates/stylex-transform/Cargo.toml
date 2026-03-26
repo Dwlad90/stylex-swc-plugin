@@ -58,7 +58,13 @@ stylex_constants = { path = "../stylex-constants" }
 stylex_types = { path = "../stylex-types" }
 stylex_ast = { path = "../stylex-ast" }
 stylex_css = { path = "../stylex-css" }
+stylex_css_order = { path = "../stylex-css-order" }
+stylex_css_utils = { path = "../stylex-css-utils" }
+stylex_css_values = { path = "../stylex-css-values" }
+stylex_data_structures = { path = "../stylex-data-structures" }
+stylex_enums = { path = "../stylex-enums" }
 stylex_regex = { path = "../stylex-regex" }
+stylex_structures = { path = "../stylex-structures" }
 stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]

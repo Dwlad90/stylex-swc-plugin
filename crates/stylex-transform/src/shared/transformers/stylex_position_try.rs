@@ -4,31 +4,32 @@ use std::rc::Rc;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-use crate::shared::{
-  constants::messages::{
-    ENTRY_MUST_BE_TUPLE, THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
-  },
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, injectable_style::InjectableStyleKind,
-    obj_map_type::ObjMapType,
-  },
-  structures::{
-    functions::{FunctionConfig, FunctionType},
-    injectable_style::InjectableStyle,
-    pair::Pair,
-    state_manager::StateManager,
-    types::FlatCompiledStyles,
-  },
-  utils::{
-    ast::{
-      convertors::{convert_lit_to_string, create_string_expr},
-      factories::{create_object_lit, create_string_key_value_prop},
-    },
-    common::{create_hash, dashify},
-    css::{common::transform_value_cached, generate_ltr::generate_ltr, generate_rtl::generate_rtl},
-    object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
-  },
+use stylex_ast::ast::factories::{create_object_lit, create_string_key_value_prop};
+use stylex_constants::constants::messages::{
+  ENTRY_MUST_BE_TUPLE,
+  THEME_VAR_TUPLE,
+  VALUES_MUST_BE_OBJECT,
+  VALUE_MUST_BE_STRING,
+};
+use stylex_css::css::generate_ltr::generate_ltr;
+use stylex_css::css::generate_rtl::generate_rtl;
+use stylex_structures::pair::Pair;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use stylex_types::structures::injectable_style::InjectableStyle;
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
+use crate::shared::structures::functions::{FunctionConfig, FunctionType};
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::types::FlatCompiledStyles;
+use crate::shared::utils::ast::convertors::{convert_lit_to_string, create_string_expr};
+use crate::shared::utils::common::{create_hash, dashify};
+use crate::shared::utils::css::common::transform_value_cached;
+use crate::shared::utils::object::{
+  Pipe,
+  obj_map,
+  obj_map_keys_string,
+  preprocess_object_properties,
 };
 
 pub(crate) fn stylex_position_try(

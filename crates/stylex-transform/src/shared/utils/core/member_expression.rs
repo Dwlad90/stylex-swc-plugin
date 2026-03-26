@@ -1,4 +1,4 @@
-use crate::shared::constants::messages::{
+use stylex_constants::constants::messages::{
   MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT_SUPPORTED,
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
@@ -7,14 +7,15 @@ use swc_core::{
   ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},
 };
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
-  },
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{ast::convertors::convert_lit_to_string, common::increase_ident_count, js::evaluate::evaluate},
-};
+use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
+use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
+
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::ast::convertors::convert_lit_to_string;
+use crate::shared::utils::common::increase_ident_count;
+use crate::shared::utils::js::evaluate::evaluate;
 
 pub(crate) fn member_expression(
   member: &MemberExpr,

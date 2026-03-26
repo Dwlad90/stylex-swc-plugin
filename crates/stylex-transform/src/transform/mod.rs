@@ -13,15 +13,17 @@ use swc_core::{
 use crate::{
   StyleXOptionsParams,
   shared::{
-    enums::core::TransformationCycle,
     structures::{
-      named_import_source::{ImportSources, RuntimeInjection},
-      plugin_pass::PluginPass,
       state_manager::StateManager,
-      stylex_options::{CheckModuleResolution, StyleXOptions},
     },
     utils::common::increase_ident_count,
   },
+};
+use stylex_enums::core::TransformationCycle;
+use stylex_structures::{
+  named_import_source::{ImportSources, RuntimeInjection},
+  plugin_pass::PluginPass,
+  stylex_options::{CheckModuleResolution, StyleXOptions},
 };
 
 mod fold;

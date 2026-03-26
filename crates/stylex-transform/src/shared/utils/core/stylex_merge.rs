@@ -9,28 +9,23 @@ use swc_core::ecma::{
   visit::FoldWith,
 };
 
-use crate::shared::{
-  constants::messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT},
-  enums::data_structures::{fn_result::FnResult, style_vars_to_keep::NonNullProps},
-  structures::{
-    functions::{FunctionConfigType, FunctionMap},
-    member_transform::MemberTransform,
-    state_manager::StateManager,
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
-  swc::get_default_expr_ctx,
-  transformers::stylex_default_maker,
-  utils::{
-    ast::{
-      convertors::{key_value_to_str, convert_lit_to_string},
-      factories::{create_jsx_attr, create_jsx_attr_or_spread},
-    },
-    common::{reduce_ident_count, reduce_member_expression_count},
-    core::{
-      make_string_expression::make_string_expression,
-      parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
-    },
-  },
+use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
+use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT};
+use stylex_enums::style_vars_to_keep::NonNullProps;
+use crate::shared::enums::data_structures::fn_result::FnResult;
+use crate::shared::structures::functions::{FunctionConfigType, FunctionMap};
+use crate::shared::structures::member_transform::MemberTransform;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
+use crate::shared::swc::get_default_expr_ctx;
+use crate::shared::transformers::stylex_default_maker;
+use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
+use crate::shared::utils::common::{reduce_ident_count, reduce_member_expression_count};
+use crate::shared::utils::core::make_string_expression::make_string_expression;
+use crate::shared::utils::core::parse_nullable_style::{
+  ResolvedArg,
+  StyleObject,
+  parse_nullable_style,
 };
 
 pub(crate) fn stylex_merge(

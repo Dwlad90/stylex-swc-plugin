@@ -1,4 +1,4 @@
-use stylex_types::structures::order_pair::OrderPair;
+use stylex_structures::order_pair::OrderPair;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Shorthands;

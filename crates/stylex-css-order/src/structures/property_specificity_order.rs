@@ -1,6 +1,6 @@
 use crate::constants::property_specificity_order::{Aliases, Shorthands};
 
-use stylex_types::structures::{order::Order, order_pair::OrderPair};
+use stylex_structures::{order::Order, order_pair::OrderPair};
 
 pub struct PropertySpecificityOrder {}
 

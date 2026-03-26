@@ -3,16 +3,15 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 use stylex_constants::constants::common::DEFAULT_INJECT_PATH;
+use stylex_enums::property_validation_mode::PropertyValidationMode;
+use stylex_enums::style_resolution::StyleResolution;
+use stylex_enums::sx_prop_name_param::SxPropNameParam;
 
 use crate::{
   named_import_source::{ImportSources, RuntimeInjection},
   stylex_env::{EnvEntry, JSFunction},
 };
 
-pub use stylex_enums::aliases::Aliases;
-pub use stylex_enums::property_validation_mode::PropertyValidationMode;
-pub use stylex_enums::style_resolution::StyleResolution;
-pub use stylex_enums::sx_prop_name_param::SxPropNameParam;
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]

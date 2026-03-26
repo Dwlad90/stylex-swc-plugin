@@ -9,7 +9,8 @@ use swc_core::{
   },
 };
 
-use crate::shared::{constants::common::ROOT_FONT_SIZE, utils::common::dashify};
+use stylex_constants::constants::common::ROOT_FONT_SIZE;
+use crate::shared::utils::common::dashify;
 
 struct CssFolder {
   enable_font_size_px_to_rem: bool,

@@ -3,19 +3,17 @@ mod stylex_keyframes {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue, injectable_style::InjectableStyleKind,
-    },
-    structures::{injectable_style::InjectableStyle, state_manager::StateManager},
-    transformers::stylex_keyframes::stylex_keyframes,
-    utils::ast::{
-      convertors::create_string_expr,
-      factories::{
-        create_object_expression, create_nested_object_prop, create_key_value_prop,
-      },
-    },
+  use stylex_ast::ast::factories::{
+    create_key_value_prop,
+    create_nested_object_prop,
+    create_object_expression,
   };
+  use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+  use stylex_types::structures::injectable_style::InjectableStyle;
+  use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+  use crate::shared::structures::state_manager::StateManager;
+  use crate::shared::transformers::stylex_keyframes::stylex_keyframes;
+  use crate::shared::utils::ast::convertors::create_string_expr;
 
   fn default_vars_factory(args: &[(&str, &[(&str, &str)])]) -> EvaluateResultValue {
     let props = args

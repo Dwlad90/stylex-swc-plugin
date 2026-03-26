@@ -8,11 +8,10 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::{
-    enums::core::TransformationCycle, structures::named_import_source::ImportSources,
-    utils::ast::convertors::convert_atom_to_string,
-  },
+  shared::utils::ast::convertors::convert_atom_to_string,
 };
+use stylex_enums::core::TransformationCycle;
+use stylex_structures::named_import_source::ImportSources;
 
 impl<C> StyleXTransform<C>
 where

@@ -3,9 +3,11 @@ mod tests {
   use crate::shared::structures::functions::FunctionMap;
   use crate::shared::structures::state::EvaluationState;
   use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::{
-    enums::misc::BinaryExprType,
-    utils::ast::convertors::{binary_expr_to_num, binary_expr_to_string, convert_string_to_prop_name},
+  use stylex_enums::misc::BinaryExprType;
+  use crate::shared::utils::ast::convertors::{
+    binary_expr_to_num,
+    binary_expr_to_string,
+    convert_string_to_prop_name,
   };
   use swc_core::{
     common::SyntaxContext,

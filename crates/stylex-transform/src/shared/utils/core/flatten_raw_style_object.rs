@@ -7,29 +7,35 @@ use swc_core::ecma::{
   utils::quote_str,
 };
 
-use crate::shared::{
-  constants::messages::{
-    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
-  },
-  enums::misc::VarDeclAction,
-  regex::CSS_PROPERTY_KEY,
-  structures::{
-    functions::FunctionMap,
-    null_pre_rule::NullPreRule,
-    order_pair::OrderPair,
-    pre_rule::{PreRuleValue, PreRules, StylesPreRule},
-    pre_rule_set::PreRuleSet,
-    state::EvaluationState,
-    state_manager::StateManager,
-    types::ClassesToOriginalPaths,
-  },
-  utils::{
-    ast::convertors::{
-      expr_tpl_to_string, handle_tpl_to_expression, key_value_to_str, convert_lit_to_string,
-      create_number_expr, transform_bin_expr_to_number, expand_shorthand_prop,
-    },
-    common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
-  },
+use stylex_constants::constants::messages::{
+  ILLEGAL_PROP_ARRAY_VALUE,
+  ILLEGAL_PROP_VALUE,
+  INVALID_MEDIA_QUERY_SYNTAX,
+  non_static_value,
+};
+use stylex_enums::misc::VarDeclAction;
+use stylex_structures::order_pair::OrderPair;
+use crate::shared::regex::CSS_PROPERTY_KEY;
+use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::null_pre_rule::NullPreRule;
+use crate::shared::structures::pre_rule::{PreRuleValue, PreRules, StylesPreRule};
+use crate::shared::structures::pre_rule_set::PreRuleSet;
+use crate::shared::structures::state::EvaluationState;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::types::ClassesToOriginalPaths;
+use crate::shared::utils::ast::convertors::{
+  convert_lit_to_string,
+  create_number_expr,
+  expand_shorthand_prop,
+  expr_tpl_to_string,
+  handle_tpl_to_expression,
+  key_value_to_str,
+  transform_bin_expr_to_number,
+};
+use crate::shared::utils::common::{
+  get_expr_from_var_decl,
+  get_key_values_from_object,
+  get_var_decl_by_ident,
 };
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;

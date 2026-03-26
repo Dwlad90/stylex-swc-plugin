@@ -1,35 +1,37 @@
 use rustc_hash::FxHashSet;
+use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
-use crate::shared::{
-  constants::{
-    common::VAR_GROUP_HASH_KEY,
-    messages::{
-      DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-      INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
-      NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-      ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
-      non_static_value, non_style_object, unbound_call_value,
-    },
-  },
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, top_level_expression::TopLevelExpression,
-  },
-  structures::state_manager::StateManager,
-  utils::{
-    ast::{
-      convertors::create_string_expr,
-      factories::{create_expr_or_spread, create_key_value_prop_ident},
-      helpers::is_variable_named_exported,
-    },
-    common::get_import_from,
-    log::build_code_frame_error::build_code_frame_error_and_panic,
-  },
+use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
+use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
+use stylex_constants::constants::messages::{
+  DUPLICATE_CONDITIONAL,
+  EXPECTED_CSS_VAR,
+  ILLEGAL_PROP_ARRAY_VALUE,
+  ILLEGAL_PROP_VALUE,
+  INVALID_PSEUDO_OR_AT_RULE,
+  MEMBER_OBJ_NOT_IDENT,
+  NON_OBJECT_KEYFRAME,
+  NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
+  NO_OBJECT_SPREADS,
+  ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
+  ONLY_OVERRIDE_DEFINE_VARS,
+  illegal_argument_length,
+  non_export_named_declaration,
+  non_static_value,
+  non_style_object,
+  unbound_call_value,
 };
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::ast::convertors::create_string_expr;
+use crate::shared::utils::ast::helpers::is_variable_named_exported;
+use crate::shared::utils::common::get_import_from;
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic;
 
 use super::{
   ast::convertors::{key_value_to_str, convert_lit_to_string},

@@ -3,11 +3,13 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 use stylex_constants::constants::common::DEFAULT_INJECT_PATH;
+use stylex_enums::property_validation_mode::PropertyValidationMode;
+use stylex_enums::style_resolution::StyleResolution;
 
 use crate::{
   named_import_source::{ImportSources, RuntimeInjection, RuntimeInjectionState},
   stylex_env::{EnvEntry, JSFunction},
-  stylex_options::{CheckModuleResolution, PropertyValidationMode, StyleResolution, StyleXOptions},
+  stylex_options::{CheckModuleResolution, StyleXOptions},
 };
 
 #[derive(Deserialize, Clone, Debug)]

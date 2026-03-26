@@ -21,23 +21,24 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::utils::ExprExt;
 
-use crate::shared::{
-  constants::messages::{
-    ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
-  },
-  enums::{
-    data_structures::evaluate_result_value::EvaluateResultValue,
-    misc::{BinaryExprType, VarDeclAction},
-  },
-  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
-  swc::get_default_expr_ctx,
-  utils::{
-    common::{
-      evaluate_bin_expr, get_expr_from_var_decl, get_var_decl_by_ident, wrap_key_in_quotes,
-    },
-    js::evaluate::{deopt, evaluate_cached},
-  },
+use stylex_constants::constants::messages::{
+  ILLEGAL_PROP_VALUE,
+  VAR_DECL_INIT_REQUIRED,
+  non_static_value,
 };
+use stylex_enums::misc::{BinaryExprType, VarDeclAction};
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::state::EvaluationState;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::swc::get_default_expr_ctx;
+use crate::shared::utils::common::{
+  evaluate_bin_expr,
+  get_expr_from_var_decl,
+  get_var_decl_by_ident,
+  wrap_key_in_quotes,
+};
+use crate::shared::utils::js::evaluate::{deopt, evaluate_cached};
 
 pub fn expr_to_num(
   expr_num: &Expr,

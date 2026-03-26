@@ -1,7 +1,5 @@
-use stylex_transform::{
-  StyleXTransform,
-  shared::structures::plugin_pass::PluginPass,
-};
+use stylex_transform::StyleXTransform;
+use stylex_structures::plugin_pass::PluginPass;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,

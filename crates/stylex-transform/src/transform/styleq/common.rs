@@ -6,12 +6,11 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 
-use crate::shared::{
-  constants::{common::COMPILED_KEY, messages::COMPILED_KEY_MISSING},
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::types::FlatCompiledStyles,
-  utils::core::parse_nullable_style::{ResolvedArg, StyleObject},
-};
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_constants::constants::messages::COMPILED_KEY_MISSING;
+use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::shared::structures::types::FlatCompiledStyles;
+use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
 
 pub(crate) struct StyleQResult {
   pub(crate) class_name: String,

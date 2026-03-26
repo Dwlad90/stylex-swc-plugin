@@ -8,9 +8,5 @@ pub mod macros;
 pub mod object;
 pub(crate) mod validators;
 
-// Re-exported from stylex_css
-pub use stylex_css::utils::pre_rule;
-pub use stylex_css::utils::vector;
-pub use stylex_css::utils::when;
 
 pub mod factories;

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 
-use crate::structures::stylex_state_options::StyleXStateOptions;
+use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 use crate::enums::data_structures::injectable_style::InjectableStyleKind;
 

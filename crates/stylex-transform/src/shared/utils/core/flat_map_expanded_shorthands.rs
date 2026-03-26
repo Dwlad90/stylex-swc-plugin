@@ -2,19 +2,16 @@ use log::warn;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::{
-  structures::{
-    application_order::ApplicationOrder,
-    legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
-    order::Order,
-    order_pair::OrderPair,
-    pre_rule::PreRuleValue,
-    property_specificity_order::PropertySpecificityOrder,
-    stylex_options::{PropertyValidationMode, StyleResolution},
-    stylex_state_options::StyleXStateOptions,
-  },
-  utils::ast::convertors::convert_lit_to_string,
-};
+use stylex_css_order::structures::application_order::ApplicationOrder;
+use stylex_css_order::structures::legacy_expand_shorthands_order::LegacyExpandShorthandsOrder;
+use stylex_css_order::structures::property_specificity_order::PropertySpecificityOrder;
+use stylex_structures::order::Order;
+use stylex_structures::order_pair::OrderPair;
+use stylex_enums::property_validation_mode::PropertyValidationMode;
+use stylex_enums::style_resolution::StyleResolution;
+use stylex_structures::stylex_state_options::StyleXStateOptions;
+use crate::shared::structures::pre_rule::PreRuleValue;
+use crate::shared::utils::ast::convertors::convert_lit_to_string;
 
 pub(crate) fn flat_map_expanded_shorthands(
   obj_entry: (String, PreRuleValue),

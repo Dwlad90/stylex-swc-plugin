@@ -3,13 +3,9 @@ use swc_core::{
   ecma::{ast::JSXAttrOrSpread, utils::drop_span, visit::FoldWith},
 };
 
-use crate::{
-  StyleXTransform,
-  shared::{
-    enums::core::TransformationCycle,
-    utils::ast::factories::{create_jsx_attr_or_spread, create_jsx_spread_attr},
-  },
-};
+use crate::StyleXTransform;
+use stylex_ast::ast::factories::{create_jsx_attr_or_spread, create_jsx_spread_attr};
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

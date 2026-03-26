@@ -1,11 +1,6 @@
 use std::path::PathBuf;
-use stylex_transform::{
-  StyleXTransform,
-  shared::structures::{
-    plugin_pass::PluginPass,
-    stylex_options::{ModuleResolution, StyleXOptionsParams},
-  },
-};
+use stylex_transform::StyleXTransform;
+use stylex_structures::{plugin_pass::PluginPass, stylex_options::{ModuleResolution, StyleXOptionsParams}};
 use swc_core::common::FileName;
 use swc_core::ecma::parser::{Syntax, TsSyntax};
 use swc_core::ecma::transforms::testing::test;

@@ -1,19 +1,16 @@
 #[cfg(test)]
 mod tests {
-  use crate::shared::{
-    structures::{
-      functions::FunctionMap, state_manager::StateManager, stylex_options::StyleXOptions,
-    },
-    utils::{
-      ast::{
-        convertors::{
-          create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
-        },
-        factories::create_ident,
-      },
-      js::evaluate::evaluate,
-    },
+  use stylex_ast::ast::factories::create_ident;
+  use stylex_structures::stylex_options::StyleXOptions;
+  use crate::shared::structures::functions::FunctionMap;
+  use crate::shared::structures::state_manager::StateManager;
+  use crate::shared::utils::ast::convertors::{
+    create_bool_expr,
+    create_null_expr,
+    create_number_expr,
+    create_string_expr,
   };
+  use crate::shared::utils::js::evaluate::evaluate;
   use swc_core::common::util::take::Take;
   use swc_core::{
     common::{DUMMY_SP, GLOBALS, Globals},

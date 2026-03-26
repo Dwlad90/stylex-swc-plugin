@@ -5,8 +5,9 @@ use stylex_constants::constants::{
   logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL},
 };
 use stylex_regex::regex::LENGTH_UNIT_TESTER_REGEX;
-use stylex_types::structures::{
-  pair::Pair, stylex_options::StyleResolution,
+use stylex_enums::style_resolution::StyleResolution;
+use stylex_structures::{
+  pair::Pair,
   stylex_state_options::StyleXStateOptions,
 };
 

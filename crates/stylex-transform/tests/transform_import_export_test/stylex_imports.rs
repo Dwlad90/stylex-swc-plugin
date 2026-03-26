@@ -1,12 +1,6 @@
 use insta::assert_snapshot;
-use stylex_transform::{
-  StyleXTransform,
-  shared::structures::{
-    named_import_source::{ImportSources, NamedImportSource},
-    plugin_pass::PluginPass,
-    stylex_options::{StyleXOptions, StyleXOptionsParams},
-  },
-};
+use stylex_transform::StyleXTransform;
+use stylex_structures::{named_import_source::{ImportSources, NamedImportSource}, plugin_pass::PluginPass, stylex_options::{StyleXOptions, StyleXOptionsParams}};
 use swc_core::{
   common::FileName,
   ecma::{

@@ -1,12 +1,7 @@
 use crate::utils::transform::stringify_js;
 use std::path::PathBuf;
-use stylex_transform::{
-  StyleXTransform,
-  shared::structures::{
-    plugin_pass::PluginPass,
-    stylex_options::{ModuleResolution, StyleXOptions, StyleXOptionsParams},
-  },
-};
+use stylex_transform::StyleXTransform;
+use stylex_structures::{plugin_pass::PluginPass, stylex_options::{ModuleResolution, StyleXOptions, StyleXOptionsParams}};
 use swc_core::common::FileName;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},

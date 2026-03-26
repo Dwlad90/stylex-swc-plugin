@@ -4,18 +4,12 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
-use crate::shared::{
-  enums::{
-    data_structures::value_with_default::ValueWithDefault,
-    js::{ArrayJS, MathJS, ObjectJS, StringJS},
-  },
-  structures::types::FlatCompiledStyles,
-};
+use stylex_enums::js::{ArrayJS, MathJS, ObjectJS, StringJS};
+use stylex_enums::value_with_default::ValueWithDefault;
+use crate::shared::structures::types::FlatCompiledStyles;
 
-use super::{
-  stylex_env::JSFunction,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-};
+use stylex_structures::stylex_env::JSFunction;
+use super::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 
 use stylex_types::traits::StyleOptions;
 
@@ -108,7 +102,7 @@ pub enum FunctionConfigType {
   Map(FxHashMap<Atom, FunctionConfig>),
   IndexMap(FlatCompiledStyles),
   /// An env object from the `env` config option. Contains both values and functions.
-  EnvObject(IndexMap<String, super::stylex_env::EnvEntry>),
+  EnvObject(IndexMap<String, stylex_structures::stylex_env::EnvEntry>),
 }
 
 impl std::fmt::Debug for FunctionConfigType {

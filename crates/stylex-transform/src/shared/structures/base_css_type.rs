@@ -5,21 +5,18 @@ use swc_core::ecma::{
   utils::ExprExt,
 };
 
-use crate::shared::{
-  constants::messages::VALUE_MUST_BE_STRING,
-  enums::data_structures::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault},
-  swc::get_default_expr_ctx,
-  utils::{
-    ast::{
-      convertors::{key_value_to_str, convert_lit_to_string},
-      factories::{
-        create_object_expression, create_object_lit, create_key_value_prop,
-        create_string_key_value_prop,
-      },
-    },
-    common::get_key_values_from_object,
-  },
+use stylex_ast::ast::factories::{
+  create_key_value_prop,
+  create_object_expression,
+  create_object_lit,
+  create_string_key_value_prop,
 };
+use stylex_constants::constants::messages::VALUE_MUST_BE_STRING;
+use stylex_enums::css_syntax::CSSSyntax;
+use stylex_enums::value_with_default::ValueWithDefault;
+use crate::shared::swc::get_default_expr_ctx;
+use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
+use crate::shared::utils::common::get_key_values_from_object;
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub struct BaseCSSType {

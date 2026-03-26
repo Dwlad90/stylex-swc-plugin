@@ -3,9 +3,9 @@ use std::{borrow::Borrow, rc::Rc, sync::Arc};
 // Import error handling macros from shared utilities
 use crate::{
   expr_to_str_or_deopt,
-  shared::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS},
   stylex_panic_with_context,
 };
+use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -27,64 +27,102 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  constants::{
-    common::{INVALID_METHODS, VALID_CALLEES},
-    evaluation_errors::{
-      IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE,
-      UNEXPECTED_MEMBER_LOOKUP, unsupported_expression, unsupported_operator,
-    },
-    messages::{
-      ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
-      ILLEGAL_PROP_ARRAY_VALUE, INVALID_UTF8, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED,
-      MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_MUST_BE_OBJECT,
-      SPREAD_NOT_SUPPORTED, THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
-    },
-  },
-  enums::{
-    core::TransformationCycle,
-    data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
-      value_with_default::ValueWithDefault,
-    },
-    js::{ArrayJS, MathJS, ObjectJS, StringJS},
-    misc::{BinaryExprType, VarDeclAction},
-  },
-  structures::{
-    evaluate_result::EvaluateResult,
-    functions::{CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    named_import_source::ImportSources,
-    seen_value::SeenValue,
-    state::EvaluationState,
-    state_manager::{SeenValueWithVarDeclCount, StateManager, add_import_expression},
-    stylex_env::EnvEntry,
-    theme_ref::ThemeRef,
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
-  swc::get_default_expr_ctx,
-  utils::{
-    ast::{
-      convertors::{
-        convert_atom_to_str_ref, convert_atom_to_string, create_big_int_expr, binary_expr_to_num,
-        binary_expr_to_string, create_bool_expr, expr_to_bool, expr_to_num, expr_to_str,
-        key_value_to_str, convert_lit_to_string, create_number_expr, create_string_expr,
-        extract_tpl_cooked_value, expand_shorthand_prop,
-      },
-      factories::{
-        create_array_expression, create_expr_or_spread, create_string_lit,
-        create_object_expression, create_object_lit, create_ident_key_value_prop,
-      },
-    },
-    common::{
-      char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
-      get_import_by_ident, get_key_values_from_object, get_var_decl_by_ident, get_var_decl_from,
-      normalize_expr, reduce_ident_count, reduce_member_expression_count, remove_duplicates,
-      sort_numbers_factory, stable_hash, sum_hash_map_values,
-    },
-    js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
-  },
+use stylex_ast::ast::factories::{
+  create_array_expression,
+  create_expr_or_spread,
+  create_ident_key_value_prop,
+  create_object_expression,
+  create_object_lit,
+  create_string_lit,
 };
+use stylex_constants::constants::common::{INVALID_METHODS, VALID_CALLEES};
+use stylex_constants::constants::evaluation_errors::{
+  IMPORT_PATH_RESOLUTION_ERROR,
+  NON_CONSTANT,
+  OBJECT_METHOD,
+  PATH_WITHOUT_NODE,
+  UNEXPECTED_MEMBER_LOOKUP,
+  unsupported_expression,
+  unsupported_operator,
+};
+use stylex_constants::constants::messages::{
+  ARGUMENT_NOT_EXPRESSION,
+  BUILT_IN_FUNCTION,
+  EXPECTED_CSS_VAR,
+  EXPRESSION_IS_NOT_A_STRING,
+  ILLEGAL_PROP_ARRAY_VALUE,
+  INVALID_UTF8,
+  KEY_VALUE_EXPECTED,
+  MEMBER_NOT_RESOLVED,
+  MEMBER_OBJ_NOT_IDENT,
+  OBJECT_KEY_MUST_BE_IDENT,
+  PROPERTY_NOT_FOUND,
+  SPREAD_MUST_BE_OBJECT,
+  SPREAD_NOT_SUPPORTED,
+  THEME_IMPORT_KEY_AS_OBJECT_KEY,
+  VALUE_MUST_BE_LITERAL,
+};
+use stylex_enums::core::TransformationCycle;
+use stylex_enums::import_path_resolution::{ImportPathResolution, ImportPathResolutionType};
+use stylex_enums::js::{ArrayJS, MathJS, ObjectJS, StringJS};
+use stylex_enums::misc::{BinaryExprType, VarDeclAction};
+use stylex_enums::value_with_default::ValueWithDefault;
+use stylex_structures::named_import_source::ImportSources;
+use stylex_structures::stylex_env::EnvEntry;
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::structures::evaluate_result::EvaluateResult;
+use crate::shared::structures::functions::{
+  CallbackType,
+  FunctionConfig,
+  FunctionConfigType,
+  FunctionMap,
+  FunctionType,
+};
+use crate::shared::structures::seen_value::SeenValue;
+use crate::shared::structures::state::EvaluationState;
+use crate::shared::structures::state_manager::{
+  SeenValueWithVarDeclCount,
+  StateManager,
+  add_import_expression,
+};
+use crate::shared::structures::theme_ref::ThemeRef;
+use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
+use crate::shared::swc::get_default_expr_ctx;
+use crate::shared::utils::ast::convertors::{
+  binary_expr_to_num,
+  binary_expr_to_string,
+  convert_atom_to_str_ref,
+  convert_atom_to_string,
+  convert_lit_to_string,
+  create_big_int_expr,
+  create_bool_expr,
+  create_number_expr,
+  create_string_expr,
+  expand_shorthand_prop,
+  expr_to_bool,
+  expr_to_num,
+  expr_to_str,
+  extract_tpl_cooked_value,
+  key_value_to_str,
+};
+use crate::shared::utils::common::{
+  char_code_at,
+  deep_merge_props,
+  get_hash_map_difference,
+  get_hash_map_value_difference,
+  get_import_by_ident,
+  get_key_values_from_object,
+  get_var_decl_by_ident,
+  get_var_decl_from,
+  normalize_expr,
+  reduce_ident_count,
+  reduce_member_expression_count,
+  remove_duplicates,
+  sort_numbers_factory,
+  stable_hash,
+  sum_hash_map_values,
+};
+use crate::shared::utils::js::native_functions::{evaluate_filter, evaluate_join, evaluate_map};
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
 

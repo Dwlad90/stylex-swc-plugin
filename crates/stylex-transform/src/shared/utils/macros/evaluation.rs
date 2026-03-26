@@ -21,7 +21,7 @@
 #[macro_export]
 macro_rules! stylex_panic_with_context {
   ($expr:expr, $state:expr, $msg:expr) => {{
-    let paren_expr = $crate::shared::utils::ast::factories::wrap_in_paren_ref($expr);
+    let paren_expr = $crate::__stylex_ast::ast::factories::wrap_in_paren_ref($expr);
     $crate::shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic(
       &paren_expr,
       $expr,

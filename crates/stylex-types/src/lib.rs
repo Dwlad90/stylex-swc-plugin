@@ -1,7 +1,6 @@
 pub mod enums;
 pub mod structures;
 pub mod traits;
-pub mod utils;
 
 #[cfg(test)]
 mod tests {

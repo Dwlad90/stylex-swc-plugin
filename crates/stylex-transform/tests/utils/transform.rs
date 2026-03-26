@@ -1,6 +1,7 @@
 use std::{rc::Rc, sync::Arc};
 
-use stylex_transform::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use stylex_structures::plugin_pass::PluginPass;
+use stylex_transform::StyleXTransform;
 
 use swc_core::{
   common::SyntaxContext,

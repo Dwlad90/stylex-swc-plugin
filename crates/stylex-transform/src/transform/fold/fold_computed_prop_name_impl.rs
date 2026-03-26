@@ -10,11 +10,11 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    constants::messages::EXPRESSION_IS_NOT_A_STRING,
-    enums::core::TransformationCycle,
     utils::{ast::convertors::expr_to_str, common::increase_ident_count},
   },
 };
+use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

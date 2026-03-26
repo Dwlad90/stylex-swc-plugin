@@ -31,6 +31,8 @@ rustc-hash.workspace = true
 log.workspace = true
 
 stylex_constants = { path = "../stylex-constants" }
+stylex_enums = { path = "../stylex-enums" }
+stylex_structures = { path = "../stylex-structures" }
 stylex_types = { path = "../stylex-types" }
 stylex_ast = { path = "../stylex-ast" }
 stylex_evaluator = { path = "../stylex-evaluator" }

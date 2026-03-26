@@ -1,11 +1,9 @@
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
 
-use crate::shared::{
-  constants::common::VAR_GROUP_HASH_KEY,
-  enums::theme_ref::ThemeRefResult,
-  utils::common::{create_hash, gen_file_based_identifier},
-};
+use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
+use stylex_enums::theme_ref::ThemeRefResult;
+use crate::shared::utils::common::{create_hash, gen_file_based_identifier};
 
 use super::state_manager::StateManager;
 

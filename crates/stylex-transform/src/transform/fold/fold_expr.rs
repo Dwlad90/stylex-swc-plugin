@@ -5,11 +5,9 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::{
-    enums::core::TransformationCycle,
-    utils::common::{normalize_expr, stable_hash},
-  },
+  shared::utils::common::{normalize_expr, stable_hash},
 };
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

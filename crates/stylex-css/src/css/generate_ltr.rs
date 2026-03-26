@@ -1,6 +1,7 @@
 use stylex_constants::constants::logical_to_ltr::{INLINE_PROPERTY_TO_LTR, PROPERTY_TO_LTR};
-use stylex_types::structures::{
-  pair::Pair, stylex_options::StyleResolution, stylex_state_options::StyleXStateOptions,
+use stylex_enums::style_resolution::StyleResolution;
+use stylex_structures::{
+  pair::Pair, stylex_state_options::StyleXStateOptions,
 };
 
 pub fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {

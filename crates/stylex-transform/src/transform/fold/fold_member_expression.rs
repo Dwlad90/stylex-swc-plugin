@@ -6,15 +6,13 @@ use swc_core::{
   },
 };
 
+use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
+use stylex_enums::core::TransformationCycle;
+use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
+
 use crate::{
   StyleXTransform,
-  shared::{
-    enums::{
-      core::TransformationCycle,
-      data_structures::style_vars_to_keep::{NonNullProp, NonNullProps, StyleVarsToKeep},
-    },
-    utils::common::{increase_ident_count, increase_member_ident_count, reduce_member_ident_count},
-  },
+  shared::utils::common::{increase_ident_count, increase_member_ident_count, reduce_member_ident_count},
 };
 
 impl<C> StyleXTransform<C>

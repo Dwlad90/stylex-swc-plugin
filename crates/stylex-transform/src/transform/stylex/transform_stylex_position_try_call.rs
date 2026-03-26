@@ -1,4 +1,4 @@
-use crate::shared::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
+use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
 use std::rc::Rc;
 
 use indexmap::IndexMap;
@@ -7,32 +7,19 @@ use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use crate::shared::{
-  constants::messages::{non_static_value, non_style_object},
-  transformers::stylex_first_that_works::stylex_first_that_works,
-};
-use crate::shared::{
-  constants::{common::VALID_POSITION_TRY_PROPERTIES, messages::POSITION_TRY_INVALID_PROPERTY},
-  utils::js::evaluate::evaluate,
-};
-use crate::shared::{
-  structures::functions::FunctionConfigType,
-  utils::log::build_code_frame_error::build_code_frame_error,
-};
-use crate::shared::{
-  structures::{
-    functions::{FunctionConfig, FunctionMap, FunctionType},
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
-  utils::validators::validate_stylex_position_try_indent,
-};
-use crate::shared::{
-  transformers::stylex_position_try::stylex_position_try,
-  utils::{
-    ast::convertors::create_string_expr,
-    validators::{assert_valid_position_try, assert_valid_properties},
-  },
-};
+use stylex_constants::constants::messages::{non_static_value, non_style_object};
+use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
+use stylex_constants::constants::common::VALID_POSITION_TRY_PROPERTIES;
+use stylex_constants::constants::messages::POSITION_TRY_INVALID_PROPERTY;
+use crate::shared::utils::js::evaluate::evaluate;
+use crate::shared::structures::functions::FunctionConfigType;
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
+use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
+use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
+use crate::shared::utils::validators::validate_stylex_position_try_indent;
+use crate::shared::transformers::stylex_position_try::stylex_position_try;
+use crate::shared::utils::ast::convertors::create_string_expr;
+use crate::shared::utils::validators::{assert_valid_position_try, assert_valid_properties};
 use crate::{StyleXTransform, shared::utils::validators::is_position_try_call};
 
 impl<C> StyleXTransform<C>

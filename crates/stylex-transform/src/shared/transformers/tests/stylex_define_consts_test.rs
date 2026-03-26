@@ -2,20 +2,14 @@
 mod stylex_define_consts {
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue, injectable_style::InjectableStyleKind,
-    },
-    structures::{state_manager::StateManager, stylex_options::StyleXOptions},
-    transformers::stylex_define_consts::stylex_define_consts,
-    utils::{
-      ast::{
-        convertors::create_string_expr,
-        factories::{create_object_expression, create_key_value_prop},
-      },
-      common::create_hash,
-    },
-  };
+  use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
+  use stylex_structures::stylex_options::StyleXOptions;
+  use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+  use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+  use crate::shared::structures::state_manager::StateManager;
+  use crate::shared::transformers::stylex_define_consts::stylex_define_consts;
+  use crate::shared::utils::ast::convertors::create_string_expr;
+  use crate::shared::utils::common::create_hash;
 
   fn create_test_state_manager(export_id: &str) -> StateManager {
     let mut state = StateManager::new(StyleXOptions {

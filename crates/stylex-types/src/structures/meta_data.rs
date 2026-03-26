@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize, Serializer};
 use crate::{
   enums::data_structures::injectable_style::{InjectableStyleBaseKind, InjectableStyleKind},
   traits::InjectableStylesMap,
-  utils::hash_f64,
 };
+use stylex_utils::hash::hash_f64;
 
 fn f64_to_int<S>(priority: &f64, serializer: S) -> Result<S::Ok, S::Error>
 where

@@ -8,5 +8,6 @@ publish = false
 
 [dependencies]
 stylex_constants = { path = "../stylex-constants" }
+stylex_structures = { path = "../stylex-structures" }
 stylex_types = { path = "../stylex-types" }
 stylex_css_values = { path = "../stylex-css-values" }

@@ -11,15 +11,16 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    constants::messages::VAR_DECL_INIT_REQUIRED,
-    enums::core::TransformationCycle,
     regex::STYLEX_CONSTS_IMPORT_REGEX,
     utils::{
-      ast::{convertors::convert_atom_to_string, factories::create_binding_ident},
+      ast::convertors::convert_atom_to_string,
       common::{fill_state_declarations, stable_hash},
     },
   },
 };
+use stylex_ast::ast::factories::create_binding_ident;
+use stylex_constants::constants::messages::VAR_DECL_INIT_REQUIRED;
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

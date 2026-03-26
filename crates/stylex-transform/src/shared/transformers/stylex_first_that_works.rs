@@ -4,15 +4,12 @@ use swc_core::ecma::ast::Expr;
 
 use stylex_types::traits::StyleOptions;
 
-use crate::shared::{
-  constants::messages::EXPRESSION_IS_NOT_A_STRING,
-  regex::IS_CSS_VAR,
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::ast::{
-    convertors::{expr_to_str, create_string_expr},
-    factories::{create_array_expression, create_expr_or_spread},
-  },
-};
+use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
+use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
+use crate::shared::regex::IS_CSS_VAR;
+use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::ast::convertors::{create_string_expr, expr_to_str};
 
 fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
   let str_arg = match expr_to_str(arg, state, functions) {

@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use crate::StyleXTransform;
-use crate::shared::enums::core::TransformationCycle;
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

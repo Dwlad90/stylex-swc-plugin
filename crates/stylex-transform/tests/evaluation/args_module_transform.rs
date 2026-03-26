@@ -1,14 +1,12 @@
 use rustc_hash::FxHashMap;
+use stylex_ast::ast::factories::{
+  create_array_expression, create_object_expression, create_key_value_prop,
+};
 use stylex_transform::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    ast::{
-      convertors::{expr_to_str, create_number_expr},
-      factories::{
-        create_array_expression, create_object_expression, create_key_value_prop,
-      },
-    },
+    ast::convertors::{expr_to_str, create_number_expr},
     core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
   },
 };

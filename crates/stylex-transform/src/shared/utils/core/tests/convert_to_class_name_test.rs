@@ -1,12 +1,10 @@
 #[cfg(test)]
 mod convert_style_to_class_name {
-  use crate::shared::{
-    structures::{
-      pre_rule::PreRuleValue, state_manager::StateManager, stylex_options::StyleResolution,
-      stylex_state_options::StyleXStateOptions,
-    },
-    utils::core::convert_style_to_class_name::convert_style_to_class_name,
-  };
+  use stylex_enums::style_resolution::StyleResolution;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use crate::shared::structures::pre_rule::PreRuleValue;
+  use crate::shared::structures::state_manager::StateManager;
+  use crate::shared::utils::core::convert_style_to_class_name::convert_style_to_class_name;
   fn convert(styles: (&str, &PreRuleValue)) -> String {
     let result = convert_style_to_class_name(
       styles,

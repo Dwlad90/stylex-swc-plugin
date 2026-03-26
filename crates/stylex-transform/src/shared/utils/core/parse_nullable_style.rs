@@ -4,17 +4,19 @@ use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp, ObjectLit};
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  },
-  structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
-  utils::{
-    ast::convertors::{expr_to_bool, expr_to_str, key_value_to_str, convert_lit_to_string},
-    common::reduce_ident_count,
-    js::evaluate::evaluate,
-  },
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::types::FlatCompiledStyles;
+use crate::shared::utils::ast::convertors::{
+  convert_lit_to_string,
+  expr_to_bool,
+  expr_to_str,
+  key_value_to_str,
 };
+use crate::shared::utils::common::reduce_ident_count;
+use crate::shared::utils::js::evaluate::evaluate;
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StyleObject {

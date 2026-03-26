@@ -1,4 +1,4 @@
-use crate::shared::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED};
+use stylex_constants::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED};
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
@@ -7,34 +7,24 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::{
-  constants::messages::{non_static_value, non_style_object},
-  utils::{
-    core::js_to_expr::{NestedStringObject, convert_object_to_ast},
-    js::evaluate::evaluate,
-  },
+use stylex_constants::constants::messages::{non_static_value, non_style_object};
+use crate::shared::utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast};
+use crate::shared::utils::js::evaluate::evaluate;
+use crate::shared::structures::functions::FunctionConfigType;
+use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
+use crate::shared::transformers::stylex_types::get_types_fn;
+use crate::shared::structures::types::FunctionMapMemberExpression;
+use crate::shared::utils::core::dev_class_name::convert_theme_to_dev_styles;
+use crate::shared::utils::validators::{
+  is_create_theme_call,
+  validate_stylex_create_theme_indent,
+  validate_theme_variables,
 };
-use crate::shared::{
-  structures::functions::FunctionConfigType,
-  transformers::{stylex_keyframes::get_keyframes_fn, stylex_types::get_types_fn},
-};
-use crate::shared::{
-  structures::types::FunctionMapMemberExpression,
-  utils::{
-    core::dev_class_name::convert_theme_to_dev_styles,
-    validators::{
-      is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
-    },
-  },
-};
-use crate::shared::{
-  structures::{functions::FunctionMap, types::FunctionMapIdentifiers},
-  utils::log::build_code_frame_error::build_code_frame_error,
-};
-use crate::shared::{
-  transformers::stylex_create_theme::stylex_create_theme,
-  utils::core::dev_class_name::convert_theme_to_test_styles,
-};
+use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::types::FunctionMapIdentifiers;
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
+use crate::shared::transformers::stylex_create_theme::stylex_create_theme;
+use crate::shared::utils::core::dev_class_name::convert_theme_to_test_styles;
 use crate::{StyleXTransform, shared::transformers::stylex_position_try::get_position_try_fn};
 
 impl<C> StyleXTransform<C>

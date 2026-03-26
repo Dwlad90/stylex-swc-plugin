@@ -3,8 +3,9 @@ use std::{hash::Hash, rc::Rc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  enums::data_structures::injectable_style::InjectableStyleKind, utils::hash_f64,
+  enums::data_structures::injectable_style::InjectableStyleKind,
 };
+use stylex_utils::hash::hash_f64;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Hash, Eq)]
 pub struct InjectableStyleBase {

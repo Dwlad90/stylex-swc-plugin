@@ -2880,9 +2880,11 @@ dependencies = [
  "serde_json",
  "serde_plain",
  "stylex_ast",
+ "stylex_enums",
  "stylex_logs",
  "stylex_macros",
  "stylex_regex",
+ "stylex_structures",
  "stylex_transform",
  "stylex_types",
  "stylex_utils",
@@ -2933,9 +2935,11 @@ dependencies = [
  "stylex_css_parser",
  "stylex_css_utils",
  "stylex_css_values",
+ "stylex_enums",
  "stylex_evaluator",
  "stylex_macros",
  "stylex_regex",
+ "stylex_structures",
  "stylex_types",
  "swc_core",
 ]
@@ -2946,6 +2950,7 @@ version = "0.15.1-rc.1"
 dependencies = [
  "stylex_constants",
  "stylex_css_values",
+ "stylex_structures",
  "stylex_types",
 ]
 
@@ -2973,7 +2978,7 @@ name = "stylex_css_utils"
 version = "0.15.1-rc.1"
 dependencies = [
  "log",
- "stylex_types",
+ "stylex_structures",
 ]
 
 [[package]]
@@ -3166,11 +3171,17 @@ dependencies = [
  "stylex_ast",
  "stylex_constants",
  "stylex_css",
+ "stylex_css_order",
  "stylex_css_parser",
+ "stylex_css_utils",
+ "stylex_css_values",
+ "stylex_data_structures",
+ "stylex_enums",
  "stylex_logs",
  "stylex_macros",
  "stylex_path_resolver",
  "stylex_regex",
+ "stylex_structures",
  "stylex_types",
  "stylex_utils",
  "swc_compiler_base",

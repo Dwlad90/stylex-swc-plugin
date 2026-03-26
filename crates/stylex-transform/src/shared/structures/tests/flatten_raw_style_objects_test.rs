@@ -3,24 +3,16 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::Expr;
 
-  use crate::shared::{
-    structures::{
-      functions::FunctionMap,
-      null_pre_rule::NullPreRule,
-      pre_rule::{PreRuleValue, PreRules, StylesPreRule},
-      pre_rule_set::PreRuleSet,
-      state::EvaluationState,
-      state_manager::StateManager,
-      stylex_options::StyleResolution,
-    },
-    utils::{
-      ast::{
-        convertors::create_string_expr,
-        factories::{create_array, create_key_value_prop_ident},
-      },
-      core::flatten_raw_style_object::flatten_raw_style_object,
-    },
-  };
+  use stylex_ast::ast::factories::{create_array, create_key_value_prop_ident};
+  use stylex_enums::style_resolution::StyleResolution;
+  use crate::shared::structures::functions::FunctionMap;
+  use crate::shared::structures::null_pre_rule::NullPreRule;
+  use crate::shared::structures::pre_rule::{PreRuleValue, PreRules, StylesPreRule};
+  use crate::shared::structures::pre_rule_set::PreRuleSet;
+  use crate::shared::structures::state::EvaluationState;
+  use crate::shared::structures::state_manager::StateManager;
+  use crate::shared::utils::ast::convertors::create_string_expr;
+  use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
 
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
@@ -419,16 +411,21 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
 mod nested_objects {
   use indexmap::IndexMap;
 
-  use crate::shared::{
-    structures::{
-      functions::FunctionMap, state::EvaluationState, tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
-        get_state, null_rule_factory, pre_rule_factory, pre_rule_set_factory,
-      }
-    },
-    utils::{
-      ast::{convertors::create_string_expr, factories::{create_key_value_prop_ident, create_object_expression, create_string_key_value_prop}, }, core::flatten_raw_style_object::flatten_raw_style_object,
-    },
+  use stylex_ast::ast::factories::{
+    create_key_value_prop_ident,
+    create_object_expression,
+    create_string_key_value_prop,
   };
+  use crate::shared::structures::functions::FunctionMap;
+  use crate::shared::structures::state::EvaluationState;
+  use crate::shared::structures::tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
+    get_state,
+    null_rule_factory,
+    pre_rule_factory,
+    pre_rule_set_factory,
+  };
+  use crate::shared::utils::ast::convertors::create_string_expr;
+  use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
 
   #[test]
   fn legacy_pseudo_classes() {
@@ -780,16 +777,22 @@ mod nested_objects {
 mod multiple_levels_of_nesting {
   use indexmap::IndexMap;
 
-  use crate::shared::{
-    structures::{
-      functions::FunctionMap, state::EvaluationState, tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
-        get_state, pre_rule_factory, pre_rule_set_factory, pre_rule_vec_factory,
-      }
-    },
-    utils::{
-       ast::factories::{create_key_value_prop_ident, create_object_expression, create_string_array_prop, create_nested_object_prop, create_string_key_value_prop}, core::flatten_raw_style_object::flatten_raw_style_object
-    },
+  use stylex_ast::ast::factories::{
+    create_key_value_prop_ident,
+    create_nested_object_prop,
+    create_object_expression,
+    create_string_array_prop,
+    create_string_key_value_prop,
   };
+  use crate::shared::structures::functions::FunctionMap;
+  use crate::shared::structures::state::EvaluationState;
+  use crate::shared::structures::tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
+    get_state,
+    pre_rule_factory,
+    pre_rule_set_factory,
+    pre_rule_vec_factory,
+  };
+  use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
 
   #[test]
   fn fallback_styles_within_nested_objects() {

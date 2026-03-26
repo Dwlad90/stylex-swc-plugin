@@ -1,39 +1,42 @@
-use crate::shared::{
-  constants::{
-    common::{
-      COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
-      COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES, CSS_CONTENT_FUNCTIONS,
-      CSS_CONTENT_KEYWORDS,
-    },
-    long_hand_logical::LONG_HAND_LOGICAL,
-    long_hand_physical::LONG_HAND_PHYSICAL,
-    messages::LINT_UNCLOSED_FUNCTION,
-    number_properties::NUMBER_PROPERTY_SUFFIXIES,
-    priorities::{
-      AT_RULE_PRIORITIES, CAMEL_CASE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
-    },
-    shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
-    shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
-    unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
-  },
-  regex::{
-    ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, MANY_SPACES,
-    PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
-  },
-  structures::{
-    injectable_style::InjectableStyle, pair::Pair, state_manager::StateManager,
-    stylex_state_options::StyleXStateOptions,
-  },
-  utils::{
-    common::round_to_decimal_places,
-    css::{
-      generate_ltr::generate_ltr,
-      generate_rtl::generate_rtl,
-      normalizers::{base::base_normalizer, whitespace_normalizer::whitespace_normalizer},
-      validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
-    },
-  },
+use stylex_constants::constants::common::{
+  COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
+  COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
+  CSS_CONTENT_FUNCTIONS,
+  CSS_CONTENT_KEYWORDS,
 };
+use stylex_constants::constants::long_hand_logical::LONG_HAND_LOGICAL;
+use stylex_constants::constants::long_hand_physical::LONG_HAND_PHYSICAL;
+use stylex_constants::constants::messages::LINT_UNCLOSED_FUNCTION;
+use stylex_constants::constants::number_properties::NUMBER_PROPERTY_SUFFIXIES;
+use stylex_constants::constants::priorities::{
+  AT_RULE_PRIORITIES,
+  CAMEL_CASE_PRIORITIES,
+  PSEUDO_CLASS_PRIORITIES,
+  PSEUDO_ELEMENT_PRIORITY,
+};
+use stylex_constants::constants::shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS;
+use stylex_constants::constants::shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS;
+use stylex_constants::constants::unitless_number_properties::UNITLESS_NUMBER_PROPERTIES;
+use stylex_css::css::generate_ltr::generate_ltr;
+use stylex_css::css::generate_rtl::generate_rtl;
+use stylex_css::css::normalizers::whitespace_normalizer::whitespace_normalizer;
+use stylex_structures::pair::Pair;
+use stylex_structures::stylex_state_options::StyleXStateOptions;
+use stylex_types::structures::injectable_style::InjectableStyle;
+use crate::shared::regex::{
+  ANCESTOR_SELECTOR,
+  ANY_SIBLING_SELECTOR,
+  CLEAN_CSS_VAR,
+  DESCENDANT_SELECTOR,
+  MANY_SPACES,
+  PSEUDO_PART_REGEX,
+  SIBLING_AFTER_SELECTOR,
+  SIBLING_BEFORE_SELECTOR,
+};
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::common::round_to_decimal_places;
+use crate::shared::utils::css::normalizers::base::base_normalizer;
+use crate::shared::utils::css::validators::unprefixed_custom_properties::unprefixed_custom_properties_validator;
 
 use stylex_macros::stylex_panic;
 use swc_core::{
@@ -49,10 +52,10 @@ use swc_core::{
 };
 
 #[allow(unused_imports)]
-pub(crate) use stylex_css::css::common::split_value_required;
+pub(crate) use stylex_css_values::common::split_value_required;
 
 #[allow(unused_imports)]
-pub(crate) use stylex_css::css::common::split_value;
+pub(crate) use stylex_css_values::common::split_value;
 
 const THUMB_VARIANTS: [&str; 3] = [
   "::-webkit-slider-thumb",

@@ -1,5 +1,5 @@
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
-use stylex_types::structures::order_pair::OrderPair;
+use stylex_structures::order_pair::OrderPair;
 use stylex_css_values::common::split_value_required;
 use stylex_css_values::parser::parse_css;
 

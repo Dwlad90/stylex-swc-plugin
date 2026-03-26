@@ -14,10 +14,11 @@ use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_transform::StyleXTransform;
-use stylex_types::structures::{
+use stylex_structures::{
   plugin_pass::PluginPass,
-  stylex_options::{StyleResolution, StyleXOptionsParams},
+  stylex_options::StyleXOptionsParams,
 };
+use stylex_enums::style_resolution::StyleResolution;
 use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
 
 use swc_core::{

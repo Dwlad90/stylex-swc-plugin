@@ -21,81 +21,66 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::{
-  constants::{
-    common::COMPILED_KEY,
-    messages::{EXPECTED_COMPILED_STYLES, non_static_value},
-  },
-  enums::data_structures::top_level_expression::TopLevelExpression,
-  regex::VAR_EXTRACTION_REGEX,
-  structures::{
-    functions::StylexExprFn,
-    injectable_style::InjectableStyle,
-    state_manager::StateManager,
-    types::InjectableStylesMap,
-    uid_generator::{CounterMode, UidGenerator},
-  },
-  transformers::{stylex_default_maker, stylex_position_try::get_position_try_fn},
-  utils::{
-    ast::{
-      convertors::{convert_atom_to_string, expr_to_str, key_value_to_str, convert_lit_to_string},
-      factories::create_string_var_declarator,
-    },
-    common::normalize_expr,
-    core::{
-      add_source_map_data::add_source_map_data,
-      dev_class_name::{convert_to_test_styles, inject_dev_class_names},
-    },
-    log::build_code_frame_error::build_code_frame_error,
-  },
+use stylex_ast::ast::factories::create_string_var_declarator;
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, non_static_value};
+use stylex_enums::counter_mode::CounterMode;
+use stylex_structures::uid_generator::UidGenerator;
+use stylex_types::structures::injectable_style::InjectableStyle;
+use crate::shared::regex::VAR_EXTRACTION_REGEX;
+use crate::shared::structures::functions::StylexExprFn;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::types::InjectableStylesMap;
+use crate::shared::transformers::stylex_default_maker;
+use crate::shared::transformers::stylex_position_try::get_position_try_fn;
+use crate::shared::utils::ast::convertors::{
+  convert_atom_to_string,
+  convert_lit_to_string,
+  expr_to_str,
+  key_value_to_str,
 };
-use crate::shared::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  structures::{dynamic_style::DynamicStyle, stylex_options::StyleResolution},
-  utils::{
-    ast::{
-      convertors::create_null_expr,
-      factories::{
-        create_array_expression, create_expr_or_spread, create_prop_from_name,
-        create_var_declarator,
-      },
-    },
-    core::js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
-  },
+use crate::shared::utils::common::normalize_expr;
+use crate::shared::utils::core::add_source_map_data::add_source_map_data;
+use crate::shared::utils::core::dev_class_name::{convert_to_test_styles, inject_dev_class_names};
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
+use stylex_ast::ast::factories::{
+  create_array_expression,
+  create_expr_or_spread,
+  create_prop_from_name,
+  create_var_declarator,
 };
-use crate::shared::{
-  structures::functions::{FunctionConfig, FunctionMap, FunctionType},
-  transformers::{
-    stylex_create::stylex_create_set, stylex_first_that_works::stylex_first_that_works,
-    stylex_keyframes::get_keyframes_fn,
-  },
-  utils::when as stylex_when,
+use stylex_structures::dynamic_style::DynamicStyle;
+use stylex_enums::style_resolution::StyleResolution;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use crate::shared::utils::ast::convertors::create_null_expr;
+use crate::shared::utils::core::js_to_expr::{
+  NestedStringObject,
+  convert_object_to_ast,
+  remove_objects_with_spreads,
 };
-use crate::shared::{
-  structures::state::EvaluationState,
-  utils::validators::{is_create_call, validate_stylex_create},
-};
-use crate::shared::{
-  structures::types::{FlatCompiledStyles, FunctionMapMemberExpression},
-  utils::core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
-};
-use crate::shared::{
-  structures::{functions::FunctionConfigType, types::FunctionMapIdentifiers},
-  utils::ast::factories::create_key_value_prop,
-};
-use crate::shared::{
-  structures::{
-    order_pair::OrderPair, pre_rule::PreRuleValue, stylex_state_options::StyleXStateOptions,
-  },
-  utils::{
-    ast::{convertors::create_string_expr, factories::create_object_expression},
-    common::get_key_values_from_object,
-    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-  },
-};
+use stylex_css_utils::when as stylex_when;
+use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
+use crate::shared::transformers::stylex_create::stylex_create_set;
+use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
+use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
+use crate::shared::structures::state::EvaluationState;
+use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
+use crate::shared::structures::types::{FlatCompiledStyles, FunctionMapMemberExpression};
+use crate::shared::utils::core::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
+use stylex_ast::ast::factories::create_key_value_prop;
+use crate::shared::structures::functions::FunctionConfigType;
+use crate::shared::structures::types::FunctionMapIdentifiers;
+use stylex_ast::ast::factories::create_object_expression;
+use stylex_structures::order_pair::OrderPair;
+use stylex_structures::stylex_state_options::StyleXStateOptions;
+use crate::shared::structures::pre_rule::PreRuleValue;
+use crate::shared::utils::ast::convertors::create_string_expr;
+use crate::shared::utils::common::get_key_values_from_object;
+use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 use crate::{
   StyleXTransform, shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic,
 };
+use stylex_data_structures::top_level_expression::TopLevelExpression;
 
 /// Lazily-initialized Arc-wrapped map of stylex.when helper functions.
 ///

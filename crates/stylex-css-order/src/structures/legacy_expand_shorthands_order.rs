@@ -1,6 +1,6 @@
 use crate::constants::legacy_expand_shorthands_order::{Aliases, Shorthands};
 
-use stylex_types::structures::{order::Order, order_pair::OrderPair};
+use stylex_structures::{order::Order, order_pair::OrderPair};
 
 pub struct LegacyExpandShorthandsOrder {}
 

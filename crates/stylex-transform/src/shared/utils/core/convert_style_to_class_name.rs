@@ -1,16 +1,12 @@
 use stylex_macros::stylex_panic;
 
-use crate::shared::{
-  constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS},
-  structures::{
-    injectable_style::InjectableStyle, pre_rule::PreRuleValue, state_manager::StateManager,
-  },
-  utils::{
-    common::{create_hash, dashify},
-    css::common::{generate_css_rule, transform_value_cached},
-    pre_rule::{sort_at_rules, sort_pseudos},
-  },
-};
+use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
+use stylex_css_utils::pre_rule::{sort_at_rules, sort_pseudos};
+use stylex_types::structures::injectable_style::InjectableStyle;
+use crate::shared::structures::pre_rule::PreRuleValue;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::common::{create_hash, dashify};
+use crate::shared::utils::css::common::{generate_css_rule, transform_value_cached};
 
 pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),

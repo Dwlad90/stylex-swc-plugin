@@ -22,10 +22,11 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  regex::URL_REGEX,
-  structures::state_manager::StateManager,
-  utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+use crate::shared::regex::URL_REGEX;
+use crate::shared::structures::state_manager::StateManager;
+use crate::shared::utils::ast::convertors::{
+  convert_concat_to_tpl_expr,
+  convert_simple_tpl_to_str_expr,
 };
 
 pub(crate) struct CodeFrame {

@@ -13,10 +13,11 @@ use crate::shared::{
 };
 
 use super::{
-  state_manager::StateManager,
   stylex_env::JSFunction,
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
+
+use stylex_types::traits::StyleOptions;
 
 #[derive(Debug, Hash, PartialEq, Clone)]
 pub enum CallbackType {
@@ -28,10 +29,10 @@ pub enum CallbackType {
 }
 
 pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
-pub type StylexExprFn = fn(Expr, &mut StateManager) -> Expr;
+pub type StylexExprFn = fn(Expr, &mut dyn StyleOptions) -> Expr;
 
 pub enum FunctionType {
-  ArrayArgs(fn(Vec<Expr>, &mut StateManager, &FunctionMap) -> Expr),
+  ArrayArgs(fn(Vec<Expr>, &mut dyn StyleOptions, &FunctionMap) -> Expr),
   StylexExprFn(StylexExprFn),
   StylexTypeFn(StylexTypeFn),
   StylexFnsFactory(fn(input: String) -> StylexTypeFn),

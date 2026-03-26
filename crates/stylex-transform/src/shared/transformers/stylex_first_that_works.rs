@@ -2,6 +2,8 @@ use log::warn;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
+use stylex_types::traits::StyleOptions;
+
 use crate::shared::{
   constants::messages::EXPRESSION_IS_NOT_A_STRING,
   regex::IS_CSS_VAR,
@@ -30,9 +32,14 @@ fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool
 
 pub(crate) fn stylex_first_that_works(
   args: Vec<Expr>,
-  state: &mut StateManager,
+  state: &mut dyn StyleOptions,
   functions: &FunctionMap,
 ) -> Expr {
+  let state = state
+    .as_any_mut()
+    .downcast_mut::<StateManager>()
+    .expect("StyleOptions must be StateManager");
+
   let first_var = args.iter().position(|arg| is_var(arg, state, functions));
 
   match first_var {

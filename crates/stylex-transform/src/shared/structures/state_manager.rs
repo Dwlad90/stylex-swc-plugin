@@ -1041,3 +1041,33 @@ fn file_path_resolver(
 
   stylex_panic!("Cannot resolve file path: {}", relative_file_path)
 }
+
+impl stylex_types::traits::StyleOptions for StateManager {
+  fn options(&self) -> &StyleXStateOptions {
+    &self.options
+  }
+
+  fn css_property_seen(&self) -> &FxHashMap<String, String> {
+    &self.css_property_seen
+  }
+
+  fn css_property_seen_mut(&mut self) -> &mut FxHashMap<String, String> {
+    &mut self.css_property_seen
+  }
+
+  fn other_injected_css_rules(
+    &self,
+  ) -> &stylex_types::traits::InjectableStylesMap {
+    &self.other_injected_css_rules
+  }
+
+  fn other_injected_css_rules_mut(
+    &mut self,
+  ) -> &mut stylex_types::traits::InjectableStylesMap {
+    &mut self.other_injected_css_rules
+  }
+
+  fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+    self
+  }
+}

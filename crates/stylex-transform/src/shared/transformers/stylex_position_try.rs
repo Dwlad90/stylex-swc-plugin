@@ -162,11 +162,16 @@ pub(crate) fn stylex_position_try(
 
 pub(crate) fn get_position_try_fn() -> FunctionConfig {
   FunctionConfig {
-    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, local_state: &mut StateManager| -> Expr {
-      let (position_try_name, injected_style) =
-        stylex_position_try(&EvaluateResultValue::Expr(expr), local_state);
+    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, local_state: &mut dyn stylex_types::traits::StyleOptions| -> Expr {
+      let state = local_state
+        .as_any_mut()
+        .downcast_mut::<StateManager>()
+        .expect("StyleOptions must be StateManager");
 
-      local_state
+      let (position_try_name, injected_style) =
+        stylex_position_try(&EvaluateResultValue::Expr(expr), state);
+
+      state
         .other_injected_css_rules
         .insert(position_try_name.clone(), Rc::new(injected_style));
 

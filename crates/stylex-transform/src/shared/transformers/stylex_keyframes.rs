@@ -213,11 +213,16 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
 
 pub(crate) fn get_keyframes_fn() -> FunctionConfig {
   FunctionConfig {
-    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, local_state: &mut StateManager| -> Expr {
-      let (animation_name, injected_style) =
-        stylex_keyframes(&EvaluateResultValue::Expr(expr), local_state);
+    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, local_state: &mut dyn stylex_types::traits::StyleOptions| -> Expr {
+      let state = local_state
+        .as_any_mut()
+        .downcast_mut::<StateManager>()
+        .expect("StyleOptions must be StateManager");
 
-      local_state
+      let (animation_name, injected_style) =
+        stylex_keyframes(&EvaluateResultValue::Expr(expr), state);
+
+      state
         .other_injected_css_rules
         .insert(animation_name.clone(), Rc::new(injected_style));
 

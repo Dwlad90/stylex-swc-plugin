@@ -1376,18 +1376,6 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
 
-  crates/stylex-core:
-    devDependencies:
-      '@taplo/cli':
-        specifier: ^0.7.0
-        version: 0.7.0
-      npm-run-all2:
-        specifier: ^8.0.4
-        version: 8.0.4
-      prettier:
-        specifier: ^3.8.1
-        version: 3.8.1
-
   crates/stylex-css:
     devDependencies:
       '@taplo/cli':
@@ -1534,18 +1522,6 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-
-  crates/stylex-shared:
-    devDependencies:
-      '@taplo/cli':
-        specifier: ^0.7.0
-        version: 0.7.0
-      npm-run-all2:
-        specifier: ^8.0.4
-        version: 8.0.4
-      prettier:
-        specifier: ^3.8.1
-        version: 3.8.1
 
   crates/stylex-test-parser:
     devDependencies:

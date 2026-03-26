@@ -108,7 +108,11 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
 
   map.insert(
     "ancestor".to_string(),
-    |expr: Expr, state: &mut StateManager| {
+    |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
+      let state = state
+        .as_any_mut()
+        .downcast_mut::<StateManager>()
+        .expect("StyleOptions must be StateManager");
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when ancestor: expression is not a string"),
@@ -123,7 +127,11 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
 
   map.insert(
     "descendant".to_string(),
-    |expr: Expr, state: &mut StateManager| {
+    |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
+      let state = state
+        .as_any_mut()
+        .downcast_mut::<StateManager>()
+        .expect("StyleOptions must be StateManager");
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when descendant: expression is not a string"),
@@ -138,7 +146,11 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
 
   map.insert(
     "siblingBefore".to_string(),
-    |expr: Expr, state: &mut StateManager| {
+    |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
+      let state = state
+        .as_any_mut()
+        .downcast_mut::<StateManager>()
+        .expect("StyleOptions must be StateManager");
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
@@ -153,7 +165,11 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
 
   map.insert(
     "siblingAfter".to_string(),
-    |expr: Expr, state: &mut StateManager| {
+    |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
+      let state = state
+        .as_any_mut()
+        .downcast_mut::<StateManager>()
+        .expect("StyleOptions must be StateManager");
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
@@ -168,7 +184,11 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
 
   map.insert(
     "anySibling".to_string(),
-    |expr: Expr, state: &mut StateManager| {
+    |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
+      let state = state
+        .as_any_mut()
+        .downcast_mut::<StateManager>()
+        .expect("StyleOptions must be StateManager");
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when anySibling: expression is not a string"),

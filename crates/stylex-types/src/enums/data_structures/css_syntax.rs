@@ -1,2 +1,2 @@
 #[allow(unused_imports)]
-pub use stylex_enums::data_structures::css_syntax::*;
+pub use stylex_enums::css_syntax::*;

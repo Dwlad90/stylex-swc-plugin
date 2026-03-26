@@ -11,10 +11,3 @@ pub enum NonNullProps {
   Vec(Vec<Atom>),
   True,
 }
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct StyleVarsToKeep(
-  pub Atom,
-  pub NonNullProp,
-  pub NonNullProps,
-);

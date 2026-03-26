@@ -2957,6 +2957,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_data_structures"
+version = "0.15.1-rc.1"
+dependencies = [
+ "ctor",
+ "pretty_env_logger",
+ "stylex_enums",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_enums"
 version = "0.15.1-rc.1"
 dependencies = [
@@ -3160,6 +3170,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_constants",
+ "stylex_data_structures",
  "stylex_enums",
  "stylex_macros",
  "stylex_structures",

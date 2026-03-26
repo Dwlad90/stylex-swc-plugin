@@ -30,6 +30,7 @@ log.workspace = true
 once_cell.workspace = true
 
 stylex_constants = { path = "../stylex-constants" }
+stylex_data_structures = { path = "../stylex-data-structures" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_structures = { path = "../stylex-structures" }

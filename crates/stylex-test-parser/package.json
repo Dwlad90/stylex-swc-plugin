@@ -15,6 +15,7 @@
     "build": "scripty --rust",
     "check:artifacts": "scripty ./dist/stylex_test_parser",
     "clean": "del-cli dist",
+    "do:nothing": "exit 0",
     "format": "run-p format:prettier format:rs format:toml",
     "format:check": "run-p format:rs:check format:toml:check",
     "format:prettier": "prettier . -w",

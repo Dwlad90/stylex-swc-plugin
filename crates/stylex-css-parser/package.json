@@ -13,6 +13,7 @@
   "scripts": {
     "bench": "cargo bench",
     "clean": "del-cli dist",
+    "do:nothing": "exit 0",
     "format": "run-p format:prettier format:rs format:toml",
     "format:check": "run-p format:rs:check format:toml:check",
     "format:prettier": "prettier . -w",
@@ -34,6 +35,7 @@
     }
   },
   "devDependencies": {
+    "@stylexswc/macros": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

@@ -2850,7 +2850,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stylex_ast"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "anyhow",
  "ctor",
@@ -2895,7 +2895,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_constants"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "fancy-regex",
@@ -2908,19 +2908,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylex_core"
-version = "0.15.1"
-dependencies = [
- "colored",
- "ctor",
- "env_logger 0.11.9",
- "log",
- "pretty_env_logger",
-]
-
-[[package]]
 name = "stylex_css"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "cssparser",
  "ctor",
@@ -2946,7 +2935,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_order"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "stylex_constants",
  "stylex_css_values",
@@ -2975,7 +2964,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_utils"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "log",
  "stylex_structures",
@@ -2983,7 +2972,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_values"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "cssparser",
  "stylex_macros",
@@ -2991,7 +2980,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_data_structures"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "pretty_env_logger",
@@ -3001,7 +2990,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_enums"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "indexmap",
@@ -3014,7 +3003,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_evaluator"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "anyhow",
  "base62",
@@ -3038,7 +3027,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_js"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "pretty_env_logger",
@@ -3049,7 +3038,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_logs"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "colored",
  "ctor",
@@ -3061,7 +3050,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_macros"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "colored",
  "ctor",
@@ -3095,7 +3084,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_regex"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "fancy-regex",
@@ -3105,7 +3094,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_structures"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "derive_more",
@@ -3145,7 +3134,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_transform"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "anyhow",
  "base62",
@@ -3193,7 +3182,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_transformers"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "indexmap",
@@ -3211,7 +3200,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_types"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "anyhow",
  "ctor",
@@ -3234,7 +3223,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_utils"
-version = "0.15.1-rc.1"
+version = "0.15.1"
 dependencies = [
  "ctor",
  "pretty_env_logger",

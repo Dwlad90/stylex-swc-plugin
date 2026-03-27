@@ -2,12 +2,13 @@
 
 ## Overview
 
-Core type definitions for the StyleX SWC plugin. Contains pure enums,
-structs, and configuration types that have no dependency on `StateManager`.
+Core type definitions for the StyleX SWC plugin. Contains pure enums, structs,
+and configuration types that have no dependency on `StateManager`.
 
 ## Contents
 
 ### Enums
+
 - `TransformationCycle` -- Plugin transformation phases
 - `ArrayJS`, `ObjectJS`, `MathJS`, `StringJS` -- JS built-in operation types
 - `VarDeclAction`, `BinaryExprType` -- Evaluation helpers
@@ -19,6 +20,7 @@ structs, and configuration types that have no dependency on `StateManager`.
 - `ValueWithDefault` -- Default value handling
 
 ### Structures
+
 - `PluginPass` -- Plugin pass context (cwd, filename)
 - `NamedImportSource`, `ImportSources`, `RuntimeInjection` -- Import config
 - `EnvEntry`, `JSFunction` -- Compile-time environment types
@@ -26,7 +28,3 @@ structs, and configuration types that have no dependency on `StateManager`.
 - `Pair`, `OrderPair`, `Order` trait -- CSS property ordering
 - `DynamicStyle`, `InlineStyle` -- Style representation types
 - `PropertySpecificity`, `ShorthandsOfShorthands` -- CSS specificity
-
-## Layer
-
-Layer 0. Dependencies: `stylex-constants`, `stylex-macros`, `stylex-core`.

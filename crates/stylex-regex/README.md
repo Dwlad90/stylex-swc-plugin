@@ -13,7 +13,3 @@ Pre-compiled regex patterns for the StyleX SWC plugin.
 - Relational selector patterns (ancestor, descendant, sibling)
 - Pseudo-element/pseudo-class patterns
 - StyleX consts import and NPM name validation patterns
-
-## Layer
-
-Layer 0 leaf crate. Dependencies: `fancy-regex`, `once_cell`.

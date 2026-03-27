@@ -12,6 +12,7 @@
   },
   "scripts": {
     "clean": "del-cli dist",
+    "do:nothing": "exit 0",
     "format": "run-p format:prettier format:rs format:toml",
     "format:check": "run-p format:rs:check format:toml:check",
     "format:prettier": "prettier . -w",
@@ -24,7 +25,7 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "NODE_ENV=test cargo test --lib --bins --tests -- --test-threads=1",
+    "test": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
   "config": {
@@ -33,6 +34,12 @@
     }
   },
   "devDependencies": {
+    "@stylexswc/constants": "workspace:*",
+    "@stylexswc/macros": "workspace:*",
+    "@stylexswc/misc": "workspace:*",
+    "@stylexswc/stylex-data-structures": "workspace:*",
+    "@stylexswc/stylex-enums": "workspace:*",
+    "@stylexswc/stylex-structures": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

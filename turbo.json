@@ -109,6 +109,20 @@
         "**/.playwright-snapshots"
       ],
       "outputLogs": "errors-only"
+    },
+    "do:nothing": {
+      "cache": true,
+      "outputs": [],
+      "outputLogs": "errors-only"
+    }
+  },
+  "boundaries": {
+    "tags": {
+      "rs-compiler": {
+        "dependencies": {
+          "allow": ["rust-crate"]
+        }
+      }
     }
   }
 }

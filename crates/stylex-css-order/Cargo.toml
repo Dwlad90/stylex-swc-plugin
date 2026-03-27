@@ -2,8 +2,10 @@
 name = "stylex_css_order"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "CSS property ordering constants and helpers for StyleX"
 publish = false
 
 [dependencies]

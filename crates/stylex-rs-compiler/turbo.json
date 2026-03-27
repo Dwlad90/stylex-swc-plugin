@@ -1,37 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "extends": [
-    "//"
-  ],
-  "tags": [
-    "rust-crate",
-    "rs-compiler"
-  ],
+  "extends": ["//"],
+  "tags": ["rust-crate", "rs-compiler"],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^do:nothing"
-      ],
-      "outputs": [
-        "dist/**/*"
-      ]
+      "dependsOn": ["^do:nothing"],
+      "outputs": ["dist/**/*"]
     },
     "test": {
-      "dependsOn": [
-        "build",
-        "^do:nothing"
-      ]
+      "dependsOn": ["build", "^do:nothing"]
     },
     "typecheck": {
-      "dependsOn": [
-        "^do:nothing"
-      ],
+      "dependsOn": ["^do:nothing"],
       "outputs": []
     },
     "bench": {
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "cache": false
     }
   }

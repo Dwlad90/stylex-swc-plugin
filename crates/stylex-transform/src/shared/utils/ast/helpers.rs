@@ -1,5 +1,5 @@
-use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
+use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::ecma::ast::{ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread};
 
 use crate::shared::structures::state_manager::StateManager;

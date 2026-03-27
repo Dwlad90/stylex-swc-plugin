@@ -63,13 +63,13 @@ use stylex_ast::ast::factories::{
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, non_static_value};
 use stylex_css_utils::when as stylex_when;
-use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_enums::counter_mode::CounterMode;
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
 use stylex_structures::dynamic_style::DynamicStyle;
 use stylex_structures::order_pair::OrderPair;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
+use stylex_structures::top_level_expression::TopLevelExpression;
 use stylex_structures::uid_generator::UidGenerator;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::injectable_style::InjectableStyle;

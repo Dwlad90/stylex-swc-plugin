@@ -11,10 +11,10 @@ use swc_core::{
   },
 };
 
-use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
-use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
+use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
+use stylex_structures::top_level_expression::TopLevelExpression;
 
 use crate::{
   StyleXTransform,

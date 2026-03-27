@@ -21,8 +21,8 @@ use swc_core::{
   },
 };
 
-use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
+use stylex_structures::top_level_expression::TopLevelExpression;
 
 use crate::shared::structures::base_css_type::BaseCSSType;
 use crate::shared::structures::functions::{FunctionConfigType, FunctionMap, FunctionType};

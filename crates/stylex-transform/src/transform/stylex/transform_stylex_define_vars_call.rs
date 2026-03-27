@@ -23,7 +23,7 @@ use stylex_constants::constants::messages::{
 };
 
 use crate::StyleXTransform;
-use stylex_data_structures::top_level_expression::TopLevelExpression;
+use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
 where

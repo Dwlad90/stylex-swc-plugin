@@ -1,6 +1,6 @@
 use rustc_hash::FxHashSet;
-use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_macros::stylex_panic;
+use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},

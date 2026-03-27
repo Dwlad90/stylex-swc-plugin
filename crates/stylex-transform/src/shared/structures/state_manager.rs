@@ -41,12 +41,12 @@ use stylex_ast::ast::factories::{
   create_object_expression, create_string_expr_or_spread, create_string_key_value_prop,
 };
 use stylex_constants::constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH};
-use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
-use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_enums::core::TransformationCycle;
 use stylex_enums::counter_mode::CounterMode;
 use stylex_enums::import_path_resolution::{ImportPathResolution, ImportPathResolutionType};
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
+use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
+use stylex_structures::top_level_expression::TopLevelExpression;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
 use super::seen_value::SeenValue;

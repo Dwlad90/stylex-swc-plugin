@@ -57,7 +57,6 @@ stylex_css_order = { path = "../stylex-css-order" }
 stylex_css_parser = { path = "../stylex-css-parser" }
 stylex_css_utils = { path = "../stylex-css-utils" }
 stylex_css_values = { path = "../stylex-css-values" }
-stylex_data_structures = { path = "../stylex-data-structures" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_logs = { path = "../stylex-logs" }
 stylex_macros = { path = "../stylex-macros" }

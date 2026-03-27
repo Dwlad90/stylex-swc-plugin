@@ -19,7 +19,7 @@ use stylex_constants::constants::messages::cannot_generate_hash;
 use stylex_constants::constants::messages::{non_static_value, non_style_object};
 
 use crate::StyleXTransform;
-use stylex_data_structures::top_level_expression::TopLevelExpression;
+use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
 where

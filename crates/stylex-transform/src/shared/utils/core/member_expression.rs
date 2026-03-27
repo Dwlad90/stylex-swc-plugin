@@ -7,8 +7,8 @@ use swc_core::{
   ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},
 };
 
-use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
+use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::structures::functions::FunctionMap;

@@ -2979,16 +2979,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylex_data_structures"
-version = "0.15.1"
-dependencies = [
- "ctor",
- "pretty_env_logger",
- "stylex_enums",
- "swc_core",
-]
-
-[[package]]
 name = "stylex_enums"
 version = "0.15.1"
 dependencies = [
@@ -3164,7 +3154,6 @@ dependencies = [
  "stylex_css_parser",
  "stylex_css_utils",
  "stylex_css_values",
- "stylex_data_structures",
  "stylex_enums",
  "stylex_logs",
  "stylex_macros",
@@ -3178,24 +3167,6 @@ dependencies = [
  "swc_core",
  "swc_ecma_parser",
  "testing",
-]
-
-[[package]]
-name = "stylex_transformers"
-version = "0.15.1"
-dependencies = [
- "ctor",
- "indexmap",
- "log",
- "pretty_env_logger",
- "rustc-hash",
- "stylex_ast",
- "stylex_constants",
- "stylex_css",
- "stylex_evaluator",
- "stylex_macros",
- "stylex_types",
- "swc_core",
 ]
 
 [[package]]
@@ -3213,7 +3184,6 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_constants",
- "stylex_data_structures",
  "stylex_enums",
  "stylex_macros",
  "stylex_structures",

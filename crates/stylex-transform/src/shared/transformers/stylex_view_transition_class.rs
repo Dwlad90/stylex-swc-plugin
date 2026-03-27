@@ -3,14 +3,6 @@ use std::rc::Rc;
 
 use stylex_macros::stylex_panic;
 
-use stylex_constants::constants::messages::{
-  ENTRY_MUST_BE_TUPLE,
-  VALUES_MUST_BE_OBJECT,
-  VALUE_MUST_BE_STRING,
-};
-use stylex_structures::pair::Pair;
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableStyle;
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
@@ -19,12 +11,14 @@ use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::common::{create_hash, dashify};
 use crate::shared::utils::css::common::transform_value_cached;
 use crate::shared::utils::object::{
-  Pipe,
-  obj_map,
-  obj_map_keys_key_value,
-  obj_map_keys_string,
-  preprocess_object_properties,
+  Pipe, obj_map, obj_map_keys_key_value, obj_map_keys_string, preprocess_object_properties,
 };
+use stylex_constants::constants::messages::{
+  ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
+};
+use stylex_structures::pair::Pair;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use stylex_types::structures::injectable_style::InjectableStyle;
 
 pub(crate) fn stylex_view_transition_class(
   styles: &EvaluateResultValue,
@@ -104,14 +98,14 @@ fn construct_view_transition_class_style_str(
   match style_strings.as_ref() {
     FlatCompiledStylesValue::KeyValue(pair) => {
       Rc::new(FlatCompiledStylesValue::String(fmt_pair(pair)))
-    }
+    },
     FlatCompiledStylesValue::KeyValues(pairs) => {
       let mut result_string = String::new();
       for pair in pairs {
         result_string.push_str(&fmt_pair(pair));
       }
       Rc::new(FlatCompiledStylesValue::String(result_string))
-    }
+    },
     FlatCompiledStylesValue::String(s) => Rc::new(FlatCompiledStylesValue::String(s.clone())),
     _ => stylex_panic!("Expected KeyValues"),
   }

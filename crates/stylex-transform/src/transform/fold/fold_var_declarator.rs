@@ -20,7 +20,9 @@ use crate::{
   StyleXTransform,
   shared::utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
 };
-use stylex_constants::constants::messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT};
+use stylex_constants::constants::messages::{
+  KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT,
+};
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
@@ -59,7 +61,7 @@ where
         }
 
         var_declarator.fold_children_with(self)
-      }
+      },
       TransformationCycle::Cleaning => {
         {
           let mut vars_to_keep: FxHashMap<Atom, NonNullProps> = FxHashMap::default();
@@ -75,13 +77,13 @@ where
                   match namespace_name {
                     NonNullProp::Atom(id) => {
                       vec.push(id);
-                    }
+                    },
                     _ => {
                       *entry_value = NonNullProps::True;
-                    }
+                    },
                   }
                 }
-              }
+              },
               Entry::Vacant(entry) => {
                 let value = match namespace_name {
                   NonNullProp::Atom(namespace_name) => NonNullProps::Vec(vec![namespace_name]),
@@ -89,7 +91,7 @@ where
                 };
 
                 entry.insert(value);
-              }
+              },
             }
           }
 
@@ -105,7 +107,7 @@ where
                   stylex_panic!(
                     "Variable declaration must have an initializer for top-level expression lookup."
                   )
-                }
+                },
               },
             );
 
@@ -143,7 +145,7 @@ where
         }
 
         var_declarator
-      }
+      },
       TransformationCycle::Skip | TransformationCycle::InjectStyles => var_declarator,
       _ => var_declarator.fold_children_with(self),
     }
@@ -256,7 +258,7 @@ fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Atom>) {
       }
 
       true
-    }
+    },
     PropOrSpread::Spread(_) => true,
   });
 }

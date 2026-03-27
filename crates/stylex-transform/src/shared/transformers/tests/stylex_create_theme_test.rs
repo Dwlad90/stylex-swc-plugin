@@ -4,18 +4,16 @@ mod stylex_create_theme {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use stylex_ast::ast::factories::{
-    create_key_value_prop,
-    create_nested_object_prop,
-    create_object_expression,
-    create_string_key_value_prop,
-  };
-  use stylex_types::structures::injectable_style::InjectableStyle;
   use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::structures::types::InjectableStylesMap;
   use crate::shared::transformers::stylex_create_theme::stylex_create_theme;
   use crate::shared::utils::ast::convertors::create_string_expr;
+  use stylex_ast::ast::factories::{
+    create_key_value_prop, create_nested_object_prop, create_object_expression,
+    create_string_key_value_prop,
+  };
+  use stylex_types::structures::injectable_style::InjectableStyle;
 
   fn default_vars_factory(args: &[(&str, &str)]) -> EvaluateResultValue {
     let props = args
@@ -63,9 +61,7 @@ mod stylex_create_theme {
             let props = val
               .1
               .iter()
-              .map(|(key, value)| {
-                create_key_value_prop(key, create_string_expr(value))
-              })
+              .map(|(key, value)| create_key_value_prop(key, create_string_expr(value)))
               .collect::<Vec<PropOrSpread>>();
 
             create_key_value_prop(val.0, create_object_expression(props))

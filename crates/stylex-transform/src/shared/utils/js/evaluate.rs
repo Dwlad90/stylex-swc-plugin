@@ -1,10 +1,7 @@
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
-use crate::{
-  expr_to_str_or_deopt,
-  stylex_panic_with_context,
-};
+use crate::{expr_to_str_or_deopt, stylex_panic_with_context};
 use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 
 use indexmap::IndexMap;
@@ -27,40 +24,45 @@ use swc_core::{
   },
 };
 
+use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::structures::evaluate_result::EvaluateResult;
+use crate::shared::structures::functions::{
+  CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType,
+};
+use crate::shared::structures::seen_value::SeenValue;
+use crate::shared::structures::state::EvaluationState;
+use crate::shared::structures::state_manager::{
+  SeenValueWithVarDeclCount, StateManager, add_import_expression,
+};
+use crate::shared::structures::theme_ref::ThemeRef;
+use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
+use crate::shared::utils::ast::convertors::{
+  binary_expr_to_num, binary_expr_to_string, convert_atom_to_str_ref, convert_atom_to_string,
+  convert_lit_to_string, create_big_int_expr, create_bool_expr, create_number_expr,
+  create_string_expr, expand_shorthand_prop, expr_to_bool, expr_to_num, expr_to_str,
+  extract_tpl_cooked_value, key_value_to_str,
+};
+use crate::shared::utils::common::{
+  char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
+  get_import_by_ident, get_key_values_from_object, get_var_decl_by_ident, get_var_decl_from,
+  normalize_expr, reduce_ident_count, reduce_member_expression_count, remove_duplicates,
+  sort_numbers_factory, stable_hash, sum_hash_map_values,
+};
+use crate::shared::utils::js::native_functions::{evaluate_filter, evaluate_join, evaluate_map};
 use stylex_ast::ast::factories::{
-  create_array_expression,
-  create_expr_or_spread,
-  create_ident_key_value_prop,
-  create_object_expression,
-  create_object_lit,
-  create_string_lit,
+  create_array_expression, create_expr_or_spread, create_ident_key_value_prop,
+  create_object_expression, create_object_lit, create_string_lit,
 };
 use stylex_constants::constants::common::{INVALID_METHODS, VALID_CALLEES};
 use stylex_constants::constants::evaluation_errors::{
-  IMPORT_PATH_RESOLUTION_ERROR,
-  NON_CONSTANT,
-  OBJECT_METHOD,
-  PATH_WITHOUT_NODE,
-  UNEXPECTED_MEMBER_LOOKUP,
-  unsupported_expression,
-  unsupported_operator,
+  IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE,
+  UNEXPECTED_MEMBER_LOOKUP, unsupported_expression, unsupported_operator,
 };
 use stylex_constants::constants::messages::{
-  ARGUMENT_NOT_EXPRESSION,
-  BUILT_IN_FUNCTION,
-  EXPECTED_CSS_VAR,
-  EXPRESSION_IS_NOT_A_STRING,
-  ILLEGAL_PROP_ARRAY_VALUE,
-  INVALID_UTF8,
-  KEY_VALUE_EXPECTED,
-  MEMBER_NOT_RESOLVED,
-  MEMBER_OBJ_NOT_IDENT,
-  OBJECT_KEY_MUST_BE_IDENT,
-  PROPERTY_NOT_FOUND,
-  SPREAD_MUST_BE_OBJECT,
-  SPREAD_NOT_SUPPORTED,
-  THEME_IMPORT_KEY_AS_OBJECT_KEY,
-  VALUE_MUST_BE_LITERAL,
+  ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
+  ILLEGAL_PROP_ARRAY_VALUE, INVALID_UTF8, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED,
+  MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_MUST_BE_OBJECT,
+  SPREAD_NOT_SUPPORTED, THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
 };
 use stylex_enums::core::TransformationCycle;
 use stylex_enums::import_path_resolution::{ImportPathResolution, ImportPathResolutionType};
@@ -69,60 +71,7 @@ use stylex_enums::misc::{BinaryExprType, VarDeclAction};
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_structures::named_import_source::ImportSources;
 use stylex_structures::stylex_env::EnvEntry;
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::evaluate_result::EvaluateResult;
-use crate::shared::structures::functions::{
-  CallbackType,
-  FunctionConfig,
-  FunctionConfigType,
-  FunctionMap,
-  FunctionType,
-};
-use crate::shared::structures::seen_value::SeenValue;
-use crate::shared::structures::state::EvaluationState;
-use crate::shared::structures::state_manager::{
-  SeenValueWithVarDeclCount,
-  StateManager,
-  add_import_expression,
-};
-use crate::shared::structures::theme_ref::ThemeRef;
-use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_utils::swc::get_default_expr_ctx;
-use crate::shared::utils::ast::convertors::{
-  binary_expr_to_num,
-  binary_expr_to_string,
-  convert_atom_to_str_ref,
-  convert_atom_to_string,
-  convert_lit_to_string,
-  create_big_int_expr,
-  create_bool_expr,
-  create_number_expr,
-  create_string_expr,
-  expand_shorthand_prop,
-  expr_to_bool,
-  expr_to_num,
-  expr_to_str,
-  extract_tpl_cooked_value,
-  key_value_to_str,
-};
-use crate::shared::utils::common::{
-  char_code_at,
-  deep_merge_props,
-  get_hash_map_difference,
-  get_hash_map_value_difference,
-  get_import_by_ident,
-  get_key_values_from_object,
-  get_var_decl_by_ident,
-  get_var_decl_from,
-  normalize_expr,
-  reduce_ident_count,
-  reduce_member_expression_count,
-  remove_duplicates,
-  sort_numbers_factory,
-  stable_hash,
-  sum_hash_map_values,
-};
-use crate::shared::utils::js::native_functions::{evaluate_filter, evaluate_join, evaluate_map};
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
 
@@ -231,7 +180,7 @@ pub(crate) fn evaluate_obj_key(
           fns: None,
         };
       }
-    }
+    },
     PropName::Str(strng) => create_string_expr(&convert_atom_to_string(&strng.value)),
     PropName::Num(num) => create_number_expr(num.value),
     PropName::BigInt(big_int) => create_big_int_expr(big_int.clone()),
@@ -248,7 +197,7 @@ pub(crate) fn evaluate_obj_key(
         inline_styles: None,
         fns: None,
       };
-    }
+    },
   };
 
   EvaluateResult {
@@ -415,10 +364,10 @@ fn _evaluate(
           }
 
           None
-        }
+        },
         BlockStmtOrExpr::BlockStmt(_) => None,
       }
-    }
+    },
     Expr::Ident(ident) => {
       let atom_ident_id = &ident.sym;
 
@@ -427,43 +376,43 @@ fn _evaluate(
           FunctionConfigType::Regular(func) => match &func.fn_ptr {
             FunctionType::Mapper(func) => {
               return Some(EvaluateResultValue::Expr(func()));
-            }
+            },
             FunctionType::DefaultMarker(func) => {
               return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
                 fn_ptr: FunctionType::DefaultMarker(Arc::clone(func)),
                 takes_path: false,
               }));
-            }
+            },
             _ => {
               return deopt(path, state, "Function not found");
-            }
+            },
           },
           FunctionConfigType::Map(func_map) => {
             return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
-          }
+          },
           FunctionConfigType::IndexMap(_func_map) => {
             stylex_unimplemented!("IndexMap values are not supported in this context.");
-          }
+          },
           FunctionConfigType::EnvObject(env_map) => {
             return Some(EvaluateResultValue::EnvObject(env_map.clone()));
-          }
+          },
         }
       }
 
       None
-    }
+    },
     Expr::TsSatisfies(ts_satisfaies) => {
       evaluate_cached(&ts_satisfaies.expr, state, traversal_state, fns)
-    }
+    },
     Expr::TsConstAssertion(ts_const) => {
       evaluate_cached(&ts_const.expr, state, traversal_state, fns)
-    }
+    },
     Expr::TsAs(ts_as) => evaluate_cached(&ts_as.expr, state, traversal_state, fns),
     Expr::TsNonNull(ts_non_null) => evaluate_cached(&ts_non_null.expr, state, traversal_state, fns),
     Expr::TsTypeAssertion(ts_type) => evaluate_cached(&ts_type.expr, state, traversal_state, fns),
     Expr::TsInstantiation(ts_instantiation) => {
       evaluate_cached(&ts_instantiation.expr, state, traversal_state, fns)
-    }
+    },
     Expr::Seq(sec) => {
       let expr = match sec.exprs.last() {
         Some(e) => e,
@@ -471,7 +420,7 @@ fn _evaluate(
       };
 
       evaluate_cached(expr, state, traversal_state, fns)
-    }
+    },
     Expr::Lit(lit_path) => Some(EvaluateResultValue::Expr(Expr::Lit(lit_path.clone()))),
     Expr::Tpl(tpl) => evaluate_quasis(
       &Expr::Tpl(tpl.clone()),
@@ -494,7 +443,7 @@ fn _evaluate(
       //   false,
       //   state,
       // )
-    }
+    },
     Expr::Cond(cond) => {
       let test_result = evaluate_cached(&cond.test, state, traversal_state, fns);
 
@@ -525,7 +474,7 @@ fn _evaluate(
       } else {
         evaluate_cached(&cond.alt, state, traversal_state, fns)
       }
-    }
+    },
     Expr::Paren(_) => stylex_panic_with_context!(
       path,
       traversal_state,
@@ -566,10 +515,10 @@ fn _evaluate(
               }
 
               result
-            }
+            },
             MemberProp::PrivateName(_) => {
               return deopt(path, state, UNEXPECTED_MEMBER_LOOKUP);
-            }
+            },
           };
 
           match object {
@@ -599,7 +548,7 @@ fn _evaluate(
                 let expr = expr.expr.clone();
 
                 Some(EvaluateResultValue::Expr(*expr))
-              }
+              },
               Expr::Object(ObjectLit { props, .. }) => {
                 let eval_res = match property {
                   Some(p) => p,
@@ -625,7 +574,7 @@ fn _evaluate(
                     debug!("Original property: {:?}", prop_path);
 
                     return deopt(path, state, THEME_IMPORT_KEY_AS_OBJECT_KEY);
-                  }
+                  },
                   _ => {
                     debug!("Property not found for expression: {:?}", expr);
                     debug!("Evaluation result: {:?}", eval_res);
@@ -636,7 +585,7 @@ fn _evaluate(
                       traversal_state,
                       "Property not found. For additional details, please recompile using debug mode."
                     );
-                  }
+                  },
                 };
 
                 let ident = &mut ident.to_owned();
@@ -657,7 +606,7 @@ fn _evaluate(
                       traversal_state,
                       "Computed member properties are not supported in static evaluation."
                     )
-                  }
+                  },
                 };
 
                 let property = props.iter().find(|prop| match prop {
@@ -700,7 +649,7 @@ fn _evaluate(
                 } else {
                   stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED);
                 }
-              }
+              },
               Expr::Member(member_expr) => evaluate_cached(
                 &Expr::Member(member_expr.clone()),
                 state,
@@ -709,7 +658,7 @@ fn _evaluate(
               ),
               Expr::Lit(nested_lit) => {
                 evaluate_cached(&Expr::Lit(nested_lit.clone()), state, traversal_state, fns)
-              }
+              },
               Expr::Ident(nested_ident) => evaluate_cached(
                 &Expr::Ident(nested_ident.clone()),
                 state,
@@ -722,7 +671,7 @@ fn _evaluate(
                   traversal_state,
                   "This type of object member access is not yet supported in static evaluation."
                 );
-              }
+              },
             },
             EvaluateResultValue::FunctionConfigMap(fc_map) => {
               let key = match property {
@@ -768,7 +717,7 @@ fn _evaluate(
                 )
                 .as_str()
               );
-            }
+            },
             EvaluateResultValue::ThemeRef(mut theme_ref) => {
               let key = match property {
                 Some(property) => match property {
@@ -792,7 +741,7 @@ fn _evaluate(
                     traversal_state,
                     "The referenced property was not found on the theme object. Ensure it was declared in defineVars()."
                   )
-                }
+                },
               };
 
               let value = theme_ref.get(&key, traversal_state);
@@ -804,7 +753,7 @@ fn _evaluate(
                 }
                 .as_str(),
               )));
-            }
+            },
             EvaluateResultValue::EnvObject(env_map) => {
               let key = property
                 .as_ref()
@@ -836,19 +785,19 @@ fn _evaluate(
                     )
                     .as_str()
                   );
-                }
+                },
               }
-            }
+            },
             _ => stylex_panic_with_context!(
               path,
               traversal_state,
               "This evaluation result type is not yet supported in static evaluation."
             ),
           }
-        }
+        },
         _ => None,
       }
-    }
+    },
     Expr::Unary(unary) => {
       if unary.op == UnaryOp::Void {
         return None;
@@ -877,7 +826,7 @@ fn _evaluate(
             traversal_state,
             "The operand of a unary expression must be a static expression."
           )
-        }
+        },
       };
 
       match unary.op {
@@ -885,12 +834,12 @@ fn _evaluate(
           let value = expr_to_bool(&arg, traversal_state, fns);
 
           Some(EvaluateResultValue::Expr(create_bool_expr(!value)))
-        }
+        },
         UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
         UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
         UnaryOp::Tilde => {
           evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| (!(v as i64)) as f64)
-        }
+        },
         UnaryOp::TypeOf => {
           let arg_type = match &arg {
             Expr::Lit(Lit::Str(_)) => "string",
@@ -908,11 +857,11 @@ fn _evaluate(
                 traversal_state,
                 "This unary operator is not supported in static evaluation."
               )
-            }
+            },
           };
 
           Some(EvaluateResultValue::Expr(create_string_expr(arg_type)))
-        }
+        },
         UnaryOp::Void => Some(EvaluateResultValue::Expr(Expr::Ident(quote_ident!(
           SyntaxContext::empty(),
           "undefined"
@@ -923,7 +872,7 @@ fn _evaluate(
           &unsupported_operator(unary.op.as_str()),
         ),
       }
-    }
+    },
     Expr::Array(arr_path) => {
       let mut arr: Vec<Option<EvaluateResultValue>> = Vec::with_capacity(arr_path.elems.len());
 
@@ -933,7 +882,7 @@ fn _evaluate(
       }
 
       Some(EvaluateResultValue::Vec(arr))
-    }
+    },
     Expr::Object(obj_path) => {
       let mut props = vec![];
 
@@ -955,7 +904,7 @@ fn _evaluate(
             props = merged_object;
 
             continue;
-          }
+          },
           PropOrSpread::Prop(prop) => {
             if prop.is_method() {
               let deopt_reason = state
@@ -1019,7 +968,7 @@ fn _evaluate(
                         "The property value must be a static expression."
                       );
                     }
-                  }
+                  },
                   PropName::BigInt(big_int) => Some(big_int.value.to_string()),
                 };
 
@@ -1062,7 +1011,7 @@ fn _evaluate(
                   EvaluateResultValue::Expr(expr) => Some(expr),
                   EvaluateResultValue::Vec(items) => {
                     Some(evaluate_result_vec_to_array_expr(&items))
-                  }
+                  },
                   EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
                     Expr::Call(call_expr) => {
                       let cb_args: Vec<Option<EvaluateResultValue>> = call_expr
@@ -1080,7 +1029,7 @@ fn _evaluate(
                         .collect();
 
                       Some(cb(cb_args))
-                    }
+                    },
                     Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
                     _ => stylex_panic_with_context!(
                       path,
@@ -1105,21 +1054,21 @@ fn _evaluate(
                     value,
                   ));
                 }
-              }
+              },
               _ => stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "This evaluation result type is not yet supported in static evaluation."
               ),
             }
-          }
+          },
         }
       }
 
       return Some(EvaluateResultValue::Expr(Expr::Object(create_object_lit(
         remove_duplicates(props),
       ))));
-    }
+    },
     Expr::Bin(bin) => unwrap_or_panic!(
       binary_expr_to_num(bin, state, traversal_state, fns)
         .or_else(|num_error| {
@@ -1136,7 +1085,7 @@ fn _evaluate(
           BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(create_number_expr(num))),
           BinaryExprType::String(strng) => {
             Some(EvaluateResultValue::Expr(create_string_expr(&strng)))
-          }
+          },
           BinaryExprType::Null => None,
         })
     ),
@@ -1181,10 +1130,10 @@ fn _evaluate(
                 Some(EvaluateResultValue::FunctionConfig(fc)) => func = Some(Box::new(fc.clone())),
                 Some(EvaluateResultValue::Callback(cb)) => {
                   return Some(EvaluateResultValue::Callback(cb));
-                }
+                },
                 _ => {
                   return deopt(path, state, NON_CONSTANT);
-                }
+                },
               }
             } else {
               return deopt(path, state, NON_CONSTANT);
@@ -1201,7 +1150,7 @@ fn _evaluate(
               Some(ident) => ident,
               None => {
                 stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT)
-              }
+              },
             };
 
             if property.is_ident() {
@@ -1256,7 +1205,7 @@ fn _evaluate(
                             Some(cached_second_arg),
                           ]))]);
                         }
-                      }
+                      },
                       "round" | "ceil" | "floor" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(
@@ -1281,7 +1230,7 @@ fn _evaluate(
                               .clone(),
                           ))]);
                         }
-                      }
+                      },
                       "min" | "max" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(
@@ -1313,7 +1262,7 @@ fn _evaluate(
                             result.into_iter().collect(),
                           ))]);
                         }
-                      }
+                      },
                       "abs" => {
                         let cached_first_arg =
                           evaluate_cached(&first_arg.expr, state, traversal_state, fns);
@@ -1333,12 +1282,12 @@ fn _evaluate(
                               .clone(),
                           ))]);
                         }
-                      }
+                      },
                       _ => {
                         stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
-                      }
+                      },
                     }
-                  }
+                  },
                   "Object" => {
                     let args = &call.args;
 
@@ -1412,7 +1361,7 @@ fn _evaluate(
 
                               from_entries_result.insert(key.clone(), value.clone());
                             }
-                          }
+                          },
                           EvaluateResultValue::Vec(vec) => {
                             for entry in vec {
                               let entry = entry
@@ -1442,18 +1391,18 @@ fn _evaluate(
 
                               from_entries_result.insert(key.clone(), Box::new(value.clone()));
                             }
-                          }
+                          },
                           _ => {
                             stylex_panic!(
                               "Object.fromEntries() requires an array of [key, value] entries."
                             )
-                          }
+                          },
                         };
 
                         context = Some(vec![Some(EvaluateResultValue::Entries(
                           from_entries_result,
                         ))]);
-                      }
+                      },
                       "keys" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
@@ -1489,7 +1438,7 @@ fn _evaluate(
                         context = Some(vec![Some(EvaluateResultValue::Expr(
                           create_array_expression(keys),
                         ))]);
-                      }
+                      },
                       "values" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
@@ -1521,7 +1470,7 @@ fn _evaluate(
                         context = Some(vec![Some(EvaluateResultValue::Expr(
                           create_array_expression(values),
                         ))]);
-                      }
+                      },
                       "entries" => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
@@ -1545,7 +1494,7 @@ fn _evaluate(
                               Some(kv) => kv,
                               None => {
                                 stylex_panic!("Object.entries() requires an object argument.")
-                              }
+                              },
                             };
 
                             let value = key_values.value.clone();
@@ -1557,12 +1506,12 @@ fn _evaluate(
                         }
 
                         context = Some(vec![Some(EvaluateResultValue::Entries(entries))]);
-                      }
+                      },
                       _ => {
                         stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
-                      }
+                      },
                     }
-                  }
+                  },
                   _ => stylex_panic!("{} - {}", BUILT_IN_FUNCTION, callee_name),
                 }
               } else {
@@ -1585,7 +1534,7 @@ fn _evaluate(
                   match member_expr_fn.as_ref() {
                     FunctionConfigType::Regular(fc) => {
                       func = Some(Box::new(fc.clone()));
-                    }
+                    },
                     FunctionConfigType::Map(_) => stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -1593,12 +1542,12 @@ fn _evaluate(
                     ),
                     FunctionConfigType::IndexMap(_) => {
                       stylex_unimplemented!("IndexMap values are not supported in this context.")
-                    }
+                    },
                     FunctionConfigType::EnvObject(_) => {
                       // This shouldn't happen - env object isn't directly callable.
                       // But if it does, try to evaluate it as a member expression call.
                       return deopt(path, state, NON_CONSTANT);
-                    }
+                    },
                   }
                 }
               }
@@ -1678,7 +1627,7 @@ fn _evaluate(
                       )
                       .as_str()
                     );
-                  }
+                  },
                 };
 
                 match value.clone() {
@@ -1693,7 +1642,7 @@ fn _evaluate(
                       ),
                       None => None,
                     };
-                  }
+                  },
                   EvaluateResultValue::Vec(expr) => {
                     func = Some(Box::new(FunctionConfig {
                       fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
@@ -1715,7 +1664,7 @@ fn _evaluate(
                     }));
 
                     context = Some(expr.clone())
-                  }
+                  },
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Array(ArrayLit { elems, .. }) => {
                       func = Some(Box::new(FunctionConfig {
@@ -1750,7 +1699,7 @@ fn _evaluate(
                         .collect::<Vec<Option<EvaluateResultValue>>>();
 
                       context = Some(vec![Some(EvaluateResultValue::Vec(expr))]);
-                    }
+                    },
                     Expr::Lit(Lit::Str(_)) => {
                       func = Some(Box::new(FunctionConfig {
                         fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
@@ -1770,7 +1719,7 @@ fn _evaluate(
                       }));
 
                       context = Some(vec![Some(EvaluateResultValue::Expr(expr.clone()))]);
-                    }
+                    },
                     Expr::Object(object) => {
                       let key_values = get_key_values_from_object(&object);
 
@@ -1808,19 +1757,19 @@ fn _evaluate(
                         .collect();
 
                       context = Some(args);
-                    }
+                    },
                     Expr::Lit(Lit::Regex(_)) => {
                       // Regex methods like .test(), .exec(), etc. require runtime evaluation
                       // We can't statically evaluate them, so we deopt
                       return deopt(path, state, "Regex methods cannot be statically evaluated");
-                    }
+                    },
                     _ => {
                       stylex_panic_with_context!(
                         path,
                         traversal_state,
                         "This expression type is not yet supported in static evaluation."
                       )
-                    }
+                    },
                   },
                   EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
                     FunctionType::StylexFnsFactory(sxfns) => {
@@ -1832,7 +1781,7 @@ fn _evaluate(
                       }));
 
                       context = Some(vec![Some(value)]);
-                    }
+                    },
                     FunctionType::DefaultMarker(default_marker) => {
                       if let Some(expr_fn) = default_marker.get(&prop_name) {
                         func = Some(Box::new(FunctionConfig {
@@ -1842,7 +1791,7 @@ fn _evaluate(
 
                         context = Some(vec![Some(value)]);
                       };
-                    }
+                    },
                     _ => stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -1872,7 +1821,7 @@ fn _evaluate(
                         .as_str()
                       );
                     }
-                  }
+                  },
                   _ => stylex_panic_with_context!(
                     path,
                     traversal_state,
@@ -1894,7 +1843,7 @@ fn _evaluate(
                       )
                       .as_str()
                     );
-                  }
+                  },
                 };
                 let map = match value.as_map() {
                   Some(m) => m,
@@ -1908,7 +1857,7 @@ fn _evaluate(
                       )
                       .as_str()
                     );
-                  }
+                  },
                 };
 
                 let result_fn = map.get(&create_string_expr(&prop_id_owned));
@@ -1920,7 +1869,7 @@ fn _evaluate(
                       traversal_state,
                       "Unexpected function result during member expression evaluation."
                     )
-                  }
+                  },
                   None => None,
                 };
               }
@@ -1941,42 +1890,42 @@ fn _evaluate(
                 fns,
               );
               return Some(EvaluateResultValue::Expr(func_result));
-            }
+            },
             FunctionType::StylexExprFn(func) => {
               let func_result = (func)(
                 (**match args.first() {
                   Some(a) => a,
                   None => {
                     stylex_panic!("StyleX expression function requires at least one argument.")
-                  }
+                  },
                 })
                 .clone(),
                 traversal_state,
               );
 
               return Some(EvaluateResultValue::Expr(func_result));
-            }
+            },
             FunctionType::StylexTypeFn(_) => {
               stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "StyleX function factories are not supported in this context."
               )
-            }
+            },
             FunctionType::StylexFnsFactory(_) => {
               stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "StyleX function factories are not supported in this context."
               )
-            }
+            },
             FunctionType::Callback(_) => {
               stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "Arrow function expressions are not supported in this context."
               )
-            }
+            },
             FunctionType::Mapper(_) => stylex_panic_with_context!(
               path,
               traversal_state,
@@ -1988,14 +1937,14 @@ fn _evaluate(
                 traversal_state,
                 "defaultMarker() cannot be called with arguments in this context."
               )
-            }
+            },
             FunctionType::EnvFunction(_) => {
               stylex_panic_with_context!(
                 path,
                 traversal_state,
                 "Env functions with path arguments are not yet supported."
               )
-            }
+            },
           }
         } else {
           if !state.confident {
@@ -2017,7 +1966,7 @@ fn _evaluate(
                 fns,
               );
               return Some(EvaluateResultValue::Expr(func_result));
-            }
+            },
             FunctionType::StylexExprFn(func) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
               let func_result = (func)(
@@ -2030,7 +1979,7 @@ fn _evaluate(
                 traversal_state,
               );
               return Some(EvaluateResultValue::Expr(func_result));
-            }
+            },
             FunctionType::StylexTypeFn(func) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
               let mut fn_args = IndexMap::default();
@@ -2066,19 +2015,19 @@ fn _evaluate(
                       ValueWithDefault::String(convert_lit_to_string(value).unwrap_or_default()),
                     );
                   }
-                }
+                },
                 Expr::Lit(lit) => {
                   fn_args.insert(
                     "default".to_string(),
                     ValueWithDefault::String(convert_lit_to_string(lit).unwrap_or_default()),
                   );
-                }
-                _ => {}
+                },
+                _ => {},
               }
 
               let func_result = (func)(ValueWithDefault::Map(fn_args));
               return Some(EvaluateResultValue::Expr(func_result));
-            }
+            },
             FunctionType::Callback(func) => {
               let context = match context {
                 Some(c) => c,
@@ -2090,17 +2039,17 @@ fn _evaluate(
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
                   return evaluate_map(&args, &context);
-                }
+                },
                 CallbackType::Array(ArrayJS::Filter) => {
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
                   return evaluate_filter(&args, &context);
-                }
+                },
                 CallbackType::Array(ArrayJS::Join) => {
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
                   return evaluate_join(&args, &context, traversal_state, &state.functions);
-                }
+                },
                 CallbackType::Object(ObjectJS::Entries) => {
                   let Some(Some(eval_result)) = context.first() else {
                     stylex_panic_with_context!(
@@ -2124,15 +2073,16 @@ fn _evaluate(
                     let key_spread = create_expr_or_spread(Expr::from(key.clone()));
                     let value_spread = create_expr_or_spread(*value.clone());
 
-                    entry_elems.push(Some(create_expr_or_spread(create_array_expression(
-                      vec![Some(key_spread), Some(value_spread)],
-                    ))));
+                    entry_elems.push(Some(create_expr_or_spread(create_array_expression(vec![
+                      Some(key_spread),
+                      Some(value_spread),
+                    ]))));
                   }
 
                   return Some(EvaluateResultValue::Expr(create_array_expression(
                     entry_elems,
                   )));
-                }
+                },
                 CallbackType::Object(ObjectJS::Keys) => {
                   let Some(Some(EvaluateResultValue::Expr(keys))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2143,7 +2093,7 @@ fn _evaluate(
                   };
 
                   return Some(EvaluateResultValue::Expr(keys.clone()));
-                }
+                },
                 CallbackType::Object(ObjectJS::Values) => {
                   let Some(Some(EvaluateResultValue::Expr(values))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2154,7 +2104,7 @@ fn _evaluate(
                   };
 
                   return Some(EvaluateResultValue::Expr(values.clone()));
-                }
+                },
                 CallbackType::Object(ObjectJS::FromEntries) => {
                   let Some(Some(EvaluateResultValue::Entries(entries))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2179,7 +2129,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(create_object_expression(
                     entry_elems,
                   )));
-                }
+                },
                 CallbackType::Math(MathJS::Pow) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2208,7 +2158,7 @@ fn _evaluate(
                   };
 
                   return Some(EvaluateResultValue::Expr(create_number_expr(result)));
-                }
+                },
                 CallbackType::Math(MathJS::Round | MathJS::Floor | MathJS::Ceil) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2231,7 +2181,7 @@ fn _evaluate(
                   };
 
                   return Some(EvaluateResultValue::Expr(create_number_expr(result)));
-                }
+                },
                 CallbackType::Math(MathJS::Min | MathJS::Max) => {
                   let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2257,7 +2207,7 @@ fn _evaluate(
                   ));
 
                   return Some(EvaluateResultValue::Expr(create_number_expr(result)));
-                }
+                },
                 CallbackType::Math(MathJS::Abs) => {
                   let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2273,7 +2223,7 @@ fn _evaluate(
                     });
 
                   return Some(EvaluateResultValue::Expr(create_number_expr(num.abs())));
-                }
+                },
                 CallbackType::String(StringJS::Concat) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2296,11 +2246,11 @@ fn _evaluate(
                           fns,
                           EXPRESSION_IS_NOT_A_STRING
                         ));
-                      }
+                      },
                       None => {
                         deopt(path, state, "All arguments must be a string");
                         return None;
-                      }
+                      },
                     }
                   }
                   let str_args = str_args_vec.join("");
@@ -2316,7 +2266,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(create_string_expr(
                     format!("{}{}", base_str, str_args).as_str(),
                   )));
-                }
+                },
                 CallbackType::String(StringJS::CharCodeAt) => {
                   let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
                     stylex_panic_with_context!(
@@ -2362,7 +2312,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(create_number_expr(
                     char_code as f64,
                   )));
-                }
+                },
                 CallbackType::Custom(arrow_fn) => {
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
@@ -2371,26 +2321,26 @@ fn _evaluate(
                   let expr_result = match evaluation_result.as_ref() {
                     Some(EvaluateResultValue::Callback(cb)) => {
                       cb(args.into_iter().map(Some).collect())
-                    }
+                    },
                     _ => {
                       stylex_panic_with_context!(
                         path,
                         traversal_state,
                         "Could not resolve the arrow function reference."
                       )
-                    }
+                    },
                   };
 
                   return Some(EvaluateResultValue::Expr(expr_result));
-                }
+                },
               }
-            }
+            },
             FunctionType::DefaultMarker(default_marker) => {
               return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
                 fn_ptr: FunctionType::DefaultMarker(Arc::clone(&default_marker)),
                 takes_path: false,
               }));
-            }
+            },
             FunctionType::EnvFunction(env_fn) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);
               let env_args: Vec<Expr> = args
@@ -2405,7 +2355,7 @@ fn _evaluate(
                 .collect();
               let result = env_fn.call(env_args);
               return Some(EvaluateResultValue::Expr(result));
-            }
+            },
             _ => stylex_panic_with_context!(
               path,
               traversal_state,
@@ -2423,7 +2373,7 @@ fn _evaluate(
           normalized_path.get_type(get_default_expr_ctx())
         )),
       );
-    }
+    },
     Expr::Await(await_expr) => evaluate_cached(&await_expr.arg, state, traversal_state, fns),
     Expr::OptChain(opt_chain) => {
       // Evaluate the base object/callee first
@@ -2440,7 +2390,7 @@ fn _evaluate(
         Some(EvaluateResultValue::Expr(base_expr)) => {
           matches!(base_expr, Expr::Lit(Lit::Null(_)))
             || (matches!(base_expr, Expr::Ident(ident) if ident.sym == *"undefined"))
-        }
+        },
         None => true,
         // For other result types (Object, Array, FunctionConfig, etc.), don't short-circuit
         _ => false,
@@ -2454,14 +2404,14 @@ fn _evaluate(
           OptChainBase::Member(member) => {
             let member_expr = Expr::Member(member.clone());
             evaluate_cached(&member_expr, state, traversal_state, fns)
-          }
+          },
           OptChainBase::Call(call) => {
             let call_expr = Expr::Call(call.clone().into());
             evaluate_cached(&call_expr, state, traversal_state, fns)
-          }
+          },
         }
       }
-    }
+    },
     _ => {
       warn!(
         "Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details",
@@ -2478,7 +2428,7 @@ fn _evaluate(
           normalized_path.get_type(get_default_expr_ctx())
         )),
       );
-    }
+    },
   };
 
   if result.is_none() && normalized_path.is_ident() {
@@ -2558,7 +2508,7 @@ fn _evaluate(
       let return_value = match abs_path {
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, value) => {
           evaluate_theme_ref(&value, imported_name, traversal_state)
-        }
+        },
         _ => return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR),
       };
 
@@ -2654,7 +2604,7 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
         .collect();
 
       Some(create_object_lit(props))
-    }
+    },
 
     _ => None,
   })
@@ -2725,7 +2675,7 @@ fn args_to_numbers(
               stylex_panic_with_context!(expr, traversal_state, error.to_string().as_str())
             }),
           ]
-        }
+        },
         EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, traversal_state, fns),
         _ => stylex_unreachable!("Math.min/max requires a number"),
       },
@@ -2796,12 +2746,12 @@ fn is_mutation_expr(expr: &Expr) -> bool {
       ) =>
     {
       true
-    }
+    },
 
     // Check for update on member: ++a.x or a[0]++
     Expr::Update(update) if matches!(&*update.arg, Expr::Member(member) if member.obj.is_ident()) => {
       true
-    }
+    },
 
     // Check for delete on member: delete a.x
     Expr::Unary(unary)
@@ -2809,7 +2759,7 @@ fn is_mutation_expr(expr: &Expr) -> bool {
         && matches!(&*unary.arg, Expr::Member(member) if member.obj.is_ident()) =>
     {
       true
-    }
+    },
 
     _ => false,
   }
@@ -2916,15 +2866,15 @@ pub(crate) fn evaluate_cached(
                 &traversal_state.var_decl_count_map,
               );
             }
-          }
-          _ => {}
+          },
+          _ => {},
         }
 
         return resolved;
       }
 
       deopt(path, state, PATH_WITHOUT_NODE)
-    }
+    },
     None => {
       let should_save_var_decl_count = path.is_object();
 
@@ -2963,7 +2913,7 @@ pub(crate) fn evaluate_cached(
         });
 
       val
-    }
+    },
   }
 }
 

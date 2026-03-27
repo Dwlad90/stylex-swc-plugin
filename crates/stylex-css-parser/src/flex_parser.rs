@@ -77,7 +77,7 @@ impl FlexCombinators {
             Err(err) => {
               input.set_current_index(checkpoint);
               last_error = err;
-            }
+            },
           }
         }
         Err(last_error)
@@ -129,12 +129,12 @@ impl FlexCombinators {
       move |input| {
         // Parse function name
         match input.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == name => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name == name => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: format!("Expected function {}", name),
             });
-          }
+          },
         }
 
         // Parse arguments until close paren
@@ -192,7 +192,7 @@ impl FlexCombinators {
               message.push_str(&format!(" Suggestions: {}", suggestions.join(", ")));
             }
             Err(err)
-          }
+          },
         }
       },
       "with_suggestions",
@@ -209,7 +209,7 @@ impl FlexCombinators {
           Err(_) => {
             input.set_current_index(checkpoint);
             Ok(default.clone())
-          }
+          },
         }
       },
       "optional_with_default",

@@ -14,11 +14,11 @@ where
     match self.state.cycle {
       TransformationCycle::StateFilling => {
         increase_ident_count(&mut self.state, &ident);
-      }
+      },
       TransformationCycle::Recounting => {
         reduce_ident_count(&mut self.state, &ident);
-      }
-      _ => {}
+      },
+      _ => {},
     };
 
     ident

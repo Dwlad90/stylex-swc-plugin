@@ -97,7 +97,7 @@ impl From<StyleXOptions> for StyleXStateOptions {
         } else {
           None
         }
-      }
+      },
       RuntimeInjection::Named(n) => Some(RuntimeInjectionState::Named(n)),
       RuntimeInjection::Regular(s) => Some(RuntimeInjectionState::Regular(s)),
     };

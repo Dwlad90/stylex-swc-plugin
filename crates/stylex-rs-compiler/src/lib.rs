@@ -13,12 +13,9 @@ use stylex_logs::initializer::initialize as initialize_logger;
 use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
-use stylex_transform::StyleXTransform;
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
 use stylex_enums::style_resolution::StyleResolution;
+use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
+use stylex_transform::StyleXTransform;
 use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
 
 use swc_core::{
@@ -57,7 +54,7 @@ fn extract_patterns(
             e
           );
           None
-        }
+        },
       })
       .collect()
   })
@@ -146,7 +143,7 @@ pub fn transform(
       Err(err) => {
         let error_message = format!("Failed to parse file `{}`: {:?}", filename, err);
         return Err(napi::Error::from_reason(error_message));
-      }
+      },
     };
 
     let globals = Globals::default();
@@ -184,7 +181,7 @@ pub fn transform(
               "[StyleX] Failed to print transformed code: {}",
               e
             )));
-          }
+          },
         };
 
         let js_result = StyleXTransformResult {
@@ -206,7 +203,7 @@ pub fn transform(
       let error_msg = format_panic_message(&error);
 
       Err(napi::Error::from_reason(error_msg))
-    }
+    },
   }
 }
 

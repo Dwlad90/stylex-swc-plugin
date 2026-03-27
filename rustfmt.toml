@@ -1,14 +1,29 @@
 edition = "2024"
-disable_all_formatting = false
-fn_params_layout = "Tall"
-force_explicit_abi = true
 hard_tabs = false
-match_block_trailing_comma = false
 max_width = 100
-merge_derives = true
 newline_style = "Unix"
-reorder_imports = true
 tab_spaces = 2
+disable_all_formatting = false
+
+# Rust specific formatting
+force_explicit_abi = true
+
+# Import/grouping behavior
+merge_derives = true
+merge_imports = true
+reorder_imports = true
+
+# Doc formatting
+format_code_in_doc_comments = true
+normalize_doc_attributes = true
+wrap_comments = true
+
+# Heuristics
 use_small_heuristics = "Default"
-use_try_shorthand = false
+
+# Small ergonomics
+blank_lines_upper_bound = 2
+fn_params_layout = "Tall"
+match_block_trailing_comma = true
 use_field_init_shorthand = true
+use_try_shorthand = true

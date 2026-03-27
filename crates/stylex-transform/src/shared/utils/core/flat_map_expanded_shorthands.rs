@@ -2,16 +2,16 @@ use log::warn;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
+use crate::shared::structures::pre_rule::PreRuleValue;
+use crate::shared::utils::ast::convertors::convert_lit_to_string;
 use stylex_css_order::structures::application_order::ApplicationOrder;
 use stylex_css_order::structures::legacy_expand_shorthands_order::LegacyExpandShorthandsOrder;
 use stylex_css_order::structures::property_specificity_order::PropertySpecificityOrder;
-use stylex_structures::order::Order;
-use stylex_structures::order_pair::OrderPair;
 use stylex_enums::property_validation_mode::PropertyValidationMode;
 use stylex_enums::style_resolution::StyleResolution;
+use stylex_structures::order::Order;
+use stylex_structures::order_pair::OrderPair;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
-use crate::shared::structures::pre_rule::PreRuleValue;
-use crate::shared::utils::ast::convertors::convert_lit_to_string;
 
 pub(crate) fn flat_map_expanded_shorthands(
   obj_entry: (String, PreRuleValue),
@@ -26,16 +26,16 @@ pub(crate) fn flat_map_expanded_shorthands(
       match options.property_validation_mode {
         PropertyValidationMode::Throw => {
           stylex_panic!("{}", msg);
-        }
+        },
         PropertyValidationMode::Warn => {
           warn!("{}", msg);
           return vec![];
-        }
+        },
         PropertyValidationMode::Silent => {
           return vec![];
-        }
+        },
       }
-    }
+    },
     PreRuleValue::Expr(expr) => match expr {
       Expr::Lit(lit) => Some(match convert_lit_to_string(&lit) {
         Some(s) => s,
@@ -46,16 +46,16 @@ pub(crate) fn flat_map_expanded_shorthands(
         match options.property_validation_mode {
           PropertyValidationMode::Throw => {
             stylex_panic!("{}", msg);
-          }
+          },
           PropertyValidationMode::Warn => {
             warn!("{}", msg);
             return vec![];
-          }
+          },
           PropertyValidationMode::Silent => {
             return vec![];
-          }
+          },
         }
-      }
+      },
     },
     PreRuleValue::Null => None,
   };
@@ -70,10 +70,10 @@ pub(crate) fn flat_map_expanded_shorthands(
     StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.as_str()),
     StyleResolution::LegacyExpandShorthands => {
       LegacyExpandShorthandsOrder::get_expansion_fn(key.as_str())
-    }
+    },
     StyleResolution::PropertySpecificity => {
       PropertySpecificityOrder::get_expansion_fn(key.as_str())
-    }
+    },
   };
 
   if let Some(expansion_fn) = expansion_fn {
@@ -82,14 +82,14 @@ pub(crate) fn flat_map_expanded_shorthands(
       Err(error_message) => match options.property_validation_mode {
         PropertyValidationMode::Throw => {
           stylex_panic!("{}", error_message);
-        }
+        },
         PropertyValidationMode::Warn => {
           warn!("{}", error_message);
           vec![]
-        }
+        },
         PropertyValidationMode::Silent => {
           vec![]
-        }
+        },
       },
     };
   }

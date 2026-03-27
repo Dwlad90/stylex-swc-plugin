@@ -1,6 +1,6 @@
-use swc_core::ecma::ast::{ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread};
 use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
+use swc_core::ecma::ast::{ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread};
 
 use crate::shared::structures::state_manager::StateManager;
 
@@ -46,7 +46,7 @@ pub fn get_property_by_key<'a>(expr: &'a Expr, key: &str) -> Option<&'a Expr> {
         }
       }
       None
-    }
+    },
     _ => None,
   }
 }

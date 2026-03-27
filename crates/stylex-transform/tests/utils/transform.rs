@@ -61,14 +61,14 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
         PluginPass::new(None, None),
         None,
       ))
-    }
+    },
     Err(err) => {
       handler
         .struct_err(format!("An error occurred: {:#?}", err).as_str())
         .emit();
 
       panic!("{:#?}", err)
-    }
+    },
   }
 }
 
@@ -134,8 +134,8 @@ where
           &tester.comments.clone(),
         );
         println!("----- Hygiene -----\n{}", hygiene_src);
-      }
-      _ => {}
+      },
+      _ => {},
     }
 
     let actual = actual

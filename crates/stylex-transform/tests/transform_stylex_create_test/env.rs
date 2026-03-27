@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use stylex_ast::ast::factories::{create_object_expression, create_key_value_prop};
+use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
 use stylex_structures::{
   plugin_pass::PluginPass,
   stylex_env::{EnvEntry, JSFunction},
@@ -8,15 +8,11 @@ use stylex_structures::{
 use stylex_transform::{
   StyleXTransform,
   shared::{
-    structures::{
-      functions::FunctionMap,
-      state::EvaluationState,
-      state_manager::StateManager,
-    },
+    structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
     utils::ast::{
       convertors::{
-        expr_to_bool, expr_to_num, expr_to_str, create_null_expr, create_number_expr,
-        create_string_expr,
+        create_null_expr, create_number_expr, create_string_expr, expr_to_bool, expr_to_num,
+        expr_to_str,
       },
       helpers::get_property_by_key,
     },
@@ -376,10 +372,7 @@ test!(
           .unwrap_or_default();
         create_object_expression(vec![
           create_key_value_prop("color", create_string_expr(&color)),
-          create_key_value_prop(
-            "fontSize",
-            create_string_expr(&format!("{}px", size)),
-          ),
+          create_key_value_prop("fontSize", create_string_expr(&format!("{}px", size))),
           create_key_value_prop("padding", create_string_expr("8px 16px")),
         ])
       })),
@@ -425,14 +418,8 @@ test!(
           .and_then(expr_to_str_wrapper)
           .unwrap_or_default();
         create_object_expression(vec![
-          create_key_value_prop(
-            "paddingTop",
-            create_string_expr(&format!("{}px", size)),
-          ),
-          create_key_value_prop(
-            "paddingBottom",
-            create_string_expr(&format!("{}px", size)),
-          ),
+          create_key_value_prop("paddingTop", create_string_expr(&format!("{}px", size))),
+          create_key_value_prop("paddingBottom", create_string_expr(&format!("{}px", size))),
         ])
       })),
     );
@@ -460,9 +447,7 @@ test!(
     let mut env = IndexMap::new();
     env.insert(
       "getLineHeight".to_string(),
-      EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| {
-        create_number_expr(1.5)
-      })),
+      EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| create_number_expr(1.5))),
     );
     StyleXTransform::new_test_force_runtime_injection_with_pass(
       tr.comments.clone(),
@@ -718,10 +703,7 @@ test!(
             "color",
             create_string_expr(if mode == "dark" { "white" } else { &primary }),
           ),
-          create_key_value_prop(
-            "fontSize",
-            create_string_expr(&format!("{}px", size)),
-          ),
+          create_key_value_prop("fontSize", create_string_expr(&format!("{}px", size))),
         ])
       })),
     );

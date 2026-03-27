@@ -2,14 +2,14 @@
 mod stylex_define_consts {
   use swc_core::ecma::ast::PropOrSpread;
 
-  use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
-  use stylex_structures::stylex_options::StyleXOptions;
-  use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
   use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::transformers::stylex_define_consts::stylex_define_consts;
   use crate::shared::utils::ast::convertors::create_string_expr;
   use crate::shared::utils::common::create_hash;
+  use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
+  use stylex_structures::stylex_options::StyleXOptions;
+  use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
   fn create_test_state_manager(export_id: &str) -> StateManager {
     let mut state = StateManager::new(StyleXOptions {
@@ -71,7 +71,7 @@ mod stylex_define_consts {
         assert_eq!(style.ltr, "");
         assert_eq!(style.rtl, None);
         assert_eq!(style.priority, Some(0.0));
-      }
+      },
       _ => panic!("Expected InjectableStyleKind::Const"),
     }
 
@@ -81,7 +81,7 @@ mod stylex_define_consts {
         assert_eq!(style.ltr, "");
         assert_eq!(style.rtl, None);
         assert_eq!(style.priority, Some(0.0));
-      }
+      },
       _ => panic!("Expected InjectableStyleKind::Const"),
     }
 
@@ -166,7 +166,7 @@ mod stylex_define_consts {
     ) {
       (InjectableStyleKind::Const(style1), InjectableStyleKind::Const(style2)) => {
         assert_eq!(style1.const_key, style2.const_key);
-      }
+      },
       _ => panic!("Expected InjectableStyleKind::Const"),
     }
   }
@@ -197,7 +197,7 @@ mod stylex_define_consts {
     ) {
       (InjectableStyleKind::Const(style1), InjectableStyleKind::Const(style2)) => {
         assert_ne!(style1.const_key, style2.const_key);
-      }
+      },
       _ => panic!("Expected InjectableStyleKind::Const"),
     }
   }

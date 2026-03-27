@@ -1,12 +1,12 @@
 [package]
-name = "stylex_css_values"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "CSS value parsing utilities for the StyleX compiler plugin"
+edition.workspace = true
+license.workspace = true
+name = "stylex_css_values"
 publish = false
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 [dependencies]
 cssparser.workspace = true

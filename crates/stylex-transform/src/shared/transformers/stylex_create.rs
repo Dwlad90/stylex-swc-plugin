@@ -3,9 +3,6 @@ use std::{collections::VecDeque, rc::Rc};
 use indexmap::{IndexMap, IndexSet};
 use stylex_macros::stylex_panic;
 
-use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_constants::constants::messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT};
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::structures::functions::FunctionMap;
@@ -13,16 +10,15 @@ use crate::shared::structures::pre_rule::{CompiledResult, ComputedStyle, PreRule
 use crate::shared::structures::state::EvaluationState;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{
-  ClassPathsInNamespace,
-  ClassPathsMap,
-  FlatCompiledStyles,
-  InjectableStylesMap,
-  StylesObjectMap,
+  ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, StylesObjectMap,
 };
 use crate::shared::utils::ast::convertors::expr_to_str;
 use crate::shared::utils::common::create_short_hash;
 use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
 use crate::shared::utils::validators::validate_namespace;
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_constants::constants::messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT};
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
 pub(crate) fn stylex_create_set(
   namespaces: &EvaluateResultValue,
@@ -111,10 +107,10 @@ pub(crate) fn stylex_create_set(
               .entry(class_name.clone())
               .or_insert_with(|| Rc::new(InjectableStyleKind::Regular(injectable_styles.clone())));
           }
-        }
+        },
         _ => {
           namespace_obj.insert(key.clone(), Rc::new(FlatCompiledStylesValue::Null));
-        }
+        },
       }
     }
 

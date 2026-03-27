@@ -3,8 +3,8 @@ use swc_core::{
   ecma::{ast::PropName, visit::FoldWith},
 };
 
-use stylex_enums::core::TransformationCycle;
 use crate::StyleXTransform;
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where
@@ -17,7 +17,7 @@ where
         if prop_name.is_ident() =>
       {
         prop_name
-      }
+      },
       _ => prop_name.fold_children_with(self),
     }
   }

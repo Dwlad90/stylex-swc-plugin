@@ -17,7 +17,7 @@ mod test_css_type_length_percentage {
       LengthPercentage::Length(length) => {
         assert_eq!(length.value, 10.0);
         assert_eq!(length.unit, "px");
-      }
+      },
       _ => stylex_panic!("Expected length"),
     }
 
@@ -26,7 +26,7 @@ mod test_css_type_length_percentage {
       LengthPercentage::Length(length) => {
         assert_eq!(length.value, 5.0);
         assert_eq!(length.unit, "em");
-      }
+      },
       _ => stylex_panic!("Expected length"),
     }
 
@@ -35,7 +35,7 @@ mod test_css_type_length_percentage {
       LengthPercentage::Length(length) => {
         assert_eq!(length.value, 2.0);
         assert_eq!(length.unit, "rem");
-      }
+      },
       _ => stylex_panic!("Expected length"),
     }
 
@@ -44,7 +44,7 @@ mod test_css_type_length_percentage {
       LengthPercentage::Length(length) => {
         assert_eq!(length.value, 1.0);
         assert_eq!(length.unit, "in");
-      }
+      },
       _ => stylex_panic!("Expected length"),
     }
   }
@@ -55,7 +55,7 @@ mod test_css_type_length_percentage {
     match result {
       LengthPercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 50.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
 
@@ -63,7 +63,7 @@ mod test_css_type_length_percentage {
     match result {
       LengthPercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 100.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
 
@@ -71,7 +71,7 @@ mod test_css_type_length_percentage {
     match result {
       LengthPercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 0.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
 
@@ -79,7 +79,7 @@ mod test_css_type_length_percentage {
     match result {
       LengthPercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 25.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
   }
@@ -92,7 +92,7 @@ mod test_css_type_length_percentage {
     match result {
       LengthPercentage::Calc(calc) => {
         assert_eq!(calc.to_string(), "calc(10px + 5%)");
-      }
+      },
       _ => stylex_panic!("Expected calc expression"),
     }
 
@@ -102,7 +102,7 @@ mod test_css_type_length_percentage {
     match result {
       LengthPercentage::Calc(calc) => {
         assert_eq!(calc.to_string(), "calc(100% - 20px)");
-      }
+      },
       _ => stylex_panic!("Expected calc expression"),
     }
 
@@ -115,7 +115,7 @@ mod test_css_type_length_percentage {
         assert!(calc.to_string().starts_with("calc("));
         assert!(calc.to_string().ends_with(")"));
         assert_eq!(calc.to_string(), "calc(50px * 2)");
-      }
+      },
       _ => stylex_panic!("Expected calc expression"),
     }
   }

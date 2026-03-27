@@ -21,7 +21,7 @@ where
         {
           self.state.class_name_declarations.push(class_decl_ident);
         }
-      }
+      },
       Decl::Fn(fn_decl) => {
         let fn_decl_ident = drop_span(fn_decl.ident.clone());
 
@@ -32,8 +32,8 @@ where
         {
           self.state.function_name_declarations.push(fn_decl_ident);
         }
-      }
-      _ => {}
+      },
+      _ => {},
     }
 
     decl.fold_children_with(self)

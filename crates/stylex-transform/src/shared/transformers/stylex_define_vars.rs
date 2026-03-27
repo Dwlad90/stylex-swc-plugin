@@ -4,14 +4,6 @@ use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
-use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
-use stylex_constants::constants::messages::{
-  EXPORT_ID_NOT_SET,
-  INJECTABLE_STYLE_NOT_SUPPORTED,
-  VALUES_MUST_BE_OBJECT,
-};
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableStyle;
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
@@ -20,6 +12,12 @@ use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
 use crate::shared::utils::common::{create_hash, get_css_value};
 use crate::shared::utils::core::define_vars_utils::construct_css_variables_string;
 use crate::shared::utils::object::obj_map;
+use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
+use stylex_constants::constants::messages::{
+  EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
+};
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use stylex_types::structures::injectable_style::InjectableStyle;
 
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
@@ -47,7 +45,7 @@ pub(crate) fn stylex_define_vars(
       let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
-        }
+        },
         FlatCompiledStylesValue::Tuple(key, value, _) => {
           let str_to_hash = format!(
             "{}.{}",
@@ -96,7 +94,7 @@ pub(crate) fn stylex_define_vars(
           });
 
           FlatCompiledStylesValue::Tuple(name_hash.to_string(), css_value, css_type)
-        }
+        },
         _ => stylex_unimplemented!("Unsupported value type in define vars"),
       };
 
@@ -110,10 +108,10 @@ pub(crate) fn stylex_define_vars(
     |item, _| match item.as_ref() {
       FlatCompiledStylesValue::InjectableStyle(_) => {
         stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
-      }
+      },
       FlatCompiledStylesValue::Tuple(key, _, _) => {
         Rc::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
-      }
+      },
       _ => stylex_unreachable!("Unsupported value type"),
     },
   );
@@ -136,7 +134,7 @@ pub(crate) fn stylex_define_vars(
             ltr: property,
             ..Default::default()
           })
-        }
+        },
         _ => stylex_unreachable!("Unsupported value type"),
       };
 

@@ -1,11 +1,11 @@
 [package]
-name = "stylex_css"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "CSS generation, normalization and validation for StyleX SWC plugin"
+edition.workspace = true
+license.workspace = true
+name = "stylex_css"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 
 [lib]
@@ -13,35 +13,35 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-swc_core = { workspace = true, features = [
-  "common",
-  "ecma_plugin_transform",
-  "ecma_utils",
-  "ecma_parser",
-  "ecma_codegen",
-  "css_codegen",
-  "css_visit",
-  "css_parser",
-  "css_ast",
-] }
 cssparser.workspace = true
 fancy-regex.workspace = true
 indexmap.workspace = true
-rustc-hash.workspace = true
 log.workspace = true
+rustc-hash.workspace = true
+swc_core = { workspace = true, features = [
+  "common",
+  "css_ast",
+  "css_codegen",
+  "css_parser",
+  "css_visit",
+  "ecma_codegen",
+  "ecma_parser",
+  "ecma_plugin_transform",
+  "ecma_utils",
+] }
 
-stylex_constants = { path = "../stylex-constants" }
-stylex_enums = { path = "../stylex-enums" }
-stylex_structures = { path = "../stylex-structures" }
-stylex_types = { path = "../stylex-types" }
 stylex_ast = { path = "../stylex-ast" }
+stylex_constants = { path = "../stylex-constants" }
+stylex_css_order = { path = "../stylex-css-order" }
+stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_css_utils = { path = "../stylex-css-utils" }
+stylex_css_values = { path = "../stylex-css-values" }
+stylex_enums = { path = "../stylex-enums" }
 stylex_evaluator = { path = "../stylex-evaluator" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_regex = { path = "../stylex-regex" }
-stylex_css_parser = { path = "../stylex-css-parser" }
-stylex_css_values = { path = "../stylex-css-values" }
-stylex_css_order = { path = "../stylex-css-order" }
-stylex_css_utils = { path = "../stylex-css-utils" }
+stylex_structures = { path = "../stylex-structures" }
+stylex_types = { path = "../stylex-types" }
 
 [dev-dependencies]
 ctor.workspace = true

@@ -3,8 +3,6 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::Expr;
 
-  use stylex_ast::ast::factories::{create_array, create_key_value_prop_ident};
-  use stylex_enums::style_resolution::StyleResolution;
   use crate::shared::structures::functions::FunctionMap;
   use crate::shared::structures::null_pre_rule::NullPreRule;
   use crate::shared::structures::pre_rule::{PreRuleValue, PreRules, StylesPreRule};
@@ -13,6 +11,8 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::utils::ast::convertors::create_string_expr;
   use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
+  use stylex_ast::ast::factories::{create_array, create_key_value_prop_ident};
+  use stylex_enums::style_resolution::StyleResolution;
 
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();

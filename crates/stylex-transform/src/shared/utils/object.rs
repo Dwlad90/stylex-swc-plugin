@@ -5,8 +5,6 @@ use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, KeyValueProp};
 
-use stylex_structures::order_pair::OrderPair;
-use stylex_structures::pair::Pair;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
 use crate::shared::structures::pre_rule::PreRuleValue;
@@ -14,6 +12,8 @@ use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::common::get_key_values_from_object;
 use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
+use stylex_structures::order_pair::OrderPair;
+use stylex_structures::pair::Pair;
 
 use super::ast::convertors::key_value_to_str;
 
@@ -44,7 +44,7 @@ where
 
         variables_map.insert(key, result);
       }
-    }
+    },
 
     ObjMapType::Map(map) => {
       for (key, value) in map {
@@ -53,7 +53,7 @@ where
 
         variables_map.insert(key, result);
       }
-    }
+    },
   }
 
   variables_map

@@ -2,9 +2,7 @@ use std::{hash::Hash, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-};
+use crate::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_utils::hash::hash_f64;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Hash, Eq)]
@@ -78,11 +76,7 @@ impl InjectableStyle {
   /// let style = InjectableStyle::with_rtl(ltr_css, rtl_css, Some(0.5));
   /// ```
   #[inline]
-  pub fn _with_rtl(
-    ltr: String,
-    rtl: String,
-    priority: Option<f64>,
-  ) -> Rc<InjectableStyleKind> {
+  pub fn _with_rtl(ltr: String, rtl: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
     Rc::new(InjectableStyleKind::Regular(InjectableStyle {
       ltr,
       rtl: Some(rtl),

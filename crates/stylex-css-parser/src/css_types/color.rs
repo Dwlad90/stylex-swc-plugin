@@ -614,11 +614,11 @@ impl HashColor {
         let r_char = self.value.chars().next().unwrap();
         let expanded = format!("{}{}", r_char, r_char);
         u8::from_str_radix(&expanded, 16).unwrap_or(0)
-      }
+      },
       6 | 8 => {
         // 6-digit or 8-digit hex
         u8::from_str_radix(&self.value[0..2], 16).unwrap_or(0)
-      }
+      },
       _ => 0,
     }
   }
@@ -631,7 +631,7 @@ impl HashColor {
         let g_char = self.value.chars().nth(1).unwrap();
         let expanded = format!("{}{}", g_char, g_char);
         u8::from_str_radix(&expanded, 16).unwrap_or(0)
-      }
+      },
       6 | 8 => u8::from_str_radix(&self.value[2..4], 16).unwrap_or(0),
       _ => 0,
     }
@@ -645,7 +645,7 @@ impl HashColor {
         let b_char = self.value.chars().nth(2).unwrap();
         let expanded = format!("{}{}", b_char, b_char);
         u8::from_str_radix(&expanded, 16).unwrap_or(0)
-      }
+      },
       6 | 8 => u8::from_str_radix(&self.value[4..6], 16).unwrap_or(0),
       _ => 0,
     }
@@ -1132,7 +1132,7 @@ impl Rgba {
             message: format!("Alpha number must be 0.0-1.0, got {}", value),
           })
         }
-      }
+      },
       SimpleToken::Percentage(value) => {
         // cssparser stores percentage as already converted (0.50 for 50%)
         // so we don't need to divide by 100
@@ -1146,7 +1146,7 @@ impl Rgba {
             ),
           })
         }
-      }
+      },
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number or Percentage token for alpha, got {:?}",
@@ -1377,11 +1377,11 @@ impl Hsl {
             message: format!("Invalid angle unit: {}", unit),
           })
         }
-      }
+      },
       SimpleToken::Number(value) => {
         // Treat numbers as degrees (CSS standard for HSL)
         Ok(Angle::new(value as f32, "deg".to_string()))
-      }
+      },
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number or Dimension token for hue, got {:?}",
@@ -1654,11 +1654,11 @@ impl Hsla {
             message: format!("Invalid angle unit: {}", unit),
           })
         }
-      }
+      },
       SimpleToken::Number(value) => {
         // Treat numbers as degrees (CSS standard for HSL/HSLA)
         Ok(Angle::new(value as f32, "deg".to_string()))
-      }
+      },
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number or Dimension token for hue, got {:?}",
@@ -1704,7 +1704,7 @@ impl Hsla {
             message: format!("Alpha number must be 0.0-1.0, got {}", value),
           })
         }
-      }
+      },
       SimpleToken::Percentage(value) => {
         // cssparser stores percentage as already converted (0.50 for 50%)
         if (0.0..=1.0).contains(&value) {
@@ -1717,7 +1717,7 @@ impl Hsla {
             ),
           })
         }
-      }
+      },
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number or Percentage token for alpha, got {:?}",
@@ -1913,12 +1913,12 @@ impl Lch {
           Ok(alpha) => Ok(Some(alpha)),
           Err(e) => Err(e),
         }
-      }
+      },
       _ => {
         // No alpha, rewind to checkpoint
         input.set_current_index(checkpoint);
         Ok(None)
-      }
+      },
     }
   }
 
@@ -1934,7 +1934,7 @@ impl Lch {
       SimpleToken::Percentage(value) => {
         // Convert percentage to value (50% = 50.0)
         Ok((value as f32) * 100.0)
-      }
+      },
       SimpleToken::Number(value) => Ok(value as f32),
       _ => Err(CssParseError::ParseError {
         message: format!(
@@ -1981,11 +1981,11 @@ impl Lch {
             message: format!("Invalid angle unit: {}", unit),
           })
         }
-      }
+      },
       SimpleToken::Number(value) => {
         // Treat numbers as plain numbers (not degrees)
         Ok(LchHue::Number(value as f32))
-      }
+      },
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number or Dimension token for hue, got {:?}",
@@ -2028,12 +2028,12 @@ impl Oklch {
       move |input| {
         // Parse 'oklch(' function start
         match input.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklch" => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklch" => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected oklch() function".to_string(),
             });
-          }
+          },
         }
 
         // Parse lightness (l): number | 'none'
@@ -2041,12 +2041,12 @@ impl Oklch {
 
         // Parse whitespace
         match input.consume_next_token()? {
-          Some(SimpleToken::Whitespace) => {}
+          Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after lightness".to_string(),
             });
-          }
+          },
         }
 
         // Parse chroma (c): number | 'none'
@@ -2054,12 +2054,12 @@ impl Oklch {
 
         // Parse whitespace
         match input.consume_next_token()? {
-          Some(SimpleToken::Whitespace) => {}
+          Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after chroma".to_string(),
             });
-          }
+          },
         }
 
         // Parse hue (h): angle | number (number * 360 -> angle)
@@ -2070,12 +2070,12 @@ impl Oklch {
 
         // Parse closing paren
         match input.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ) after oklch values".to_string(),
             });
-          }
+          },
         }
 
         Ok(Oklch::new(l, c, h, alpha))
@@ -2107,11 +2107,11 @@ impl Oklch {
             message: format!("Invalid angle unit: {}", unit),
           })
         }
-      }
+      },
       Some(SimpleToken::Number(n)) => Ok(Angle::new(n as f32, "deg".to_string())),
       Some(SimpleToken::Ident(keyword)) if keyword == "none" => {
         Ok(Angle::new(0.0, "deg".to_string()))
-      }
+      },
       _ => Err(CssParseError::ParseError {
         message: "Expected hue: angle, number, or 'none'".to_string(),
       }),
@@ -2145,12 +2145,12 @@ impl Oklch {
           Ok(alpha) => Ok(Some(alpha)),
           Err(e) => Err(e),
         }
-      }
+      },
       _ => {
         // No alpha, rewind to checkpoint
         input.set_current_index(checkpoint);
         Ok(None)
-      }
+      },
     }
   }
 }
@@ -2186,12 +2186,12 @@ impl Oklab {
       move |input| {
         // Parse 'oklab(' function start
         match input.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklab" => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklab" => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected oklab() function".to_string(),
             });
-          }
+          },
         }
 
         // Parse lightness (l): number | 'none'
@@ -2199,12 +2199,12 @@ impl Oklab {
 
         // Parse whitespace
         match input.consume_next_token()? {
-          Some(SimpleToken::Whitespace) => {}
+          Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after lightness".to_string(),
             });
-          }
+          },
         }
 
         // Parse a component (green-red): number | 'none'
@@ -2212,12 +2212,12 @@ impl Oklab {
 
         // Parse whitespace
         match input.consume_next_token()? {
-          Some(SimpleToken::Whitespace) => {}
+          Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected whitespace after a component".to_string(),
             });
-          }
+          },
         }
 
         // Parse b component (blue-yellow): number | 'none'
@@ -2228,12 +2228,12 @@ impl Oklab {
 
         // Parse closing paren
         match input.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ) after oklab values".to_string(),
             });
-          }
+          },
         }
 
         Ok(Oklab::new(l, a, b, alpha))
@@ -2282,12 +2282,12 @@ impl Oklab {
           Ok(alpha) => Ok(Some(alpha)),
           Err(e) => Err(e),
         }
-      }
+      },
       _ => {
         // No alpha, rewind to checkpoint
         input.set_current_index(checkpoint);
         Ok(None)
-      }
+      },
     }
   }
 }

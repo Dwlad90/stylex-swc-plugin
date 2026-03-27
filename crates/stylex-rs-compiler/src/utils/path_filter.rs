@@ -69,7 +69,7 @@ fn match_pattern(file_path: &str, pattern: &PathFilterUnion) -> bool {
             regex_str, file_path, e
           );
           false
-        }
+        },
       },
       Err(e) => {
         warn!(
@@ -77,7 +77,7 @@ fn match_pattern(file_path: &str, pattern: &PathFilterUnion) -> bool {
           regex_str, e
         );
         false
-      }
+      },
     },
   }
 }

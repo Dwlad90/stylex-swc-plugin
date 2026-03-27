@@ -2,17 +2,13 @@
 mod converting_pre_rule_to_css {
   use indexmap::IndexMap;
 
-  use stylex_enums::style_resolution::StyleResolution;
-  use stylex_types::structures::injectable_style::InjectableStyle;
   use crate::shared::structures::pre_rule::{
-    CompiledResult,
-    ComputedStyle,
-    PreRule,
-    PreRuleValue,
-    StylesPreRule,
+    CompiledResult, ComputedStyle, PreRule, PreRuleValue, StylesPreRule,
   };
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::structures::types::ClassesToOriginalPaths;
+  use stylex_enums::style_resolution::StyleResolution;
+  use stylex_types::structures::injectable_style::InjectableStyle;
 
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();

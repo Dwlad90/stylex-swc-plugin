@@ -24,21 +24,18 @@ use swc_core::{
 use stylex_data_structures::top_level_expression::TopLevelExpression;
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 
-use stylex_constants::constants::messages::{
-  ILLEGAL_PROP_VALUE,
-  INVALID_UTF8,
-  SPREAD_NOT_SUPPORTED,
-  VAR_DECL_NAME_NOT_IDENT,
-};
-use stylex_enums::misc::VarDeclAction;
-use stylex_regex::regex::{DASHIFY_REGEX, JSON_REGEX};
 use crate::shared::structures::base_css_type::BaseCSSType;
 use crate::shared::structures::functions::{FunctionConfigType, FunctionMap, FunctionType};
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom};
+use stylex_constants::constants::messages::{
+  ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
+};
+use stylex_enums::misc::VarDeclAction;
+use stylex_regex::regex::{DASHIFY_REGEX, JSON_REGEX};
 
-use stylex_ast::ast::factories::create_var_declarator;
 use super::ast::convertors::expand_shorthand_prop;
+use stylex_ast::ast::factories::create_var_declarator;
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
@@ -51,7 +48,7 @@ pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
         Some(s) => s.to_string(),
         None => stylex_panic!("{}", INVALID_UTF8),
       }
-    }
+    },
     _ => "".to_string(),
   }
 }
@@ -77,7 +74,7 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
         Some(s) => s,
         None => stylex_panic!("{}", INVALID_UTF8),
       })
-    }
+    },
     _ => None,
   }
 }
@@ -156,7 +153,7 @@ pub fn get_var_decl_by_ident<'a>(
   match action {
     VarDeclAction::Increase => increase_ident_count(traversal_state, ident),
     VarDeclAction::Reduce => reduce_ident_count(traversal_state, ident),
-    VarDeclAction::None => {}
+    VarDeclAction::None => {},
   };
 
   if let Some(var_decl) = get_var_decl_from(traversal_state, ident) {
@@ -172,15 +169,15 @@ pub fn get_var_decl_by_ident<'a>(
           let var_decl = create_var_declarator(ident.clone(), result);
 
           return Some(var_decl);
-        }
+        },
         _ => stylex_panic!("Function type not supported: {:?}", func),
       },
       FunctionConfigType::Map(_) => {
         stylex_unimplemented!("Map values are not supported in this context.")
-      }
+      },
       FunctionConfigType::IndexMap(_) => {
         stylex_unimplemented!("IndexMap values are not supported in this context.")
-      }
+      },
       FunctionConfigType::EnvObject(_) => return None,
     }
   }
@@ -229,7 +226,7 @@ pub(crate) fn get_import_from<'a>(
             _ => false,
           }
         }
-      }
+      },
       ImportSpecifier::Default(default_import) => default_import.local.eq_ignore_span(ident),
       ImportSpecifier::Namespace(namespace_import) => namespace_import.local.eq_ignore_span(ident),
     })
@@ -346,7 +343,7 @@ pub(crate) fn deep_merge_props(
           } else {
             new_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(kv))));
           }
-        }
+        },
         _ => new_props.push(PropOrSpread::Prop(Box::new(*prop))),
       },
       _ => new_props.push(prop),
@@ -456,10 +453,10 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                         if let Some(ident) = key_value.key.as_ident() {
                           return ident.sym == "value";
                         }
-                      }
+                      },
                       _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
                     }
-                  }
+                  },
                 }
 
                 false
@@ -474,10 +471,10 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                 return (result_key_value.value.clone(), Some(obj.clone().into()));
               }
             }
-          }
+          },
           _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
         }
-      }
+      },
     }
   }
 
@@ -498,10 +495,10 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
         match prop.as_ref() {
           Prop::KeyValue(key_value) => {
             key_values.push(key_value.clone());
-          }
+          },
           _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
         }
-      }
+      },
     }
   }
   key_values
@@ -526,7 +523,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           }
         }
       }
-    }
+    },
     ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_decl)) => {
       match export_decl.expr.as_paren() {
         Some(paren) => {
@@ -535,16 +532,16 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
             *drop_span(paren.expr.clone()),
             None,
           ));
-        }
+        },
         _ => {
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
             *drop_span(export_decl.expr.clone()),
             None,
           ));
-        }
+        },
       }
-    }
+    },
     ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) => {
       for decl in &var.decls {
         if let Some(decl_init) = decl.init.as_ref()
@@ -563,8 +560,8 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           fill_state_declarations(state, decl);
         }
       }
-    }
-    _ => {}
+    },
+    _ => {},
   });
 }
 
@@ -586,20 +583,20 @@ fn _get_variable_names(name: &Pat) -> Vec<String> {
         match prop {
           ObjectPatProp::KeyValue(key_value_pat_prop) => {
             names.append(&mut _get_variable_names(&key_value_pat_prop.value));
-          }
+          },
           ObjectPatProp::Assign(assign_pat_prop) => {
             names.append(&mut _get_variable_names(&Pat::Ident(
               assign_pat_prop.key.clone(),
             )));
-          }
+          },
           ObjectPatProp::Rest(rest_pat) => {
             names.append(&mut _get_variable_names(&rest_pat.arg));
-          }
+          },
         }
       }
 
       names
-    }
+    },
     Pat::Array(pat_array) => {
       let mut names = vec![];
 
@@ -608,7 +605,7 @@ fn _get_variable_names(name: &Pat) -> Vec<String> {
       }
 
       names
-    }
+    },
     Pat::Rest(rest_pat) => _get_variable_names(&rest_pat.arg),
     Pat::Invalid(_) => vec![],
     Pat::Expr(_) => vec![],
@@ -618,7 +615,7 @@ fn _get_variable_names(name: &Pat) -> Vec<String> {
       names.append(&mut _get_variable_names(&assign.left));
 
       names
-    }
+    },
   }
 }
 
@@ -662,7 +659,7 @@ pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
     _ => {
       *expr = drop_span(expr.clone());
       expr
-    }
+    },
   }
 }
 
@@ -727,16 +724,16 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
             }
 
             remove_quotes(&inner_string)
-          }
+          },
           _ => remove_quotes(&json_str),
         }
       } else {
         json_str
       }
-    }
+    },
     Err(err) => {
       stylex_panic!("Failed to serialize value. Error: {}", err)
-    }
+    },
   }
 }
 

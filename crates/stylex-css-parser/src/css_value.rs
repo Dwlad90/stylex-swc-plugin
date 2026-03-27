@@ -235,7 +235,7 @@ impl fmt::Display for CssValue {
           write!(f, "{}", arg)?;
         }
         write!(f, ")")
-      }
+      },
       CssValue::Sequence(seq) => {
         for (i, item) in seq.iter().enumerate() {
           if i > 0 {
@@ -244,7 +244,7 @@ impl fmt::Display for CssValue {
           write!(f, "{}", item)?;
         }
         Ok(())
-      }
+      },
       CssValue::Angle(a) => write!(f, "{}", a),
       CssValue::Color(c) => write!(f, "{}", c),
       CssValue::Length(l) => write!(f, "{}", l),

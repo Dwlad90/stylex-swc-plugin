@@ -173,10 +173,10 @@ impl Display for MediaNotRule {
     match self.rule.as_ref() {
       MediaQueryRule::And(_) | MediaQueryRule::Or(_) => {
         write!(f, "(not ({}))", self.rule)
-      }
+      },
       _ => {
         write!(f, "(not {})", self.rule)
-      }
+      },
     }
   }
 }
@@ -265,10 +265,10 @@ impl MediaQuery {
           match norm {
             MediaQueryRule::And(inner_and) => {
               flattened.extend(inner_and.rules);
-            }
+            },
             _ => {
               flattened.push(norm);
-            }
+            },
           }
         }
 
@@ -283,7 +283,7 @@ impl MediaQuery {
           )]));
         }
         MediaQueryRule::And(MediaAndRules::new(merged))
-      }
+      },
       MediaQueryRule::Or(ref or_rules) => {
         let normalized_rules: Vec<MediaQueryRule> = or_rules
           .rules
@@ -291,7 +291,7 @@ impl MediaQuery {
           .map(|r| Self::normalize(r.clone()))
           .collect();
         MediaQueryRule::Or(MediaOrRules::new(normalized_rules))
-      }
+      },
       MediaQueryRule::Not(ref not_rule) => {
         let normalized_operand = Self::normalize(not_rule.rule.as_ref().clone());
 
@@ -302,7 +302,7 @@ impl MediaQuery {
               false,
               false,
             ));
-          }
+          },
           MediaQueryRule::And(ref and_rules) if and_rules.rules.len() == 1 => {
             if let MediaQueryRule::MediaKeyword(keyword) = &and_rules.rules[0]
               && keyword.key == "all"
@@ -314,15 +314,15 @@ impl MediaQuery {
                 false,
               ));
             }
-          }
+          },
           MediaQueryRule::Not(inner_not) => {
             return Self::normalize(inner_not.rule.as_ref().clone());
-          }
-          _ => {}
+          },
+          _ => {},
         }
 
         MediaQueryRule::Not(MediaNotRule::new(normalized_operand))
-      }
+      },
       _ => rule,
     }
   }
@@ -366,23 +366,23 @@ impl MediaQuery {
             format!("({})", keyword.key)
           }
         )
-      }
+      },
       MediaQueryRule::WordRule(word_rule) => {
         format!("({})", word_rule.key_value)
-      }
+      },
       MediaQueryRule::Pair(pair) => match &pair.value {
         MediaRuleValue::Fraction(frac) => {
           format!("({}: {} / {})", pair.key, frac.numerator, frac.denominator)
-        }
+        },
         MediaRuleValue::Length(len) => {
           format!("({}: {})", pair.key, len)
-        }
+        },
         MediaRuleValue::String(s) => {
           format!("({}: {})", pair.key, s)
-        }
+        },
         MediaRuleValue::Number(n) => {
           format!("({}: {})", pair.key, n)
-        }
+        },
       },
       MediaQueryRule::Not(not_rule) => match not_rule.rule.as_ref() {
         MediaQueryRule::And(_) | MediaQueryRule::Or(_) | MediaQueryRule::Not(_) => {
@@ -390,13 +390,13 @@ impl MediaQuery {
             "(not ({}))",
             MediaQuery::format_queries(not_rule.rule.as_ref(), false)
           )
-        }
+        },
         _ => {
           format!(
             "(not {})",
             MediaQuery::format_queries(not_rule.rule.as_ref(), false)
           )
-        }
+        },
       },
       MediaQueryRule::And(and_rules) => {
         let rule_strings: Vec<String> = and_rules
@@ -405,7 +405,7 @@ impl MediaQuery {
           .map(|rule| MediaQuery::format_queries(rule, false))
           .collect();
         rule_strings.join(" and ")
-      }
+      },
       MediaQueryRule::Or(or_rules) => {
         // Filter out invalid rules (like empty or rules)
         let valid_rules: Vec<&MediaQueryRule> = or_rules
@@ -432,7 +432,7 @@ impl MediaQuery {
               } else {
                 rule_string
               }
-            }
+            },
             _ => MediaQuery::format_queries(rule, false),
           })
           .collect();
@@ -442,7 +442,7 @@ impl MediaQuery {
         } else {
           formatted_rules.join(" or ")
         }
-      }
+      },
     }
   }
 }
@@ -510,8 +510,8 @@ fn has_balanced_parens(input: &str) -> bool {
         if count < 0 {
           return false;
         }
-      }
-      _ => {}
+      },
+      _ => {},
     }
   }
   count == 0
@@ -530,7 +530,7 @@ fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> 
       } else {
         merged
       }
-    }
+    },
     Err(_) => rules, // Return original rules on error
   }
 }
@@ -635,7 +635,7 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
             intervals.get_mut(dim).unwrap().push(interval);
             break;
           }
-        }
+        },
 
         // Handle NOT rules with min/max constraints
         MediaQueryRule::Not(not_rule) => {
@@ -664,9 +664,9 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
             intervals.get_mut(dim).unwrap().push(interval);
             break;
           }
-        }
+        },
 
-        _ => {}
+        _ => {},
       }
     }
 
@@ -2013,7 +2013,7 @@ mod tests {
         MediaQueryRule::Pair(pair) => {
           assert_eq!(pair.key, "min-width");
           println!("✅ Triple NOT correctly normalized to single NOT");
-        }
+        },
         _ => stylex_panic!("Expected Pair rule inside NOT, got: {:?}", not_rule.rule),
       },
       _ => stylex_panic!("Expected NOT rule at top level, got: {:?}", parsed.queries),
@@ -2030,7 +2030,7 @@ mod tests {
       MediaQueryRule::Pair(pair) => {
         assert_eq!(pair.key, "max-width");
         println!("✅ Quadruple NOT correctly canceled out");
-      }
+      },
       _ => stylex_panic!(
         "Expected Pair rule (no NOT), got: {:?}",
         parsed_quad.queries
@@ -2061,14 +2061,14 @@ mod tests {
           has_min && has_max,
           "Should contain both min and max constraints"
         );
-      }
+      },
       _ => {
         // Might be a single constraint if merging results in one rule
         println!(
           "ℹ️  Complex expression normalized to single rule: {:?}",
           parsed_complex.queries
         );
-      }
+      },
     }
   }
 

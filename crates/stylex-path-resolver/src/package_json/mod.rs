@@ -64,10 +64,10 @@ pub fn get_package_json(
           file.display()
         ),
       }
-    }
+    },
     None => {
       stylex_panic!("No package.json found for path: {:?}", path.display());
-    }
+    },
   }
 }
 
@@ -78,7 +78,7 @@ pub(crate) fn get_package_json_path(path: &Path) -> (Option<PathBuf>, PackageJso
     Ok(file) => (Option::Some(file), manager),
     Err(error) => {
       stylex_panic!("Error: {}, path: {}", error, path.display());
-    }
+    },
   }
 }
 

@@ -9,14 +9,14 @@ PATTERNS="#\[test\]|test_transform\(|test!\("
 # -E: Extended regexp
 # -r: Recursive
 if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
-    args=""
+    args=()
 
     # Path resolver is single-threaded
     if [[ "$PWD" == *"stylex-path-resolver"* ]]; then
-        args="-- --test-threads=1"
+        args=(-- --test-threads=1)
     fi
 
-    NODE_ENV="test" cargo test --lib --bins --tests "$args"
+    NODE_ENV="test" cargo test --lib --bins --tests "${args[@]}"
 else
     exit 0
 fi

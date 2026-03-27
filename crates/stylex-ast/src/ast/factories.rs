@@ -13,8 +13,8 @@ use swc_core::{
 };
 
 use super::convertors::{
-  create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
-  convert_string_to_prop_name,
+  convert_string_to_prop_name, create_bool_expr, create_null_expr, create_number_expr,
+  create_string_expr,
 };
 
 /// Wraps an owned expression in a ParenExpr with DUMMY_SP span.
@@ -420,10 +420,7 @@ pub fn create_spread_prop(expr: Expr) -> PropOrSpread {
 /// let call = create_member_call_expr(member, vec![arg1, arg2]);
 /// ```
 #[inline]
-pub fn create_member_call_expr(
-  callee_member: MemberExpr,
-  args: Vec<ExprOrSpread>,
-) -> CallExpr {
+pub fn create_member_call_expr(callee_member: MemberExpr, args: Vec<ExprOrSpread>) -> CallExpr {
   CallExpr {
     span: DUMMY_SP,
     callee: Callee::Expr(Box::new(Expr::Member(callee_member))),

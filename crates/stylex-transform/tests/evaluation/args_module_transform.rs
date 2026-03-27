@@ -1,12 +1,12 @@
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::factories::{
-  create_array_expression, create_object_expression, create_key_value_prop,
+  create_array_expression, create_key_value_prop, create_object_expression,
 };
 use stylex_transform::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    ast::convertors::{expr_to_str, create_number_expr},
+    ast::convertors::{create_number_expr, expr_to_str},
     core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
   },
 };
@@ -53,12 +53,12 @@ impl Fold for ArgsStyleXTransform {
                 span: DUMMY_SP,
                 expr: expr.clone().fold_with(self),
               });
-            }
+            },
             None => stmt,
           },
           None => stmt,
         }
-      }
+      },
 
       _ => stmt,
     };
@@ -109,7 +109,7 @@ impl Fold for ArgsStyleXTransform {
           }
 
           create_object_expression(props)
-        }
+        },
         _ => panic!("Failed to evaluate expression"),
       },
       None => panic!("Failed to evaluate expression"),

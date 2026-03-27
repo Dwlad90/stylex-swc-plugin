@@ -5,8 +5,8 @@ mod get_canonical_file_path {
   use path_clean::PathClean;
   use rustc_hash::FxHashMap;
 
-  use stylex_structures::stylex_options::{CheckModuleResolution, ModuleResolution};
   use crate::shared::structures::state_manager::StateManager;
+  use stylex_structures::stylex_options::{CheckModuleResolution, ModuleResolution};
 
   fn get_fixture_path(test_path: &str) -> PathBuf {
     env::current_dir()

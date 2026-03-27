@@ -12,7 +12,6 @@ use crate::{
   stylex_env::{EnvEntry, JSFunction},
 };
 
-
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct StyleXOptionsParams {
@@ -199,7 +198,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       Some(value) => match value {
         RuntimeInjection::Boolean(true) => {
           RuntimeInjection::Regular(DEFAULT_INJECT_PATH.to_string())
-        }
+        },
         RuntimeInjection::Boolean(false) => RuntimeInjection::Boolean(false),
         RuntimeInjection::Regular(path) => RuntimeInjection::Regular(path),
         RuntimeInjection::Named(named) => RuntimeInjection::Named(named),

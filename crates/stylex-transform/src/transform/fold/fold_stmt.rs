@@ -7,8 +7,8 @@ use swc_core::{
   },
 };
 
-use stylex_enums::core::TransformationCycle;
 use crate::StyleXTransform;
+use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
 where

@@ -5,18 +5,15 @@ use swc_core::ecma::{
   utils::ExprExt,
 };
 
+use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
+use crate::shared::utils::common::get_key_values_from_object;
 use stylex_ast::ast::factories::{
-  create_key_value_prop,
-  create_object_expression,
-  create_object_lit,
-  create_string_key_value_prop,
+  create_key_value_prop, create_object_expression, create_object_lit, create_string_key_value_prop,
 };
 use stylex_constants::constants::messages::VALUE_MUST_BE_STRING;
 use stylex_enums::css_syntax::CSSSyntax;
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_utils::swc::get_default_expr_ctx;
-use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
-use crate::shared::utils::common::get_key_values_from_object;
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub struct BaseCSSType {
@@ -34,7 +31,7 @@ impl BaseCSSType {
         );
         let props = vec![value_prop];
         props
-      }
+      },
       ValueWithDefault::String(s) => {
         let value_prop = create_string_key_value_prop(
           top_key.unwrap_or(String::from("value")).as_str(),
@@ -43,7 +40,7 @@ impl BaseCSSType {
         let props = vec![value_prop];
 
         props
-      }
+      },
       ValueWithDefault::Map(map) => {
         let mut local_props = vec![];
 
@@ -54,13 +51,11 @@ impl BaseCSSType {
         }
 
         let object_expr = create_object_expression(local_props);
-        let prop = create_key_value_prop(
-          top_key.unwrap_or("value".to_string()).as_str(),
-          object_expr,
-        );
+        let prop =
+          create_key_value_prop(top_key.unwrap_or("value".to_string()).as_str(), object_expr);
 
         vec![prop]
-      }
+      },
     }
   }
 }
@@ -82,7 +77,7 @@ impl From<ObjectLit> for BaseCSSType {
             .as_lit()
             .and_then(convert_lit_to_string)
             .map(|str_val| str_val.into())
-        }
+        },
         "value" => {
           let obj_value = match key_value.value.as_ref() {
             Expr::Object(obj) => obj,
@@ -95,7 +90,7 @@ impl From<ObjectLit> for BaseCSSType {
               let prop = create_string_key_value_prop("default", value.as_str());
 
               &create_object_lit(vec![prop])
-            }
+            },
             _ => stylex_panic!(
               "Value must be an object or string, but got: {:?}",
               key_value.value.get_type(get_default_expr_ctx())
@@ -122,7 +117,7 @@ impl From<ObjectLit> for BaseCSSType {
                       };
 
                       obj_map.insert(key, ValueWithDefault::String(value));
-                    }
+                    },
                     _ => stylex_panic!(
                       "Value must be a string, but got: {:?}",
                       key_value.value.get_type(get_default_expr_ctx())
@@ -133,7 +128,7 @@ impl From<ObjectLit> for BaseCSSType {
                 let value = ValueWithDefault::Map(obj_map);
 
                 values.insert(key, value);
-              }
+              },
               Expr::Lit(lit) => {
                 let value = match convert_lit_to_string(lit) {
                   Some(v) => v,
@@ -141,17 +136,17 @@ impl From<ObjectLit> for BaseCSSType {
                 };
 
                 values.insert(key, ValueWithDefault::String(value));
-              }
+              },
               _ => stylex_panic!(
                 "Value must be a string or object, but got: {:?}",
                 key_value.value.get_type(get_default_expr_ctx())
               ),
             }
           }
-        }
+        },
         _ => {
           stylex_panic!(r#"Key "{}" not support by BaseCSSType"#, key)
-        }
+        },
       }
     }
 

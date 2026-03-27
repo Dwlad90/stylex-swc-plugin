@@ -4,8 +4,7 @@ StyleX is a JavaScript library developed by Meta for defining styles optimized
 for user interfaces. You can find the official repository
 [here](https://www.github.com/facebook/stylex).
 
-> [!WARNING]
-> This is an unofficial style compiler for StyleX.
+> [!WARNING] This is an unofficial style compiler for StyleX.
 
 ## Overview
 
@@ -13,8 +12,7 @@ This package provides an unofficial, high-performance compiler for StyleX, a
 popular library from Meta for building optimized user interfaces. It leverages
 the power of NAPI-RS and SWC to achieve several key advantages:
 
-> [!IMPORTANT]
-> The usage of StyleX does not change. All changes are internal.
+> [!IMPORTANT] The usage of StyleX does not change. All changes are internal.
 
 - Faster Build Times: By utilizing SWC instead of Babel, you can potentially
   experience significant speed improvements during StyleX processing.
@@ -68,10 +66,13 @@ const { code, metadata, sourcemap } = transform(
 
 ### Path Filtering
 
-> [!NOTE]
-> **New Feature:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin. They provide powerful file filtering capabilities to control which files are transformed.
+> [!NOTE] **New Feature:** The `include` and `exclude` options are exclusive to
+> this NAPI-RS compiler implementation and are not available in the official
+> StyleX Babel plugin. They provide powerful file filtering capabilities to
+> control which files are transformed.
 
-The compiler exports a `shouldTransformFile` function to determine whether a file should be transformed based on include/exclude patterns:
+The compiler exports a `shouldTransformFile` function to determine whether a
+file should be transformed based on include/exclude patterns:
 
 ```ts
 import { shouldTransformFile } from '@stylexswc/rs-compiler';
@@ -100,10 +101,11 @@ if (shouldTransform) {
 
   **Advanced: Lookahead/Lookbehind Support**
 
-  The Rust regex engine fully supports lookahead and lookbehind assertions, enabling sophisticated filtering patterns:
-
+  The Rust regex engine fully supports lookahead and lookbehind assertions,
+  enabling sophisticated filtering patterns:
   - **Negative Lookahead** `(?!...)`: Match if NOT followed by pattern
-    - `/node_modules(?!\/@stylexjs)/` - Exclude all node_modules except @stylexjs packages
+    - `/node_modules(?!\/@stylexjs)/` - Exclude all node_modules except
+      @stylexjs packages
     - `/\.tsx(?!\.test)/` - Match .tsx files that are NOT test files
 
   - **Positive Lookahead** `(?=...)`: Match if followed by pattern
@@ -117,7 +119,8 @@ if (shouldTransform) {
 
 #### Filtering Rules
 
-1. If `include` patterns are specified and not empty, files must match at least one pattern
+1. If `include` patterns are specified and not empty, files must match at least
+   one pattern
 2. If `exclude` patterns are specified, files matching any pattern are excluded
 3. Exclude patterns take precedence over include patterns
 4. All paths are matched relative to the current working directory
@@ -128,11 +131,9 @@ if (shouldTransform) {
 
 ```ts
 // Exclude all node_modules except @stylexjs/open-props
-shouldTransformFile(
-  filePath,
-  undefined,
-  [/node_modules(?!\/@stylexjs\/open-props)/]
-);
+shouldTransformFile(filePath, undefined, [
+  /node_modules(?!\/@stylexjs\/open-props)/,
+]);
 ```
 
 **Transform only specific packages from node_modules:**
@@ -153,56 +154,53 @@ shouldTransformFile(
 
 ```ts
 // Exclude all node_modules except @stylexjs packages
-shouldTransformFile(
-  filePath,
-  undefined,
-  [/node_modules(?!\/@stylexjs)/]
-);
+shouldTransformFile(filePath, undefined, [/node_modules(?!\/@stylexjs)/]);
 ```
 
 ### SWC Plugin Support
 
-> [!NOTE]
-> **New Feature:** The compiler now supports running SWC WASM plugins before StyleX transformation. This allows you to chain transformations and integrate custom SWC plugins seamlessly.
+> [!NOTE] **New Feature:** The compiler now supports running SWC WASM plugins
+> before StyleX transformation. This allows you to chain transformations and
+> integrate custom SWC plugins seamlessly.
 
-The `transform` function accepts an optional `swcPlugins` array in the options object, allowing you to run SWC WASM plugins before the StyleX transformation:
+The `transform` function accepts an optional `swcPlugins` array in the options
+object, allowing you to run SWC WASM plugins before the StyleX transformation:
 
 ```ts
 const { transform } = require('@stylexswc/rs-compiler');
 
-const { code, metadata, map } = transform(
-  'Button.tsx',
-  sourceCode,
-  {
-    dev: true,
-    // Other StyleX options...
+const { code, metadata, map } = transform('Button.tsx', sourceCode, {
+  dev: true,
+  // Other StyleX options...
 
-    // SWC plugins to run before StyleX transformation
-    swcPlugins: [
-      // Plugin as [pluginPath, config]
-      [
-        '/path/to/swc_plugin_theme.wasm',
-        {
-          themeName: 'my-theme',
-          customOption: 'value'
-        }
-      ],
-      // You can chain multiple plugins
-      [
-        '@swc/plugin-emotion',
-        {
-          sourceMap: true
-        }
-      ]
-    ]
-  }
-);
+  // SWC plugins to run before StyleX transformation
+  swcPlugins: [
+    // Plugin as [pluginPath, config]
+    [
+      '/path/to/swc_plugin_theme.wasm',
+      {
+        themeName: 'my-theme',
+        customOption: 'value',
+      },
+    ],
+    // You can chain multiple plugins
+    [
+      '@swc/plugin-emotion',
+      {
+        sourceMap: true,
+      },
+    ],
+  ],
+});
 ```
 
 #### How It Works
 
-1. **Plugin Execution Phase**: If `swcPlugins` are provided, the source code is first transformed using `@swc/core`'s `transformSync` with the specified WASM plugins
-2. **StyleX Transformation Phase**: The plugin-transformed code is then passed to the StyleX compiler
+1. **Plugin Execution Phase**: If `swcPlugins` are provided, the source code is
+   first transformed using `@swc/core`'s `transformSync` with the specified WASM
+   plugins
+2. **StyleX Transformation Phase**: The plugin-transformed code is then passed
+   to the StyleX compiler
 
 #### Plugin Configuration
 
@@ -225,11 +223,11 @@ transform(filename, code, {
         themeName: 'theme-name',
         themeConfig: {
           primaryColor: 'blue',
-          spacing: 8
-        }
-      }
-    ]
-  ]
+          spacing: 8,
+        },
+      },
+    ],
+  ],
 });
 ```
 
@@ -305,8 +303,7 @@ const styleProps = {
 
 ## Compatibility
 
-> [!IMPORTANT]
-> The current resolution of the `exports` field from
+> [!IMPORTANT] The current resolution of the `exports` field from
 > `package. json` is only partially supported, so if you encounter problems,
 > please open an
 > [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with an
@@ -316,14 +313,16 @@ const styleProps = {
 
 ### `injectStylexSideEffects`
 
-**Type:** `boolean`
-**Default:** `false`
+**Type:** `boolean` **Default:** `false`
 
-Automatically injects side-effect imports for `.stylex` and `.consts` files to prevent tree-shaking from removing them during bundling.
+Automatically injects side-effect imports for `.stylex` and `.consts` files to
+prevent tree-shaking from removing them during bundling.
 
 #### Problem
 
-When using build tools that perform tree-shaking (like webpack, rollup, vite), imports from `.stylex` or `.consts` files may appear unused after StyleX transformation and get removed:
+When using build tools that perform tree-shaking (like webpack, rollup, vite),
+imports from `.stylex` or `.consts` files may appear unused after StyleX
+transformation and get removed:
 
 ```ts
 // Before StyleX transformation
@@ -332,67 +331,74 @@ import { spacing } from './tokens.consts';
 
 const styles = stylex.create({
   root: {
-    backgroundColor: colors.primary,  // Uses colors
-    padding: spacing.md,              // Uses spacing
-  }
+    backgroundColor: colors.primary, // Uses colors
+    padding: spacing.md, // Uses spacing
+  },
 });
 
 // After StyleX transformation
-import { colors } from './theme.stylex';  // Appears unused!
+import { colors } from './theme.stylex'; // Appears unused!
 import { spacing } from './tokens.consts'; // Appears unused!
 
 const styles = {
   root: {
     backgroundColor: 'x1a2b3c',
     padding: 'x4d5e6f',
-    $$css: true
-  }
+    $$css: true,
+  },
 };
 ```
 
-The bundler may remove these "unused" imports, but they're needed for other files to resolve the same StyleX/const references correctly.
+The bundler may remove these "unused" imports, but they're needed for other
+files to resolve the same StyleX/const references correctly.
 
 #### Solution
 
-When `injectStylexSideEffects: true`, the compiler automatically adds side-effect imports to preserve these modules:
+When `injectStylexSideEffects: true`, the compiler automatically adds
+side-effect imports to preserve these modules:
 
 ```ts
 // After transformation with injectStylexSideEffects: true
 import { colors } from './theme.stylex';
 import { spacing } from './tokens.consts';
-import './theme.stylex';    // Side-effect import (prevents tree-shaking)
-import './tokens.consts';   // Side-effect import (prevents tree-shaking)
+import './theme.stylex'; // Side-effect import (prevents tree-shaking)
+import './tokens.consts'; // Side-effect import (prevents tree-shaking)
 
 const styles = {
   root: {
     backgroundColor: 'x1a2b3c',
     padding: 'x4d5e6f',
-    $$css: true
-  }
+    $$css: true,
+  },
 };
 ```
 
 #### When to Use
 
-- ✅ **Use `true`** when your bundler runs StyleX transformation **before** other optimizations (recommended)
+- ✅ **Use `true`** when your bundler runs StyleX transformation **before**
+  other optimizations (recommended)
 - ✅ **Use `true`** with webpack's `loaderOrder: 'first'` option
-- ❌ **Use `false`** when StyleX runs **after** tree-shaking (e.g., webpack's `loaderOrder: 'last'`)
+- ❌ **Use `false`** when StyleX runs **after** tree-shaking (e.g., webpack's
+  `loaderOrder: 'last'`)
 
-> [!TIP]
-> This option is automatically enabled when using `@stylexswc/webpack-plugin` with `loaderOrder: 'first'` (the default).
+> [!TIP] This option is automatically enabled when using
+> `@stylexswc/webpack-plugin` with `loaderOrder: 'first'` (the default).
 
 ### `useRealFileForSource`
 
-**Type:** `boolean`
-**Default:** `true`
+**Type:** `boolean` **Default:** `true`
 
-Controls whether the compiler should read source files from disk for error reporting and source map generation.
+Controls whether the compiler should read source files from disk for error
+reporting and source map generation.
 
 #### Behavior
 
-- **`true` (default)**: The compiler reads the actual source file from disk when generating error messages and source maps. This provides accurate line numbers and source context that match what you see in your editor.
+- **`true` (default)**: The compiler reads the actual source file from disk when
+  generating error messages and source maps. This provides accurate line numbers
+  and source context that match what you see in your editor.
 
-- **`false`**: The compiler uses the transformed AST representation for error reporting. This is useful when:
+- **`false`**: The compiler uses the transformed AST representation for error
+  reporting. This is useful when:
   - Working with in-memory transformations
   - Source files are not available on disk
   - You want faster compilation (skips file I/O)
@@ -423,21 +429,27 @@ transform(filename, code, {
 - Performance optimization when error accuracy is less critical
 - Build pipelines where source files are not available
 
-> [!TIP]
-> Keep the default `true` value for most use cases. Only set it to `false` if you have specific requirements for in-memory transformations or performance-critical scenarios where file I/O is a bottleneck.
+> [!TIP] Keep the default `true` value for most use cases. Only set it to
+> `false` if you have specific requirements for in-memory transformations or
+> performance-critical scenarios where file I/O is a bottleneck.
 
-> [!WARNING]
-> When `useRealFileForSource` is set to `false`, error messages may report **incorrect line numbers**. The compiler will use the transformed AST representation instead of the original source code, which can lead to line number mismatches. This happens because:
+> [!WARNING] When `useRealFileForSource` is set to `false`, error messages may
+> report **incorrect line numbers**. The compiler will use the transformed AST
+> representation instead of the original source code, which can lead to line
+> number mismatches. This happens because:
 >
 > - The AST may have been modified by previous transformations
 > - Comments and whitespace are normalized in the AST
 > - The structure may differ from what's in your actual source file
 >
-> For accurate error reporting and debugging, always use `useRealFileForSource: true` (the default) during development.
+> For accurate error reporting and debugging, always use
+> `useRealFileForSource: true` (the default) during development.
 
 ## Debug
 
-You can enable debug logging for the StyleX compiler using the `STYLEX_DEBUG` environment variable. This is useful for troubleshooting and understanding the internal processing of StyleX code.
+You can enable debug logging for the StyleX compiler using the `STYLEX_DEBUG`
+environment variable. This is useful for troubleshooting and understanding the
+internal processing of StyleX code.
 
 ### Log Levels
 
@@ -476,8 +488,8 @@ $env:STYLEX_DEBUG="debug"; npm run build
 ## Error Handling
 
 The compiler produces clean, structured error messages with a branded `[StyleX]`
-prefix, replacing Rust's default panic boilerplate with user-friendly diagnostics
-in both the terminal and at the NAPI boundary.
+prefix, replacing Rust's default panic boilerplate with user-friendly
+diagnostics in both the terminal and at the NAPI boundary.
 
 ### Error Format
 
@@ -491,11 +503,11 @@ All StyleX errors follow this format in the terminal:
 
 Errors are color-coded for readability:
 
-| Category | Label | Color |
-|---|---|---|
-| Regular error | _(none)_ | Red prefix |
-| Unimplemented feature | `[UNIMPLEMENTED]` | Magenta label |
-| Internal unreachable state | `[UNREACHABLE]` | Blue label |
+| Category                   | Label             | Color         |
+| -------------------------- | ----------------- | ------------- |
+| Regular error              | _(none)_          | Red prefix    |
+| Unimplemented feature      | `[UNIMPLEMENTED]` | Magenta label |
+| Internal unreachable state | `[UNREACHABLE]`   | Blue label    |
 
 ## License
 

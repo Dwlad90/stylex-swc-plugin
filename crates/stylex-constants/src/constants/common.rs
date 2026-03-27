@@ -47,20 +47,19 @@ pub static ROOT_FONT_SIZE: i8 = 16;
 
 pub static VAR_GROUP_HASH_KEY: &str = "__varGroupHash__";
 
-pub static COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 9]> =
-  Lazy::new(|| {
-    [
-      "oklch",
-      "lch",
-      "oklab",
-      "hsla",
-      "radial-gradient",
-      "hwb",
-      "lab",
-      "clamp",
-      "hsl",
-    ]
-  });
+pub static COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 9]> = Lazy::new(|| {
+  [
+    "oklch",
+    "lch",
+    "oklab",
+    "hsla",
+    "radial-gradient",
+    "hwb",
+    "lab",
+    "clamp",
+    "hsl",
+  ]
+});
 
 pub static COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 7]> =
   Lazy::new(|| [" a ", " b ", " c ", " l ", " h ", " s ", " w "]);

@@ -1,11 +1,11 @@
 [package]
-name = "stylex_compiler_rs"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "StyleX rust compiler with SWC"
+edition.workspace = true
+license.workspace = true
+name = "stylex_compiler_rs"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 
 [lib]
@@ -14,39 +14,39 @@ doctest = false
 
 
 [dependencies]
+fancy-regex.workspace = true
+glob.workspace = true
+log.workspace = true
+rustc-hash.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_plain.workspace = true
+swc_compiler_base = { workspace = true, features = ["node"] }
 swc_core = { workspace = true, features = [
   "common",
+  "css_ast",
+  "css_codegen",
+  "css_parser",
+  "css_visit",
+  "ecma_codegen",
+  "ecma_parser",
   "ecma_plugin_transform",
   "ecma_utils",
-  "ecma_parser",
-  "ecma_codegen",
-  "css_codegen",
-  "css_visit",
-  "css_parser",
-  "css_ast",
 ] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
-swc_compiler_base = { workspace = true, features = ["node"] }
-rustc-hash.workspace = true
-log.workspace = true
-glob.workspace = true
-fancy-regex.workspace = true
 
-stylex_transform = { path = "../stylex-transform" }
-stylex_types = { path = "../stylex-types" }
-stylex_ast = { path = "../stylex-ast" }
-stylex_enums = { path = "../stylex-enums" }
-stylex_regex = { path = "../stylex-regex" }
-stylex_structures = { path = "../stylex-structures" }
-stylex_utils = { path = "../stylex-utils" }
-stylex_macros = { path = "../stylex-macros" }
-stylex_logs = { path = "../stylex-logs" }
 indexmap.workspace = true
 napi = { version = "3", features = ["compat-mode"] }
 napi-derive = "3"
+stylex_ast = { path = "../stylex-ast" }
+stylex_enums = { path = "../stylex-enums" }
+stylex_logs = { path = "../stylex-logs" }
+stylex_macros = { path = "../stylex-macros" }
+stylex_regex = { path = "../stylex-regex" }
+stylex_structures = { path = "../stylex-structures" }
+stylex_transform = { path = "../stylex-transform" }
+stylex_types = { path = "../stylex-types" }
+stylex_utils = { path = "../stylex-utils" }
 
 
 [dev-dependencies]

@@ -24,7 +24,7 @@ pub(crate) fn extract_stylex_metadata(
       match styles {
         InjectableStyleBaseKind::Regular(styles) => {
           set_metadata_ltr_and_rtl(env, &mut style_value, &styles.ltr, &styles.rtl, None, None)?;
-        }
+        },
         InjectableStyleBaseKind::Const(styles) => {
           set_metadata_ltr_and_rtl(
             env,
@@ -34,7 +34,7 @@ pub(crate) fn extract_stylex_metadata(
             Some(&styles.const_key),
             Some(&styles.const_value),
           )?;
-        }
+        },
       }
 
       metadata_value.set_element(1, style_value)?;

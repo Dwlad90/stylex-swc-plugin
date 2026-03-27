@@ -9,8 +9,8 @@ use swc_core::{
   },
 };
 
-use stylex_constants::constants::common::ROOT_FONT_SIZE;
 use crate::shared::utils::common::dashify;
+use stylex_constants::constants::common::ROOT_FONT_SIZE;
 
 struct CssFolder {
   enable_font_size_px_to_rem: bool,
@@ -124,7 +124,7 @@ fn timing_normalizer(dimension: &mut Dimension) -> &mut Dimension {
       };
 
       dimension
-    }
+    },
     _ => dimension,
   }
 }
@@ -135,7 +135,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) -> &mut Declaration {
       if !ident.value.eq("transitionProperty") && !ident.value.eq("willChange") {
         return declaration;
       }
-    }
+    },
     DeclarationName::DashedIdent(_) => return declaration,
   }
 
@@ -190,7 +190,7 @@ fn zero_dimension_normalizer(
       length.unit = get_zero_dimension_unit(&length.unit);
 
       dimension
-    }
+    },
     Dimension::Angle(angle) => {
       if angle.value.value != 0.0 {
         return dimension;
@@ -205,7 +205,7 @@ fn zero_dimension_normalizer(
       };
 
       dimension
-    }
+    },
     Dimension::Time(time) => {
       if time.value.value != 0.0 {
         return dimension;
@@ -220,7 +220,7 @@ fn zero_dimension_normalizer(
       };
 
       dimension
-    }
+    },
     Dimension::Frequency(frequency) => {
       if frequency.value.value != 0.0 {
         return dimension;
@@ -230,7 +230,7 @@ fn zero_dimension_normalizer(
       frequency.unit = get_zero_dimension_unit(&frequency.unit);
 
       dimension
-    }
+    },
     Dimension::Resolution(resolution) => {
       if resolution.value.value != 0.0 {
         return dimension;
@@ -240,7 +240,7 @@ fn zero_dimension_normalizer(
       resolution.unit = get_zero_dimension_unit(&resolution.unit);
 
       dimension
-    }
+    },
     Dimension::Flex(flex) => {
       if flex.value.value != 0.0 {
         return dimension;
@@ -250,7 +250,7 @@ fn zero_dimension_normalizer(
       flex.unit = get_zero_dimension_unit(&flex.unit);
 
       dimension
-    }
+    },
     Dimension::UnknownDimension(unknown) => {
       if unknown.value.value != 0.0 {
         return dimension;
@@ -260,7 +260,7 @@ fn zero_dimension_normalizer(
       unknown.unit = get_zero_dimension_unit(&unknown.unit);
 
       dimension
-    }
+    },
   }
 }
 

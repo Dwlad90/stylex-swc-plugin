@@ -29,42 +29,37 @@ use swc_core::{
   },
 };
 
-use stylex_ast::ast::factories::{
-  create_expr_or_spread,
-  create_key_value_prop,
-  create_number_expr_or_spread,
-  create_object_expression,
-  create_string_expr_or_spread,
-  create_string_key_value_prop,
-};
-use stylex_constants::constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH};
-use stylex_enums::counter_mode::CounterMode;
 use crate::shared::structures::types::InjectableStylesMap;
 use crate::shared::utils::ast::convertors::create_number_expr;
-use stylex_ast::ast::factories::create_binding_ident;
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use crate::shared::utils::common::{
-  extract_filename_from_path,
-  extract_filename_with_ext_from_path,
-  extract_path,
-  round_f64,
-};
-use stylex_enums::core::TransformationCycle;
-use stylex_enums::import_path_resolution::{ImportPathResolution, ImportPathResolutionType};
 use crate::shared::utils::common::stable_hash;
+use crate::shared::utils::common::{
+  extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
+};
+use stylex_ast::ast::factories::create_binding_ident;
+use stylex_ast::ast::factories::{
+  create_expr_or_spread, create_key_value_prop, create_number_expr_or_spread,
+  create_object_expression, create_string_expr_or_spread, create_string_key_value_prop,
+};
+use stylex_constants::constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH};
 use stylex_data_structures::style_vars_to_keep::StyleVarsToKeep;
 use stylex_data_structures::top_level_expression::TopLevelExpression;
+use stylex_enums::core::TransformationCycle;
+use stylex_enums::counter_mode::CounterMode;
+use stylex_enums::import_path_resolution::{ImportPathResolution, ImportPathResolutionType};
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
+use super::seen_value::SeenValue;
+use super::types::StylesObjectMap;
+use stylex_structures::named_import_source::{
+  ImportSources, NamedImportSource, RuntimeInjectionState,
+};
 use stylex_structures::plugin_pass::PluginPass;
 use stylex_structures::stylex_options::ModuleResolution;
 use stylex_structures::stylex_options::{CheckModuleResolution, StyleXOptions};
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 use stylex_structures::uid_generator::UidGenerator;
 use stylex_types::structures::meta_data::MetaData;
-use super::types::StylesObjectMap;
-use stylex_structures::named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState};
-use super::seen_value::SeenValue;
 
 static TRANSFORMED_VARS_FILE_EXTENSION: Lazy<&'static str> = Lazy::new(|| ".transformed");
 
@@ -262,12 +257,12 @@ impl StateManager {
   pub fn import_as(&self, import: &str) -> Option<String> {
     for import_source in &self.options.import_sources {
       match import_source {
-        ImportSources::Regular(_) => {}
+        ImportSources::Regular(_) => {},
         ImportSources::Named(named) => {
           if named.from.eq(import) {
             return Some(named.r#as.to_string());
           }
-        }
+        },
       }
     }
 
@@ -364,10 +359,10 @@ impl StateManager {
       CheckModuleResolution::Haste(_) => {
         let filename = FileName::Real(filename.into());
         extract_filename_with_ext_from_path(&filename).map(|s| s.to_string())
-      }
+      },
       CheckModuleResolution::CommonJS(_) | CheckModuleResolution::CrossFileParsing(_) => {
         Some(self.get_canonical_file_path(filename, package_json_seen))
-      }
+      },
     }
   }
   pub(crate) fn get_package_name_and_path(
@@ -424,7 +419,7 @@ impl StateManager {
       CheckModuleResolution::Haste(module_resolution) => module_resolution.root_dir.as_deref(),
       CheckModuleResolution::CrossFileParsing(module_resolution) => {
         module_resolution.root_dir.as_deref()
-      }
+      },
     } {
       let file_path = Path::new(file_path);
       let root_dir = Path::new(root_dir);
@@ -499,7 +494,7 @@ impl StateManager {
           self.get_canonical_file_path(&resolved_file_path, package_json_seen);
 
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
-      }
+      },
       CheckModuleResolution::Haste(_) => ImportPathResolution::Tuple(
         ImportPathResolutionType::ThemeNameRef,
         add_file_extension(import_path, source_file_path),
@@ -598,18 +593,18 @@ impl StateManager {
         let var_ident = match &runtime_injection {
           RuntimeInjectionState::Regular(_) | RuntimeInjectionState::Boolean(_) => {
             uid_generator.generate_ident()
-          }
+          },
           RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
             uid_generator = UidGenerator::new(r#as, CounterMode::Local);
             uid_generator.generate_ident()
-          }
+          },
         };
 
         let idents = (module_ident, var_ident);
         self.inject_import_inserted = Some(idents.clone());
 
         idents
-      }
+      },
     };
 
     let module_items = match &runtime_injection {
@@ -705,10 +700,7 @@ impl StateManager {
       };
 
       stylex_inject_args.push(create_string_key_value_prop("constKey", const_key));
-      stylex_inject_args.push(create_key_value_prop(
-        "constVal",
-        *const_value_expr.expr,
-      ));
+      stylex_inject_args.push(create_key_value_prop("constVal", *const_value_expr.expr));
     }
 
     if let Some(rtl) = css_rtl {
@@ -1048,15 +1040,11 @@ impl stylex_types::traits::StyleOptions for StateManager {
     &mut self.css_property_seen
   }
 
-  fn other_injected_css_rules(
-    &self,
-  ) -> &stylex_types::traits::InjectableStylesMap {
+  fn other_injected_css_rules(&self) -> &stylex_types::traits::InjectableStylesMap {
     &self.other_injected_css_rules
   }
 
-  fn other_injected_css_rules_mut(
-    &mut self,
-  ) -> &mut stylex_types::traits::InjectableStylesMap {
+  fn other_injected_css_rules_mut(&mut self) -> &mut stylex_types::traits::InjectableStylesMap {
     &mut self.other_injected_css_rules
   }
 

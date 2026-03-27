@@ -3,9 +3,7 @@ use log::{debug, warn};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{fs, path::Path, sync::Arc};
-use stylex_macros::{
-  panic_macros::__stylex_panic, stylex_error::StyleXError, stylex_panic,
-};
+use stylex_macros::{panic_macros::__stylex_panic, stylex_error::StyleXError, stylex_panic};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_config::is_module::IsModule;
 use swc_core::{
@@ -22,12 +20,11 @@ use swc_core::{
   },
 };
 
-use stylex_regex::regex::URL_REGEX;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::{
-  convert_concat_to_tpl_expr,
-  convert_simple_tpl_to_str_expr,
+  convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr,
 };
+use stylex_regex::regex::URL_REGEX;
 
 pub(crate) struct CodeFrame {
   source_map: Arc<SourceMap>,
@@ -87,7 +84,7 @@ pub(crate) fn build_code_frame_error<'a>(
   match get_span_from_source_code(wrapped_expression, fault_expression, state) {
     Ok((code_frame, span)) => {
       code_frame.create_error(span, error_message).emit();
-    }
+    },
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
         debug!(
@@ -103,7 +100,7 @@ pub(crate) fn build_code_frame_error<'a>(
           state.get_filename(),
         )
       };
-    }
+    },
   }
 
   error_message
@@ -296,7 +293,7 @@ fn parse_and_normalize_program(
         .apply(strip(unresolved_mark, top_level_mark))
         .fold_with(&mut TplConverter {});
       Some(normalized)
-    }
+    },
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
         debug!(
@@ -307,7 +304,7 @@ fn parse_and_normalize_program(
         warn!("Failed to parse program: {:?}. File: {}", error, filename);
       }
       None
-    }
+    },
   }
 }
 
@@ -454,7 +451,7 @@ pub(crate) fn build_code_frame_error_and_panic(
       code_frame.create_error(span, error_message).emit();
       let line_num = code_frame.get_span_line_number(span);
       (Some(state.get_filename().to_owned()), Some(line_num))
-    }
+    },
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
         debug!(
@@ -471,7 +468,7 @@ pub(crate) fn build_code_frame_error_and_panic(
         );
       }
       (Some(state.get_filename().to_owned()), None)
-    }
+    },
   };
 
   let err = StyleXError {

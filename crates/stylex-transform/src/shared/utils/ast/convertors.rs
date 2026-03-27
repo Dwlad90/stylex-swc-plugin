@@ -1,12 +1,12 @@
 // Re-export convertor functions from stylex-ast (canonical source)
 #[allow(unused_imports)]
 pub use stylex_ast::ast::convertors::{
-  coerce_lit_to_number, coerce_tpl_to_string_lit, convert_atom_to_str_ref,
-  convert_atom_to_string, convert_concat_to_tpl_expr, convert_lit_to_string,
-  convert_simple_tpl_to_str_expr, convert_str_lit_to_atom, convert_str_lit_to_string,
-  convert_string_to_prop_name, convert_wtf8_to_atom, create_big_int_expr, create_bool_expr,
-  create_ident_expr, create_null_expr, create_number_expr, create_string_expr,
-  expand_shorthand_prop, extract_str_lit_ref, extract_tpl_cooked_value,
+  coerce_lit_to_number, coerce_tpl_to_string_lit, convert_atom_to_str_ref, convert_atom_to_string,
+  convert_concat_to_tpl_expr, convert_lit_to_string, convert_simple_tpl_to_str_expr,
+  convert_str_lit_to_atom, convert_str_lit_to_string, convert_string_to_prop_name,
+  convert_wtf8_to_atom, create_big_int_expr, create_bool_expr, create_ident_expr, create_null_expr,
+  create_number_expr, create_string_expr, expand_shorthand_prop, extract_str_lit_ref,
+  extract_tpl_cooked_value,
 };
 
 use anyhow::anyhow;
@@ -16,29 +16,23 @@ use stylex_macros::{
   stylex_unimplemented, unwrap_or_panic,
 };
 use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, Expr, Ident, KeyValueProp, Lit, PropName, Tpl,
-  UnaryExpr, UnaryOp,
+  BinExpr, BinaryOp, Expr, Ident, KeyValueProp, Lit, PropName, Tpl, UnaryExpr, UnaryOp,
 };
 use swc_core::ecma::utils::ExprExt;
 
-use stylex_constants::constants::messages::{
-  ILLEGAL_PROP_VALUE,
-  VAR_DECL_INIT_REQUIRED,
-  non_static_value,
-};
-use stylex_enums::misc::{BinaryExprType, VarDeclAction};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state::EvaluationState;
 use crate::shared::structures::state_manager::StateManager;
-use stylex_utils::swc::get_default_expr_ctx;
 use crate::shared::utils::common::{
-  evaluate_bin_expr,
-  get_expr_from_var_decl,
-  get_var_decl_by_ident,
-  wrap_key_in_quotes,
+  evaluate_bin_expr, get_expr_from_var_decl, get_var_decl_by_ident, wrap_key_in_quotes,
 };
 use crate::shared::utils::js::evaluate::{deopt, evaluate_cached};
+use stylex_constants::constants::messages::{
+  ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
+};
+use stylex_enums::misc::{BinaryExprType, VarDeclAction};
+use stylex_utils::swc::get_default_expr_ctx;
 
 pub fn expr_to_num(
   expr_num: &Expr,
@@ -62,7 +56,7 @@ pub fn expr_to_num(
           expr_num.get_type(get_default_expr_ctx())
         ),
       }
-    }
+    },
     _ => stylex_panic!(
       "Expression in not a number: {:?}",
       expr_num.get_type(get_default_expr_ctx())
@@ -87,7 +81,7 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
         Expr::Ident(ident) => ident_to_string(ident, state, functions),
         _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
       }
-    }
+    },
     None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   }
 }
@@ -98,7 +92,7 @@ pub fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &Functi
     Some(var_decl) => get_expr_from_var_decl(&var_decl).clone(),
     _ => {
       stylex_panic!("{}", ILLEGAL_PROP_VALUE)
-    }
+    },
   }
 }
 
@@ -186,7 +180,7 @@ pub fn binary_expr_to_num(
       }
 
       left_num + right_num
-    }
+    },
     BinaryOp::Sub => left_num - right_num,
     BinaryOp::Mul => left_num * right_num,
     BinaryOp::Div => left_num / right_num,
@@ -203,70 +197,70 @@ pub fn binary_expr_to_num(
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::InstanceOf => {
       if right_num == 0.0 {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::EqEq => {
       if left_num == right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::NotEq => {
       if left_num != right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::EqEqEq => {
       if left_num == right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::NotEqEq => {
       if left_num != right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::Lt => {
       if left_num < right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::LtEq => {
       if left_num <= right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::Gt => {
       if left_num > right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     BinaryOp::GtEq => {
       if left_num >= right_num {
         1.0
       } else {
         0.0
       }
-    }
+    },
     // #region Logical
     BinaryOp::LogicalOr => {
       if let Some(value) =
@@ -276,7 +270,7 @@ pub fn binary_expr_to_num(
       }
 
       if left_num != 0.0 { left_num } else { right_num }
-    }
+    },
     BinaryOp::LogicalAnd => {
       if let Some(value) =
         evaluate_left_and_right_expression(state, traversal_state, fns, &left, &right)
@@ -285,7 +279,7 @@ pub fn binary_expr_to_num(
       }
 
       if left_num != 0.0 { right_num } else { left_num }
-    }
+    },
     BinaryOp::NullishCoalescing => {
       if let Some(value) =
         evaluate_left_and_right_expression(state, traversal_state, fns, &left, &right)
@@ -294,7 +288,7 @@ pub fn binary_expr_to_num(
       }
 
       if left_num == 0.0 { right_num } else { left_num }
-    }
+    },
     // #endregion Logical
     BinaryOp::ZeroFillRShift => ((left_num as i32) >> right_num as i32) as f64,
   };
@@ -350,7 +344,7 @@ pub fn binary_expr_to_string(
   let result = match &op {
     BinaryOp::Add => {
       format!("{}{}", left_str, right_str)
-    }
+    },
     _ => stylex_panic!(
       "For string expressions, only addition is supported, got {:?}",
       op
@@ -477,18 +471,20 @@ pub fn ident_to_number(
               var_decl_expr.get_type(get_default_expr_ctx())
             ),
           }
-        }
+        },
         Expr::Unary(unary_expr) => unari_to_num(unary_expr, state, traversal_state, fns),
-        Expr::Lit(lit) => coerce_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error)),
+        Expr::Lit(lit) => {
+          coerce_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error))
+        },
         _ => stylex_panic!(
           "Varable {:?} is not a number",
           var_decl_expr.get_type(get_default_expr_ctx())
         ),
       }
-    }
+    },
     None => {
       stylex_panic!("Variable {} is not declared", ident.sym)
-    }
+    },
   }
 }
 
@@ -549,10 +545,10 @@ pub fn expr_tpl_to_string(
               };
 
               tpl_str.push_str(value.as_str());
-            }
+            },
             None => stylex_panic!("{}", non_static_value("expr_tpl_to_string")),
           }
-        }
+        },
         Expr::Bin(bin) => tpl_str.push_str(
           transform_bin_expr_to_number(bin, state, traversal_state, fns)
             .to_string()
@@ -637,7 +633,7 @@ pub fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionM
         "Conversion {:?} expression to boolean",
         expr.get_type(get_default_expr_ctx())
       )
-    }
+    },
   }
 }
 
@@ -651,15 +647,15 @@ pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
     PropName::Str(strng) => {
       should_wrap_in_quotes = false;
       convert_str_lit_to_string(strng)
-    }
+    },
     PropName::Num(num) => {
       should_wrap_in_quotes = false;
       num.value.to_string()
-    }
+    },
     PropName::BigInt(big_int) => {
       should_wrap_in_quotes = false;
       big_int.value.to_string()
-    }
+    },
     PropName::Computed(computed) => match computed.expr.as_lit() {
       Some(lit) => match convert_lit_to_string(lit) {
         Some(s) => s,

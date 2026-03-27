@@ -52,12 +52,12 @@ impl Fold for EvaluationStyleXFirstStatementTransform {
                 span: DUMMY_SP,
                 expr: expr.clone().fold_with(self),
               });
-            }
+            },
             None => stmt,
           },
           None => stmt,
         }
-      }
+      },
 
       _ => stmt,
     };

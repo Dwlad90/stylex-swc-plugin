@@ -4,12 +4,9 @@ use stylex_constants::constants::{
   cursor_flip::CURSOR_FLIP,
   logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL},
 };
-use stylex_regex::regex::LENGTH_UNIT_TESTER_REGEX;
 use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{
-  pair::Pair,
-  stylex_state_options::StyleXStateOptions,
-};
+use stylex_regex::regex::LENGTH_UNIT_TESTER_REGEX;
+use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 
 fn logical_to_physical_rtl(input: &str) -> Option<&str> {
   match input {
@@ -39,7 +36,7 @@ fn property_to_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
         .collect::<Vec<_>>()
         .join(" ");
       Some(Pair::new(pair.key.clone(), new_val))
-    }
+    },
     "cursor" => {
       if !options.enable_legacy_value_flipping {
         return None;
@@ -48,7 +45,7 @@ fn property_to_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
       CURSOR_FLIP
         .get(pair.value.as_str())
         .map(|val| Pair::new(pair.key.clone(), val.to_string()))
-    }
+    },
     _ => shadows_flip(pair.key.as_str(), pair.value.as_str(), options),
   }
 }
@@ -82,7 +79,7 @@ fn shadows_flip(key: &str, val: &str, options: &StyleXStateOptions) -> Option<Pa
 
       let rtl_val = flip_shadow(val);
       rtl_val.map(|rtl_val| Pair::new(key.to_string(), rtl_val.to_string()))
-    }
+    },
     _ => None,
   }
 }

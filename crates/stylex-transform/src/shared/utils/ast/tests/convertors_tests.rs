@@ -3,12 +3,10 @@ mod tests {
   use crate::shared::structures::functions::FunctionMap;
   use crate::shared::structures::state::EvaluationState;
   use crate::shared::structures::state_manager::StateManager;
-  use stylex_enums::misc::BinaryExprType;
   use crate::shared::utils::ast::convertors::{
-    binary_expr_to_num,
-    binary_expr_to_string,
-    convert_string_to_prop_name,
+    binary_expr_to_num, binary_expr_to_string, convert_string_to_prop_name,
   };
+  use stylex_enums::misc::BinaryExprType;
   use swc_core::{
     common::SyntaxContext,
     ecma::ast::{BinExpr, BinaryOp, Expr, Ident, IdentName, Lit, Str},
@@ -569,7 +567,7 @@ mod tests {
           str_lit.value.as_str().expect("Failed to get string Value"),
           "var(--font-geist-sans), sans-serif"
         );
-      }
+      },
       _ => panic!("Expected Expr::Lit(Lit::Str)"),
     }
   }
@@ -606,7 +604,7 @@ mod tests {
     match result {
       Expr::Tpl(_) => {
         // This is expected
-      }
+      },
       _ => panic!("Expected Expr::Tpl to remain unchanged"),
     }
   }
@@ -650,7 +648,7 @@ mod tests {
           "hello",
           "First quasi should be 'hello'"
         );
-      }
+      },
       _ => panic!("Expected Expr::Tpl"),
     }
   }
@@ -705,7 +703,7 @@ mod tests {
           "First quasi should be 'prefix'"
         );
         assert!(tpl.quasis[3].tail, "Last quasi should have tail=true");
-      }
+      },
       _ => panic!("Expected Expr::Tpl"),
     }
   }
@@ -740,7 +738,7 @@ mod tests {
     match result {
       Expr::Call(_) => {
         // This is expected - should remain unchanged
-      }
+      },
       _ => panic!("Expected Expr::Call to remain unchanged"),
     }
   }
@@ -760,7 +758,7 @@ mod tests {
           str_lit.value.as_str().expect("Failed to get string value"),
           "hello"
         );
-      }
+      },
       _ => panic!("Expected Expr::Lit(Lit::Str) to remain unchanged"),
     }
   }
@@ -804,7 +802,7 @@ mod tests {
           0,
           "Should have 0 expressions (spread args are skipped)"
         );
-      }
+      },
       _ => panic!("Expected Expr::Tpl"),
     }
   }

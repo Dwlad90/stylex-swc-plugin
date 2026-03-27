@@ -26,7 +26,7 @@ where
             return Some(value);
           }
           None
-        }
+        },
         _ => None,
       },
       _ => None,

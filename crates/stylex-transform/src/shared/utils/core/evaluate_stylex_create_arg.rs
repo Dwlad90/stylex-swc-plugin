@@ -11,34 +11,28 @@ use swc_core::{
   },
 };
 
-use stylex_constants::constants::messages::{
-  EVAL_RESULT_EXPECTED, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
-};
-use stylex_ast::ast::factories::{
-  create_expr_or_spread,
-  create_key_value_prop,
-  create_object_expression,
-};
-use stylex_constants::constants::length_units::LENGTH_UNITS;
-use stylex_constants::constants::messages::ILLEGAL_NAMESPACE_VALUE;
-use stylex_constants::constants::time_units::get_time_units;
-use stylex_structures::inline_style::InlineStyle;
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::structures::evaluate_result::EvaluateResult;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{DynamicFns, TInlineStyles};
 use crate::shared::utils::ast::convertors::{
-  create_ident_expr,
-  create_null_expr,
-  create_string_expr,
-  expand_shorthand_prop,
-  expr_to_str,
+  create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, expr_to_str,
 };
 use crate::shared::utils::common::{create_hash, normalize_expr};
 use crate::shared::utils::css::common::get_number_suffix;
 use crate::shared::utils::js::evaluate::{evaluate, evaluate_obj_key};
 use crate::shared::utils::validators::validate_dynamic_style_params;
+use stylex_ast::ast::factories::{
+  create_expr_or_spread, create_key_value_prop, create_object_expression,
+};
+use stylex_constants::constants::length_units::LENGTH_UNITS;
+use stylex_constants::constants::messages::ILLEGAL_NAMESPACE_VALUE;
+use stylex_constants::constants::messages::{
+  EVAL_RESULT_EXPECTED, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
+};
+use stylex_constants::constants::time_units::get_time_units;
+use stylex_structures::inline_style::InlineStyle;
 
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.
@@ -113,7 +107,7 @@ pub fn evaluate_stylex_create_arg(
                             let reason = match expr_to_str(key_expr, traversal_state, functions) {
                               Some(key_name) => {
                                 prepend_key_to_reason(&key_name, eval_result.reason)
-                              }
+                              },
                               None => eval_result.reason,
                             };
                             return Box::new(EvaluateResult {
@@ -159,7 +153,7 @@ pub fn evaluate_stylex_create_arg(
                         } else {
                           return evaluate(path, traversal_state, functions);
                         }
-                      }
+                      },
                       _ => {
                         return Box::new(EvaluateResult {
                           confident: false,
@@ -171,9 +165,9 @@ pub fn evaluate_stylex_create_arg(
                           inline_styles: None,
                           fns: None,
                         });
-                      }
+                      },
                     }
-                  }
+                  },
                   _ => {
                     let mut val = evaluate(value_path, traversal_state, functions);
 
@@ -200,14 +194,14 @@ pub fn evaluate_stylex_create_arg(
                     result_value.insert(key_expr.clone(), value_to_insert);
 
                     continue;
-                  }
+                  },
                 }
-              }
+              },
               _ => {
                 return evaluate(path, traversal_state, functions);
-              }
+              },
             }
-          }
+          },
         }
       }
 
@@ -219,7 +213,7 @@ pub fn evaluate_stylex_create_arg(
         inline_styles: None,
         fns: if fns.is_empty() { None } else { Some(fns) },
       })
-    }
+    },
     _ => evaluate(path, traversal_state, functions),
   }
 }
@@ -242,7 +236,7 @@ fn evaluate_partial_object_recursively(
           return result;
         }
         stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);
-      }
+      },
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
 
@@ -319,7 +313,7 @@ fn evaluate_partial_object_recursively(
                 if let Some(result_inline_styles) = result.inline_styles {
                   inline_styles.extend(result_inline_styles);
                 }
-              }
+              },
               _ => {
                 let result = evaluate(value_path, traversal_state, functions);
 
@@ -443,9 +437,9 @@ fn evaluate_partial_object_recursively(
                   );
                   obj.push(new_prop);
                 }
-              }
+              },
             }
-          }
+          },
           Prop::Method(_) => {
             return Box::new(EvaluateResult {
               confident: false,
@@ -455,10 +449,10 @@ fn evaluate_partial_object_recursively(
               inline_styles: None,
               fns: None,
             });
-          }
-          _ => {}
+          },
+          _ => {},
         }
-      }
+      },
     }
   }
 

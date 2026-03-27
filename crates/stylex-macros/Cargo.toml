@@ -1,11 +1,11 @@
 [package]
-name = "stylex_macros"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "Macros for StyleX NAPI-RS compiler"
+edition.workspace = true
+license.workspace = true
+name = "stylex_macros"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 
 [lib]
@@ -13,8 +13,8 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-ctor.workspace = true
 colored.workspace = true
+ctor.workspace = true
 log.workspace = true
 pretty_env_logger.workspace = true
 

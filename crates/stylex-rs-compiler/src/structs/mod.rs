@@ -1,14 +1,13 @@
 use napi::{JsObject, UnknownRef};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
+use stylex_enums::{
+  property_validation_mode::PropertyValidationMode as StylexPropertyValidationMode,
+  style_resolution::StyleResolution, sx_prop_name_param::SxPropNameParam,
+};
 use stylex_structures::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
   stylex_options::{ModuleResolution, StyleXOptionsParams},
-};
-use stylex_enums::{
-  property_validation_mode::PropertyValidationMode as StylexPropertyValidationMode,
-  style_resolution::StyleResolution,
-  sx_prop_name_param::SxPropNameParam,
 };
 
 use crate::enums::{

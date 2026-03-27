@@ -91,8 +91,7 @@ pub static INVALID_MEDIA_QUERY_SYNTAX: &str = "Invalid media query syntax.";
 pub static SPREAD_NOT_SUPPORTED: &str =
   "The spread operator (...) is not supported in this context. Declare each property explicitly.";
 
-pub static SPREAD_MUST_BE_OBJECT: &str =
-  "The spread argument must be a static object expression.";
+pub static SPREAD_MUST_BE_OBJECT: &str = "The spread argument must be a static object expression.";
 
 pub static EXPRESSION_IS_NOT_A_STRING: &str =
   "Expected a string value but received a non-string expression.";
@@ -113,8 +112,7 @@ pub static PROPERTY_NOT_FOUND: &str =
 
 pub static EXPECTED_OBJECT_EXPRESSION: &str = "Expected an object expression.";
 
-pub static VALUE_MUST_BE_STRING: &str =
-  "Expected a string value but received a different type.";
+pub static VALUE_MUST_BE_STRING: &str = "Expected a string value but received a different type.";
 
 pub static VALUE_MUST_BE_LITERAL: &str =
   "Expected a static literal value (string, number, or boolean).";
@@ -138,8 +136,7 @@ pub static MEMBER_OBJ_NOT_IDENT: &str =
 pub static AT_RULE_NOT_FOUND: &str =
   "At-rule not found in the rules map. Ensure the at-rule is declared correctly.";
 
-pub static EXPECTED_COMPILED_STYLES: &str =
-  "Expected compiled style values from the style object.";
+pub static EXPECTED_COMPILED_STYLES: &str = "Expected compiled style values from the style object.";
 
 pub static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static expression.";
 
@@ -158,11 +155,9 @@ pub static OBJECT_KEY_MUST_BE_IDENT: &str = "Object key must be a static identif
 
 pub static COMPILED_KEY_MISSING: &str = "Style object does not contain a compiled key. Ensure the styles were created with stylex.create().";
 
-pub static THEME_VARS_MUST_BE_OBJECT: &str =
-  "Theme variables must be defined as a plain object.";
+pub static THEME_VARS_MUST_BE_OBJECT: &str = "Theme variables must be defined as a plain object.";
 
-pub static RULE_SET_EMPTY: &str =
-  "The style rule set is empty. At least one rule is required.";
+pub static RULE_SET_EMPTY: &str = "The style rule set is empty. At least one rule is required.";
 
 pub fn expected_call_expression(fn_name: &str) -> String {
   format!(

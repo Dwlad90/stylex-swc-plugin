@@ -4,14 +4,6 @@ use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::KeyValueProp;
 
-use stylex_constants::constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY};
-use stylex_constants::constants::messages::{
-  AT_RULE_NOT_FOUND,
-  EXPECTED_CSS_VAR,
-  EXPRESSION_IS_NOT_A_STRING,
-  THEME_VARS_MUST_BE_OBJECT,
-};
-use stylex_types::structures::injectable_style::InjectableStyle;
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::structures::functions::FunctionMap;
@@ -19,18 +11,18 @@ use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
 use crate::shared::utils::ast::convertors::{expr_to_str, key_value_to_str};
 use crate::shared::utils::common::{
-  create_hash,
-  find_and_swap_remove,
-  get_css_value,
-  get_key_values_from_object,
+  create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object,
   round_to_decimal_places,
 };
 use crate::shared::utils::core::define_vars_utils::{
-  collect_vars_by_at_rules,
-  priority_for_at_rule,
-  wrap_with_at_rules,
+  collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules,
 };
 use crate::shared::utils::validators::validate_theme_variables;
+use stylex_constants::constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY};
+use stylex_constants::constants::messages::{
+  AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT,
+};
+use stylex_types::structures::injectable_style::InjectableStyle;
 
 pub(crate) fn stylex_create_theme(
   theme_vars: &mut EvaluateResultValue,
@@ -72,16 +64,16 @@ pub(crate) fn stylex_create_theme(
           },
         )
         .unwrap_or_default();
-    }
+    },
     EvaluateResultValue::ThemeRef(theme_ref) => {
       var_group_hash = match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
         Some(v) => v.to_owned(),
         None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       };
-    }
+    },
     _ => {
       stylex_unimplemented!("Unsupported theme vars type {:?}", theme_vars)
-    }
+    },
   }
 
   for key_value in variables_key_values.into_iter() {
@@ -106,13 +98,13 @@ pub(crate) fn stylex_create_theme(
           Some(s) => s,
           None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
         }
-      }
+      },
       EvaluateResultValue::ThemeRef(theme_ref) => {
         match theme_ref.get(key.as_str(), state).as_css_var() {
           Some(v) => v.clone(),
           None => stylex_panic!("{}", EXPECTED_CSS_VAR),
         }
-      }
+      },
       _ => stylex_unimplemented!("Unsupported theme vars type"),
     };
 
@@ -196,13 +188,13 @@ pub(crate) fn stylex_create_theme(
         Some(s) => s,
         None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
       }
-    }
+    },
     EvaluateResultValue::ThemeRef(theme_ref) => {
       match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
         Some(v) => v.to_owned(),
         None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       }
-    }
+    },
     _ => stylex_unimplemented!("Unsupported theme vars type"),
   };
 

@@ -6,10 +6,7 @@ use swc_core::{
   },
 };
 
-use crate::{
-  StyleXTransform,
-  shared::utils::common::increase_ident_count_by_count,
-};
+use crate::{StyleXTransform, shared::utils::common::increase_ident_count_by_count};
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>

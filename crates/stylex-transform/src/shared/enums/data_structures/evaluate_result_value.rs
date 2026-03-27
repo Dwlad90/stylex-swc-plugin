@@ -12,11 +12,11 @@ use swc_core::{
   },
 };
 
-use stylex_structures::stylex_env::EnvEntry;
 use crate::shared::structures::functions::FunctionConfig;
 use crate::shared::structures::theme_ref::ThemeRef;
 use crate::shared::structures::types::EvaluationCallback;
 use crate::shared::utils::log::build_code_frame_error::{CodeFrame, create_module, print_module};
+use stylex_structures::stylex_env::EnvEntry;
 
 pub enum EvaluateResultValue {
   Expr(Expr),
@@ -53,29 +53,29 @@ impl Serialize for EvaluateResultValue {
         );
 
         serializer.serialize_str(&printed_module)
-      }
+      },
       Self::Map(_) => stylex_unimplemented!("Serialization of Map values is not yet supported."),
       Self::Entries(_) => {
         stylex_unimplemented!("Serialization of Entries values is not yet supported.")
-      }
+      },
       Self::Callback(_) => {
         stylex_unimplemented!("Serialization of Callback values is not yet supported.")
-      }
+      },
       Self::FunctionConfig(_) => {
         stylex_unimplemented!("Serialization of FunctionConfig values is not yet supported.")
-      }
+      },
       Self::FunctionConfigMap(_) => {
         stylex_unimplemented!("Serialization of FunctionConfigMap values is not yet supported.")
-      }
+      },
       Self::ThemeRef(_) => {
         stylex_unimplemented!("Serialization of ThemeRef values is not yet supported.")
-      }
+      },
       Self::Vec(_) => {
         stylex_unimplemented!("Serialization of Vec values is not yet supported.")
-      }
+      },
       Self::EnvObject(_) => {
         stylex_unimplemented!("Serialization of EnvObject values is not yet supported.")
-      }
+      },
     }
   }
 }

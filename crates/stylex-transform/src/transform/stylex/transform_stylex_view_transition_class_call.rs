@@ -1,5 +1,5 @@
-use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
 use std::rc::Rc;
+use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -8,26 +8,23 @@ use swc_core::ecma::ast::VarDeclarator;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
 use crate::StyleXTransform;
+use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
+use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
+use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
+use crate::shared::transformers::stylex_view_transition_class::stylex_view_transition_class;
 use crate::shared::utils::ast::convertors::create_string_expr;
+use crate::shared::utils::js::evaluate::evaluate;
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
 use crate::shared::utils::validators::assert_valid_properties;
+use crate::shared::utils::validators::assert_valid_view_transition_class;
+use crate::shared::utils::validators::{
+  is_view_transition_class_call, validate_stylex_view_transition_class_indent,
+};
 use stylex_constants::constants::common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES;
 use stylex_constants::constants::messages::{
-  VIEW_TRANSITION_CLASS_INVALID_PROPERTY,
-  non_static_value,
-  non_style_object,
-};
-use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
-use crate::shared::transformers::stylex_view_transition_class::stylex_view_transition_class;
-use crate::shared::utils::validators::assert_valid_view_transition_class;
-use crate::shared::structures::functions::FunctionConfigType;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
-use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
-use crate::shared::utils::js::evaluate::evaluate;
-use crate::shared::utils::validators::{
-  is_view_transition_class_call,
-  validate_stylex_view_transition_class_indent,
+  VIEW_TRANSITION_CLASS_INVALID_PROPERTY, non_static_value, non_style_object,
 };
 
 impl<C> StyleXTransform<C>
@@ -130,7 +127,7 @@ where
             )
           );
           value
-        }
+        },
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

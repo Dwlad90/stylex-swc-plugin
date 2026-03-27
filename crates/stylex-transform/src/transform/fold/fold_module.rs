@@ -3,10 +3,7 @@ use swc_core::{
   ecma::{ast::Module, visit::FoldWith},
 };
 
-use crate::{
-  StyleXTransform,
-  shared::utils::common::fill_top_level_expressions,
-};
+use crate::{StyleXTransform, shared::utils::common::fill_top_level_expressions};
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>

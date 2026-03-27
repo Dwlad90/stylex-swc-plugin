@@ -6,35 +6,24 @@ use swc_core::{
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
-use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
-use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
-use stylex_constants::constants::messages::{
-  DUPLICATE_CONDITIONAL,
-  EXPECTED_CSS_VAR,
-  ILLEGAL_PROP_ARRAY_VALUE,
-  ILLEGAL_PROP_VALUE,
-  INVALID_PSEUDO_OR_AT_RULE,
-  MEMBER_OBJ_NOT_IDENT,
-  NON_OBJECT_KEYFRAME,
-  NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
-  NO_OBJECT_SPREADS,
-  ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-  ONLY_OVERRIDE_DEFINE_VARS,
-  illegal_argument_length,
-  non_export_named_declaration,
-  non_static_value,
-  non_style_object,
-  unbound_call_value,
-};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::create_string_expr;
 use crate::shared::utils::ast::helpers::is_variable_named_exported;
 use crate::shared::utils::common::get_import_from;
 use crate::shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic;
+use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
+use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
+use stylex_constants::constants::messages::{
+  DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+  INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+  NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
+  ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
+  non_static_value, non_style_object, unbound_call_value,
+};
 
 use super::{
-  ast::convertors::{key_value_to_str, convert_lit_to_string},
+  ast::convertors::{convert_lit_to_string, key_value_to_str},
   common::get_key_values_from_object,
 };
 
@@ -118,7 +107,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
   });
 
   match state.find_top_level_expr(init_call, |_| false, None) {
-    Some(_) => {}
+    Some(_) => {},
     None => build_code_frame_error_and_panic(
       &init_expr,
       &init_expr,
@@ -170,7 +159,7 @@ pub(crate) fn validate_stylex_position_try_indent(
   });
 
   match state.find_top_level_expr(init_call, |_| false, None) {
-    Some(_) => {}
+    Some(_) => {},
     None => build_code_frame_error_and_panic(
       &init_expr,
       &init_expr,
@@ -239,7 +228,7 @@ pub(crate) fn validate_stylex_view_transition_class_indent(
   });
 
   match state.find_top_level_expr(init_call, |_| false, None) {
-    Some(_) => {}
+    Some(_) => {},
     None => build_code_frame_error_and_panic(
       &init_expr,
       &init_expr,
@@ -305,7 +294,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   });
 
   match state.find_top_level_expr(call, |_| false, None) {
-    Some(_) => {}
+    Some(_) => {},
     None => build_code_frame_error_and_panic(
       init_expr,
       &Expr::Call(call.clone()),
@@ -623,7 +612,7 @@ pub(crate) fn validate_namespace(
             state,
           );
         }
-      }
+      },
       Expr::Array(array) => {
         for elem in array.elems.iter().flatten() {
           if elem.spread.is_some() {
@@ -644,7 +633,7 @@ pub(crate) fn validate_namespace(
             );
           }
         }
-      }
+      },
       Expr::Object(object) => {
         let key = key_value_to_str(namespace);
 
@@ -671,8 +660,8 @@ pub(crate) fn validate_namespace(
             validate_conditional_styles(conditional_style, &[], state);
           }
         }
-      }
-      _ => {}
+      },
+      _ => {},
     }
   }
 }
@@ -717,11 +706,11 @@ pub(crate) fn validate_conditional_styles(
   }
 
   match inner_value.as_ref() {
-    Expr::Lit(_) => {}
+    Expr::Lit(_) => {},
     Expr::Array(array) => {
       for elem in array.elems.iter().flatten() {
         match elem.expr.as_ref() {
-          Expr::Lit(_) => {}
+          Expr::Lit(_) => {},
           _ => build_code_frame_error_and_panic(
             &Expr::Array(array.clone()),
             &Expr::Array(array.clone()),
@@ -730,7 +719,7 @@ pub(crate) fn validate_conditional_styles(
           ),
         }
       }
-    }
+    },
     Expr::Object(object) => {
       let nested_key_values = get_key_values_from_object(object);
 
@@ -740,8 +729,8 @@ pub(crate) fn validate_conditional_styles(
       for nested_key_value in nested_key_values.iter() {
         validate_conditional_styles(nested_key_value, &extended_conditions, state);
       }
-    }
-    Expr::Ident(_) => {}
+    },
+    Expr::Ident(_) => {},
     _ => build_code_frame_error_and_panic(&inner_value, &inner_value, ILLEGAL_PROP_VALUE, state),
   }
 }
@@ -754,16 +743,16 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
 
         for key_value in key_values.iter() {
           match key_value.value.as_ref() {
-            Expr::Object(_) => {}
+            Expr::Object(_) => {},
             _ => {
               build_code_frame_error_and_panic(expr, expr, NON_OBJECT_KEYFRAME, state);
-            }
+            },
           }
         }
-      }
+      },
       _ => {
         build_code_frame_error_and_panic(expr, expr, &non_style_object("keyframes"), state);
-      }
+      },
     },
     _ => stylex_panic!("{}", non_static_value("keyframes")),
   }

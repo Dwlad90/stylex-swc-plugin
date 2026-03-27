@@ -1,9 +1,11 @@
-use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::ast::convertors::{coerce_lit_to_number, create_string_expr, expr_to_str};
+use crate::shared::utils::ast::convertors::{
+  coerce_lit_to_number, create_string_expr, expr_to_str,
+};
 use std::rc::Rc;
+use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
@@ -38,7 +40,7 @@ pub(crate) fn evaluate_map(
             .collect::<Vec<Option<ExprOrSpread>>>();
 
           Some(create_array_expression(elems))
-        }
+        },
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in map callback"),
       }
     })
@@ -118,7 +120,7 @@ pub(crate) fn evaluate_filter(
             .collect::<Vec<Option<ExprOrSpread>>>();
 
           Some(create_array_expression(elems))
-        }
+        },
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in filter callback"),
       }
     })

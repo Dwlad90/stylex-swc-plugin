@@ -64,14 +64,14 @@ pub fn parse_css_inner<'a>(
       Ok(token) => token,
       Err(_) => {
         break;
-      }
+      },
     };
 
     match *token {
       Token::Comment(_) => {
         let token_slice = parser.slice_from(token_offset);
         iter_result.push_str(token_slice);
-      }
+      },
       Token::Semicolon => iter_result.push(';'),
       Token::Colon => iter_result.push(':'),
       Token::Comma => iter_result.push(','),
@@ -112,7 +112,7 @@ pub fn parse_css_inner<'a>(
         iter_result.push_str(join_css(&block_css).as_str());
 
         iter_result.push_str(closure);
-      }
+      },
       Token::CloseParenthesis => iter_result.push(')'),
       Token::CloseSquareBracket => iter_result.push(']'),
       Token::CloseCurlyBracket => iter_result.push('}'),
@@ -125,13 +125,13 @@ pub fn parse_css_inner<'a>(
       Token::CDC => iter_result.push_str("-->"),
       Token::WhiteSpace(value) => {
         iter_result.push_str(value);
-      }
+      },
       // div...
       Token::Ident(ref value) => {
         curr_rule = String::default();
         curr_prop = value.to_string();
         iter_result.push_str(&format_ident(value));
-      }
+      },
       // @import, @font-face, @charset, @media...
       Token::AtKeyword(ref value) => {
         curr_rule = value.to_string();
@@ -140,11 +140,11 @@ pub fn parse_css_inner<'a>(
         // }
         iter_result.push('@');
         iter_result.push_str(value);
-      }
+      },
       Token::Hash(ref value) => {
         iter_result.push('#');
         iter_result.push_str(value);
-      }
+      },
       Token::QuotedString(ref value) => {
         // Add the quoted string with quotes preserved
         iter_result.push_str(&_format_quoted_string(value));
@@ -229,7 +229,7 @@ pub fn parse_css_inner<'a>(
         //     result.push_str(format_quoted_string(value).as_str());
         //   }
         // }
-      }
+      },
       Token::Number {
         ref has_sign,
         ref value,
@@ -239,7 +239,7 @@ pub fn parse_css_inner<'a>(
           iter_result.push('+');
         }
         iter_result.push_str(&value.to_string())
-      }
+      },
       Token::Percentage {
         ref has_sign,
         ref unit_value,
@@ -250,7 +250,7 @@ pub fn parse_css_inner<'a>(
         }
         iter_result.push_str(&(unit_value * 100.0).to_string());
         iter_result.push('%');
-      }
+      },
       Token::Dimension {
         ref has_sign,
         ref value,
@@ -262,13 +262,13 @@ pub fn parse_css_inner<'a>(
         }
         iter_result.push_str(&value.to_string());
         iter_result.push_str(unit.as_ref());
-      }
+      },
       // #selector, #id...
       Token::IDHash(ref value) => {
         curr_rule = String::default();
         iter_result.push('#');
         iter_result.push_str(&format_ident(value));
-      }
+      },
       // url()
       Token::UnquotedUrl(ref _value) => {
         stylex_unimplemented!(
@@ -342,7 +342,7 @@ pub fn parse_css_inner<'a>(
         //     }
         //   }
         //   result.push_str(")");
-      }
+      },
       Token::Delim(ref value) => iter_result.push(*value),
       Token::Function(ref name) => {
         iter_result.push_str(name);
@@ -358,8 +358,8 @@ pub fn parse_css_inner<'a>(
         iter_result.push_str(join_css(&block_css).as_str());
 
         iter_result.push(')');
-      }
-      _ => {}
+      },
+      _ => {},
     }
 
     // Ensure empty CSS is really empty

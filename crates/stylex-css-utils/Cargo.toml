@@ -1,12 +1,12 @@
 [package]
-name = "stylex_css_utils"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "CSS utility helpers for the StyleX compiler plugin"
+edition.workspace = true
+license.workspace = true
+name = "stylex_css_utils"
 publish = false
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 [dependencies]
 log.workspace = true

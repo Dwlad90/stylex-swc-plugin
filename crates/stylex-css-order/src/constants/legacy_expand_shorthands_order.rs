@@ -1,7 +1,7 @@
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
-use stylex_structures::order_pair::OrderPair;
 use stylex_css_values::common::split_value_required;
 use stylex_css_values::parser::parse_css;
+use stylex_structures::order_pair::OrderPair;
 
 /// Helper function to check if a string is a valid list-style-type value
 /// Matches: [a-z-]+ or quoted strings like "..." or '...'

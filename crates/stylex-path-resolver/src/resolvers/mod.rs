@@ -113,7 +113,7 @@ fn resolve_from_package_json(
       let relative_package_path = relative_path(processing_file, root_dir);
 
       get_package_path_by_package_json(cwd, &relative_package_path, package_json_seen)
-    }
+    },
   };
 
   Ok(resolved_path)

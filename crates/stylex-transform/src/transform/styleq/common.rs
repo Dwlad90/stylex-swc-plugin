@@ -6,11 +6,11 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 
-use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_constants::constants::messages::COMPILED_KEY_MISSING;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_constants::constants::messages::COMPILED_KEY_MISSING;
 
 pub(crate) struct StyleQResult {
   pub(crate) class_name: String,
@@ -55,7 +55,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
         } else {
           continue;
         }
-      }
+      },
     };
 
     match possible_style {
@@ -109,7 +109,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                             "String conversion not implemented for FlatCompiledStylesValue::{}",
                             variant_name
                           )
-                        }
+                        },
                       };
 
                       debug_string = if !debug_string.is_empty() {
@@ -168,16 +168,16 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
               "Processing dynamic inline style objects is not yet supported in styleq."
             )
           }
-        }
-        StyleObject::Nullable => {}
+        },
+        StyleObject::Nullable => {},
         StyleObject::Other => {
           stylex_panic!("Only compiled StyleX style objects are allowed in styleq().")
-        }
+        },
         StyleObject::Unreachable => {
           stylex_unreachable!(
             "Encountered an unexpected style object variant in styleq processing."
           )
-        }
+        },
       },
       _ => stylex_unreachable!("Unexpected ResolvedArg variant in styleq loop"),
     };

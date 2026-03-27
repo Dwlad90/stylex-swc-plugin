@@ -2,10 +2,10 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 
-use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_structures::stylex_state_options::StyleXStateOptions;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::utils::core::js_to_expr::NestedStringObject;
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 /// Creates a default marker object that can be used with stylex.props()
 /// to add a marker class for ancestor/sibling state observers.

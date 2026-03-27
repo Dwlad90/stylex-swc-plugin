@@ -15,10 +15,10 @@ use crate::{
     common::{fill_state_declarations, stable_hash},
   },
 };
-use stylex_regex::regex::STYLEX_CONSTS_IMPORT_REGEX;
 use stylex_ast::ast::factories::create_binding_ident;
 use stylex_constants::constants::messages::VAR_DECL_INIT_REQUIRED;
 use stylex_enums::core::TransformationCycle;
+use stylex_regex::regex::STYLEX_CONSTS_IMPORT_REGEX;
 
 impl<C> StyleXTransform<C>
 where
@@ -66,7 +66,7 @@ where
         }
 
         transformed_module_items
-      }
+      },
       TransformationCycle::StateFilling => {
         module_items.iter().for_each(|module_item| {
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
@@ -79,7 +79,7 @@ where
         });
 
         module_items.fold_children_with(self)
-      }
+      },
       TransformationCycle::TransformEnter
       | TransformationCycle::PreCleaning
       | TransformationCycle::Recounting => module_items.fold_children_with(self),
@@ -109,7 +109,7 @@ where
         result_module_items.extend(module_items);
 
         result_module_items.fold_children_with(self)
-      }
+      },
       TransformationCycle::InjectStyles => {
         let mut result_module_items: Vec<ModuleItem> =
           self.state.prepend_include_module_items.clone();
@@ -159,7 +159,7 @@ where
                     init: Some(Box::new(Expr::from(obj.clone()))),
                   }]
                 })
-              }
+              },
               _ => None,
             },
             ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(
@@ -196,7 +196,7 @@ where
         }
 
         result_module_items
-      }
+      },
       TransformationCycle::Cleaning => {
         // We need it twice for a clear dead code after declaration transforms
         let mut module_items = module_items.fold_children_with(self);
@@ -209,7 +209,7 @@ where
         });
 
         module_items
-      }
+      },
     }
   }
 }

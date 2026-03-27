@@ -58,7 +58,7 @@ macro_rules! expr_to_str_or_deopt {
       None => {
         $crate::shared::utils::js::evaluate::deopt($expr, $state, $error_msg);
         return None;
-      }
+      },
     }
   };
 }

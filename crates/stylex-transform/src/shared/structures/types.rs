@@ -7,13 +7,13 @@ use swc_core::{
   ecma::ast::{BindingIdent, Expr},
 };
 
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
+use super::functions::FunctionConfigType;
 use stylex_structures::inline_style::InlineStyle;
 use stylex_structures::named_import_source::ImportSources;
-use super::functions::FunctionConfigType;
 
 pub(crate) type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
 pub(crate) type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;

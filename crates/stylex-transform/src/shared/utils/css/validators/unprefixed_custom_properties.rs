@@ -2,10 +2,10 @@ use swc_core::css::ast::{
   ComponentValue, Declaration, Function, FunctionName, QualifiedRule, Rule, Stylesheet,
 };
 
-use stylex_constants::constants::messages::UNPREFIXED_CUSTOM_PROPERTIES;
 use crate::shared::utils::css::common::get_value_from_ident;
 #[cfg(test)]
 use crate::shared::utils::css::common::swc_parse_css;
+use stylex_constants::constants::messages::UNPREFIXED_CUSTOM_PROPERTIES;
 fn process_function(func: &Function) {
   if let FunctionName::Ident(func_name_ident) = &func.name {
     let func_name = get_value_from_ident(func_name_ident);

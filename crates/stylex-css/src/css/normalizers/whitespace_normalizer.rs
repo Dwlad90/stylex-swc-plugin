@@ -44,7 +44,7 @@ pub fn whitespace_normalizer(content: String) -> String {
           } else {
             format!("{} {} {}", left, op, right)
           }
-        }
+        },
         // Other operators: always add space around
         _ => format!("{} {} {}", left, op, right),
       }

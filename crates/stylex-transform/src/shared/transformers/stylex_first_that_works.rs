@@ -4,12 +4,12 @@ use swc_core::ecma::ast::Expr;
 
 use stylex_types::traits::StyleOptions;
 
-use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
-use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
-use stylex_regex::regex::IS_CSS_VAR;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::{create_string_expr, expr_to_str};
+use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
+use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
+use stylex_regex::regex::IS_CSS_VAR;
 
 fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
   let str_arg = match expr_to_str(arg, state, functions) {
@@ -48,7 +48,7 @@ pub(crate) fn stylex_first_that_works(
         .collect();
 
       create_array_expression(elems)
-    }
+    },
     Some(first_var) => {
       let priorities = args[..first_var].iter().rev().collect::<Vec<_>>();
       let rest = &args[first_var..];
@@ -107,6 +107,6 @@ pub(crate) fn stylex_first_that_works(
         .collect();
 
       create_array_expression(return_value)
-    }
+    },
   }
 }

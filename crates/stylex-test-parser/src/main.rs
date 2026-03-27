@@ -67,16 +67,16 @@ impl Fold for TestsTransformer {
           if matches!(expr.as_ref(), Expr::Call(_) | Expr::Ident(_) | Expr::Fn(_)) {
             expr.fold_with(self);
           }
-        }
+        },
         _ => match item {
           ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func_decl))) => {
             func_decl.fold_with(self);
-          }
+          },
           _ => {
             if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) = item {
               var.fold_with(self);
             }
-          }
+          },
         },
       }
     }
@@ -270,7 +270,7 @@ fn main() {
       Err(err) => {
         error!("Error reading files: {}", err);
         return;
-      }
+      },
     };
 
     let file_paths = file_paths

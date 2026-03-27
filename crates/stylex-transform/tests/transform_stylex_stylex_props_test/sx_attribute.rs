@@ -1,6 +1,9 @@
-use stylex_transform::StyleXTransform;
 use stylex_enums::sx_prop_name_param::SxPropNameParam;
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::{StyleXOptions, StyleXOptionsParams}};
+use stylex_structures::{
+  plugin_pass::PluginPass,
+  stylex_options::{StyleXOptions, StyleXOptionsParams},
+};
+use stylex_transform::StyleXTransform;
 use swc_core::{
   common::FileName,
   ecma::{

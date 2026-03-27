@@ -1,8 +1,6 @@
 use stylex_constants::constants::logical_to_ltr::{INLINE_PROPERTY_TO_LTR, PROPERTY_TO_LTR};
 use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{
-  pair::Pair, stylex_state_options::StyleXStateOptions,
-};
+use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 
 pub fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
@@ -44,7 +42,7 @@ fn property_to_ltr(pair: &Pair) -> Pair {
         .collect::<Vec<_>>()
         .join(" ");
       Pair::new(pair.key.clone(), new_val)
-    }
+    },
     "float" | "clear" => logical_to_physical_ltr(pair.value.as_str())
       .map(|value| Pair::new(pair.key.clone(), value.to_string()))
       .unwrap_or_else(|| Pair::new(pair.key.clone(), pair.value.clone())),
@@ -54,6 +52,6 @@ fn property_to_ltr(pair: &Pair) -> Pair {
       } else {
         Pair::new(pair.key.clone(), pair.value.clone())
       }
-    }
+    },
   }
 }

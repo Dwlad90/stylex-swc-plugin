@@ -5,9 +5,9 @@ mod normalizers {
     css::parser::error::{Error, ErrorKind},
   };
 
+  use crate::shared::utils::css::common::{stringify, swc_parse_css};
   use crate::shared::utils::css::normalizers::base::base_normalizer;
   use stylex_css::css::normalizers::whitespace_normalizer::whitespace_normalizer;
-  use crate::shared::utils::css::common::{stringify, swc_parse_css};
 
   #[test]
   fn should_normalize_transition_property() {

@@ -1,16 +1,13 @@
 #[cfg(test)]
 mod tests {
-  use stylex_ast::ast::factories::create_ident;
-  use stylex_structures::stylex_options::StyleXOptions;
   use crate::shared::structures::functions::FunctionMap;
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::utils::ast::convertors::{
-    create_bool_expr,
-    create_null_expr,
-    create_number_expr,
-    create_string_expr,
+    create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
   };
   use crate::shared::utils::js::evaluate::evaluate;
+  use stylex_ast::ast::factories::create_ident;
+  use stylex_structures::stylex_options::StyleXOptions;
   use swc_core::common::util::take::Take;
   use swc_core::{
     common::{DUMMY_SP, GLOBALS, Globals},
@@ -387,11 +384,7 @@ mod tests {
 
   #[test]
   fn test_binary_with_variable() {
-    let bin_expr = make_binary_expr(
-      make_ident_expr("x"),
-      BinaryOp::Add,
-      create_number_expr(5.0),
-    );
+    let bin_expr = make_binary_expr(make_ident_expr("x"), BinaryOp::Add, create_number_expr(5.0));
     let (confident, _has_value) = evaluate_expr(&bin_expr);
     assert!(
       !confident,

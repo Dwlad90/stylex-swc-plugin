@@ -1,11 +1,11 @@
 [package]
-name = "stylex_css_parser"
-version = "0.15.1"
-edition = "2024"
-rust-version = "1.93.1"
 description = "CSS value parser"
+edition = "2024"
 license = "MIT"
+name = "stylex_css_parser"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
+rust-version = "1.93.1"
+version = "0.15.1"
 
 
 [lib]
@@ -13,29 +13,29 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
+anyhow.workspace = true
+cssparser = { version = "0.36.0" }
+fancy-regex.workspace = true
+indexmap.workspace = true
+log.workspace = true
+rustc-hash.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
 swc_core = { workspace = true, features = [
   "common",
+  "css_ast",
+  "css_codegen",
+  "css_parser",
+  "css_visit",
+  "ecma_codegen",
+  "ecma_parser",
   "ecma_plugin_transform",
   "ecma_utils",
-  "ecma_parser",
-  "ecma_codegen",
-  "css_codegen",
-  "css_visit",
-  "css_parser",
-  "css_ast",
 ] }
-fancy-regex.workspace = true
-anyhow.workspace = true
-cssparser = { version = "0.36.0" }
 thiserror.workspace = true
-log.workspace = true
-indexmap.workspace = true
-rustc-hash.workspace = true
 
 stylex_macros = { path = "../stylex-macros" }
 
 [dev-dependencies]
-proptest = "1.10"
 criterion = { version = "0.8", features = ["html_reports"] }
+proptest = "1.10"

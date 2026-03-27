@@ -1,21 +1,12 @@
 use indexmap::IndexMap;
 use log::warn;
-use stylex_macros::stylex_panic;
 use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
+use stylex_macros::stylex_panic;
 use swc_core::ecma::{
   ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},
   utils::quote_str,
 };
 
-use stylex_constants::constants::messages::{
-  ILLEGAL_PROP_ARRAY_VALUE,
-  ILLEGAL_PROP_VALUE,
-  INVALID_MEDIA_QUERY_SYNTAX,
-  non_static_value,
-};
-use stylex_enums::misc::VarDeclAction;
-use stylex_structures::order_pair::OrderPair;
-use stylex_regex::regex::CSS_PROPERTY_KEY;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::null_pre_rule::NullPreRule;
 use crate::shared::structures::pre_rule::{PreRuleValue, PreRules, StylesPreRule};
@@ -24,19 +15,18 @@ use crate::shared::structures::state::EvaluationState;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::ClassesToOriginalPaths;
 use crate::shared::utils::ast::convertors::{
-  convert_lit_to_string,
-  create_number_expr,
-  expand_shorthand_prop,
-  expr_tpl_to_string,
-  handle_tpl_to_expression,
-  key_value_to_str,
-  transform_bin_expr_to_number,
+  convert_lit_to_string, create_number_expr, expand_shorthand_prop, expr_tpl_to_string,
+  handle_tpl_to_expression, key_value_to_str, transform_bin_expr_to_number,
 };
 use crate::shared::utils::common::{
-  get_expr_from_var_decl,
-  get_key_values_from_object,
-  get_var_decl_by_ident,
+  get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident,
 };
+use stylex_constants::constants::messages::{
+  ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
+};
+use stylex_enums::misc::VarDeclAction;
+use stylex_regex::regex::CSS_PROPERTY_KEY;
+use stylex_structures::order_pair::OrderPair;
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 
@@ -69,10 +59,10 @@ pub(crate) fn flatten_raw_style_object(
     match transform_result {
       Ok(transformed) => {
         processed_style = transformed;
-      }
+      },
       Err(_) => {
         stylex_panic!("{}", INVALID_MEDIA_QUERY_SYNTAX);
-      }
+      },
     }
   }
 
@@ -137,7 +127,7 @@ pub(crate) fn flatten_raw_style_object_logic(
                       .push(val.clone());
                   }
                 }
-              }
+              },
               _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             }
           }
@@ -178,7 +168,7 @@ pub(crate) fn flatten_raw_style_object_logic(
             insert_or_update_rule_with_shifting_index(&mut flattened, &property, pre_rule);
           }
         }
-      }
+      },
       Expr::Lit(property_lit) => {
         if !css_property_key.starts_with(':')
           && !css_property_key.starts_with('@')
@@ -217,7 +207,7 @@ pub(crate) fn flatten_raw_style_object_logic(
             }
           }
         }
-      }
+      },
       Expr::Tpl(tpl) => {
         let handled_tpl = handle_tpl_to_expression(tpl, traversal_state, fns);
         let result = expr_tpl_to_string(
@@ -240,7 +230,7 @@ pub(crate) fn flatten_raw_style_object_logic(
         ));
 
         flattened.insert(css_property_key, pre_rule);
-      }
+      },
       Expr::Ident(ident) => {
         match get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce) {
           Some(var_decl) => {
@@ -258,12 +248,12 @@ pub(crate) fn flatten_raw_style_object_logic(
             );
 
             flattened.extend(inner_flattened);
-          }
+          },
           _ => {
             stylex_panic!("{}", non_static_value("stylex"));
-          }
+          },
         }
-      }
+      },
       Expr::Bin(bin) => {
         let result = transform_bin_expr_to_number(bin, state, traversal_state, fns);
 
@@ -274,7 +264,7 @@ pub(crate) fn flatten_raw_style_object_logic(
           flatten_raw_style_object_logic(&[property_cloned], key_path, state, traversal_state, fns);
 
         flattened.extend(inner_flattened)
-      }
+      },
       Expr::Call(_) => stylex_panic!("{}", non_static_value("stylex")),
       Expr::Object(obj) => {
         if !key.starts_with(':') && !key.starts_with('@') && !key.starts_with('[') {
@@ -320,7 +310,7 @@ pub(crate) fn flatten_raw_style_object_logic(
                       Some(map) => map,
                       None => {
                         stylex_panic!("Property not found in the equivalent style pairs map.")
-                      }
+                      },
                     };
                     inner_map.insert(condition.clone(), pre_rule);
                   }
@@ -365,10 +355,10 @@ pub(crate) fn flatten_raw_style_object_logic(
             );
           }
         }
-      }
+      },
       _ => {
         stylex_panic!("{}", ILLEGAL_PROP_VALUE)
-      }
+      },
     };
   }
 

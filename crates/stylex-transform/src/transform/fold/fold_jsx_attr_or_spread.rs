@@ -28,7 +28,7 @@ where
           }
         }
         jsx_attrs.fold_children_with(self)
-      }
+      },
       TransformationCycle::PreCleaning => {
         let result: Vec<JSXAttrOrSpread> = jsx_attrs
           .iter()
@@ -50,17 +50,17 @@ where
                   // If no replacement found, keep the original spread element
                   vec![create_jsx_spread_attr(*spread.expr.clone())]
                 }
-              }
+              },
               JSXAttrOrSpread::JSXAttr(attr) => {
                 // Keep regular attributes as-is (wrapped in vec for flat_map)
                 vec![create_jsx_attr_or_spread(attr.clone())]
-              }
+              },
             }
           })
           .collect();
 
         result.fold_children_with(self)
-      }
+      },
       _ => jsx_attrs.fold_children_with(self),
     }
   }

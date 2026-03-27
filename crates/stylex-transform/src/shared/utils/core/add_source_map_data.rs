@@ -11,13 +11,6 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, KeyValueProp},
 };
 
-use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_constants::constants::messages::{
-  EXPECTED_OBJECT_EXPRESSION,
-  INVALID_UTF8,
-  illegal_argument_length,
-};
-use stylex_structures::stylex_options::CheckModuleResolution;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
@@ -25,6 +18,11 @@ use crate::shared::structures::types::StylesObjectMap;
 use crate::shared::utils::ast::convertors::{create_string_expr, expr_to_str, key_value_to_str};
 use crate::shared::utils::common::get_key_values_from_object;
 use crate::shared::utils::log::build_code_frame_error::get_span_from_source_code;
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_constants::constants::messages::{
+  EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length,
+};
+use stylex_structures::stylex_options::CheckModuleResolution;
 
 static NEXTJS_HYDRATION_WARNING: Lazy<String> = Lazy::new(|| {
   "\n\nNote: If you are using Next.js, you may encounter hydration mismatches between server and client.\n\
@@ -61,7 +59,7 @@ pub(crate) fn add_source_map_data(
                 break;
               }
             }
-          }
+          },
           _ => stylex_panic!("{}", EXPECTED_OBJECT_EXPRESSION),
         };
         let mut inner_map = IndexMap::new();
@@ -122,7 +120,7 @@ pub(crate) fn add_source_map_data(
                     );
                   }
                 }
-              }
+              },
               Err(e) => {
                 if log::log_enabled!(log::Level::Debug) {
                   debug!(
@@ -138,7 +136,7 @@ pub(crate) fn add_source_map_data(
                     state.get_filename()
                   );
                 };
-              }
+              },
             }
 
             if !inner_map.contains_key(&COMPILED_KEY.to_owned()) {
@@ -149,19 +147,19 @@ pub(crate) fn add_source_map_data(
             }
 
             result.insert(key.clone(), Rc::new(inner_map));
-          }
+          },
           _ => {
             // Fallback in case no sourcemap data is found
 
             inner_map.extend((**value).clone());
 
             result.insert(key.clone(), Rc::new(inner_map));
-          }
+          },
         };
-      }
+      },
       _ => {
         stylex_panic!("{}", illegal_argument_length("add_source_map_data", 1));
-      }
+      },
     };
   }
 

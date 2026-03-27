@@ -2,9 +2,9 @@
 mod class_methods {
   use swc_core::ecma::ast::Expr;
 
+  use crate::shared::transformers::stylex_types::FN_MAP;
   use stylex_ast::ast::factories::{create_object_expression, create_string_key_value_prop};
   use stylex_enums::value_with_default::ValueWithDefault;
-  use crate::shared::transformers::stylex_types::FN_MAP;
 
   fn assert_type_factory(syntax: &str, value: ValueWithDefault, expected_value: &str) {
     let angle = FN_MAP.get(syntax).unwrap();

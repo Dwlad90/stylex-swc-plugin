@@ -10,10 +10,7 @@ use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::ast::convertors::{
-  convert_lit_to_string,
-  expr_to_bool,
-  expr_to_str,
-  key_value_to_str,
+  convert_lit_to_string, expr_to_bool, expr_to_str, key_value_to_str,
 };
 use crate::shared::utils::common::reduce_ident_count;
 use crate::shared::utils::js::evaluate::evaluate;
@@ -126,7 +123,7 @@ pub(crate) fn parse_nullable_style(
       } else {
         StyleObject::Other
       }
-    }
+    },
     Expr::Ident(ident) => {
       if ident.sym == "undefined" {
         StyleObject::Nullable
@@ -136,7 +133,7 @@ pub(crate) fn parse_nullable_style(
         }
         StyleObject::Other
       }
-    }
+    },
     Expr::Member(member) => {
       let mut obj_name: Option<String> = None;
       let mut prop_name: Option<String> = None;
@@ -152,14 +149,14 @@ pub(crate) fn parse_nullable_style(
           MemberProp::Ident(prop_ident) => {
             obj_name = Some(obj_ident.sym.as_str().to_string());
             prop_name = Some(prop_ident.sym.as_str().to_string());
-          }
+          },
           MemberProp::Computed(computed) => {
             if let Some(lit) = computed.expr.as_lit() {
               obj_name = Some(obj_ident.sym.as_str().to_string());
               prop_name = convert_lit_to_string(lit);
             }
-          }
-          MemberProp::PrivateName(_) => {}
+          },
+          MemberProp::PrivateName(_) => {},
         }
       }
 
@@ -178,7 +175,7 @@ pub(crate) fn parse_nullable_style(
       }
 
       StyleObject::Other
-    }
+    },
     _ => StyleObject::Other,
   };
 
@@ -210,33 +207,33 @@ fn parse_compiled_styles(
           Some(EvaluateResultValue::Expr(expr)) => parse_nullable_object(compiled_styles, expr),
           Some(EvaluateResultValue::Vec(arr)) => {
             parse_compiled_styles(compiled_styles, &EvaluateResultValue::Vec(arr.clone()));
-          }
+          },
           _ => {
             stylex_unimplemented!(
               "Encountered an unsupported evaluation result while parsing a nullable style array."
             );
-          }
+          },
         };
       }
       if compiled_styles.is_empty() {
         return Some(StyleObject::Other);
       }
       return Some(StyleObject::Style(compiled_styles.clone()));
-    }
+    },
     EvaluateResultValue::Expr(expr) => {
       if expr.is_object() {
         parse_nullable_object(compiled_styles, expr);
         return Some(StyleObject::Style(compiled_styles.clone()));
       }
-    }
+    },
     EvaluateResultValue::ThemeRef(_) => {
       return Some(StyleObject::Other);
-    }
+    },
     _ => {
       stylex_unimplemented!(
         "Encountered an unsupported evaluation result while parsing a nullable style."
       );
-    }
+    },
   }
   None
 }
@@ -257,16 +254,16 @@ fn parse_nullable_object(
               stylex_unimplemented!(
                 "Encountered an unsupported expression type while parsing a nullable style array."
               );
-            }
+            },
           };
         }
       }
-    }
+    },
     _ => {
       stylex_unimplemented!(
         "Encountered an unsupported expression type while parsing a nullable style array."
       );
-    }
+    },
   }
 }
 
@@ -283,17 +280,17 @@ fn parse_nullable_key_value(
       };
 
       compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::String(value)));
-    }
+    },
     Lit::Bool(bool_lit) => {
       let value = bool_lit.value;
       compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Bool(value)));
-    }
+    },
     Lit::Null(_) => {
       compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Null));
-    }
+    },
     _ => {
       stylex_panic!("Unhandled literal type in nullable style parsing array");
-    }
+    },
   }
 }
 

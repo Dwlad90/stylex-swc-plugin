@@ -1,28 +1,26 @@
-use stylex_constants::constants::messages::SPREAD_NOT_SUPPORTED;
 use rustc_hash::FxHashMap;
+use stylex_constants::constants::messages::SPREAD_NOT_SUPPORTED;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
 };
 
-use stylex_constants::constants::messages::{
-  cannot_generate_hash,
-  non_static_value,
-  non_style_object,
-};
-use crate::shared::transformers::stylex_position_try::get_position_try_fn;
-use crate::shared::utils::common::gen_file_based_identifier;
-use crate::shared::utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast};
-use crate::shared::utils::js::evaluate::evaluate;
-use crate::shared::utils::validators::{find_and_validate_stylex_define_vars, is_define_vars_call};
 use crate::shared::structures::functions::FunctionConfigType;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use crate::shared::transformers::stylex_define_vars::stylex_define_vars;
 use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
+use crate::shared::transformers::stylex_position_try::get_position_try_fn;
 use crate::shared::transformers::stylex_types::get_types_fn;
+use crate::shared::utils::common::gen_file_based_identifier;
+use crate::shared::utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast};
+use crate::shared::utils::js::evaluate::evaluate;
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
+use crate::shared::utils::validators::{find_and_validate_stylex_define_vars, is_define_vars_call};
+use stylex_constants::constants::messages::{
+  cannot_generate_hash, non_static_value, non_style_object,
+};
 
 use crate::StyleXTransform;
 use stylex_data_structures::top_level_expression::TopLevelExpression;
@@ -137,7 +135,7 @@ where
             )
           );
           value
-        }
+        },
         None => stylex_panic!("{}", non_static_value("defineVars")),
       };
 

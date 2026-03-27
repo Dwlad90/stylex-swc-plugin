@@ -2,13 +2,6 @@ use std::rc::Rc;
 
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
-use stylex_constants::constants::messages::{
-  EXPORT_ID_NOT_SET,
-  INJECTABLE_STYLE_NOT_SUPPORTED,
-  VALUES_MUST_BE_OBJECT,
-};
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableConstStyle;
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
@@ -16,6 +9,11 @@ use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
 use crate::shared::utils::common::{create_hash, serialize_value_to_json_string};
 use crate::shared::utils::object::obj_map;
+use stylex_constants::constants::messages::{
+  EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
+};
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use stylex_types::structures::injectable_style::InjectableConstStyle;
 
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
@@ -40,13 +38,13 @@ pub(crate) fn stylex_define_consts(
       let result = match item.as_ref() {
         FlatCompiledStylesValue::InjectableStyle(_) => {
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
-        }
+        },
         FlatCompiledStylesValue::Tuple(_key, value, _) => {
           let serialized_value =
             serialize_value_to_json_string(EvaluateResultValue::Expr(*value.clone()));
 
           FlatCompiledStylesValue::String(serialized_value)
-        }
+        },
         _ => stylex_unimplemented!(
           "FlatCompiledStylesValue variant not supported in stylex_define_consts"
         ),

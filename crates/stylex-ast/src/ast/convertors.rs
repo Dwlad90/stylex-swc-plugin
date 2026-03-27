@@ -5,8 +5,7 @@ use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{
     ast::{
-      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Str, Tpl,
-      TplElement,
+      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, Prop, PropName, Str, Tpl, TplElement,
     },
     parser::Context,
     utils::{ExprExt, quote_ident, quote_str},
@@ -16,7 +15,7 @@ use swc_core::{
 use stylex_constants::constants::messages::INVALID_UTF8;
 
 use super::factories::{
-  create_ident, create_big_int_lit, create_boolean_lit, create_null_lit, create_number_lit,
+  create_big_int_lit, create_boolean_lit, create_ident, create_null_lit, create_number_lit,
   create_string_lit,
 };
 
@@ -28,7 +27,7 @@ pub fn coerce_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
       } else {
         0.0
       }
-    }
+    },
     Lit::Num(num) => num.value,
     Lit::Str(strng) => {
       let Result::Ok(num) = convert_atom_to_string(&strng.value).parse::<f64>() else {
@@ -39,13 +38,13 @@ pub fn coerce_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
       };
 
       num
-    }
+    },
     _ => {
       return Err(anyhow!(
         "Value in not a number: {:?}",
         Expr::from(lit_num.clone()).get_type(get_default_expr_ctx())
       ));
-    }
+    },
   };
 
   Result::Ok(result)
@@ -88,7 +87,7 @@ pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
         return Expr::Lit(str_lit);
       }
       expr
-    }
+    },
     _ => expr,
   }
 }
@@ -115,7 +114,7 @@ pub fn convert_concat_to_tpl_expr(expr: Expr) -> Expr {
         return tpl_expr;
       }
       expr
-    }
+    },
     _ => expr,
   }
 }
@@ -314,4 +313,3 @@ pub fn extract_str_lit_ref(lit: &Lit) -> Option<&str> {
     _ => None,
   }
 }
-

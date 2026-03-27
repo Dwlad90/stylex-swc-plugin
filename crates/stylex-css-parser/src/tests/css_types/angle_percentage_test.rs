@@ -17,7 +17,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Angle(angle) => {
         assert_eq!(angle.value, 45.0);
         assert_eq!(angle.unit, "deg");
-      }
+      },
       _ => stylex_panic!("Expected angle"),
     }
 
@@ -26,7 +26,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Angle(angle) => {
         assert_eq!(angle.value, 1.0);
         assert_eq!(angle.unit, "rad");
-      }
+      },
       _ => stylex_panic!("Expected angle"),
     }
 
@@ -35,7 +35,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Angle(angle) => {
         assert_eq!(angle.value, 0.5);
         assert_eq!(angle.unit, "turn");
-      }
+      },
       _ => stylex_panic!("Expected angle"),
     }
 
@@ -44,7 +44,7 @@ mod test_css_type_angle_percentage {
       AnglePercentage::Angle(angle) => {
         assert_eq!(angle.value, 100.0);
         assert_eq!(angle.unit, "grad");
-      }
+      },
       _ => stylex_panic!("Expected angle"),
     }
   }
@@ -55,7 +55,7 @@ mod test_css_type_angle_percentage {
     match result {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 50.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
 
@@ -63,7 +63,7 @@ mod test_css_type_angle_percentage {
     match result {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 100.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
 
@@ -71,7 +71,7 @@ mod test_css_type_angle_percentage {
     match result {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 0.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
 
@@ -79,7 +79,7 @@ mod test_css_type_angle_percentage {
     match result {
       AnglePercentage::Percentage(percentage) => {
         assert_eq!(percentage.value, 25.0);
-      }
+      },
       _ => stylex_panic!("Expected percentage"),
     }
   }

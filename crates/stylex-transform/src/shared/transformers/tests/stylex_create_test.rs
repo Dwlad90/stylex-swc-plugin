@@ -5,18 +5,6 @@ mod stylex_create {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
-  use stylex_ast::ast::factories::{
-    create_array_expression,
-    create_key_value_prop,
-    create_key_value_prop_ident,
-    create_nested_object_prop,
-    create_null_lit,
-    create_object_expression,
-    create_string_key_value_prop,
-  };
-  use stylex_constants::constants::common::COMPILED_KEY;
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
-  use stylex_types::structures::injectable_style::InjectableStyle;
   use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
   use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
   use crate::shared::structures::functions::FunctionMap;
@@ -25,6 +13,14 @@ mod stylex_create {
   use crate::shared::structures::types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap};
   use crate::shared::transformers::stylex_create::stylex_create_set;
   use crate::shared::utils::ast::convertors::create_string_expr;
+  use stylex_ast::ast::factories::{
+    create_array_expression, create_key_value_prop, create_key_value_prop_ident,
+    create_nested_object_prop, create_null_lit, create_object_expression,
+    create_string_key_value_prop,
+  };
+  use stylex_constants::constants::common::COMPILED_KEY;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use stylex_types::structures::injectable_style::InjectableStyle;
 
   fn style_object_factory(args: &[(&str, &[(&str, &str)])]) -> IndexMap<Expr, Vec<KeyValueProp>> {
     let mut object = IndexMap::new();
@@ -115,7 +111,7 @@ mod stylex_create {
                           StringOrNull::String(strng) => create_string_key_value_prop(key, strng),
                           StringOrNull::Null => {
                             create_key_value_prop(key, Expr::Lit(create_null_lit()))
-                          }
+                          },
                         })
                         .collect(),
                     ),

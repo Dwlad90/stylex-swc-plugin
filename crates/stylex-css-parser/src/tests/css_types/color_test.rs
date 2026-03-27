@@ -16,7 +16,7 @@ mod test_css_type_color {
     match color1 {
       Color::Named(ref named) => {
         assert_eq!(named.value, "red");
-      }
+      },
       _ => stylex_panic!("Expected NamedColor"),
     }
     assert_eq!(color1.to_string(), "red");
@@ -25,7 +25,7 @@ mod test_css_type_color {
     match color2 {
       Color::Named(ref named) => {
         assert_eq!(named.value, "blue");
-      }
+      },
       _ => stylex_panic!("Expected NamedColor"),
     }
     assert_eq!(color2.to_string(), "blue");
@@ -34,7 +34,7 @@ mod test_css_type_color {
     match color3 {
       Color::Named(ref named) => {
         assert_eq!(named.value, "green");
-      }
+      },
       _ => stylex_panic!("Expected NamedColor"),
     }
     assert_eq!(color3.to_string(), "green");
@@ -43,7 +43,7 @@ mod test_css_type_color {
     match transparent {
       Color::Named(ref named) => {
         assert_eq!(named.value, "transparent");
-      }
+      },
       _ => stylex_panic!("Expected NamedColor"),
     }
     assert_eq!(transparent.to_string(), "transparent");
@@ -67,7 +67,7 @@ mod test_css_type_color {
       match color {
         Color::Hash(ref hash) => {
           assert_eq!(hash.value, expected_hex);
-        }
+        },
         _ => stylex_panic!("Expected HashColor for: {}", input),
       }
       assert_eq!(color.to_string(), input);
@@ -82,7 +82,7 @@ mod test_css_type_color {
         assert_eq!(rgb.r, 255);
         assert_eq!(rgb.g, 0);
         assert_eq!(rgb.b, 0);
-      }
+      },
       _ => stylex_panic!("Expected Rgb"),
     }
     assert_eq!(color1.to_string(), "rgb(255, 0, 0)");
@@ -93,7 +93,7 @@ mod test_css_type_color {
         assert_eq!(rgb.r, 0);
         assert_eq!(rgb.g, 255);
         assert_eq!(rgb.b, 0);
-      }
+      },
       _ => stylex_panic!("Expected Rgb"),
     }
     assert_eq!(color2.to_string(), "rgb(0, 255, 0)");
@@ -104,7 +104,7 @@ mod test_css_type_color {
         assert_eq!(rgb.r, 128);
         assert_eq!(rgb.g, 128);
         assert_eq!(rgb.b, 128);
-      }
+      },
       _ => stylex_panic!("Expected Rgb"),
     }
     assert_eq!(color3.to_string(), "rgb(128, 128, 128)");
@@ -119,7 +119,7 @@ mod test_css_type_color {
         assert_eq!(rgba.g, 0);
         assert_eq!(rgba.b, 0);
         assert_eq!(rgba.a, 0.5);
-      }
+      },
       _ => stylex_panic!("Expected Rgba"),
     }
     assert_eq!(color1.to_string(), "rgba(255, 0, 0, 0.5)");
@@ -133,7 +133,7 @@ mod test_css_type_color {
         assert_eq!(rgba.g, 128);
         assert_eq!(rgba.b, 255);
         assert_eq!(rgba.a, 1.0);
-      }
+      },
       _ => stylex_panic!("Expected Rgba"),
     }
     assert_eq!(color2.to_string(), "rgba(0, 128, 255, 1)");
@@ -147,7 +147,7 @@ mod test_css_type_color {
         assert_eq!(rgba.g, 255);
         assert_eq!(rgba.b, 255);
         assert_eq!(rgba.a, 0.0);
-      }
+      },
       _ => stylex_panic!("Expected Rgba"),
     }
     assert_eq!(color3.to_string(), "rgba(255, 255, 255, 0)");
@@ -161,7 +161,7 @@ mod test_css_type_color {
         assert_eq!(rgb.r, 255);
         assert_eq!(rgb.g, 0);
         assert_eq!(rgb.b, 0);
-      }
+      },
       _ => stylex_panic!("Expected Rgb"),
     }
 
@@ -171,7 +171,7 @@ mod test_css_type_color {
         assert_eq!(rgb.r, 0);
         assert_eq!(rgb.g, 255);
         assert_eq!(rgb.b, 0);
-      }
+      },
       _ => stylex_panic!("Expected Rgb"),
     }
 
@@ -181,7 +181,7 @@ mod test_css_type_color {
         assert_eq!(rgb.r, 0);
         assert_eq!(rgb.g, 0);
         assert_eq!(rgb.b, 255);
-      }
+      },
       _ => stylex_panic!("Expected Rgb"),
     }
   }
@@ -195,7 +195,7 @@ mod test_css_type_color {
         assert_eq!(rgba.g, 0);
         assert_eq!(rgba.b, 0);
         assert_eq!(rgba.a, 0.5);
-      }
+      },
       _ => stylex_panic!("Expected Rgba"),
     }
 
@@ -206,7 +206,7 @@ mod test_css_type_color {
         assert_eq!(rgba.g, 255);
         assert_eq!(rgba.b, 0);
         assert_eq!(rgba.a, 0.8);
-      }
+      },
       _ => stylex_panic!("Expected Rgba"),
     }
 
@@ -217,7 +217,7 @@ mod test_css_type_color {
         assert_eq!(rgba.g, 0);
         assert_eq!(rgba.b, 255);
         assert_eq!(rgba.a, 0.5);
-      }
+      },
       _ => stylex_panic!("Expected Rgba"),
     }
   }
@@ -230,7 +230,7 @@ mod test_css_type_color {
         assert_eq!(hsl.h.value, 120.0);
         assert_eq!(hsl.s.value, 100.0);
         assert_eq!(hsl.l.value, 50.0);
-      }
+      },
       _ => stylex_panic!("Expected Hsl"),
     }
     assert_eq!(color1.to_string(), "hsl(120deg, 100%, 50%)");
@@ -241,7 +241,7 @@ mod test_css_type_color {
         assert_eq!(hsl.h.value, 0.0);
         assert_eq!(hsl.s.value, 100.0);
         assert_eq!(hsl.l.value, 50.0);
-      }
+      },
       _ => stylex_panic!("Expected Hsl"),
     }
     assert_eq!(color2.to_string(), "hsl(0deg, 100%, 50%)");
@@ -252,7 +252,7 @@ mod test_css_type_color {
         assert_eq!(hsl.h.value, 240.0);
         assert_eq!(hsl.s.value, 100.0);
         assert_eq!(hsl.l.value, 50.0);
-      }
+      },
       _ => stylex_panic!("Expected Hsl"),
     }
     assert_eq!(color3.to_string(), "hsl(240deg, 100%, 50%)");
@@ -269,7 +269,7 @@ mod test_css_type_color {
         assert_eq!(hsla.s.value, 100.0);
         assert_eq!(hsla.l.value, 50.0);
         assert_eq!(hsla.a, 0.8);
-      }
+      },
       _ => stylex_panic!("Expected Hsla"),
     }
     assert_eq!(color1.to_string(), "hsla(240deg, 100%, 50%, 0.8)");
@@ -283,7 +283,7 @@ mod test_css_type_color {
         assert_eq!(hsla.s.value, 50.0);
         assert_eq!(hsla.l.value, 75.0);
         assert_eq!(hsla.a, 0.3);
-      }
+      },
       _ => stylex_panic!("Expected Hsla"),
     }
     assert_eq!(color2.to_string(), "hsla(120deg, 50%, 75%, 0.3)");
@@ -301,7 +301,7 @@ mod test_css_type_color {
           _ => stylex_panic!("Expected number hue for lch(50% 30 180)"),
         }
         assert_eq!(lch.alpha, None);
-      }
+      },
       _ => stylex_panic!("Expected Lch"),
     }
     assert_eq!(color.to_string(), "lch(50 30 180)");
@@ -318,7 +318,7 @@ mod test_css_type_color {
         assert_eq!(oklch.h.value, 180.0);
         assert_eq!(oklch.h.unit, "deg");
         assert_eq!(oklch.alpha, None);
-      }
+      },
       _ => stylex_panic!("Expected Oklch"),
     }
     assert_eq!(color.to_string(), "oklch(0.7 0.15 180deg)");
@@ -333,7 +333,7 @@ mod test_css_type_color {
         assert_eq!(oklab.a, -0.15);
         assert_eq!(oklab.b, 0.1);
         assert_eq!(oklab.alpha, None);
-      }
+      },
       _ => stylex_panic!("Expected Oklab"),
     }
     assert_eq!(color.to_string(), "oklab(0.7 -0.15 0.1)");
@@ -353,11 +353,11 @@ mod test_css_type_color {
           crate::css_types::color::LchHue::Angle(angle) => {
             assert_eq!(angle.value, 180.0);
             assert_eq!(angle.unit, "deg");
-          }
+          },
           _ => stylex_panic!("Expected angle hue"),
         }
         assert_eq!(lch.alpha, Some(0.8));
-      }
+      },
       _ => stylex_panic!("Expected Lch"),
     }
 
@@ -371,7 +371,7 @@ mod test_css_type_color {
         assert_eq!(oklch.c, 0.15);
         assert_eq!(oklch.h.value, 180.0);
         assert_eq!(oklch.alpha, Some(0.5));
-      }
+      },
       _ => stylex_panic!("Expected Oklch"),
     }
 
@@ -385,7 +385,7 @@ mod test_css_type_color {
         assert_eq!(oklab.a, -0.15);
         assert_eq!(oklab.b, 0.1);
         assert_eq!(oklab.alpha, Some(0.9));
-      }
+      },
       _ => stylex_panic!("Expected Oklab"),
     }
   }
@@ -401,7 +401,7 @@ mod test_css_type_color {
         assert_eq!(oklch.l, 0.0); // 'none' maps to 0
         assert_eq!(oklch.c, 0.15);
         assert_eq!(oklch.h.value, 0.0); // 'none' * 360 = 0
-      }
+      },
       _ => stylex_panic!("Expected Oklch"),
     }
 
@@ -412,7 +412,7 @@ mod test_css_type_color {
         assert_eq!(oklab.l, 0.5);
         assert_eq!(oklab.a, 0.0); // 'none' maps to 0
         assert_eq!(oklab.b, 0.0); // 'none' maps to 0
-      }
+      },
       _ => stylex_panic!("Expected Oklab"),
     }
   }
@@ -566,7 +566,7 @@ mod test_css_type_color {
             input, expected_degrees, oklch.h.value
           );
           assert_eq!(oklch.h.unit, "deg");
-        }
+        },
         _ => stylex_panic!("Expected Oklch for input: {}", input),
       }
     }

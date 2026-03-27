@@ -1,7 +1,7 @@
 use stylex_macros::stylex_panic;
 
-use stylex_constants::constants::messages::RULE_SET_EMPTY;
 use crate::shared::structures::pre_rule::{CompiledResult, ComputedStyle};
+use stylex_constants::constants::messages::RULE_SET_EMPTY;
 
 use super::{
   null_pre_rule::NullPreRule,

@@ -3,9 +3,9 @@ use swc_core::{
   ecma::ast::{Expr, Ident},
 };
 
-use stylex_constants::constants::evaluation_errors::{UNDEFINED_CONST, unsupported_expression};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::structures::state::EvaluationState;
+use stylex_constants::constants::evaluation_errors::{UNDEFINED_CONST, unsupported_expression};
 
 use super::evaluate::deopt;
 

@@ -87,17 +87,17 @@ impl LinearEasingFunction {
       |tokens| {
         // Parse 'linear(' function start
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "linear" => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name == "linear" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected linear() function, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected linear() function but reached end of input".to_string(),
             });
-          }
+          },
         }
 
         // Skip optional whitespace
@@ -116,12 +116,12 @@ impl LinearEasingFunction {
               return Err(CssParseError::ParseError {
                 message: format!("Expected number in linear function, got {:?}", token),
               });
-            }
+            },
             None => {
               return Err(CssParseError::ParseError {
                 message: "Expected number but reached end of input".to_string(),
               });
-            }
+            },
           };
 
           points.push(number);
@@ -141,10 +141,10 @@ impl LinearEasingFunction {
                   tokens.consume_next_token()?;
                 }
                 continue; // parse next number
-              }
+              },
               SimpleToken::RightParen => {
                 break; // done parsing numbers
-              }
+              },
               _ => {
                 return Err(CssParseError::ParseError {
                   message: format!(
@@ -152,7 +152,7 @@ impl LinearEasingFunction {
                     token
                   ),
                 });
-              }
+              },
             }
           } else {
             return Err(CssParseError::ParseError {
@@ -163,17 +163,17 @@ impl LinearEasingFunction {
 
         // Parse closing paren
         match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
             });
-          }
+          },
         }
 
         if points.is_empty() {
@@ -199,17 +199,17 @@ impl CubicBezierEasingFunction {
       |tokens| {
         // Parse 'cubic-bezier(' function start
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "cubic-bezier" => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name == "cubic-bezier" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected cubic-bezier() function, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected cubic-bezier() function but reached end of input".to_string(),
             });
-          }
+          },
         }
 
         // Skip optional whitespace
@@ -229,17 +229,17 @@ impl CubicBezierEasingFunction {
 
             // Expect comma
             match tokens.consume_next_token()? {
-              Some(SimpleToken::Comma) => {}
+              Some(SimpleToken::Comma) => {},
               Some(token) => {
                 return Err(CssParseError::ParseError {
                   message: format!("Expected comma in cubic-bezier function, got {:?}", token),
                 });
-              }
+              },
               None => {
                 return Err(CssParseError::ParseError {
                   message: "Expected comma but reached end of input".to_string(),
                 });
-              }
+              },
             }
 
             // Skip optional whitespace after comma
@@ -255,12 +255,12 @@ impl CubicBezierEasingFunction {
               return Err(CssParseError::ParseError {
                 message: format!("Expected number in cubic-bezier function, got {:?}", token),
               });
-            }
+            },
             None => {
               return Err(CssParseError::ParseError {
                 message: "Expected number but reached end of input".to_string(),
               });
-            }
+            },
           };
 
           numbers.push(number);
@@ -273,17 +273,17 @@ impl CubicBezierEasingFunction {
 
         // Parse closing paren
         match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
             });
-          }
+          },
         }
 
         Ok(CubicBezierEasingFunction::new([
@@ -311,7 +311,7 @@ impl CubicBezierKeyword {
         return Err(CssParseError::ParseError {
           message: format!("Unknown cubic-bezier keyword: {}", value),
         });
-      }
+      },
     };
     Ok(Self::new(keyword))
   }
@@ -361,17 +361,17 @@ impl StepsEasingFunction {
       |tokens| {
         // Parse 'steps(' function start
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "steps" => {}
+          Some(SimpleToken::Function(fn_name)) if fn_name == "steps" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected steps() function, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected steps() function but reached end of input".to_string(),
             });
-          }
+          },
         }
 
         // Skip optional whitespace
@@ -390,17 +390,17 @@ impl StepsEasingFunction {
                 message: "Steps count must be a positive integer".to_string(),
               });
             }
-          }
+          },
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected number for steps count, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected steps count but reached end of input".to_string(),
             });
-          }
+          },
         };
 
         // Skip optional whitespace
@@ -410,17 +410,17 @@ impl StepsEasingFunction {
 
         // Expect comma
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Comma) => {}
+          Some(SimpleToken::Comma) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected comma in steps function, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected comma but reached end of input".to_string(),
             });
-          }
+          },
         }
 
         // Skip optional whitespace after comma
@@ -440,7 +440,7 @@ impl StepsEasingFunction {
                   value
                 ),
               });
-            }
+            },
           },
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -449,12 +449,12 @@ impl StepsEasingFunction {
                 token
               ),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected 'start' or 'end' but reached end of input".to_string(),
             });
-          }
+          },
         };
 
         // Skip optional whitespace
@@ -464,17 +464,17 @@ impl StepsEasingFunction {
 
         // Parse closing paren
         match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
               message: format!("Expected closing paren, got {:?}", token),
             });
-          }
+          },
           None => {
             return Err(CssParseError::ParseError {
               message: "Expected closing paren but reached end of input".to_string(),
             });
-          }
+          },
         }
 
         Ok(StepsEasingFunction::new(steps, start_type))
@@ -498,7 +498,7 @@ impl StepsKeyword {
         return Err(CssParseError::ParseError {
           message: format!("Unknown steps keyword: {}", value),
         });
-      }
+      },
     };
     Ok(Self::new(keyword))
   }

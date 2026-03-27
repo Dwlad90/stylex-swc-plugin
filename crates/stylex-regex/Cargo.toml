@@ -1,11 +1,11 @@
 [package]
-name = "stylex_regex"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "Compiled regex patterns for StyleX SWC plugin"
+edition.workspace = true
+license.workspace = true
+name = "stylex_regex"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 
 [lib]

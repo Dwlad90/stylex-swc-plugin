@@ -9,7 +9,6 @@ use swc_core::ecma::ast::Ident;
 
 use once_cell::sync::Lazy;
 
-
 // Global counters map, protected by Mutex for thread safety
 static GLOBAL_COUNTERS: Lazy<Mutex<FxHashMap<String, AtomicUsize>>> =
   Lazy::new(|| Mutex::new(FxHashMap::default()));
@@ -40,10 +39,10 @@ impl UidGenerator {
           .entry(prefix.to_string())
           .or_insert_with(|| AtomicUsize::new(1));
         drop(counters);
-      }
+      },
       CounterMode::Local | CounterMode::ThreadLocal | CounterMode::_ThreadUnique => {
         // These modes don't need global counter initialization
-      }
+      },
     }
 
     Self {
@@ -61,18 +60,18 @@ impl UidGenerator {
           Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
         };
         counters.remove(&self.prefix);
-      }
+      },
       CounterMode::Local => {
         self.local_counter.store(1, Ordering::SeqCst);
-      }
+      },
       CounterMode::ThreadLocal => {
         THREAD_LOCAL_COUNTERS.with(|counters| {
           counters.borrow_mut().remove(&self.prefix);
         });
-      }
+      },
       CounterMode::_ThreadUnique => {
         // Thread unique mode doesn't maintain persistent counters
-      }
+      },
     }
   }
 
@@ -99,7 +98,7 @@ impl UidGenerator {
         };
 
         format!("_{}{}", self.prefix, count_string)
-      }
+      },
       CounterMode::Local => {
         let count = self.local_counter.fetch_add(1, Ordering::SeqCst);
 
@@ -110,7 +109,7 @@ impl UidGenerator {
         };
 
         format!("_{}{}", self.prefix, count_string)
-      }
+      },
       CounterMode::ThreadLocal => {
         let count = THREAD_LOCAL_COUNTERS.with(|counters| {
           let mut counters = counters.borrow_mut();
@@ -127,7 +126,7 @@ impl UidGenerator {
         };
 
         format!("_{}{}", self.prefix, count_string)
-      }
+      },
       CounterMode::_ThreadUnique => {
         let thread_id = thread::current().id();
         let count = self.local_counter.fetch_add(1, Ordering::SeqCst);
@@ -139,7 +138,7 @@ impl UidGenerator {
         };
 
         format!("_{}_{:?}{}", self.prefix, thread_id, count_string)
-      }
+      },
     }
   }
 

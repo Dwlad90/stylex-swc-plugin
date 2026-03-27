@@ -66,7 +66,7 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
       Expr::Array(_) => {
         // Ignore `firstThatWorks` arrays - pass through unchanged
         result.push(prop.clone());
-      }
+      },
       Expr::Object(obj_lit) => {
         // Extract key-value pairs from the object
         let mut key_values = Vec::new();
@@ -86,11 +86,11 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
           key: prop.key.clone(),
           value: Box::new(Expr::Object(transformed_obj)),
         });
-      }
+      },
       _ => {
         // Non-object values pass through unchanged
         result.push(prop.clone());
-      }
+      },
     }
   }
 
@@ -250,12 +250,12 @@ fn combine_media_query_with_negations(
         })
         .collect();
       MediaQueryRule::Or(MediaOrRules::new(new_rules))
-    }
+    },
     other => {
       let mut rules = vec![other];
       rules.extend(not_rules);
       MediaQueryRule::And(MediaAndRules::new(rules))
-    }
+    },
   };
 
   MediaQuery::new_from_rule(combined_ast)
@@ -345,7 +345,7 @@ fn extract_width_height_range(mq: &MediaQuery) -> Option<(String, f32, f32)> {
       } else {
         None
       }
-    }
+    },
     _ => None,
   }
 }

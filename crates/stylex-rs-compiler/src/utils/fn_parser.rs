@@ -4,15 +4,11 @@ use indexmap::IndexMap;
 use log::debug;
 use napi::{JsNumber, JsObject, JsString, JsValue, Unknown, ValueType};
 use stylex_ast::ast::{
-  convertors::{
-    create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
-  },
-  factories::{
-    create_array_expression, create_object_expression, create_key_value_prop,
-  },
+  convertors::{create_bool_expr, create_null_expr, create_number_expr, create_string_expr},
+  factories::{create_array_expression, create_key_value_prop, create_object_expression},
 };
-use stylex_utils::swc::get_default_expr_ctx;
 use stylex_structures::stylex_env::{EnvEntry, JSFunction};
+use stylex_utils::swc::get_default_expr_ctx;
 use swc_core::ecma::{
   ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread},
   utils::ExprExt,
@@ -58,14 +54,12 @@ fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
   match value.get_type()? {
     ValueType::String => {
       let s: JsString = unsafe { value.cast()? };
-      Ok(EnvEntry::Expr(create_string_expr(
-        s.into_utf8()?.as_str()?,
-      )))
-    }
+      Ok(EnvEntry::Expr(create_string_expr(s.into_utf8()?.as_str()?)))
+    },
     ValueType::Number => {
       let n: JsNumber = unsafe { value.cast()? };
       Ok(EnvEntry::Expr(create_number_expr(n.get_double()?)))
-    }
+    },
     ValueType::Boolean => {
       let raw_env = env.raw();
       let mut b = false;
@@ -74,7 +68,7 @@ fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
         return Err(napi::Error::from_reason("Failed to get boolean value"));
       }
       Ok(EnvEntry::Expr(create_bool_expr(b)))
-    }
+    },
     ValueType::Null | ValueType::Undefined => Ok(EnvEntry::Expr(create_null_expr())),
     ValueType::Function => parse_env_function(env, value.raw()),
     ValueType::Object => Ok(EnvEntry::Expr(napi_value_to_expr(env.raw(), value.raw()))),
@@ -147,7 +141,7 @@ fn expr_to_napi_value(raw_env: napi::sys::napi_env, expr: &Expr) -> napi::sys::n
           &mut result,
         );
       }
-    }
+    },
     Expr::Lit(Lit::Num(n)) => unsafe {
       napi::sys::napi_create_double(raw_env, n.value, &mut result);
     },
@@ -187,7 +181,7 @@ fn expr_to_napi_value(raw_env: napi::sys::napi_env, expr: &Expr) -> napi::sys::n
             let mut undef: napi::sys::napi_value = std::ptr::null_mut();
             napi::sys::napi_get_undefined(raw_env, &mut undef);
             undef
-          }
+          },
         };
         napi::sys::napi_set_element(raw_env, result, i as u32, elem_val);
       }
@@ -199,7 +193,7 @@ fn expr_to_napi_value(raw_env: napi::sys::napi_env, expr: &Expr) -> napi::sys::n
         "Unsupported napi value type: {:?}. If its not enough, please run in debug mode to see more details",
         expr.get_type(get_default_expr_ctx())
       );
-    }
+    },
   }
   result
 }
@@ -235,7 +229,7 @@ pub(crate) fn parse_debug_file_path(
       buf.truncate(written);
       let s = String::from_utf8(buf).unwrap_or_default();
       Ok(JSFunction::new(move |_args| create_string_expr(&s)))
-    }
+    },
     napi::sys::ValueType::napi_function => {
       parse_env_function(env, raw_val).and_then(|entry| match entry {
         EnvEntry::Function(f) => Ok(f),
@@ -243,7 +237,7 @@ pub(crate) fn parse_debug_file_path(
           "Expected function from parse_env_function",
         )),
       })
-    }
+    },
     _ => Err(napi::Error::from_reason(
       "debugFilePath must be a string or function",
     )),
@@ -284,14 +278,14 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
         napi::sys::napi_get_value_double(raw_env, value, &mut n);
       }
       create_number_expr(n)
-    }
+    },
     napi::sys::ValueType::napi_boolean => {
       let mut b = false;
       unsafe {
         napi::sys::napi_get_value_bool(raw_env, value, &mut b);
       }
       create_bool_expr(b)
-    }
+    },
     napi::sys::ValueType::napi_object => {
       let mut is_array = false;
       unsafe {
@@ -351,7 +345,7 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
 
         create_object_expression(props)
       }
-    }
+    },
     _ => {
       debug!("Unsupported napi value type: {:#?}.", val_type);
 
@@ -359,7 +353,7 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
         "Unsupported napi value type: {:?}. If its not enough, please run in debug mode to see more details",
         val_type
       );
-    }
+    },
   }
 }
 

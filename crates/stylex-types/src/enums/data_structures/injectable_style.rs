@@ -24,7 +24,7 @@ impl From<InjectableStyleKind> for InjectableStyleBaseKind {
           ltr: style.ltr,
           rtl: style.rtl,
         })
-      }
+      },
       InjectableStyleKind::Const(style) => {
         InjectableStyleBaseKind::Const(InjectableStyleConstBase {
           ltr: style.ltr,
@@ -32,7 +32,7 @@ impl From<InjectableStyleKind> for InjectableStyleBaseKind {
           const_key: style.const_key,
           const_value: style.const_value,
         })
-      }
+      },
     }
   }
 }

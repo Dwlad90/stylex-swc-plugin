@@ -53,7 +53,7 @@ fn json_to_expr(value: Value) -> Expr {
         span: DUMMY_SP,
         props,
       })
-    }
+    },
     _ => Expr::Lit(swc_core::ecma::ast::Lit::Str(Str {
       span: DUMMY_SP,
       value: Wtf8Atom::from(value.to_string()),
@@ -111,7 +111,7 @@ fn expr_to_json(expr: &Expr) -> Value {
         }
       }
       Value::Object(result)
-    }
+    },
     _ => Value::String(format!("{:?}", expr)),
   }
 }

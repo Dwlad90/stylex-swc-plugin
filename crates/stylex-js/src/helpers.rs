@@ -5,9 +5,7 @@ use stylex_constants::constants::{
 use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{
-    AssignTarget, Expr, Lit, MemberProp, SimpleAssignTarget, UnaryOp,
-  },
+  ecma::ast::{AssignTarget, Expr, Lit, MemberProp, SimpleAssignTarget, UnaryOp},
 };
 
 pub fn is_valid_callee(callee: &Expr) -> bool {
@@ -65,12 +63,12 @@ pub fn is_mutation_expr(expr: &Expr) -> bool {
       ) =>
     {
       true
-    }
+    },
 
     // Check for update on member: ++a.x or a[0]++
     Expr::Update(update) if matches!(&*update.arg, Expr::Member(member) if member.obj.is_ident()) => {
       true
-    }
+    },
 
     // Check for delete on member: delete a.x
     Expr::Unary(unary)
@@ -78,7 +76,7 @@ pub fn is_mutation_expr(expr: &Expr) -> bool {
         && matches!(&*unary.arg, Expr::Member(member) if member.obj.is_ident()) =>
     {
       true
-    }
+    },
 
     _ => false,
   }

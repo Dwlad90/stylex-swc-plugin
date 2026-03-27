@@ -17,7 +17,7 @@ impl std::hash::Hash for ValueWithDefault {
           key.hash(state);
           value.hash(state);
         }
-      }
+      },
     }
   }
 }

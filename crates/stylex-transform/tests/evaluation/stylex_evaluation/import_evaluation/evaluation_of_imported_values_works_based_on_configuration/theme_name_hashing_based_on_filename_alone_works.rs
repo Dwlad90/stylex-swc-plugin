@@ -6,8 +6,8 @@ use stylex_structures::{
   plugin_pass::PluginPass,
   stylex_options::{StyleXOptions, StyleXOptionsParams},
 };
-use stylex_transform::shared::utils::common::create_hash;
 use stylex_transform::StyleXTransform;
+use stylex_transform::shared::utils::common::create_hash;
 use swc_core::common::FileName;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},

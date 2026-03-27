@@ -64,7 +64,7 @@ pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
     _ => {
       *expr = drop_span(expr.clone());
       expr
-    }
+    },
   }
 }
 

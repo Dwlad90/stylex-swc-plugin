@@ -121,7 +121,7 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
 
         // Add closing parenthesis
         tokens.push(SimpleToken::RightParen);
-      }
+      },
       // Handle nested Function tokens
       CssToken::Function(func_name) => {
         // Add the function name token
@@ -138,13 +138,13 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
 
         // Add closing paren token
         tokens.push(SimpleToken::RightParen);
-      }
+      },
       // Handle all other tokens normally
       _ => {
         if let Some(mapped_inner) = map_css_token(inner_token) {
           tokens.push(mapped_inner);
         }
-      }
+      },
     }
   }
 }
@@ -173,7 +173,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
 
         // Add closing paren token (cssparser consumes it automatically)
         tokens.push(SimpleToken::RightParen);
-      }
+      },
       // ENHANCED: Handle ParenthesisBlock tokens by expanding their content
       CssToken::ParenthesisBlock => {
         // Add opening parenthesis
@@ -191,13 +191,13 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
 
         // Add closing parenthesis (cssparser consumes it automatically)
         tokens.push(SimpleToken::RightParen);
-      }
+      },
       // Handle all other tokens normally
       _ => {
         if let Some(mapped) = map_css_token(t) {
           tokens.push(mapped);
         }
-      }
+      },
     }
   }
   tokens

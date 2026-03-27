@@ -5,14 +5,6 @@ mod stylex_define_vars {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-  use stylex_ast::ast::factories::{
-    create_key_value_prop,
-    create_nested_object_prop,
-    create_object_expression,
-  };
-  use stylex_enums::value_with_default::ValueWithDefault;
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
-  use stylex_types::structures::injectable_style::InjectableStyle;
   use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
   use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
   use crate::shared::structures::base_css_type::BaseCSSType;
@@ -23,6 +15,12 @@ mod stylex_define_vars {
   use crate::shared::transformers::stylex_types::get_types_fn;
   use crate::shared::utils::ast::convertors::create_string_expr;
   use crate::shared::utils::common::create_hash;
+  use stylex_ast::ast::factories::{
+    create_key_value_prop, create_nested_object_prop, create_object_expression,
+  };
+  use stylex_enums::value_with_default::ValueWithDefault;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use stylex_types::structures::injectable_style::InjectableStyle;
 
   enum DefaultVarsFactoryValue<'a> {
     Simple(&'a str),
@@ -41,7 +39,7 @@ mod stylex_define_vars {
       .map(|(key, values, nested_values, types_values)| match values {
         DefaultVarsFactoryValue::Simple(value) => {
           create_key_value_prop(key, create_string_expr(value))
-        }
+        },
         DefaultVarsFactoryValue::Nested(values) => {
           let mut props = values
             .iter()
@@ -54,9 +52,7 @@ mod stylex_define_vars {
               let props = val
                 .1
                 .iter()
-                .map(|(key, value)| {
-                  create_key_value_prop(key, create_string_expr(value))
-                })
+                .map(|(key, value)| create_key_value_prop(key, create_string_expr(value)))
                 .collect::<Vec<PropOrSpread>>();
 
               create_key_value_prop(val.0, create_object_expression(props))
@@ -73,7 +69,7 @@ mod stylex_define_vars {
           props.extend(types_props);
 
           create_nested_object_prop(key, props)
-        }
+        },
       })
       .collect::<Vec<PropOrSpread>>();
 

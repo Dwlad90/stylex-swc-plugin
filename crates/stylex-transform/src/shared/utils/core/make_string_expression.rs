@@ -10,9 +10,9 @@ use swc_core::{
   },
 };
 
-use stylex_ast::ast::factories::create_object_expression;
 use crate::shared::enums::data_structures::fn_result::FnResult;
 use crate::shared::utils::ast::convertors::{create_number_expr, create_string_expr};
+use stylex_ast::ast::factories::create_object_expression;
 
 use super::{js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg};
 
@@ -39,10 +39,10 @@ pub(crate) fn make_string_expression(
     match transform(values) {
       Some(value) => {
         return fn_result_to_expression(value);
-      }
+      },
       _ => {
         return Some(create_string_expr(""));
-      }
+      },
     }
   }
 
@@ -69,7 +69,7 @@ pub(crate) fn make_string_expression(
             result.as_ref().map(|result| {
               ResolvedArg::StyleObject(result.clone(), idents.clone(), member.clone())
             })
-          }
+          },
         })
         .collect::<Vec<ResolvedArg>>();
 

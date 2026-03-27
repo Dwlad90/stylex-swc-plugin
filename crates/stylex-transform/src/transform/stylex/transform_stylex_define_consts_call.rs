@@ -1,23 +1,22 @@
-use stylex_constants::constants::messages::SPREAD_NOT_SUPPORTED;
 use rustc_hash::FxHashMap;
+use stylex_constants::constants::messages::SPREAD_NOT_SUPPORTED;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
-use stylex_constants::constants::messages::cannot_generate_hash;
 use crate::shared::structures::functions::FunctionMap;
-use stylex_constants::constants::messages::{non_static_value, non_style_object};
 use crate::shared::transformers::stylex_define_consts::stylex_define_consts;
 use crate::shared::utils::common::gen_file_based_identifier;
 use crate::shared::utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast};
 use crate::shared::utils::js::evaluate::evaluate;
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
 use crate::shared::utils::validators::{
-  find_and_validate_stylex_define_consts,
-  is_define_consts_call,
+  find_and_validate_stylex_define_consts, is_define_consts_call,
 };
+use stylex_constants::constants::messages::cannot_generate_hash;
+use stylex_constants::constants::messages::{non_static_value, non_style_object};
 
 use crate::StyleXTransform;
 use stylex_data_structures::top_level_expression::TopLevelExpression;
@@ -35,7 +34,7 @@ where
           Some(expr) => expr,
           None => {
             stylex_panic!("defineConsts(): Could not find the top-level variable declaration.")
-          }
+          },
         };
 
       let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
@@ -86,7 +85,7 @@ where
             )
           );
           value
-        }
+        },
         None => stylex_panic!("{}", non_static_value("defineConsts")),
       };
 

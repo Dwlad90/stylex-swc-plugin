@@ -5,22 +5,22 @@
   "private": false,
   "license": "MIT",
   "sideEffects": false,
-  "files": [
-    "dist"
-  ],
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./loader": {
+      "types": "./dist/turbopack-loader.d.ts",
       "import": "./dist/turbopack-loader.js",
-      "require": "./dist/turbopack-loader.js",
-      "types": "./dist/turbopack-loader.d.ts"
+      "require": "./dist/turbopack-loader.js"
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
@@ -48,13 +48,13 @@
     "loader-utils": "^3.3.1"
   },
   "devDependencies": {
-    "webpack": "^5.105.3",
     "@babel/types": "^7.29.0",
     "@stylexswc/eslint-config": "0.15.1",
     "@stylexswc/typescript-config": "0.15.1",
     "@types/babel__core": "^7.20.5",
     "@types/loader-utils": "^3.0.0",
-    "@types/node": "^25.3.3"
+    "@types/node": "^25.3.3",
+    "webpack": "^5.105.3"
   },
   "keywords": [
     "stylex",

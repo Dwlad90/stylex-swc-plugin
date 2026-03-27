@@ -40,13 +40,13 @@ pub(crate) fn member_expression(
       match property {
         MemberProp::Ident(ident) => {
           prop_name = Some(ident.sym.clone());
-        }
+        },
         MemberProp::Computed(computed) => {
           if let Expr::Lit(lit) = computed.expr.as_ref() {
             prop_name = convert_lit_to_string(lit).map(Atom::from);
           }
-        }
-        _ => {}
+        },
+        _ => {},
       }
     }
   }

@@ -13,9 +13,8 @@ use swc_core::{
 
 use crate::StyleXTransform;
 use stylex_ast::ast::factories::{
-  create_arrow_expression, create_ident_call_expr, create_member_call_expr, create_ident,
-  create_ident_name, create_jsx_spread_attr, create_object_lit,
-  create_spread_prop,
+  create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
+  create_jsx_spread_attr, create_member_call_expr, create_object_lit, create_spread_prop,
 };
 use stylex_constants::constants::common::RUNTIME_JSX_CALL_NAMES;
 use stylex_enums::core::TransformationCycle;
@@ -343,14 +342,14 @@ fn is_jsx_runtime_call(call: &CallExpr) -> bool {
         let name = name.strip_prefix('_').unwrap_or(name);
 
         RUNTIME_JSX_CALL_NAMES.contains(&name)
-      }
+      },
       Expr::Member(member) => {
         if let (Expr::Ident(obj), MemberProp::Ident(prop)) = (member.obj.as_ref(), &member.prop) {
           obj.sym.as_str() == "React" && prop.sym.as_str() == "createElement"
         } else {
           false
         }
-      }
+      },
       _ => false,
     },
     _ => false,

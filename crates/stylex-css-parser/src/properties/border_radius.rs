@@ -235,7 +235,7 @@ impl BorderRadiusShorthand {
                   Some(v_br),
                   Some(v_bl),
                 )
-              }
+              },
               None => {
                 // Only horizontal radii provided, vertical defaults to horizontal
                 BorderRadiusShorthand::new(
@@ -248,7 +248,7 @@ impl BorderRadiusShorthand {
                   None,
                   None,
                 )
-              }
+              },
             }
           },
           Some("with_vertical"),

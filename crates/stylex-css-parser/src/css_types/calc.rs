@@ -158,14 +158,14 @@ impl CalcValue {
       SimpleToken::Number(value) => Ok(CalcValue::Number(value as f32)),
       SimpleToken::Dimension { value, unit } => {
         Ok(CalcValue::Dimension(CalcDimension::new(value as f32, unit)))
-      }
+      },
       SimpleToken::Percentage(value) => {
         // cssparser stores percentage as already converted (0.5 for 50%)
         // Convert to our format (50.0 for 50%)
         Ok(CalcValue::Percentage(Percentage::new(
           (value * 100.0) as f32,
         )))
-      }
+      },
       SimpleToken::Ident(name) => {
         // Try to parse as calc constant (pi, e, infinity, -infinity, NaN)
         match CalcConstant::parse(&name) {
@@ -174,7 +174,7 @@ impl CalcValue {
             message: format!("Unknown calc constant: {}", name),
           }),
         }
-      }
+      },
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number, Dimension, Percentage, or Constant token, got {:?}",
@@ -233,12 +233,12 @@ impl CalcValue {
             Err(_) => Self::parse_calc_value(tokens)?,
           };
           values_and_operators.push(CalcValueOrOperator::Value(next_value));
-        }
+        },
         Err(_) => {
           // No operator found, we're done
           tokens.set_current_index(checkpoint);
           break;
-        }
+        },
       }
     }
 
@@ -270,7 +270,7 @@ impl CalcValue {
           return Err(CssParseError::ParseError {
             message: "Invalid operator".to_string(),
           });
-        }
+        },
       }
     }
 
@@ -283,7 +283,7 @@ impl CalcValue {
       None => {
         // No * or / found, handle + and -
         Self::compose_add_and_subtraction(values_and_operators)
-      }
+      },
       Some(op_index) => {
         let left_slice = values_and_operators[..op_index].to_vec();
         let right_slice = values_and_operators[op_index + 1..].to_vec();
@@ -304,7 +304,7 @@ impl CalcValue {
             message: "Expected operator".to_string(),
           })
         }
-      }
+      },
     }
   }
 
@@ -319,7 +319,7 @@ impl CalcValue {
           return Err(CssParseError::ParseError {
             message: format!("Invalid operator: {}", op),
           });
-        }
+        },
       }
     }
 
@@ -352,7 +352,7 @@ impl CalcValue {
             message: "Expected operator".to_string(),
           })
         }
-      }
+      },
     }
   }
 

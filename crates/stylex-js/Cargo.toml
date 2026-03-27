@@ -1,11 +1,11 @@
 [package]
-name = "stylex_js"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "JavaScript runtime helpers for the StyleX compiler plugin"
+edition.workspace = true
+license.workspace = true
+name = "stylex_js"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 
 [lib]
@@ -13,11 +13,7 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-swc_core = { workspace = true, features = [
-  "common",
-  "ecma_ast",
-  "swc_atoms",
-] }
+swc_core = { workspace = true, features = ["common", "ecma_ast", "swc_atoms"] }
 
 stylex_constants = { path = "../stylex-constants" }
 stylex_macros = { path = "../stylex-macros" }

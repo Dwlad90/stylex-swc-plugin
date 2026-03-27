@@ -6,13 +6,15 @@ use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::CallExpr;
 use swc_core::{common::comments::Comments, ecma::ast::Expr};
 
-use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_constants::constants::messages::cannot_generate_hash;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::utils::common::{create_hash, gen_file_based_identifier};
 use crate::shared::utils::core::js_to_expr::NestedStringObject;
-use crate::shared::utils::validators::{is_define_marker_call, validate_stylex_define_marker_indent};
+use crate::shared::utils::validators::{
+  is_define_marker_call, validate_stylex_define_marker_indent,
+};
 use crate::{StyleXTransform, shared::utils::core::js_to_expr::convert_object_to_ast};
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_constants::constants::messages::cannot_generate_hash;
 
 impl<C> StyleXTransform<C>
 where

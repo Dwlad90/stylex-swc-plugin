@@ -3,10 +3,7 @@ use swc_core::{
   ecma::{ast::ExportDefaultExpr, visit::FoldWith},
 };
 
-use crate::{
-  StyleXTransform,
-  shared::utils::common::normalize_expr,
-};
+use crate::{StyleXTransform, shared::utils::common::normalize_expr};
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>

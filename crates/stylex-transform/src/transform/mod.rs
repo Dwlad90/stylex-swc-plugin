@@ -12,12 +12,7 @@ use swc_core::{
 
 use crate::{
   StyleXOptionsParams,
-  shared::{
-    structures::{
-      state_manager::StateManager,
-    },
-    utils::common::increase_ident_count,
-  },
+  shared::{structures::state_manager::StateManager, utils::common::increase_ident_count},
 };
 use stylex_enums::core::TransformationCycle;
 use stylex_structures::{
@@ -72,7 +67,7 @@ where
         config.treeshake_compensation = Some(true);
 
         StateManager::new(config.clone().into())
-      }
+      },
       None => {
         let config = StyleXOptions {
           runtime_injection: RuntimeInjection::Boolean(true),
@@ -84,7 +79,7 @@ where
         };
 
         StateManager::new(config)
-      }
+      },
     };
 
     state.options.import_sources = stylex_imports.into_iter().collect();
@@ -138,7 +133,7 @@ where
         };
 
         StateManager::new(config)
-      }
+      },
     };
 
     state.options.import_sources = stylex_imports.into_iter().collect();
@@ -196,7 +191,7 @@ where
             increase_ident_count(&mut self.state, ident);
             return Some((ident.to_id(), ident.sym.to_string()));
           }
-        }
+        },
         Expr::Member(member) => {
           if let (Expr::Ident(obj_ident), MemberProp::Ident(prop_ident)) =
             (member.obj.as_ref(), &member.prop)
@@ -204,8 +199,8 @@ where
           {
             return Some((obj_ident.to_id(), prop_ident.sym.to_string()));
           }
-        }
-        _ => {}
+        },
+        _ => {},
       }
     }
 
@@ -241,7 +236,7 @@ where
           } else {
             false
           }
-        }
+        },
         _ => false,
       })
       .cloned();

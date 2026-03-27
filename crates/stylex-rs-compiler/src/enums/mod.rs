@@ -70,7 +70,7 @@ impl ToNapiValue for RuntimeInjectionUnion {
         let env = Env::from_raw(env);
         let js_str = env.create_string(&s)?;
         Ok(js_str.raw())
-      }
+      },
     }
   }
 }
@@ -113,7 +113,7 @@ impl FromNapiValue for ImportSourceUnion {
             r#as: value.as_,
             from: value.from,
           }))
-        }
+        },
         Err(_) => {
           let js_unknown = unsafe { Unknown::from_napi_value(env, value) }?;
           let js_str = unsafe { js_unknown.cast::<napi::JsString>() }?;
@@ -121,7 +121,7 @@ impl FromNapiValue for ImportSourceUnion {
 
           validate_import_path(&import_path).map_err(Error::from_reason)?;
           Ok(ImportSourceUnion::Regular(import_path))
-        }
+        },
       },
       Err(_) => {
         let js_unknown = unsafe { Unknown::from_napi_value(env, value) }?;
@@ -130,7 +130,7 @@ impl FromNapiValue for ImportSourceUnion {
 
         validate_import_path(&import_path).map_err(Error::from_reason)?;
         Ok(ImportSourceUnion::Regular(import_path))
-      }
+      },
     }
   }
 }
@@ -142,7 +142,7 @@ impl ToNapiValue for ImportSourceUnion {
         let env = Env::from_raw(env);
         let js_str = env.create_string(&s)?;
         Ok(js_str.raw())
-      }
+      },
       ImportSourceUnion::Named(named) => {
         let env = Env::from_raw(env);
         let mut js_obj = env.create_object()?;
@@ -154,7 +154,7 @@ impl ToNapiValue for ImportSourceUnion {
         js_obj.set_named_property("from", from_str)?;
 
         Ok(unsafe { js_obj.raw() })
-      }
+      },
     }
   }
 }
@@ -281,7 +281,7 @@ impl ToNapiValue for SxPropNameUnion {
         let env = Env::from_raw(env);
         let js_str = env.create_string(&s)?;
         Ok(js_str.raw())
-      }
+      },
     }
   }
 }

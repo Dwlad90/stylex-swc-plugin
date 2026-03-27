@@ -1,5 +1,9 @@
+use stylex_structures::{
+  named_import_source::RuntimeInjection,
+  plugin_pass::PluginPass,
+  stylex_options::{StyleXOptions, StyleXOptionsParams},
+};
 use stylex_transform::StyleXTransform;
-use stylex_structures::{named_import_source::RuntimeInjection, plugin_pass::PluginPass, stylex_options::{StyleXOptions, StyleXOptionsParams}};
 use swc_core::{
   common::FileName,
   ecma::{

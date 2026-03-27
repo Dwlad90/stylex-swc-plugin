@@ -6,10 +6,7 @@ use swc_core::{
   },
 };
 
-use crate::{
-  StyleXTransform,
-  shared::utils::ast::convertors::convert_atom_to_string,
-};
+use crate::{StyleXTransform, shared::utils::ast::convertors::convert_atom_to_string};
 use stylex_enums::core::TransformationCycle;
 use stylex_structures::named_import_source::ImportSources;
 
@@ -65,7 +62,7 @@ where
                 .stylex_import
                 .insert(ImportSources::Regular(local_name));
             }
-          }
+          },
           ImportSpecifier::Namespace(import_specifier) => {
             let import_specifier_ident = import_specifier.local.clone();
 
@@ -94,7 +91,7 @@ where
                 .stylex_import
                 .insert(ImportSources::Regular(local_name));
             }
-          }
+          },
           ImportSpecifier::Named(import_specifier) => {
             let import_specifier_ident = import_specifier.local.clone();
 
@@ -124,7 +121,7 @@ where
                     &local_name,
                     import_specifier,
                   );
-                }
+                },
                 None => {
                   let imported_name = import_specifier.local.sym.to_string();
 
@@ -134,10 +131,10 @@ where
                     &local_name,
                     import_specifier,
                   );
-                }
+                },
               }
             }
-          }
+          },
         };
       }
 
@@ -176,74 +173,74 @@ where
             .state
             .stylex_create_import
             .insert(local_name_ident_atom);
-        }
+        },
         "props" => {
           self.state.stylex_props_import.insert(local_name_ident_atom);
-        }
+        },
         "keyframes" => {
           self
             .state
             .stylex_keyframes_import
             .insert(local_name_ident_atom);
-        }
+        },
         "firstThatWorks" => {
           self
             .state
             .stylex_first_that_works_import
             .insert(local_name_ident_atom);
-        }
+        },
         "defineVars" => {
           self
             .state
             .stylex_define_vars_import
             .insert(local_name_ident_atom);
-        }
+        },
         "defineConsts" => {
           self
             .state
             .stylex_define_consts_import
             .insert(local_name_ident_atom);
-        }
+        },
         "defineMarker" => {
           self
             .state
             .stylex_define_marker_import
             .insert(local_name_ident_atom);
-        }
+        },
         "createTheme" => {
           self
             .state
             .stylex_create_theme_import
             .insert(local_name_ident_atom);
-        }
+        },
         "positionTry" => {
           self
             .state
             .stylex_position_try_import
             .insert(local_name_ident_atom);
-        }
+        },
         "viewTransitionClass" => {
           self
             .state
             .stylex_view_transition_class_import
             .insert(local_name_ident_atom);
-        }
+        },
         "types" => {
           self.state.stylex_types_import.insert(local_name_ident_atom);
-        }
+        },
         "when" => {
           self.state.stylex_when_import.insert(local_name_ident_atom);
-        }
+        },
         "env" => {
           self.state.stylex_env_import.insert(local_name_ident_atom);
-        }
+        },
         "defaultMarker" => {
           self
             .state
             .stylex_default_marker_import
             .insert(local_name_ident_atom);
-        }
-        _ => {}
+        },
+        _ => {},
       }
     }
   }

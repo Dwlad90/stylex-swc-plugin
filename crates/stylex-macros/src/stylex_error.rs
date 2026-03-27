@@ -45,13 +45,13 @@ impl fmt::Display for StyleXError {
       match (self.line, self.col) {
         (Some(line), Some(col)) => {
           write!(f, "\n  --> {file}:{line}:{col}")?;
-        }
+        },
         (Some(line), None) => {
           write!(f, "\n  --> {file}:{line}")?;
-        }
+        },
         _ => {
           write!(f, "\n  --> {file}")?;
-        }
+        },
       }
     }
 
@@ -146,7 +146,7 @@ pub fn format_panic_message(error: &Box<dyn std::any::Any + Send>) -> String {
       Some(s) => s.to_string(),
       None => {
         return format!("{} Unknown error during transformation", STYLEX_LOG_PREFIX);
-      }
+      },
     },
   };
 

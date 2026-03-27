@@ -1,12 +1,12 @@
 use stylex_macros::stylex_panic;
 
-use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
-use stylex_css_utils::pre_rule::{sort_at_rules, sort_pseudos};
-use stylex_types::structures::injectable_style::InjectableStyle;
 use crate::shared::structures::pre_rule::PreRuleValue;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::common::{create_hash, dashify};
 use crate::shared::utils::css::common::{generate_css_rule, transform_value_cached};
+use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
+use stylex_css_utils::pre_rule::{sort_at_rules, sort_pseudos};
+use stylex_types::structures::injectable_style::InjectableStyle;
 
 pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),
@@ -71,7 +71,7 @@ pub(crate) fn convert_style_to_class_name(
       } else {
         values
       }
-    }
+    },
     PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
@@ -163,10 +163,10 @@ fn compose_vars(vars: Vec<String>) -> String {
   match vars.split_first() {
     Some((first, rest)) if !rest.is_empty() => {
       format!("var({},{})", first, compose_vars(rest.to_vec()))
-    }
+    },
     Some((first, _)) if first.starts_with("--") => {
       format!("var({})", first)
-    }
+    },
     Some((first, _)) => first.to_string(),
     None => String::new(),
   }

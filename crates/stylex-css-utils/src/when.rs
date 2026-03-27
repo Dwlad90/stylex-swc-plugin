@@ -110,10 +110,7 @@ fn is_valid_attribute_selector(selector: &str) -> bool {
 ///
 /// # Returns
 /// A :where() clause for the ancestor observer
-pub fn ancestor(
-  pseudo: &str,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
+pub fn ancestor(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)
@@ -130,10 +127,7 @@ pub fn ancestor(
 ///
 /// # Returns
 /// A :has() clause for the descendant observer
-pub fn descendant(
-  pseudo: &str,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
+pub fn descendant(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)
@@ -170,10 +164,7 @@ pub fn sibling_before(
 ///
 /// # Returns
 /// A :has() clause for the next sibling observer
-pub fn sibling_after(
-  pseudo: &str,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
+pub fn sibling_after(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)
@@ -190,10 +181,7 @@ pub fn sibling_after(
 ///
 /// # Returns
 /// A :where() clause for the any sibling observer
-pub fn any_sibling(
-  pseudo: &str,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
+pub fn any_sibling(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)

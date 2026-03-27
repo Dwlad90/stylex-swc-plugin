@@ -4,22 +4,18 @@ use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, Lit};
 
+use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::shared::structures::types::{
+  ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap,
+};
+use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
+use crate::shared::utils::common::{
+  create_hash, get_key_values_from_object, round_to_decimal_places,
+};
 use stylex_constants::constants::common::SPLIT_TOKEN;
 use stylex_constants::constants::messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT};
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_types::structures::injectable_style::InjectableStyle;
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::structures::types::{
-  ClassPathsInNamespace,
-  FlatCompiledStyles,
-  InjectableStylesMap,
-};
-use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
-use crate::shared::utils::common::{
-  create_hash,
-  get_key_values_from_object,
-  round_to_decimal_places,
-};
 
 pub(crate) fn construct_css_variables_string(
   variables: &FlatCompiledStyles,
@@ -120,7 +116,7 @@ pub(crate) fn collect_vars_by_at_rules(
         .entry(key)
         .or_default()
         .push(format!("--{}:{};", hash_name, val));
-    }
+    },
     Expr::Object(obj) => {
       let key_values = get_key_values_from_object(obj);
 
@@ -153,8 +149,8 @@ pub(crate) fn collect_vars_by_at_rules(
           typed_variables,
         );
       }
-    }
-    _ => {}
+    },
+    _ => {},
   }
 }
 

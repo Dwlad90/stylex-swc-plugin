@@ -292,12 +292,12 @@ impl Matrix3d {
       |tokens| {
         // Expect "matrix3d" function
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(name)) if name == "matrix3d" => {}
+          Some(SimpleToken::Function(name)) if name == "matrix3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected 'matrix3d' function".to_string(),
             });
-          }
+          },
         }
 
         // Parse 16 comma-separated numbers with whitespace handling
@@ -312,12 +312,12 @@ impl Matrix3d {
           match tokens.consume_next_token()? {
             Some(SimpleToken::Number(v)) => {
               *value = v;
-            }
+            },
             _ => {
               return Err(CssParseError::ParseError {
                 message: format!("Expected number at position {}", i + 1),
               });
-            }
+            },
           }
 
           // Expect comma (except for the last value)
@@ -328,12 +328,12 @@ impl Matrix3d {
             }
 
             match tokens.consume_next_token()? {
-              Some(SimpleToken::Comma) => {}
+              Some(SimpleToken::Comma) => {},
               _ => {
                 return Err(CssParseError::ParseError {
                   message: format!("Expected comma after value {}", i + 1),
                 });
-              }
+              },
             }
           }
         }
@@ -345,12 +345,12 @@ impl Matrix3d {
 
         // Expect closing parenthesis
         match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ')' after matrix3d values".to_string(),
             });
-          }
+          },
         }
 
         Ok(Matrix3d::new(values))
@@ -452,12 +452,12 @@ impl Rotate3d {
       |tokens| {
         // Expect "rotate3d" function
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(name)) if name == "rotate3d" => {}
+          Some(SimpleToken::Function(name)) if name == "rotate3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected 'rotate3d' function".to_string(),
             });
-          }
+          },
         }
 
         // Skip any whitespace before x
@@ -475,12 +475,12 @@ impl Rotate3d {
 
         // Expect comma
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Comma) => {}
+          Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after x value".to_string(),
             });
-          }
+          },
         }
 
         // Skip any whitespace before y
@@ -498,12 +498,12 @@ impl Rotate3d {
 
         // Expect comma
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Comma) => {}
+          Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after y value".to_string(),
             });
-          }
+          },
         }
 
         // Skip any whitespace before z
@@ -521,12 +521,12 @@ impl Rotate3d {
 
         // Expect comma
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Comma) => {}
+          Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after z value".to_string(),
             });
-          }
+          },
         }
 
         // Skip any whitespace before angle
@@ -544,12 +544,12 @@ impl Rotate3d {
 
         // Expect closing parenthesis
         match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ')' after rotate3d values".to_string(),
             });
-          }
+          },
         }
 
         Ok(Rotate3d::new(x, y, z, angle))
@@ -657,12 +657,12 @@ impl Scale3d {
       |tokens| {
         // Expect "scale3d" function
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(name)) if name == "scale3d" => {}
+          Some(SimpleToken::Function(name)) if name == "scale3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected 'scale3d' function".to_string(),
             });
-          }
+          },
         }
 
         // Skip any whitespace before sx
@@ -680,12 +680,12 @@ impl Scale3d {
 
         // Expect comma
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Comma) => {}
+          Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after sx value".to_string(),
             });
-          }
+          },
         }
 
         // Skip any whitespace before sy
@@ -703,12 +703,12 @@ impl Scale3d {
 
         // Expect comma
         match tokens.consume_next_token()? {
-          Some(SimpleToken::Comma) => {}
+          Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected comma after sy value".to_string(),
             });
-          }
+          },
         }
 
         // Skip any whitespace before sz
@@ -726,12 +726,12 @@ impl Scale3d {
 
         // Expect closing parenthesis
         match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {}
+          Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
               message: "Expected ')' after scale3d values".to_string(),
             });
-          }
+          },
         }
 
         // Convert to f64 values
@@ -1049,7 +1049,7 @@ impl Display for TransformFunction {
       TransformFunction::Matrix3d(m) => {
         let args: Vec<String> = m.args.iter().map(|x| format_number(*x)).collect();
         write!(f, "matrix3d({})", args.join(", "))
-      }
+      },
       TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),
       TransformFunction::Rotate(r) => write!(f, "rotate({})", r.angle),
       TransformFunction::RotateXYZ(r) => write!(

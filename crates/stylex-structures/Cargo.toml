@@ -1,11 +1,11 @@
 [package]
-name = "stylex_structures"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "Struct and data model definitions for the StyleX compiler plugin"
+edition.workspace = true
+license.workspace = true
+name = "stylex_structures"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 
 [lib]
@@ -13,18 +13,14 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
+derive_more.workspace = true
+indexmap.workspace = true
+log.workspace = true
+once_cell.workspace = true
+rustc-hash.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
-swc_core = { workspace = true, features = [
-  "common",
-  "ecma_ast",
-  "ecma_utils",
-] }
-indexmap.workspace = true
-rustc-hash.workspace = true
-derive_more.workspace = true
-once_cell.workspace = true
-log.workspace = true
+swc_core = { workspace = true, features = ["common", "ecma_ast", "ecma_utils"] }
 
 stylex_constants = { path = "../stylex-constants" }
 stylex_enums = { path = "../stylex-enums" }

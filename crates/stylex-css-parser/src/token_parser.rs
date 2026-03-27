@@ -163,7 +163,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           });
         }
         Ok(value)
-      }
+      },
       Err(error) => {
         let consumed_tokens = tokens.slice(initial_index, Some(tokens.current_index));
         tokens.set_current_index(initial_index);
@@ -173,7 +173,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
             self.label, error, consumed_tokens
           ),
         })
-      }
+      },
     }
   }
 
@@ -194,7 +194,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           Err(e) => {
             tokens.set_current_index(current_index);
             Err(e)
-          }
+          },
         }
       },
       &new_label,
@@ -219,7 +219,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           Err(e) => {
             tokens.set_current_index(current_index);
             return Err(e);
-          }
+          },
         };
 
         let second_parser = f(output1);
@@ -228,7 +228,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           Err(e) => {
             tokens.set_current_index(current_index);
             Err(e)
-          }
+          },
         }
       },
       &new_label,
@@ -261,9 +261,9 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
               Err(e) => {
                 tokens.set_current_index(current_index);
                 Err(e)
-              }
+              },
             }
-          }
+          },
         }
       },
       &new_label,
@@ -323,7 +323,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           },
           Some("surrounded_prefix"),
         )
-      }
+      },
       None => {
         // Use the prefix as both prefix and suffix
         let prefix_clone = prefix.clone();
@@ -341,7 +341,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           },
           Some("surrounded_prefix_same"),
         )
-      }
+      },
     }
   }
 
@@ -441,7 +441,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
             remaining_css.chars().take(20).collect::<String>()
           ),
         })
-      }
+      },
       Ok(value) => Ok(value),
     }
   }
@@ -496,7 +496,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
             Err(e) => {
               tokens.set_current_index(index);
               errors.push(e);
-            }
+            },
           }
         }
 
@@ -528,7 +528,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
             Err(e) => {
               tokens.set_current_index(current_index);
               return Err(e);
-            }
+            },
           }
         }
 
@@ -577,9 +577,9 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                   Err(e) => {
                     tokens.set_current_index(current_index);
                     return Err(e);
-                  }
+                  },
                 }
-              }
+              },
               Either::Right(optional_parser) => {
                 // Optional parser - separator consumption depends on success
                 match (optional_parser.run)(tokens) {
@@ -595,23 +595,23 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                       });
                     }
                     results.push(Some(value));
-                  }
+                  },
                   Ok(None) => {
                     // Optional parser returned None - rewind separator if consumed
                     if separator_consumed {
                       tokens.set_current_index(separator_index);
                     }
                     results.push(None);
-                  }
+                  },
                   Err(_) => {
                     // Optional parser failed - rewind separator if consumed
                     if separator_consumed {
                       tokens.set_current_index(separator_index);
                     }
                     results.push(None);
-                  }
+                  },
                 }
-              }
+              },
             }
           } else {
             // First parser - no separator
@@ -621,7 +621,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                 Err(e) => {
                   tokens.set_current_index(current_index);
                   return Err(e);
-                }
+                },
               },
               Either::Right(optional_parser) => match (optional_parser.run)(tokens) {
                 Ok(option_value) => results.push(option_value),
@@ -656,7 +656,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
             Err(_) => {
               tokens.set_current_index(current_index);
               break;
-            }
+            },
           }
         }
         Ok(results)
@@ -679,7 +679,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           Err(e) => {
             tokens.set_current_index(start_index);
             return Err(e);
-          }
+          },
         }
 
         // Then try to match more
@@ -690,7 +690,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
             Err(_) => {
               tokens.set_current_index(current_index);
               break;
-            }
+            },
           }
         }
 
@@ -720,17 +720,17 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                 message: format!("Expected token type {:?}, got {:?}", expected_token, token),
               })
             }
-          }
+          },
           Ok(None) => {
             tokens.set_current_index(current_index);
             Err(CssParseError::ParseError {
               message: "Expected token, got end of input".to_string(),
             })
-          }
+          },
           Err(e) => {
             tokens.set_current_index(current_index);
             Err(e)
-          }
+          },
         }
       },
       &label_str,
@@ -804,7 +804,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           Err(e) => {
             tokens.set_current_index(start_index);
             return Err(e);
-          }
+          },
         }
 
         // Try to match additional occurrences with separators
@@ -821,14 +821,14 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                   // Failed to parse value after separator, rewind to before separator
                   tokens.set_current_index(separator_index);
                   break;
-                }
+                },
               }
-            }
+            },
             Err(_) => {
               // No separator found, we're done
               tokens.set_current_index(separator_index);
               break;
-            }
+            },
           }
         }
 
@@ -861,7 +861,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
           Err(_) => {
             tokens.set_current_index(current_index);
             return Ok(results); // Empty list is valid for zero or more
-          }
+          },
         }
 
         // Try to match additional occurrences with separators
@@ -878,14 +878,14 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
                   // Failed to parse value after separator, rewind to before separator
                   tokens.set_current_index(separator_index);
                   break;
-                }
+                },
               }
-            }
+            },
             Err(_) => {
               // No separator found, we're done
               tokens.set_current_index(separator_index);
               break;
-            }
+            },
           }
         }
 
@@ -925,7 +925,7 @@ impl<T: Clone + Debug + 'static> TokenOptionalParser<T> {
           Err(_) => {
             tokens.set_current_index(current_index);
             Ok(None)
-          }
+          },
         }
       },
       &label,
@@ -1002,11 +1002,11 @@ impl<T: Clone + Debug + 'static> TokenZeroOrMoreParsers<T> {
             let current_index = tokens.current_index;
             if let Some(ref sep) = separator {
               match (sep.run)(tokens) {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(_) => {
                   tokens.set_current_index(current_index);
                   return Ok(results);
-                }
+                },
               }
             }
           }
@@ -1017,7 +1017,7 @@ impl<T: Clone + Debug + 'static> TokenZeroOrMoreParsers<T> {
             Err(_) => {
               tokens.set_current_index(current_index);
               return Ok(results);
-            }
+            },
           }
         }
 
@@ -1067,7 +1067,7 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
             match (separator.run)(tokens) {
               Ok(_) => {
                 // Separator consumed, continue
-              }
+              },
               Err(e) => {
                 // No separator found - this is an error for setOf with separators
                 tokens.set_current_index(start_index);
@@ -1077,7 +1077,7 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
                     position, e
                   ),
                 });
-              }
+              },
             }
           }
 
@@ -1094,11 +1094,11 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
                 used_indices.insert(parser_index);
                 found = true;
                 break;
-              }
+              },
               Err(e) => {
                 tokens.set_current_index(before_attempt);
                 position_errors.push(format!("Parser {}: {}", parser_index, e));
-              }
+              },
             }
           }
 
@@ -1129,7 +1129,7 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
             Err(CssParseError::ParseError {
               message: format!("SetOf incomplete: {}", err),
             })
-          }
+          },
         }
       },
       "setOfSeparatedBy",
@@ -1164,11 +1164,11 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
                 used_indices.insert(parser_index);
                 found = true;
                 break;
-              }
+              },
               Err(e) => {
                 tokens.set_current_index(before_attempt);
                 position_errors.push(format!("Parser {}: {}", parser_index, e));
-              }
+              },
             }
           }
 
@@ -1199,7 +1199,7 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
             Err(CssParseError::ParseError {
               message: format!("SetOf incomplete: {}", err),
             })
-          }
+          },
         }
       },
       "setOf",
@@ -1231,7 +1231,7 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
             Err(e) => {
               tokens.set_current_index(current_index);
               return Err(e);
-            }
+            },
           }
         }
 
@@ -1267,7 +1267,7 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
               Ok(value) => {
                 results.push(value);
                 // Success - continue to next parser
-              }
+              },
               Err(_) => {
                 // Parser failed - check if this might be an optional parser scenario
                 if separator_consumed {
@@ -1278,12 +1278,12 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
                     Ok(value) => {
                       results.push(value);
                       // Continue - this handles cases where separator was optional
-                    }
+                    },
                     Err(e) => {
                       // Both attempts failed - this is a real error
                       tokens.set_current_index(current_index);
                       return Err(e);
-                    }
+                    },
                   }
                 } else {
                   // No separator and parser failed - this is an error
@@ -1295,7 +1295,7 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
                     ),
                   });
                 }
-              }
+              },
             }
           } else {
             // First parser - no separator needed
@@ -1304,7 +1304,7 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
               Err(e) => {
                 tokens.set_current_index(current_index);
                 return Err(e);
-              }
+              },
             }
           }
         }
@@ -1347,11 +1347,11 @@ impl<T: Clone + Debug + 'static> TokenOneOrMoreParsers<T> {
             let current_index = tokens.current_index;
             if let Some(ref sep) = separator {
               match (sep.run)(tokens) {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(_) => {
                   tokens.set_current_index(current_index);
                   return Ok(results);
-                }
+                },
               }
             }
           }
@@ -1365,7 +1365,7 @@ impl<T: Clone + Debug + 'static> TokenOneOrMoreParsers<T> {
                 return Err(e);
               }
               return Ok(results);
-            }
+            },
           }
         }
 

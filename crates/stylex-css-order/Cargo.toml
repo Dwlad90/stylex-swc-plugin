@@ -1,15 +1,15 @@
 [package]
-name = "stylex_css_order"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
 description = "CSS property ordering constants and helpers for StyleX"
+edition.workspace = true
+license.workspace = true
+name = "stylex_css_order"
 publish = false
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 [dependencies]
 stylex_constants = { path = "../stylex-constants" }
+stylex_css_values = { path = "../stylex-css-values" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_types = { path = "../stylex-types" }
-stylex_css_values = { path = "../stylex-css-values" }

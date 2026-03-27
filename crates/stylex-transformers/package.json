@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/transformers",
   "description": "StyleX API transformer implementations for SWC plugin",
-  "version": "0.15.1-rc.1",
+  "version": "0.15.1",
   "private": true,
   "sideEffects": false,
   "files": [

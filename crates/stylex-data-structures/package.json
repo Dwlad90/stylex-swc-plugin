@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-data-structures",
   "description": "Domain-specific data structures (TopLevelExpression, StyleVarsToKeep) for the StyleX system",
-  "version": "0.15.1-rc.1",
+  "version": "0.15.1",
   "private": true,
   "sideEffects": false,
   "files": [

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-css-order",
   "description": "CSS property ordering and specificity for the StyleX system",
-  "version": "0.15.1-rc.1",
+  "version": "0.15.1",
   "private": true,
   "sideEffects": false,
   "files": [

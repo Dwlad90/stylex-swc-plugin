@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-css-utils",
   "description": "CSS utility functions (pre-rules, conditional styles) for the StyleX system",
-  "version": "0.15.1-rc.1",
+  "version": "0.15.1",
   "private": true,
   "sideEffects": false,
   "files": [

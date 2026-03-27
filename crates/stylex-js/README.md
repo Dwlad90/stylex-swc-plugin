@@ -1,23 +1,20 @@
-# `StyleX JS`
+# `stylex-js`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-JavaScript evaluation helpers for the StyleX system.
+JavaScript runtime guard functions used during compile-time evaluation
+of JS expressions. Extracted into its own crate so the evaluator can
+depend on a focused set of AST-inspection helpers without pulling in
+the full transformation pipeline.
 
-Provides utilities for evaluating and processing JavaScript expressions within
-the StyleX NAPI-RS compiler.
+## Architecture
 
-## Contents
+- **Layer**: 2 — Domain Leaves
+- **Depends on**: `stylex-constants`, `stylex-macros`
+- **Depended on by**: `stylex-evaluator`
 
-- `helpers` -- JS expression inspection utilities:
-  - `is_valid_callee` / `get_callee_name` -- validates and extracts the name of
-    a static identifier callee (checks against `VALID_CALLEES`)
-  - `is_invalid_method` -- checks whether a member property is in the
-    `INVALID_METHODS` deny-list
-  - `is_mutating_object_method` / `is_mutating_array_method` -- detects
-    `Object.assign`, `Array.push`, `Array.splice`, and similar mutating built-in
-    calls
-  - `is_mutation_expr` -- returns `true` for assignment to a member expression,
-    update expressions on a member, or `delete` operations
-  - `get_method_name` -- extracts the method name from a member expression
-  - `is_id_prop` -- checks whether a member property is a plain identifier
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

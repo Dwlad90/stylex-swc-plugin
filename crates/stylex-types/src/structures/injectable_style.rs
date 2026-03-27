@@ -76,7 +76,7 @@ impl InjectableStyle {
   /// let style = InjectableStyle::with_rtl(ltr_css, rtl_css, Some(0.5));
   /// ```
   #[inline]
-  pub fn _with_rtl(ltr: String, rtl: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
+  pub fn with_rtl(ltr: String, rtl: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
     Rc::new(InjectableStyleKind::Regular(InjectableStyle {
       ltr,
       rtl: Some(rtl),

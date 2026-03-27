@@ -1,10 +1,20 @@
-# `StyleX Misc`
+# `stylex-utils`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-Miscellaneous SWC utilities for the StyleX plugin.
+Small standalone utilities that don't belong in any domain crate.
+This crate (formerly `stylex-misc`) provides deterministic hashing
+and SWC helper functions shared by several higher-level crates in
+the workspace.
 
-## Contents
+## Architecture
 
-- `swc::get_default_expr_ctx` -- Creates a default `ExprCtx` for SWC expression
-  type checking
+- **Layer**: 0 — Primitives (no internal deps)
+- **Depends on**: None (leaf crate)
+- **Depended on by**: ast, rs-compiler, transform, types
+
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

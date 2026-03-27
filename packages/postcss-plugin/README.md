@@ -1,5 +1,7 @@
 # PostCSS plugin with NAPI-RS StyleX compiler integration
 
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+
 `PostCSS plugin` for an unofficial
 [`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 compiler that includes the StyleX SWC code transformation under the hood.
@@ -211,3 +213,7 @@ The plugin accepts the following configuration options:
   },
 }
 ```
+
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

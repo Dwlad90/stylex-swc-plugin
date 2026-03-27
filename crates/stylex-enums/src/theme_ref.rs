@@ -13,7 +13,7 @@ impl ThemeRefResult {
     }
   }
 
-  pub fn _as_is_proxy(&self) -> Option<()> {
+  pub fn as_is_proxy(&self) -> Option<()> {
     match self {
       ThemeRefResult::Proxy => Some(()),
       _ => None,

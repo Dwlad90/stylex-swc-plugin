@@ -1,37 +1,25 @@
-# `StyleX Transform`
+# `stylex-transform`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-Main SWC transform orchestration crate for the StyleX compiler. Contains the
-`StyleXTransform` struct, `StateManager`, SWC `Fold` implementation, and all
-code that depends on `StateManager`.
+Main SWC transform orchestration crate for the StyleX compiler. It owns the
+`StyleXTransform` entry point, the `StateManager`, the SWC `Fold`
+implementation, and all code that depends on per-file compiler state. This is
+the largest crate in the workspace (108 files, ~27,700 lines) and replaces the
+former `stylex-shared` monolith.
 
-Replaces the former `stylex-shared` crate.
+## Architecture
 
-## Contents
+- **Layer**: 8 — StyleX Transform
+- **Depends on**: `stylex-ast`, `stylex-constants`, `stylex-css`,
+  `stylex-css-order`, `stylex-css-parser`, `stylex-css-utils`,
+  `stylex-css-values`, `stylex-enums`, `stylex-logs`, `stylex-macros`,
+  `stylex-path-resolver`, `stylex-regex`, `stylex-structures`, `stylex-types`,
+  `stylex-utils`
+- **Depended on by**: `stylex-rs-compiler`
 
-- `StyleXTransform<C>` -- Main plugin struct implementing SWC `Fold`
-- `StateManager` -- Per-file transformation state (imports, style maps,
-  declarations, metadata)
-- `transform/fold/` -- 18 `Fold` trait method implementations
-- `transform/stylex/` -- 12 StyleX API call transform handlers
-- `transform/styleq/` -- StyleQ compatibility
-- `shared/transformers/` -- StyleX API implementations (create, defineVars,
-  keyframes, createTheme, etc.)
-- `shared/structures/` -- StateManager-coupled types (FunctionConfig, PreRule,
-  EvaluateResult, etc.)
-- `shared/enums/data_structures/` -- Coupled enums (EvaluateResultValue,
-  FlatCompiledStylesValue, InjectableStyleKind)
-- `shared/utils/` -- Evaluation engine, CSS generation, AST manipulation,
-  validators
+## License
 
-## Re-exports
-
-Re-exports modules from atomic crates so internal `use crate::shared::*` paths
-continue to work:
-
-- Constants from `stylex-constants`
-- Types from `stylex-types`
-- Regex from `stylex-regex`
-- SWC utils from `stylex-misc`
-- CSS utils from `stylex-css`
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

@@ -1,30 +1,24 @@
-# `StyleX Types`
+# `stylex-types`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-Core type definitions for the StyleX SWC plugin. Contains pure enums, structs,
-and configuration types that have no dependency on `StateManager`.
+Injectable style types and metadata structures for the StyleX
+compiler. This crate defines the `InjectableStyle` family of structs
+and enums, the `MetaData` output type, and the `StyleOptions` trait
+that decouples function-pointer types from `StateManager`. It was
+extracted so that every crate needing compiled-style representations
+can depend on a slim type package without pulling in transform logic.
 
-## Contents
+## Architecture
 
-### Enums
+- **Layer**: 4 — Type System
+- **Depends on**: `stylex-constants`, `stylex-enums`,
+  `stylex-macros`, `stylex-structures`, `stylex-utils`
+- **Depended on by**: `stylex-ast`, `stylex-css`, `stylex-css-order`,
+  `stylex-evaluator`, `stylex-rs-compiler`, `stylex-transform`
 
-- `TransformationCycle` -- Plugin transformation phases
-- `ArrayJS`, `ObjectJS`, `MathJS`, `StringJS` -- JS built-in operation types
-- `VarDeclAction`, `BinaryExprType` -- Evaluation helpers
-- `ThemeRef` enum -- Theme reference variants
-- `CSSSyntax` -- CSS syntax type definitions
-- `ImportPathResolution` -- Import resolution result types
-- `StyleVarsToKeep` -- Style variable tracking
-- `TopLevelExpression` -- Module-level expression types
-- `ValueWithDefault` -- Default value handling
+## License
 
-### Structures
-
-- `PluginPass` -- Plugin pass context (cwd, filename)
-- `NamedImportSource`, `ImportSources`, `RuntimeInjection` -- Import config
-- `EnvEntry`, `JSFunction` -- Compile-time environment types
-- `StyleXOptionsParams`, `StyleXOptions`, `StyleXStateOptions` -- Plugin config
-- `Pair`, `OrderPair`, `Order` trait -- CSS property ordering
-- `DynamicStyle`, `InlineStyle` -- Style representation types
-- `PropertySpecificity`, `ShorthandsOfShorthands` -- CSS specificity
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

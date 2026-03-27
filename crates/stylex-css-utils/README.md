@@ -1,19 +1,21 @@
-# `StyleX CSS Utils`
+# `stylex-css-utils`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-CSS utility functions for the StyleX system.
+Lightweight CSS utility helpers for pre-rule sorting, vector
+operations, and conditional style application. This crate was
+extracted to give `stylex-css` and `stylex-transform` shared access
+to pure CSS helper logic without depending on the full CSS generation
+pipeline.
 
-Provides helper functions for pre-rules, conditional styles, and other CSS
-processing utilities within the StyleX NAPI-RS compiler.
+## Architecture
 
-## Contents
+- **Layer**: 4 — Type System
+- **Depends on**: `stylex-structures`
+- **Depended on by**: `stylex-css`, `stylex-transform`
 
-- `pre_rule` -- `sort_pseudos`, `sort_at_rules` -- deterministic ordering of
-  pseudo-class and at-rule selectors so that generated CSS class names are
-  stable regardless of declaration order
-- `vector` -- `intersection` -- set intersection helper for `Vec<String>`
-  collections
-- `when` -- Relational selector helpers (`from_proxy`, `from_stylex_style`,
-  `ancestor`, `descendant`, `sibling_before`, `sibling_after`, `any_sibling`)
-  and `get_default_marker_class_name` for marker-class-based conditional styles
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

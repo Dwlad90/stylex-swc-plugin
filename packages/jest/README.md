@@ -1,4 +1,6 @@
-# @stylexswc/jest
+# Jest transformer with NAPI-RS StyleX compiler integration
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 Jest transformer that enables StyleX SWC integration for JavaScript and
 TypeScript testing with Jest.
@@ -198,9 +200,8 @@ module.exports = customJestConfig;
 ```
 
 Real example can be found in the
-[@stylexswc/next-example](../../apps/nextjs-example/jest.config.js)
+[@stylexswc/next-example](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/apps/nextjs-example/jest.config.js)
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](../../LICENSE)
-file for details.
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

@@ -97,7 +97,7 @@ pub fn create_short_hash(value: &str) -> String {
   base62::encode(hash)
 }
 
-pub fn _resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
+pub fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
   match node_resolve::Resolver::default()
     .with_basedir(PathBuf::from("./cwd"))
     .preserve_symlinks(true)

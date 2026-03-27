@@ -284,7 +284,7 @@ pub fn create_string_array_prop(key: &str, value: &[&str]) -> PropOrSpread {
 /// # Example
 /// ```ignore
 /// let prop_or_spread = prop_or_spread_boolean_factory("key", true);
-pub fn _create_boolean_prop(key: &str, value: Option<bool>) -> PropOrSpread {
+pub fn create_boolean_prop(key: &str, value: Option<bool>) -> PropOrSpread {
   match value {
     Some(value) => create_key_value_prop(key, create_bool_expr(value)),
     None => stylex_panic!("Value is not a boolean"),
@@ -333,7 +333,7 @@ pub fn create_array(values: &[Expr]) -> ArrayLit {
 /// ```ignore
 /// let array_lit = _create_spreaded_array(vec![expr1, expr2, expr3]);
 /// ```
-pub fn _create_spreaded_array(values: &[Expr]) -> ArrayLit {
+pub fn create_spreaded_array(values: &[Expr]) -> ArrayLit {
   array_fabric(values, Some(DUMMY_SP))
 }
 
@@ -554,7 +554,7 @@ pub fn create_var_declarator(ident: Ident, init: Expr) -> VarDeclarator {
 /// ```ignore
 /// let decl = var_declarator_null_init_factory(my_ident);
 /// ```
-pub fn _create_null_var_declarator(ident: Ident) -> VarDeclarator {
+pub fn create_null_var_declarator(ident: Ident) -> VarDeclarator {
   create_var_declarator(ident, create_null_expr())
 }
 

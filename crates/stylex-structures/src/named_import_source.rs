@@ -36,7 +36,7 @@ pub enum RuntimeInjection {
 }
 
 impl RuntimeInjection {
-  pub fn _is_named_export(&self) -> bool {
+  pub fn is_named_export(&self) -> bool {
     match self {
       RuntimeInjection::Boolean(_) => false,
       RuntimeInjection::Regular(_) => false,
@@ -44,7 +44,7 @@ impl RuntimeInjection {
     }
   }
 
-  pub fn _is_regular_export(&self) -> bool {
+  pub fn is_regular_export(&self) -> bool {
     match self {
       RuntimeInjection::Boolean(_) => false,
       RuntimeInjection::Regular(_) => true,
@@ -52,7 +52,7 @@ impl RuntimeInjection {
     }
   }
 
-  pub fn _is_boolean_export(&self) -> bool {
+  pub fn is_boolean_export(&self) -> bool {
     match self {
       RuntimeInjection::Boolean(_) => true,
       RuntimeInjection::Regular(_) => false,
@@ -60,21 +60,21 @@ impl RuntimeInjection {
     }
   }
 
-  pub fn _as_boolean(&self) -> Option<&bool> {
+  pub fn as_boolean(&self) -> Option<&bool> {
     match self {
       RuntimeInjection::Boolean(value) => Some(value),
       RuntimeInjection::Regular(_) => None,
       RuntimeInjection::Named(_named) => None,
     }
   }
-  pub fn _as_regular(&self) -> Option<&String> {
+  pub fn as_regular(&self) -> Option<&String> {
     match self {
       RuntimeInjection::Boolean(_) => None,
       RuntimeInjection::Regular(value) => Some(value),
       RuntimeInjection::Named(_) => None,
     }
   }
-  pub fn _as_named(&self) -> Option<&NamedImportSource> {
+  pub fn as_named(&self) -> Option<&NamedImportSource> {
     match self {
       RuntimeInjection::Boolean(_) => None,
       RuntimeInjection::Regular(_) => None,

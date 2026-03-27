@@ -1,15 +1,20 @@
-# `StyleX Regex`
+# `stylex-regex`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-Pre-compiled regex patterns for the StyleX SWC plugin.
+Pre-compiled regular expressions used throughout the StyleX compiler.
+This crate centralises every `lazy_static!` regex pattern into one
+place so that patterns are compiled exactly once and shared across
+all downstream consumers.
 
-## Contents
+## Architecture
 
-- CSS rule, URL, variable, and property key patterns
-- Whitespace normalizer patterns (math signs, brackets, functions)
-- Class name sanitization and dashify patterns
-- Length unit tester and JSON regex
-- Relational selector patterns (ancestor, descendant, sibling)
-- Pseudo-element/pseudo-class patterns
-- StyleX consts import and NPM name validation patterns
+- **Layer**: 0 — Primitives (no internal deps)
+- **Depends on**: None (leaf crate)
+- **Depended on by**: css, rs-compiler, transform
+
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

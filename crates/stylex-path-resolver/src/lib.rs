@@ -9,6 +9,6 @@ mod tests {
 
   #[ctor]
   fn init_logger() {
-    pretty_env_logger::formatted_builder().init();
+    pretty_env_logger::formatted_builder().try_init();
   }
 }

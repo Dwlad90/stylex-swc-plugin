@@ -1,4 +1,6 @@
-# Turbopack Loader with NAPI-RS StyleX compiler integration
+# Turbopack loader with NAPI-RS StyleX compiler integration
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 `Turbopack loader` for an unofficial
 [`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
@@ -26,7 +28,7 @@ npm install --save-dev @stylexswc/rs-compiler
 > This loader only compiles StyleX code but **does not extract CSS**.
 >
 > For CSS extraction, you must use the
-> [`@stylexswc/postcss-plugin`](../postcss-plugin) in your `postcss.config.js`:
+> [`@stylexswc/postcss-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin#readme) in your `postcss.config.js`:
 >
 > ```javascript
 > // postcss.config.js
@@ -288,3 +290,7 @@ export default nextConfig;
 
 This loader was inspired by
 [`stylex-webpack`](https://github.com/SukkaW/stylex-webpack).
+
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

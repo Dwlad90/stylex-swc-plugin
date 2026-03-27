@@ -52,7 +52,7 @@ impl UidGenerator {
     }
   }
 
-  pub fn _clear(&mut self) {
+  pub fn clear(&mut self) {
     match self.mode {
       CounterMode::_Global => {
         let mut counters = match GLOBAL_COUNTERS.lock() {

@@ -1,4 +1,6 @@
-# @stylexswc/playwright
+# Playwright test configuration with NAPI-RS StyleX compiler integration
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 Playwright test configuration that enables visual regression testing for StyleX applications.
 
@@ -110,5 +112,4 @@ test.describe('Button component', () => {
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](../../LICENSE)
-file for details.
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

@@ -1,18 +1,21 @@
-# `StyleX CSS Values`
+# `stylex-css-values`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-CSS value validation and parsing for the StyleX system.
+CSS value validation, tokenization, and shorthand-expansion utilities.
+Isolated into its own crate so that higher-level CSS generation and
+ordering crates can share a single, well-tested value-handling layer
+without duplicating parsing logic.
 
-Handles validation and parsing of CSS property values within the StyleX NAPI-RS
-compiler.
+## Architecture
 
-## Contents
+- **Layer**: 2 — Domain Leaves
+- **Depends on**: `stylex-macros`
+- **Depended on by**: `stylex-css`, `stylex-css-order`,
+  `stylex-transform`
 
-- `parser` -- `parse_css` -- tokenizes a CSS value string into a `Vec<String>`
-  of individual tokens using `cssparser`; `format_ident` -- serializes a CSS
-  identifier according to the CSS spec
-- `common` -- `split_value` -- splits a CSS shorthand value string into its
-  top/right/bottom/left components returning `Option` for omitted sides;
-  `split_value_required` -- same but falls back to the preceding value for any
-  missing side (CSS expansion rules)
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

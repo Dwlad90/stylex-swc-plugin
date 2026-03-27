@@ -1,6 +1,8 @@
-# Webpack plugin with NAPI-RS StyleX compiler integration
+# Rollup plugin with NAPI-RS StyleX compiler integration
 
-`Webpack plugin` for an unofficial
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+
+`Rollup plugin` for an unofficial
 [`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 compiler that includes the StyleX SWC code transformation under the hood.
 
@@ -158,3 +160,7 @@ stylexPlugin({
 
 - [StyleX Documentation](https://stylexjs.com)
 - [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
+
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

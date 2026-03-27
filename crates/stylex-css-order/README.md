@@ -1,29 +1,22 @@
-# `StyleX CSS Order`
+# `stylex-css-order`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-CSS property ordering and specificity for the StyleX system.
+Deterministic CSS property ordering and specificity ranking for StyleX. This
+crate encapsulates the three ordering strategies (`ApplicationOrder`,
+`LegacyExpandShorthandsOrder`, `PropertySpecificityOrder`) and their associated
+constant tables. It was extracted so ordering logic can evolve independently of
+CSS generation and transform passes.
 
-Manages the deterministic ordering of CSS properties and specificity rules
-within the StyleX NAPI-RS compiler.
+## Architecture
 
-## Contents
+- **Layer**: 5 — CSS Foundations & AST
+- **Depends on**: `stylex-constants`, `stylex-css-values`, `stylex-structures`,
+  `stylex-types`
+- **Depended on by**: `stylex-css`, `stylex-transform`
 
-### Constants (`constants/`)
+## License
 
-- `application_order` -- `Shorthands` and `Aliases` lookup tables mapping CSS
-  shorthand properties (e.g., `animation`, `border`, `flex`, `grid`, `margin`,
-  `padding`, `transition`) to their longhand `OrderPair` expansions
-- `legacy_expand_shorthands_order` -- Legacy shorthand expansion tables used
-  when `StyleResolution::LegacyExpandShorthands` is active
-- `property_specificity_order` -- Property specificity ordering constants for
-  `StyleResolution::PropertySpecificity` mode
-
-### Structures (`structures/`)
-
-- `ApplicationOrder` -- Implements the `Order` trait with `application_order`
-  expansion rules (default StyleX ordering)
-- `LegacyExpandShorthandsOrder` -- Implements `Order` using legacy shorthand
-  expansion tables
-- `PropertySpecificityOrder` -- Implements `Order` using property specificity
-  ordering
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

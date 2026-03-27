@@ -1,13 +1,22 @@
-# `StyleX Logs`
+# `stylex-logs`
+
+> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
 
 ## Overview
 
-Logging utilities for the StyleX NAPI-RS compiler.
+Branded logging utilities for the StyleX compiler. Provides a
+`[StyleX]`-prefixed, ANSI-colored log formatter and one-time logger
+initialization. Isolated so that any crate needing diagnostics output
+can pull in logging without depending on compiler internals.
 
-## Contents
+> **Note:** This crate was formerly named `stylex-logger`.
 
-- `constants` -- `STYLEX_PREFIX` branded prefix
-- `formatter` -- Custom log formatting with ANSI colors and `[StyleX]` prefix,
-  color-coded log levels
-- `initializer` -- One-time logger and panic hook initialization with
-  `STYLEX_DEBUG` environment variable override
+## Architecture
+
+- **Layer**: 2 — Domain Leaves
+- **Depends on**: `stylex-macros`
+- **Depended on by**: `stylex-rs-compiler`, `stylex-transform`
+
+## License
+
+MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

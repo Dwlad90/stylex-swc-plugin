@@ -2,7 +2,7 @@ use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResult
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::{
-  coerce_lit_to_number, create_string_expr, expr_to_str,
+  convert_lit_to_number, create_string_expr, expr_to_str,
 };
 use std::rc::Rc;
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
@@ -155,7 +155,7 @@ pub(crate) fn evaluate_filter_cb(
     stylex_panic!("Expr is not a literal");
   };
 
-  if coerce_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error)) == 0.0 {
+  if convert_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error)) == 0.0 {
     None
   } else {
     Some(item.clone())

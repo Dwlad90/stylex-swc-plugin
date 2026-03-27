@@ -1,9 +1,8 @@
 name: Deploy Rust Docs to GitHub Pages
 
 on:
-  push:
-    branches:
-      - master
+  workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: 'pages'
@@ -24,12 +23,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
+        with:
+          ref: ${{ github.event.inputs.ref }}
       - name: Setup environment
-        uses: ./.github/actions/setup
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Install nightly Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
 
       - name: Generate documentation
         run: pnpm run docs
+        env:
+          RUSTDOCFLAGS: --enable-index-page -Zunstable-options
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

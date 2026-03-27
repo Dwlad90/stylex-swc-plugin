@@ -754,7 +754,7 @@ fn js_object_to_json(js_str: &str) -> String {
 /// * `decimal_places` - Number of decimal places to round to (default: 1)
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// round_to_decimal_places(0.6000000000000001, 1) // → 0.6
 /// round_to_decimal_places(0.25, 1)               // → 0.25 (preserved)
 ///

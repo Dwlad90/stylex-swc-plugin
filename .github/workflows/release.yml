@@ -381,3 +381,17 @@ jobs:
           git pull origin master
           git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}
           git push origin master
+  deploy-docs:
+    name: Deploy docs to GitHub Pages
+    needs: [release, calculate-version]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.prerelease == 'false'
+    steps:
+      - name: 📚 Deploy docs
+        id: deploy-docs
+        run: |
+          gh workflow run docs.yml \
+            --ref ${{ needs.calculate-version.outputs.new_version }} \
+            --repo ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

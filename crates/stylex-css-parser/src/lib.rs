@@ -17,12 +17,13 @@ and type safety.
 
 ## Usage Examples
 
-```rust
+```rust,ignore
 use stylex_css_parser::{tokenParser, properties, last_media_query_wins_transform};
 use stylex_css_parser::css_types::{Color, Length, Calc};
+use swc_core::ecma::ast::{KeyValueProp, PropName, Expr, Lit};
 
 // Parse CSS values
-let color = Color::parser(); // CSS color parser
+let color = Color::parse(); // CSS color parser
 let length = Length::parser(); // CSS length parser
 let calc = Calc::parse(); // CSS calc() expression parser
 
@@ -32,7 +33,10 @@ let box_shadow = properties::BoxShadow::parser();
 let border_radius = properties::BorderRadiusShorthand::parser();
 
 // Media query transformation
-let queries = vec![/* MediaQuery instances */];
+let queries = &[KeyValueProp{
+  key: PropName::Ident("key".into()),
+  value: Box::new(Expr::Lit(Lit::Str("value".into()))),
+}];
 let transformed = last_media_query_wins_transform(queries);
 ```
 

@@ -19,7 +19,18 @@ use super::factories::{
   create_string_lit,
 };
 
-pub fn coerce_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
+/// Helper function to convert a Lit to a number
+/// # Arguments
+/// * `lit_num` - The literal to convert
+/// # Returns
+/// * `Result<f64, anyhow::Error>` - The number value of the literal
+///
+/// # Example
+/// ```javascript
+/// Input: Lit::Num(1.0)
+/// Output: 1.0
+/// ```
+pub fn convert_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
   let result = match &lit_num {
     Lit::Bool(Bool { value, .. }) => {
       if value == &true {
@@ -50,7 +61,18 @@ pub fn coerce_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
   Result::Ok(result)
 }
 
-pub fn coerce_tpl_to_string_lit(tpl: &Tpl) -> Option<Lit> {
+/// Helper function to convert a Tpl to a string literal
+/// # Arguments
+/// * `tpl` - The template literal to convert
+/// # Returns
+/// * `Option<Lit>` - The string literal if the template is simple (no interpolations)
+/// * `None` - If the template is not simple (has interpolations)
+/// # Example
+/// ```javascript
+/// Input: Tpl { exprs: [], quasis: [TplElement { cooked: Some("hello"), raw: "hello" }] }
+/// Output: Some(Lit::Str("hello"))
+/// ```
+pub fn convert_tpl_to_string_lit(tpl: &Tpl) -> Option<Lit> {
   // Check if it's a simple template (no expressions)
   if tpl.exprs.is_empty() && tpl.quasis.len() == 1 {
     let quasi = &tpl.quasis[0];
@@ -71,19 +93,19 @@ pub fn coerce_tpl_to_string_lit(tpl: &Tpl) -> Option<Lit> {
 }
 
 /// Converts a simple template literal expression to a regular string literal expression.
-/// This is a convenience wrapper around `coerce_tpl_to_string_lit` that works with `Expr::Tpl`.
+/// This is a convenience wrapper around `convert_tpl_to_string_lit` that works with `Expr::Tpl`.
 ///
 /// # Arguments
 /// * `expr` - The expression to check and potentially convert
 ///
 /// # Returns
-/// * The original expression if it's not a simple template literal
+/// * `Expr` - The original expression if it's not a simple template literal
 /// * A string literal expression if the template is simple (no interpolations)
 #[inline]
 pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
   match expr {
     Expr::Tpl(ref tpl) => {
-      if let Some(str_lit) = coerce_tpl_to_string_lit(tpl) {
+      if let Some(str_lit) = convert_tpl_to_string_lit(tpl) {
         return Expr::Lit(str_lit);
       }
       expr

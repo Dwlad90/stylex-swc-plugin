@@ -1,12 +1,12 @@
 // Re-export convertor functions from stylex-ast (canonical source)
 #[allow(unused_imports)]
 pub use stylex_ast::ast::convertors::{
-  coerce_lit_to_number, coerce_tpl_to_string_lit, convert_atom_to_str_ref, convert_atom_to_string,
-  convert_concat_to_tpl_expr, convert_lit_to_string, convert_simple_tpl_to_str_expr,
+  convert_atom_to_str_ref, convert_atom_to_string, convert_concat_to_tpl_expr,
+  convert_lit_to_number, convert_lit_to_string, convert_simple_tpl_to_str_expr,
   convert_str_lit_to_atom, convert_str_lit_to_string, convert_string_to_prop_name,
-  convert_wtf8_to_atom, create_big_int_expr, create_bool_expr, create_ident_expr, create_null_expr,
-  create_number_expr, create_string_expr, expand_shorthand_prop, extract_str_lit_ref,
-  extract_tpl_cooked_value,
+  convert_tpl_to_string_lit, convert_wtf8_to_atom, create_big_int_expr, create_bool_expr,
+  create_ident_expr, create_null_expr, create_number_expr, create_string_expr,
+  expand_shorthand_prop, extract_str_lit_ref, extract_tpl_cooked_value,
 };
 
 use anyhow::anyhow;
@@ -42,7 +42,7 @@ pub fn expr_to_num(
 ) -> Result<f64, anyhow::Error> {
   let result = match &expr_num {
     Expr::Ident(ident) => ident_to_number(ident, state, traversal_state, &FunctionMap::default()),
-    Expr::Lit(lit) => return coerce_lit_to_number(lit),
+    Expr::Lit(lit) => return convert_lit_to_number(lit),
     Expr::Unary(unary) => unari_to_num(unary, state, traversal_state, fns),
     Expr::Bin(lit) => {
       let mut state = Box::new(EvaluationState::new());
@@ -474,7 +474,7 @@ pub fn ident_to_number(
         },
         Expr::Unary(unary_expr) => unari_to_num(unary_expr, state, traversal_state, fns),
         Expr::Lit(lit) => {
-          coerce_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error))
+          convert_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error))
         },
         _ => stylex_panic!(
           "Varable {:?} is not a number",

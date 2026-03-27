@@ -481,7 +481,7 @@ mod tests {
 
   #[test]
   fn test_simple_tpl_to_string_without_expressions() {
-    use crate::shared::utils::ast::convertors::coerce_tpl_to_string_lit;
+    use crate::shared::utils::ast::convertors::convert_tpl_to_string_lit;
     use swc_core::ecma::ast::{Tpl, TplElement};
 
     // Create a simple template literal: `hello world`
@@ -496,7 +496,7 @@ mod tests {
       }],
     };
 
-    let result = coerce_tpl_to_string_lit(&tpl);
+    let result = convert_tpl_to_string_lit(&tpl);
     assert!(result.is_some(), "Should convert simple template to string");
 
     if let Some(Lit::Str(str_lit)) = result {
@@ -511,7 +511,7 @@ mod tests {
 
   #[test]
   fn test_simple_tpl_to_string_with_expressions() {
-    use crate::shared::utils::ast::convertors::coerce_tpl_to_string_lit;
+    use crate::shared::utils::ast::convertors::convert_tpl_to_string_lit;
     use swc_core::ecma::ast::{Tpl, TplElement};
 
     // Create a template literal with expressions: `hello ${name}`
@@ -534,7 +534,7 @@ mod tests {
       ],
     };
 
-    let result = coerce_tpl_to_string_lit(&tpl);
+    let result = convert_tpl_to_string_lit(&tpl);
     assert!(
       result.is_none(),
       "Should not convert template with expressions"

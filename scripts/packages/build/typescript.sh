@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
+# Exit immediately when any subprocess returns a non-zero command
+set -e
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 

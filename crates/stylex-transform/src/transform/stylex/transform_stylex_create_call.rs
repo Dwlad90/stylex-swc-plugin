@@ -21,12 +21,9 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, PropOrSpread},
 };
 
-use crate::shared::structures::functions::FunctionConfigType;
-use crate::shared::structures::functions::StylexExprFn;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
 use crate::shared::structures::pre_rule::PreRuleValue;
 use crate::shared::structures::state::EvaluationState;
-use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::FunctionMapIdentifiers;
 use crate::shared::structures::types::InjectableStylesMap;
 use crate::shared::structures::types::{FlatCompiledStyles, FunctionMapMemberExpression};
@@ -50,10 +47,12 @@ use crate::shared::utils::core::js_to_expr::{
   NestedStringObject, convert_object_to_ast, remove_objects_with_spreads,
 };
 use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
+use crate::shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic;
 use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
-use crate::{
-  StyleXTransform, shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic,
+use crate::shared::{
+  structures::functions::FunctionConfigType, utils::common::downcast_style_options_to_state_manager,
 };
+use crate::{shared::structures::functions::StylexExprFn, transform::StyleXTransform};
 use stylex_ast::ast::factories::create_key_value_prop;
 use stylex_ast::ast::factories::create_object_expression;
 use stylex_ast::ast::factories::create_string_var_declarator;
@@ -62,7 +61,7 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, non_static_value};
-use stylex_css_utils::when as stylex_when;
+use stylex_css::utils::when as stylex_when;
 use stylex_enums::counter_mode::CounterMode;
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
@@ -86,10 +85,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "ancestor".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = state
-        .as_any_mut()
-        .downcast_mut::<StateManager>()
-        .expect("StyleOptions must be StateManager");
+      let state = downcast_style_options_to_state_manager(state);
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when ancestor: expression is not a string"),
@@ -105,10 +101,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "descendant".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = state
-        .as_any_mut()
-        .downcast_mut::<StateManager>()
-        .expect("StyleOptions must be StateManager");
+      let state = downcast_style_options_to_state_manager(state);
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when descendant: expression is not a string"),
@@ -124,10 +117,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "siblingBefore".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = state
-        .as_any_mut()
-        .downcast_mut::<StateManager>()
-        .expect("StyleOptions must be StateManager");
+      let state = downcast_style_options_to_state_manager(state);
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
@@ -143,10 +133,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "siblingAfter".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = state
-        .as_any_mut()
-        .downcast_mut::<StateManager>()
-        .expect("StyleOptions must be StateManager");
+      let state = downcast_style_options_to_state_manager(state);
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
@@ -162,10 +149,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
   map.insert(
     "anySibling".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = state
-        .as_any_mut()
-        .downcast_mut::<StateManager>()
-        .expect("StyleOptions must be StateManager");
+      let state = downcast_style_options_to_state_manager(state);
       let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when anySibling: expression is not a string"),

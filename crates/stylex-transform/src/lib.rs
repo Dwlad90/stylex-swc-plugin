@@ -1,11 +1,7 @@
 pub mod shared;
 pub mod transform;
 
-// Re-export for use by $crate:: in exported macros
-#[doc(hidden)]
-pub use stylex_ast as __stylex_ast;
-
-use stylex_structures::stylex_options::StyleXOptionsParams;
+/// Re-export for simpler usage in other crates
 pub use transform::StyleXTransform;
 
 #[cfg(test)]

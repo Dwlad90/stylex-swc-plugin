@@ -1,4 +1,4 @@
-use crate::constants::legacy_expand_shorthands_order::{Aliases, Shorthands};
+use crate::order::constants::legacy_expand_shorthands_order::{Aliases, Shorthands};
 
 use stylex_structures::{order::Order, order_pair::OrderPair};
 

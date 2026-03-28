@@ -1,42 +1,30 @@
 # `stylex-logs`
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace
 
 ## Overview
 
 Branded logging utilities for the StyleX compiler. Provides a
 `[StyleX]`-prefixed, ANSI-colored log formatter and one-time logger
-initialization. Isolated so that any crate needing diagnostics output
-can pull in logging without depending on compiler internals.
+initialization. Isolated so that any crate needing diagnostics output can pull
+in logging without depending on compiler internals.
 
 > **Note:** This crate was formerly named `stylex-logger`.
 
-- Emits all diagnostics with a recognizable `[StyleX]` prefix using
-  ANSI color codes for terminal readability
-- Thread-safe one-time initialization ensures the logger is set up
-  exactly once per process
-- Leaf-level crate — depends only on `stylex-macros`, keeping the
-  dependency footprint minimal
+- Emits all diagnostics with a recognizable `[StyleX]` prefix using ANSI color
+  codes for terminal readability
+- Thread-safe one-time initialization ensures the logger is set up exactly once
+  per process
+- Leaf-level crate — depends only on `stylex-macros`, keeping the dependency
+  footprint minimal
 
 ## Architecture
 
 - **Layer**: 2 — Domain Leaves
 - **Depends on**: `stylex-macros`
 - **Depended on by**: `stylex-rs-compiler`, `stylex-transform`
-
-### Key Exports
-
-- `STYLEX_PREFIX` — the branded log prefix constant
-- ANSI-colored `[StyleX]` log formatter
-- One-time logger initializer
-
-### Modules
-
-| Module | Purpose |
-| --- | --- |
-| `constants` | `STYLEX_PREFIX` and other logging constants |
-| `formatter` | ANSI-colored `[StyleX]` log formatting |
-| `initializer` | One-time logger setup and initialization |
 
 ## Dependency Graph
 
@@ -55,7 +43,6 @@ graph TD
   end
   subgraph L2["Domain Leaves"]
     stylex_enums["enums"]
-    stylex_css_values["css-values"]
     stylex_js["js"]
     stylex_logs["logs"]
     stylex_css_parser["css-parser"]
@@ -66,10 +53,8 @@ graph TD
   end
   subgraph L4["Type System"]
     stylex_types["types"]
-    stylex_css_utils["css-utils"]
   end
-  subgraph L5["CSS Foundations & AST"]
-    stylex_css_order["css-order"]
+  subgraph L5["AST Foundations"]
     stylex_ast["ast"]
   end
   subgraph L6["Evaluation"]
@@ -86,7 +71,6 @@ graph TD
   end
   stylex_macros --> stylex_constants
   stylex_enums --> stylex_macros
-  stylex_css_values --> stylex_macros
   stylex_js --> stylex_constants
   stylex_js --> stylex_macros
   stylex_logs --> stylex_macros
@@ -100,11 +84,6 @@ graph TD
   stylex_types --> stylex_macros
   stylex_types --> stylex_structures
   stylex_types --> stylex_utils
-  stylex_css_utils --> stylex_structures
-  stylex_css_order --> stylex_constants
-  stylex_css_order --> stylex_css_values
-  stylex_css_order --> stylex_structures
-  stylex_css_order --> stylex_types
   stylex_ast --> stylex_constants
   stylex_ast --> stylex_macros
   stylex_ast --> stylex_types
@@ -117,10 +96,7 @@ graph TD
   stylex_evaluator --> stylex_types
   stylex_css --> stylex_ast
   stylex_css --> stylex_constants
-  stylex_css --> stylex_css_order
   stylex_css --> stylex_css_parser
-  stylex_css --> stylex_css_utils
-  stylex_css --> stylex_css_values
   stylex_css --> stylex_enums
   stylex_css --> stylex_evaluator
   stylex_css --> stylex_macros
@@ -130,10 +106,7 @@ graph TD
   stylex_transform --> stylex_ast
   stylex_transform --> stylex_constants
   stylex_transform --> stylex_css
-  stylex_transform --> stylex_css_order
   stylex_transform --> stylex_css_parser
-  stylex_transform --> stylex_css_utils
-  stylex_transform --> stylex_css_values
   stylex_transform --> stylex_enums
   stylex_transform --> stylex_logs
   stylex_transform --> stylex_macros
@@ -163,10 +136,10 @@ graph TD
   classDef l9 fill:#ffc0c0,stroke:#cc0000,color:#333
   class stylex_constants,stylex_regex,stylex_utils l0
   class stylex_macros l1
-  class stylex_enums,stylex_css_values,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
+  class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
-  class stylex_types,stylex_css_utils l4
-  class stylex_css_order,stylex_ast l5
+  class stylex_types l4
+  class stylex_ast l5
   class stylex_evaluator l6
   class stylex_css l7
   class stylex_transform l8
@@ -175,16 +148,7 @@ graph TD
 
 </details>
 
-## Development
-
-```bash
-make crates-build          # Build all Rust crates
-make crates-format         # Format all Rust crates
-make crates-lint           # Lint all Rust crates
-make crates-clean          # Clean all Rust crates
-make crates-docs           # Generate docs for all Rust crates
-```
-
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

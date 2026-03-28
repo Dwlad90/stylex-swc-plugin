@@ -2,7 +2,7 @@
 
 - Follow the commit message convention: `<type>(<scope>): <description>`, where
   `type` is one of `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
-  and `scope` is the area of the codebase affected (e.g. `stylex_shared`,
+  and `scope` is the area of the codebase affected (e.g. `stylex_transform`,
   `stylexswc/nextjs-plugin`, `apps`, etc.).
 - Write a descriptive commit messages, with a title conforming to the convention
   above, and a description of what you did and why. For example, "Setup initial

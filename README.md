@@ -11,7 +11,7 @@ A comprehensive monorepo providing a community-built [`napi-rs`](https://napi.rs
 
 - **⚡ Blazing Fast**: Significantly faster build times by leveraging NAPI-RS/SWC instead of Babel
 - **🔧 Performance-First Alternative**: Built from the ground up in Rust for maximum speed and efficiency
-- **🧩 Modular Architecture**: 20 atomic Rust crates with strict dependency layering for maximum parallel compilation and surgical rebuilds
+- **🧩 Modular Architecture**: 17 atomic Rust crates with strict dependency layering for maximum parallel compilation and surgical rebuilds
 - **📦 Complete Ecosystem**: Community-built toolkit covering compilation to CSS parsing
 - **🌐 Universal Integration**: Works seamlessly with Next.js, Webpack, Vite, Rollup, and more
 - **🛡️ Type Safe**: Full Rust implementation with comprehensive error handling
@@ -66,7 +66,7 @@ facades, no mixed-domain files.
 
 ### 🔥 Core Engines
 
-The compiler pipeline is built from 20 atomic Rust crates arranged in
+The compiler pipeline is built from 17 atomic Rust crates arranged in
 a strict dependency DAG. Higher layers depend only on lower layers —
 never the reverse.
 
@@ -83,7 +83,6 @@ never the reverse.
 #### Layer 2 — Domain Leaves
 
 - **[`stylex-enums`](./crates/stylex-enums)** — 14 enum modules: `CSSSyntax`, `ValueWithDefault`, `ImportPathResolution`, `StyleVarsToKeep`, and more
-- **[`stylex-css-values`](./crates/stylex-css-values)** — CSS value validation and parsing; pure functions with no side effects
 - **[`stylex-js`](./crates/stylex-js)** — JS runtime guard helpers (`is_valid_callee`, `is_mutation_expr`, `is_invalid_method`)
 - **[`stylex-logs`](./crates/stylex-logs)** — Structured logging with ANSI-colored `[StyleX]`-branded output for the NAPI-RS pipeline
 - **[`stylex-css-parser`](./crates/stylex-css-parser)** — High-performance CSS value parser with comprehensive type, property, and at-rule coverage
@@ -96,12 +95,10 @@ never the reverse.
 #### Layer 4 — Type System
 
 - **[`stylex-types`](./crates/stylex-types)** — Cross-coupled core types (`InjectableStyle*`, `MetaData`) and the `StyleOptions` trait
-- **[`stylex-css-utils`](./crates/stylex-css-utils)** — CSS utility helpers (`pre_rule`, `vector`, `when`) operating on `structures` types
 
-#### Layer 5 — CSS Foundations & AST
+#### Layer 5 — AST Foundations
 
 - **[`stylex-ast`](./crates/stylex-ast)** — SWC AST factory and convertor functions (semantically named `create_*`, `convert_*`)
-- **[`stylex-css-order`](./crates/stylex-css-order)** — `ApplicationOrder`, `PropertySpecificityOrder`, and `LegacyExpandShorthandsOrder` constants
 
 #### Layer 6 — Evaluation
 
@@ -109,7 +106,7 @@ never the reverse.
 
 #### Layer 7 — CSS Processing
 
-- **[`stylex-css`](./crates/stylex-css)** — CSS generation, normalization, `generate_rtl`, and shorthand expansion; orchestrates all CSS sub-crates
+- **[`stylex-css`](./crates/stylex-css)** — Unified CSS processing: generation (LTR/RTL), whitespace normalization, value parsing, property ordering strategies, and pseudo-class selector utilities
 
 #### Layer 8 — StyleX Transform
 
@@ -136,7 +133,6 @@ graph TD
 
   subgraph L2["Domain Leaves"]
     stylex_enums["enums"]
-    stylex_css_values["css-values"]
     stylex_js["js"]
     stylex_logs["logs"]
     stylex_css_parser["css-parser"]
@@ -149,11 +145,9 @@ graph TD
 
   subgraph L4["Type System"]
     stylex_types["types"]
-    stylex_css_utils["css-utils"]
   end
 
-  subgraph L5["CSS Foundations & AST"]
-    stylex_css_order["css-order"]
+  subgraph L5["AST Foundations"]
     stylex_ast["ast"]
   end
 
@@ -176,7 +170,6 @@ graph TD
   stylex_macros        --> stylex_constants
 
   stylex_enums         --> stylex_macros
-  stylex_css_values    --> stylex_macros
   stylex_js            --> stylex_constants
   stylex_js            --> stylex_macros
   stylex_logs          --> stylex_macros
@@ -192,12 +185,7 @@ graph TD
   stylex_types         --> stylex_macros
   stylex_types         --> stylex_structures
   stylex_types         --> stylex_utils
-  stylex_css_utils     --> stylex_structures
 
-  stylex_css_order     --> stylex_constants
-  stylex_css_order     --> stylex_css_values
-  stylex_css_order     --> stylex_structures
-  stylex_css_order     --> stylex_types
   stylex_ast           --> stylex_constants
   stylex_ast           --> stylex_macros
   stylex_ast           --> stylex_types
@@ -212,10 +200,7 @@ graph TD
 
   stylex_css           --> stylex_ast
   stylex_css           --> stylex_constants
-  stylex_css           --> stylex_css_order
   stylex_css           --> stylex_css_parser
-  stylex_css           --> stylex_css_utils
-  stylex_css           --> stylex_css_values
   stylex_css           --> stylex_enums
   stylex_css           --> stylex_evaluator
   stylex_css           --> stylex_macros
@@ -226,10 +211,7 @@ graph TD
   stylex_transform     --> stylex_ast
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
-  stylex_transform     --> stylex_css_order
   stylex_transform     --> stylex_css_parser
-  stylex_transform     --> stylex_css_utils
-  stylex_transform     --> stylex_css_values
   stylex_transform     --> stylex_enums
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
@@ -262,10 +244,10 @@ graph TD
 
   class stylex_constants,stylex_regex,stylex_utils l0
   class stylex_macros l1
-  class stylex_enums,stylex_css_values,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
+  class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
-  class stylex_types,stylex_css_utils l4
-  class stylex_css_order,stylex_ast l5
+  class stylex_types l4
+  class stylex_ast l5
   class stylex_evaluator l6
   class stylex_css l7
   class stylex_transform l8
@@ -441,8 +423,8 @@ Each package has individual commands available in the format
 - **Node.js packages**: unplugin, nextjs, webpack, rollup, postcss, jest,
   design, playwright, eslint, typescript
 - **Rust crates**: compiler, transform, resolver, parser, and all atomic
-  crates (constants, regex, utils, macros, enums, css-values, js, logs,
-  css-parser, structures, types, css-utils, ast, css-order, evaluator,
+  crates (constants, regex, utils, macros, enums, js, logs,
+  css-parser, structures, types, ast, evaluator,
   css, etc.)
 - **Available actions**: build, lint, test, typecheck, clean (for Node.js) /
   build, format, lint, clean, docs (for Rust)

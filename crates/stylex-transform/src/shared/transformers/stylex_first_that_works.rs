@@ -4,9 +4,11 @@ use swc_core::ecma::ast::Expr;
 
 use stylex_types::traits::StyleOptions;
 
-use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::{create_string_expr, expr_to_str};
+use crate::shared::{
+  structures::functions::FunctionMap, utils::common::downcast_style_options_to_state_manager,
+};
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 use stylex_regex::regex::IS_CSS_VAR;
@@ -32,11 +34,7 @@ pub(crate) fn stylex_first_that_works(
   state: &mut dyn StyleOptions,
   functions: &FunctionMap,
 ) -> Expr {
-  let state = state
-    .as_any_mut()
-    .downcast_mut::<StateManager>()
-    .expect("StyleOptions must be StateManager");
-
+  let state = downcast_style_options_to_state_manager(state);
   let first_var = args.iter().position(|arg| is_var(arg, state, functions));
 
   match first_var {

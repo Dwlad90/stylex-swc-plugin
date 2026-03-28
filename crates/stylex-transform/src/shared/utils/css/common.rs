@@ -42,10 +42,10 @@ use swc_core::{
 };
 
 #[allow(unused_imports)]
-pub(crate) use stylex_css_values::common::split_value_required;
+pub(crate) use stylex_css::values::common::split_value_required;
 
 #[allow(unused_imports)]
-pub(crate) use stylex_css_values::common::split_value;
+pub(crate) use stylex_css::values::common::split_value;
 
 const THUMB_VARIANTS: [&str; 3] = [
   "::-webkit-slider-thumb",

@@ -10,15 +10,12 @@ use swc_core::{
   },
 };
 
-use crate::{
-  StyleXOptionsParams,
-  shared::{structures::state_manager::StateManager, utils::common::increase_ident_count},
-};
+use crate::shared::{structures::state_manager::StateManager, utils::common::increase_ident_count};
 use stylex_enums::core::TransformationCycle;
 use stylex_structures::{
   named_import_source::{ImportSources, RuntimeInjection},
   plugin_pass::PluginPass,
-  stylex_options::{CheckModuleResolution, StyleXOptions},
+  stylex_options::{CheckModuleResolution, StyleXOptions, StyleXOptionsParams},
 };
 
 mod fold;

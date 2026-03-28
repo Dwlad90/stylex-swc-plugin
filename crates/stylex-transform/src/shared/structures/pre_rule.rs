@@ -5,7 +5,7 @@ use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::common::type_of;
 use crate::shared::utils::core::convert_style_to_class_name::convert_style_to_class_name;
-use stylex_css_utils::pre_rule::{sort_at_rules, sort_pseudos};
+use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
 
 use super::null_pre_rule::NullPreRule;
 use super::pre_rule_set::PreRuleSet;

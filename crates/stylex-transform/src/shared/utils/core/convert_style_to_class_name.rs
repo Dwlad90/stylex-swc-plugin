@@ -5,7 +5,7 @@ use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::common::{create_hash, dashify};
 use crate::shared::utils::css::common::{generate_css_rule, transform_value_cached};
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
-use stylex_css_utils::pre_rule::{sort_at_rules, sort_pseudos};
+use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
 use stylex_types::structures::injectable_style::InjectableStyle;
 
 pub(crate) fn convert_style_to_class_name(

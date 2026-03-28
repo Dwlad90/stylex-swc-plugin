@@ -8,6 +8,7 @@ use std::{
   path::PathBuf,
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_types::traits::StyleOptions;
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
@@ -776,4 +777,15 @@ pub(crate) fn round_to_decimal_places(value: f64, decimal_places: u32) -> f64 {
     // For other decimal places, always round
     rounded
   }
+}
+
+/// Utility function to get the `StateManager` from the `StyleOptions` trait.
+/// This is a helper function to get the `StateManager` from the `StyleOptions` trait.
+pub(crate) fn downcast_style_options_to_state_manager(
+  state: &mut dyn StyleOptions,
+) -> &mut StateManager {
+  state
+    .as_any_mut()
+    .downcast_mut::<StateManager>()
+    .expect("StyleOptions must be StateManager")
 }

@@ -1,35 +1,39 @@
 # `stylex-css`
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace
 
 ## Overview
 
-Pure CSS generation and normalization crate for the StyleX compiler pipeline.
-This crate was extracted from the former `stylex-shared` monolith to
-encapsulate all CSS output logic — LTR and RTL generation plus whitespace
-normalization — in a single, stateless package that does **not** depend on
-per-file compiler state (`StateManager`). By keeping CSS generation isolated,
-the crate can be tested, profiled, and reasoned about independently from the
-rest of the transform layer.
+Unified CSS processing crate for the StyleX compiler pipeline. This crate
+consolidates all CSS-related functionality — generation, value parsing, property
+ordering, and utility helpers — into a single, cohesive package. It was formed
+by merging the former `stylex-css-utils`, `stylex-css-values`, and
+`stylex-css-order` crates into submodules, reducing workspace complexity and
+eliminating cross-crate boundaries for tightly coupled CSS logic.
 
 - **Stateless CSS generation** — produces CSS strings from StyleX declarations
-  without requiring a `StateManager`, making every function a pure
-  input → output transform.
+  without requiring a `StateManager`, making every function a pure input →
+  output transform.
 - **Bidirectional (LTR / RTL) output** — dedicated modules generate
-  left-to-right and right-to-left stylesheets, enabling automatic
-  bidirectional support in downstream consumers.
-- **Whitespace normalization** — a normalizer pass canonicalises whitespace in
-  generated CSS so that output is deterministic and diff-friendly.
-- **Orchestrates all CSS sub-crates** — pulls together
-  [`stylex-css-order`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-order),
-  [`stylex-css-parser`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-parser),
-  [`stylex-css-utils`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-utils),
-  and
-  [`stylex-css-values`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-values)
-  into a unified CSS processing layer.
-- **Deterministic output** — given the same input declarations and
-  configuration, the crate always produces byte-identical CSS, which
-  simplifies snapshot testing and caching.
+  left-to-right and right-to-left stylesheets, enabling automatic bidirectional
+  support in downstream consumers.
+- **CSS value parsing** — tokenises and parses CSS value strings using the
+  `cssparser` crate, splitting shorthand properties into their individual
+  components (top, right, bottom, left).
+- **Property ordering strategies** — implements three ordering strategies
+  (`ApplicationOrder`, `LegacyExpandShorthandsOrder`,
+  `PropertySpecificityOrder`) for deterministic shorthand expansion and CSS
+  property sorting.
+- **Pseudo-class and selector utilities** — provides `when::ancestor`,
+  `when::descendant`, `when::sibling_*` and other helpers for generating
+  conditional CSS selectors from StyleX state options.
+- **Whitespace normalization** — canonicalises whitespace in generated CSS so
+  output is deterministic and diff-friendly.
+- **Deterministic output** — given identical input declarations and
+  configuration, the crate always produces byte-identical CSS, which simplifies
+  snapshot testing and caching.
 
 ## Architecture
 
@@ -37,10 +41,7 @@ rest of the transform layer.
 - **Depends on**:
   [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast),
   [`stylex-constants`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-constants),
-  [`stylex-css-order`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-order),
   [`stylex-css-parser`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-parser),
-  [`stylex-css-utils`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-utils),
-  [`stylex-css-values`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-values),
   [`stylex-enums`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-enums),
   [`stylex-evaluator`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-evaluator),
   [`stylex-macros`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-macros),
@@ -49,25 +50,6 @@ rest of the transform layer.
   [`stylex-types`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-types)
 - **Depended on by**:
   [`stylex-transform`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-transform)
-
-### Key Exports / Public API
-
-| Export | Description |
-| --- | --- |
-| `css::generate_ltr` | Generates LTR CSS rules from StyleX declarations |
-| `css::generate_rtl` | Generates RTL CSS rules for bidirectional style support |
-| `css::normalizers::whitespace_normalizer` | Canonicalises whitespace in CSS output |
-
-### Modules
-
-- **`css::generate_ltr`** — LTR CSS generation from StyleX declarations.
-  Accepts resolved style values and produces left-to-right CSS rule strings.
-- **`css::generate_rtl`** — RTL CSS generation for bidirectional style
-  support. Mirrors logical properties and values so that a single set of
-  declarations can serve both writing directions.
-- **`css::normalizers::whitespace_normalizer`** — CSS whitespace
-  normalization. Collapses and trims whitespace so that generated CSS is
-  compact and deterministic regardless of formatting upstream.
 
 ## Dependency Graph
 
@@ -88,7 +70,6 @@ graph TD
 
   subgraph L2["Domain Leaves"]
     stylex_enums["enums"]
-    stylex_css_values["css-values"]
     stylex_js["js"]
     stylex_logs["logs"]
     stylex_css_parser["css-parser"]
@@ -101,11 +82,9 @@ graph TD
 
   subgraph L4["Type System"]
     stylex_types["types"]
-    stylex_css_utils["css-utils"]
   end
 
-  subgraph L5["CSS Foundations & AST"]
-    stylex_css_order["css-order"]
+  subgraph L5["AST Foundations"]
     stylex_ast["ast"]
   end
 
@@ -128,7 +107,6 @@ graph TD
   stylex_macros        --> stylex_constants
 
   stylex_enums         --> stylex_macros
-  stylex_css_values    --> stylex_macros
   stylex_js            --> stylex_constants
   stylex_js            --> stylex_macros
   stylex_logs          --> stylex_macros
@@ -144,12 +122,7 @@ graph TD
   stylex_types         --> stylex_macros
   stylex_types         --> stylex_structures
   stylex_types         --> stylex_utils
-  stylex_css_utils     --> stylex_structures
 
-  stylex_css_order     --> stylex_constants
-  stylex_css_order     --> stylex_css_values
-  stylex_css_order     --> stylex_structures
-  stylex_css_order     --> stylex_types
   stylex_ast           --> stylex_constants
   stylex_ast           --> stylex_macros
   stylex_ast           --> stylex_types
@@ -164,10 +137,7 @@ graph TD
 
   stylex_css           --> stylex_ast
   stylex_css           --> stylex_constants
-  stylex_css           --> stylex_css_order
   stylex_css           --> stylex_css_parser
-  stylex_css           --> stylex_css_utils
-  stylex_css           --> stylex_css_values
   stylex_css           --> stylex_enums
   stylex_css           --> stylex_evaluator
   stylex_css           --> stylex_macros
@@ -178,10 +148,7 @@ graph TD
   stylex_transform     --> stylex_ast
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
-  stylex_transform     --> stylex_css_order
   stylex_transform     --> stylex_css_parser
-  stylex_transform     --> stylex_css_utils
-  stylex_transform     --> stylex_css_values
   stylex_transform     --> stylex_enums
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
@@ -214,10 +181,10 @@ graph TD
 
   class stylex_constants,stylex_regex,stylex_utils l0
   class stylex_macros l1
-  class stylex_enums,stylex_css_values,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
+  class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
-  class stylex_types,stylex_css_utils l4
-  class stylex_css_order,stylex_ast l5
+  class stylex_types l4
+  class stylex_ast l5
   class stylex_evaluator l6
   class stylex_css l7
   class stylex_transform l8
@@ -226,19 +193,7 @@ graph TD
 
 </details>
 
-## Development
-
-```bash
-# Build
-make crate-css-build
-
-# Lint
-make crate-css-lint
-
-# Generate docs
-make crate-css-docs
-```
-
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

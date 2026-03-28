@@ -22,7 +22,8 @@ npm install --save-dev @stylexswc/rs-compiler
 
 ## Usage
 
-> [!IMPORTANT] **Turbopack Limitation**: Turbopack does not support webpack
+> [!IMPORTANT]
+> **Turbopack Limitation**: Turbopack does not support webpack
 > plugins
 > ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)).
 > This loader only compiles StyleX code but **does not extract CSS**.
@@ -86,7 +87,8 @@ export default nextConfig;
   compiler. For standard StyleX options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE] **New Features:** The `include` and `exclude` options are exclusive to
+> [!NOTE]
+> **New Features:** The `include` and `exclude` options are exclusive to
 > this NAPI-RS compiler implementation and are not available in the official
 > StyleX Babel plugin.
 

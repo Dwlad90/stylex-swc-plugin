@@ -4,7 +4,6 @@ use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
@@ -17,6 +16,10 @@ use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_
 use crate::shared::utils::css::common::transform_value_cached;
 use crate::shared::utils::object::{
   Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string,
+};
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  utils::common::downcast_style_options_to_state_manager,
 };
 use stylex_constants::constants::messages::{
   ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
@@ -214,10 +217,7 @@ pub(crate) fn get_keyframes_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexExprFn(
       |expr: Expr, local_state: &mut dyn stylex_types::traits::StyleOptions| -> Expr {
-        let state = local_state
-          .as_any_mut()
-          .downcast_mut::<StateManager>()
-          .expect("StyleOptions must be StateManager");
+        let state = downcast_style_options_to_state_manager(local_state);
 
         let (animation_name, injected_style) =
           stylex_keyframes(&EvaluateResultValue::Expr(expr), state);

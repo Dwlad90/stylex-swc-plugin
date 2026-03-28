@@ -1,25 +1,25 @@
-# `stylex-path-resolver`
+# StyleX Path Resolver
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace
 
 ## Overview
 
-Import path resolution and `package.json` parsing utilities for the
-StyleX SWC transformation. Extracted into its own crate so that the
-evaluator and transform layers can resolve module paths without
-depending on the full compiler.
+Import path resolution and `package.json` parsing utilities for the StyleX SWC
+transformation. Extracted into its own crate so that the evaluator and transform
+layers can resolve module paths without depending on the full compiler.
 
 > [!WARNING]
-> The current resolution of the `exports` field from `package.json`
-> is only partially supported, so if you encounter problems, please
-> open an
-> [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new)
-> with an attached link to reproduce the problem.
+The current resolution of the `exports` field from `package.json`
+> is only partially supported, so if you encounter problems, please open an
+> [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with an
+> attached link to reproduce the problem.
 
-- Resolves bare and relative import specifiers to filesystem paths,
-  mirroring Node.js module resolution semantics
-- Parses `package.json` files with partial support for the `exports`
-  field (conditions, subpath patterns)
+- Resolves bare and relative import specifiers to filesystem paths, mirroring
+  Node.js module resolution semantics
+- Parses `package.json` files with partial support for the `exports` field
+  (conditions, subpath patterns)
 - Leaf crate with minimal dependencies — only `stylex-macros`
 
 ## Architecture
@@ -30,11 +30,11 @@ depending on the full compiler.
 
 ### Modules
 
-| Module | Purpose |
-| --- | --- |
+| Module         | Purpose                                                     |
+| -------------- | ----------------------------------------------------------- |
 | `package_json` | `package.json` parsing with partial `exports` field support |
-| `resolvers` | Import path resolution (bare specifiers, relative paths) |
-| `utils` | Path manipulation and normalization helpers |
+| `resolvers`    | Import path resolution (bare specifiers, relative paths)    |
+| `utils`        | Path manipulation and normalization helpers                 |
 
 ## Dependency Graph
 
@@ -53,7 +53,6 @@ graph TD
   end
   subgraph L2["Domain Leaves"]
     stylex_enums["enums"]
-    stylex_css_values["css-values"]
     stylex_js["js"]
     stylex_logs["logs"]
     stylex_css_parser["css-parser"]
@@ -64,10 +63,8 @@ graph TD
   end
   subgraph L4["Type System"]
     stylex_types["types"]
-    stylex_css_utils["css-utils"]
   end
-  subgraph L5["CSS Foundations & AST"]
-    stylex_css_order["css-order"]
+  subgraph L5["AST Foundations"]
     stylex_ast["ast"]
   end
   subgraph L6["Evaluation"]
@@ -84,7 +81,6 @@ graph TD
   end
   stylex_macros --> stylex_constants
   stylex_enums --> stylex_macros
-  stylex_css_values --> stylex_macros
   stylex_js --> stylex_constants
   stylex_js --> stylex_macros
   stylex_logs --> stylex_macros
@@ -98,11 +94,6 @@ graph TD
   stylex_types --> stylex_macros
   stylex_types --> stylex_structures
   stylex_types --> stylex_utils
-  stylex_css_utils --> stylex_structures
-  stylex_css_order --> stylex_constants
-  stylex_css_order --> stylex_css_values
-  stylex_css_order --> stylex_structures
-  stylex_css_order --> stylex_types
   stylex_ast --> stylex_constants
   stylex_ast --> stylex_macros
   stylex_ast --> stylex_types
@@ -115,10 +106,7 @@ graph TD
   stylex_evaluator --> stylex_types
   stylex_css --> stylex_ast
   stylex_css --> stylex_constants
-  stylex_css --> stylex_css_order
   stylex_css --> stylex_css_parser
-  stylex_css --> stylex_css_utils
-  stylex_css --> stylex_css_values
   stylex_css --> stylex_enums
   stylex_css --> stylex_evaluator
   stylex_css --> stylex_macros
@@ -128,10 +116,7 @@ graph TD
   stylex_transform --> stylex_ast
   stylex_transform --> stylex_constants
   stylex_transform --> stylex_css
-  stylex_transform --> stylex_css_order
   stylex_transform --> stylex_css_parser
-  stylex_transform --> stylex_css_utils
-  stylex_transform --> stylex_css_values
   stylex_transform --> stylex_enums
   stylex_transform --> stylex_logs
   stylex_transform --> stylex_macros
@@ -161,10 +146,10 @@ graph TD
   classDef l9 fill:#ffc0c0,stroke:#cc0000,color:#333
   class stylex_constants,stylex_regex,stylex_utils l0
   class stylex_macros l1
-  class stylex_enums,stylex_css_values,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
+  class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
-  class stylex_types,stylex_css_utils l4
-  class stylex_css_order,stylex_ast l5
+  class stylex_types l4
+  class stylex_ast l5
   class stylex_evaluator l6
   class stylex_css l7
   class stylex_transform l8
@@ -173,16 +158,7 @@ graph TD
 
 </details>
 
-## Development
-
-```bash
-make crate-resolver-build  # Build path resolver crate
-make crate-resolver-format # Format path resolver crate
-make crate-resolver-lint   # Lint path resolver crate
-make crate-resolver-clean  # Clean path resolver crate
-make crate-resolver-docs   # Generate docs for path resolver crate
-```
-
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

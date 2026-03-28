@@ -4,7 +4,6 @@ use std::rc::Rc;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
 use crate::shared::structures::functions::{FunctionConfig, FunctionType};
@@ -15,6 +14,10 @@ use crate::shared::utils::common::{create_hash, dashify};
 use crate::shared::utils::css::common::transform_value_cached;
 use crate::shared::utils::object::{
   Pipe, obj_map, obj_map_keys_string, preprocess_object_properties,
+};
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  utils::common::downcast_style_options_to_state_manager,
 };
 use stylex_ast::ast::factories::{create_object_lit, create_string_key_value_prop};
 use stylex_constants::constants::messages::{
@@ -159,10 +162,7 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexExprFn(
       |expr: Expr, local_state: &mut dyn stylex_types::traits::StyleOptions| -> Expr {
-        let state = local_state
-          .as_any_mut()
-          .downcast_mut::<StateManager>()
-          .expect("StyleOptions must be StateManager");
+        let state = downcast_style_options_to_state_manager(local_state);
 
         let (position_try_name, injected_style) =
           stylex_position_try(&EvaluateResultValue::Expr(expr), state);

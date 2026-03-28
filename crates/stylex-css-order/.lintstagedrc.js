@@ -1,1 +1,0 @@
-../../.lintstagedrc.js

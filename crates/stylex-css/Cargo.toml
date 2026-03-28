@@ -32,10 +32,7 @@ swc_core = { workspace = true, features = [
 
 stylex_ast = { path = "../stylex-ast" }
 stylex_constants = { path = "../stylex-constants" }
-stylex_css_order = { path = "../stylex-css-order" }
 stylex_css_parser = { path = "../stylex-css-parser" }
-stylex_css_utils = { path = "../stylex-css-utils" }
-stylex_css_values = { path = "../stylex-css-values" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_evaluator = { path = "../stylex-evaluator" }
 stylex_macros = { path = "../stylex-macros" }

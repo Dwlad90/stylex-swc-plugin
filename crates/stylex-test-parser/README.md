@@ -1,51 +1,53 @@
-# `stylex-test-parser`
+# StyleX Test Parser
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace
 
 ## Overview
 
 Standalone CLI tool that parses Jest tests from the official
 [StyleX](https://github.com/facebook/stylex) repository to maintain
-compatibility between this unofficial SWC plugin and Meta's official
-StyleX library. It is **not** part of the compiler pipeline DAG — it has
-zero internal crate dependencies and nothing depends on it. The tool
-exists purely as a development-time utility to keep the SWC plugin's test
-suite synchronised with upstream changes in the official StyleX repo.
+compatibility between this unofficial SWC plugin and Meta's official StyleX
+library. It is **not** part of the compiler pipeline DAG — it has zero internal
+crate dependencies and nothing depends on it. The tool exists purely as a
+development-time utility to keep the SWC plugin's test suite synchronised with
+upstream changes in the official StyleX repo.
 
-- **Automated test extraction** — walks the official StyleX repository
-  tree and extracts Jest test files, converting them into a format
-  consumable by this workspace's test harness.
-- **Compatibility tracking** — by re-running the parser after upstream
-  StyleX releases, developers can immediately see which tests have been
-  added, modified, or removed via `git diff`.
-- **Version awareness** — enables the team to stay current with new
-  StyleX features and API changes by surfacing test-level deltas.
-- **Zero internal dependencies** — the tool depends only on external
-  crates (e.g., `clap`, `serde`, standard I/O) and can be built and run
-  independently of the compiler pipeline.
+- **Automated test extraction** — walks the official StyleX repository tree and
+  extracts Jest test files, converting them into a format consumable by this
+  workspace's test harness.
+- **Compatibility tracking** — by re-running the parser after upstream StyleX
+  releases, developers can immediately see which tests have been added,
+  modified, or removed via `git diff`.
+- **Version awareness** — enables the team to stay current with new StyleX
+  features and API changes by surfacing test-level deltas.
+- **Zero internal dependencies** — the tool depends only on external crates
+  (e.g., `clap`, `serde`, standard I/O) and can be built and run independently
+  of the compiler pipeline.
 
 ## Architecture
 
-- **Layer**: — *(standalone CLI, not part of the compiler pipeline DAG)*
+- **Layer**: — _(standalone CLI, not part of the compiler pipeline DAG)_
 - **Depends on**: None (no internal workspace crate dependencies)
 - **Depended on by**: None
 
 ## Features
 
 - **Test Parsing**: Extracts tests from the official StyleX repository.
-- **Compatibility Checks**: Assists in ensuring compatibility between the
-  StyleX SWC plugin and official StyleX tests.
-- **Version Tracking**: Enables you to stay updated with changes in
-  StyleX tests and features.
+- **Compatibility Checks**: Assists in ensuring compatibility between the StyleX
+  SWC plugin and official StyleX tests.
+- **Version Tracking**: Enables you to stay updated with changes in StyleX tests
+  and features.
 
 ## Using the CLI
 
 1. Compile release version of the CLI app by running next command:
    `pnpm --filter=@stylexswc/test-parser run build`
-2. Clone official StyleX [repo](https://github.com/facebook/stylex),
-   preferably next to this repository or update it if exist
-3. Run next command `pnpm --filter=@stylexswc/test-parser start` for
-   parsing tests
+2. Clone official StyleX [repo](https://github.com/facebook/stylex), preferably
+   next to this repository or update it if exist
+3. Run next command `pnpm --filter=@stylexswc/test-parser start` for parsing
+   tests
 4. Check `git diff` to see updates and changes to tests
 5. Coding new features
 
@@ -78,7 +80,6 @@ graph TD
 
   subgraph L2["Domain Leaves"]
     stylex_enums["enums"]
-    stylex_css_values["css-values"]
     stylex_js["js"]
     stylex_logs["logs"]
     stylex_css_parser["css-parser"]
@@ -91,11 +92,9 @@ graph TD
 
   subgraph L4["Type System"]
     stylex_types["types"]
-    stylex_css_utils["css-utils"]
   end
 
-  subgraph L5["CSS Foundations & AST"]
-    stylex_css_order["css-order"]
+  subgraph L5["AST Foundations"]
     stylex_ast["ast"]
   end
 
@@ -118,7 +117,6 @@ graph TD
   stylex_macros        --> stylex_constants
 
   stylex_enums         --> stylex_macros
-  stylex_css_values    --> stylex_macros
   stylex_js            --> stylex_constants
   stylex_js            --> stylex_macros
   stylex_logs          --> stylex_macros
@@ -134,12 +132,7 @@ graph TD
   stylex_types         --> stylex_macros
   stylex_types         --> stylex_structures
   stylex_types         --> stylex_utils
-  stylex_css_utils     --> stylex_structures
 
-  stylex_css_order     --> stylex_constants
-  stylex_css_order     --> stylex_css_values
-  stylex_css_order     --> stylex_structures
-  stylex_css_order     --> stylex_types
   stylex_ast           --> stylex_constants
   stylex_ast           --> stylex_macros
   stylex_ast           --> stylex_types
@@ -154,10 +147,7 @@ graph TD
 
   stylex_css           --> stylex_ast
   stylex_css           --> stylex_constants
-  stylex_css           --> stylex_css_order
   stylex_css           --> stylex_css_parser
-  stylex_css           --> stylex_css_utils
-  stylex_css           --> stylex_css_values
   stylex_css           --> stylex_enums
   stylex_css           --> stylex_evaluator
   stylex_css           --> stylex_macros
@@ -168,10 +158,7 @@ graph TD
   stylex_transform     --> stylex_ast
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
-  stylex_transform     --> stylex_css_order
   stylex_transform     --> stylex_css_parser
-  stylex_transform     --> stylex_css_utils
-  stylex_transform     --> stylex_css_values
   stylex_transform     --> stylex_enums
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
@@ -204,10 +191,10 @@ graph TD
 
   class stylex_constants,stylex_regex,stylex_utils l0
   class stylex_macros l1
-  class stylex_enums,stylex_css_values,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
+  class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
-  class stylex_types,stylex_css_utils l4
-  class stylex_css_order,stylex_ast l5
+  class stylex_types l4
+  class stylex_ast l5
   class stylex_evaluator l6
   class stylex_css l7
   class stylex_transform l8
@@ -231,4 +218,5 @@ make crate-test-parser-docs
 
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

@@ -1,30 +1,31 @@
 # `stylex-types`
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace
 
 ## Overview
 
-Injectable style types and metadata structures for the StyleX compiler.
-This crate defines the `InjectableStyle` family of structs and enums, the
-`MetaData` output type, and the `StyleOptions` trait that decouples
-function-pointer types from `StateManager`. It was extracted so that every
-crate needing compiled-style representations can depend on a slim type
-package without pulling in transform logic — six downstream crates import
-these types directly.
+Injectable style types and metadata structures for the StyleX compiler. This
+crate defines the `InjectableStyle` family of structs and enums, the `MetaData`
+output type, and the `StyleOptions` trait that decouples function-pointer types
+from `StateManager`. It was extracted so that every crate needing compiled-style
+representations can depend on a slim type package without pulling in transform
+logic — six downstream crates import these types directly.
 
-- **Injectable styles** — `InjectableStyle`, `InjectableConstStyle` and
-  their `Base` counterparts provide LTR/RTL CSS content with optional
-  priority and const-variable tracking
+- **Injectable styles** — `InjectableStyle`, `InjectableConstStyle` and their
+  `Base` counterparts provide LTR/RTL CSS content with optional priority and
+  const-variable tracking
 - **Enum wrappers** — `InjectableStyleKind` and `InjectableStyleBaseKind`
   distinguish regular styles from const-referencing styles
-- **Metadata** — `MetaData` pairs a CSS class name with its injectable
-  style and priority, supporting custom serialisation
-- **Trait interface** — `StyleOptions` is an object-safe trait that
-  exposes a minimal API for CSS generation without depending on the
-  concrete `StateManager`
-- **Type alias** — `InjectableStylesMap` (`IndexMap<String,
-  Rc<InjectableStyleKind>>`) provides ordered, reference-counted style
-  storage
+- **Metadata** — `MetaData` pairs a CSS class name with its injectable style and
+  priority, supporting custom serialisation
+- **Trait interface** — `StyleOptions` is an object-safe trait that exposes a
+  minimal API for CSS generation without depending on the concrete
+  `StateManager`
+- **Type alias** — `InjectableStylesMap`
+  (`IndexMap<String, Rc<InjectableStyleKind>>`) provides ordered,
+  reference-counted style storage
 
 ## Architecture
 
@@ -38,38 +39,14 @@ these types directly.
 - **Depended on by**:
   [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast),
   [`stylex-css`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css),
-  [`stylex-css-order`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-order),
   [`stylex-evaluator`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-evaluator),
   [`stylex-rs-compiler`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler),
   [`stylex-transform`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-transform)
 
-### Key Exports
-
-| Export | Kind | Purpose |
-|--------|------|---------|
-| `InjectableStyle` | struct | LTR/RTL CSS content with optional priority |
-| `InjectableConstStyle` | struct | Like `InjectableStyle` plus `const_key` / `const_value` |
-| `InjectableStyleBase` | struct | Hashable, minimal LTR/RTL representation |
-| `InjectableStyleConstBase` | struct | Hashable variant with const metadata |
-| `InjectableStyleKind` | enum | `Regular(InjectableStyle)` or `Const(InjectableConstStyle)` |
-| `InjectableStyleBaseKind` | enum | `Regular(InjectableStyleBase)` or `Const(InjectableStyleConstBase)` |
-| `MetaData` | struct | CSS class name + injectable style + priority (custom serde) |
-| `StyleOptions` | trait | Object-safe interface decoupling fn-pointers from `StateManager` |
-| `InjectableStylesMap` | type alias | `IndexMap<String, Rc<InjectableStyleKind>>` |
-
-### Modules
-
-| Module | Description |
-|--------|-------------|
-| `enums::data_structures::injectable_style` | `InjectableStyleKind` and `InjectableStyleBaseKind` enums |
-| `structures::injectable_style` | `InjectableStyle`, `InjectableConstStyle`, and their `Base` variants |
-| `structures::meta_data` | `MetaData` struct with custom priority serialisation |
-| `traits` | `StyleOptions` trait and the `InjectableStylesMap` type alias |
-
 ### `StyleOptions` Trait
 
-The `StyleOptions` trait solves a circular-dependency problem: function
-pointer types and `StateManager` live in different crates.
+The `StyleOptions` trait solves a circular-dependency problem: function pointer
+types and `StateManager` live in different crates.
 
 ```text
 ┌──────────────┐         ┌─────────────────────┐
@@ -109,7 +86,6 @@ graph TD
 
   subgraph L2["Domain Leaves"]
     stylex_enums["enums"]
-    stylex_css_values["css-values"]
     stylex_js["js"]
     stylex_logs["logs"]
     stylex_css_parser["css-parser"]
@@ -122,11 +98,9 @@ graph TD
 
   subgraph L4["Type System"]
     stylex_types["types"]
-    stylex_css_utils["css-utils"]
   end
 
-  subgraph L5["CSS Foundations & AST"]
-    stylex_css_order["css-order"]
+  subgraph L5["AST Foundations"]
     stylex_ast["ast"]
   end
 
@@ -149,7 +123,6 @@ graph TD
   stylex_macros        --> stylex_constants
 
   stylex_enums         --> stylex_macros
-  stylex_css_values    --> stylex_macros
   stylex_js            --> stylex_constants
   stylex_js            --> stylex_macros
   stylex_logs          --> stylex_macros
@@ -165,12 +138,7 @@ graph TD
   stylex_types         --> stylex_macros
   stylex_types         --> stylex_structures
   stylex_types         --> stylex_utils
-  stylex_css_utils     --> stylex_structures
 
-  stylex_css_order     --> stylex_constants
-  stylex_css_order     --> stylex_css_values
-  stylex_css_order     --> stylex_structures
-  stylex_css_order     --> stylex_types
   stylex_ast           --> stylex_constants
   stylex_ast           --> stylex_macros
   stylex_ast           --> stylex_types
@@ -185,10 +153,7 @@ graph TD
 
   stylex_css           --> stylex_ast
   stylex_css           --> stylex_constants
-  stylex_css           --> stylex_css_order
   stylex_css           --> stylex_css_parser
-  stylex_css           --> stylex_css_utils
-  stylex_css           --> stylex_css_values
   stylex_css           --> stylex_enums
   stylex_css           --> stylex_evaluator
   stylex_css           --> stylex_macros
@@ -199,10 +164,7 @@ graph TD
   stylex_transform     --> stylex_ast
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
-  stylex_transform     --> stylex_css_order
   stylex_transform     --> stylex_css_parser
-  stylex_transform     --> stylex_css_utils
-  stylex_transform     --> stylex_css_values
   stylex_transform     --> stylex_enums
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
@@ -235,10 +197,10 @@ graph TD
 
   class stylex_constants,stylex_regex,stylex_utils l0
   class stylex_macros l1
-  class stylex_enums,stylex_css_values,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
+  class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
-  class stylex_types,stylex_css_utils l4
-  class stylex_css_order,stylex_ast l5
+  class stylex_types l4
+  class stylex_ast l5
   class stylex_evaluator l6
   class stylex_css l7
   class stylex_transform l8
@@ -249,14 +211,7 @@ graph TD
 
 ---
 
-## Development
-
-```bash
-make crate-types-build    # Build the crate
-make crate-types-lint     # Lint with Clippy
-make crate-types-docs     # Generate rustdoc
-```
-
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

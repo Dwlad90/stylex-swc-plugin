@@ -4,9 +4,9 @@ use swc_core::ecma::ast::Expr;
 
 use crate::shared::structures::pre_rule::PreRuleValue;
 use crate::shared::utils::ast::convertors::convert_lit_to_string;
-use stylex_css_order::structures::application_order::ApplicationOrder;
-use stylex_css_order::structures::legacy_expand_shorthands_order::LegacyExpandShorthandsOrder;
-use stylex_css_order::structures::property_specificity_order::PropertySpecificityOrder;
+use stylex_css::order::structures::application_order::ApplicationOrder;
+use stylex_css::order::structures::legacy_expand_shorthands_order::LegacyExpandShorthandsOrder;
+use stylex_css::order::structures::property_specificity_order::PropertySpecificityOrder;
 use stylex_enums::property_validation_mode::PropertyValidationMode;
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_structures::order::Order;

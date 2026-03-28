@@ -44,7 +44,7 @@
   "devDependencies": {
     "@napi-rs/cli": "^3.5.1",
     "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.18.1",
+    "@stylexjs/stylex": "^0.18.2",
     "@stylexswc/ast": "workspace:*",
     "@stylexswc/logs": "workspace:*",
     "@stylexswc/macros": "workspace:*",

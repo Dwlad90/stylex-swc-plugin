@@ -37,7 +37,6 @@
     "@stylexswc/constants": "workspace:*",
     "@stylexswc/macros": "workspace:*",
     "@stylexswc/misc": "workspace:*",
-    "@stylexswc/stylex-data-structures": "workspace:*",
     "@stylexswc/stylex-enums": "workspace:*",
     "@stylexswc/stylex-structures": "workspace:*",
     "@taplo/cli": "^0.7.0",

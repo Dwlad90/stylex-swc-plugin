@@ -9,6 +9,7 @@ Each type has its own module with comprehensive parsing support.
 pub mod common_types;
 pub mod dimension;
 pub mod number;
+pub mod percentage;
 
 // Color types
 pub mod alpha_value;

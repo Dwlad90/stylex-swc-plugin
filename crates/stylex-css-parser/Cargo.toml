@@ -14,7 +14,7 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
-cssparser = { version = "0.36.0" }
+cssparser.workspace = true
 fancy-regex.workspace = true
 indexmap.workspace = true
 log.workspace = true

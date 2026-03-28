@@ -167,6 +167,7 @@ where
     stylex_imports.contains(&ident_sym.to_string())
       || (state.cycle == TransformationCycle::TransformEnter
         && (state.stylex_create_import.contains(&ident_sym))
+        || state.stylex_attrs_import.contains(&ident_sym)
         || state.stylex_define_vars_import.contains(&ident_sym)
         || state.stylex_define_consts_import.contains(&ident_sym)
         || state.stylex_define_marker_import.contains(&ident_sym)

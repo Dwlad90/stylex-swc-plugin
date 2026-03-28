@@ -1,6 +1,8 @@
 # PostCSS plugin with NAPI-RS StyleX compiler integration
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace
 
 `PostCSS plugin` for an unofficial
 [`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
@@ -105,33 +107,46 @@ import '[fileName].css';
 The plugin accepts the following configuration options:
 
 > [!NOTE]
-> **Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
+> **Features:** The `include` and `exclude` options are exclusive to
+> this NAPI-RS compiler implementation and are not available in the official
+> StyleX Babel plugin.
 
 ### `include`
 
 - Type: `(string | RegExp)[]`
-- Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
-  When specified, only files matching at least one of these patterns will be discovered and transformed.
-  Patterns are matched against paths relative to the current working directory.
-  Supports regex lookahead/lookbehind for advanced filtering.
+- Default: auto-discovered
+- Description: **RS-compiler Only** An array of glob patterns or regular
+  expressions to include specific files for StyleX transformation. When
+  specified, only files matching at least one of these patterns will be
+  discovered and transformed. Patterns are matched against paths relative to the
+  current working directory. Supports regex lookahead/lookbehind for advanced
+  filtering.
+
+When omitted, the plugin auto-discovers source files in the project `cwd` and
+direct dependencies that use StyleX.
 
 ### `exclude`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
-  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
-  Patterns are matched against paths relative to the current working directory.
-  Supports regex lookahead/lookbehind for advanced filtering.
+- Description: **RS-compiler Only** An array of glob patterns or regular
+  expressions to exclude specific files from StyleX transformation. Files
+  matching any of these patterns will not be transformed, even if they match an
+  `include` pattern. Patterns are matched against paths relative to the current
+  working directory. Supports regex lookahead/lookbehind for advanced filtering.
+
+When `include` is omitted, the plugin automatically excludes common build and
+dependency folders (for example `node_modules`, `.next`, `dist`, `build`) to
+keep discovery focused on source files.
 
 ### `rsOptions`
 
 - Type: `StyleXOptions`
 - Optional
 - Default: `{}`
-- Description: StyleX compiler options passed to the StyleX compiler.
-  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
+- Description: StyleX compiler options passed to the StyleX compiler. For
+  standard StyleX options, see the
+  [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 ### `useCSSLayers`
 
@@ -145,13 +160,24 @@ The plugin accepts the following configuration options:
 - Type: `string`
 - Optional
 - Default: `process.cwd()`
-- Description: Current working directory for resolving files
+- Description: Current working directory for resolving files. Dependency paths
+  and config resolution use this value.
 
 ### `isDev`
 
 - Type: `boolean`
 - Optional
 - Description: Whether the plugin is running in development mode
+
+### `importSources`
+
+- Type: `Array<string | { from: string, as: string }>`
+- Optional
+- Description: Override import sources at the PostCSS plugin level.
+
+When provided, takes precedence over `rsOptions.importSources`. When omitted,
+falls back to `rsOptions.importSources`, then the built-in defaults
+(`@stylexjs/stylex`, `stylex`).
 
 ## Path Filtering Examples
 
@@ -214,6 +240,15 @@ The plugin accepts the following configuration options:
 }
 ```
 
+## Debugging auto-discovery
+
+Set `STYLEX_POSTCSS_DEBUG=1` to print resolved plugin inputs, including:
+
+- resolved `importSources` and where they came from
+- final `include` and `exclude` globs
+- discovered dependency directories
+
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

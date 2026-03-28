@@ -1,3 +1,4 @@
+pub(crate) mod stylex_attrs;
 pub(crate) mod stylex_create;
 pub(crate) mod stylex_create_theme;
 pub(crate) mod stylex_default_maker;

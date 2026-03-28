@@ -10,6 +10,11 @@ import { shouldTransformFile } from '@stylexswc/rs-compiler';
 
 import type { StyleXPluginOption, TransformOptions } from './types';
 
+const NODE_MODULES_CATCH_ALL_EXCLUDE_PATTERNS = new Set([
+  'node_modules/**',
+  '**/node_modules/**',
+]);
+
 // Parses a glob pattern and extracts its base directory and pattern.
 // Returns an object with `base` and `glob` properties.
 function parseGlob(pattern: string) {
@@ -37,7 +42,7 @@ function parseGlob(pattern: string) {
 }
 
 // Parses a file path or glob pattern into a PostCSS dependency message.
-function parseDependency(fileOrGlob: string) {
+function parseDependency(fileOrGlob: string, cwd: string) {
   // License: MIT
   // Based on:
   // https://github.com/chakra-ui/panda/blob/6ab003795c0b076efe6879a2e6a2a548cb96580e/packages/node/src/parse-dependency.ts
@@ -51,12 +56,62 @@ function parseDependency(fileOrGlob: string) {
 
   if (isGlob(fileOrGlob)) {
     const { base, glob } = parseGlob(fileOrGlob);
-    message = { type: 'dir-dependency', dir: normalize(resolve(base)), glob };
+    message = {
+      type: 'dir-dependency',
+      dir: normalize(resolve(cwd, base)),
+      glob,
+    };
   } else {
-    message = { type: 'dependency', file: normalize(resolve(fileOrGlob)) };
+    message = { type: 'dependency', file: normalize(resolve(cwd, fileOrGlob)) };
   }
 
   return message;
+}
+
+function normalizeGlobPattern(pattern: string | RegExp): string {
+  return String(pattern).replace(/\\/g, '/').replace(/^\.\//, '');
+}
+
+function isNodeModulesCatchAllExcludePattern(pattern: string | RegExp): boolean {
+  return NODE_MODULES_CATCH_ALL_EXCLUDE_PATTERNS.has(normalizeGlobPattern(pattern));
+}
+
+function toCanonicalFilePath(file: string, cwd: string): string {
+  return normalize(resolve(cwd, file));
+}
+
+/**
+ * When an absolute include pattern points into node_modules, we remove the broad
+ * catch-all excludes (node_modules/** and **\/node_modules/**) so the specific
+ * package path can be matched. However that also allows deeply nested
+ * node_modules within the discovered package (e.g. transitive deps that
+ * themselves have their own node_modules) to be scanned.
+ *
+ * This helper computes a *specific* absolute exclude pattern that prevents
+ * scanning the nested node_modules inside the matched package's base directory,
+ * while still letting the package's own source files through.
+ *
+ * The pattern must be absolute because fast-glob does not apply relative ignore
+ * patterns to absolute match results (which occur when the include pattern is
+ * itself absolute).
+ *
+ * Example:
+ *   includePattern = '/app/node_modules/@acme/ui/**\/*.{ts,tsx}'
+ *   → '/app/node_modules/@acme/ui/node_modules/**'
+ */
+function nestedNodeModulesExcludeFor(includePattern: string): string | null {
+  if (!path.isAbsolute(includePattern)) {
+    return null;
+  }
+
+  // globParent gives the base directory before the glob wildcards begin.
+  // e.g. '/app/node_modules/@acme/ui/**/*.ts' → '/app/node_modules/@acme/ui'
+  const baseDir = globParent(includePattern);
+
+  // Return an absolute ignore pattern so fast-glob matches it correctly
+  // when the include pattern is absolute (relative ignore patterns are not
+  // applied to absolute match results).
+  return `${baseDir.split(path.sep).join('/')}/node_modules/**`;
 }
 
 // Creates a builder for transforming files and bundling StyleX CSS.
@@ -108,23 +163,57 @@ function createBuilder() {
     const hasRegexPatterns =
       (include || []).some(isRegexPattern) || (exclude || []).some(isRegexPattern);
 
+    if (globPatterns.length === 0 && !hasRegexPatterns) {
+      return [];
+    }
+
     // Use fast-glob with glob patterns for initial discovery
     const globExclude = (exclude || []).filter(isGlobPattern).map(p => String(p));
-    let files = globSync(globPatterns.length > 0 ? globPatterns : [], {
-      onlyFiles: true,
-      ignore: globExclude,
-      cwd,
-    });
 
-    // Normalize file paths
-    files = files.map(file => (file.includes(cwd || '/') ? file : path.resolve(cwd || '/', file)));
+    const ignoreWithoutNodeModulesCatchAll = globExclude.filter(
+      (pattern) => !isNodeModulesCatchAllExcludePattern(pattern),
+    );
+
+    const files = new Set<string>();
+    for (const includePattern of globPatterns) {
+      const isAbsolutePattern = path.isAbsolute(includePattern);
+      const pointsToNodeModules = /(^|[/\\])node_modules([/\\]|$)/.test(
+        includePattern,
+      );
+
+      let ignore: string[];
+      if (isAbsolutePattern && pointsToNodeModules) {
+        // Remove broad catch-all patterns so this specific node_modules path
+        // can be matched, but add back a targeted exclude for any nested
+        // node_modules *within* the matched package to avoid scanning
+        // transitive dependencies' source files.
+        const nestedExclude = nestedNodeModulesExcludeFor(includePattern);
+        ignore = [
+          ...ignoreWithoutNodeModulesCatchAll,
+          ...(nestedExclude != null ? [nestedExclude] : []),
+        ];
+      } else {
+        ignore = globExclude;
+      }
+
+      const matchedFiles = globSync(includePattern, {
+        onlyFiles: true,
+        ignore,
+        cwd,
+      });
+      for (const file of matchedFiles) {
+        files.add(toCanonicalFilePath(file, cwd || '/'));
+      }
+    }
+
+    let result = Array.from(files);
 
     // If there are regex patterns, filter using shouldTransformFile
     if (hasRegexPatterns) {
-      files = files.filter(file => shouldTransformFile(file, include, exclude));
+      result = result.filter(file => shouldTransformFile(file, include, exclude));
     }
 
-    return files;
+    return result;
   }
 
   // Transforms the included files, bundles the CSS, and returns the result.
@@ -190,13 +279,13 @@ function createBuilder() {
 
   // Retrieves the dependencies that PostCSS should watch.
   function getDependencies() {
-    const { include } = getConfig();
+    const { include, cwd } = getConfig();
     const dependencies: Awaited<ReturnType<typeof parseDependency>>[] = [];
 
     for (const fileOrGlob of include || []) {
       const fileOrGlobString = fileOrGlob.toString();
 
-      const dependency = parseDependency(fileOrGlobString);
+      const dependency = parseDependency(fileOrGlobString, cwd || process.cwd());
       if (dependency != null) {
         dependencies.push(dependency);
       }

@@ -1,6 +1,6 @@
 
 module.exports = {
-  testPathIgnorePatterns: ['/__fixtures__/'],
+  testPathIgnorePatterns: ['/__fixtures__/', '/__auto_discovery_fixtures__/'],
   testEnvironment: 'node',
   preset: 'ts-jest',
 

@@ -20,6 +20,13 @@ export interface StyleXPluginOption {
   include?: StyleXOptions['include'];
   cwd?: string;
   isDev?: boolean;
+
+  /**
+   * Override import sources at the PostCSS plugin level.
+   * When provided, takes precedence over rsOptions.importSources.
+   * When omitted, falls back to rsOptions.importSources, then built-in defaults.
+   */
+  importSources?: Array<string | { from: string; as?: string }>;
 }
 
 export interface TransformOptions {

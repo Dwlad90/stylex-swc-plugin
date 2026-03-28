@@ -1,7 +1,17 @@
 import postcss from 'postcss';
 import createBuilder from './builder';
+import {
+  resolveExclude,
+  resolveImportSourcesWithMetadata,
+  resolveIncludeWithMetadata,
+} from './discovery';
 
 import type { StyleXPluginOption } from './types';
+
+function isDebugEnabled(): boolean {
+  const value = String(process.env.STYLEX_POSTCSS_DEBUG ?? '').toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes';
+}
 
 function createPlugin() {
   const PLUGIN_NAME = '@stylexswc/postcss-plugin';
@@ -17,13 +27,51 @@ function createPlugin() {
     include,
     exclude,
     useCSSLayers = false,
+    importSources,
   }: StyleXPluginOption) => {
-    exclude = [
+    const importSourcesResolution = resolveImportSourcesWithMetadata({
+      importSources,
+      rsOptions,
+    });
+    const effectiveImportSources = importSourcesResolution.importSources;
+
+    const includeResolution = resolveIncludeWithMetadata({
+      cwd,
+      include,
+      importSources: effectiveImportSources,
+    });
+    const effectiveInclude = includeResolution.include;
+
+    const effectiveExclude = resolveExclude({
+      include,
+      exclude,
+    });
+
+    const excludeWithDefaults = [
       // Exclude type declaration files by default because it never contains any CSS rules.
       '**/*.d.ts',
       '**/*.flow',
-      ...(exclude ?? []),
+      ...effectiveExclude,
     ];
+
+    if (isDebugEnabled()) {
+      console.info(
+        `[${PLUGIN_NAME}] Auto-discovery details:\n${JSON.stringify(
+          {
+            cwd,
+            importSourcesSource: importSourcesResolution.source,
+            importSources: effectiveImportSources,
+            include: effectiveInclude,
+            includeWasExplicit: includeResolution.hasExplicitInclude,
+            discoveredDependencyDirectories:
+              includeResolution.discoveredDependencyDirectories,
+            exclude: excludeWithDefaults,
+          },
+          null,
+          2,
+        )}`,
+      );
+    }
 
     // Whether to skip the error when transforming StyleX rules.
     // Useful in watch mode where Fast Refresh can recover from errors.
@@ -39,12 +87,15 @@ function createPlugin() {
 
           // Configure the builder with the provided options
           builder.configure({
-            include,
-            exclude,
+            include: effectiveInclude,
+            exclude: excludeWithDefaults,
             cwd,
             rsOptions: {
               ...rsOptions,
-              importSources: rsOptions?.importSources ?? ['@stylexjs/stylex', 'stylex'],
+              importSources:
+                effectiveImportSources.length > 0
+                  ? (effectiveImportSources as typeof rsOptions.importSources)
+                  : rsOptions?.importSources ?? ['@stylexjs/stylex', 'stylex'],
               styleResolution: rsOptions?.styleResolution ?? 'property-specificity',
             },
             useCSSLayers,

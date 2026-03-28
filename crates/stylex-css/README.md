@@ -8,10 +8,7 @@
 
 Unified CSS processing crate for the StyleX compiler pipeline. This crate
 consolidates all CSS-related functionality — generation, value parsing, property
-ordering, and utility helpers — into a single, cohesive package. It was formed
-by merging the former `stylex-css-utils`, `stylex-css-values`, and
-`stylex-css-order` crates into submodules, reducing workspace complexity and
-eliminating cross-crate boundaries for tightly coupled CSS logic.
+ordering, and utility helpers — into a single, cohesive package.
 
 - **Stateless CSS generation** — produces CSS strings from StyleX declarations
   without requiring a `StateManager`, making every function a pure input →

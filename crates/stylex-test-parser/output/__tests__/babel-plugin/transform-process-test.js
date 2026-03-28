@@ -370,6 +370,243 @@ describe('@stylexjs/babel-plugin', ()=>{
         }"
       `);
         });
+        test('useLayers with layersBefore', ()=>{
+            const { metadata } = transform(fixture);
+            expect(stylexPlugin.processStylexRules(metadata, {
+                useLayers: true,
+                layersBefore: [
+                    'reset',
+                    'typography'
+                ],
+                enableLTRRTLComments: false
+            })).toMatchInlineSnapshot(`
+        "
+        @layer reset, typography, priority1, priority2, priority3, priority4;
+        @property --x-color { syntax: "*"; inherits: false;}
+        @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
+        .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
+        .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
+        .--orange-theme-color-xufgesz{--orange-theme-color:red}
+        @layer priority2{
+        .margin-xymmreb{margin:10px 20px}
+        .padding-xss17vw{padding:var(--large-x1ec7iuc)}
+        }
+        @layer priority3{
+        .borderColor-x1bg2uv5{border-color:green}
+        @media (max-width: 1000px){.borderColor-x5ugf7c.borderColor-x5ugf7c{border-color:var(--blue-xpqh4lw)}}
+        @media (max-width: 500px){@media (max-width: 1000px){.borderColor-xqiy1ys.borderColor-xqiy1ys.borderColor-xqiy1ys{border-color:yellow}}}
+        }
+        @layer priority4{
+        .animationName-x13ah0pd{animation-name:x35atj5-B}
+        .backgroundColor-xrkmrrc{background-color:red}
+        .color-x14rh7hd{color:var(--x-color)}
+        html:not([dir='rtl']) .float-x1kmio9f{float:left}
+        html[dir='rtl'] .float-x1kmio9f{float:right}
+        .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
+        .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
+        .backgroundColor-xfy810d.backgroundColor-xfy810d:where(.x-default-marker:focus *){background-color:green}
+        .backgroundColor-xbrh7vm:hover{background-color:blue}
+        @media (max-width: 1000px){.backgroundColor-xahc4vn.backgroundColor-xahc4vn{background-color:yellow}}
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id{text-shadow:10px 20px 30px 40px green}}
+        @media (max-width: 1000px){.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}
+        @media (max-width: 1000px){.backgroundColor-x975j7z.backgroundColor-x975j7z.backgroundColor-x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}
+        }"
+      `);
+        });
+        test('useLayers with layersAfter', ()=>{
+            const { metadata } = transform(fixture);
+            expect(stylexPlugin.processStylexRules(metadata, {
+                useLayers: true,
+                layersAfter: [
+                    'overrides',
+                    'xds.theme'
+                ],
+                enableLTRRTLComments: false
+            })).toMatchInlineSnapshot(`
+        "
+        @layer priority1, priority2, priority3, priority4, overrides, xds.theme;
+        @property --x-color { syntax: "*"; inherits: false;}
+        @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
+        .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
+        .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
+        .--orange-theme-color-xufgesz{--orange-theme-color:red}
+        @layer priority2{
+        .margin-xymmreb{margin:10px 20px}
+        .padding-xss17vw{padding:var(--large-x1ec7iuc)}
+        }
+        @layer priority3{
+        .borderColor-x1bg2uv5{border-color:green}
+        @media (max-width: 1000px){.borderColor-x5ugf7c.borderColor-x5ugf7c{border-color:var(--blue-xpqh4lw)}}
+        @media (max-width: 500px){@media (max-width: 1000px){.borderColor-xqiy1ys.borderColor-xqiy1ys.borderColor-xqiy1ys{border-color:yellow}}}
+        }
+        @layer priority4{
+        .animationName-x13ah0pd{animation-name:x35atj5-B}
+        .backgroundColor-xrkmrrc{background-color:red}
+        .color-x14rh7hd{color:var(--x-color)}
+        html:not([dir='rtl']) .float-x1kmio9f{float:left}
+        html[dir='rtl'] .float-x1kmio9f{float:right}
+        .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
+        .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
+        .backgroundColor-xfy810d.backgroundColor-xfy810d:where(.x-default-marker:focus *){background-color:green}
+        .backgroundColor-xbrh7vm:hover{background-color:blue}
+        @media (max-width: 1000px){.backgroundColor-xahc4vn.backgroundColor-xahc4vn{background-color:yellow}}
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id{text-shadow:10px 20px 30px 40px green}}
+        @media (max-width: 1000px){.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}
+        @media (max-width: 1000px){.backgroundColor-x975j7z.backgroundColor-x975j7z.backgroundColor-x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}
+        }"
+      `);
+        });
+        test('useLayers with both layersBefore and layersAfter', ()=>{
+            const { metadata } = transform(fixture);
+            expect(stylexPlugin.processStylexRules(metadata, {
+                useLayers: true,
+                layersBefore: [
+                    'reset'
+                ],
+                layersAfter: [
+                    'xds.theme'
+                ],
+                enableLTRRTLComments: false
+            })).toMatchInlineSnapshot(`
+        "
+        @layer reset, priority1, priority2, priority3, priority4, xds.theme;
+        @property --x-color { syntax: "*"; inherits: false;}
+        @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
+        .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
+        .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
+        .--orange-theme-color-xufgesz{--orange-theme-color:red}
+        @layer priority2{
+        .margin-xymmreb{margin:10px 20px}
+        .padding-xss17vw{padding:var(--large-x1ec7iuc)}
+        }
+        @layer priority3{
+        .borderColor-x1bg2uv5{border-color:green}
+        @media (max-width: 1000px){.borderColor-x5ugf7c.borderColor-x5ugf7c{border-color:var(--blue-xpqh4lw)}}
+        @media (max-width: 500px){@media (max-width: 1000px){.borderColor-xqiy1ys.borderColor-xqiy1ys.borderColor-xqiy1ys{border-color:yellow}}}
+        }
+        @layer priority4{
+        .animationName-x13ah0pd{animation-name:x35atj5-B}
+        .backgroundColor-xrkmrrc{background-color:red}
+        .color-x14rh7hd{color:var(--x-color)}
+        html:not([dir='rtl']) .float-x1kmio9f{float:left}
+        html[dir='rtl'] .float-x1kmio9f{float:right}
+        .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
+        .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
+        .backgroundColor-xfy810d.backgroundColor-xfy810d:where(.x-default-marker:focus *){background-color:green}
+        .backgroundColor-xbrh7vm:hover{background-color:blue}
+        @media (max-width: 1000px){.backgroundColor-xahc4vn.backgroundColor-xahc4vn{background-color:yellow}}
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id{text-shadow:10px 20px 30px 40px green}}
+        @media (max-width: 1000px){.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}
+        @media (max-width: 1000px){.backgroundColor-x975j7z.backgroundColor-x975j7z.backgroundColor-x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}
+        }"
+      `);
+        });
+        test('layersBefore/layersAfter are ignored when useLayers is false', ()=>{
+            const { metadata } = transform(fixture);
+            const warnSpy = jest.spyOn(console, 'warn').mockImplementation(()=>{});
+            expect(stylexPlugin.processStylexRules(metadata, {
+                useLayers: false,
+                layersBefore: [
+                    'reset'
+                ],
+                layersAfter: [
+                    'overrides'
+                ],
+                enableLTRRTLComments: false
+            })).toMatchInlineSnapshot(`
+        "@property --x-color { syntax: "*"; inherits: false;}
+        @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
+        .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
+        .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
+        .--orange-theme-color-xufgesz{--orange-theme-color:red}
+        .margin-xymmreb:not(#\\#){margin:10px 20px}
+        .padding-xss17vw:not(#\\#){padding:var(--large-x1ec7iuc)}
+        .borderColor-x1bg2uv5:not(#\\#):not(#\\#){border-color:green}
+        @media (max-width: 1000px){.borderColor-x5ugf7c.borderColor-x5ugf7c:not(#\\#):not(#\\#){border-color:var(--blue-xpqh4lw)}}
+        @media (max-width: 500px){@media (max-width: 1000px){.borderColor-xqiy1ys.borderColor-xqiy1ys.borderColor-xqiy1ys:not(#\\#):not(#\\#){border-color:yellow}}}
+        .animationName-x13ah0pd:not(#\\#):not(#\\#):not(#\\#){animation-name:x35atj5-B}
+        .backgroundColor-xrkmrrc:not(#\\#):not(#\\#):not(#\\#){background-color:red}
+        .color-x14rh7hd:not(#\\#):not(#\\#):not(#\\#){color:var(--x-color)}
+        html:not([dir='rtl']) .float-x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:left}
+        html[dir='rtl'] .float-x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:right}
+        .outlineColor-x184ctg8:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--colorTokens-xkxfyv)}
+        .textShadow-x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}
+        .backgroundColor-xfy810d.backgroundColor-xfy810d:where(.x-default-marker:focus *):not(#\\#):not(#\\#):not(#\\#){background-color:green}
+        .backgroundColor-xbrh7vm:hover:not(#\\#):not(#\\#):not(#\\#){background-color:blue}
+        @media (max-width: 1000px){.backgroundColor-xahc4vn.backgroundColor-xahc4vn:not(#\\#):not(#\\#):not(#\\#){background-color:yellow}}
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}
+        @media (max-width: 1000px){.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c:where(:has(.x-default-marker:focus)):not(#\\#):not(#\\#):not(#\\#){background-color:purple}}
+        @media (max-width: 1000px){.backgroundColor-x975j7z.backgroundColor-x975j7z.backgroundColor-x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)):not(#\\#):not(#\\#):not(#\\#){background-color:orange}}"
+      `);
+            expect(warnSpy).toHaveBeenCalledWith('[@stylexjs/babel-plugin] `layersBefore` and `layersAfter` options are ignored when `useCSSLayers` is not enabled.');
+            warnSpy.mockRestore();
+        });
+        test('empty layersBefore/layersAfter produce standard layer declaration', ()=>{
+            const { metadata } = transform(fixture);
+            expect(stylexPlugin.processStylexRules(metadata, {
+                useLayers: true,
+                layersBefore: [],
+                layersAfter: [],
+                enableLTRRTLComments: false
+            })).toMatchInlineSnapshot(`
+        "
+        @layer priority1, priority2, priority3, priority4;
+        @property --x-color { syntax: "*"; inherits: false;}
+        @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        :root, .xsg933n{--blue-xpqh4lw:blue;--marginTokens-x8nt2k2:10px;--colorTokens-xkxfyv:red;}
+        :root, .xbiwvf9{--small-x19twipt:2px;--medium-xypjos2:4px;--large-x1ec7iuc:8px;}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:lightblue;}}
+        @media (min-width: 600px){:root, .xsg933n{--marginTokens-x8nt2k2:20px;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--colorTokens-xkxfyv:oklab(0.7 -0.3 -0.4);}}}
+        .x6xqkwy.x6xqkwy, .x6xqkwy.x6xqkwy:root{--blue-xpqh4lw:lightblue;}
+        .x57uvma.x57uvma, .x57uvma.x57uvma:root{--large-x1ec7iuc:20px;--medium-xypjos2:10px;--small-x19twipt:5px;}
+        .--orange-theme-color-xufgesz{--orange-theme-color:red}
+        @layer priority2{
+        .margin-xymmreb{margin:10px 20px}
+        .padding-xss17vw{padding:var(--large-x1ec7iuc)}
+        }
+        @layer priority3{
+        .borderColor-x1bg2uv5{border-color:green}
+        @media (max-width: 1000px){.borderColor-x5ugf7c.borderColor-x5ugf7c{border-color:var(--blue-xpqh4lw)}}
+        @media (max-width: 500px){@media (max-width: 1000px){.borderColor-xqiy1ys.borderColor-xqiy1ys.borderColor-xqiy1ys{border-color:yellow}}}
+        }
+        @layer priority4{
+        .animationName-x13ah0pd{animation-name:x35atj5-B}
+        .backgroundColor-xrkmrrc{background-color:red}
+        .color-x14rh7hd{color:var(--x-color)}
+        html:not([dir='rtl']) .float-x1kmio9f{float:left}
+        html[dir='rtl'] .float-x1kmio9f{float:right}
+        .outlineColor-x184ctg8{outline-color:var(--colorTokens-xkxfyv)}
+        .textShadow-x1skrh0i{text-shadow:1px 2px 3px 4px red}
+        .backgroundColor-xfy810d.backgroundColor-xfy810d:where(.x-default-marker:focus *){background-color:green}
+        .backgroundColor-xbrh7vm:hover{background-color:blue}
+        @media (max-width: 1000px){.backgroundColor-xahc4vn.backgroundColor-xahc4vn{background-color:yellow}}
+        @media (min-width: 320px){.textShadow-xtj17id.textShadow-xtj17id{text-shadow:10px 20px 30px 40px green}}
+        @media (max-width: 1000px){.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c.backgroundColor-x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}
+        @media (max-width: 1000px){.backgroundColor-x975j7z.backgroundColor-x975j7z.backgroundColor-x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}
+        }"
+      `);
+        });
         test('all rules (legacyDisableLayers:true)', ()=>{
             const { code, metadata } = transform(fixture);
             expect(code).toMatchInlineSnapshot(`
@@ -662,6 +899,185 @@ describe('@stylexjs/babel-plugin', ()=>{
         @media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}
         @media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}
         @media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}"
+      `);
+        });
+        test('sort is deterministic regardless of input order', ()=>{
+            const rules = [
+                [
+                    'xMedia1',
+                    {
+                        ltr: '@media (min-width: 48rem){.xMedia1{display:none}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xContainer1',
+                    {
+                        ltr: '@container card (min-width: 31.25rem){.xContainer1{display:flex}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xStarting1',
+                    {
+                        ltr: '@starting-style{.xStarting1{opacity:0}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xVar1',
+                    {
+                        ltr: 'var(--x10fi87w){.xVar1.xVar1{grid-template-columns:repeat(2,1fr)}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xPseudo1',
+                    {
+                        ltr: '.xPseudo1::before{inset:0}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xMedia2',
+                    {
+                        ltr: '@media (min-width: 64rem){.xMedia2{inset:0}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xPlain1',
+                    {
+                        ltr: '.xPlain1{display:none}',
+                        rtl: null
+                    },
+                    6000
+                ]
+            ];
+            const output1 = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            const reversed = [
+                ...rules
+            ].reverse();
+            const output2 = stylexPlugin.processStylexRules(reversed, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            const shuffled = [
+                rules[4],
+                rules[0],
+                rules[3],
+                rules[6],
+                rules[2],
+                rules[5],
+                rules[1]
+            ];
+            const output3 = stylexPlugin.processStylexRules(shuffled, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(output1).toMatchInlineSnapshot(`
+        "@container card (min-width: 31.25rem){.xContainer1{display:flex}}
+        .xPlain1{display:none}
+        @media (min-width: 48rem){.xMedia1{display:none}}
+        var(--x10fi87w){.xVar1.xVar1{grid-template-columns:repeat(2,1fr)}}
+        .xPseudo1::before{inset:0}
+        @media (min-width: 64rem){.xMedia2{inset:0}}
+        @starting-style{.xStarting1{opacity:0}}"
+      `);
+            expect(output2).toMatchInlineSnapshot(`
+        "@container card (min-width: 31.25rem){.xContainer1{display:flex}}
+        .xPlain1{display:none}
+        @media (min-width: 48rem){.xMedia1{display:none}}
+        var(--x10fi87w){.xVar1.xVar1{grid-template-columns:repeat(2,1fr)}}
+        .xPseudo1::before{inset:0}
+        @media (min-width: 64rem){.xMedia2{inset:0}}
+        @starting-style{.xStarting1{opacity:0}}"
+      `);
+            expect(output3).toMatchInlineSnapshot(`
+        "@container card (min-width: 31.25rem){.xContainer1{display:flex}}
+        .xPlain1{display:none}
+        @media (min-width: 48rem){.xMedia1{display:none}}
+        var(--x10fi87w){.xVar1.xVar1{grid-template-columns:repeat(2,1fr)}}
+        .xPseudo1::before{inset:0}
+        @media (min-width: 64rem){.xMedia2{inset:0}}
+        @starting-style{.xStarting1{opacity:0}}"
+      `);
+        });
+        test('sort is deterministic with duplicate rules in different input orders', ()=>{
+            const ruleA = [
+                'xA',
+                {
+                    ltr: '@media (min-width: 48rem){.xA{display:flex}}',
+                    rtl: null
+                },
+                6000
+            ];
+            const ruleB = [
+                'xB',
+                {
+                    ltr: '.xB::after{inset:0}',
+                    rtl: null
+                },
+                6000
+            ];
+            const ruleC = [
+                'xC',
+                {
+                    ltr: '@starting-style{.xC{opacity:0}}',
+                    rtl: null
+                },
+                6000
+            ];
+            const output1 = stylexPlugin.processStylexRules([
+                ruleA,
+                ruleB,
+                ruleB,
+                ruleC
+            ], {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            const output2 = stylexPlugin.processStylexRules([
+                ruleC,
+                ruleB,
+                ruleA,
+                ruleB
+            ], {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            const output3 = stylexPlugin.processStylexRules([
+                ruleB,
+                ruleC,
+                ruleB,
+                ruleA
+            ], {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(output1).toMatchInlineSnapshot(`
+        "@media (min-width: 48rem){.xA{display:flex}}
+        .xB::after{inset:0}
+        @starting-style{.xC{opacity:0}}"
+      `);
+            expect(output2).toMatchInlineSnapshot(`
+        "@media (min-width: 48rem){.xA{display:flex}}
+        .xB::after{inset:0}
+        @starting-style{.xC{opacity:0}}"
+      `);
+            expect(output3).toMatchInlineSnapshot(`
+        "@media (min-width: 48rem){.xA{display:flex}}
+        .xB::after{inset:0}
+        @starting-style{.xC{opacity:0}}"
       `);
         });
     });

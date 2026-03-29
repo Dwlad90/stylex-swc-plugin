@@ -13,7 +13,7 @@ import stylexRsCompiler, { shouldTransformFile } from '@stylexswc/rs-compiler';
 import generateHash from './utils/generateHash';
 import crypto from 'crypto';
 
-import type { StyleXMetadata } from '@stylexswc/rs-compiler';
+import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
 import type { HotPayload, UserConfig, ViteDevServer } from 'vite';
 
 type StyleXRules = Record<string, StyleXMetadata['stylex']>;
@@ -169,6 +169,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 ) => {
   const normalizedOptions = normalizeOptions(options);
 
+  const transformedOptions: TransformedOptions = {
+    useLayers: normalizedOptions.useLayers,
+    enableLTRRTLComments: normalizedOptions.enableLTRRTLComments,
+    legacyDisableLayers: normalizedOptions.legacyDisableLayers,
+  };
+
   // Mutable state for each compilation - reset in buildStart
   const stylexRules: StyleXRules = {};
 
@@ -305,7 +311,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         return;
       }
 
-      const { processedFileName, collectedCSS } = generateCSSAssets(stylexRules, normalizedOptions);
+      const { processedFileName, collectedCSS } = generateCSSAssets(
+        stylexRules,
+        normalizedOptions,
+        transformedOptions
+      );
 
       if (!collectedCSS) return;
 
@@ -351,7 +361,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         if (!cssContent.includes(normalizedOptions.useCssPlaceholder)) return null;
 
         // Get collected StyleX CSS
-        const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+        const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
         // Check if dev server is running (more reliable than watchMode)
         const isDevMode = !!viteDevServer;
 
@@ -372,7 +382,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       generateBundle(_options, bundle) {
         if (!normalizedOptions.useCssPlaceholder) return;
 
-        const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+        const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
         if (!collectedCSS) return;
 
         // Collect all CSS assets
@@ -438,6 +448,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         const { processedFileName, collectedCSS } = generateCSSAssets(
           stylexRules,
           normalizedOptions,
+          transformedOptions,
           viteConfig?.build?.assetsDir
         );
 
@@ -458,7 +469,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         server.middlewares.use(
           (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
             if (cssFileName && req.url?.includes(cssFileName)) {
-              const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+              const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
 
               res.setHeader('Content-Type', 'text/css');
               res.end(collectedCSS);
@@ -501,6 +512,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         const { processedFileName, collectedCSS } = generateCSSAssets(
           stylexRules,
           normalizedOptions,
+          transformedOptions,
           viteConfig?.build?.assetsDir
         );
 
@@ -549,6 +561,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         const { processedFileName } = generateCSSAssets(
           stylexRules,
           normalizedOptions,
+          transformedOptions,
           viteConfig?.build?.assetsDir
         );
 
@@ -579,7 +592,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       setup(build) {
         build.onEnd(async ({ outputFiles, metafile }) => {
           const fileName = normalizedOptions.fileName;
-          const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+          const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
 
           if (!collectedCSS) return;
 
@@ -723,7 +736,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
           assets => {
-            const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+            const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
             if (!collectedCSS) return;
 
             injectStyleXCss(
@@ -753,7 +766,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
           assets => {
-            const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+            const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
             if (!collectedCSS) return;
 
             injectStyleXCss(
@@ -779,9 +792,10 @@ function ensureLeadingSlash(filePath: string) {
 function generateCSSAssets(
   stylexRules: Record<string, [string, { ltr: string; rtl?: null | string }, number][]>,
   normalizedOptions: NormalizedOptions,
+  transformedOptions: TransformedOptions,
   assetsDir?: string
 ) {
-  const collectedCSS = getStyleXRules(stylexRules, normalizedOptions.useCSSLayers);
+  const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
 
   const processedFileName = getProcessedFileName(normalizedOptions, collectedCSS || '', assetsDir);
 

@@ -1,6 +1,6 @@
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import { transform as stylexTransform, normalizeRsOptions } from '@stylexswc/rs-compiler';
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
 
 import type { TransformOptions, StyleXPluginOption } from './types';
 
@@ -16,11 +16,10 @@ export default function createBundler() {
 
     try {
       parsedImportSources = importSources?.map(importSource => {
-        const a = typeof importSource === 'string' ? JSON.parse(importSource) : importSource;
-
-        return a;
+        return typeof importSource === 'string' ? JSON.parse(importSource) : importSource;
       });
     } catch (error) {
+      console.warn(error);
       parsedImportSources = importSources;
     }
 
@@ -91,22 +90,10 @@ export default function createBundler() {
   }
 
   //  Bundles all collected StyleX rules into a single CSS string.
-  function bundle({
-    useCSSLayers,
-    enableLTRRTLComments,
-    legacyDisableLayers,
-  }: Pick<StyleXPluginOption, 'useCSSLayers'> &
-    Pick<
-      NonNullable<StyleXPluginOption['rsOptions']>,
-      'enableLTRRTLComments' | 'legacyDisableLayers'
-    >) {
+  function bundle(transformedOptions: TransformedOptions) {
     const rules = Array.from(styleXRulesMap.values()).flat();
 
-    const css = stylexBabelPlugin.processStylexRules(rules, {
-      useLayers: useCSSLayers,
-      enableLTRRTLComments,
-      legacyDisableLayers,
-    });
+    const css = stylexBabelPlugin.processStylexRules(rules, transformedOptions);
     return css;
   }
 

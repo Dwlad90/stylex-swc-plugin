@@ -10,6 +10,8 @@ import {
 } from './constants';
 import { shouldTransformFile } from '@stylexswc/rs-compiler';
 
+import type { TransformedOptions } from '@stylexswc/rs-compiler';
+
 import type webpack from 'webpack';
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import type {
@@ -24,14 +26,17 @@ import type { CssModule } from 'mini-css-extract-plugin';
 const stylexLoaderPath = require.resolve('./stylex-loader');
 const stylexVirtualLoaderPath = require.resolve('./stylex-virtual-css-loader');
 
-const getStyleXRules = (stylexRules: Map<string, readonly StyleXRule[]>, useCSSLayers: boolean) => {
+const getStyleXRules = (
+  stylexRules: Map<string, readonly StyleXRule[]>,
+  transformedOptions: TransformedOptions
+) => {
   if (stylexRules.size === 0) {
     return null;
   }
   // Take styles for the modules that were included in the last compilation.
   const allRules: StyleXRule[] = Array.from(stylexRules.values()).flat();
 
-  return stylexBabelPlugin.processStylexRules(allRules, useCSSLayers);
+  return stylexBabelPlugin.processStylexRules(allRules, transformedOptions);
 };
 
 const identityTransfrom: CSSTransformer = css => css;
@@ -40,7 +45,7 @@ export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRu
 
 export default class StyleXPlugin {
   stylexRules = new Map<string, readonly StyleXRule[]>();
-  useCSSLayers: boolean;
+  transformedOptions: TransformedOptions;
 
   loaderOption: StyleXWebpackLoaderOptions;
   cacheGroup?: CacheGroupOptions;
@@ -56,7 +61,11 @@ export default class StyleXPlugin {
     loaderOrder = 'first',
     cacheGroup,
   }: StyleXPluginOption = {}) {
-    this.useCSSLayers = useCSSLayers;
+    this.transformedOptions = {
+      useLayers: useCSSLayers,
+      legacyDisableLayers: rsOptions.legacyDisableLayers,
+      enableLTRRTLComments: rsOptions.enableLTRRTLComments,
+    };
     this.loaderOption = {
       stylexImports,
       rsOptions: {
@@ -224,7 +233,7 @@ export default class StyleXPlugin {
           }
           const stylexAsset = cssAssetDetails[0];
 
-          const stylexCSS = getStyleXRules(this.stylexRules, this.useCSSLayers);
+          const stylexCSS = getStyleXRules(this.stylexRules, this.transformedOptions);
 
           if (stylexCSS == null) {
             return;

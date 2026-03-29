@@ -1,4 +1,4 @@
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, UseLayersType } from '@stylexswc/rs-compiler';
 
 export interface StyleXPluginOption {
   /**
@@ -12,7 +12,7 @@ export interface StyleXPluginOption {
    *
    * @default false
    */
-  useCSSLayers?: boolean;
+  useCSSLayers?: UseLayersType;
 
   /** Glob patterns or RegExp to exclude files */
   exclude?: StyleXOptions['exclude'];

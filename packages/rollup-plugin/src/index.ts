@@ -8,7 +8,7 @@ import { browserslistToTargets } from 'lightningcss';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import crypto from 'crypto';
 
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, TransformedOptions, UseLayersType } from '@stylexswc/rs-compiler';
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
@@ -21,7 +21,7 @@ function replaceFileName(original: string, css: string) {
 export type PluginOptions = {
   rsOptions?: StyleXOptions;
   fileName?: string;
-  useCSSLayers?: boolean;
+  useCSSLayers?: UseLayersType;
   lightningcssOptions?: Omit<TransformOptions<CustomAtRules>, 'code' | 'filename' | 'visitor'>;
   extractCSS?: boolean;
 };
@@ -34,6 +34,13 @@ export default function stylexPlugin({
   extractCSS = true,
 }: PluginOptions = {}): Plugin {
   let stylexRules: Record<string, Rule[]> = {};
+
+  const transformedOptions: TransformedOptions = {
+    useLayers: useCSSLayers,
+    enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
+    legacyDisableLayers: rsOptions?.legacyDisableLayers,
+  };
+
   return {
     name: 'rollup-plugin-stylex',
     buildStart() {
@@ -42,11 +49,7 @@ export default function stylexPlugin({
     generateBundle() {
       const rules: Array<Rule> = Object.values(stylexRules).flat();
       if (rules.length > 0) {
-        const collectedCSS = stylexBabelPlugin.processStylexRules(rules, {
-          useLayers: useCSSLayers,
-          enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
-          legacyDisableLayers: rsOptions?.legacyDisableLayers,
-        });
+        const collectedCSS = stylexBabelPlugin.processStylexRules(rules, transformedOptions);
         // Process the CSS using lightningcss
         const { code } = transform({
           targets: browserslistToTargets(browserslist('>= 1%')),

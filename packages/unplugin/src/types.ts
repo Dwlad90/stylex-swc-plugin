@@ -1,8 +1,9 @@
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { TransformedOptions } from '@stylexswc/rs-compiler';
 
 export interface UnpluginStylexRSOptions {
   fileName?: string;
-  useCSSLayers?: boolean;
+  useCSSLayers?: TransformedOptions['useLayers'];
   pageExtensions?: string[];
   rsOptions?: StyleXOptions;
   extractCSS?: boolean;

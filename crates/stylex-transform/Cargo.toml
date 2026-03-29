@@ -34,6 +34,18 @@ radix_fmt.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
+stylex_ast = { path = "../stylex-ast" }
+stylex_constants = { path = "../stylex-constants" }
+stylex_css = { path = "../stylex-css" }
+stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_enums = { path = "../stylex-enums" }
+stylex_logs = { path = "../stylex-logs" }
+stylex_macros = { path = "../stylex-macros" }
+stylex_path_resolver = { path = "../stylex-path-resolver" }
+stylex_regex = { path = "../stylex-regex" }
+stylex_structures = { path = "../stylex-structures" }
+stylex_types = { path = "../stylex-types" }
+stylex_utils = { path = "../stylex-utils" }
 swc_compiler_base = { workspace = true, features = ["node"] }
 swc_config.workspace = true
 swc_core = { workspace = true, features = [
@@ -49,18 +61,6 @@ swc_core = { workspace = true, features = [
   "ecma_utils",
 ] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
-stylex_ast = { path = "../stylex-ast" }
-stylex_constants = { path = "../stylex-constants" }
-stylex_css = { path = "../stylex-css" }
-stylex_css_parser = { path = "../stylex-css-parser" }
-stylex_enums = { path = "../stylex-enums" }
-stylex_logs = { path = "../stylex-logs" }
-stylex_macros = { path = "../stylex-macros" }
-stylex_path_resolver = { path = "../stylex-path-resolver" }
-stylex_regex = { path = "../stylex-regex" }
-stylex_structures = { path = "../stylex-structures" }
-stylex_types = { path = "../stylex-types" }
-stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 insta = { workspace = true, features = ["yaml"] }

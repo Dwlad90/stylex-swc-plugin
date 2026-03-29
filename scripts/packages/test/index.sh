@@ -10,7 +10,7 @@ PATTERNS="#\[test\]|test_transform\(|test!\("
 # -E: Extended regexp
 # -r: Recursive
 if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
-    #Add artuments from call command
+    #Add arguments from call command
     args=("$@")
 
     # Path resolver is single-threaded

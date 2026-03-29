@@ -1,4 +1,4 @@
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, UseLayersType } from '@stylexswc/rs-compiler';
 import type { LoaderContext } from 'webpack';
 import type webpack from 'webpack';
 import type { RegisterStyleXRules } from '.';
@@ -38,7 +38,7 @@ export interface StyleXPluginOption {
    *
    * @default false
    */
-  useCSSLayers?: boolean;
+  useCSSLayers?: UseLayersType;
   /**
    * Next.js Mode
    *

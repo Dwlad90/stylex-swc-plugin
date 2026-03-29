@@ -164,21 +164,32 @@ where
 
     let ident_sym = Atom::from(ident_sym);
 
-    stylex_imports.contains(&ident_sym.to_string())
-      || (state.cycle == TransformationCycle::TransformEnter
-        && (state.stylex_create_import.contains(&ident_sym))
-        || state.stylex_attrs_import.contains(&ident_sym)
-        || state.stylex_define_vars_import.contains(&ident_sym)
-        || state.stylex_define_consts_import.contains(&ident_sym)
-        || state.stylex_define_marker_import.contains(&ident_sym)
-        || state.stylex_create_theme_import.contains(&ident_sym)
-        || state.stylex_position_try_import.contains(&ident_sym)
-        || state.stylex_keyframes_import.contains(&ident_sym)
-        || state.stylex_props_import.contains(&ident_sym)
-        || state.stylex_first_that_works_import.contains(&ident_sym)
-        || state.stylex_types_import.contains(&ident_sym))
-      || state.stylex_default_marker_import.contains(&ident_sym)
-      || state.stylex_when_import.contains(&ident_sym)
+    let ident_str = ident_sym.as_str();
+
+    if stylex_imports.iter().any(|s| s == ident_str) {
+      return true;
+    }
+
+    match state.cycle {
+      TransformationCycle::TransformEnter => {
+        state.stylex_create_import.contains(&ident_sym)
+          || state.stylex_define_vars_import.contains(&ident_sym)
+          || state.stylex_define_consts_import.contains(&ident_sym)
+          || state.stylex_define_marker_import.contains(&ident_sym)
+          || state.stylex_create_theme_import.contains(&ident_sym)
+          || state.stylex_position_try_import.contains(&ident_sym)
+          || state.stylex_keyframes_import.contains(&ident_sym)
+          || state.stylex_first_that_works_import.contains(&ident_sym)
+          || state.stylex_types_import.contains(&ident_sym)
+          || state.stylex_default_marker_import.contains(&ident_sym)
+          || state.stylex_when_import.contains(&ident_sym)
+      },
+      TransformationCycle::TransformExit => {
+        state.stylex_attrs_import.contains(&ident_sym)
+          || state.stylex_props_import.contains(&ident_sym)
+      },
+      _ => false,
+    }
   }
 
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {

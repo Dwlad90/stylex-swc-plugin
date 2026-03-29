@@ -1,12 +1,17 @@
 import { normalizeRsOptions } from '@stylexswc/rs-compiler';
+import type { TransformedOptions } from '@stylexswc/rs-compiler';
 
 import type { UnpluginStylexRSOptions } from '../types';
 
 const DEFAULT_CSS_PLACEHOLDER = '@stylex;';
 
-export type NormalizedOptions = Omit<Required<UnpluginStylexRSOptions>, 'useCssPlaceholder'> & {
-  useCssPlaceholder: string | false;
-};
+export type NormalizedOptions = Omit<
+  Required<UnpluginStylexRSOptions>,
+  'useCssPlaceholder' | 'useCSSLayers' | 'enableLTRRTLComments' | 'legacyDisableLayers'
+> &
+  TransformedOptions & {
+    useCssPlaceholder: string | false;
+  };
 
 export default function normalizeOptions(options: UnpluginStylexRSOptions): NormalizedOptions {
   let useCssPlaceholder: NormalizedOptions['useCssPlaceholder'] = false;
@@ -21,12 +26,16 @@ export default function normalizeOptions(options: UnpluginStylexRSOptions): Norm
     }
   }
 
+  const normalizedRsOptions = normalizeRsOptions(options.rsOptions || {});
+
   return {
     fileName: options.fileName ?? 'stylex.css',
-    useCSSLayers: options.useCSSLayers ?? false,
+    useLayers: options.useCSSLayers,
     pageExtensions: options.pageExtensions ?? ['tsx', 'jsx', 'js', 'ts'],
-    rsOptions: normalizeRsOptions(options.rsOptions || {}),
+    rsOptions: normalizedRsOptions,
     extractCSS: options.extractCSS ?? true,
     useCssPlaceholder,
+    enableLTRRTLComments: normalizedRsOptions.enableLTRRTLComments,
+    legacyDisableLayers: normalizedRsOptions.legacyDisableLayers,
   };
 }

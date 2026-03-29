@@ -121,7 +121,7 @@ export default nextConfig;
 
 #### `useCSSLayers`
 
-- Type: `boolean`
+- Type: `UseLayersType`
 - Default: `false`
 - Description: Enables CSS cascade layers support for better style isolation.
 

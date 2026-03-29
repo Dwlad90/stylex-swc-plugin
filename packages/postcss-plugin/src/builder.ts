@@ -6,7 +6,7 @@ import { globSync } from 'fast-glob';
 import isGlob from 'is-glob';
 import globParent from 'glob-parent';
 import createBundler from './bundler';
-import { shouldTransformFile } from '@stylexswc/rs-compiler';
+import { shouldTransformFile, TransformedOptions } from '@stylexswc/rs-compiler';
 
 import type { StyleXPluginOption, TransformOptions } from './types';
 
@@ -220,6 +220,12 @@ function createBuilder() {
   function build({ shouldSkipTransformError }: TransformOptions) {
     const { cwd, rsOptions, useCSSLayers, isDev } = getConfig();
 
+    const transformedOptions: TransformedOptions = {
+      useLayers: useCSSLayers,
+      enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
+      legacyDisableLayers: rsOptions?.legacyDisableLayers,
+    };
+
     const files = getFiles();
     const filesToTransform = [];
 
@@ -269,11 +275,7 @@ function createBuilder() {
       return transformedResult;
     });
 
-    const css = bundler.bundle({
-      useCSSLayers,
-      enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
-      legacyDisableLayers: rsOptions?.legacyDisableLayers,
-    });
+    const css = bundler.bundle(transformedOptions);
     return css;
   }
 

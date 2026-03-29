@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/constants",
   "description": "Constants, regex patterns and static data for StyleX SWC plugin",
-  "version": "0.15.1",
+  "version": "0.15.2-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [

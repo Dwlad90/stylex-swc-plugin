@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/transform",
   "description": "SWC Fold implementation and transform orchestration for StyleX",
-  "version": "0.15.1",
+  "version": "0.15.2-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [

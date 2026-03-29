@@ -2850,7 +2850,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stylex_ast"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "anyhow",
  "ctor",
@@ -2866,7 +2866,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_compiler_rs"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "fancy-regex",
  "glob",
@@ -2895,7 +2895,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_constants"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "ctor",
  "fancy-regex",
@@ -2909,7 +2909,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "cssparser",
  "ctor",
@@ -2932,7 +2932,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_parser"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "anyhow",
  "criterion",
@@ -2951,7 +2951,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_enums"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "ctor",
  "indexmap",
@@ -2964,7 +2964,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_evaluator"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "anyhow",
  "base62",
@@ -2988,7 +2988,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_js"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "ctor",
  "pretty_env_logger",
@@ -2999,7 +2999,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_logs"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "colored",
  "ctor",
@@ -3011,7 +3011,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_macros"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "colored",
  "ctor",
@@ -3022,7 +3022,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_path_resolver"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "anyhow",
  "ctor",
@@ -3045,7 +3045,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_regex"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "ctor",
  "fancy-regex",
@@ -3055,7 +3055,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_structures"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "ctor",
  "derive_more",
@@ -3074,7 +3074,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_test_parser"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3095,7 +3095,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_transform"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "anyhow",
  "base62",
@@ -3139,7 +3139,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_types"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "anyhow",
  "ctor",
@@ -3161,7 +3161,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_utils"
-version = "0.15.1"
+version = "0.15.2-rc.1"
 dependencies = [
  "ctor",
  "pretty_env_logger",

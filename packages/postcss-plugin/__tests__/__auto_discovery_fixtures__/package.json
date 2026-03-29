@@ -1,8 +1,9 @@
 {
   "name": "auto-discovery-fixture",
+  "version": "0.15.1",
   "private": true,
   "dependencies": {
-    "stylex-custom-lib": "1.0.0",
-    "non-stylex-lib": "1.0.0"
+    "non-stylex-lib": "1.0.0",
+    "stylex-custom-lib": "1.0.0"
   }
 }

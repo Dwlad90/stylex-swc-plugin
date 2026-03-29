@@ -3,11 +3,6 @@
 # Exit immediately when any subprocess returns a non-zero command
 set -e
 
-# Kill all subprocesses when exiting
-# shellcheck disable=2154
-trap 'exit $exit_code' INT TERM
-trap 'exit_code=$?; kill 0' EXIT
-
 # Parse arguments
 NEW_VERSION=$1
 

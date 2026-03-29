@@ -407,16 +407,15 @@ jobs:
       - name: Build all public packages
         run: |
           pnpm run build --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" --only --continue
-
+      - name: Check artifacts
+        run:
+          pnpm run check:artifacts --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter
+          "!{./crates/*}" --only
       - name: Save turbo build cache
         if: always()
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache-build-public-packages.outputs.cache-key }}
-      - name: Check artifacts
-        run:
-          pnpm run check:artifacts --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter
-          "!{./crates/*}"
       - name: Publish
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

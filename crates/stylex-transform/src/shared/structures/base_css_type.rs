@@ -5,7 +5,7 @@ use swc_core::ecma::{
   utils::ExprExt,
 };
 
-use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
+use crate::shared::utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
 use crate::shared::utils::common::get_key_values_from_object;
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_object_lit, create_string_key_value_prop,
@@ -68,7 +68,7 @@ impl From<ObjectLit> for BaseCSSType {
     let mut values: IndexMap<String, ValueWithDefault> = IndexMap::new();
 
     for key_value in key_values {
-      let key = key_value_to_str(&key_value);
+      let key = convert_key_value_to_str(&key_value);
 
       match key.as_str() {
         "syntax" => {
@@ -98,7 +98,7 @@ impl From<ObjectLit> for BaseCSSType {
           };
 
           for key_value in get_key_values_from_object(obj_value) {
-            let key = key_value_to_str(&key_value);
+            let key = convert_key_value_to_str(&key_value);
 
             match key_value.value.as_ref() {
               Expr::Object(obj) => {
@@ -107,7 +107,7 @@ impl From<ObjectLit> for BaseCSSType {
                 let key_values = get_key_values_from_object(obj);
 
                 for key_value in key_values {
-                  let key = key_value_to_str(&key_value);
+                  let key = convert_key_value_to_str(&key_value);
 
                   match key_value.value.as_ref() {
                     Expr::Lit(lit) => {

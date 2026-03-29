@@ -27,7 +27,7 @@ fn fn_result_to_expression(fn_result: FnResult) -> Option<Expr> {
 
 pub(crate) fn make_string_expression(
   values: &[ResolvedArg],
-  transform: fn(&[ResolvedArg]) -> Option<FnResult>,
+  props_like_fn: fn(&[ResolvedArg]) -> Option<FnResult>,
 ) -> Option<Expr> {
   let conditions = values
     .iter()
@@ -38,7 +38,7 @@ pub(crate) fn make_string_expression(
     .collect::<Vec<_>>();
 
   if conditions.is_empty() {
-    match transform(values) {
+    match props_like_fn(values) {
       Some(value) => {
         return fn_result_to_expression(value);
       },
@@ -79,7 +79,7 @@ pub(crate) fn make_string_expression(
         .iter()
         .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
 
-      if let Some(result) = fn_result_to_expression(match transform(&args) {
+      if let Some(result) = fn_result_to_expression(match props_like_fn(&args) {
         Some(r) => r,
         None => stylex_panic!(
           "Style transformation returned no result for the given condition permutation."

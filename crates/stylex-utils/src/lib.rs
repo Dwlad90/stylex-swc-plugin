@@ -1,5 +1,6 @@
 pub mod hash;
 pub mod swc;
+// pub mod string;
 
 #[cfg(test)]
 mod tests {

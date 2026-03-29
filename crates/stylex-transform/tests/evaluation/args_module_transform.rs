@@ -6,7 +6,7 @@ use stylex_transform::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    ast::convertors::{create_number_expr, expr_to_str},
+    ast::convertors::{convert_expr_to_str, create_number_expr},
     core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
   },
 };
@@ -94,7 +94,7 @@ impl Fold for ArgsStyleXTransform {
 
           for (key, value) in map.iter() {
             let prop = create_key_value_prop(
-              expr_to_str(key, &mut self.state, &FunctionMap::default())
+              convert_expr_to_str(key, &mut self.state, &FunctionMap::default())
                 .expect("Expression is not a string")
                 .as_str(),
               create_object_expression(

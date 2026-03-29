@@ -1,7 +1,5 @@
-use stylex_shared::{
-  StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-};
+use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
+use stylex_transform::StyleXTransform;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
@@ -17,7 +15,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -68,7 +65,6 @@ test!(
     PluginPass::default(),
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -122,7 +118,6 @@ test!(
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
       debug: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -177,7 +172,6 @@ test!(
       dev: Some(true),
       debug: Some(true),
       enable_debug_class_names: Some(false),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

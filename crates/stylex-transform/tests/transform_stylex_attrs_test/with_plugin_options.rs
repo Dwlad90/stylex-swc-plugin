@@ -1,7 +1,5 @@
-use stylex_shared::{
-  StyleXTransform,
-  shared::structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams},
-};
+use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
+use stylex_transform::StyleXTransform;
 use swc_core::{
   common::FileName,
   ecma::{
@@ -51,7 +49,6 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),
@@ -118,7 +115,6 @@ test!(
     },
     Some(&mut StyleXOptionsParams {
       dev: Some(true),
-      gen_conditional_classes: Some(true),
       ..StyleXOptionsParams::default()
     })
   ),

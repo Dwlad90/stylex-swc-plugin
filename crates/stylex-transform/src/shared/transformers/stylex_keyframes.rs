@@ -10,7 +10,9 @@ use crate::shared::structures::functions::{FunctionConfig, FunctionMap, Function
 use crate::shared::structures::pre_rule::PreRuleValue;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::FlatCompiledStyles;
-use crate::shared::utils::ast::convertors::{create_string_expr, expr_to_str, key_value_to_str};
+use crate::shared::utils::ast::convertors::{
+  convert_expr_to_str, convert_key_value_to_str, create_string_expr,
+};
 use crate::shared::utils::common::{create_hash, dashify};
 use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 use crate::shared::utils::css::common::transform_value_cached;
@@ -192,8 +194,8 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
   let res: Vec<_> = obj_entries(&frame.clone())
     .iter()
     .flat_map(|pair| {
-      let key = key_value_to_str(pair);
-      let value = match expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
+      let key = convert_key_value_to_str(pair);
+      let value = match convert_expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
         Some(v) => v,
         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       };

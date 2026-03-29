@@ -5,7 +5,10 @@ stylex.attrs([
     styles.default,
     attrs
 ]);
-_inject2(".x1e2nbdu{color:red}", 3000);
+_inject2({
+    ltr: ".x1e2nbdu{color:red}",
+    priority: 3000
+});
 const styles = {
     default: {
         kMwMTN: "x1e2nbdu",

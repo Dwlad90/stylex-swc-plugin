@@ -19,9 +19,9 @@
 /// - `$fns`: Reference to FunctionMap
 /// - `$error_msg`: Error message string literal
 #[macro_export]
-macro_rules! expr_to_str_or_err {
+macro_rules! convert_expr_to_str_or_err {
   ($expr:expr, $traversal_state:expr, $fns:expr, $error_msg:expr) => {
-    match expr_to_str($expr, $traversal_state, $fns) {
+    match convert_expr_to_str($expr, $traversal_state, $fns) {
       Some(s) => s,
       None => return Err(anyhow!($error_msg)),
     }

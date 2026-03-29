@@ -12,7 +12,7 @@ pub use stylex_ast::ast::convertors::{
 use anyhow::anyhow;
 // Import error handling macros from shared utilities
 use stylex_macros::{
-  as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, expr_to_str_or_err, stylex_panic,
+  as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, convert_expr_to_str_or_err, stylex_panic,
   stylex_unimplemented, unwrap_or_panic,
 };
 use swc_core::ecma::ast::{
@@ -43,7 +43,7 @@ pub fn expr_to_num(
   let result = match &expr_num {
     Expr::Ident(ident) => ident_to_number(ident, state, traversal_state, &FunctionMap::default()),
     Expr::Lit(lit) => return convert_lit_to_number(lit),
-    Expr::Unary(unary) => unari_to_num(unary, state, traversal_state, fns),
+    Expr::Unary(unary) => convert_unary_to_num(unary, state, traversal_state, fns),
     Expr::Bin(lit) => {
       let mut state = Box::new(EvaluationState::new());
 
@@ -87,7 +87,11 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
 }
 
 #[inline]
-pub fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> Expr {
+pub fn convert_ident_to_expr(
+  ident: &Ident,
+  state: &mut StateManager,
+  functions: &FunctionMap,
+) -> Expr {
   match get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
     Some(var_decl) => get_expr_from_var_decl(&var_decl).clone(),
     _ => {
@@ -96,7 +100,7 @@ pub fn ident_to_expr(ident: &Ident, state: &mut StateManager, functions: &Functi
   }
 }
 
-pub fn expr_to_str(
+pub fn convert_expr_to_str(
   expr_string: &Expr,
   state: &mut StateManager,
   functions: &FunctionMap,
@@ -111,7 +115,7 @@ pub fn expr_to_str(
   }
 }
 
-pub fn unari_to_num(
+pub fn convert_unary_to_num(
   unary_expr: &UnaryExpr,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
@@ -312,7 +316,7 @@ pub fn binary_expr_to_string(
   };
 
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
-  let left_str = expr_to_str_or_err!(
+  let left_str = convert_expr_to_str_or_err!(
     left_expr,
     traversal_state,
     fns,
@@ -334,7 +338,7 @@ pub fn binary_expr_to_string(
   };
 
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
-  let right_str = expr_to_str_or_err!(
+  let right_str = convert_expr_to_str_or_err!(
     right_expr,
     traversal_state,
     fns,
@@ -472,7 +476,7 @@ pub fn ident_to_number(
             ),
           }
         },
-        Expr::Unary(unary_expr) => unari_to_num(unary_expr, state, traversal_state, fns),
+        Expr::Unary(unary_expr) => convert_unary_to_num(unary_expr, state, traversal_state, fns),
         Expr::Lit(lit) => {
           convert_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error))
         },
@@ -600,7 +604,11 @@ pub fn transform_bin_expr_to_number(
 }
 
 #[inline]
-pub fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
+pub fn convert_expr_to_bool(
+  expr: &Expr,
+  state: &mut StateManager,
+  functions: &FunctionMap,
+) -> bool {
   match expr {
     Expr::Lit(lit) => match lit {
       Lit::Bool(b) => b.value,
@@ -612,17 +620,21 @@ pub fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionM
         expr.get_type(get_default_expr_ctx())
       ),
     },
-    Expr::Ident(ident) => expr_to_bool(&ident_to_expr(ident, state, functions), state, functions),
+    Expr::Ident(ident) => convert_expr_to_bool(
+      &convert_ident_to_expr(ident, state, functions),
+      state,
+      functions,
+    ),
     Expr::Array(_) => true,
     Expr::Object(_) => true,
     Expr::Fn(_) | Expr::Class(_) => true,
     Expr::Unary(unary) => match unary.op {
       UnaryOp::Void => false,
       UnaryOp::TypeOf => true,
-      UnaryOp::Bang => !expr_to_bool(&unary.arg, state, functions),
-      UnaryOp::Minus => !expr_to_bool(&unary.arg, state, functions),
-      UnaryOp::Plus => !expr_to_bool(&unary.arg, state, functions),
-      UnaryOp::Tilde => !expr_to_bool(&unary.arg, state, functions),
+      UnaryOp::Bang => !convert_expr_to_bool(&unary.arg, state, functions),
+      UnaryOp::Minus => !convert_expr_to_bool(&unary.arg, state, functions),
+      UnaryOp::Plus => !convert_expr_to_bool(&unary.arg, state, functions),
+      UnaryOp::Tilde => !convert_expr_to_bool(&unary.arg, state, functions),
       _ => stylex_unimplemented!(
         "Conversion {:?} expression to boolean",
         expr.get_type(get_default_expr_ctx())
@@ -638,7 +650,7 @@ pub fn expr_to_bool(expr: &Expr, state: &mut StateManager, functions: &FunctionM
 }
 
 #[inline]
-pub(crate) fn key_value_to_str(key_value: &KeyValueProp) -> String {
+pub(crate) fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
   let key = &key_value.key;
   let mut should_wrap_in_quotes = false;
 

@@ -15,7 +15,7 @@ use crate::shared::structures::member_transform::MemberTransform;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use crate::shared::transformers::stylex_default_maker;
-use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
+use crate::shared::utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
 use crate::shared::utils::common::{reduce_ident_count, reduce_member_expression_count};
 use crate::shared::utils::core::make_string_expression::make_string_expression;
 use crate::shared::utils::core::parse_nullable_style::{
@@ -308,7 +308,7 @@ pub(crate) fn stylex_merge(
             if let PropOrSpread::Prop(prop) = prop {
               if let Prop::KeyValue(key_value) = prop.as_ref() {
                 // Create JSX attribute directly
-                let attr_name = key_value_to_str(key_value);
+                let attr_name = convert_key_value_to_str(key_value);
                 let attr_value = key_value.value.as_lit().map(|lit| {
                   let s = match convert_lit_to_string(&lit.clone()) {
                     Some(s) => s,

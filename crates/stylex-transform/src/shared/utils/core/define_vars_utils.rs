@@ -8,7 +8,7 @@ use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompi
 use crate::shared::structures::types::{
   ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap,
 };
-use crate::shared::utils::ast::convertors::{convert_lit_to_string, key_value_to_str};
+use crate::shared::utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
 use crate::shared::utils::common::{
   create_hash, get_key_values_from_object, round_to_decimal_places,
 };
@@ -121,7 +121,7 @@ pub(crate) fn collect_vars_by_at_rules(
       let key_values = get_key_values_from_object(obj);
 
       if !key_values.iter().any(|key_value| {
-        let key = key_value_to_str(key_value);
+        let key = convert_key_value_to_str(key_value);
 
         key == "default"
       }) {
@@ -129,7 +129,7 @@ pub(crate) fn collect_vars_by_at_rules(
       }
 
       for key_value in key_values.iter() {
-        let at_rule = key_value_to_str(key_value);
+        let at_rule = convert_key_value_to_str(key_value);
 
         let extended_at_rules = if at_rule == "default" {
           at_rules.to_vec()

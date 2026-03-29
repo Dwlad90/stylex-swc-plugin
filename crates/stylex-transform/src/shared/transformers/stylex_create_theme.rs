@@ -9,7 +9,7 @@ use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompi
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
-use crate::shared::utils::ast::convertors::{expr_to_str, key_value_to_str};
+use crate::shared::utils::ast::convertors::{convert_expr_to_str, convert_key_value_to_str};
 use crate::shared::utils::common::{
   create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object,
   round_to_decimal_places,
@@ -40,7 +40,7 @@ pub(crate) fn stylex_create_theme(
   };
   let mut variables_key_values = Box::new(get_key_values_from_object(variables_obj));
 
-  variables_key_values.sort_by_key(key_value_to_str);
+  variables_key_values.sort_by_key(convert_key_value_to_str);
 
   #[allow(unused_assignments)]
   let mut var_group_hash: String = String::new();
@@ -56,13 +56,13 @@ pub(crate) fn stylex_create_theme(
 
       var_group_hash = theme_vars_key_values
         .iter()
-        .find(|key_value| key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
-        .map(
-          |key_value| match expr_to_str(&key_value.value, state, &FunctionMap::default()) {
+        .find(|key_value| convert_key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
+        .map(|key_value| {
+          match convert_expr_to_str(&key_value.value, state, &FunctionMap::default()) {
             Some(s) => s,
             None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
-          },
-        )
+          }
+        })
         .unwrap_or_default();
     },
     EvaluateResultValue::ThemeRef(theme_ref) => {
@@ -77,12 +77,12 @@ pub(crate) fn stylex_create_theme(
   }
 
   for key_value in variables_key_values.into_iter() {
-    let key = key_value_to_str(&key_value);
+    let key = convert_key_value_to_str(&key_value);
 
     let theme_vars_str_value = match theme_vars {
       EvaluateResultValue::Expr(_) => {
         let theme_vars_item = match find_and_swap_remove(&mut theme_vars_key_values, |key_value| {
-          key_value_to_str(key_value) == key
+          convert_key_value_to_str(key_value) == key
         }) {
           Some(item) => item,
           None => stylex_panic!(
@@ -90,7 +90,7 @@ pub(crate) fn stylex_create_theme(
           ),
         };
 
-        match expr_to_str(
+        match convert_expr_to_str(
           theme_vars_item.value.as_ref(),
           state,
           &FunctionMap::default(),
@@ -180,7 +180,7 @@ pub(crate) fn stylex_create_theme(
 
   let theme_name_str_value = match theme_vars {
     EvaluateResultValue::Expr(_) => {
-      match expr_to_str(
+      match convert_expr_to_str(
         theme_name_key_value.value.as_ref(),
         state,
         &FunctionMap::default(),

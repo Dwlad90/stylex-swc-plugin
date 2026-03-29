@@ -9,7 +9,7 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::utils::{ast::convertors::expr_to_str, common::increase_ident_count},
+  shared::utils::{ast::convertors::convert_expr_to_str, common::increase_ident_count},
 };
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 use stylex_enums::core::TransformationCycle;
@@ -27,7 +27,7 @@ where
     }
 
     if self.state.cycle == TransformationCycle::StateFilling && computed_prop_name.expr.is_lit() {
-      let expt_str = expr_to_str(
+      let expt_str = convert_expr_to_str(
         &computed_prop_name.expr,
         &mut self.state,
         &Default::default(),

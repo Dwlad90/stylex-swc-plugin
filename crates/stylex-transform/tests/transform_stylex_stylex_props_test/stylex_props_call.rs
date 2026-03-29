@@ -1,19 +1,18 @@
+use indexmap::IndexMap;
+use stylex_ast::ast::convertors::create_string_expr;
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_structures::{
   plugin_pass::PluginPass,
+  stylex_env::EnvEntry,
   stylex_options::{StyleXOptions, StyleXOptionsParams},
 };
 use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use swc_core::ecma::transforms::testing::test;
+
+use crate::utils::transform::{env_config, ts_syntax};
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -27,10 +26,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -49,10 +45,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -74,10 +67,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -99,10 +89,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -121,10 +108,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -148,10 +132,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -170,10 +151,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -196,10 +174,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -221,10 +196,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -243,10 +215,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -265,10 +234,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -295,10 +261,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -320,10 +283,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -345,10 +305,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -373,10 +330,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -399,10 +353,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -427,10 +378,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -453,10 +401,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -481,10 +426,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -512,10 +454,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -545,10 +484,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -582,10 +518,7 @@ test!(
 );
 
 test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+  ts_syntax(),
   |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
     tr.comments.clone(),
     PluginPass::default(),
@@ -658,4 +591,32 @@ test!(
       </>
   };
 "#
+);
+
+test!(
+  ts_syntax(),
+  |tr| {
+    let mut env = IndexMap::new();
+
+    env.insert(
+      "primaryColor".to_string(),
+      EnvEntry::Expr(create_string_expr("#ff0000")),
+    );
+
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut env_config(env)),
+    )
+  },
+  stylex_env_resolves_in_inline_objects,
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: stylex.env.primaryColor,
+      }
+    });
+    stylex.props(styles.red);
+  "#
 );

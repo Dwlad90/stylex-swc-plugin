@@ -23,7 +23,7 @@ use stylex_constants::constants::messages::{
 };
 
 use super::{
-  ast::convertors::{convert_lit_to_string, key_value_to_str},
+  ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
   common::get_key_values_from_object,
 };
 
@@ -639,7 +639,7 @@ pub(crate) fn validate_namespace(
         }
       },
       Expr::Object(object) => {
-        let key = key_value_to_str(namespace);
+        let key = convert_key_value_to_str(namespace);
 
         if key.starts_with('@') || key.starts_with(':') || key.starts_with('[') {
           if conditions.contains(&key) {
@@ -692,7 +692,7 @@ pub(crate) fn validate_conditional_styles(
   conditions: &[String],
   state: &mut StateManager,
 ) {
-  let inner_key = key_value_to_str(inner_key_value);
+  let inner_key = convert_key_value_to_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
 
   if !(inner_key.starts_with(':')
@@ -774,7 +774,7 @@ pub(crate) fn assert_valid_properties(
     let key_values = get_key_values_from_object(object);
 
     for key_value in key_values.iter() {
-      let key = key_value_to_str(key_value);
+      let key = convert_key_value_to_str(key_value);
       if !valid_keys.contains(&key.as_str()) {
         build_code_frame_error_and_panic(expr, expr, error_message, state);
       }
@@ -836,7 +836,7 @@ pub(crate) fn validate_theme_variables(
     .map(get_key_values_from_object)
     .and_then(|key_values| {
       for key_value in key_values.into_iter() {
-        let key = key_value_to_str(&key_value);
+        let key = convert_key_value_to_str(&key_value);
 
         if key == VAR_GROUP_HASH_KEY {
           let value = &key_value.value;

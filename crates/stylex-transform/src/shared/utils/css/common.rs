@@ -1,7 +1,7 @@
-use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::common::round_to_decimal_places;
 use crate::shared::utils::css::normalizers::base::base_normalizer;
 use crate::shared::utils::css::validators::unprefixed_custom_properties::unprefixed_custom_properties_validator;
+use crate::shared::{structures::state_manager::StateManager, utils::common::dashify};
 use stylex_constants::constants::common::{
   COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
   COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES, CSS_CONTENT_FUNCTIONS,
@@ -533,4 +533,27 @@ pub fn stringify(node: &Stylesheet) -> String {
   }
 
   result
+}
+
+/// Converts a camelCase CSS property name to its hyphenated form.
+///
+/// Custom properties (`--*`) are returned as-is. Vendor-prefixed properties
+/// (e.g. `MsTransition`, `WebkitTapHighlightColor`) are converted to their
+/// standard hyphenated forms (`-ms-transition`, `-webkit-tap-highlight-color`).
+pub(crate) fn normalize_css_property_name(prop: &str) -> String {
+  if prop.starts_with("--") {
+    return prop.to_string();
+  }
+  dashify(prop)
+}
+
+/// Serializes a list of key-value pairs into an inline CSS style string.
+///
+/// Each pair is formatted as `property:value` and joined with `;`.
+pub(crate) fn inline_style_to_css_string(pairs: &[Pair]) -> String {
+  pairs
+    .iter()
+    .map(|p| format!("{}:{}", normalize_css_property_name(&p.key), p.value))
+    .collect::<Vec<_>>()
+    .join(";")
 }

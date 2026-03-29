@@ -1,53 +1,47 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stylex_macros::stylex_unimplemented;
 
-use crate::{
-  shared::{
-    enums::data_structures::{
-      flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
-    },
-    structures::types::FlatCompiledStyles,
-    utils::core::js_to_expr::NestedStringObject,
+use crate::shared::{
+  enums::data_structures::{
+    flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
   },
-  transform::styleq::common::{StyleQResult, styleq},
+  utils::{core::js_to_expr::NestedStringObject, css::common::inline_style_to_css_string},
 };
 
-use super::parse_nullable_style::ResolvedArg;
+use super::{parse_nullable_style::ResolvedArg, props::props};
 
-pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
-  let StyleQResult {
-    class_name,
-    inline_style,
-    data_style_src,
-  } = styleq(styles);
+pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
+  let props = props(styles)?;
 
-  let mut props_map: FlatCompiledStyles = IndexMap::new();
+  let attrs = props.as_props()?.as_values()?;
 
-  if !class_name.is_empty() {
-    props_map.insert(
-      "className".to_string(),
-      Rc::new(FlatCompiledStylesValue::String(class_name)),
-    );
+  let mut attrs_map: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
+
+  if let Some(class_name) = attrs.get("className") {
+    attrs_map.insert("class".to_string(), class_name.clone());
   }
 
-  if let Some(_inline_style) = inline_style {
-    stylex_unimplemented!(
-      "Inline style objects from dynamic style functions are not yet supported in props()."
-    );
+  if let Some(data_style_src) = attrs.get("data-style-src") {
+    attrs_map.insert("data-style-src".to_string(), data_style_src.clone());
   }
 
-  if let Some(data_style_src) = data_style_src
-    && !data_style_src.is_empty()
-  {
-    props_map.insert(
-      "data-style-src".to_string(),
-      Rc::new(FlatCompiledStylesValue::String(data_style_src)),
-    );
+  if let Some(style_value) = attrs.get("style") {
+    match style_value.as_ref() {
+      FlatCompiledStylesValue::KeyValues(pairs) => {
+        let css_string = inline_style_to_css_string(pairs);
+        attrs_map.insert(
+          "style".to_string(),
+          Rc::new(FlatCompiledStylesValue::String(css_string)),
+        );
+      },
+      _ => {
+        attrs_map.insert("style".to_string(), style_value.clone());
+      },
+    }
   }
 
-  Some(FnResult::Props(
-    NestedStringObject::FlatCompiledStylesValues(props_map),
+  Some(FnResult::Attrs(
+    NestedStringObject::FlatCompiledStylesValues(attrs_map),
   ))
 }

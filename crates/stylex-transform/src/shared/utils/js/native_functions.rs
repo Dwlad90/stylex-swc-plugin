@@ -2,7 +2,7 @@ use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResult
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::ast::convertors::{
-  convert_lit_to_number, create_string_expr, expr_to_str,
+  convert_expr_to_str, convert_lit_to_number, create_string_expr,
 };
 use std::rc::Rc;
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
@@ -65,7 +65,7 @@ pub(crate) fn evaluate_join(
 ) -> Option<EvaluateResultValue> {
   let join_arg = funcs.first()?;
 
-  let join_arg = match expr_to_str(join_arg.as_expr()?, state, functions) {
+  let join_arg = match convert_expr_to_str(join_arg.as_expr()?, state, functions) {
     Some(s) => s,
     None => stylex_panic!("The join() separator argument must be a string value."),
   };
@@ -77,7 +77,7 @@ pub(crate) fn evaluate_join(
         Some(expr) => expr,
         None => stylex_panic!("Array element must evaluate to a string for join()."),
       };
-      match expr_to_str(arg_expr, state, functions) {
+      match convert_expr_to_str(arg_expr, state, functions) {
         Some(s) => s,
         None => stylex_panic!("Array element must evaluate to a string for join()."),
       }

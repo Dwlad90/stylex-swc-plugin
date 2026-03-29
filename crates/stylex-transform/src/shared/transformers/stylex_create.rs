@@ -12,7 +12,7 @@ use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{
   ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, StylesObjectMap,
 };
-use crate::shared::utils::ast::convertors::expr_to_str;
+use crate::shared::utils::ast::convertors::convert_expr_to_str;
 use crate::shared::utils::common::create_short_hash;
 use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
 use crate::shared::utils::validators::validate_namespace;
@@ -114,10 +114,11 @@ pub(crate) fn stylex_create_set(
       }
     }
 
-    let resolved_namespace_name = match expr_to_str(namespace_name, traversal_state, functions) {
-      Some(s) => s,
-      None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
-    };
+    let resolved_namespace_name =
+      match convert_expr_to_str(namespace_name, traversal_state, functions) {
+        Some(s) => s,
+        None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
+      };
 
     namespace_obj.insert(
       COMPILED_KEY.to_owned(),

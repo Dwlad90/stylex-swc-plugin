@@ -14,6 +14,7 @@ doctest = false
 
 [dependencies]
 swc_core = { workspace = true, features = ["common", "ecma_utils"] }
+# convert_case = { workspace = true }
 
 [dev-dependencies]
 ctor.workspace = true

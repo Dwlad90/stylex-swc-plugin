@@ -3,58 +3,20 @@ use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression
 use stylex_structures::{
   plugin_pass::PluginPass,
   stylex_env::{EnvEntry, JSFunction},
-  stylex_options::StyleXOptionsParams,
 };
 use stylex_transform::{
   StyleXTransform,
-  shared::{
-    structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
-    utils::ast::{
-      convertors::{
-        create_null_expr, create_number_expr, create_string_expr, expr_to_bool, expr_to_num,
-        expr_to_str,
-      },
-      helpers::get_property_by_key,
-    },
+  shared::utils::ast::{
+    convertors::{create_null_expr, create_number_expr, create_string_expr},
+    helpers::get_property_by_key,
   },
 };
-use swc_core::ecma::{
-  ast::Expr,
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
+use swc_core::ecma::{ast::Expr, transforms::testing::test};
+
+use crate::utils::{
+  ast::{convert_expr_to_bool_wrapper, convert_expr_to_num_wrapper, convert_expr_to_str_wrapper},
+  transform::{env_config, ts_syntax},
 };
-
-fn ts_syntax() -> Syntax {
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  })
-}
-
-fn env_config(env: IndexMap<String, EnvEntry>) -> StyleXOptionsParams {
-  StyleXOptionsParams {
-    env: Some(env),
-    ..StyleXOptionsParams::default()
-  }
-}
-
-fn expr_to_str_wrapper(expr: &Expr) -> Option<String> {
-  expr_to_str(expr, &mut StateManager::default(), &FunctionMap::default())
-}
-
-fn expr_to_num_wrapper(expr: &Expr) -> Option<f64> {
-  expr_to_num(
-    expr,
-    &mut EvaluationState::default(),
-    &mut StateManager::default(),
-    &FunctionMap::default(),
-  )
-  .ok()
-}
-
-fn expr_to_bool_wrapper(expr: &Expr) -> bool {
-  expr_to_bool(expr, &mut StateManager::default(), &FunctionMap::default())
-}
 
 test!(
   ts_syntax(),
@@ -141,15 +103,15 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let c1 = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let c2 = args
           .get(1)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let pct = args
           .get(2)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
@@ -180,15 +142,15 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let c1 = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let c2 = args
           .get(1)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let pct = args
           .get(2)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
@@ -219,9 +181,12 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let color = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
-        let opacity = args.get(1).and_then(expr_to_num_wrapper).unwrap_or(0.0);
+        let opacity = args
+          .get(1)
+          .and_then(convert_expr_to_num_wrapper)
+          .unwrap_or(0.0);
         create_string_expr(&format!(
           "0 4px 4px 2px color-mix(in srgb, {} {}%, transparent)",
           color,
@@ -255,9 +220,12 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let color = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
-        let pct = args.get(1).and_then(expr_to_num_wrapper).unwrap_or(0.0);
+        let pct = args
+          .get(1)
+          .and_then(convert_expr_to_num_wrapper)
+          .unwrap_or(0.0);
         create_string_expr(&format!(
           "color-mix(in srgb, {} {}%, transparent)",
           color,
@@ -292,11 +260,11 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let prop = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let duration = args
           .get(1)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_object_expression(vec![
           create_key_value_prop("transitionProperty", create_string_expr(&prop)),
@@ -328,11 +296,11 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let prop = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let duration = args
           .get(1)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_object_expression(vec![
           create_key_value_prop("transitionProperty", create_string_expr(&prop)),
@@ -364,11 +332,11 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let color = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let size = args
           .get(1)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_object_expression(vec![
           create_key_value_prop("color", create_string_expr(&color)),
@@ -401,11 +369,11 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let c1 = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let c2 = args
           .get(1)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_string_expr(&format!("color-mix(in srgb, {}, {})", c1, c2))
       })),
@@ -415,7 +383,7 @@ test!(
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
         let size = args
           .first()
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_object_expression(vec![
           create_key_value_prop("paddingTop", create_string_expr(&format!("{}px", size))),
@@ -473,7 +441,10 @@ test!(
     env.insert(
       "direction".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
-        let is_rtl = args.first().map(expr_to_bool_wrapper).unwrap_or(false);
+        let is_rtl = args
+          .first()
+          .map(convert_expr_to_bool_wrapper)
+          .unwrap_or(false);
         create_string_expr(if is_rtl { "rtl" } else { "ltr" })
       })),
     );
@@ -526,8 +497,14 @@ test!(
     env.insert(
       "makeTypography".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
-        let scale = args.first().and_then(expr_to_num_wrapper).unwrap_or(1.0);
-        let bold = args.get(1).map(expr_to_bool_wrapper).unwrap_or(false);
+        let scale = args
+          .first()
+          .and_then(convert_expr_to_num_wrapper)
+          .unwrap_or(1.0);
+        let bold = args
+          .get(1)
+          .map(convert_expr_to_bool_wrapper)
+          .unwrap_or(false);
         create_object_expression(vec![
           create_key_value_prop(
             "fontSize",
@@ -566,7 +543,10 @@ test!(
     env.insert(
       "makeGrid".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| {
-        let columns = args.first().and_then(expr_to_num_wrapper).unwrap_or(1.0) as i64;
+        let columns = args
+          .first()
+          .and_then(convert_expr_to_num_wrapper)
+          .unwrap_or(1.0) as i64;
         create_object_expression(vec![
           create_key_value_prop("display", create_string_expr("grid")),
           create_key_value_prop(
@@ -602,10 +582,10 @@ test!(
         let null = create_null_expr();
         let obj = args.first().unwrap_or(&null);
         let bg = get_property_by_key(obj, "backgroundColor")
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let color = get_property_by_key(obj, "color")
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_object_expression(vec![
           create_key_value_prop("backgroundColor", create_string_expr(&bg)),
@@ -643,13 +623,13 @@ test!(
         let null = create_null_expr();
         let obj = args.first().unwrap_or(&null);
         let bg = get_property_by_key(obj, "backgroundColor")
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let color = get_property_by_key(obj, "color")
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let opacity = get_property_by_key(obj, "opacity")
-          .and_then(expr_to_num_wrapper)
+          .and_then(convert_expr_to_num_wrapper)
           .unwrap_or(1.0);
         create_object_expression(vec![
           create_key_value_prop("backgroundColor", create_string_expr(&bg)),
@@ -690,13 +670,13 @@ test!(
         let config = args.first().unwrap_or(&null);
         let mode = args
           .get(1)
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_else(|| "light".to_string());
         let primary = get_property_by_key(config, "primary")
-          .and_then(expr_to_str_wrapper)
+          .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         let size = get_property_by_key(config, "size")
-          .and_then(expr_to_num_wrapper)
+          .and_then(convert_expr_to_num_wrapper)
           .unwrap_or(16.0) as i64;
         create_object_expression(vec![
           create_key_value_prop(
@@ -727,7 +707,7 @@ test!(
 fn select_branch(args: &[Expr]) -> Expr {
   let key = args
     .get(1)
-    .and_then(expr_to_str_wrapper)
+    .and_then(convert_expr_to_str_wrapper)
     .unwrap_or_else(|| "default".to_string());
   args
     .first()

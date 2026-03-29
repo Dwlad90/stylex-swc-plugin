@@ -15,7 +15,9 @@ use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompi
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::StylesObjectMap;
-use crate::shared::utils::ast::convertors::{create_string_expr, expr_to_str, key_value_to_str};
+use crate::shared::utils::ast::convertors::{
+  convert_expr_to_str, convert_key_value_to_str, create_string_expr,
+};
 use crate::shared::utils::common::get_key_values_from_object;
 use crate::shared::utils::log::build_code_frame_error::get_span_from_source_code;
 use stylex_constants::constants::common::COMPILED_KEY;
@@ -51,7 +53,7 @@ pub(crate) fn add_source_map_data(
             let key_values = get_key_values_from_object(object);
 
             for key_value in key_values {
-              let key_string = key_value_to_str(&key_value);
+              let key_string = convert_key_value_to_str(&key_value);
 
               if key == &key_string {
                 style_node_path = Some(key_value.clone());
@@ -102,7 +104,7 @@ pub(crate) fn add_source_map_data(
                     create_string_expr(&raw_short_filename)
                   };
 
-                  let short_filename = expr_to_str(&short_filename_expr, state, functions);
+                  let short_filename = convert_expr_to_str(&short_filename_expr, state, functions);
 
                   if original_line_number > 0
                     && let Some(short_filename) = short_filename

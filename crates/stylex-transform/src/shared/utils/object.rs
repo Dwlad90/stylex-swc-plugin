@@ -15,7 +15,7 @@ use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_
 use stylex_structures::order_pair::OrderPair;
 use stylex_structures::pair::Pair;
 
-use super::ast::convertors::key_value_to_str;
+use super::ast::convertors::convert_key_value_to_str;
 
 pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,
@@ -32,7 +32,7 @@ where
       let key_values = get_key_values_from_object(&obj);
 
       for key_value in key_values.iter() {
-        let key = key_value_to_str(key_value);
+        let key = convert_key_value_to_str(key_value);
 
         let value = Rc::new(FlatCompiledStylesValue::Tuple(
           key.clone(),
@@ -180,7 +180,7 @@ pub(crate) fn preprocess_object_properties(
   let res: Vec<OrderPair> = obj_entries(&style.clone())
     .iter()
     .flat_map(|pair| {
-      let key = key_value_to_str(pair);
+      let key = convert_key_value_to_str(pair);
 
       flat_map_expanded_shorthands(
         (key, PreRuleValue::Expr(*pair.value.clone())),

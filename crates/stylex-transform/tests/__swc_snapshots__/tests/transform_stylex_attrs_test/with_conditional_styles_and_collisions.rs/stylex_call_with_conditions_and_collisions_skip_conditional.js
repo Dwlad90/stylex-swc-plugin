@@ -1,19 +1,19 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-_inject2(".x1e2nbdu{color:red}", 3000);
-_inject2(".xju2f9n{color:blue}", 3000);
-const styles = {
-    red: {
-        kMwMTN: "x1e2nbdu",
-        $$css: true
+_inject2({
+    ltr: ".x1e2nbdu{color:red}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".xju2f9n{color:blue}",
+    priority: 3000
+});
+({
+    0: {
+        class: "x1e2nbdu"
     },
-    blue: {
-        kMwMTN: "xju2f9n",
-        $$css: true
+    1: {
+        class: "xju2f9n"
     }
-};
-stylex.attrs([
-    styles.red,
-    isActive && styles.blue
-]);
+})[!!isActive << 0];

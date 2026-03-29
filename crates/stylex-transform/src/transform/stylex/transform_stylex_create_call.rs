@@ -35,7 +35,7 @@ use crate::shared::transformers::stylex_position_try::get_position_try_fn;
 use crate::shared::utils::ast::convertors::create_null_expr;
 use crate::shared::utils::ast::convertors::create_string_expr;
 use crate::shared::utils::ast::convertors::{
-  convert_atom_to_string, convert_lit_to_string, expr_to_str, key_value_to_str,
+  convert_atom_to_string, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
 };
 use crate::shared::utils::common::get_key_values_from_object;
 use crate::shared::utils::common::normalize_expr;
@@ -86,7 +86,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
     "ancestor".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
       let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+      let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when ancestor: expression is not a string"),
       };
@@ -102,7 +102,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
     "descendant".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
       let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+      let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when descendant: expression is not a string"),
       };
@@ -118,7 +118,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
     "siblingBefore".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
       let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+      let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
       };
@@ -134,7 +134,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
     "siblingAfter".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
       let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+      let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
       };
@@ -150,7 +150,7 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
     "anySibling".to_string(),
     |expr: Expr, state: &mut dyn stylex_types::traits::StyleOptions| {
       let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match expr_to_str(&expr, state, &FunctionMap::default()) {
+      let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
         None => stylex_panic!("stylex.when anySibling: expression is not a string"),
       };
@@ -464,7 +464,7 @@ where
         let props: Vec<PropOrSpread> = key_values
             .iter()
             .map(|key_value| {
-              let orig_key = key_value_to_str(key_value);
+              let orig_key = convert_key_value_to_str(key_value);
               let mut value = key_value.value.clone();
 
               let key = match &key_value.key {

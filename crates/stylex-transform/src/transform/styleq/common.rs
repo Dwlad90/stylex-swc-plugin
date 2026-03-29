@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
 use indexmap::IndexMap;
-use log::warn;
+use log::error;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
@@ -10,7 +11,6 @@ use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompi
 use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
 use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_constants::constants::messages::COMPILED_KEY_MISSING;
 
 pub(crate) struct StyleQResult {
   pub(crate) class_name: String,
@@ -32,7 +32,6 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
   let mut debug_string = String::default();
 
   if arguments.is_empty() {
-    // Early return if there are no arguments
     return StyleQResult {
       class_name,
       inline_style: None,
@@ -40,12 +39,12 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
     };
   }
 
-  let mut defined_properties = vec![]; // The className and inline style to build up
-
-  let inline_style = None;
+  let mut defined_properties: Vec<String> = vec![];
+  let mut inline_style: Option<FlatCompiledStyles> = None;
   let mut next_cache: Option<IndexMap<u64, (String, Vec<String>, String)>> = Some(IndexMap::new());
   let mut styles = arguments.iter().collect::<Vec<_>>();
 
+  // Iterate over styles from last to first (pop from end)
   while let Some(possible_style) = styles.pop() {
     let possible_style = match possible_style {
       ResolvedArg::StyleObject(_, _, _) => possible_style,
@@ -61,28 +60,39 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
     match possible_style {
       ResolvedArg::StyleObject(style, _, _) => match style {
         StyleObject::Style(style) => {
-          let Some(compiled_key) = style.get(COMPILED_KEY) else {
-            stylex_panic!("{}", COMPILED_KEY_MISSING)
-          };
+          if let Some(compiled_key) = style.get(COMPILED_KEY) {
+            // ----- COMPILED: Process compiled style object (has $$css) -----
+            if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) =
+              compiled_key.as_ref()
+            {
+              let mut class_name_chunk = String::default();
 
-          if let FlatCompiledStylesValue::Bool(_) | FlatCompiledStylesValue::String(_) =
-            compiled_key.as_ref()
-          {
-            let btree_map: BTreeMap<_, _> = style.iter().collect();
+              // Try cache read first
+              let cache_hit = if let Some(ref next_cache) = next_cache {
+                let btree_map: BTreeMap<_, _> = style.iter().collect();
+                let style_hash = get_hash(btree_map);
 
-            let style_hash = get_hash(btree_map);
-            let mut class_name_chunk = String::default();
-
-            // Build up the class names defined by this object
-            if let Some(next_cache) = next_cache.as_mut() {
-              if let Some((cached_class_name, cached_properties, cached_debug_string)) =
-                next_cache.get(&style_hash)
-              {
-                class_name_chunk = cached_class_name.clone();
-                defined_properties.extend(cached_properties.iter().cloned());
-                debug_string = cached_debug_string.clone();
+                next_cache.get(&style_hash).map(|entry| {
+                  (
+                    style_hash,
+                    entry.0.clone(),
+                    entry.1.clone(),
+                    entry.2.clone(),
+                  )
+                })
               } else {
-                // The properties defined by this object
+                None
+              };
+
+              if let Some((_hash, cached_class_name, cached_properties, cached_debug_string)) =
+                cache_hit
+              {
+                // Cache hit
+                class_name_chunk = cached_class_name;
+                defined_properties.extend(cached_properties);
+                debug_string = cached_debug_string;
+              } else {
+                // Compute from scratch
                 let mut defined_properties_chunk: Vec<String> = vec![];
 
                 for (prop, value) in style.iter() {
@@ -122,51 +132,107 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                     continue;
                   }
 
-                  if let FlatCompiledStylesValue::Bool(_) = value.as_ref() {
-                    warn!(
-                      "styleq: {} typeof {:?} is not \"string\" or \"null\".",
-                      prop, "Bool"
-                    )
-                  }
+                  // Each property value should be a string or null
+                  match value.as_ref() {
+                    FlatCompiledStylesValue::String(_) | FlatCompiledStylesValue::Null => {
+                      if !defined_properties.contains(prop) {
+                        defined_properties.push(prop.clone());
+                        if next_cache.is_some() {
+                          defined_properties_chunk.push(prop.clone());
+                        }
 
-                  if !defined_properties.contains(prop) {
-                    defined_properties.push(prop.clone());
-                    defined_properties_chunk.push(prop.clone());
-
-                    if let FlatCompiledStylesValue::String(value) = (**value).clone() {
-                      class_name_chunk = if class_name_chunk.is_empty() {
-                        value.to_string()
-                      } else {
-                        format!("{} {}", class_name_chunk, value)
-                      };
-                    }
+                        if let FlatCompiledStylesValue::String(value) = value.as_ref() {
+                          class_name_chunk = if class_name_chunk.is_empty() {
+                            value.to_string()
+                          } else {
+                            format!("{} {}", class_name_chunk, value)
+                          };
+                        }
+                        // Null: property is defined (won't be overridden) but
+                        // no class name is added — matches JS `null` handling.
+                      }
+                    },
+                    _ => {
+                      error!(
+                        "styleq: {} typeof {:?} is not \"string\" or \"null\".",
+                        prop, value
+                      );
+                    },
                   }
                 }
 
-                next_cache.insert(
-                  style_hash,
-                  (
-                    class_name_chunk.clone(),
-                    defined_properties_chunk,
-                    debug_string.clone(),
-                  ),
-                );
+                // Cache write (only when cache is active)
+                if let Some(ref mut cache) = next_cache {
+                  let btree_map: BTreeMap<_, _> = style.iter().collect();
+                  let style_hash = get_hash(btree_map);
+                  cache.insert(
+                    style_hash,
+                    (
+                      class_name_chunk.clone(),
+                      defined_properties_chunk,
+                      debug_string.clone(),
+                    ),
+                  );
+                }
+              }
+
+              if !class_name_chunk.is_empty() {
+                class_name = if class_name.is_empty() {
+                  class_name_chunk
+                } else if !class_name.contains(class_name_chunk.as_str()) {
+                  format!("{} {}", class_name_chunk, class_name)
+                } else {
+                  class_name
+                };
+              }
+            } else {
+              stylex_panic!(
+                "styleq: {:#?} typeof {:?} is not \"string\" or \"null\".",
+                compiled_key,
+                "Bool"
+              )
+            }
+          } else {
+            // ----- DYNAMIC: Process inline style object (no $$css) -----
+            let mut sub_style: Option<FlatCompiledStyles> = None;
+
+            for (prop, value) in style.iter() {
+              if !defined_properties.contains(prop) {
+                match value.as_ref() {
+                  FlatCompiledStylesValue::Null => {
+                    // null values mark the property as defined but don't
+                    // contribute to the inline style output.
+                    defined_properties.push(prop.clone());
+                  },
+                  _ => {
+                    if sub_style.is_none() {
+                      sub_style = Some(IndexMap::new());
+                    }
+                    if let Some(ref mut sub) = sub_style {
+                      sub.insert(prop.clone(), Rc::new(value.as_ref().clone()));
+                    }
+                    defined_properties.push(prop.clone());
+                  },
+                }
               }
             }
 
-            if !class_name_chunk.is_empty() {
-              class_name = if class_name.is_empty() {
-                class_name_chunk.clone()
-              } else if !class_name.contains(class_name_chunk.as_str()) {
-                format!("{} {}", class_name_chunk, class_name)
+            if let Some(sub) = sub_style {
+              // Merge: sub_style first, then existing inline_style (earlier
+              // properties win, matching JS `Object.assign(subStyle, inlineStyle)`)
+              inline_style = if let Some(existing) = inline_style {
+                let mut merged = sub;
+                for (k, v) in existing {
+                  merged.entry(k).or_insert(v);
+                }
+                Some(merged)
               } else {
-                class_name
+                Some(sub)
               };
             }
-          } else {
-            stylex_unimplemented!(
-              "Processing dynamic inline style objects is not yet supported in styleq."
-            )
+
+            // Cache is unnecessary overhead when inline styles are present
+            next_cache = None;
           }
         },
         StyleObject::Nullable => {},

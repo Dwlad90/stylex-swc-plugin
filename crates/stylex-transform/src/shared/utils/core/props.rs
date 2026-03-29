@@ -1,7 +1,7 @@
 use std::rc::Rc;
+use stylex_structures::pair::Pair;
 
 use indexmap::IndexMap;
-use stylex_macros::stylex_unimplemented;
 
 use crate::{
   shared::{
@@ -9,7 +9,7 @@ use crate::{
       flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
     },
     structures::types::FlatCompiledStyles,
-    utils::core::js_to_expr::NestedStringObject,
+    utils::{core::js_to_expr::NestedStringObject, css::common::normalize_css_property_name},
   },
   transform::styleq::common::{StyleQResult, styleq},
 };
@@ -32,9 +32,21 @@ pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
     );
   }
 
-  if let Some(_inline_style) = inline_style {
-    stylex_unimplemented!(
-      "Inline style objects from dynamic style functions are not yet supported in props()."
+  if let Some(inline_style) = inline_style {
+    let pairs: Vec<Pair> = inline_style
+      .iter()
+      .filter_map(|(k, v)| {
+        if let FlatCompiledStylesValue::String(val) = v.as_ref() {
+          Some(Pair::new(normalize_css_property_name(k), val.clone()))
+        } else {
+          None
+        }
+      })
+      .collect();
+
+    props_map.insert(
+      "style".to_string(),
+      Rc::new(FlatCompiledStylesValue::KeyValues(pairs)),
     );
   }
 

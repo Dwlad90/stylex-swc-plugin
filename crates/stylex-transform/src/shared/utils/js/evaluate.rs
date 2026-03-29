@@ -38,9 +38,9 @@ use crate::shared::structures::theme_ref::ThemeRef;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use crate::shared::utils::ast::convertors::{
   binary_expr_to_num, binary_expr_to_string, convert_atom_to_str_ref, convert_atom_to_string,
-  convert_lit_to_string, create_big_int_expr, create_bool_expr, create_number_expr,
-  create_string_expr, expand_shorthand_prop, expr_to_bool, expr_to_num, expr_to_str,
-  extract_tpl_cooked_value, key_value_to_str,
+  convert_expr_to_bool, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
+  create_big_int_expr, create_bool_expr, create_number_expr, create_string_expr,
+  expand_shorthand_prop, expr_to_num, extract_tpl_cooked_value,
 };
 use crate::shared::utils::common::{
   char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
@@ -186,7 +186,7 @@ pub(crate) fn evaluate_obj_key(
     PropName::BigInt(big_int) => create_big_int_expr(big_int.clone()),
   };
 
-  let key_expr = match expr_to_str(&key, state, functions) {
+  let key_expr = match convert_expr_to_str(&key, state, functions) {
     Some(ref s) => create_string_expr(s),
     None => {
       return EvaluateResult {
@@ -457,7 +457,7 @@ fn _evaluate(
           "The test condition of a conditional expression must be a static expression."
         ),
       } {
-        EvaluateResultValue::Expr(ref expr) => expr_to_bool(expr, traversal_state, fns),
+        EvaluateResultValue::Expr(ref expr) => convert_expr_to_bool(expr, traversal_state, fns),
         _ => stylex_panic_with_context!(
           path,
           traversal_state,
@@ -622,7 +622,7 @@ fn _evaluate(
 
                     match prop.as_ref() {
                       Prop::KeyValue(key_value) => {
-                        let key = key_value_to_str(key_value);
+                        let key = convert_key_value_to_str(key_value);
 
                         ident_string_name == key
                       }
@@ -831,7 +831,7 @@ fn _evaluate(
 
       match unary.op {
         UnaryOp::Bang => {
-          let value = expr_to_bool(&arg, traversal_state, fns);
+          let value = convert_expr_to_bool(&arg, traversal_state, fns);
 
           Some(EvaluateResultValue::Expr(create_bool_expr(!value)))
         },
@@ -1427,7 +1427,7 @@ fn _evaluate(
                               None => stylex_panic!("Object.keys() requires an object argument."),
                             };
 
-                            let key = key_value_to_str(key_values);
+                            let key = convert_key_value_to_str(key_values);
 
                             keys.push(Some(create_expr_or_spread(create_string_expr(
                               key.as_str(),
@@ -1499,7 +1499,7 @@ fn _evaluate(
 
                             let value = key_values.value.clone();
 
-                            let key = key_value_to_str(key_values);
+                            let key = convert_key_value_to_str(key_values);
 
                             entries.insert(create_string_lit(key.as_str()), value);
                           }

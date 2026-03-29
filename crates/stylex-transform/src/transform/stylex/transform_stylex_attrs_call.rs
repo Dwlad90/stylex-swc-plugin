@@ -5,7 +5,10 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::utils::{core::stylex_merge::stylex_merge, validators::is_attrs_call},
+  shared::utils::{
+    core::{attrs::attrs, stylex_merge::stylex_merge},
+    validators::is_attrs_call,
+  },
 };
 
 impl<C> StyleXTransform<C>

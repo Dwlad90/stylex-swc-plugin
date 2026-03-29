@@ -15,8 +15,8 @@ use crate::shared::structures::state::EvaluationState;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::ClassesToOriginalPaths;
 use crate::shared::utils::ast::convertors::{
-  convert_lit_to_string, create_number_expr, expand_shorthand_prop, expr_tpl_to_string,
-  handle_tpl_to_expression, key_value_to_str, transform_bin_expr_to_number,
+  convert_key_value_to_str, convert_lit_to_string, create_number_expr, expand_shorthand_prop,
+  expr_tpl_to_string, handle_tpl_to_expression, transform_bin_expr_to_number,
 };
 use crate::shared::utils::common::{
   get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident,
@@ -79,7 +79,7 @@ pub(crate) fn flatten_raw_style_object_logic(
   let mut flattened: IndexMap<String, PreRules> = IndexMap::new();
 
   for property in style.iter() {
-    let key = key_value_to_str(property);
+    let key = convert_key_value_to_str(property);
 
     let css_property_key = if CSS_PROPERTY_KEY.is_match(&key).unwrap_or_else(|err| {
       warn!(
@@ -280,7 +280,7 @@ pub(crate) fn flatten_raw_style_object_logic(
               if let Prop::KeyValue(key_value) = prop.as_ref() {
                 let mut inner_key_value: KeyValueProp = key_value.clone();
 
-                let condition = key_value_to_str(&inner_key_value);
+                let condition = convert_key_value_to_str(&inner_key_value);
 
                 inner_key_value.key = PropName::Str(quote_str!(css_property_key.clone()));
 

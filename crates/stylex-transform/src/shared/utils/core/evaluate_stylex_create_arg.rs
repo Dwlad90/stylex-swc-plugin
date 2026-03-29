@@ -17,7 +17,8 @@ use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{DynamicFns, TInlineStyles};
 use crate::shared::utils::ast::convertors::{
-  create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, expr_to_str,
+  convert_expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
+  expand_shorthand_prop,
 };
 use crate::shared::utils::common::{create_hash, normalize_expr};
 use crate::shared::utils::css::common::get_number_suffix;
@@ -104,12 +105,13 @@ pub fn evaluate_stylex_create_arg(
                           );
 
                           if !eval_result.confident {
-                            let reason = match expr_to_str(key_expr, traversal_state, functions) {
-                              Some(key_name) => {
-                                prepend_key_to_reason(&key_name, eval_result.reason)
-                              },
-                              None => eval_result.reason,
-                            };
+                            let reason =
+                              match convert_expr_to_str(key_expr, traversal_state, functions) {
+                                Some(key_name) => {
+                                  prepend_key_to_reason(&key_name, eval_result.reason)
+                                },
+                                None => eval_result.reason,
+                              };
                             return Box::new(EvaluateResult {
                               confident: false,
                               deopt: eval_result.deopt,
@@ -132,7 +134,8 @@ pub fn evaluate_stylex_create_arg(
                             ),
                           };
 
-                          let key = match expr_to_str(key_expr, traversal_state, functions) {
+                          let key = match convert_expr_to_str(key_expr, traversal_state, functions)
+                          {
                             Some(k) => k,
                             None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
                           };
@@ -172,7 +175,9 @@ pub fn evaluate_stylex_create_arg(
                     let mut val = evaluate(value_path, traversal_state, functions);
 
                     if !val.confident {
-                      if let Some(key_name) = expr_to_str(key_expr, traversal_state, functions) {
+                      if let Some(key_name) =
+                        convert_expr_to_str(key_expr, traversal_state, functions)
+                      {
                         val.reason = prepend_key_to_reason(&key_name, val.reason);
                       }
                       return val;
@@ -262,7 +267,7 @@ fn evaluate_partial_object_recursively(
               None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
             };
 
-            let mut key_str = match expr_to_str(key, traversal_state, functions) {
+            let mut key_str = match convert_expr_to_str(key, traversal_state, functions) {
               Some(s) => s,
               None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
             };

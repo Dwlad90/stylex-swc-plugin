@@ -10,7 +10,7 @@ use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::ast::convertors::{
-  convert_lit_to_string, expr_to_bool, expr_to_str, key_value_to_str,
+  convert_expr_to_bool, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
 };
 use crate::shared::utils::common::reduce_ident_count;
 use crate::shared::utils::js::evaluate::evaluate;
@@ -246,7 +246,7 @@ fn parse_nullable_object(
     Expr::Object(ObjectLit { props, .. }) => {
       for prop in props.iter() {
         if let Some(key_value) = prop.as_prop().and_then(|p| p.as_key_value()) {
-          let key = key_value_to_str(key_value);
+          let key = convert_key_value_to_str(key_value);
           match key_value.value.as_ref() {
             Expr::Lit(lit) => parse_nullable_key_value(compiled_styles, key, lit),
 
@@ -311,12 +311,13 @@ fn _evaluate_style_object(
           .as_prop()
           .and_then(|prop| prop.as_key_value())
           .map(|key_value| {
-            let key = key_value_to_str(key_value);
-            let value = if let Some(strng) = expr_to_str(key_value.value.as_ref(), state, functions)
+            let key = convert_key_value_to_str(key_value);
+            let value = if let Some(strng) =
+              convert_expr_to_str(key_value.value.as_ref(), state, functions)
             {
               FlatCompiledStylesValue::String(strng)
             } else {
-              FlatCompiledStylesValue::Bool(expr_to_bool(
+              FlatCompiledStylesValue::Bool(convert_expr_to_bool(
                 key_value.value.as_ref(),
                 state,
                 functions,

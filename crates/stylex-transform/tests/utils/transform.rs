@@ -1,6 +1,9 @@
 use std::{rc::Rc, sync::Arc};
 
-use stylex_structures::plugin_pass::PluginPass;
+use indexmap::IndexMap;
+use stylex_structures::{
+  plugin_pass::PluginPass, stylex_env::EnvEntry, stylex_options::StyleXOptionsParams,
+};
 use stylex_transform::StyleXTransform;
 
 use swc_core::{
@@ -30,6 +33,7 @@ use swc_core::{
     visit::FoldWith,
   },
 };
+use swc_ecma_parser::TsSyntax;
 
 pub(crate) fn _parse_js(source_code: &str) -> Module {
   if std::env::var("INSTA_UPDATE").is_err() {
@@ -147,4 +151,18 @@ where
 
     Result::Ok(actual_str)
   })
+}
+
+pub(crate) fn ts_syntax() -> Syntax {
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  })
+}
+
+pub(crate) fn env_config(env: IndexMap<String, EnvEntry>) -> StyleXOptionsParams {
+  StyleXOptionsParams {
+    env: Some(env),
+    ..StyleXOptionsParams::default()
+  }
 }

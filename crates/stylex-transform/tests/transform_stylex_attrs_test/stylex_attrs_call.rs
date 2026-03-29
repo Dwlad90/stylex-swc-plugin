@@ -1,8 +1,13 @@
-use stylex_shared::{StyleXTransform, shared::structures::plugin_pass::PluginPass};
+use indexmap::IndexMap;
+use stylex_ast::ast::convertors::create_string_expr;
+use stylex_structures::{plugin_pass::PluginPass, stylex_env::EnvEntry};
+use stylex_transform::StyleXTransform;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
+
+use crate::utils::transform::{env_config, ts_syntax};
 
 test!(
   Syntax::Typescript(TsSyntax {
@@ -32,6 +37,28 @@ test!(
     None
   ),
   basic_stylex_call,
+  r#"
+        import * as stylex from 'stylex';
+        const styles = stylex.create({
+            red: {
+                color: 'red',
+            }
+        });
+        stylex.attrs(styles.red);
+    "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
+    tr.comments.clone(),
+    PluginPass::default(),
+    None
+  ),
+  basic_stylex_attrs_call,
   r#"
         import * as stylex from 'stylex';
         const styles = stylex.create({
@@ -415,4 +442,32 @@ test!(
         });
         stylex.attrs(styles.default);
     "#
+);
+
+test!(
+  ts_syntax(),
+  |tr| {
+    let mut env = IndexMap::new();
+
+    env.insert(
+      "primaryColor".to_string(),
+      EnvEntry::Expr(create_string_expr("#00ffaa")),
+    );
+
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass::default(),
+      Some(&mut env_config(env)),
+    )
+  },
+  stylex_attrs_named_import_resolves_in_inline_objects,
+  r#"
+    import { attrs, create, env } from 'stylex';
+    const styles = create({
+      red: {
+        color: env.primaryColor,
+      }
+    });
+    attrs(styles.red);
+  "#
 );

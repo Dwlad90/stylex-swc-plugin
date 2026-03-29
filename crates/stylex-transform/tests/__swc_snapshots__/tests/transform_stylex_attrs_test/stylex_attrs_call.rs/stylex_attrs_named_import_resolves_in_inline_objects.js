@@ -1,11 +1,10 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
-import stylex from 'stylex';
+import { attrs, create, env } from 'stylex';
 _inject2({
-    ltr: ".x1e2nbdu{color:red}",
+    ltr: ".x1melapo{color:#0fa}",
     priority: 3000
 });
-({});
 ({
-    class: "x1e2nbdu"
+    class: "x1melapo"
 });

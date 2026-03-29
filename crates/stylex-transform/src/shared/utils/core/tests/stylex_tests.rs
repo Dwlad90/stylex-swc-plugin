@@ -4,6 +4,7 @@ mod tests {
   use std::rc::Rc;
 
   use indexmap::IndexMap;
+  use stylex_constants::constants::common::COMPILED_KEY;
   use swc_core::{
     common::DUMMY_SP,
     ecma::{
@@ -14,6 +15,7 @@ mod tests {
 
   use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
   use crate::shared::utils::ast::convertors::{convert_lit_to_string, create_string_expr};
+  use crate::shared::utils::core::attrs::attrs;
   use crate::shared::utils::core::js_to_expr::NestedStringObject;
   use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
   use crate::shared::utils::core::props::props;
@@ -268,7 +270,7 @@ mod tests {
       &[
         ("cursor", FlatCompiledStylesValue::String("fsf7x5fv".into())),
         (
-          ":touchAction",
+          "touchAction",
           FlatCompiledStylesValue::String("s3jn8y49".into()),
         ),
         ("$$css", FlatCompiledStylesValue::Bool(true)),
@@ -287,7 +289,7 @@ mod tests {
         ),
         ("cursor", FlatCompiledStylesValue::String("nhd2j8a9".into())),
         (
-          ":touchAction",
+          "touchAction",
           FlatCompiledStylesValue::String("f1sip0of".into()),
         ),
         ("$$css", FlatCompiledStylesValue::Bool(true)),
@@ -490,6 +492,273 @@ mod tests {
     assert_eq!(
       props,
       &NestedStringObject::FlatCompiledStylesValues(expected_props)
+    );
+  }
+
+  #[test]
+  fn with_just_pseudoclasses() {
+    let args = create_style_object_args(&[
+      &[
+        (
+          ":hover__backgroundColor",
+          FlatCompiledStylesValue::String("rse6dlih".into()),
+        ),
+        ("$$css", FlatCompiledStylesValue::Bool(true)),
+      ],
+      &[
+        (
+          ":hover__color",
+          FlatCompiledStylesValue::String("gofk2cf1".into()),
+        ),
+        ("$$css", FlatCompiledStylesValue::Bool(true)),
+      ],
+    ]);
+
+    let result = stylex(&args).expect("Expected result to be Some");
+
+    let classname_string = result
+      .as_stylex()
+      .and_then(|expr| expr.as_lit())
+      .and_then(convert_lit_to_string)
+      .expect("Expected classname_string to be Some");
+
+    assert_eq!(classname_string, "rse6dlih gofk2cf1");
+  }
+
+  #[test]
+  fn props_with_dynamic_styles() {
+    // First arg: compiled style (with $$css)
+    let mut compiled = IndexMap::new();
+    compiled.insert(
+      "backgroundColor".to_string(),
+      Rc::new(FlatCompiledStylesValue::String(
+        "backgroundColor-red".into(),
+      )),
+    );
+    compiled.insert(
+      COMPILED_KEY.to_string(),
+      Rc::new(FlatCompiledStylesValue::String(
+        "components/Foo.react.js:1".into(),
+      )),
+    );
+
+    // Second arg: dynamic inline style (no $$css)
+    let mut dynamic_style = IndexMap::new();
+    dynamic_style.insert(
+      "color".to_string(),
+      Rc::new(FlatCompiledStylesValue::String("red".into())),
+    );
+
+    let args = vec![
+      ResolvedArg::StyleObject(
+        StyleObject::Style(compiled),
+        vec![create_ident("test")],
+        vec![MemberExpr {
+          span: DUMMY_SP,
+          obj: Box::new(create_string_expr("test")),
+          prop: MemberProp::Ident(quote_ident!("test")),
+        }],
+      ),
+      ResolvedArg::StyleObject(
+        StyleObject::Style(dynamic_style),
+        vec![create_ident("test")],
+        vec![MemberExpr {
+          span: DUMMY_SP,
+          obj: Box::new(create_string_expr("test")),
+          prop: MemberProp::Ident(quote_ident!("test")),
+        }],
+      ),
+    ];
+
+    let binding = props(&args).expect("Expected result to be Some");
+    let props_values = binding.as_props().expect("Expected props result");
+    let values = props_values.as_values().expect("Expected values map");
+
+    assert_eq!(
+      values.get("className").and_then(|v| {
+        if let FlatCompiledStylesValue::String(s) = v.as_ref() {
+          Some(s.as_str())
+        } else {
+          None
+        }
+      }),
+      Some("backgroundColor-red"),
+    );
+
+    // Inline style should be present as KeyValues
+    let style_value = values.get("style").expect("Expected style key in props");
+    if let FlatCompiledStylesValue::KeyValues(pairs) = style_value.as_ref() {
+      assert_eq!(pairs.len(), 1);
+      assert_eq!(pairs[0].key, "color");
+      assert_eq!(pairs[0].value, "red");
+    } else {
+      panic!("Expected style to be KeyValues, got {:?}", style_value);
+    }
+
+    assert_eq!(
+      values.get("data-style-src").and_then(|v| {
+        if let FlatCompiledStylesValue::String(s) = v.as_ref() {
+          Some(s.as_str())
+        } else {
+          None
+        }
+      }),
+      Some("components/Foo.react.js:1"),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // attrs
+  // -------------------------------------------------------------------------
+
+  #[test]
+  fn attrs_basic_resolve() {
+    let args = create_style_object_args(&[&[
+      ("a", FlatCompiledStylesValue::String("aaa".into())),
+      ("b", FlatCompiledStylesValue::String("bbb".into())),
+      ("$$css", FlatCompiledStylesValue::Bool(true)),
+    ]]);
+
+    let binding = attrs(&args).expect("Expected result to be Some");
+    let attrs_result = binding.as_attrs().expect("Expected attrs result");
+
+    let mut expected = IndexMap::new();
+    expected.insert(
+      "class".into(),
+      Rc::new(FlatCompiledStylesValue::String("aaa bbb".into())),
+    );
+
+    assert_eq!(
+      attrs_result,
+      &NestedStringObject::FlatCompiledStylesValues(expected),
+    );
+  }
+
+  #[test]
+  fn attrs_with_dynamic_styles() {
+    // First arg: compiled style (with $$css)
+    let mut compiled = IndexMap::new();
+    compiled.insert(
+      "backgroundColor".to_string(),
+      Rc::new(FlatCompiledStylesValue::String(
+        "backgroundColor-red".into(),
+      )),
+    );
+    compiled.insert(
+      COMPILED_KEY.to_string(),
+      Rc::new(FlatCompiledStylesValue::String(
+        "components/Foo.react.js:1".into(),
+      )),
+    );
+
+    // Second arg: dynamic inline style (no $$css)
+    let mut dynamic_style = IndexMap::new();
+    dynamic_style.insert(
+      "color".to_string(),
+      Rc::new(FlatCompiledStylesValue::String("red".into())),
+    );
+    dynamic_style.insert(
+      "marginTop".to_string(),
+      Rc::new(FlatCompiledStylesValue::String("10px".into())),
+    );
+    dynamic_style.insert(
+      "opacity".to_string(),
+      Rc::new(FlatCompiledStylesValue::String("0.5".into())),
+    );
+    dynamic_style.insert(
+      "--foo".to_string(),
+      Rc::new(FlatCompiledStylesValue::String("2".into())),
+    );
+    dynamic_style.insert(
+      "MsTransition".to_string(),
+      Rc::new(FlatCompiledStylesValue::String("none".into())),
+    );
+    dynamic_style.insert(
+      "WebkitTapHighlightColor".to_string(),
+      Rc::new(FlatCompiledStylesValue::String("transparent".into())),
+    );
+
+    let args = vec![
+      ResolvedArg::StyleObject(
+        StyleObject::Style(compiled),
+        vec![create_ident("test")],
+        vec![MemberExpr {
+          span: DUMMY_SP,
+          obj: Box::new(create_string_expr("test")),
+          prop: MemberProp::Ident(quote_ident!("test")),
+        }],
+      ),
+      ResolvedArg::StyleObject(
+        StyleObject::Style(dynamic_style),
+        vec![create_ident("test")],
+        vec![MemberExpr {
+          span: DUMMY_SP,
+          obj: Box::new(create_string_expr("test")),
+          prop: MemberProp::Ident(quote_ident!("test")),
+        }],
+      ),
+    ];
+
+    let binding = attrs(&args).expect("Expected result to be Some");
+    let attrs_values = binding.as_attrs().expect("Expected attrs result");
+    let values = attrs_values.as_values().expect("Expected values map");
+
+    assert_eq!(
+      values.get("class").and_then(|v| {
+        if let FlatCompiledStylesValue::String(s) = v.as_ref() {
+          Some(s.as_str())
+        } else {
+          None
+        }
+      }),
+      Some("backgroundColor-red"),
+    );
+    assert_eq!(
+      values.get("style").and_then(|v| {
+        if let FlatCompiledStylesValue::String(s) = v.as_ref() {
+          Some(s.as_str())
+        } else {
+          None
+        }
+      }),
+      Some(
+        "color:red;margin-top:10px;opacity:0.5;--foo:2;-ms-transition:none;-webkit-tap-highlight-color:transparent"
+      ),
+    );
+
+    assert_eq!(
+      values.get("data-style-src").and_then(|v| {
+        if let FlatCompiledStylesValue::String(s) = v.as_ref() {
+          Some(s.as_str())
+        } else {
+          None
+        }
+      }),
+      Some("components/Foo.react.js:1"),
+    );
+  }
+
+  /// `stylex.legacyMerge.attrs(...)` behaves identically to `attrs(...)` at
+  /// the Rust level — both route through the same `attrs()` transform.
+  #[test]
+  fn legacy_merge_exposes_attrs() {
+    let args = create_style_object_args(&[&[
+      ("color", FlatCompiledStylesValue::String("color-red".into())),
+      ("$$css", FlatCompiledStylesValue::Bool(true)),
+    ]]);
+
+    let binding = attrs(&args).expect("Expected result to be Some");
+    let attrs_result = binding.as_attrs().expect("Expected attrs result");
+
+    let mut expected = IndexMap::new();
+    expected.insert(
+      "class".into(),
+      Rc::new(FlatCompiledStylesValue::String("color-red".into())),
+    );
+
+    assert_eq!(
+      attrs_result,
+      &NestedStringObject::FlatCompiledStylesValues(expected),
     );
   }
 }

@@ -49,7 +49,6 @@ swc_core = { workspace = true, features = [
   "ecma_utils",
 ] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
-
 stylex_ast = { path = "../stylex-ast" }
 stylex_constants = { path = "../stylex-constants" }
 stylex_css = { path = "../stylex-css" }

@@ -53,7 +53,8 @@ macro_rules! stylex_panic_with_context {
 #[macro_export]
 macro_rules! expr_to_str_or_deopt {
   ($expr:expr, $state:expr, $traversal_state:expr, $fns:expr, $error_msg:expr) => {
-    match $crate::shared::utils::ast::convertors::expr_to_str($expr, $traversal_state, $fns) {
+    match $crate::shared::utils::ast::convertors::convert_expr_to_str($expr, $traversal_state, $fns)
+    {
       Some(s) => s,
       None => {
         $crate::shared::utils::js::evaluate::deopt($expr, $state, $error_msg);

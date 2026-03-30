@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-enums",
   "description": "Enum definitions for the StyleX system",
-  "version": "0.15.2-rc.1",
+  "version": "0.15.2",
   "private": true,
   "sideEffects": false,
   "files": [

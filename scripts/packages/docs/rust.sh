@@ -1,13 +1,5 @@
 #!/usr/bin/env sh
 
-# Exit immediately when any subprocess returns a non-zero command
-set -e
-
-# Kill all subprocesses when exiting
-# shellcheck disable=2154
-trap 'exit $exit_code' INT TERM
-trap 'exit_code=$?; kill 0' EXIT
-
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 
 open_docs=""
@@ -37,5 +29,5 @@ if [ "$build_rust" = true ]; then
   fi
   export RUSTDOCFLAGS="--enable-index-page -Zunstable-options"
 
-  cargo doc +nightly --no-deps --document-private-items $verbose_flag $open_docs || handle_error "Failed to build cargo docs"
+  cargo doc --no-deps --document-private-items $verbose_flag $open_docs || handle_error "Failed to build cargo docs"
 fi

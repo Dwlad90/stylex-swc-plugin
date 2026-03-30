@@ -24,5 +24,5 @@ for pid in $pids; do
   wait "$pid"
 done
 
-# Remove traps to exit with 0
+# Remove traps and restore default signal/exit handling
 trap - INT TERM EXIT

@@ -15,5 +15,5 @@ if [ ! -f "$artifacts_path" ]; then
   exit 1
 fi
 
-# Remove traps to exit with 0
+# Remove traps and restore default signal/exit handling
 trap - INT TERM EXIT

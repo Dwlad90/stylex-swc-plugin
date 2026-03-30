@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e # Exit immediately if a command fails
 
 # Define the patterns: #[test], test_transform(, or test!(
 # We use -E for extended regex to use the OR (|) operator

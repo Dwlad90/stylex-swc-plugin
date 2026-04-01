@@ -21,7 +21,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@stylexswc/playwright": "0.15.2",
-    "@vitejs/plugin-vue": "^6.0.4",
+    "@vitejs/plugin-vue": "^6.0.5",
     "@vitejs/plugin-vue-jsx": "^5.1.4",
     "serve": "^14.2.6",
     "typescript": "^5.9.3",

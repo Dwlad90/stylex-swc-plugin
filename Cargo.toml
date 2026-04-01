@@ -50,7 +50,7 @@ derive_more = { version = "2.1.1", features = ["display"] }
 murmur2 = { version = "0.1.0" }
 radix_fmt = { version = "1.0.0" }
 phf = { version = "0.13.1" }
-once_cell = { version = "1.21.3" }
+once_cell = { version = "1.21.4" }
 colored = { version = "3.1.1" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
@@ -64,7 +64,7 @@ pretty_env_logger = "0.5.0"
 color-backtrace = { version = "0.7.2" }
 ctor = "0.6.3"
 env_logger = "0.11.9"
-rustc-hash = "2.1.1"
+rustc-hash = "2.1.2"
 base62 = { version = "2.2.4" }
 md5 = { version = "0.8.0" }
 rust_decimal = { version = "1.39.0", features = ["serde"] }

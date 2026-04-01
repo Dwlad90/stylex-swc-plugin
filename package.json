@@ -27,7 +27,7 @@
     "scripty": "3.0.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.4.2",
+    "@commitlint/cli": "^20.5.0",
     "@stylexswc/eslint-config": "0.15.2",
     "@stylexswc/typescript-config": "0.15.2",
     "@typescript-eslint/parser": "^8.56.1",

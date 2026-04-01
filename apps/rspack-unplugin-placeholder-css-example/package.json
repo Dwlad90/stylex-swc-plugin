@@ -23,7 +23,7 @@
     "@playwright/test": "^1.58.2",
     "@rsbuild/core": "^1.7.3",
     "@rsbuild/plugin-react": "^1.4.5",
-    "@rspack/cli": "^1.7.0",
+    "@rspack/cli": "^1.7.11",
     "@rspack/core": "^1.7.6",
     "@stylexswc/playwright": "0.15.2",
     "@types/react": "^19.2.14",

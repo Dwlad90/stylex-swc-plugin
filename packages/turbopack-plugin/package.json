@@ -54,7 +54,7 @@
     "@types/babel__core": "^7.20.5",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^25.3.3",
-    "webpack": "^5.105.3"
+    "webpack": "^5.105.4"
   },
   "keywords": [
     "stylex",

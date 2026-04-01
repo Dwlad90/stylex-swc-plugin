@@ -46,7 +46,7 @@
     "browserslist": "^4.28.1",
     "jest": "^30.3.0",
     "jest-chain-transform": "^0.0.8",
-    "rollup": "^4.59.0"
+    "rollup": "^4.60.1"
   },
   "keywords": [
     "rollup-plugin",

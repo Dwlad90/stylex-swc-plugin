@@ -28,7 +28,7 @@
     "@storybook/addon-docs": "^10.2.13",
     "@storybook/addon-links": "^10.2.13",
     "@storybook/addon-vitest": "^10.2.13",
-    "@storybook/react": "^10.2.11",
+    "@storybook/react": "^10.3.3",
     "@storybook/react-vite": "^10.2.13",
     "@stylexjs/eslint-plugin": "^0.18.2",
     "@stylexjs/stylex": "^0.18.2",

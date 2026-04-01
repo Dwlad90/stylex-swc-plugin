@@ -17,7 +17,7 @@
     "@stylexjs/eslint-plugin": "^0.18.2",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
-    "eslint-config-next": "^16.1.6",
+    "eslint-config-next": "^16.2.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-turbo": "^2.8.12",
     "eslint-plugin-jest": "^29.15.0",

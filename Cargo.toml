@@ -54,7 +54,7 @@ once_cell = { version = "1.21.3" }
 colored = { version = "3.1.1" }
 node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
-cssparser = { version = "0.36.0" }
+cssparser = { version = "0.37.0" }
 testing = "20.0.0"
 insta = { version = "1.46.3" }
 anyhow = "1.0.102"

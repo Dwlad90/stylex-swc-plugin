@@ -38,4 +38,4 @@ stylex_macros = { path = "../stylex-macros" }
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
-proptest = "1.10"
+proptest = "1.11"

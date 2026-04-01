@@ -41,7 +41,7 @@
     "@stylexswc/typescript-config": "0.15.2",
     "@types/babel__core": "^7.20.5",
     "@types/loader-utils": "^3.0.0",
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.5.0",
     "mini-css-extract-plugin": "^2.10.0",
     "webpack": "^5.105.3"
   },

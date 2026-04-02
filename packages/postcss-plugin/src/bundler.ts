@@ -9,37 +9,47 @@ export default function createBundler() {
   const styleXRulesMap = new Map();
 
   // Determines if the source code should be transformed based on the presence of StyleX imports.
-  function shouldTransform(sourceCode: string, rsOptions?: StyleXPluginOption['rsOptions']) {
-    const { importSources } = rsOptions ?? {};
+  function shouldTransform(
+    sourceCode: string,
+    rsOptions?: StyleXPluginOption['rsOptions']
+  ): boolean {
+    const importSources = rsOptions?.importSources;
 
-    let parsedImportSources: StyleXOptions['importSources'] | undefined;
+    if (!importSources) return false;
 
-    try {
-      parsedImportSources = importSources?.map(importSource => {
-        return typeof importSource === 'string' ? JSON.parse(importSource) : importSource;
-      });
-    } catch (error) {
-      parsedImportSources = importSources;
-    }
+    return importSources.some(importSource => {
+      // Already an object (e.g., { from: '@stylexjs/stylex' })
+      if (typeof importSource !== 'string') {
+        const fromTrimmed = importSource.from?.trim();
 
-    const shouldTransform = parsedImportSources?.some(importSource => {
-      if (typeof importSource === 'string') {
-        return sourceCode.includes(importSource);
+        if (!fromTrimmed) return false;
+
+        return sourceCode.includes(importSource.from);
       }
-      return sourceCode.includes(importSource.from);
+
+      const importSourceTrimmed = importSource.trimStart();
+
+      if (!importSourceTrimmed) return false;
+
+      // JSON string edge-case: only attempt parse if it looks like a JSON object
+      if (importSourceTrimmed[0] === '{') {
+        try {
+          const parsed = JSON.parse(importSourceTrimmed);
+          if (typeof parsed.from === 'string') {
+            const fromTrimmed = parsed.from.trim();
+
+            if (!fromTrimmed) return false;
+
+            return sourceCode.includes(fromTrimmed);
+          }
+        } catch {
+          // Not valid JSON — fall through to plain string check
+        }
+      }
+
+      // Standard string case, e.g. '@stylexjs/stylex'
+      return sourceCode.includes(importSource);
     });
-
-    // if (importSourcesExtend != null) {
-    //   shouldTransform ||= importSourcesExtend.some(importSource => {
-    //     if (typeof importSource === 'string') {
-    //       return sourceCode.includes(importSource);
-    //     }
-
-    //     return sourceCode.includes(importSource.from);
-    //   });
-    // }
-
-    return shouldTransform;
   }
 
   // Transforms the source code using Babel, extracting StyleX rules and storing them.

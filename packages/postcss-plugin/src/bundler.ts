@@ -19,7 +19,6 @@ export default function createBundler() {
         return typeof importSource === 'string' ? JSON.parse(importSource) : importSource;
       });
     } catch (error) {
-      console.warn(error);
       parsedImportSources = importSources;
     }
 

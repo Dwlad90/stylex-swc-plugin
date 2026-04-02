@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -107,7 +107,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -149,7 +149,7 @@ jobs:
             command: pnpm run check:artifacts --filter "{./packages/*}" --filter "{./crates/*}"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -188,7 +188,7 @@ jobs:
       - basic-checks
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -259,7 +259,7 @@ jobs:
         }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -357,7 +357,7 @@ jobs:
       github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 

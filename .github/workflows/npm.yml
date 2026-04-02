@@ -69,7 +69,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -149,7 +149,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -194,7 +194,7 @@ jobs:
           - '24.14.0'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -242,7 +242,7 @@ jobs:
           - '24.14.0'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -313,7 +313,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -381,7 +381,7 @@ jobs:
       - test-linux-x64-gnu-binding
       - test-linux-x64-musl-binding
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
       - name: Cache turbo build setup

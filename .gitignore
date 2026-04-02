@@ -29,6 +29,7 @@ coverage
 .next/
 out/
 build
+!scripts/**/build
 dist
 target/
 storybook-static/
@@ -58,3 +59,6 @@ yarn-error.log*
 #Playwright
 playwright-report/
 test-results/
+
+#TypeScript
+*.tsbuildinfo

@@ -1,13 +1,18 @@
 {
   "extends": "@stylexswc/typescript-config/base.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "es2017",
     "lib": [
       "esnext",
       "DOM"
     ],
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "types": [
+      "node",
+      "jest"
+    ],
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,

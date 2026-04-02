@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/macros",
   "description": "Macros for StyleX NAPI-RS compiler",
-  "version": "0.15.2",
+  "version": "0.15.3-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [

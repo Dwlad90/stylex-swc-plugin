@@ -553,14 +553,13 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.15.11"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "054ccb5b10f9f2cbf51eb355ca1d05c2d279ce1804688d0db74b4733a5aeafd8"
+checksum = "d64e8af5551369d19cf50138de61f1c42074ab970f74e99be916646777f8fc87"
 dependencies = [
  "encode_unicode",
  "libc",
- "once_cell",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -700,22 +699,12 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "424e0138278faeb2b401f174ad17e715c829512d74f3d1e81eb43365c2e0590e"
-dependencies = [
- "ctor-proc-macro",
- "dtor 0.1.0",
-]
-
-[[package]]
-name = "ctor"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "352d39c2f7bef1d6ad73db6f5160efcaed66d94ef8c6c573a8410c00bf909a98"
 dependencies = [
  "ctor-proc-macro",
- "dtor 0.3.0",
+ "dtor",
 ]
 
 [[package]]
@@ -894,15 +883,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd1511a7b6a56299bd043a9c167a6d2bfb37bf84a6dfceaba651168adfb43c87"
 dependencies = [
  "dtoa",
-]
-
-[[package]]
-name = "dtor"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e58a0764cddb55ab28955347b45be00ade43d4d6f3ba4bf3dc354e4ec9432934"
-dependencies = [
- "dtor-proc-macro",
 ]
 
 [[package]]
@@ -1448,9 +1428,9 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.46.3"
+version = "1.47.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e82db8c87c7f1ccecb34ce0c24399b8a73081427f3c7c50a5d597925356115e4"
+checksum = "7b4a6248eb93a4401ed2f37dfe8ea592d3cf05b7cf4f8efa867b6895af7e094e"
 dependencies = [
  "console",
  "once_cell",
@@ -1766,7 +1746,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb7848c221fb7bb789e02f01875287ebb1e078b92a6566a34de01ef8806e7c2b"
 dependencies = [
  "bitflags",
- "ctor 0.8.0",
+ "ctor",
  "futures",
  "napi-build",
  "napi-sys",
@@ -1787,7 +1767,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60867ff9a6f76e82350e0c3420cb0736f5866091b61d7d8a024baa54b0ec17dd"
 dependencies = [
  "convert_case 0.11.0",
- "ctor 0.8.0",
+ "ctor",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -2896,7 +2876,7 @@ name = "stylex_ast"
 version = "0.15.3-rc.1"
 dependencies = [
  "anyhow",
- "ctor 0.6.3",
+ "ctor",
  "log",
  "pretty_env_logger",
  "stylex_constants",
@@ -2940,7 +2920,7 @@ dependencies = [
 name = "stylex_constants"
 version = "0.15.3-rc.1"
 dependencies = [
- "ctor 0.6.3",
+ "ctor",
  "fancy-regex",
  "lazy_static",
  "once_cell",
@@ -2955,7 +2935,7 @@ name = "stylex_css"
 version = "0.15.3-rc.1"
 dependencies = [
  "cssparser",
- "ctor 0.6.3",
+ "ctor",
  "fancy-regex",
  "indexmap",
  "log",
@@ -2996,7 +2976,7 @@ dependencies = [
 name = "stylex_enums"
 version = "0.15.3-rc.1"
 dependencies = [
- "ctor 0.6.3",
+ "ctor",
  "indexmap",
  "pretty_env_logger",
  "rustc-hash",
@@ -3011,7 +2991,7 @@ version = "0.15.3-rc.1"
 dependencies = [
  "anyhow",
  "base62",
- "ctor 0.6.3",
+ "ctor",
  "indexmap",
  "log",
  "md5",
@@ -3033,7 +3013,7 @@ dependencies = [
 name = "stylex_js"
 version = "0.15.3-rc.1"
 dependencies = [
- "ctor 0.6.3",
+ "ctor",
  "pretty_env_logger",
  "stylex_constants",
  "stylex_macros",
@@ -3045,7 +3025,7 @@ name = "stylex_logs"
 version = "0.15.3-rc.1"
 dependencies = [
  "colored",
- "ctor 0.6.3",
+ "ctor",
  "env_logger 0.11.9",
  "log",
  "pretty_env_logger",
@@ -3057,7 +3037,7 @@ name = "stylex_macros"
 version = "0.15.3-rc.1"
 dependencies = [
  "colored",
- "ctor 0.6.3",
+ "ctor",
  "log",
  "pretty_env_logger",
  "stylex_constants",
@@ -3068,7 +3048,7 @@ name = "stylex_path_resolver"
 version = "0.15.3-rc.1"
 dependencies = [
  "anyhow",
- "ctor 0.6.3",
+ "ctor",
  "env_logger 0.11.9",
  "fancy-regex",
  "indexmap",
@@ -3090,7 +3070,7 @@ dependencies = [
 name = "stylex_regex"
 version = "0.15.3-rc.1"
 dependencies = [
- "ctor 0.6.3",
+ "ctor",
  "fancy-regex",
  "once_cell",
  "pretty_env_logger",
@@ -3100,7 +3080,7 @@ dependencies = [
 name = "stylex_structures"
 version = "0.15.3-rc.1"
 dependencies = [
- "ctor 0.6.3",
+ "ctor",
  "derive_more",
  "indexmap",
  "log",
@@ -3122,7 +3102,7 @@ dependencies = [
  "anyhow",
  "clap",
  "color-backtrace",
- "ctor 0.6.3",
+ "ctor",
  "env_logger 0.11.9",
  "fancy-regex",
  "log",
@@ -3143,7 +3123,7 @@ dependencies = [
  "anyhow",
  "base62",
  "cssparser",
- "ctor 0.6.3",
+ "ctor",
  "derive_more",
  "fancy-regex",
  "indexmap",
@@ -3185,7 +3165,7 @@ name = "stylex_types"
 version = "0.15.3-rc.1"
 dependencies = [
  "anyhow",
- "ctor 0.6.3",
+ "ctor",
  "derive_more",
  "indexmap",
  "log",
@@ -3206,7 +3186,7 @@ dependencies = [
 name = "stylex_utils"
 version = "0.15.3-rc.1"
 dependencies = [
- "ctor 0.6.3",
+ "ctor",
  "pretty_env_logger",
  "swc_core",
 ]

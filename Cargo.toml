@@ -56,13 +56,13 @@ node-resolve = { version = "2.2.0" }
 path-clean = { version = "1.0.1" }
 cssparser = { version = "0.37.0" }
 testing = "20.0.0"
-insta = { version = "1.46.3" }
+insta = { version = "1.47.2" }
 anyhow = "1.0.102"
 thiserror = "2.0.18"
 log = "0.4.29"
 pretty_env_logger = "0.5.0"
 color-backtrace = { version = "0.7.2" }
-ctor = "0.6.3"
+ctor = "0.8.0"
 env_logger = "0.11.9"
 rustc-hash = "2.1.2"
 base62 = { version = "2.2.4" }

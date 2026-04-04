@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/css",
   "description": "CSS generation, normalization and validation for StyleX SWC plugin",
-  "version": "0.15.3-rc.2",
+  "version": "0.15.3",
   "private": true,
   "sideEffects": false,
   "files": [

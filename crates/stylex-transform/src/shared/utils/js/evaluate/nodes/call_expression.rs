@@ -935,6 +935,11 @@ pub(in super::super) fn evaluate(
           traversal_state,
           "Mapper functions are not supported in static evaluation."
         ),
+        FunctionType::ThemeRefMapper(_) => stylex_panic_with_context!(
+          path,
+          traversal_state,
+          "ThemeRefMapper functions are not supported in this context."
+        ),
         FunctionType::DefaultMarker(_) => {
           stylex_panic_with_context!(
             path,

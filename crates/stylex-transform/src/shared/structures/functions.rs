@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
+use crate::shared::structures::theme_ref::ThemeRef;
 use crate::shared::structures::types::FlatCompiledStyles;
 use stylex_enums::{
   js::{ArrayJS, MathJS, ObjectJS, StringJS},
@@ -34,6 +35,7 @@ pub enum FunctionType {
   StylexFnsFactory(fn(input: String) -> StylexTypeFn),
 
   Mapper(Rc<dyn Fn() -> Expr + 'static>),
+  ThemeRefMapper(Rc<dyn Fn() -> ThemeRef + 'static>),
   Callback(Box<CallbackType>),
   DefaultMarker(Arc<IndexMap<String, StylexExprFn>>),
   /// An env function from the `env` config option.
@@ -51,6 +53,7 @@ impl Clone for FunctionType {
       Self::StylexFnsFactory(e) => Self::StylexFnsFactory(*e),
       Self::Callback(v) => Self::Callback(v.clone()),
       Self::Mapper(c) => Self::Mapper(Rc::clone(c)),
+      Self::ThemeRefMapper(c) => Self::ThemeRefMapper(Rc::clone(c)),
       Self::DefaultMarker(e) => Self::DefaultMarker(Arc::clone(e)),
       Self::EnvFunction(e) => Self::EnvFunction(e.clone()),
     }
@@ -66,6 +69,7 @@ impl std::fmt::Debug for FunctionType {
       FunctionType::StylexTypeFn(_) => write!(f, "StylexExprFn"),
       FunctionType::StylexFnsFactory(_) => write!(f, "StylexFnsFactory"),
       FunctionType::Mapper(_) => write!(f, "Mapper"),
+      FunctionType::ThemeRefMapper(_) => write!(f, "ThemeRefMapper"),
       FunctionType::Callback(_) => write!(f, "Callback"),
       FunctionType::DefaultMarker(_) => write!(f, "DefaultMarker"),
       FunctionType::EnvFunction(_) => write!(f, "EnvFunction"),
@@ -75,18 +79,13 @@ impl std::fmt::Debug for FunctionType {
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl PartialEq for FunctionType {
+  /// Two `FunctionType` values compare equal when they have the same variant.
+  /// We cannot compare the inner function pointers / `Rc<dyn Fn>` payloads, so
+  /// discriminant equality is the strongest invariant we can uphold while
+  /// satisfying `a == a` reflexivity. (This pairs with the discriminant-based
+  /// `Hash` impl below so values can be used as map keys.)
   fn eq(&self, other: &Self) -> bool {
-    match (self, other) {
-      (FunctionType::ArrayArgs(_), FunctionType::ArrayArgs(_)) => false,
-      (FunctionType::StylexExprFn(_), FunctionType::StylexExprFn(_)) => false,
-      (FunctionType::StylexTypeFn(_), FunctionType::StylexTypeFn(_)) => false,
-      (FunctionType::StylexFnsFactory(_), FunctionType::StylexFnsFactory(_)) => false,
-      (FunctionType::Mapper(_), FunctionType::StylexExprFn(_)) => false,
-      (FunctionType::Callback(_), FunctionType::Callback(_)) => false,
-      (FunctionType::DefaultMarker(_), FunctionType::DefaultMarker(_)) => false,
-      (FunctionType::EnvFunction(_), FunctionType::EnvFunction(_)) => false,
-      _ => false,
-    }
+    std::mem::discriminant(self) == std::mem::discriminant(other)
   }
 }
 

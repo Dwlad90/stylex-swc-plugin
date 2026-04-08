@@ -2,7 +2,10 @@ use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{ExportSpecifier, Expr, Lit, MemberProp, ModuleExportName, PropName, PropOrSpread},
+  ecma::ast::{
+    ExportSpecifier, Expr, KeyValueProp, Lit, MemberProp, ModuleExportName, Prop, PropName,
+    PropOrSpread,
+  },
 };
 
 use crate::shared::structures::state_manager::StateManager;
@@ -90,5 +93,39 @@ fn namespace_name_from_expr(expr: &Expr) -> Option<Atom> {
       .as_ref()
       .and_then(namespace_name_from_lit),
     _ => None,
+  }
+}
+
+/// Returns `Some(kv)` only for `PropOrSpread::Prop(Box<Prop::KeyValue>)` shapes;
+/// any other variant (spread, method, getter, setter, shorthand, …) yields `None`.
+/// Callers typically use this to skip props they can't handle in a single pass.
+pub(crate) fn prop_as_key_value(prop: &PropOrSpread) -> Option<&KeyValueProp> {
+  match prop {
+    PropOrSpread::Prop(p) => match p.as_ref() {
+      Prop::KeyValue(kv) => Some(kv),
+      _ => None,
+    },
+    _ => None,
+  }
+}
+
+/// Returns `true` if `expr` contains any `Expr::Arrow` at any depth (object
+/// values, parens, …). Used to decide whether a rewrite pass is necessary
+/// without paying the cost of cloning the AST eagerly.
+pub(crate) fn expr_contains_arrow(expr: &Expr) -> bool {
+  match expr {
+    Expr::Arrow(_) => true,
+    Expr::Object(obj) => obj.props.iter().any(prop_contains_arrow),
+    Expr::Paren(p) => expr_contains_arrow(&p.expr),
+    _ => false,
+  }
+}
+
+/// Returns `true` if `prop`'s value (or anything nested inside it) is an
+/// `Expr::Arrow`. Companion to [`expr_contains_arrow`].
+pub(crate) fn prop_contains_arrow(prop: &PropOrSpread) -> bool {
+  match prop_as_key_value(prop) {
+    Some(kv) => expr_contains_arrow(&kv.value),
+    None => false,
   }
 }

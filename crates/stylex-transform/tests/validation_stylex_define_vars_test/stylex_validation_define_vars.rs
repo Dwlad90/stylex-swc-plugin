@@ -220,3 +220,109 @@ stylex_test!(
     });
   "#
 );
+
+/* Function values */
+
+stylex_test!(
+  valid_value_same_group_function_reference,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => `color-mix(${colors.text}, transparent 50%)`,
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_function_value_parameterized,
+  "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: (value) => value,
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_function_value_non_static_body,
+  "Only static values are allowed inside of a defineVars() call.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => getColor(colors.text),
+    });
+  "#
+);
+
+stylex_test!(
+  valid_function_value_returns_stylex_types,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => stylex.types.color('red'),
+    });
+  "#
+);
+
+stylex_test!(
+  valid_function_value_returns_object,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      textMuted: () => ({
+        default: 'red',
+        '@media (prefers-color-scheme: dark)': 'blue',
+      }),
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_same_group_reference_unknown_key,
+  "Unknown same-group reference \"missing\" found while resolving \"textMuted\" in defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => colors.missing,
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_same_group_reference_direct_cycle,
+  "Cyclic same-group references in defineVars() are not allowed: textMuted -> textMuted.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => colors.textMuted,
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_same_group_reference_indirect_cycle,
+  "Cyclic same-group references in defineVars() are not allowed: a -> b -> c -> a.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      a: () => colors.b,
+      b: () => colors.c,
+      c: () => colors.a,
+    });
+  "#
+);

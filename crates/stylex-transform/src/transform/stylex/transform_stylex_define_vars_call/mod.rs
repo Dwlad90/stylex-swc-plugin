@@ -1,3 +1,7 @@
+mod helpers;
+
+use std::rc::Rc;
+
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::{STYLEX_DEFINE_VARS, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES},
@@ -12,8 +16,9 @@ use swc_core::{
 use crate::StyleXTransform;
 use crate::shared::{
   structures::{
-    functions::{FunctionConfigType, FunctionMap},
+    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
     state_manager::ImportKind,
+    theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
   transformers::{
@@ -29,6 +34,10 @@ use crate::shared::{
   },
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
+
+use self::helpers::{
+  assert_no_define_vars_cycles, collect_keys_and_dependencies, normalize_define_vars_functions,
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -113,46 +122,9 @@ where
         .state
         .apply_stylex_env(&mut identifiers, &mut member_expressions);
 
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: false,
-      });
-
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
-
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value(STYLEX_DEFINE_VARS),
-          &mut self.state,
-        )
-      );
-
-      let value = match evaluated_arg.value {
-        Some(value) => {
-          assert!(
-            value
-              .as_expr()
-              .map(|expr| expr.is_object())
-              .unwrap_or(false),
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object(STYLEX_DEFINE_VARS),
-              &mut self.state,
-            )
-          );
-          value
-        },
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_VARS)),
-      };
-
+      // Compute file_name, export_name, and export_id BEFORE evaluation so the
+      // ThemeRefMapper factory can be built and injected into identifiers, allowing
+      // arrow function bodies to resolve `exportName.property` to `var(--hash)`.
       let file_name = match self
         .state
         .get_filename_for_hashing(&mut FxHashMap::default())
@@ -171,6 +143,87 @@ where
       };
 
       self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
+
+      // Static analysis: validate arrow function values and build the dependency
+      // graph so cycles and unknown references can be caught before evaluation.
+      // A single fused pass collects the top-level keys and arrow dependencies,
+      // and the Visit-based collector ensures all expression kinds are covered.
+      let (_all_keys, dependency_map) = collect_keys_and_dependencies(&first_arg, &export_name);
+      assert_no_define_vars_cycles(&dependency_map);
+
+      // Inject a ThemeRef factory under the export variable name so that arrow
+      // function bodies can resolve `exportName.property` to `var(--hash)` during
+      // normal evaluation. The factory clones a single `ThemeRef` whose internal
+      // hash-map is shared via `Rc<RefCell<…>>`, so repeated `colors.x` accesses
+      // across the same `defineVars` call hit the cache.
+      let shared_theme_ref = ThemeRef::new(
+        file_name.as_str(),
+        export_name.as_str(),
+        self.state.options.class_name_prefix.to_string(),
+      );
+      let theme_ref_factory: Rc<dyn Fn() -> ThemeRef + 'static> =
+        Rc::new(move || shared_theme_ref.clone());
+
+      identifiers.insert(
+        export_name.as_str().into(),
+        Box::new(FunctionConfigType::Regular(FunctionConfig {
+          fn_ptr: FunctionType::ThemeRefMapper(theme_ref_factory),
+          takes_path: false,
+        })),
+      );
+
+      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
+        identifiers,
+        member_expressions,
+        disable_imports: false,
+      });
+
+      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+
+      if !evaluated_arg.confident {
+        let deopt = evaluated_arg
+          .deopt
+          .clone()
+          .unwrap_or_else(|| *first_arg.to_owned());
+        stylex_panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &deopt,
+            &non_static_value(STYLEX_DEFINE_VARS),
+            &mut self.state,
+          )
+        );
+      }
+
+      let value = match evaluated_arg.value {
+        Some(value) => {
+          let is_object = value
+            .as_expr()
+            .map(|expr| expr.is_object())
+            .unwrap_or(false);
+          if !is_object {
+            let deopt = evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned());
+            stylex_panic!(
+              "{}",
+              build_code_frame_error(
+                &Expr::Call(call.clone()),
+                &deopt,
+                &non_style_object(STYLEX_DEFINE_VARS),
+                &mut self.state,
+              )
+            );
+          }
+          value
+        },
+        #[cfg_attr(coverage_nightly, coverage(off))]
+        None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_VARS)),
+      };
+
+      // Normalize: evaluate zero-param arrow function values in the defineVars object
+      // (mirrors TypeScript's `normalizeDefineVarsObject`).
+      let value =
+        normalize_define_vars_functions(value, &mut self.state, &function_map, call, &first_arg);
 
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);

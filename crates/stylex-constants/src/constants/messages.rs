@@ -165,3 +165,21 @@ pub fn expected_call_expression(fn_name: &str) -> String {
     fn_name
   )
 }
+
+pub fn invalid_define_vars_function_value() -> String {
+  "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().".to_string()
+}
+
+pub fn cyclic_define_vars_reference(cycle: &str) -> String {
+  format!(
+    "Cyclic same-group references in defineVars() are not allowed: {}.",
+    cycle
+  )
+}
+
+pub fn unknown_define_vars_reference(key: &str, dependency: &str) -> String {
+  format!(
+    "Unknown same-group reference \"{}\" found while resolving \"{}\" in defineVars().",
+    dependency, key
+  )
+}

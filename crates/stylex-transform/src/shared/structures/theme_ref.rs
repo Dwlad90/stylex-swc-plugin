@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
+use stylex_utils::hash::create_hash;
 
 use crate::shared::utils::common::gen_file_based_identifier;
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
 use stylex_enums::theme_ref::ThemeRefResult;
-use stylex_utils::hash::create_hash;
 
 use super::state_manager::StateManager;
 
@@ -53,6 +53,7 @@ impl ThemeRef {
     if key.starts_with("--") {
       return ThemeRefResult::CssVar(Arc::from(format!("var({})", key).as_str()));
     }
+
     let entry = self.map.entry(key.to_string()).or_insert_with(|| {
       let str_to_hash = gen_file_based_identifier(
         &self.file_name,

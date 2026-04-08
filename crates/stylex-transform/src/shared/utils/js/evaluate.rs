@@ -404,6 +404,9 @@ fn _evaluate(
             FunctionType::Mapper(func) => {
               return Some(EvaluateResultValue::Expr(func()));
             },
+            FunctionType::ThemeRefMapper(f) => {
+              return Some(EvaluateResultValue::ThemeRef(f()));
+            },
             FunctionType::DefaultMarker(func) => {
               return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {
                 fn_ptr: FunctionType::DefaultMarker(Arc::clone(func)),

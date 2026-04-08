@@ -62,3 +62,27 @@ fn test_expected_call_expression() {
   let result = expected_call_expression("defineVars");
   assert!(result.starts_with("defineVars(): Expected a call expression"));
 }
+
+#[test]
+fn test_invalid_define_vars_function_value() {
+  let result = invalid_define_vars_function_value();
+  assert!(result.contains("zero-argument"));
+}
+
+#[test]
+fn test_cyclic_define_vars_reference() {
+  let result = cyclic_define_vars_reference("a -> b -> a");
+  assert_eq!(
+    result,
+    "Cyclic same-group references in defineVars() are not allowed: a -> b -> a."
+  );
+}
+
+#[test]
+fn test_unknown_define_vars_reference() {
+  let result = unknown_define_vars_reference("textMuted", "missing");
+  assert_eq!(
+    result,
+    "Unknown same-group reference \"missing\" found while resolving \"textMuted\" in defineVars()."
+  );
+}

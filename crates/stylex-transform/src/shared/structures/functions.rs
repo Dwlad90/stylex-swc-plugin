@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
+use crate::shared::structures::theme_ref::ThemeRef;
 use crate::shared::structures::types::FlatCompiledStyles;
 use stylex_enums::{
   js::{ArrayJS, MathJS, ObjectJS, StringJS},

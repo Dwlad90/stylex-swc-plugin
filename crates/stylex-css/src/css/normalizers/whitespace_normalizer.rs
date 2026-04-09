@@ -4,36 +4,30 @@ use stylex_regex::regex::{
   WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX, WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX,
 };
 
-/// Normalise CSS whitespace.
-///
-/// Accepts any `AsRef<str>` to avoid forcing callers to give up ownership.
-/// Uses `.into_owned()` on `replace_all` results, which avoids a redundant
-/// copy when the regex already produced an owned `String`.
-pub fn whitespace_normalizer(content: impl AsRef<str>) -> String {
-  let content = content.as_ref();
-
-  // Early return: If content is a URL, return it as-is.
-  if let Ok(Some(captures)) = CSS_URL_REGEX.captures(content)
+pub fn whitespace_normalizer(content: impl Into<String>) -> String {
+  let content = content.into();
+  // Early return: If content is a URL, return it as-is
+  if let Ok(Some(captures)) = CSS_URL_REGEX.captures(&content)
     && let Some(url) = captures.get(0)
   {
     return url.as_str().to_string();
   }
 
-  // Extract CSS value from rule if present (e.g., "color: red;" -> "red").
-  let css: String = if content.contains('{') {
+  // Extract CSS value from rule if present (e.g., "color: red;" -> "red")
+  let mut css = if content.contains('{') {
     CSS_RULE_REGEX
-      .captures(content)
+      .captures(&content)
       .ok()
       .flatten()
       .and_then(|c| c.get(1))
       .map(|m| m.as_str().to_string())
-      .unwrap_or_else(|| content.to_string())
+      .unwrap_or(content)
   } else {
-    content.to_string()
+    content
   };
 
-  // Normalize whitespace around math operators (+, -, *, /, %).
-  let css = WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX
+  // Normalize whitespace around math operators (+, -, *, /, %)
+  css = WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX
     .replace_all(&css, |caps: &fancy_regex::Captures| {
       // Using named groups for better readability
       let left = caps.name("left").map(|m| m.as_str()).unwrap_or("");
@@ -56,15 +50,15 @@ pub fn whitespace_normalizer(content: impl AsRef<str>) -> String {
         _ => format!("{} {} {}", left, op, right),
       }
     })
-    .into_owned();
+    .to_string();
 
   // Normalize brackets and quotes: ")a" -> ") a", """" -> ""
-  let css = WHITESPACE_BRACKET_NORMALIZER_REGEX
+  css = WHITESPACE_BRACKET_NORMALIZER_REGEX
     .replace_all(&css, "$1$3 $2$4")
-    .into_owned();
+    .to_string();
 
   // Remove extra spaces in specific cases (empty quotes, multiple parens)
-  let css = WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX
+  css = WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX
     .replace_all(&css, |caps: &fancy_regex::Captures| {
       // Match empty string quotes: "" -> ""
       if let (Some(q1), Some(q2)) = (caps.get(1), caps.get(2)) {
@@ -77,16 +71,17 @@ pub fn whitespace_normalizer(content: impl AsRef<str>) -> String {
         caps[0].to_string()
       }
     })
-    .into_owned();
+    .to_string();
 
   // Add space before hash in colors: "a#fff" -> "a #fff"
-  let css = HASH_WHITESPACE_NORMALIZER_REGEX
+  css = HASH_WHITESPACE_NORMALIZER_REGEX
     .replace_all(&css, "$1 #")
-    .into_owned();
+    .to_string();
 
   // Normalize function arguments: "( arg )" -> "(arg)"
-  WHITESPACE_FUNC_NORMALIZER_REGEX
+  css = WHITESPACE_FUNC_NORMALIZER_REGEX
     .replace_all(&css, "($1),")
-    .trim()
-    .to_string()
+    .to_string();
+
+  css.trim().to_string()
 }

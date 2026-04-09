@@ -472,7 +472,7 @@ pub(crate) fn normalize_css_property_value(
 
       let result = whitespace_normalizer(stringify(&parsed_ast));
 
-      convert_css_function_to_camel_case(result.as_str())
+      convert_css_function_to_camel_case(&result)
     },
     Err(err) => {
       stylex_panic!("{}", err.message())

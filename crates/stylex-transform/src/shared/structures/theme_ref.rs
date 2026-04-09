@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
 
@@ -12,7 +14,7 @@ pub struct ThemeRef {
   file_name: String,
   export_name: String,
   class_name_prefix: String,
-  map: FxHashMap<String, String>,
+  map: FxHashMap<String, Arc<str>>,
 }
 
 impl ThemeRef {
@@ -49,8 +51,7 @@ impl ThemeRef {
     }
 
     if key.starts_with("--") {
-      let css_key = format!("var({})", key);
-      return ThemeRefResult::CssVar(css_key);
+      return ThemeRefResult::CssVar(Arc::from(format!("var({})", key).as_str()));
     }
     let entry = self.map.entry(key.to_string()).or_insert_with(|| {
       let str_to_hash = gen_file_based_identifier(
@@ -95,13 +96,13 @@ impl ThemeRef {
       };
 
       if key == VAR_GROUP_HASH_KEY {
-        return var_name;
+        return Arc::from(var_name.as_str());
       }
 
-      format!("var(--{})", var_name)
+      Arc::from(format!("var(--{})", var_name).as_str())
     });
 
-    ThemeRefResult::CssVar(entry.clone())
+    ThemeRefResult::CssVar(Arc::clone(entry))
   }
 
   fn _set(&self, key: &str, value: &str) {

@@ -101,7 +101,7 @@ pub(crate) fn stylex_create_theme(
       },
       EvaluateResultValue::ThemeRef(theme_ref) => {
         match theme_ref.get(key.as_str(), state).as_css_var() {
-          Some(v) => v.clone(),
+          Some(v) => v.to_string(),
           None => stylex_panic!("{}", EXPECTED_CSS_VAR),
         }
       },

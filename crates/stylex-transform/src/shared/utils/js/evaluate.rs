@@ -750,8 +750,7 @@ fn _evaluate(
                 match value.as_css_var() {
                   Some(css_var) => css_var,
                   None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-                }
-                .as_str(),
+                },
               )));
             },
             EvaluateResultValue::EnvObject(env_map) => {

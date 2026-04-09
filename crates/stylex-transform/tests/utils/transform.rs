@@ -118,6 +118,7 @@ impl VisitMut for RegeneratorHandler {
   }
 }
 
+#[allow(dead_code)]
 pub(crate) fn stringify_js<F, P>(input: &str, syntax: Syntax, tr: F) -> String
 where
   F: for<'a> FnOnce(&mut Tester<'a>) -> P,
@@ -179,6 +180,7 @@ pub(crate) type TestBuilder = StyleXTransformBuilder<TestComments>;
 /// // Inline in a macro:
 /// stylex_test!(name, |tr| build_test_transform(tr.comments.clone(), |b| b), code);
 /// ```
+#[allow(dead_code)]
 pub(crate) fn build_test_transform<F>(
   comments: Rc<SingleThreadedComments>,
   customize: F,

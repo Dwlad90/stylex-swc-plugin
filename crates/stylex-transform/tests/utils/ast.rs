@@ -4,10 +4,12 @@ use stylex_transform::shared::{
 };
 use swc_core::ecma::ast::Expr;
 
+#[allow(dead_code)]
 pub(crate) fn convert_expr_to_str_wrapper(expr: &Expr) -> Option<String> {
   convert_expr_to_str(expr, &mut StateManager::default(), &FunctionMap::default())
 }
 
+#[allow(dead_code)]
 pub(crate) fn convert_expr_to_num_wrapper(expr: &Expr) -> Option<f64> {
   expr_to_num(
     expr,
@@ -18,6 +20,7 @@ pub(crate) fn convert_expr_to_num_wrapper(expr: &Expr) -> Option<f64> {
   .ok()
 }
 
+#[allow(dead_code)]
 pub(crate) fn convert_expr_to_bool_wrapper(expr: &Expr) -> bool {
   convert_expr_to_bool(expr, &mut StateManager::default(), &FunctionMap::default())
 }

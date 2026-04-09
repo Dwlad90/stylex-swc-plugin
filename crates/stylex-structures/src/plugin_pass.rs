@@ -18,6 +18,9 @@ impl Default for PluginPass {
 }
 
 impl PluginPass {
+  /// Creates a `PluginPass` with sensible test-fixture defaults when no paths
+  /// are provided. The hardcoded paths are intentional test fixtures that match
+  /// the snapshot expectations; they are never used in production code.
   pub fn new(cwd: Option<PathBuf>, filename: Option<FileName>) -> Self {
     PluginPass {
       cwd: cwd.or_else(|| Some(PathBuf::from("/stylex/packages/"))),

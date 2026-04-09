@@ -215,7 +215,6 @@ where
   }
 
   pub fn build(self) -> StyleXTransform<C> {
-    let had_config = self.config.is_some();
     let mut config = self.config.unwrap_or_default();
 
     if self.runtime_injection {
@@ -223,8 +222,9 @@ where
       config.treeshake_compensation = Some(true);
     }
 
-    // Apply test defaults only when no explicit config was provided
-    if !had_config && config.unstable_module_resolution.is_none() {
+    // Always apply Haste as the test default unless the caller explicitly set a
+    // different module resolution via `with_unstable_module_resolution`.
+    if config.unstable_module_resolution.is_none() {
       config.unstable_module_resolution = Some(ModuleResolution::haste(None));
     }
 

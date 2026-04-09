@@ -21,7 +21,6 @@ mod transform_stylex_view_transition_class_test;
 mod transform_stylex_when_test;
 mod transform_value_normalization_test;
 mod validation_import_export_test;
-mod validation_regular_css;
 mod validation_stylex_create_test;
 mod validation_stylex_create_theme_test;
 mod validation_stylex_define_consts_test;

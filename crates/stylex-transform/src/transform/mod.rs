@@ -11,7 +11,10 @@ use swc_core::{
   },
 };
 
-use crate::shared::{structures::state_manager::StateManager, utils::common::increase_ident_count};
+use crate::shared::{
+  structures::state_manager::{ImportKind, StateManager},
+  utils::common::increase_ident_count,
+};
 use stylex_enums::{
   core::TransformationCycle, property_validation_mode::PropertyValidationMode,
   style_resolution::StyleResolution, sx_prop_name_param::SxPropNameParam,
@@ -360,21 +363,29 @@ where
 
     match state.cycle {
       TransformationCycle::TransformEnter => {
-        state.stylex_create_import.contains(&ident_sym)
-          || state.stylex_define_vars_import.contains(&ident_sym)
-          || state.stylex_define_consts_import.contains(&ident_sym)
-          || state.stylex_define_marker_import.contains(&ident_sym)
-          || state.stylex_create_theme_import.contains(&ident_sym)
-          || state.stylex_position_try_import.contains(&ident_sym)
-          || state.stylex_keyframes_import.contains(&ident_sym)
-          || state.stylex_first_that_works_import.contains(&ident_sym)
-          || state.stylex_types_import.contains(&ident_sym)
-          || state.stylex_default_marker_import.contains(&ident_sym)
-          || state.stylex_when_import.contains(&ident_sym)
+        use ImportKind::*;
+        state.any_import_contains(
+          &[
+            Create,
+            DefineVars,
+            DefineConsts,
+            DefineMarker,
+            CreateTheme,
+            PositionTry,
+            Keyframes,
+            FirstThatWorks,
+            Types,
+            DefaultMarker,
+            When,
+          ],
+          &ident_sym,
+        )
       },
       TransformationCycle::TransformExit => {
-        state.stylex_attrs_import.contains(&ident_sym)
-          || state.stylex_props_import.contains(&ident_sym)
+        state.any_import_contains(
+          &[ImportKind::Attrs, ImportKind::Props],
+          &ident_sym,
+        )
       },
       _ => false,
     }

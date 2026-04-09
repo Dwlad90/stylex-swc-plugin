@@ -2919,7 +2919,7 @@ pub(crate) fn evaluate_cached(
 
 fn evaluate_theme_ref(file_name: &str, export_name: String, state: &StateManager) -> ThemeRef {
   ThemeRef::new(
-    file_name.to_owned(),
+    file_name,
     export_name,
     state.options.class_name_prefix.clone(),
   )

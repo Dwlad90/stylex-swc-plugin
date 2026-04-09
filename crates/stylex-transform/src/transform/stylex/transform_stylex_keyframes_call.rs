@@ -10,6 +10,7 @@ use swc_core::{common::comments::Comments, ecma::ast::Expr};
 use crate::StyleXTransform;
 use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
+use crate::shared::structures::state_manager::ImportKind;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
 use crate::shared::transformers::stylex_keyframes::stylex_keyframes;
@@ -52,11 +53,13 @@ where
         takes_path: false,
       };
 
-      for name in &self.state.stylex_first_that_works_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::FirstThatWorks) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
+          );
+        }
       }
 
       for name in &self.state.stylex_import {

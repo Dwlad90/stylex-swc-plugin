@@ -16,11 +16,15 @@ pub struct ThemeRef {
 }
 
 impl ThemeRef {
-  pub(crate) fn new(file_name: String, export_name: String, class_name_prefix: String) -> Self {
+  pub(crate) fn new(
+    file_name: impl Into<String>,
+    export_name: impl Into<String>,
+    class_name_prefix: impl Into<String>,
+  ) -> Self {
     Self {
-      file_name,
-      export_name,
-      class_name_prefix,
+      file_name: file_name.into(),
+      export_name: export_name.into(),
+      class_name_prefix: class_name_prefix.into(),
       map: FxHashMap::default(),
     }
   }
@@ -96,7 +100,7 @@ impl ThemeRef {
       format!("var(--{})", var_name)
     });
 
-    ThemeRefResult::CssVar(entry.to_string())
+    ThemeRefResult::CssVar(entry.clone())
   }
 
   fn _set(&self, key: &str, value: &str) {

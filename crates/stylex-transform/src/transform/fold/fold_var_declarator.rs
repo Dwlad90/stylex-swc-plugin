@@ -18,7 +18,10 @@ use stylex_structures::top_level_expression::TopLevelExpression;
 
 use crate::{
   StyleXTransform,
-  shared::utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
+  shared::{
+    structures::state_manager::ImportKind,
+    utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
+  },
 };
 use stylex_constants::constants::messages::{
   KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT,
@@ -48,10 +51,13 @@ where
             .or_else(|| {
               self
                 .state
-                .stylex_create_import
-                .iter()
-                .find(|decl| decl.eq_ignore_span(&&declaration.0.clone()))
-                .map(|decl| decl.to_string())
+                .get_import(ImportKind::Create)
+                .and_then(|set| {
+                  set
+                    .iter()
+                    .find(|decl| decl.eq_ignore_span(&&declaration.0.clone()))
+                    .map(|decl| decl.to_string())
+                })
             })
             && self.state.cycle == TransformationCycle::StateFilling
             && (member.as_str() == "create" || member.eq(declaration_string.as_str()))

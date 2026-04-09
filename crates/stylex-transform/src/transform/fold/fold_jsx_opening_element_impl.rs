@@ -12,6 +12,7 @@ use swc_core::{
 };
 
 use crate::StyleXTransform;
+use crate::shared::structures::state_manager::ImportKind;
 use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
   create_jsx_spread_attr, create_member_call_expr, create_object_lit, create_spread_prop,
@@ -257,9 +258,8 @@ where
   fn get_props_ident_name(&self) -> Option<String> {
     self
       .state
-      .stylex_props_import
-      .iter()
-      .next()
+      .get_import(ImportKind::Props)
+      .and_then(|set| set.iter().next())
       .map(|ident| ident.to_string())
   }
 }

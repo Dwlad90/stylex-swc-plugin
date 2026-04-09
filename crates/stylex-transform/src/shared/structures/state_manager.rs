@@ -66,6 +66,66 @@ static TRANSFORMED_VARS_FILE_EXTENSION: Lazy<&'static str> = Lazy::new(|| ".tran
 type AtomHashMap = FxHashMap<Atom, i16>;
 type AtomHashSet = FxHashSet<Atom>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum ImportKind {
+  Props,
+  Attrs,
+  Create,
+  FirstThatWorks,
+  Keyframes,
+  DefineVars,
+  DefineMarker,
+  DefineConsts,
+  CreateTheme,
+  PositionTry,
+  ViewTransitionClass,
+  DefaultMarker,
+  When,
+  Types,
+  Env,
+}
+
+impl ImportKind {
+  pub(crate) const ALL: &[ImportKind] = &[
+    ImportKind::Props,
+    ImportKind::Attrs,
+    ImportKind::Create,
+    ImportKind::FirstThatWorks,
+    ImportKind::Keyframes,
+    ImportKind::DefineVars,
+    ImportKind::DefineMarker,
+    ImportKind::DefineConsts,
+    ImportKind::CreateTheme,
+    ImportKind::PositionTry,
+    ImportKind::ViewTransitionClass,
+    ImportKind::DefaultMarker,
+    ImportKind::When,
+    ImportKind::Types,
+    ImportKind::Env,
+  ];
+
+  pub(crate) fn from_import_name(name: &str) -> Option<ImportKind> {
+    match name {
+      "create" => Some(ImportKind::Create),
+      "props" => Some(ImportKind::Props),
+      "attrs" => Some(ImportKind::Attrs),
+      "keyframes" => Some(ImportKind::Keyframes),
+      "firstThatWorks" => Some(ImportKind::FirstThatWorks),
+      "defineVars" => Some(ImportKind::DefineVars),
+      "defineConsts" => Some(ImportKind::DefineConsts),
+      "defineMarker" => Some(ImportKind::DefineMarker),
+      "createTheme" => Some(ImportKind::CreateTheme),
+      "positionTry" => Some(ImportKind::PositionTry),
+      "viewTransitionClass" => Some(ImportKind::ViewTransitionClass),
+      "types" => Some(ImportKind::Types),
+      "when" => Some(ImportKind::When),
+      "env" => Some(ImportKind::Env),
+      "defaultMarker" => Some(ImportKind::DefaultMarker),
+      _ => None,
+    }
+  }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SeenValueWithVarDeclCount {
   pub(crate) seen_value: SeenValue,
@@ -80,21 +140,7 @@ pub struct StateManager {
   pub(crate) import_paths: FxHashSet<String>,
   pub(crate) stylex_import: FxHashSet<ImportSources>,
   pub(crate) import_specifiers: Vec<String>,
-  pub(crate) stylex_props_import: AtomHashSet,
-  pub(crate) stylex_attrs_import: AtomHashSet,
-  pub(crate) stylex_create_import: AtomHashSet,
-  pub(crate) stylex_first_that_works_import: AtomHashSet,
-  pub(crate) stylex_keyframes_import: AtomHashSet,
-  pub(crate) stylex_define_vars_import: AtomHashSet,
-  pub(crate) stylex_define_marker_import: AtomHashSet,
-  pub(crate) stylex_define_consts_import: AtomHashSet,
-  pub(crate) stylex_create_theme_import: AtomHashSet,
-  pub(crate) stylex_position_try_import: AtomHashSet,
-  pub(crate) stylex_view_transition_class_import: AtomHashSet,
-  pub(crate) stylex_default_marker_import: AtomHashSet,
-  pub(crate) stylex_when_import: AtomHashSet,
-  pub(crate) stylex_types_import: AtomHashSet,
-  pub(crate) stylex_env_import: AtomHashSet,
+  pub(crate) api_imports: FxHashMap<ImportKind, AtomHashSet>,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) export_id: Option<String>,
 
@@ -150,21 +196,7 @@ impl StateManager {
       import_paths: FxHashSet::default(),
       stylex_import: FxHashSet::default(),
       import_specifiers: vec![],
-      stylex_props_import: FxHashSet::default(),
-      stylex_attrs_import: FxHashSet::default(),
-      stylex_create_import: FxHashSet::default(),
-      stylex_first_that_works_import: FxHashSet::default(),
-      stylex_keyframes_import: FxHashSet::default(),
-      stylex_define_vars_import: FxHashSet::default(),
-      stylex_define_marker_import: FxHashSet::default(),
-      stylex_define_consts_import: FxHashSet::default(),
-      stylex_create_theme_import: FxHashSet::default(),
-      stylex_types_import: FxHashSet::default(),
-      stylex_position_try_import: FxHashSet::default(),
-      stylex_view_transition_class_import: FxHashSet::default(),
-      stylex_default_marker_import: FxHashSet::default(),
-      stylex_when_import: FxHashSet::default(),
-      stylex_env_import: FxHashSet::default(),
+      api_imports: FxHashMap::default(),
       inject_import_inserted: None,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
@@ -203,6 +235,29 @@ impl StateManager {
     }
   }
 
+  /// Check if an import of the given kind contains the given symbol.
+  pub(crate) fn has_import(&self, kind: ImportKind, sym: &Atom) -> bool {
+    self
+      .api_imports
+      .get(&kind)
+      .is_some_and(|set| set.contains(sym))
+  }
+
+  /// Insert a symbol into the import set for the given kind.
+  pub(crate) fn insert_import(&mut self, kind: ImportKind, sym: Atom) {
+    self.api_imports.entry(kind).or_default().insert(sym);
+  }
+
+  /// Get the import set for the given kind, if any entries exist.
+  pub(crate) fn get_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
+    self.api_imports.get(&kind)
+  }
+
+  /// Check if any import of the given kinds contains the given symbol.
+  pub(crate) fn any_import_contains(&self, kinds: &[ImportKind], sym: &Atom) -> bool {
+    kinds.iter().any(|kind| self.has_import(*kind, sym))
+  }
+
   /// Applies the `env` configuration to the given identifiers and member_expressions maps.
   /// This is the Rust equivalent of the JavaScript `applyStylexEnv` method.
   pub(crate) fn apply_stylex_env(
@@ -228,11 +283,13 @@ impl StateManager {
 
     // For direct env imports (e.g., `import { env } from '@stylexjs/stylex'`),
     // add the env object directly to identifiers.
-    for name in &self.stylex_env_import {
-      identifiers.insert(
-        name.clone(),
-        Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
-      );
+    if let Some(env_imports) = self.get_import(ImportKind::Env) {
+      for name in env_imports {
+        identifiers.insert(
+          name.clone(),
+          Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
+        );
+      }
     }
   }
 
@@ -757,28 +814,17 @@ impl StateManager {
   pub fn combine(&mut self, other: &Self) {
     self.import_paths = union_hash_set(&self.import_paths, &other.import_paths);
     self.stylex_import = union_hash_set(&self.stylex_import, &other.stylex_import);
-    self.stylex_props_import =
-      union_hash_set(&self.stylex_props_import, &other.stylex_props_import);
-    self.stylex_create_import =
-      union_hash_set(&self.stylex_create_import, &other.stylex_create_import);
-    self.stylex_first_that_works_import = union_hash_set(
-      &self.stylex_first_that_works_import,
-      &other.stylex_first_that_works_import,
-    );
-    self.stylex_keyframes_import = union_hash_set(
-      &self.stylex_keyframes_import,
-      &other.stylex_keyframes_import,
-    );
-    self.stylex_define_vars_import = union_hash_set(
-      &self.stylex_define_vars_import,
-      &other.stylex_define_vars_import,
-    );
-    self.stylex_create_theme_import = union_hash_set(
-      &self.stylex_create_theme_import,
-      &other.stylex_create_theme_import,
-    );
-    self.stylex_types_import =
-      union_hash_set(&self.stylex_types_import, &other.stylex_types_import);
+
+    // Combine all API import sets (fixes bug where 7 kinds were previously missing)
+    for kind in ImportKind::ALL {
+      if let Some(other_set) = other.api_imports.get(kind) {
+        let self_set = self.api_imports.entry(*kind).or_default();
+        for item in other_set {
+          self_set.insert(item.clone());
+        }
+      }
+    }
+
     self.inject_import_inserted = self
       .inject_import_inserted
       .clone()
@@ -806,7 +852,6 @@ impl StateManager {
       self.member_object_ident_count_map.clone(),
       other.member_object_ident_count_map.clone(),
     );
-    self.stylex_env_import = union_hash_set(&self.stylex_env_import, &other.stylex_env_import);
     self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
 
     self.metadata = chain_collect_index_map(self.metadata.clone(), other.metadata.clone());

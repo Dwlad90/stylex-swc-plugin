@@ -8,6 +8,7 @@ use swc_core::{
 
 use crate::shared::structures::functions::FunctionConfigType;
 use crate::shared::structures::functions::FunctionMap;
+use crate::shared::structures::state_manager::ImportKind;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use crate::shared::transformers::stylex_define_vars::stylex_define_vars;
 use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
@@ -53,25 +54,31 @@ where
       let types_fn = get_types_fn();
       let position_try_fn = get_position_try_fn();
 
-      for name in &self.state.stylex_keyframes_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::Keyframes) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
+          );
+        }
       }
 
-      for name in &self.state.stylex_types_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(types_fn.clone())),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::Types) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(types_fn.clone())),
+          );
+        }
       }
 
-      for name in &self.state.stylex_position_try_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::PositionTry) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
+          );
+        }
       }
 
       for name in &self.state.stylex_import {

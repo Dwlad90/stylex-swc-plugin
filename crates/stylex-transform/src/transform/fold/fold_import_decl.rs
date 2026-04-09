@@ -7,6 +7,7 @@ use swc_core::{
 };
 
 use crate::{StyleXTransform, shared::utils::ast::convertors::convert_atom_to_string};
+use crate::shared::structures::state_manager::ImportKind;
 use stylex_enums::core::TransformationCycle;
 use stylex_structures::named_import_source::ImportSources;
 
@@ -167,83 +168,8 @@ where
 
       let local_name_ident_atom = import_specifier.local.clone().sym;
 
-      match imported_name.as_str() {
-        "create" => {
-          self
-            .state
-            .stylex_create_import
-            .insert(local_name_ident_atom);
-        },
-        "props" => {
-          self.state.stylex_props_import.insert(local_name_ident_atom);
-        },
-        "attrs" => {
-          self.state.stylex_attrs_import.insert(local_name_ident_atom);
-        },
-        "keyframes" => {
-          self
-            .state
-            .stylex_keyframes_import
-            .insert(local_name_ident_atom);
-        },
-        "firstThatWorks" => {
-          self
-            .state
-            .stylex_first_that_works_import
-            .insert(local_name_ident_atom);
-        },
-        "defineVars" => {
-          self
-            .state
-            .stylex_define_vars_import
-            .insert(local_name_ident_atom);
-        },
-        "defineConsts" => {
-          self
-            .state
-            .stylex_define_consts_import
-            .insert(local_name_ident_atom);
-        },
-        "defineMarker" => {
-          self
-            .state
-            .stylex_define_marker_import
-            .insert(local_name_ident_atom);
-        },
-        "createTheme" => {
-          self
-            .state
-            .stylex_create_theme_import
-            .insert(local_name_ident_atom);
-        },
-        "positionTry" => {
-          self
-            .state
-            .stylex_position_try_import
-            .insert(local_name_ident_atom);
-        },
-        "viewTransitionClass" => {
-          self
-            .state
-            .stylex_view_transition_class_import
-            .insert(local_name_ident_atom);
-        },
-        "types" => {
-          self.state.stylex_types_import.insert(local_name_ident_atom);
-        },
-        "when" => {
-          self.state.stylex_when_import.insert(local_name_ident_atom);
-        },
-        "env" => {
-          self.state.stylex_env_import.insert(local_name_ident_atom);
-        },
-        "defaultMarker" => {
-          self
-            .state
-            .stylex_default_marker_import
-            .insert(local_name_ident_atom);
-        },
-        _ => {},
+      if let Some(kind) = ImportKind::from_import_name(imported_name.as_str()) {
+        self.state.insert_import(kind, local_name_ident_atom);
       }
     }
   }

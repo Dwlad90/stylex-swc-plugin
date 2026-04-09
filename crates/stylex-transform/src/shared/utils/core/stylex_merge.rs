@@ -12,6 +12,7 @@ use swc_core::ecma::{
 use crate::shared::enums::data_structures::fn_result::FnResult;
 use crate::shared::structures::functions::{FunctionConfigType, FunctionMap};
 use crate::shared::structures::member_transform::MemberTransform;
+use crate::shared::structures::state_manager::ImportKind;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use crate::shared::transformers::stylex_default_maker;
@@ -40,12 +41,14 @@ pub(crate) fn stylex_merge(
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-  for name in &state.stylex_default_marker_import {
-    let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
-      Some(v) => v.clone(),
-      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-    };
-    identifiers.insert(name.clone(), Box::new(FunctionConfigType::IndexMap(values)));
+  if let Some(set) = state.get_import(ImportKind::DefaultMarker) {
+    for name in set {
+      let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
+        Some(v) => v.clone(),
+        None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
+      };
+      identifiers.insert(name.clone(), Box::new(FunctionConfigType::IndexMap(values)));
+    }
   }
 
   for name in &state.stylex_import {

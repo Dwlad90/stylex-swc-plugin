@@ -7,7 +7,7 @@ use swc_core::{
 };
 
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::state_manager::StateManager;
+use crate::shared::structures::state_manager::{ImportKind, StateManager};
 use crate::shared::utils::ast::convertors::create_string_expr;
 use crate::shared::utils::ast::helpers::is_variable_named_exported;
 use crate::shared::utils::common::get_import_from;
@@ -474,22 +474,24 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 }
 
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(("create", &state.stylex_create_import), call, state)
+  is_target_call(("create", state.get_import(ImportKind::Create)), call, state)
 }
 
 pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(("props", &state.stylex_props_import), call, state)
+  is_target_call(("props", state.get_import(ImportKind::Props)), call, state)
 }
 
 pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(("attrs", &state.stylex_attrs_import), call, state)
+  is_target_call(("attrs", state.get_import(ImportKind::Attrs)), call, state)
 }
 
 pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
   let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
 
   match init {
-    Some(call) => is_target_call(("keyframes", &state.stylex_keyframes_import), &call, state),
+    Some(call) => {
+      is_target_call(("keyframes", state.get_import(ImportKind::Keyframes)), &call, state)
+    },
     _ => false,
   }
 }
@@ -499,7 +501,7 @@ pub(crate) fn is_position_try_call(var_decl: &VarDeclarator, state: &StateManage
 
   match init {
     Some(call) => is_target_call(
-      ("positionTry", &state.stylex_position_try_import),
+      ("positionTry", state.get_import(ImportKind::PositionTry)),
       &call,
       state,
     ),
@@ -509,7 +511,7 @@ pub(crate) fn is_position_try_call(var_decl: &VarDeclarator, state: &StateManage
 
 pub(crate) fn is_default_marker_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defaultMarker", &state.stylex_default_marker_import),
+    ("defaultMarker", state.get_import(ImportKind::DefaultMarker)),
     call,
     state,
   )
@@ -525,7 +527,7 @@ pub(crate) fn is_view_transition_class_call(
     Some(call) => is_target_call(
       (
         "viewTransitionClass",
-        &state.stylex_view_transition_class_import,
+        state.get_import(ImportKind::ViewTransitionClass),
       ),
       &call,
       state,
@@ -536,7 +538,7 @@ pub(crate) fn is_view_transition_class_call(
 
 pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("createTheme", &state.stylex_create_theme_import),
+    ("createTheme", state.get_import(ImportKind::CreateTheme)),
     call,
     state,
   )
@@ -544,7 +546,7 @@ pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> boo
 
 pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defineVars", &state.stylex_define_vars_import),
+    ("defineVars", state.get_import(ImportKind::DefineVars)),
     call,
     state,
   )
@@ -552,7 +554,7 @@ pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool
 
 pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defineConsts", &state.stylex_define_consts_import),
+    ("defineConsts", state.get_import(ImportKind::DefineConsts)),
     call,
     state,
   )
@@ -560,13 +562,13 @@ pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bo
 
 pub(crate) fn is_define_marker_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defineMarker", &state.stylex_define_marker_import),
+    ("defineMarker", state.get_import(ImportKind::DefineMarker)),
     call,
     state,
   )
 }
 pub(crate) fn is_target_call(
-  (call_name, imports_map): (&str, &FxHashSet<Atom>),
+  (call_name, imports_map): (&str, Option<&FxHashSet<Atom>>),
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
@@ -574,7 +576,9 @@ pub(crate) fn is_target_call(
     .callee
     .as_expr()
     .and_then(|arg| arg.as_ident())
-    .is_some_and(|ident| imports_map.contains(&ident.sym));
+    .is_some_and(|ident| {
+      imports_map.is_some_and(|set| set.contains(&ident.sym))
+    });
 
   let is_create_member = call
     .callee

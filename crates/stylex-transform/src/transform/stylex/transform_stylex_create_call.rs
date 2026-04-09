@@ -24,6 +24,7 @@ use swc_core::{
 use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
 use crate::shared::structures::pre_rule::PreRuleValue;
 use crate::shared::structures::state::EvaluationState;
+use crate::shared::structures::state_manager::ImportKind;
 use crate::shared::structures::types::FunctionMapIdentifiers;
 use crate::shared::structures::types::InjectableStylesMap;
 use crate::shared::structures::types::{FlatCompiledStyles, FunctionMapMemberExpression};
@@ -201,47 +202,57 @@ where
       let keyframes_fn = get_keyframes_fn();
       let position_try_fn = get_position_try_fn();
 
-      for name in &self.state.stylex_first_that_works_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::FirstThatWorks) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
+          );
+        }
       }
 
-      for name in &self.state.stylex_keyframes_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::Keyframes) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
+          );
+        }
       }
 
-      for name in &self.state.stylex_position_try_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::PositionTry) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
+          );
+        }
       }
 
-      for name in &self.state.stylex_default_marker_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::IndexMap(
-            stylex_default_maker::stylex_default_marker(&self.state.options)
-              .as_values()
-              .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
-              .clone(),
-          )),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::DefaultMarker) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::IndexMap(
+              stylex_default_maker::stylex_default_marker(&self.state.options)
+                .as_values()
+                .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
+                .clone(),
+            )),
+          );
+        }
       }
 
-      for name in &self.state.stylex_when_import {
-        identifiers.insert(
-          name.clone(),
-          Box::new(FunctionConfigType::Regular(FunctionConfig {
-            fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
-            takes_path: false,
-          })),
-        );
+      if let Some(set) = self.state.get_import(ImportKind::When) {
+        for name in set {
+          identifiers.insert(
+            name.clone(),
+            Box::new(FunctionConfigType::Regular(FunctionConfig {
+              fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
+              takes_path: false,
+            })),
+          );
+        }
       }
 
       for name in &self.state.stylex_import {

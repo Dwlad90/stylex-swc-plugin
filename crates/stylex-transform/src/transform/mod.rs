@@ -382,10 +382,7 @@ where
         )
       },
       TransformationCycle::TransformExit => {
-        state.any_import_contains(
-          &[ImportKind::Attrs, ImportKind::Props],
-          &ident_sym,
-        )
+        state.any_import_contains(&[ImportKind::Attrs, ImportKind::Props], &ident_sym)
       },
       _ => false,
     }

@@ -474,7 +474,11 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 }
 
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(("create", state.get_import(ImportKind::Create)), call, state)
+  is_target_call(
+    ("create", state.get_import(ImportKind::Create)),
+    call,
+    state,
+  )
 }
 
 pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
@@ -489,9 +493,11 @@ pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) 
   let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
 
   match init {
-    Some(call) => {
-      is_target_call(("keyframes", state.get_import(ImportKind::Keyframes)), &call, state)
-    },
+    Some(call) => is_target_call(
+      ("keyframes", state.get_import(ImportKind::Keyframes)),
+      &call,
+      state,
+    ),
     _ => false,
   }
 }
@@ -576,9 +582,7 @@ pub(crate) fn is_target_call(
     .callee
     .as_expr()
     .and_then(|arg| arg.as_ident())
-    .is_some_and(|ident| {
-      imports_map.is_some_and(|set| set.contains(&ident.sym))
-    });
+    .is_some_and(|ident| imports_map.is_some_and(|set| set.contains(&ident.sym)));
 
   let is_create_member = call
     .callee

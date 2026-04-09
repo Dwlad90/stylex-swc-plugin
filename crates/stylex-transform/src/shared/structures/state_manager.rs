@@ -812,8 +812,11 @@ impl StateManager {
 
   // Now you can use these helper functions to simplify your function
   pub fn combine(&mut self, other: &Self) {
-    self.import_paths = union_hash_set(&self.import_paths, &other.import_paths);
-    self.stylex_import = union_hash_set(&self.stylex_import, &other.stylex_import);
+    // Hash sets: extend in-place
+    self.import_paths.extend(other.import_paths.iter().cloned());
+    self
+      .stylex_import
+      .extend(other.stylex_import.iter().cloned());
 
     // Combine all API import sets (fixes bug where 7 kinds were previously missing)
     for kind in ImportKind::ALL {
@@ -825,54 +828,56 @@ impl StateManager {
       }
     }
 
-    self.inject_import_inserted = self
-      .inject_import_inserted
-      .clone()
-      .or(other.inject_import_inserted.clone());
-    self.export_id = self.export_id.clone().or(other.export_id.clone());
-    self.declarations = chain_collect(self.declarations.clone(), other.declarations.clone());
-    self.top_level_expressions = chain_collect(
-      self.top_level_expressions.clone(),
-      other.top_level_expressions.clone(),
+    // Option fields: only clone from other if self is None
+    if self.inject_import_inserted.is_none() {
+      self.inject_import_inserted = other.inject_import_inserted.clone();
+    }
+    if self.export_id.is_none() {
+      self.export_id = other.export_id.clone();
+    }
+
+    // Vecs: merge in-place
+    chain_collect_in_place(&mut self.declarations, &other.declarations);
+    chain_collect_in_place(
+      &mut self.top_level_expressions,
+      &other.top_level_expressions,
     );
 
-    self.all_call_expressions = chain_collect_hash_map(
-      self.all_call_expressions.clone(),
-      other.all_call_expressions.clone(),
-    );
-    self.var_decl_count_map = chain_collect_hash_map(
-      self.var_decl_count_map.clone(),
-      other.var_decl_count_map.clone(),
-    );
-    self.style_map = chain_collect_hash_map(self.style_map.clone(), other.style_map.clone());
-    self.style_vars = chain_collect_hash_map(self.style_vars.clone(), other.style_vars.clone());
-    self.style_vars_to_keep =
-      union_index_set(&self.style_vars_to_keep.clone(), &other.style_vars_to_keep);
-    self.member_object_ident_count_map = chain_collect_hash_map(
-      self.member_object_ident_count_map.clone(),
-      other.member_object_ident_count_map.clone(),
+    // Hash maps: extend in-place (other values take precedence)
+    extend_hash_map(&mut self.all_call_expressions, &other.all_call_expressions);
+    extend_hash_map(&mut self.var_decl_count_map, &other.var_decl_count_map);
+    extend_hash_map(&mut self.style_map, &other.style_map);
+    extend_hash_map(&mut self.style_vars, &other.style_vars);
+
+    // Index set: extend in-place
+    self
+      .style_vars_to_keep
+      .extend(other.style_vars_to_keep.iter().cloned());
+
+    extend_hash_map(
+      &mut self.member_object_ident_count_map,
+      &other.member_object_ident_count_map,
     );
     self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
 
-    self.metadata = chain_collect_index_map(self.metadata.clone(), other.metadata.clone());
-    self.seen = chain_collect_hash_map(self.seen.clone(), other.seen.clone());
-    self.styles_to_inject = chain_collect_index_map(
-      self.styles_to_inject.clone(),
-      other.styles_to_inject.clone(),
+    // Index maps: extend in-place
+    extend_index_map(&mut self.metadata, &other.metadata);
+    extend_hash_map(&mut self.seen, &other.seen);
+    extend_index_map(&mut self.styles_to_inject, &other.styles_to_inject);
+
+    chain_collect_in_place(
+      &mut self.prepend_include_module_items,
+      &other.prepend_include_module_items,
     );
-    self.prepend_include_module_items = chain_collect(
-      self.prepend_include_module_items.clone(),
-      other.prepend_include_module_items.clone(),
+    chain_collect_in_place(
+      &mut self.prepend_import_module_items,
+      &other.prepend_import_module_items,
     );
-    self.prepend_import_module_items = chain_collect(
-      self.prepend_import_module_items.clone(),
-      other.prepend_import_module_items.clone(),
+    extend_index_map(
+      &mut self.other_injected_css_rules,
+      &other.other_injected_css_rules,
     );
-    self.other_injected_css_rules = chain_collect_index_map(
-      self.other_injected_css_rules.clone(),
-      other.other_injected_css_rules.clone(),
-    );
-    self.top_imports = chain_collect(self.top_imports.clone(), other.top_imports.clone());
+    chain_collect_in_place(&mut self.top_imports, &other.top_imports);
   }
 }
 
@@ -979,75 +984,55 @@ fn add_file_extension(imported_file_path: &str, source_file: &str) -> String {
   format!("{}.{}", imported_file_path, file_extension)
 }
 
-fn chain_collect<T: Clone + Eq + PartialEq>(vec1: Vec<T>, vec2: Vec<T>) -> Vec<T> {
-  if vec1 == vec2 {
-    return vec1;
+/// Merge `source` items into `target` Vec, deduplicating.
+/// Preserves original combine() semantics: when target is shorter than source
+/// and target is a prefix of source, takes source directly. Otherwise merges.
+fn chain_collect_in_place<T: Clone + Eq>(target: &mut Vec<T>, source: &[T]) {
+  if target.as_slice() == source {
+    return;
   }
 
-  if vec1.len() < vec2.len() {
-    let commom_part = vec2.iter().take(vec1.len()).cloned().collect::<Vec<T>>();
-
-    if commom_part == vec1 {
-      return vec2;
+  if target.len() < source.len() {
+    if source.iter().take(target.len()).eq(target.iter()) {
+      *target = source.to_vec();
+      return;
     }
 
-    let mut vec = vec1.clone();
-
-    vec.retain(|item| vec2.contains(item));
-
-    for item in vec2.iter() {
-      if !vec.contains(item) {
-        vec.push(item.clone());
+    target.retain(|item| source.contains(item));
+    for item in source {
+      if !target.contains(item) {
+        target.push(item.clone());
       }
     }
-
-    return vec;
+    return;
   }
 
-  let mut vec = vec1.clone();
-
-  vec.retain(|item| !vec2.contains(item));
-
-  for item in vec2.iter() {
-    if !vec.contains(item) {
-      vec.push(item.clone());
+  target.retain(|item| !source.contains(item));
+  for item in source {
+    if !target.contains(item) {
+      target.push(item.clone());
     }
   }
-
-  vec
 }
 
-fn union_hash_set<T: Clone + Eq + Hash>(set1: &FxHashSet<T>, set2: &FxHashSet<T>) -> FxHashSet<T> {
-  set1.union(set2).cloned().collect()
-}
-
-fn chain_collect_hash_map<K: Eq + Hash, V: Clone + PartialEq>(
-  map1: FxHashMap<K, V>,
-  map2: FxHashMap<K, V>,
-) -> FxHashMap<K, V> {
-  if map1 == map2 {
-    return map1;
+/// Extend a FxHashMap in-place. Source values take precedence on key conflicts.
+fn extend_hash_map<K: Clone + Eq + Hash, V: Clone + PartialEq>(
+  target: &mut FxHashMap<K, V>,
+  source: &FxHashMap<K, V>,
+) {
+  if target != source {
+    target.extend(source.iter().map(|(k, v)| (k.clone(), v.clone())));
   }
-  map1.into_iter().chain(map2).collect()
 }
 
-fn union_index_set<T: Clone + Eq + Hash>(set1: &IndexSet<T>, set2: &IndexSet<T>) -> IndexSet<T> {
-  if set1 == set2 {
-    return set1.clone();
+/// Extend an IndexMap in-place. Source values take precedence on key conflicts.
+fn extend_index_map<K: Clone + Eq + Hash, V: Clone + PartialEq>(
+  target: &mut IndexMap<K, V>,
+  source: &IndexMap<K, V>,
+) {
+  if target != source {
+    target.extend(source.iter().map(|(k, v)| (k.clone(), v.clone())));
   }
-
-  set1.union(set2).cloned().collect()
-}
-
-fn chain_collect_index_map<K: Eq + Hash, V: Clone + PartialEq>(
-  map1: IndexMap<K, V>,
-  map2: IndexMap<K, V>,
-) -> IndexMap<K, V> {
-  if map1 == map2 {
-    return map1;
-  }
-
-  map1.into_iter().chain(map2).collect()
 }
 
 fn file_path_resolver(

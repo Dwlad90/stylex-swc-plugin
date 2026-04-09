@@ -6,8 +6,8 @@ use swc_core::{
   },
 };
 
-use crate::{StyleXTransform, shared::utils::ast::convertors::convert_atom_to_string};
 use crate::shared::structures::state_manager::ImportKind;
+use crate::{StyleXTransform, shared::utils::ast::convertors::convert_atom_to_string};
 use stylex_enums::core::TransformationCycle;
 use stylex_structures::named_import_source::ImportSources;
 

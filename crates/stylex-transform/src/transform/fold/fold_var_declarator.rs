@@ -49,15 +49,12 @@ where
             .into_iter()
             .find(|item| item.eq(declaration.0.as_str()))
             .or_else(|| {
-              self
-                .state
-                .get_import(ImportKind::Create)
-                .and_then(|set| {
-                  set
-                    .iter()
-                    .find(|decl| decl.eq_ignore_span(&&declaration.0.clone()))
-                    .map(|decl| decl.to_string())
-                })
+              self.state.get_import(ImportKind::Create).and_then(|set| {
+                set
+                  .iter()
+                  .find(|decl| decl.eq_ignore_span(&&declaration.0.clone()))
+                  .map(|decl| decl.to_string())
+              })
             })
             && self.state.cycle == TransformationCycle::StateFilling
             && (member.as_str() == "create" || member.eq(declaration_string.as_str()))
